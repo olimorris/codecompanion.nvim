@@ -2,6 +2,7 @@ local Queue = require("codecompanion.strategies.chat.tools.runtime.queue")
 local Runner = require("codecompanion.strategies.chat.tools.runtime.runner")
 local log = require("codecompanion.utils.log")
 local tool_utils = require("codecompanion.utils.tools")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -227,7 +228,7 @@ function Orchestrator:setup(input)
   log:debug("Orchestrator:execute - `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and not vim.g.codecompanion_auto_tool_mode then
+  if self.tool.opts and not vim.g.codecompanion_yolo_mode then
     local requires_approval = self.tool.opts.requires_approval
 
     -- Users can set this to be a function if necessary
@@ -248,11 +249,11 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local picked = vim.fn.confirm(prompt, table.concat({ "1 Approve", "2 Reject", "3 Cancel" }, "\n"), 1, "Question")
-      if picked == 1 then
+      local choice = ui_utils.confirm(prompt, { "1 Approve", "2 Reject", "3 Cancel" })
+      if choice == 1 then
         log:debug("Orchestrator:execute - Tool approved")
         return self:execute(cmd, input)
-      elseif picked == 2 then
+      elseif choice == 2 then
         self.output.rejected(cmd)
         return self:setup()
       else

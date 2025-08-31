@@ -129,7 +129,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- Auto-save if enabled
-  if vim.g.codecompanion_auto_tool_mode then
+  if vim.g.codecompanion_yolo_mode then
     log:info("[Insert Edit Into File Tool] Auto-mode enabled, skipping diff and approval")
     return output_handler({
       status = "success",
@@ -273,7 +273,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   end
 
   -- Auto-save if enabled
-  if vim.g.codecompanion_auto_tool_mode then
+  if vim.g.codecompanion_yolo_mode then
     log:info("[Insert Edit Into File Tool] Auto-saving buffer %d", bufnr)
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")

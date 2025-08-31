@@ -696,15 +696,15 @@ M.toggle_system_prompt = {
   end,
 }
 
-M.auto_tool_mode = {
-  desc = "Toggle automatic tool mode",
+M.yolo_mode = {
+  desc = "Toggle YOLO mode",
   callback = function(chat)
-    if vim.g.codecompanion_auto_tool_mode then
-      vim.g.codecompanion_auto_tool_mode = nil
-      return util.notify("Disabled automatic tool mode", vim.log.levels.INFO)
+    if vim.g.codecompanion_yolo_mode then
+      vim.g.codecompanion_yolo_mode = nil
+      return util.notify("YOLO mode disabled", vim.log.levels.INFO)
     else
-      vim.g.codecompanion_auto_tool_mode = true
-      return util.notify("Enabled automatic tool mode", vim.log.levels.INFO)
+      vim.g.codecompanion_yolo_mode = true
+      return util.notify("YOLO mode enabled", vim.log.levels.INFO)
     end
   end,
 }

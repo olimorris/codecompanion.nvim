@@ -235,7 +235,7 @@ function Tools:set_autocmds()
             })
           end
 
-          if vim.g.codecompanion_auto_tool_mode then
+          if vim.g.codecompanion_yolo_mode then
             return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then

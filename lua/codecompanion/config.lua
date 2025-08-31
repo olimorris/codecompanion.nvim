@@ -484,11 +484,11 @@ Any code block examples must be wrapped in four backticks with the programming l
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
-        auto_tool_mode = {
-          modes = { n = "gta" },
+        yolo_mode = {
+          modes = { n = "gty" },
           index = 18,
-          callback = "keymaps.auto_tool_mode",
-          description = "Toggle automatic tool mode",
+          callback = "keymaps.yolo_mode",
+          description = "YOLO mode toggle",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -695,8 +695,8 @@ Any code block examples must be wrapped in four backticks with the programming l
             role = constants.USER_ROLE,
             opts = { auto_submit = false },
             content = function()
-              -- Enable turbo mode!!!
-              vim.g.codecompanion_auto_tool_mode = true
+              -- Enable YOLO mode!
+              vim.g.codecompanion_yolo_mode = true
 
               return [[### Instructions
 
