@@ -542,7 +542,7 @@ end
 
 ---Set a model in the chat buffer
 ---@param model string
----@return self
+---@return CodeCompanion.Chat
 function Chat:apply_model(model)
   if self.adapter.type ~= "http" then
     return self

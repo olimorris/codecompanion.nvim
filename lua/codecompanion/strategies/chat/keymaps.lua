@@ -571,7 +571,7 @@ M.change_adapter = {
         )
         chat.ui.adapter = chat.adapter
         chat:update_metadata()
-        chat.settings = chat:apply_settings()
+        chat:apply_settings()
       end
 
       -- Update the system prompt
@@ -628,7 +628,7 @@ M.change_adapter = {
 
           chat:apply_model(selected_model)
           chat:update_metadata()
-          chat.settings = chat:apply_settings()
+          chat:apply_settings()
         end)
       end
 
