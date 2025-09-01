@@ -136,7 +136,7 @@ end
 ---Add a tool system prompt to the chat buffer, updated for every tool addition
 ---@return nil
 function ToolRegistry:add_tool_system_prompt()
-  local opts = config.strategies.chat.tools.opts.system_prompt
+  local opts = config.strategies.chat.tools.opts.system_prompt or {}
   if not opts.enabled then
     return
   end

@@ -346,6 +346,7 @@ return {
       opts = {
         blank_prompt = "",
         wait_timeout = 3000,
+        system_prompt = "default system prompt",
       },
     },
     inline = {
@@ -458,7 +459,5 @@ return {
       warning = " ",
     },
   },
-  opts = {
-    system_prompt = "default system prompt",
-  },
+  opts = {},
 }
