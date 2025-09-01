@@ -78,6 +78,7 @@ local CONSTANTS = {
 local clients = {} -- Cache for HTTP and ACP clients
 local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
+local show_settings = config.display.chat.show_settings
 
 --=============================================================================
 -- Private methods
@@ -246,7 +247,7 @@ local function set_autocmds(chat)
     end,
   })
 
-  if config.display.chat.show_settings then
+  if show_settings then
     api.nvim_create_autocmd("CursorMoved", {
       group = chat.aug,
       buffer = bufnr,
@@ -291,7 +292,7 @@ local function set_autocmds(chat)
         local adapter = chat.adapter
         ---@cast adapter CodeCompanion.HTTPAdapter
 
-        local settings = parser.settings(bufnr, chat.yaml_parser, adapter)
+        local settings = parser.settings(chat.settings, bufnr, chat.yaml_parser, adapter)
 
         local errors = schema.validate(adapter.schema, settings, adapter)
         local node = settings.__ts_node
@@ -386,6 +387,7 @@ function Chat.new(args)
     clear = false,
   })
 
+  -- NOTE: Put the parser on the chat buffer for performance reasons
   local ok, chat_parser, yaml_parser
   ok, chat_parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
   if not ok then
@@ -393,7 +395,7 @@ function Chat.new(args)
   end
   self.chat_parser = chat_parser
 
-  if config.display.chat.show_settings then
+  if show_settings then
     ok, yaml_parser = pcall(vim.treesitter.get_parser, self.bufnr, "yaml", { ignore_injections = false })
     if not ok then
       return log:error("Could not find the Yaml Tree-sitter parser")
@@ -528,16 +530,14 @@ end
 
 ---Format and apply settings to the chat buffer
 ---@param settings? table
----@return nil
+---@return CodeCompanion.Chat
 function Chat:apply_settings(settings)
   if self.adapter.type ~= "http" then
-    return
+    return self
   end
 
   self.settings = settings or schema.get_default(self.adapter)
-  if not config.display.chat.show_settings then
-    parser._cached_settings[self.bufnr] = self.settings
-  end
+  return self
 end
 
 ---Set a model in the chat buffer
@@ -548,10 +548,7 @@ function Chat:apply_model(model)
     return self
   end
 
-  if parser._cached_settings[self.bufnr] then
-    parser._cached_settings[self.bufnr].model = model
-  end
-
+  self.settings.model = model
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
   self:add_system_prompt()
@@ -726,10 +723,12 @@ end
 function Chat:_submit_http(payload)
   local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
 
-  local settings = parser.settings(self.bufnr, self.yaml_parser, adapter)
-  self:apply_settings(settings)
-  local mapped_settings = adapter:map_schema_to_params(settings)
+  if show_settings then
+    local settings = parser.settings(self.bufnr, self.yaml_parser, adapter)
+    self:apply_settings(settings)
+  end
 
+  local mapped_settings = adapter:map_schema_to_params(self.settings)
   log:trace("Settings:\n%s", mapped_settings)
 
   local output = {}
@@ -1277,13 +1276,7 @@ function Chat:debug()
     return
   end
 
-  local settings = {}
-  if self.adapter.type == "http" then
-    local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
-    settings = parser.settings(self.bufnr, self.yaml_parser, adapter)
-  end
-
-  return settings, self.messages
+  return self.settings, self.messages
 end
 
 ---Update a global state object that users can access in their config

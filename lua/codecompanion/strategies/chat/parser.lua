@@ -11,26 +11,12 @@ local get_query = vim.treesitter.query.get --[[@type function]]
 
 local M = {}
 
-M._cached_settings = {}
-
 ---Parse the chat buffer for settings
 ---@param bufnr number
 ---@param parser vim.treesitter.LanguageTree
 ---@param adapter? CodeCompanion.HTTPAdapter
 ---@return table
 function M.settings(bufnr, parser, adapter)
-  if M._cached_settings[bufnr] then
-    return M._cached_settings[bufnr]
-  end
-
-  -- If the user has disabled settings in the chat buffer, use the default settings
-  if not config.display.chat.show_settings then
-    if adapter then
-      M._cached_settings[bufnr] = adapter:make_from_schema()
-      return M._cached_settings[bufnr]
-    end
-  end
-
   local settings = {}
 
   local query = get_query("yaml", "chat")

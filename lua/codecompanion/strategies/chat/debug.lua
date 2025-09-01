@@ -315,7 +315,11 @@ function Debug:save()
   end
 
   if settings then
-    self.chat:apply_settings(settings)
+    local old_model = self.chat.settings.model
+    self.chat.settings = self.chat:apply_settings(settings)
+    if old_model and old_model ~= settings.model then
+      self.chat:apply_model(settings.model)
+    end
   end
   if messages then
     self.chat.messages = messages
