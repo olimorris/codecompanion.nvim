@@ -112,6 +112,9 @@ function Strategies:chat()
       })
     end
 
+    if type(opts.pre_hook) == "function" then
+      opts.pre_hook()
+    end
     log:info("[Strategy] Chat Initiated")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
