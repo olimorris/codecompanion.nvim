@@ -121,7 +121,7 @@ function M.validate_and_normalize_filepath(filepath)
 end
 
 ---Helper function to update the chat settings and model if changed
----@param chat CodeCompanion.Chat The chat instance
+---@param chat CodeCompanion.Chat
 ---@param settings table The new settings to apply
 ---@return nil
 function M.apply_settings_and_model(chat, settings)
