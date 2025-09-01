@@ -292,7 +292,7 @@ local function set_autocmds(chat)
         local adapter = chat.adapter
         ---@cast adapter CodeCompanion.HTTPAdapter
 
-        local settings = parser.settings(chat.settings, bufnr, chat.yaml_parser, adapter)
+        local settings = parser.settings(bufnr, chat.yaml_parser, adapter)
 
         local errors = schema.validate(adapter.schema, settings, adapter)
         local node = settings.__ts_node
@@ -725,7 +725,7 @@ function Chat:_submit_http(payload)
 
   if show_settings then
     local settings = parser.settings(self.bufnr, self.yaml_parser, adapter)
-    self:apply_settings(settings)
+    helpers.apply_settings_and_model(self, settings)
   end
 
   local mapped_settings = adapter:map_schema_to_params(self.settings)
