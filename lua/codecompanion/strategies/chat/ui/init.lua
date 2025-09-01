@@ -316,7 +316,7 @@ function UI:render(context, messages, opts)
     end
   end
 
-  if config.display.chat.show_settings then
+  if config.display.chat.show_settings and self.adapter.type == "http" then
     log:trace("Showing chat settings")
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter)
