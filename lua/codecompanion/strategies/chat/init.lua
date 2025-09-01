@@ -10,6 +10,7 @@
 ---@field aug number The ID for the autocmd group
 ---@field bufnr number The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
+---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
@@ -20,7 +21,6 @@
 ---@field id number The unique identifier for the chat
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
@@ -59,13 +59,11 @@ local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local parser = require("codecompanion.strategies.chat.parser")
 local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils")
-local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
-local get_node_text = vim.treesitter.get_node_text --[[@type function]]
-local get_query = vim.treesitter.query.get --[[@type function]]
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat",
@@ -80,6 +78,7 @@ local CONSTANTS = {
 local clients = {} -- Cache for HTTP and ACP clients
 local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
+local show_settings = config.display.chat.show_settings
 
 --=============================================================================
 -- Private methods
@@ -132,26 +131,6 @@ local function get_client(adapter)
     end
     return clients.http
   end
-end
-
----Get the settings key at the current cursor position
----@param chat CodeCompanion.Chat
----@param opts? table
-local function get_settings_key(chat, opts)
-  opts = vim.tbl_extend("force", opts or {}, {
-    lang = "yaml",
-    ignore_injections = false,
-  })
-  local node = vim.treesitter.get_node(opts)
-  while node and node:type() ~= "block_mapping_pair" do
-    node = node:parent()
-  end
-  if not node then
-    return
-  end
-  local key_node = node:named_child(0)
-  local key_name = get_node_text(key_node, chat.bufnr)
-  return key_name, node
 end
 
 ---Find a message in the table that has a specific tool call ID
@@ -215,7 +194,7 @@ local function ready_chat_buffer(chat, opts)
     chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
     set_text_editing_area(chat, -2)
-    chat.ui:display_tokens(chat.parser, chat.header_line)
+    chat.ui:display_tokens(chat.chat_parser, chat.header_line)
     chat.context:render()
 
     chat.subscribers:process(chat)
@@ -232,184 +211,6 @@ local function ready_chat_buffer(chat, opts)
 
   log:info("Chat request finished")
   chat:reset()
-end
-
-local _cached_settings = {}
-
----Parse the chat buffer for settings
----@param bufnr number
----@param parser vim.treesitter.LanguageTree
----@param adapter? CodeCompanion.HTTPAdapter
----@return table
-local function ts_parse_settings(bufnr, parser, adapter)
-  if _cached_settings[bufnr] then
-    return _cached_settings[bufnr]
-  end
-
-  -- If the user has disabled settings in the chat buffer, use the default settings
-  if not config.display.chat.show_settings then
-    if adapter then
-      _cached_settings[bufnr] = adapter:make_from_schema()
-      return _cached_settings[bufnr]
-    end
-  end
-
-  local settings = {}
-
-  local query = get_query("yaml", "chat")
-  local root = parser:parse()[1]:root()
-
-  local end_line = -1
-  if adapter then
-    -- Account for the two YAML lines and the fact Tree-sitter is 0-indexed
-    end_line = vim.tbl_count(adapter.schema) + 2 - 1
-  end
-
-  for _, matches, _ in query:iter_matches(root, bufnr, 0, end_line) do
-    local nodes = matches[1]
-    local node = type(nodes) == "table" and nodes[1] or nodes
-
-    local value = get_node_text(node, bufnr)
-
-    settings = yaml.decode(value)
-    break
-  end
-
-  if not settings then
-    log:error("[chat::init::ts_parse_settings] Failed to parse settings in chat buffer")
-    return {}
-  end
-
-  return settings
-end
-
----Parse the chat buffer for the last message
----@param chat CodeCompanion.Chat
----@param start_range number
----@return { content: string }|nil
-local function ts_parse_messages(chat, start_range)
-  local query = get_query("markdown", "chat")
-
-  local tree = chat.parser:parse({ start_range - 1, -1 })[1]
-  local root = tree:root()
-
-  local content = {}
-  local last_role = nil
-
-  for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
-    if query.captures[id] == "role" then
-      last_role = helpers.format_role(get_node_text(node, chat.bufnr))
-    elseif last_role == user_role and query.captures[id] == "content" then
-      table.insert(content, get_node_text(node, chat.bufnr))
-    end
-  end
-
-  content = helpers.strip_context(content) -- If users send a blank message to the LLM, sometimes context is included
-  if not vim.tbl_isempty(content) then
-    return { content = vim.trim(table.concat(content, "\n\n")) }
-  end
-
-  return nil
-end
-
----Parse the chat buffer for the last header
----@param chat CodeCompanion.Chat
----@return number|nil
-local function ts_parse_headers(chat)
-  local query = get_query("markdown", "chat")
-
-  local tree = chat.parser:parse({ 0, -1 })[1]
-  local root = tree:root()
-
-  local last_match = nil
-  for id, node in query:iter_captures(root, chat.bufnr) do
-    if query.captures[id] == "role_only" then
-      local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      if role == user_role then
-        last_match = node
-      end
-    end
-  end
-
-  if last_match then
-    return last_match:range()
-  end
-end
-
----Parse a section of the buffer for Markdown inline links.
----@param chat CodeCompanion.Chat The chat instance.
----@param start_range number The 1-indexed line number from where to start parsing.
-local function ts_parse_images(chat, start_range)
-  local ts_query = vim.treesitter.query.parse(
-    "markdown_inline",
-    [[
-((inline_link) @link)
-  ]]
-  )
-  local parser = vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
-
-  local tree = parser:parse({ start_range, -1 })[1]
-  local root = tree:root()
-
-  local links = {}
-
-  for id, node in ts_query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
-    local capture_name = ts_query.captures[id]
-    if capture_name == "link" then
-      local link_label_text = nil
-      local link_dest_text = nil
-
-      for child in node:iter_children() do
-        local child_type = child:type()
-
-        if child_type == "link_text" then
-          local text = vim.treesitter.get_node_text(child, chat.bufnr)
-          link_label_text = text
-        elseif child_type == "link_destination" then
-          local text = vim.treesitter.get_node_text(child, chat.bufnr)
-          link_dest_text = text
-        end
-      end
-
-      if link_label_text and link_dest_text then
-        table.insert(links, { text = link_label_text, path = link_dest_text })
-      end
-    end
-  end
-
-  if vim.tbl_isempty(links) then
-    return nil
-  end
-
-  return links
-end
-
----Parse the chat buffer for a code block
----returns the code block that the cursor is in or the last code block
----@param chat CodeCompanion.Chat
----@param cursor? table
----@return TSNode | nil
-local function ts_parse_codeblock(chat, cursor)
-  local root = chat.parser:parse()[1]:root()
-  local query = get_query("markdown", "chat")
-  if query == nil then
-    return nil
-  end
-
-  local last_match = nil
-  for id, node in query:iter_captures(root, chat.bufnr, 0, -1) do
-    if query.captures[id] == "code" then
-      if cursor then
-        local start_row, start_col, end_row, end_col = node:range()
-        if cursor[1] >= start_row and cursor[1] <= end_row and cursor[2] >= start_col and cursor[2] <= end_col then
-          return node
-        end
-      end
-      last_match = node
-    end
-  end
-
-  return last_match
 end
 
 ---Used to record the last chat buffer that was opened
@@ -446,7 +247,7 @@ local function set_autocmds(chat)
     end,
   })
 
-  if config.display.chat.show_settings then
+  if show_settings then
     api.nvim_create_autocmd("CursorMoved", {
       group = chat.aug,
       buffer = bufnr,
@@ -456,7 +257,7 @@ local function set_autocmds(chat)
           return
         end
 
-        local key_name, node = get_settings_key(chat)
+        local key_name, node = parser.get_settings_key(chat)
         if not key_name or not node then
           vim.diagnostic.set(config.INFO_NS, chat.bufnr, {})
           return
@@ -491,7 +292,7 @@ local function set_autocmds(chat)
         local adapter = chat.adapter
         ---@cast adapter CodeCompanion.HTTPAdapter
 
-        local settings = ts_parse_settings(bufnr, chat.yaml_parser, adapter)
+        local settings = parser.settings(bufnr, chat.yaml_parser, adapter)
 
         local errors = schema.validate(adapter.schema, settings, adapter)
         local node = settings.__ts_node
@@ -500,7 +301,7 @@ local function set_autocmds(chat)
         if errors and node then
           for child in node:iter_children() do
             assert(child:type() == "block_mapping_pair")
-            local key = get_node_text(child:named_child(0), chat.bufnr)
+            local key = vim.treesitter.get_node_text(child:named_child(0), chat.bufnr)
             if errors[key] then
               local lnum, col, end_lnum, end_col = child:range()
               table.insert(items, {
@@ -586,15 +387,15 @@ function Chat.new(args)
     clear = false,
   })
 
-  -- Assign the parsers to the chat object for performance
-  local ok, parser, yaml_parser
-  ok, parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
+  -- NOTE: Put the parser on the chat buffer for performance reasons
+  local ok, chat_parser, yaml_parser
+  ok, chat_parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
   if not ok then
     return log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
   end
-  self.parser = parser
+  self.chat_parser = chat_parser
 
-  if config.display.chat.show_settings then
+  if show_settings then
     ok, yaml_parser = pcall(vim.treesitter.get_parser, self.bufnr, "yaml", { ignore_injections = false })
     if not ok then
       return log:error("Could not find the Yaml Tree-sitter parser")
@@ -665,7 +466,7 @@ function Chat.new(args)
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
     ---@cast self CodeCompanion.Chat
-    local header_line = ts_parse_headers(self)
+    local header_line = parser.headers(self, self.chat_parser)
     self.header_line = header_line and (header_line + 1) or 1
   end
 
@@ -729,30 +530,25 @@ end
 
 ---Format and apply settings to the chat buffer
 ---@param settings? table
----@return nil
+---@return CodeCompanion.Chat
 function Chat:apply_settings(settings)
   if self.adapter.type ~= "http" then
-    return
+    return self
   end
 
   self.settings = settings or schema.get_default(self.adapter)
-  if not config.display.chat.show_settings then
-    _cached_settings[self.bufnr] = self.settings
-  end
+  return self
 end
 
 ---Set a model in the chat buffer
 ---@param model string
----@return self
+---@return CodeCompanion.Chat
 function Chat:apply_model(model)
   if self.adapter.type ~= "http" then
     return self
   end
 
-  if _cached_settings[self.bufnr] then
-    _cached_settings[self.bufnr].model = model
-  end
-
+  self.settings.model = model
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
   self:add_system_prompt()
@@ -770,7 +566,7 @@ function Chat:complete_models(callback)
 
   local items = {}
   local cursor = api.nvim_win_get_cursor(0)
-  local key_name, node = get_settings_key(self, { pos = { cursor[1] - 1, 1 } })
+  local key_name, node = parser.get_settings_key(self, { pos = { cursor[1] - 1, 1 } })
   if not key_name or not node then
     callback({ items = items, isIncomplete = false })
     return
@@ -927,10 +723,12 @@ end
 function Chat:_submit_http(payload)
   local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
 
-  local settings = ts_parse_settings(self.bufnr, self.yaml_parser, adapter)
-  self:apply_settings(settings)
-  local mapped_settings = adapter:map_schema_to_params(settings)
+  if show_settings then
+    local settings = parser.settings(self.bufnr, self.yaml_parser, adapter)
+    helpers.apply_settings_and_model(self, settings)
+  end
 
+  local mapped_settings = adapter:map_schema_to_params(self.settings)
   log:trace("Settings:\n%s", mapped_settings)
 
   local output = {}
@@ -1015,7 +813,7 @@ function Chat:submit(opts)
   if opts.auto_submit then
     self.watched_buffers:check_for_changes(self)
   else
-    local message_to_submit = ts_parse_messages(self, self.header_line)
+    local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
       return log:warn("No messages to submit")
     end
@@ -1191,7 +989,7 @@ end
 ---@param message table
 ---@return nil
 function Chat:check_images(message)
-  local images = ts_parse_images(self, self.header_line)
+  local images = parser.images(self, self.header_line)
   if not images then
     return
   end
@@ -1453,7 +1251,7 @@ end
 ---@return TSNode | nil
 function Chat:get_codeblock()
   local cursor = api.nvim_win_get_cursor(0)
-  return ts_parse_codeblock(self, cursor)
+  return parser.codeblock(self, cursor)
 end
 
 ---Clear the chat buffer
@@ -1478,13 +1276,7 @@ function Chat:debug()
     return
   end
 
-  local settings = {}
-  if self.adapter.type == "http" then
-    local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
-    settings = ts_parse_settings(self.bufnr, self.yaml_parser, adapter)
-  end
-
-  return settings, self.messages
+  return self.settings, self.messages
 end
 
 ---Update a global state object that users can access in their config

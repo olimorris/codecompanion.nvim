@@ -1,5 +1,6 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.helpers")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
@@ -315,7 +316,7 @@ function Debug:save()
   end
 
   if settings then
-    self.chat:apply_settings(settings)
+    helpers.apply_settings_and_model(self.chat, settings)
   end
   if messages then
     self.chat.messages = messages
