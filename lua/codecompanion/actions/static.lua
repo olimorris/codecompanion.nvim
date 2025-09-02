@@ -93,35 +93,33 @@ return {
     picker = {
       prompt = "Select a memory",
       items = function()
-        local memory_items = {}
-        local exclusions = { "opts" }
+        local memory = require("codecompanion.strategies.chat.memory")
+        local helpers = require("codecompanion.strategies.chat.memory.helpers")
 
-        for name, data in pairs(config.memory) do
-          if not vim.tbl_contains(exclusions, name) then
-            table.insert(memory_items, {
-              name = name,
-              strategy = "chat",
-              description = data.description,
-              callback = function(context)
-                local memory = require("codecompanion.strategies.chat.memory")
+        local formatted = {}
+        for _, item in ipairs(helpers.list()) do
+          table.insert(formatted, {
+            name = item.name,
+            strategy = "chat",
+            description = item.description,
+            callback = function(context)
+              codecompanion.chat({
+                messages = memory
                   .init({
-                    name = name,
-                    rules = data.rules,
-                    role = data.role,
-                    opts = config.memory.opts,
+                    name = item.name,
+                    rules = item.rules,
+                    role = item.role,
+                    opts = item.opts,
                   })
-                  :make()
-
-                codecompanion.chat_with_memory({
-                  memory = memory,
-                  context = context,
-                })
-              end,
-            })
-          end
+                  :make(),
+                context = context,
+                auto_submit = false,
+                has_memory = true,
+              })
+            end,
+          })
         end
-
-        return memory_items
+        return formatted
       end,
     },
   },

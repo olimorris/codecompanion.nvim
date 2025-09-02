@@ -134,14 +134,16 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? table
+---@param args? { auto_submit: boolean, args: string, fargs: table, context: table, has_memory: boolean, messages: CodeCompanion.Chat.Messages }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
-  local adapter
-  local messages = {}
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  args = args or {}
 
-  if args and args.fargs and #args.fargs > 0 then
+  local adapter
+  local messages = args.messages or {}
+  local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
+
+  if args.fargs and #args.fargs > 0 then
     local prompt = args.fargs[1]:lower()
 
     -- Check if the adapter is available
@@ -165,12 +167,17 @@ CodeCompanion.chat = function(args)
   end
 
   local has_messages = not vim.tbl_isempty(messages)
+  local auto_submit = has_messages
+  if args.auto_submit ~= nil then
+    auto_submit = args.auto_submit
+  end
 
   return require("codecompanion.strategies.chat").new({
+    auto_submit = auto_submit,
     adapter = adapter,
     buffer_context = context,
     messages = has_messages and messages or nil,
-    auto_submit = has_messages,
+    has_memory = args.has_memory or false,
   })
 end
 
@@ -182,6 +189,7 @@ CodeCompanion.chat_with_memory = function(args)
 
   return require("codecompanion.strategies.chat").new({
     buffer_context = args.context,
+    force_header = true,
     messages = args.memory,
   })
 end
