@@ -253,8 +253,6 @@ function Inline:parse_special_syntax(prompt)
       table.remove(split, 1)
       prompt = table.concat(split, " ")
     else
-      vim.notify("Adapter not found: ".. adapter_match, vim.log.levels.ERROR)
-    end
   end
 
   return vim.trim(prompt)
