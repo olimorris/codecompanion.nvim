@@ -252,7 +252,7 @@ function Inline:parse_special_syntax(prompt)
       self:set_adapter(first_word)
       table.remove(split, 1)
       prompt = table.concat(split, " ")
-    else
+    end
   end
 
   return vim.trim(prompt)
