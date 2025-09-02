@@ -1142,6 +1142,45 @@ You must create or modify a workspace file through a series of prompts over mult
       },
     },
   },
+  memory = {
+    default = {
+      description = "Default rule selection for CodeCompanion",
+      role = constants.USER_ROLE,
+      rules = {
+        ".rules",
+        ".goosehints",
+        ".cursorrules",
+        ".windsurfrules",
+        ".clinerules",
+        ".github/copilot-instructions.md",
+        "AGENT.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codecompanionrules",
+      },
+    },
+    claude = {
+      description = "Claude Code memory rules",
+      role = constants.USER_ROLE,
+      rules = {
+        "~/.claude/CLAUDE.md",
+        { path = "~/Code/Neovim/codecompanion.nvim/CLAUDE.md", parser = "something" },
+        "CLAUDE.local.md",
+      },
+    },
+    opts = {
+      rule_parsers = {
+        ["parsers.plaintext"] = {
+          ".rules",
+          ".goosehints",
+        },
+        ["parsers.claude_md"] = {
+          "CLAUDE.md",
+          "CLAUDE.local.md",
+        },
+      },
+    },
+  },
   -- DISPLAY OPTIONS ----------------------------------------------------------
   display = {
     action_palette = {

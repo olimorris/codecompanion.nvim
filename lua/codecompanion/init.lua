@@ -135,7 +135,7 @@ end
 
 ---Open a chat buffer and converse with an LLM
 ---@param args? table
----@return nil
+---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   local adapter
   local messages = {}
@@ -171,6 +171,18 @@ CodeCompanion.chat = function(args)
     buffer_context = context,
     messages = has_messages and messages or nil,
     auto_submit = has_messages,
+  })
+end
+
+---Open a chat buffer with memory
+---@param args {memory: table, context: table}
+---@return CodeCompanion.Chat|nil
+CodeCompanion.chat_with_memory = function(args)
+  args = args or {}
+
+  return require("codecompanion.strategies.chat").new({
+    buffer_context = args.context,
+    messages = args.memory,
   })
 end
 

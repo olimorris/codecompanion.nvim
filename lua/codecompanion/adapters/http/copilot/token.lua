@@ -134,7 +134,7 @@ local function get_copilot_token()
   end
 
   _token_fetch_in_progress = true
-  log:debug("Authorizing GitHub Copilot token")
+  log:trace("Authorizing GitHub Copilot token")
 
   local ok, request = pcall(function()
     return Curl.get("https://api.github.com/copilot_internal/v2/token", {

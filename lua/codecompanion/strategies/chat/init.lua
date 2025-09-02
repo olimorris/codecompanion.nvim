@@ -465,7 +465,6 @@ function Chat.new(args)
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
-    ---@cast self CodeCompanion.Chat
     local header_line = parser.headers(self, self.chat_parser)
     self.header_line = header_line and (header_line + 1) or 1
   end
