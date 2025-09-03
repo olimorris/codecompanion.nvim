@@ -78,7 +78,7 @@ Setting environment variables within adapters is a key part of configuration. Th
 Supported `env` value types:
 - **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
 - **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
-- **Function**: you can provide a Lua function which will be called with the adapter as its sole argument.
+- **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
 - **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
 
 ## Changing a Model
@@ -295,12 +295,12 @@ With `show_model_choices = false`, the default model (as defined in the adapter'
 To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion, you'll need to take the following steps:
 
 1. [Install](https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code) Claude Code
-2. [Install](https://www.npmjs.com/package/@zed-industries/claude-code-acp?activeTab=readme) the Zed ACP adapter for Claude Code
+2. [Install](https://github.com/zed-industries/claude-code-acp) the Zed ACP adapter for Claude Code
 3. In your CLI, run `claude setup-token`. You'll be redirected to the Claude.ai website for authorization:
 <img src="https://github.com/user-attachments/assets/28b70ba1-6fd2-4431-9905-c60c83286e4c">
-4. Back in your CLI, copy the OAuth token:
+4. Back in your CLI, copy the OAuth token (in yellow):
 <img src="https://github.com/user-attachments/assets/73992480-20a6-4858-a9fe-93a4e49004ff">
-5. In your CodeCompanion config, extend the `claude_code` adapter:
+5. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on [environment variables](#environment-variables) for other ways to do this):
 ```lua
 require("codecompanion").setup({
   adapters = {
