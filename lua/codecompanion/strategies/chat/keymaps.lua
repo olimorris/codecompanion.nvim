@@ -575,7 +575,7 @@ M.change_adapter = {
       end
 
       -- Update the system prompt
-      local system_prompt = config.opts.system_prompt
+      local system_prompt = config.strategies.chat.opts.system_prompt
       if type(system_prompt) == "function" then
         if chat.messages[1] and chat.messages[1].role == "system" then
           local opts = { adapter = chat.adapter, language = config.opts.language }

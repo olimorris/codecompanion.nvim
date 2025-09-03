@@ -598,7 +598,7 @@ function Chat:add_system_prompt(prompt, opts)
     return self
   end
 
-  prompt = prompt or config.opts.system_prompt
+  prompt = prompt or config.strategies.chat.opts.system_prompt
   opts = opts or { visible = false, tag = "system_prompt_from_config" }
 
   -- If the system prompt already exists, update it
