@@ -199,6 +199,7 @@ function M.fetch()
   return {
     oauth_token = M._oauth_token,
     copilot_token = (M._copilot_token and M._copilot_token.token) or nil,
+    endpoints = (M._copilot_token and M._copilot_token.endpoints) or nil,
   }
 end
 
