@@ -189,6 +189,9 @@ function Strategies:workflow()
 
   local messages = prompts[1]
 
+  -- Set the workflow adapter if one is specified (Single adapter for entire workflow)
+  add_adapter(self, workflow.opts or {})
+
   -- We send the first batch of prompts to the chat buffer as messages
   local chat = require("codecompanion.strategies.chat").new({
     adapter = self.selected.adapter,
