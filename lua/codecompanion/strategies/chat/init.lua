@@ -42,7 +42,6 @@
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
----@field has_memory? boolean Whether the chat was initiated from memory
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
@@ -462,11 +461,7 @@ function Chat.new(args)
   end
 
   self.close_last_chat()
-  self.ui:open():render(
-    self.buffer_context,
-    self.messages,
-    { force_header = args.has_memory, stop_context_insertion = args.stop_context_insertion }
-  )
+  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then

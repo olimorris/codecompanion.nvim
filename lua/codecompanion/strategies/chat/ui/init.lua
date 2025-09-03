@@ -335,8 +335,8 @@ function UI:render(context, messages, opts)
   end
 
   -- NOTE: Typically, we wouldn't want to render a header if there are existing
-  -- messages. However, provide an option to force the header to be created
-  -- for scenarios such as when memory is being added to the chat buffer
+  -- messages. However, provide an option to force the header to be rendered
+  -- for scenarios where there is no user prompt
   if opts.force_header or (vim.tbl_isempty(messages) or not helpers.has_user_messages(messages)) then
     log:trace("Setting the header for the chat buffer")
     self:set_header(lines, self.roles.user)
