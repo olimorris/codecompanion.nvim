@@ -53,7 +53,11 @@ end
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
   local window = opts.window
-  local optsWidth = opts.window.width == "auto" and 0.45 or opts.window.width
+
+  -- Create background window for dimming effect if enabled
+  if opts.show_dim then
+    M.create_background_window()
+  end
 
   local config = require("codecompanion.config")
   local window_width = config.resolve_value(window.width)
@@ -69,7 +73,7 @@ M.create_float = function(lines, opts)
   local row = opts.row or window.row or 10
   local col = opts.col or window.col or 0
   if row == "center" then
-    row = math.floor((vim.o.lines - height) / 2)
+    row = math.floor((vim.o.lines - height) / 2 - 1) -- Account for status line for better UX
   end
   if col == "center" then
     col = math.floor((vim.o.columns - width) / 2)
@@ -86,9 +90,13 @@ M.create_float = function(lines, opts)
     col = col,
     title = opts.title or "Options",
     title_pos = "center",
+    zindex = opts.show_dim and 99 or nil, -- When dimming, set above background win but below notifications
   })
 
-  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  -- Only set content if we created a new buffer OR if not explicitly disabled
+  if not opts.bufnr or opts.set_content ~= false then
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  end
 
   if opts.lock then
     vim.bo[bufnr].modified = false
@@ -97,6 +105,17 @@ M.create_float = function(lines, opts)
 
   if opts.opts then
     M.set_win_options(winnr, opts.opts)
+  end
+
+  -- Set up autocmd to clean up background window if dimming is enabled
+  if winnr and opts.show_dim then
+    api.nvim_create_autocmd("WinClosed", {
+      pattern = tostring(winnr),
+      callback = function()
+        M.close_background_window()
+      end,
+      once = true,
+    })
   end
 
   if opts.ignore_keymaps then
@@ -111,6 +130,32 @@ M.create_float = function(lines, opts)
   vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
 
   return bufnr, winnr
+end
+
+---Build a floating window title with smart filepath handling
+---@param opts { title?: string, title_prefix?: string, filepath?: string }
+---@return string title The formatted title
+function M.build_float_title(opts)
+  opts = opts or {}
+  local title = opts.title or opts.title_prefix or "CodeCompanion"
+
+  if opts.filepath then
+    local filename = vim.fs.basename(opts.filepath)
+    local function format_dirname(path)
+      local dirname = vim.fs.dirname(path)
+      if dirname and dirname ~= "." and dirname ~= "" then
+        return dirname .. "/"
+      end
+      return ""
+    end
+    local ok, relative_path = pcall(function()
+      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
+    end)
+    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
+    title = " " .. (opts.title_prefix or " Diff") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
+  end
+
+  return title
 end
 
 ---@param bufnr number
@@ -474,79 +519,6 @@ function M.confirm(prompt, choices, opts)
   opts = opts or { default = 1, highlight_group = "Question" }
   local formatted_choices = table.concat(choices, "\n")
   return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
-end
-
----Create a basic floating window with title and background dim
----@param bufnr number Buffer to display in the floating window
----@param opts table Options for the floating window
----@return number|nil winnr Window number of the created floating window
-function M.create_diff_dim_floating_win(bufnr, opts)
-  opts = opts or {}
-
-  -- Create background window for dimming effect
-  if opts.show_dim ~= false then
-    M.create_background_window()
-  end
-
-  local config = require("codecompanion.config")
-  local base_window_config = config.display.chat.child_window or {}
-  local diff_window_config = config.display.chat.diff_window or {}
-
-  -- Merge configurations with diff_window taking precedence
-  local window_config = vim.tbl_deep_extend("force", base_window_config, diff_window_config)
-
-  local width = config.resolve_value(window_config.width) or vim.o.columns - 14
-  local height = config.resolve_value(window_config.height) or vim.o.lines - 7
-  local row = window_config.row == "center" and math.floor((vim.o.lines - height) / 2 - 1) or window_config.row or 10
-  local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 5
-
-  -- Build title
-  local title = opts.title or opts.title_prefix or "CodeCompanion"
-  if opts.filepath then
-    local filename = vim.fs.basename(opts.filepath)
-    local function format_dirname(path)
-      local dirname = vim.fs.dirname(path)
-      if dirname and dirname ~= "." and dirname ~= "" then
-        return dirname .. "/"
-      end
-      return ""
-    end
-    local ok, relative_path = pcall(function()
-      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
-    end)
-    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
-    title = " " .. (opts.title_prefix or " Diff") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
-  end
-
-  local winnr = api.nvim_open_win(bufnr, true, {
-    relative = window_config.relative or "editor",
-    border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
-    title = title,
-    title_pos = "center",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    zindex = 100, -- Higher than background window
-  })
-
-  -- Set window options if provided
-  if window_config.opts then
-    M.set_win_options(winnr, window_config.opts)
-  end
-
-  -- Set up autocmd to clean up background window
-  if winnr and opts.show_dim ~= false then
-    api.nvim_create_autocmd("WinClosed", {
-      pattern = tostring(winnr),
-      callback = function()
-        M.close_background_window()
-      end,
-      once = true,
-    })
-  end
-
-  return winnr
 end
 
 return M
