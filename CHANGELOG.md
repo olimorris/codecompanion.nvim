@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.20.0...v17.21.0) (2025-09-03)
+
+
+### Features
+
+* **acp:** add support for Claude Code ([#2079](https://github.com/olimorris/codecompanion.nvim/issues/2079)) ([0e4abfb](https://github.com/olimorris/codecompanion.nvim/commit/0e4abfb558f95fea9804a4239447c3f9a71013d2))
+
 ## [17.20.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.19.1...v17.20.0) (2025-09-03)
 
 
