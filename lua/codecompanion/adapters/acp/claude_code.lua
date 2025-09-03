@@ -58,9 +58,10 @@ return {
 
     ---@param self CodeCompanion.ACPAdapter
     ---@param messages table
+    ---@param capabilities table
     ---@return table
-    form_messages = function(self, messages)
-      return helpers.form_messages(self, messages)
+    form_messages = function(self, messages, capabilities)
+      return helpers.form_messages(self, messages, capabilities)
     end,
 
     ---Function to run when the request has completed. Useful to catch errors
