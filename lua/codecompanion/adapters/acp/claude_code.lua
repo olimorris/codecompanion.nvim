@@ -21,12 +21,11 @@ return {
     },
   },
   defaults = {
-    auth_method = "claude-login", -- "anthropic-api-key"|"claude-login"
     mcpServers = {},
     timeout = 20000, -- 20 seconds
   },
   env = {
-    ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY",
+    CLAUDE_CODE_OAUTH_TOKEN = "CLAUDE_CODE_OAUTH_TOKEN",
   },
   parameters = {
     protocolVersion = 1,
@@ -43,6 +42,18 @@ return {
     ---@return boolean
     setup = function(self)
       return true
+    end,
+
+    ---Manually handle authentication
+    ---@param self CodeCompanion.ACPAdapter
+    ---@return boolean
+    auth = function(self)
+      local token = self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN
+      if token and token ~= "" then
+        vim.env.CLAUDE_CODE_OAUTH_TOKEN = token
+        return true
+      end
+      return false
     end,
 
     ---@param self CodeCompanion.ACPAdapter

@@ -138,6 +138,24 @@ function Connection:connect_and_initialize()
     log:debug("[acp::connect_and_initialize] ACP connection initialized")
   end
 
+  -- Allow adapters to handle authentication themselves
+  if
+    not self._authenticated
+    and self.adapter_modified
+    and self.adapter_modified.handlers
+    and self.adapter_modified.handlers.auth
+  then
+    local ok, adapter_authenticated = pcall(self.adapter_modified.handlers.auth, self.adapter_modified)
+    if not ok then
+      log:error("[acp::connect_and_initialize] Adapter auth hook failed: %s", adapter_authenticated)
+      return nil
+    end
+    if adapter_authenticated == true then
+      self._authenticated = true
+      log:debug("[acp::connect_and_initialize] Authentication handled by adapter; skipping RPC authenticate")
+    end
+  end
+
   -- Authenticate only if agent supports it (authMethods not empty)
   if not self._authenticated then
     local auth_methods = (self._agent_info and self._agent_info.authMethods) or {}
