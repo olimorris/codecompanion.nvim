@@ -154,20 +154,37 @@ local function place_diff_winbar(winnr)
   if keymaps_config.always_accept.modes.n then
     table.insert(parts, "[Always Accept: " .. keymaps_config.always_accept.modes.n .. "]")
   end
-  table.insert(parts, "[Close: q]")
 
   local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
   ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
 end
 
----Create diff floating window with winbar
+---Create diff floating window using create_float
 ---@param bufnr number Buffer to display in the floating window
 ---@param filepath string|nil Optional filepath for window title
 ---@return number? winnr Window number of the created floating window
 local function create_diff_floating_window(bufnr, filepath)
-  local winnr = ui.create_diff_dim_floating_win(bufnr, {
-    filepath = filepath,
-    title_prefix = " Diff:",
+  local window_config =
+    vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window or {})
+
+  local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
+  local content = {} -- Dummy content for create_float function
+
+  local _, winnr = ui.create_float(content, {
+    bufnr = bufnr,
+    set_content = false, -- Don't overwrite existing buffer content
+    window = { width = window_config.width, height = window_config.height },
+    row = window_config.row or "center",
+    col = window_config.col or "center",
+    relative = window_config.relative or "editor",
+    filetype = filetype,
+    title = ui.build_float_title({
+      title_prefix = " Diff",
+      filepath = filepath,
+    }),
+    lock = false, -- Allow edits for diff
+    ignore_keymaps = true,
+    opts = window_config.opts,
     show_dim = true,
   })
 
