@@ -84,7 +84,7 @@ local function with_mocks(opts)
       create_background_window = function() return nil end,
       close_background_window = function() end,
       set_winbar = function(_winnr, _text, _hl) end,
-      create_diff_dim_floating_win = function(bufnr, _opts)
+      create_floating_window = function(bufnr, _opts)
         local w = vim.api.nvim_open_win(bufnr, true, {
           relative = "editor",
           width = 60, height = 12,
@@ -94,6 +94,13 @@ local function with_mocks(opts)
           title_pos = "center",
         })
         return w
+      end,
+      build_float_title = function(opts)
+        opts = opts or {}
+        if opts.filepath then
+          return (opts.title_prefix or "Test") .. ": " .. vim.fn.fnamemodify(opts.filepath, ":t")
+        end
+        return opts.title or opts.title_prefix or "Test"
       end
     }
 
