@@ -165,7 +165,10 @@ You can specify a specific adapter for a workflow prompt:
   strategy = "workflow",
   description = "My workflow",
   opts = {
-    adapter = "openai", -- Always use the OpenAI adapter for this workflow
+    adapter = {
+      name = "deepseek",
+      model = "deepseek-chat"
+    }
   },
   -- Prompts go here
 },
