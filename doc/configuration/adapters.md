@@ -296,6 +296,9 @@ To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion
 
 1. [Install](https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code) Claude Code
 2. [Install](https://github.com/zed-industries/claude-code-acp) the Zed ACP adapter for Claude Code
+
+### Using Claude Pro Subscription
+
 3. In your CLI, run `claude setup-token`. You'll be redirected to the Claude.ai website for authorization:
 <img src="https://github.com/user-attachments/assets/28b70ba1-6fd2-4431-9905-c60c83286e4c">
 4. Back in your CLI, copy the OAuth token (in yellow):
@@ -309,6 +312,26 @@ require("codecompanion").setup({
         return require("codecompanion.adapters").extend("claude_code", {
           env = {
             CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+### Using an API Key
+
+3. [Create](https://console.anthropic.com/settings/keys) an API key in your Anthropic console.
+4. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          env = {
+            ANTHROPIC_API_KEY = "my-api-key",
           },
         })
       end,
