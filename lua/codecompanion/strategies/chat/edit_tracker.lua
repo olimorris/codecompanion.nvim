@@ -376,7 +376,7 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
           lines_count = #content,
         }
         log:debug("[Edit Tracker] Monitoring target buffer %d: %s (%d lines)", bufnr, filepath, #content)
-      elseif vim.fn.filereadable(filepath) == 1 then
+      elseif vim.uv.fs_stat(vim.fs.normalize(filepath)) then
         local content = vim.fn.readfile(filepath)
         target_files[filepath] = {
           content = vim.deepcopy(content),
@@ -396,7 +396,7 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
       for _, bufnr in ipairs(api.nvim_list_bufs()) do
         if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
           filepath = api.nvim_buf_get_name(bufnr)
-          if filepath ~= "" and vim.fn.filereadable(filepath) == 1 then
+          if filepath ~= "" and vim.uv.fs_stat(vim.fs.normalize(filepath)) then
             local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
             buffer_snapshots[filepath] = {
               bufnr = bufnr,
@@ -526,7 +526,7 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
   -- Check for target file changes (files not in buffers)
   for filepath, snapshot in pairs(monitor.target_files or {}) do
     local current_success, current_content = pcall(function()
-      if vim.fn.filereadable(filepath) == 1 then
+      if vim.uv.fs_stat(vim.fs.normalize(filepath)) then
         return vim.fn.readfile(filepath)
       elseif snapshot.lines_count == 0 then
         -- File was expected to be created and doesn't exist yet
