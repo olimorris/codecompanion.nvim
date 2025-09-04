@@ -378,7 +378,17 @@ CodeCompanion.setup = function(opts)
   -- Setup the plugin's config
   config.setup(opts)
 
-  -- Handle adapter configuration
+  -- handle adapter configuration | acp
+  if opts and opts.adapters and opts.adapters.acp then
+    if config.adapters.acp.opts.show_defaults then
+      require("codecompanion.utils.adapters").extend(config.adapters.acp, opts.adapters.acp)
+    else
+      local copied = vim.deepcopy(opts.adapters.acp)
+      config.adapters.acp = copied
+    end
+  end
+
+  -- handle adapter configuration | http
   if opts and opts.adapters and opts.adapters.http then
     if config.adapters.http.opts.show_defaults then
       require("codecompanion.utils.adapters").extend(config.adapters.http, opts.adapters.http)

@@ -265,10 +265,18 @@ By default, the plugin shows all available adapters, including the defaults. If 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    opts = {
-      show_defaults = false,
+    acp = {
+      opts = {
+        show_defaults = false,
+      },
+      -- Define your custom adapters here
     },
-    -- Define your custom adapters here
+    http = {
+      opts = {
+        show_defaults = false,
+      },
+      -- Define your custom adapters here
+    },
   },
 })
 ```
