@@ -27,8 +27,17 @@ local function get_statistics()
 
   local oauth_token = token.fetch({ force = true }).oauth_token
 
+  local host = vim.env.GH_HOST or "github.com"
+  local endpoint
+  if host == "github.com" then
+    endpoint = "https://api.github.com/copilot_internal/v2/token"
+  else
+    -- GitHub Enterprise usually puts the API under /api/v3
+    endpoint = string.format("https://%s/api/v3/copilot_internal/v2/token", host)
+  end
+
   local ok, response = pcall(function()
-    return Curl.get("https://api.github.com/copilot_internal/user", {
+    return Curl.get(endpoint, {
       sync = true,
       headers = {
         Authorization = "Bearer " .. oauth_token,

@@ -104,7 +104,7 @@ local function get_oauth_token()
 
       userdata = vim.json.decode(userdata)
       for key, value in pairs(userdata) do
-        if string.find(key, "github.com") then
+        if string.find(key, vim.env.GH_HOST or "github.com") then
           return value.oauth_token
         end
       end
@@ -136,8 +136,17 @@ local function get_copilot_token()
   _token_fetch_in_progress = true
   log:trace("Authorizing GitHub Copilot token")
 
+  local host = vim.env.GH_HOST or "github.com"
+  local endpoint
+  if host == "github.com" then
+    endpoint = "https://api.github.com/copilot_internal/v2/token"
+  else
+    -- GitHub Enterprise usually puts the API under /api/v3
+    endpoint = string.format("https://%s/api/v3/copilot_internal/v2/token", host)
+  end
+
   local ok, request = pcall(function()
-    return Curl.get("https://api.github.com/copilot_internal/v2/token", {
+    return Curl.get(endpoint, {
       headers = {
         Authorization = "Bearer " .. (M._oauth_token or ""),
         Accept = "application/json",
