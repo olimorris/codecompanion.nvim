@@ -625,7 +625,7 @@ The current date is %s.
 The user's Neovim version is %s.
 The user is working on a %s machine. Please respond with system specific commands if applicable.]],
             args.language or "English",
-            os.date("%B %d, %Y"),
+            os.date("%Y-%m-%d"),
             vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
             machine
           )
