@@ -1,15 +1,15 @@
 local file_utils = require("codecompanion.utils.files")
+local helpers = require("codecompanion.strategies.chat.memory.helpers")
 
 ---@class CodeCompanion.Chat.Memory.ProcessedRule
 ---@field content string The content of the memory rule
 ---@field filename string The filename of the memory rule
----@field path string The path to the memory rule
----@field role string The role for message
+---@field filepath string The full file path of the memory rule
+---@field parser string|nil The parser to use for the memory rule
 
 ---@class CodeCompanion.Chat.Memory
 ---@field name string The name of the memory instance
----@field rules table The memory rules as an array of strings
----@field role string The role for message
+---@field rules string[]|{ path: string, parser: string} The memory rules as an array of strings
 ---@field opts table Additional options for the memory instance
 ---@field processed CodeCompanion.Chat.Memory.ProcessedRule[] The processed rules
 local Memory = {}
@@ -17,13 +17,11 @@ local Memory = {}
 ---@class CodeCompanion.Chat.MemoryArgs
 ---@field name string The name of the memory instance
 ---@field rules table The memory rules as an array of strings
----@field role string The role for message
 ---@field opts table Additional options for the memory instance
 function Memory.init(args)
   local self = setmetatable({
     name = args.name,
     rules = args.rules,
-    role = args.role or "system",
     opts = args.opts,
     -- Internal use
     processed = {},
@@ -68,27 +66,17 @@ function Memory:parse()
   return self
 end
 
----Format the memory as a chat message
----@return CodeCompanion.Chat.Messages
-function Memory:add()
-  local messages = {}
-  for _, item in ipairs(self.processed) do
-    table.insert(messages, {
-      role = self.role,
-      content = item.content,
-      opts = {
-        visible = false,
-        tag = "memory_" .. self.name,
-      },
-    })
-  end
-  return messages
+---Memory should be added as context
+---@param chat CodeCompanion.Chat
+function Memory:add(chat)
+  helpers.add_context(self.processed, chat)
 end
 
 ---Make the memory message
+---@param chat CodeCompanion.Chat
 ---@return nil
-function Memory:make()
-  return self:extract():parse():add()
+function Memory:make(chat)
+  return self:extract():parse():add(chat)
 end
 
 return Memory

@@ -45,6 +45,7 @@
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
+---@field on_creation? fun(chat: CodeCompanion.Chat) A callback function that is executed when the chat is initiated
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
@@ -361,6 +362,7 @@ function Chat.new(args)
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     messages = args.messages or {},
+    on_creation = args.on_creation,
     opts = args,
     status = "",
     intro_message = args.intro_message or config.display.chat.intro_message,
@@ -524,7 +526,21 @@ function Chat.new(args)
     self:submit()
   end
 
+  if self.on_creation then
+    return self:on_creation(self.on_creation)
+  end
+
   return self ---@type CodeCompanion.Chat
+end
+
+---Execute a callback on the creation of the chat buffer class
+---@param cb fun(chat: CodeCompanion.Chat)
+---@return CodeCompanion.Chat
+function Chat:on_creation(cb)
+  if type(cb) == "function" then
+    cb(self)
+  end
+  return self
 end
 
 ---Format and apply settings to the chat buffer
@@ -955,12 +971,16 @@ function Chat:done(output, reasoning, tools, status)
 end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
----@param data { role: string, content: string }
+---@param data { role?: string, content: string }
 ---@param source string
 ---@param id string
 ---@param opts? table Options for the message
 function Chat:add_context(data, source, id, opts)
-  opts = opts or { context_id = id, visible = false }
+  opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
+
+  if not data.role then
+    data.role = config.constants.USER_ROLE
+  end
 
   self.context:add({ source = source, id = id })
   self:add_message(data, opts)

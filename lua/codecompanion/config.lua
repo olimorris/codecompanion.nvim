@@ -1146,7 +1146,6 @@ You must create or modify a workspace file through a series of prompts over mult
   memory = {
     default = {
       description = "Default rule selection for CodeCompanion",
-      role = constants.USER_ROLE,
       rules = {
         ".rules",
         ".goosehints",
@@ -1162,12 +1161,21 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     claude = {
       description = "Claude Code memory rules",
-      role = constants.USER_ROLE,
+      parser = "claude",
       rules = {
         "~/.claude/CLAUDE.md",
-        "~/Code/Neovim/codecompanion.nvim/CLAUDE.md",
+        "CLAUDE.md",
         "CLAUDE.local.md",
       },
+    },
+    claude_2 = {
+      description = "Claude Code memory rules",
+      rules = {
+        { path = "CLAUDE.md", parser = "claude" },
+      },
+    },
+    parsers = {
+      claude = "claude", -- Parser for CLAUDE.md files
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------

@@ -23,4 +23,17 @@ function M.list()
   return memory_items
 end
 
+---Add context to the chat based on the memory rules
+---@param rules CodeCompanion.Chat.Memory.ProcessedRule
+---@param chat CodeCompanion.Chat
+---@return nil
+function M.add_context(rules, chat)
+  for _, item in ipairs(rules) do
+    local id = "<memory>" .. item.name .. "</memory>"
+    chat:add_context({
+      content = item.content,
+    }, item.name, id, { tag = "memory" })
+  end
+end
+
 return M

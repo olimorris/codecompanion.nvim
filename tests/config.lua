@@ -419,6 +419,15 @@ return {
       },
     },
   },
+  memory = {
+    default = {
+      description = "Default rule selection for CodeCompanion",
+      rules = {
+        "tests/stubs/memory/.rules",
+        "tests/stubs/memory/CLAUDE.md",
+      },
+    },
+  },
   display = {
     chat = {
       icons = {
