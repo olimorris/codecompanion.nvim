@@ -15,8 +15,8 @@
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
----@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
+---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
 ---@field id number The unique identifier for the chat
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
@@ -45,6 +45,7 @@
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
+---@field on_creation? fun(chat: CodeCompanion.Chat) A callback function that is executed when the chat is initiated
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
@@ -361,6 +362,7 @@ function Chat.new(args)
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     messages = args.messages or {},
+    on_creation = args.on_creation,
     opts = args,
     status = "",
     intro_message = args.intro_message or config.display.chat.intro_message,
@@ -461,11 +463,10 @@ function Chat.new(args)
   end
 
   self.close_last_chat()
-  self.ui:open():render(self.buffer_context, self.messages, args)
+  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
-    ---@cast self CodeCompanion.Chat
     local header_line = parser.headers(self, self.chat_parser)
     self.header_line = header_line and (header_line + 1) or 1
   end
@@ -525,7 +526,21 @@ function Chat.new(args)
     self:submit()
   end
 
+  if self.on_creation then
+    return self:on_creation(self.on_creation)
+  end
+
   return self ---@type CodeCompanion.Chat
+end
+
+---Execute a callback on the creation of the chat buffer class
+---@param cb fun(chat: CodeCompanion.Chat)
+---@return CodeCompanion.Chat
+function Chat:on_creation(cb)
+  if type(cb) == "function" then
+    cb(self)
+  end
+  return self
 end
 
 ---Format and apply settings to the chat buffer
@@ -956,12 +971,16 @@ function Chat:done(output, reasoning, tools, status)
 end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
----@param data { role: string, content: string }
+---@param data { role?: string, content: string }
 ---@param source string
 ---@param id string
 ---@param opts? table Options for the message
 function Chat:add_context(data, source, id, opts)
-  opts = opts or { context_id = id, visible = false }
+  opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
+
+  if not data.role then
+    data.role = config.constants.USER_ROLE
+  end
 
   self.context:add({ source = source, id = id })
   self:add_message(data, opts)

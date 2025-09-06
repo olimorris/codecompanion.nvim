@@ -1143,6 +1143,42 @@ You must create or modify a workspace file through a series of prompts over mult
       },
     },
   },
+  -- MEMORY -------------------------------------------------------------------
+  memory = {
+    default = {
+      description = "Default rule selection for CodeCompanion",
+      rules = {
+        ".rules",
+        ".goosehints",
+        ".cursorrules",
+        ".windsurfrules",
+        ".clinerules",
+        ".github/copilot-instructions.md",
+        "AGENT.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codecompanionrules",
+      },
+    },
+    claude = {
+      description = "Claude Code memory rules",
+      parser = "claude",
+      rules = {
+        "~/.claude/CLAUDE.md",
+        "CLAUDE.md",
+        "CLAUDE.local.md",
+      },
+    },
+    claude_2 = {
+      description = "Claude Code memory rules",
+      rules = {
+        { path = "CLAUDE.md", parser = "claude" },
+      },
+    },
+    parsers = {
+      claude = "claude", -- Parser for CLAUDE.md files
+    },
+  },
   -- DISPLAY OPTIONS ----------------------------------------------------------
   display = {
     action_palette = {

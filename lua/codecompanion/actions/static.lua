@@ -8,6 +8,7 @@ local function send_code(context)
 end
 
 return {
+  -- Chat
   {
     name = "Chat",
     strategy = "chat",
@@ -42,6 +43,7 @@ return {
       },
     },
   },
+  -- Open chats
   {
     name = "Open chats ...",
     strategy = " ",
@@ -73,6 +75,51 @@ return {
         end
 
         return open_chats
+      end,
+    },
+  },
+  -- Context
+  {
+    name = "Chat with memory ...",
+    strategy = " ",
+    description = "Add memory to your chat",
+    opts = {
+      index = 3,
+      stop_context_insertion = true,
+    },
+    condition = function()
+      return vim.tbl_count(config.memory) > 0
+    end,
+    picker = {
+      prompt = "Select a memory",
+      items = function()
+        local memory = require("codecompanion.strategies.chat.memory")
+        local helpers = require("codecompanion.strategies.chat.memory.helpers")
+
+        local formatted = {}
+        for _, item in ipairs(helpers.list()) do
+          table.insert(formatted, {
+            name = item.name,
+            strategy = "chat",
+            description = item.description,
+            callback = function(context)
+              codecompanion
+                .chat({
+                  buffer_context = context,
+                })
+                :on_creation(function(chat)
+                  memory
+                    .init({
+                      name = item.name,
+                      rules = item.rules,
+                      opts = item.opts,
+                    })
+                    :make(chat)
+                end)
+            end,
+          })
+        end
+        return formatted
       end,
     },
   },
