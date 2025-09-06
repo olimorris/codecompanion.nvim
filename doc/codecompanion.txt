@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 31
+*codecompanion.txt*        For NVIM v0.11       Last change: 2025 September 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -64,7 +64,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Gemini CLI <https://github.com/google-gemini/gemini-cli>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview> and Gemini CLI <https://github.com/google-gemini/gemini-cli>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -418,7 +418,8 @@ connect you to an LLM and **ACP** adapters which leverage the Agent Client
 Protocol <https://agentclientprotocol.com> to connect you to an agent.
 
 Refer to the |codecompanion-configuration-adapters| section to understand more
-about working with adapters.
+about working with adapters like
+|codecompanion-configuration-adapters-setup-claude-code-via-acp|.
 
 
 SETTING AN API KEY ~
@@ -733,8 +734,22 @@ If you do not want to store secrets in plain text, prefix commands with `cmd:`:
   [!NOTE] In this example, we’re using the 1Password CLI to extract the Gemini
   API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
-Environment variables can also be functions and as a parameter, they receive a
-copy of the adapter itself.
+
+ENVIRONMENT VARIABLES ~
+
+Setting environment variables within adapters is a key part of configuration.
+The adapter `env` table lets you define values that will be interpolated into
+the adapter’s URL, headers, parameters and other fields at runtime.
+
+Supported `env` value types: - **Plain environment variable name (string)**: if
+the value is the name of an environment variable that has already been set
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
+be executed via the shell. Example: `"cmd:op read
+op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
+a Lua function which returns a string and will be called with the adapter as
+its sole argument. - **Schema reference (dot notation)**: you can reference
+values from the adapter table (for example `"schema.model.default"`).
 
 
 CHANGING A MODEL ~
@@ -972,7 +987,63 @@ adapter’s schema) will be automatically selected when changing adapters, and
 no model selection will be shown to the user.
 
 
-EXAMPLE: USING OLLAMA REMOTELY ~
+SETUP: CLAUDE CODE VIA ACP ~
+
+To use Claude Code <https://www.anthropic.com/claude-code> within
+CodeCompanion, you’ll need to take the following steps:
+
+1. Install <https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code> Claude Code
+2. Install <https://github.com/zed-industries/claude-code-acp> the Zed ACP adapter for Claude Code
+
+
+CLAUDE PRO SUBSCRIPTION
+
+1. In your CLI, run `claude setup-token`. You’ll be redirected to the Claude.ai website for authorization:
+
+2. Back in your CLI, copy the OAuth token (in yellow):
+
+3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on |codecompanion--environment-variables| for other ways to do this):
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              env = {
+                CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+AN API KEY
+
+1. Create <https://console.anthropic.com/settings/keys> an API key in your Anthropic console.
+2. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              env = {
+                ANTHROPIC_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: USING OLLAMA REMOTELY ~
 
 To use Ollama remotely, change the URL in the env table, set an API key and
 pass it via an "Authorization" header:
@@ -1000,7 +1071,7 @@ pass it via an "Authorization" header:
 <
 
 
-EXAMPLE: AZURE OPENAI ~
+SETUP: AZURE OPENAI ~
 
 Below is an example of how you can leverage the `azure_openai` adapter within
 the plugin:
@@ -1950,22 +2021,21 @@ The plugin comes with the following system prompt:
     * Find relevant code to the user's query.
     * Propose fixes for test failures.
     * Answer questions about Neovim.
-    * Running tools.
     
     Follow the user's requirements carefully and to the letter.
     Use the context and attachments the user provides.
     Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
-    All non-code text responses must be written in the English language.
+    All non-code text responses must be written in the ${language} language.
     Use Markdown formatting in your answers.
     Do not use H1 or H2 markdown headers.
     When suggesting code changes or new content, use Markdown code blocks.
     To start a code block, use 4 backticks.
-    After the backticks, add the programming language name.
+    After the backticks, add the programming language name as the language ID.
+    To close a code block, use 4 backticks on a new line.
     If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
     If you want the user to decide where to place the code, do not add the file path comment.
     In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
-    For code blocks use four backticks to start and end.
-    Putting this all together:
+    Code block example:
     ````languageId
     // filepath: /path/to/file
     // ...existing code...
@@ -1974,20 +2044,21 @@ The plugin comes with the following system prompt:
     { changed code }
     // ...existing code...
     ````
+    Ensure line comments use the correct syntax for the programming language (e.g. "#" for Python, "--" for Lua).
+    For code blocks use four backticks to start and end.
     Avoid wrapping the whole response in triple backticks.
+    Do not include diff formatting unless explicitly asked.
     Do not include line numbers in code blocks.
-    Multiple, different tools can be called as part of the same response.
     
     When given a task:
-    1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in detailed pseudocode.
-    2. Output the final code in a single code block, ensuring that only relevant code is included.
+    1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
+    2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
     3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
-    4. Provide exactly one complete reply per conversation turn.
-    5. If necessary, execute multiple tools in a single turn.
     
-    The current date is August 28, 2025.
-    The user's Neovim version is 0.12.0.
-    The user is working on a Mac machine. Please respond with system specific commands if applicable.
+    Additional context:
+    The current date is ${date}.
+    The user's Neovim version is ${version}.
+    The user is working on a ${os} machine. Please respond with system specific commands if applicable.
 <
 
 
@@ -2039,14 +2110,18 @@ CHANGING SYSTEM PROMPTS ~
 
 CHAT
 
-The default system prompt can be changed with:
+The chat system prompt can be changed with:
 
 >lua
     require("codecompanion").setup({
-      opts = {
-        system_prompt = "My new system prompt"
+      strategies = {
+        chat = {
+          opts = {
+            system_prompt = "My new system prompt",
+          },
+        },
       },
-    }),
+    })
 <
 
 Alternatively, the system prompt can be a function. The `opts` parameter
@@ -2070,7 +2145,7 @@ the language (`opts.language`) that the LLM should respond with:
           return string.format("I'm working on my %s machine", machine)
         end,
       },
-    }),
+    })
 <
 
 
@@ -5590,7 +5665,10 @@ You can specify a specific adapter for a workflow prompt:
       strategy = "workflow",
       description = "My workflow",
       opts = {
-        adapter = "openai", -- Always use the OpenAI adapter for this workflow
+        adapter = {
+          name = "deepseek",
+          model = "deepseek-chat"
+        }
       },
       -- Prompts go here
     },

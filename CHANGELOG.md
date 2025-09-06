@@ -1,5 +1,29 @@
 # Changelog
 
+## [17.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.20.0...v17.21.0) (2025-09-03)
+
+
+### Features
+
+* **acp:** add support for Claude Code ([#2079](https://github.com/olimorris/codecompanion.nvim/issues/2079)) ([0e4abfb](https://github.com/olimorris/codecompanion.nvim/commit/0e4abfb558f95fea9804a4239447c3f9a71013d2))
+
+## [17.20.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.19.1...v17.20.0) (2025-09-03)
+
+
+### Features
+
+* **acp:** tighter integration with the protocol ([#2054](https://github.com/olimorris/codecompanion.nvim/issues/2054)) ([626b1b0](https://github.com/olimorris/codecompanion.nvim/commit/626b1b07e96e19324e5bb3279ab3b525a6ea759d))
+* **chat:** support `pre_hook` in prompt library items ([#1964](https://github.com/olimorris/codecompanion.nvim/issues/1964)) ([8b60fcc](https://github.com/olimorris/codecompanion.nvim/commit/8b60fcc972ae08604505c4626b0e885e3d7396bf))
+* **prompt_library:** can set adapter on workflows ([#2071](https://github.com/olimorris/codecompanion.nvim/issues/2071)) ([2bd4983](https://github.com/olimorris/codecompanion.nvim/commit/2bd49835b915f95ee533b6773cbfef175d6c29d7))
+* **tools:** tools have their own system prompt ([b316283](https://github.com/olimorris/codecompanion.nvim/commit/b316283d9a0bee7fe05b452f1f7414d168f1cc83))
+
+
+### Bug Fixes
+
+* **acp:** fs/read_text_file returning empty string ([#2058](https://github.com/olimorris/codecompanion.nvim/issues/2058)) ([a50f547](https://github.com/olimorris/codecompanion.nvim/commit/a50f547b4e4b525ad781ef57577254d8a4e769fa))
+* **adapters:** copilot return endpoints from github token ([#2078](https://github.com/olimorris/codecompanion.nvim/issues/2078)) ([19eb675](https://github.com/olimorris/codecompanion.nvim/commit/19eb6754df40ef54e2af0026b0d1916f2989df36))
+* **chat:** show settings error with acp adapter ([#2065](https://github.com/olimorris/codecompanion.nvim/issues/2065)) ([bf683c3](https://github.com/olimorris/codecompanion.nvim/commit/bf683c3ea033a12f58b3534d5969cec4c29b2602)), closes [#2062](https://github.com/olimorris/codecompanion.nvim/issues/2062)
+
 ## [17.19.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.19.0...v17.19.1) (2025-08-30)
 
 

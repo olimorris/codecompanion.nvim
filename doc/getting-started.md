@@ -59,7 +59,7 @@ In the example above, we're using the Copilot adapter for the chat strategy and 
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and **ACP** adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
-Refer to the [adapter](configuration/adapters) section to understand more about working with adapters.
+Refer to the [adapter](configuration/adapters) section to understand more about working with adapters like [Claude Code](/configuration/adapters#setup-claude-code-via-acp).
 
 ### Setting an API Key
 
