@@ -3,7 +3,7 @@ local api = vim.api
 local M = {}
 
 ---@param direction string
----@param count integer
+---@param count number
 ---@return nil
 function M.goto_heading(direction, count)
   local bufnr = api.nvim_get_current_buf()
@@ -97,11 +97,11 @@ end
 -- They also treat a EOF/EOL char as a char ending in the first
 -- col of the next row.
 ---comment
----@param range integer[]
----@param buf integer|nil
----@return integer, integer, integer, integer
+---@param range number[]
+---@param buf number|nil
+---@return number, integer, integer, integer
 function M.get_vim_range(range, buf)
-  ---@type integer, integer, integer, integer
+  ---@type number, integer, integer, integer
   local srow, scol, erow, ecol = unpack(range)
   srow = srow + 1
   scol = scol + 1

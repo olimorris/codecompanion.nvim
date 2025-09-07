@@ -1,5 +1,6 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.helpers")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
@@ -91,15 +92,26 @@ function Debug:render()
   -- Get the current settings from the chat buffer rather than making new ones
   local current_settings = self.settings or {}
 
-  if type(adapter.schema.model.choices) == "function" then
-    models = adapter.schema.model.choices(adapter)
-  else
-    models = adapter.schema.model.choices
+  if adapter.schema and adapter.schema.model then
+    if type(adapter.schema.model.choices) == "function" then
+      models = adapter.schema.model.choices(adapter, { async = false })
+    else
+      models = adapter.schema.model.choices
+    end
   end
 
   local lines = {}
 
   table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
+  if adapter.type == "acp" then
+    local command
+    if adapter.commands and adapter.commands.selected then
+      command = adapter.commands.selected
+    else
+      command = adapter.commands.default
+    end
+    table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
+  end
   table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
   if bufname then
     table.insert(lines, '-- Following Buffer: "' .. bufname .. '" (' .. _G.codecompanion_current_context .. ")")
@@ -116,9 +128,11 @@ function Debug:render()
     end
 
     -- Add any schema keys that have an explicit nil default
-    for key, schema_value in pairs(adapter.schema) do
-      if schema_value.default == nil and not vim.tbl_contains(keys, key) then
-        table.insert(keys, key)
+    if adapter.schema then
+      for key, schema_value in pairs(adapter.schema) do
+        if schema_value.default == nil and not vim.tbl_contains(keys, key) then
+          table.insert(keys, key)
+        end
       end
     end
 
@@ -131,49 +145,53 @@ function Debug:render()
       return a_order < b_order
     end)
 
-    table.insert(lines, "local settings = {")
-    for _, key in ipairs(keys) do
-      local val = self.settings[key]
-      local is_nil = adapter.schema[key] and adapter.schema[key].default == nil
+    if vim.tbl_count(keys) == 0 then
+      table.insert(lines, "-- No settings available")
+    else
+      table.insert(lines, "local settings = {")
+      for _, key in ipairs(keys) do
+        local val = self.settings[key]
+        local is_nil = adapter.schema[key] and adapter.schema[key].default == nil
 
-      if key == "model" then
-        local other_models = " -- "
+        if key == "model" then
+          local other_models = " -- "
 
-        vim.iter(models):each(function(model, model_name)
-          if type(model) == "number" then
-            model = model_name
+          vim.iter(models):each(function(model, model_name)
+            if type(model) == "number" then
+              model = model_name
+            end
+            if model ~= val then
+              other_models = other_models .. '"' .. model .. '", '
+            end
+          end)
+
+          if type(val) == "function" then
+            val = val(self.adapter)
           end
-          if model ~= val then
-            other_models = other_models .. '"' .. model .. '", '
+          if vim.tbl_count(models) > 1 then
+            table.insert(lines, "  " .. key .. ' = "' .. val .. '", ' .. other_models)
+          else
+            table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
           end
-        end)
-
-        if type(val) == "function" then
-          val = val(self.adapter)
-        end
-        if vim.tbl_count(models) > 1 then
-          table.insert(lines, "  " .. key .. ' = "' .. val .. '", ' .. other_models)
-        else
+        elseif is_nil and current_settings[key] == nil then
+          table.insert(lines, "  " .. key .. " = nil,")
+        elseif type(val) == "number" or type(val) == "boolean" then
+          table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
+        elseif type(val) == "string" then
           table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
-        end
-      elseif is_nil and current_settings[key] == nil then
-        table.insert(lines, "  " .. key .. " = nil,")
-      elseif type(val) == "number" or type(val) == "boolean" then
-        table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
-      elseif type(val) == "string" then
-        table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
-      elseif type(val) == "function" then
-        local expanded_val = val(self.adapter)
-        if type(expanded_val) == "number" or type(expanded_val) == "boolean" then
-          table.insert(lines, "  " .. key .. " = " .. tostring(val(self.adapter)) .. ",")
+        elseif type(val) == "function" then
+          local expanded_val = val(self.adapter)
+          if type(expanded_val) == "number" or type(expanded_val) == "boolean" then
+            table.insert(lines, "  " .. key .. " = " .. tostring(val(self.adapter)) .. ",")
+          else
+            table.insert(lines, "  " .. key .. ' = "' .. tostring(val(self.adapter)) .. '",')
+          end
         else
-          table.insert(lines, "  " .. key .. ' = "' .. tostring(val(self.adapter)) .. '",')
+          table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
         end
-      else
-        table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
       end
+      table.insert(lines, "}")
     end
-    table.insert(lines, "}")
   end
 
   -- Add messages
@@ -225,6 +243,7 @@ function Debug:render()
     filetype = "lua",
     title = "Debug Chat",
     window = window_config,
+    style = "minimal",
     opts = window_config.opts or {
       wrap = true,
     },
@@ -297,7 +316,7 @@ function Debug:save()
   end
 
   if settings then
-    self.chat:apply_settings(settings)
+    helpers.apply_settings_and_model(self.chat, settings)
   end
   if messages then
     self.chat.messages = messages

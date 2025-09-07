@@ -1,3 +1,23 @@
+---@meta Agent Client Protocol
+
+---@class ACP.promptCapabilities
+---@field audio boolean
+---@field embeddedContext boolean
+---@field image boolean
+
+---@class ACP.agentCapabilities
+---@field loadSession boolean
+---@field promptCapabilities ACP.promptCapabilities
+
+---@class ACP.AuthMethod
+---@field id string
+---@field name string
+---@field description? string|nil
+
+---@alias ACP.authMethods ACP.AuthMethod[]
+
+---@meta Tree-sitter
+
 ---@class vim.treesitter.LanguageTree
 ---@field parse function
 
@@ -10,6 +30,44 @@
 ---@class TSQuery
 
 ---@meta CodeCompanion
+
+---@alias CodeCompanion.Chat.Messages CodeCompanion.Chat.Message[]
+
+---@class CodeCompanion.Chat.Message
+---@field id number Unique identifier for the message (generated via hash)
+---@field role string Role of the author (e.g. "user", "llm", "system", "tool")
+---@field content string The raw Markdown/text content of the message (optional for tool-only entries)
+---@field cycle number The chat turn cycle when this message was added
+---@field opts? table Optional metadata used by the UI and processing
+---@field opts.visible? boolean Whether the message should be shown in the chat UI
+---@field opts.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
+---@field opts.context_id? string Link to a context item (used for pinned/context messages)
+---@field opts.pinned? boolean Whether the context message is pinned
+---@field opts.index? number If set, the message was inserted at this index
+---@field opts.watched? boolean Whether the context is being watched for changes
+---@field _meta table Internal metadata (e.g. { sent = true })
+---@field reasoning? CodeCompanion.Chat.Reasoning Optional reasoning object returned by some adapters
+---@field tool_calls? CodeCompanion.Chat.ToolCall[] Array of tool call descriptors attached to this message
+---@field tool_call_id? string Optional single tool call id that this message represents (links tool output -> call)
+---@field type? string Optional message type used by the UI (e.g. "llm_message", "tool_message", "reasoning_message")
+---@field _raw? any Any adapter-specific raw payload stored with the message
+---@field created_at? number Unix timestamp (optional, helpful for sorting/logging)
+---@field tokens? number Optional token count associated with this message
+
+---@class CodeCompanion.Chat.ToolFunctionCall
+---@field name string Name of the function/tool (e.g. "cmd_runner", "grep_search")
+---@field arguments string|table Raw JSON string or parsed table of arguments
+
+---@class CodeCompanion.Chat.ToolCall
+---@field id string Unique tool call identifier (e.g. "call_8Aoq8...")
+---@field type string Typically "function" (adapter/tool-specific)
+---@field _index? number Position index when returned by adapters
+---@field ["function"]? CodeCompanion.Chat.ToolFunctionCall Function descriptor (adapter key name is "function")
+---@field result? any Optional execution result or intermediate payload
+
+---@class CodeCompanion.Chat.Reasoning
+---@field content string The LLM's chain-of-thought / internal reasoning (often markdown)
+---@field meta? table Optional structured reasoning metadata
 
 ---@class CodeCompanion.SlashCommand
 ---@field Chat CodeCompanion.Chat The chat buffer
@@ -73,27 +131,6 @@
 ---@field opts.pinned? boolean Whether this context item is pinned
 ---@field opts.watched? boolean Whether this context item is being watched for changes
 ---@field opts.visible? boolean Whether this context item should be shown in the chat UI
-
----@class CodeCompanion.Chat.UI
----@field adapter CodeCompanion.Adapter The adapter in use for the chat
----@field aug number The autocmd group ID
----@field chat_bufnr number The buffer number of the chat
----@field chat_id number The unique ID of the chat
----@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
----@field header_ns number The namespace for the header
----@field roles table The roles in the chat
----@field winnr number The window number of the chat
----@field settings table The settings for the chat
----@field tokens number The current token count in the chat
-
----@class CodeCompanion.Chat.UIArgs
----@field adapter CodeCompanion.Adapter
----@field chat_bufnr number
----@field chat_id number
----@field roles table
----@field winnr number
----@field settings table
----@field tokens number
 
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool

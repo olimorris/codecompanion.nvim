@@ -33,7 +33,7 @@ return {
       args.query = string.gsub(args.query, "%f[%w_]search_web%f[^%w_]", "", 1)
 
       local tool_adapter = config.strategies.chat.tools.search_web.opts.adapter
-      local adapter = vim.deepcopy(adapters.resolve(config.adapters[tool_adapter]))
+      local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
       adapter.methods.tools.search_web.setup(adapter, opts.opts, args)
 
       local query = args.query

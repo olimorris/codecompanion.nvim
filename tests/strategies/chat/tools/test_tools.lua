@@ -167,6 +167,29 @@ T["Tools"][":execute"]["a response from the LLM"] = function()
   h.eq("The weather in London, UK is 15° celsius", output)
 end
 
+T["Tools"][":execute"]["empty response from the LLM"] = function()
+  child.lua([[
+    --require("tests.log")
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "weather_with_default",
+          arguments = "",
+        },
+      },
+    }
+
+    local chat = _G.chat
+    _G.tools:execute(chat, tools)
+  ]])
+
+  local output = child.lua_get([[_G.weather_output]])
+
+  h.eq("The weather in London, UK is 15° celsius", output)
+end
+
 T["Tools"][":execute"]["a malformed response from the LLM is handled"] = function()
   child.lua([[
     --require("tests.log")
@@ -222,7 +245,7 @@ T["Tools"][":execute"]["a nested response from the LLM"] = function() end
 T["Tools"][":replace"] = new_set()
 T["Tools"][":replace"]["should replace the tool in the message"] = function()
   child.lua([[
-    local message = "run the @{create_file} tool"
+    local message = "run @{create_file}"
     _G.result = _G.tools:replace(message, "create_file")
   ]])
 
@@ -231,14 +254,23 @@ end
 
 T["Tools"][":replace"]["should be in sync with finding logic"] = function()
   child.lua([[
-    local message = "run the @{insert_edit_into_file} tool and pre@{files} and @{tool_group_tool} and @{files}! and handle newlines @{insert_edit_into_file}\n"
+    local message = "run @{insert_edit_into_file} and pre@{files} and @{tool_group_tool} and @{files}! and handle newlines @{insert_edit_into_file}\n"
     _G.result = _G.tools:replace(message)
   ]])
 
   h.eq(
-    "run the insert_edit_into_file tool and prefiles and tool_group_tool and files! and handle newlines insert_edit_into_file",
+    "run the insert_edit_into_file tool and prethe files tool and the tool_group_tool tool and the files tool! and handle newlines the insert_edit_into_file tool",
     child.lua_get("_G.result")
   )
+end
+
+T["Tools"][":replace"]["should replace groups with a prompt message"] = function()
+  child.lua([[
+    local message = "@{senior_dev}. Can you help?"
+    _G.result = _G.tools:replace(message)
+  ]])
+
+  h.eq("I'm giving you access to func, cmd tools to help me out. Can you help?", child.lua_get("_G.result"))
 end
 
 return T

@@ -5,6 +5,19 @@ H.eq = MiniTest.expect.equality --[[@type function]]
 H.not_eq = MiniTest.expect.no_equality --[[@type function]]
 
 --[[@type function]]
+H.is_true = MiniTest.new_expectation(
+  "value is truthy",
+  -- Predicate: returns true if value is not false and not nil
+  function(value)
+    return value == true
+  end,
+  -- Fail context: explains why it failed
+  function(value)
+    return string.format("\nExpected value to be truthy (not false or nil), but got:\n%s", vim.inspect(value))
+  end
+)
+
+--[[@type function]]
 H.eq_info = MiniTest.new_expectation(
   -- this exactly like H.eq
   -- but it also takes in 3rd argument for better error message

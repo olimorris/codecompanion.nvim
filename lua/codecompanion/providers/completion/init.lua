@@ -4,6 +4,8 @@ local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
 
+local api = vim.api
+
 local trigger = {
   tools = "@",
   variables = "#",
@@ -41,6 +43,27 @@ local function _vars_cache_setup()
 end
 
 local M = {}
+
+-- Cache adapter types per buffer so we can conditionally enable completions
+local adapter_types = {}
+
+api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatAdapter",
+  callback = function(args)
+    local bufnr = args.data.bufnr
+    if args.data.adapter then
+      adapter_types[bufnr] = args.data.adapter.type
+    else
+      adapter_types[bufnr] = nil
+    end
+  end,
+})
+
+api.nvim_create_autocmd("BufDelete", {
+  callback = function(args)
+    adapter_types[args.buf] = nil
+  end,
+})
 
 ---Return the slash commands to be used for completion
 ---@return table
@@ -106,6 +129,12 @@ end
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
+  -- Tools are not available to ACP adapters
+  local bufnr = api.nvim_get_current_buf()
+  if adapter_types[bufnr] == "acp" then
+    return {}
+  end
+
   -- Get filtered tools configuration (this uses the cache!)
   local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
 

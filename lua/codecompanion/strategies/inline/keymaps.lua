@@ -6,7 +6,7 @@ local M = {}
 
 ---Clear a keymap from a specific buffer
 ---@param keymaps table
----@param bufnr? integer
+---@param bufnr? number
 local function clear_map(keymaps, bufnr)
   bufnr = bufnr or 0
 
@@ -47,7 +47,7 @@ M.always_accept = {
       inline.diff:accept()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
     end
-    vim.g.codecompanion_auto_tool_mode = true
+    vim.g.codecompanion_yolo_mode = true
     utils.notify("Auto tool mode enabled - future edits will be automatically accepted")
     log:trace("[Inline] Auto tool mode enabled")
   end,

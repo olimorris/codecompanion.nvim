@@ -1,8 +1,8 @@
 ---@class CodeCompanion.LogHandler
 ---@field type? string
----@field level? integer
----@field formatter? fun(level: integer, msg: string, ...: any)
----@field handle? fun(level: integer, text: string)
+---@field level? number
+---@field formatter? fun(level: number, msg: string, ...: any)
+---@field handle? fun(level: number, text: string)
 local LogHandler = {}
 
 local levels_reverse = {}
@@ -176,7 +176,7 @@ local Logger = {}
 
 ---@class CodeCompanion.LoggerArgs
 ---@field handlers CodeCompanion.LogHandler[]
----@field level nil|integer
+---@field level nil|number
 
 ---@param opts CodeCompanion.LoggerArgs
 function Logger.new(opts)
@@ -197,7 +197,7 @@ function Logger.new(opts)
   return log
 end
 
----@param level integer
+---@param level number
 function Logger:set_level(level)
   for _, handler in ipairs(self.handlers) do
     handler.level = level
@@ -209,7 +209,7 @@ function Logger:get_handlers()
   return self.handlers
 end
 
----@param level integer
+---@param level number
 ---@param msg string
 ---@param ... any[]
 function Logger:log(level, msg, ...)
