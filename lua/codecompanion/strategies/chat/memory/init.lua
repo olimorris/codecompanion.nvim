@@ -1,28 +1,33 @@
 local file_utils = require("codecompanion.utils.files")
 local helpers = require("codecompanion.strategies.chat.memory.helpers")
+local parsers = require("codecompanion.strategies.chat.memory.parsers")
 
 ---@class CodeCompanion.Chat.Memory.ProcessedRule
+---@field name string The name of the memory rule
 ---@field content string The content of the memory rule
 ---@field filename string The filename of the memory rule
----@field filepath string The full file path of the memory rule
 ---@field parser string|nil The parser to use for the memory rule
+---@field path string The full, normalized file path of the memory rule
 
 ---@class CodeCompanion.Chat.Memory
----@field name string The name of the memory instance
----@field rules string[]|{ path: string, parser: string} The memory rules as an array of strings
+---@field name string The name of the memory group
 ---@field opts table Additional options for the memory instance
+---@field parser string|table|function|nil The parser to use for the memory group
 ---@field processed CodeCompanion.Chat.Memory.ProcessedRule[] The processed rules
+---@field rules string[]|{ path: string, parser: string} The memory rules as an array of strings
 local Memory = {}
 
 ---@class CodeCompanion.Chat.MemoryArgs
 ---@field name string The name of the memory instance
----@field rules table The memory rules as an array of strings
 ---@field opts table Additional options for the memory instance
+---@field rules table The memory rules as an array of strings
 function Memory.init(args)
   local self = setmetatable({
     name = args.name,
-    rules = args.rules,
     opts = args.opts,
+    parser = args.parser,
+    rules = args.rules,
+
     -- Internal use
     processed = {},
   }, { __index = Memory })
@@ -49,7 +54,7 @@ function Memory:extract()
         table.insert(self.processed, {
           name = path,
           content = content,
-          filepath = normalized,
+          path = normalized,
           filename = vim.fn.fnamemodify(path, ":t"),
           parser = rule.parser,
         })
@@ -63,6 +68,10 @@ end
 ---Parse the memory contents
 ---@return CodeCompanion.Chat.Memory
 function Memory:parse()
+  vim.iter(self.processed):each(function(rule)
+    rule.content = parsers.parse(rule, self.parser)
+  end)
+
   return self
 end
 

@@ -6,16 +6,16 @@ local M = {}
 ---@return table
 function M.list()
   local memory_items = {}
-  local exclusions = { "opts" }
+  local exclusions = { "opts", "parsers" }
 
   for name, data in pairs(config.memory) do
     if not vim.tbl_contains(exclusions, name) then
       table.insert(memory_items, {
         name = name,
         description = data.description,
-        rules = data.rules,
-        role = data.role,
         opts = data.opts,
+        parser = data.parser,
+        rules = data.rules,
       })
     end
   end

@@ -1,7 +1,7 @@
 return {
   ---@param rule CodeCompanion.Chat.Memory.ProcessedRule
   ---@return string
-  parse = function(rule)
+  content = function(rule)
     local text = rule.content or ""
     -- naive "summary": first 120 chars
     return text:sub(1, 120)

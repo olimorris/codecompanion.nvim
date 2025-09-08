@@ -1,137 +1,92 @@
 local config = require("codecompanion.config")
+local file_utils = require("codecompanion.utils.files")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
-local function is_likely_file_path(s)
-  if type(s) ~= "string" then
-    return false
-  end
-  -- starts with /, ./, ../, or ~ or ends with .lua
-  return s:match("^/") or s:match("^%.") or s:match("^~") or s:match("%.lua$")
-end
-
-local function normalize_module(mod)
-  if type(mod) == "function" then
-    return { parse = mod }
-  end
-  if type(mod) == "table" then
-    if type(mod.parse) == "function" then
-      return { parse = mod.parse }
-    end
-    if type(mod.output) == "function" then
-      -- Backwards compatibility: accept `output` field
-      return { parse = mod.output }
-    end
-  end
-  return nil
-end
-
----Resolve parser spec (string|function|table) into { parse }
----@param spec string|function|table
+---Resolve the parser from the config
+---@param parser string
 ---@return table|nil
-function M.resolve(spec)
-  if not spec then
+function M.resolve(parser)
+  if not parser then
     return nil
   end
 
-  -- Allow users to reference a named parser configured in config.memory.parsers
-  if type(spec) == "string" and config and config.memory and config.memory.parsers and config.memory.parsers[spec] then
-    spec = config.memory.parsers[spec]
+  local ok, err, resolved
+
+  assert(type(parser) == "string", "Parser must be a string")
+  assert(
+    config and config.memory and config.memory.parsers and config.memory.parsers[parser],
+    "Couldn't find the " .. parser .. " parser in the config"
+  )
+
+  parser = config.memory.parsers[parser]
+
+  if type(parser) == "table" then
+    return parser
+  end
+  if type(parser) == "function" then
+    return parser()
   end
 
-  -- If it's already a normalized table with parse, accept it
-  if type(spec) == "table" then
-    -- If table is like { path = "...", parser = "name" } normalize to the parser value
-    if spec.path and spec.parser then
-      -- caller should pass the parser spec (spec.parser) to resolve again,
-      -- but keep this behavior consistent: return table with parse from parser spec
-      return M.resolve(spec.parser)
+  if type(parser) == "string" then
+    -- The parser might be a CodeCompanion default one ...
+    ok, resolved = pcall(require, "codecompanion.strategies.chat.memory.parsers." .. parser)
+    if ok then
+      return resolved
     end
 
-    -- If table already contains parse/output function
-    local norm = normalize_module(spec)
-    if norm then
-      return norm
+    -- Or one that exists on the user's disk
+    parser = vim.fs.normalize(parser)
+    if not file_utils.exists(parser) then
+      return log:error("[Memory] Could not find the file %s", parser)
     end
 
-    -- If it's a plain table that contains a string spec (e.g. { "name" }), try first element
-    if #spec > 0 and type(spec[1]) == "string" then
-      return M.resolve(spec[1])
+    ok, resolved = pcall(require, parser)
+    if ok then
+      return resolved
     end
 
-    return nil
-  end
-
-  -- If it's a function, treat as parse-only
-  if type(spec) == "function" then
-    return { parse = spec }
-  end
-
-  -- If it's a string: try module under parsers folder first, then require(spec), then file path
-  if type(spec) == "string" then
-    local tries = {
-      "codecompanion.strategies.chat.memory.parsers." .. spec,
-      spec,
-    }
-
-    for _, modname in ipairs(tries) do
-      local ok, mod = pcall(require, modname)
-      if ok and mod ~= nil then
-        local norm = normalize_module(mod)
-        if norm then
-          return norm
-        end
-      end
+    resolved, err = loadfile(parser)
+    if err then
+      return log:error("[Memory] %s", err)
     end
 
-    -- If looks like a file path, try loadfile
-    if is_likely_file_path(spec) then
-      local expanded = vim.fn.expand(spec)
-      local ok_load, chunk = pcall(loadfile, expanded)
-      if ok_load and type(chunk) == "function" then
-        local ok_call, mod = pcall(chunk)
-        if ok_call and mod ~= nil then
-          local norm = normalize_module(mod)
-          if norm then
-            return norm
-          end
-        end
-      end
+    if resolved then
+      return resolved()
     end
   end
 
   return nil
 end
 
--- Builtin parsers: use `parse(rule)` signature
-M.registered = {
-  identity = {
-    parse = function(processed)
-      return processed.content or ""
-    end,
-  },
+---Parse the content through the parser and return it
+---@param p_rule CodeCompanion.Chat.Memory.ProcessedRule The processed rule
+---@param group_parser? string The parser from the group level
+---@return string
+function M.parse(p_rule, group_parser)
+  local parser
 
-  -- crude markdown codeblock extractor: returns first fenced block body or full content
-  markdown = {
-    parse = function(processed)
-      local c = processed.content or ""
-      local _, _, body = c:find("```[%w%-%_%.]*\n(.-)```")
-      if body then
-        return body
-      end
-      return c
-    end,
-  },
-}
-
----Resolve but check builtins by name first
----@param spec string|function|table
----@return table|nil
-function M.resolve_with_builtins(spec)
-  if type(spec) == "string" and M.registered[spec] then
-    return M.registered[spec]
+  -- If the parser exists at a rule level, that takes precedence
+  if p_rule.parser then
+    parser = M.resolve(p_rule.parser)
+    if parser then
+      assert(parser.content, "Parser must return a content function")
+      return parser.content(p_rule)
+    end
   end
-  return M.resolve(spec)
+
+  -- Otherwise, we take the parser at the group level
+  if group_parser then
+    parser = M.resolve(group_parser)
+    if parser then
+      assert(parser.content, "Parser must return a content function")
+      return parser.content(p_rule)
+    end
+  end
+
+  -- Or return unchanged content
+  return p_rule.content
 end
 
 return M

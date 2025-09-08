@@ -333,6 +333,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
+        ["memory"] = {
+          callback = "strategies.chat.slash_commands.memory",
+          description = "Insert a memory into the chat buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["now"] = {
           callback = "strategies.chat.slash_commands.now",
           description = "Insert the current date and time",
@@ -340,6 +347,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+
         ["symbols"] = {
           callback = "strategies.chat.slash_commands.symbols",
           description = "Insert symbols for a selected file",
@@ -1157,7 +1165,6 @@ You must create or modify a workspace file through a series of prompts over mult
         "AGENT.md",
         "AGENTS.md",
         "CLAUDE.md",
-        ".codecompanionrules",
       },
     },
     claude = {
