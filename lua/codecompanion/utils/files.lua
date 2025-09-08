@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local uv = vim.uv
 
 local fmt = string.format
 
@@ -30,6 +31,34 @@ function M.create_dir_recursive(path)
   end
 
   return true, nil
+end
+
+---Write content to a file, creating directories as needed
+---@param path string The file path to write to
+---@param content string The content to write to the file
+---@return boolean
+function M.write_to_path(path, content)
+  local dir = vim.fn.fnamemodify(path, ":h")
+  if dir ~= "" and vim.fn.isdirectory(dir) == 0 then
+    vim.fn.mkdir(dir, "p")
+  end
+  local fd = assert(uv.fs_open(path, "w", 420)) -- 0644
+  assert(uv.fs_write(fd, content or "", 0))
+  assert(uv.fs_close(fd))
+
+  return true
+end
+
+---Read the content of a file at a given path
+---@param path string The file path to write to
+---@return string
+function M.read(path)
+  local fd = assert(uv.fs_open(path, "r", 420))
+  local stat = assert(uv.fs_fstat(fd))
+  local data = assert(uv.fs_read(fd, stat.size, 0)) or ""
+  assert(uv.fs_close(fd))
+
+  return data
 end
 
 return M

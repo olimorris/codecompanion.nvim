@@ -14,9 +14,9 @@ local function transform_complete_items(opt, complete_items)
   for _, item in ipairs(complete_items) do
     -- Populate standard Vim completion-items fields (see :h complete-items).
     if opt.triggerCharacter == "#" then
-      item.word = string.format("#{%s}", item.label:sub(2))
+      item.word = string.format("{%s}", item.label:sub(2))
     elseif opt.triggerCharacter == "@" then
-      item.word = string.format("@{%s}", item.label:sub(2))
+      item.word = string.format("{%s}", item.label:sub(2))
     else
       item.word = item.label:sub(2)
     end

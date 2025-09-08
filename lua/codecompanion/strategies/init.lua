@@ -112,6 +112,9 @@ function Strategies:chat()
       })
     end
 
+    if type(opts.pre_hook) == "function" then
+      opts.pre_hook()
+    end
     log:info("[Strategy] Chat Initiated")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
@@ -185,6 +188,9 @@ function Strategies:workflow()
     :totable()
 
   local messages = prompts[1]
+
+  -- Set the workflow adapter if one is specified (Single adapter for entire workflow)
+  add_adapter(self, workflow.opts or {})
 
   -- We send the first batch of prompts to the chat buffer as messages
   local chat = require("codecompanion.strategies.chat").new({

@@ -92,8 +92,8 @@ prompts = {
       role = constants.USER_ROLE,
       opts = { auto_submit = false },
       content = function()
-        -- Leverage auto_tool_mode which disables the requirement of approvals and automatically saves any edited buffer
-        vim.g.codecompanion_auto_tool_mode = true
+        -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
+        vim.g.codecompanion_yolo_mode = true
 
         -- Some clear instructions for the LLM to follow
         return [[### Instructions
@@ -165,7 +165,10 @@ You can specify a specific adapter for a workflow prompt:
   strategy = "workflow",
   description = "My workflow",
   opts = {
-    adapter = "openai", -- Always use the OpenAI adapter for this workflow
+    adapter = {
+      name = "deepseek",
+      model = "deepseek-chat"
+    }
   },
   -- Prompts go here
 },

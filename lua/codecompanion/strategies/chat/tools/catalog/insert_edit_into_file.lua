@@ -5,7 +5,7 @@ local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
-local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
+local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local buffers = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
@@ -129,7 +129,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- Auto-save if enabled
-  if vim.g.codecompanion_auto_tool_mode then
+  if vim.g.codecompanion_yolo_mode then
     log:info("[Insert Edit Into File Tool] Auto-mode enabled, skipping diff and approval")
     return output_handler({
       status = "success",
@@ -158,7 +158,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
     local wait_opts = {
       chat_bufnr = chat_bufnr,
-      notify = config.display.icons.warning .. " Waiting for diff approval ...",
+      notify = config.display.icons.warning .. " Waiting for decision ...",
       sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
     }
 
@@ -273,7 +273,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   end
 
   -- Auto-save if enabled
-  if vim.g.codecompanion_auto_tool_mode then
+  if vim.g.codecompanion_yolo_mode then
     log:info("[Insert Edit Into File Tool] Auto-saving buffer %d", bufnr)
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
