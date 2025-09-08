@@ -27,7 +27,7 @@ local context_header = "> Context:"
 local function ts_parse_buffer(chat)
   local query = query_get("markdown", "cc_context")
 
-  local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
+  local tree = chat.chat_parser:parse({ chat.header_line - 1, -1 })[1]
   local root = tree:root()
 
   -- Check if there are any context items already in the chat buffer
@@ -74,7 +74,7 @@ end
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param context CodeCompanion.Chat.ContextItem
----@param row integer
+---@param row number
 local function add(chat, context, row)
   if not context.opts.visible then
     return
@@ -146,7 +146,7 @@ function Context:add(context)
     table.insert(self.Chat.context_items, context)
     -- If it's buffer context and it's being watched, start watching
     if context.bufnr and context.opts.watched then
-      self.Chat.watchers:watch(context.bufnr)
+      self.Chat.watched_buffers:watch(context.bufnr)
     end
   end
 
@@ -201,7 +201,7 @@ end
 local function get_range(chat)
   local query = query_get("markdown", "cc_context")
 
-  local tree = chat.parser:parse()[1]
+  local tree = chat.chat_parser:parse()[1]
   local root = tree:root()
 
   local role = nil
@@ -304,7 +304,7 @@ end
 function Context:get_from_chat()
   local query = query_get("markdown", "cc_context")
 
-  local tree = self.Chat.parser:parse()[1]
+  local tree = self.Chat.chat_parser:parse()[1]
   local root = tree:root()
 
   local items = {}

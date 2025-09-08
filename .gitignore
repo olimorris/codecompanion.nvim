@@ -54,8 +54,8 @@ assets/
 .repro/
 deps/
 todo.md
-/media/
-/examples/
+/media
+/examples
 chroma.log
 AGENTS.md
 notes

@@ -92,8 +92,9 @@ function ToolRegistry:add(tool, tool_config, opts)
   add_schema(self, resolved_tool, id)
 
   util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
-
   self.in_use[tool] = true
+
+  self:add_tool_system_prompt()
 
   return self
 end
@@ -130,6 +131,28 @@ function ToolRegistry:add_group(group, tools_config)
   for _, tool in ipairs(group_config.tools) do
     self:add(tool, tools_config[tool], { visible = not collapse_tools })
   end
+end
+
+---Add a tool system prompt to the chat buffer, updated for every tool addition
+---@return nil
+function ToolRegistry:add_tool_system_prompt()
+  local opts = config.strategies.chat.tools.opts.system_prompt or {}
+  if not opts.enabled then
+    return
+  end
+
+  local prompt = opts.prompt
+  if type(prompt) == "function" then
+    prompt = prompt({ tools = vim.tbl_keys(self.in_use) })
+  end
+
+  local index = 2 -- Add after the main system prompt if not replacing
+  if opts.replace_main_system_prompt then
+    index = 1
+    self.chat:remove_tagged_message("system_prompt_from_config")
+  end
+
+  self.chat:add_system_prompt(prompt, { index = index, visible = false, tag = "tool_system_prompt" })
 end
 
 ---Determine if the chat buffer has any tools in use

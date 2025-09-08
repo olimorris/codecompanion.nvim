@@ -32,6 +32,27 @@ local function set_llm_role(role, adapter)
 end
 
 ---@class CodeCompanion.Chat.UI
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter in use for the chat
+---@field aug number The autocmd group ID
+---@field chat_bufnr number The buffer number of the chat
+---@field chat_id number The unique ID of the chat
+---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
+---@field header_ns number The namespace for the header
+---@field roles table The roles in the chat
+---@field winnr number The window number of the chat
+---@field settings table The settings for the chat
+---@field tokens number The current token count in the chat
+
+---@class CodeCompanion.Chat.UIArgs
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field chat_bufnr number
+---@field chat_id number
+---@field roles table
+---@field winnr number
+---@field settings table
+---@field tokens number
+
+---@class CodeCompanion.Chat.UI
 local UI = {}
 
 ---@param args CodeCompanion.Chat.UIArgs
@@ -295,7 +316,7 @@ function UI:render(context, messages, opts)
     end
   end
 
-  if config.display.chat.show_settings then
+  if config.display.chat.show_settings and self.adapter.type == "http" then
     log:trace("Showing chat settings")
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter)
@@ -414,7 +435,7 @@ function UI:clear_virtual_text(extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
----@return integer, integer, integer
+---@return number, integer, integer
 function UI:last()
   local line_count = api.nvim_buf_line_count(self.chat_bufnr)
 
@@ -435,7 +456,7 @@ end
 
 ---Display the tokens in the chat buffer
 ---@param parser table
----@param start_row integer
+---@param start_row number
 ---@return nil
 function UI:display_tokens(parser, start_row)
   if config.display.chat.show_token_count and self.tokens then

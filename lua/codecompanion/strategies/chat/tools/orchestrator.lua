@@ -2,6 +2,7 @@ local Queue = require("codecompanion.strategies.chat.tools.runtime.queue")
 local Runner = require("codecompanion.strategies.chat.tools.runtime.runner")
 local log = require("codecompanion.utils.log")
 local tool_utils = require("codecompanion.utils.tools")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -227,7 +228,7 @@ function Orchestrator:setup(input)
   log:debug("Orchestrator:execute - `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and not vim.g.codecompanion_auto_tool_mode then
+  if self.tool.opts and not vim.g.codecompanion_yolo_mode then
     local requires_approval = self.tool.opts.requires_approval
 
     -- Users can set this to be a function if necessary
@@ -248,33 +249,19 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      vim.ui.select({ "Yes", "No", "Cancel" }, {
-        kind = "codecompanion.nvim",
-        prompt = prompt,
-        format_item = function(item)
-          if item == "Yes" then
-            return "Yes"
-          elseif item == "No" then
-            return "No"
-          else
-            return "Cancel"
-          end
-        end,
-      }, function(choice)
-        if not choice or choice == "Cancel" then -- No selection or cancelled
-          log:debug("Orchestrator:execute - Tool cancelled")
-          self:close()
-          self.output.cancelled(cmd)
-          return self:setup()
-        elseif choice == "Yes" then -- Selected yes
-          log:debug("Orchestrator:execute - Tool approved")
-          self:execute(cmd, input)
-        elseif choice == "No" then -- Selected no
-          log:debug("Orchestrator:execute - Tool rejected")
-          self.output.rejected(cmd)
-          self:setup()
-        end
-      end)
+      local choice = ui_utils.confirm(prompt, { "1 Approve", "2 Reject", "3 Cancel" })
+      if choice == 1 then
+        log:debug("Orchestrator:execute - Tool approved")
+        return self:execute(cmd, input)
+      elseif choice == 2 then
+        self.output.rejected(cmd)
+        return self:setup()
+      else
+        log:debug("Orchestrator:execute - Tool cancelled")
+        self:close()
+        self.output.cancelled(cmd)
+        return self:setup()
+      end
     else
       return self:execute(cmd, input)
     end
