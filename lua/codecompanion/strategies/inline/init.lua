@@ -497,7 +497,10 @@ function Inline:done(output)
     else
       -- After auto-applying inline edits (e.g., no_diff), move cursor to end of insertion
       if self.opts and self.opts.no_diff and self.classification and self.buffer_context then
-        api.nvim_win_set_cursor(self.buffer_context.winnr, { self.classification.pos.line, self.classification.pos.col })
+        api.nvim_win_set_cursor(
+          self.buffer_context.winnr,
+          { self.classification.pos.line, self.classification.pos.col }
+        )
       end
       self:reset()
     end
@@ -722,18 +725,13 @@ end
 ---Start the diff process
 ---@param original_content string[] The original buffer content before changes
 ---@return nil
-<<<<<<< HEAD
-function Inline:start_diff()
+function Inline:start_diff(original_content)
   -- Skip diff when no_diff option is set
   if self.opts and self.opts.no_diff then
     return
   end
-||||||| 0eb178f
-function Inline:start_diff()
-=======
-function Inline:start_diff(original_content)
+
   log:debug("[Inline] Starting diff with provider: %s", config.display.diff.provider)
->>>>>>> main
   if config.display.diff.enabled == false then
     return self:reset()
   end
