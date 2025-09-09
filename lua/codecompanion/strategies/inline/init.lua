@@ -237,14 +237,14 @@ function Inline:parse_special_syntax(prompt)
   local adapter_match = prompt:match(adapter_pattern)
   --TODO: change this as soon as `config.adapters` is removed in V18.0.0
   local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http, config.adapters)
-  if adapter_match then 
+  if adapter_match then
     if config_adapters[adapter_match] then
       self:set_adapter(adapter_match)
       prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
     else
-      vim.notify("Adapter not found: ".. adapter_match, vim.log.levels.ERROR)
+      util.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
     end
-  else 
+  else
     -- Handle legacy first-word adapter detection for backward compatibility
     local split = vim.split(prompt, " ")
     local first_word = split[1]
