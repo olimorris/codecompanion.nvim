@@ -133,7 +133,6 @@ LAZY.NVIM ~
       opts = {},
       dependencies = {
         "nvim-lua/plenary.nvim",
-        "nvim-treesitter/nvim-treesitter",
       },
     },
 <
@@ -149,7 +148,6 @@ PACKER ~
       end,
       requires = {
         "nvim-lua/plenary.nvim",
-        "nvim-treesitter/nvim-treesitter",
       }
     }),
 <
@@ -161,7 +159,6 @@ VIM-PLUG ~
     call plug#begin()
     
     Plug 'nvim-lua/plenary.nvim'
-    Plug 'nvim-treesitter/nvim-treesitter'
     Plug 'olimorris/codecompanion.nvim'
     
     call plug#end()
@@ -2411,10 +2408,10 @@ buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
 The chat buffer uses markdown as its syntax and `H2` headers separate the user
 and LLM’s responses. The plugin is turn-based, meaning that the user sends a
 response which is then followed by the LLM’s. The user’s responses are
-parsed by nvim-treesitter <https://github.com/nvim-treesitter/nvim-treesitter>
-and sent via an adapter to an LLM for a response which is then streamed back
-into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`.
-This can of course be changed as per the |codecompanion--keymaps| section.
+parsed by treesitter and sent via an adapter to an LLM for a response which is
+then streamed back into the buffer. A response is sent to the LLM by pressing
+`<CR>` or `<C-s>`. This can of course be changed as per the
+|codecompanion--keymaps| section.
 
 
 CHANGING ADAPTER ~
