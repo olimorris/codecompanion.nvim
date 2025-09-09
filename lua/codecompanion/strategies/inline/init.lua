@@ -556,8 +556,8 @@ end
 function Inline:parse_output(output)
   -- Try parsing as plain JSON first
   output = output:gsub("^```json", ""):gsub("```$", "")
-  local _, json = pcall(vim.json.decode, output)
-  if json then
+  local ok, json = pcall(vim.json.decode, output)
+  if ok then
     log:debug("[Inline] Parsed json:\n%s", json)
     return json
   end
@@ -565,8 +565,8 @@ function Inline:parse_output(output)
   -- Fall back to Tree-sitter parsing
   local markdown_code = parse_with_treesitter(output)
   if markdown_code then
-    _, json = pcall(vim.json.decode, markdown_code)
-    if json then
+    ok, json = pcall(vim.json.decode, markdown_code)
+    if ok then
       log:debug("[Inline] Parsed markdown JSON:\n%s", json)
       return json
     end
