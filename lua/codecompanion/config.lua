@@ -37,6 +37,9 @@ local defaults = {
     acp = {
       claude_code = "claude_code",
       gemini_cli = "gemini_cli",
+      opts = {
+        show_defaults = true, -- Show default adapters
+      },
     },
   },
   constants = constants,

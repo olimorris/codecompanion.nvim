@@ -373,6 +373,11 @@ function Chat.new(args)
       vim.bo[bufnr].filetype = "codecompanion"
       vim.bo[bufnr].undolevels = config.strategies.chat.opts.undolevels or 10
 
+      -- safely attach treesitter
+      vim.schedule(function()
+        pcall(vim.treesitter.start, bufnr)
+      end)
+
       -- Set up omnifunc for automatic completion when no other completion provider is active
       local completion_provider = config.strategies.chat.opts.completion_provider
       if completion_provider == "default" then
