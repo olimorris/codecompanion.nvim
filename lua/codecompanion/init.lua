@@ -182,19 +182,6 @@ CodeCompanion.chat = function(args)
   })
 end
 
----Open a chat buffer with memory
----@param args {memory: table, context: table}
----@return CodeCompanion.Chat|nil
-CodeCompanion.chat_with_memory = function(args)
-  args = args or {}
-
-  return require("codecompanion.strategies.chat").new({
-    buffer_context = args.context,
-    force_header = true,
-    messages = args.memory,
-  })
-end
-
 ---Create a cmd
 ---@return nil
 CodeCompanion.cmd = function(args)
