@@ -1176,12 +1176,6 @@ You must create or modify a workspace file through a series of prompts over mult
         "CLAUDE.local.md",
       },
     },
-    claude_2 = {
-      description = "Claude Code memory rules",
-      rules = {
-        { path = "CLAUDE.md", parser = "claude" },
-      },
-    },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
     },

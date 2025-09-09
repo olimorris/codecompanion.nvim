@@ -134,7 +134,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, args: string, fargs: table, context: table, has_memory: boolean, messages: CodeCompanion.Chat.Messages }
+---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, has_memory: boolean, messages: CodeCompanion.Chat.Messages }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -176,6 +176,7 @@ CodeCompanion.chat = function(args)
     auto_submit = auto_submit,
     adapter = adapter,
     buffer_context = context,
+    callbacks = args.callbacks,
     messages = has_messages and messages or nil,
     has_memory = args.has_memory or false,
   })

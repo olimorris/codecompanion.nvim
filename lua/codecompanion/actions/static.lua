@@ -103,20 +103,21 @@ return {
             strategy = "chat",
             description = item.description,
             callback = function(context)
-              codecompanion
-                .chat({
-                  buffer_context = context,
-                })
-                :on_creation(function(chat)
-                  memory
-                    .init({
-                      name = item.name,
-                      opts = item.opts,
-                      parser = item.parser,
-                      rules = item.rules,
-                    })
-                    :make(chat)
-                end)
+              codecompanion.chat({
+                buffer_context = context,
+                callbacks = {
+                  on_creation = function(chat)
+                    memory
+                      .init({
+                        name = item.name,
+                        opts = item.opts,
+                        parser = item.parser,
+                        rules = item.rules,
+                      })
+                      :make(chat)
+                  end,
+                },
+              })
             end,
           })
         end

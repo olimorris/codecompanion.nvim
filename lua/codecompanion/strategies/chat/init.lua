@@ -10,6 +10,7 @@
 ---@field aug number The ID for the autocmd group
 ---@field bufnr number The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
@@ -41,11 +42,11 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
----@field on_creation? fun(chat: CodeCompanion.Chat) A callback function that is executed when the chat is initiated
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
@@ -356,13 +357,13 @@ function Chat.new(args)
   local self = setmetatable({
     acp_session_id = args.acp_session_id or nil,
     buffer_context = args.buffer_context,
+    callbacks = {},
     context_items = {},
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     messages = args.messages or {},
-    on_creation = args.on_creation,
     opts = args,
     status = "",
     intro_message = args.intro_message or config.display.chat.intro_message,
@@ -521,24 +522,60 @@ function Chat.new(args)
     end
   end
 
+  -- Handle callbacks
+  if args.callbacks then
+    for event, callback_list in pairs(args.callbacks) do
+      if type(callback_list) == "function" then
+        -- Single callback
+        self:add_callback(event, callback_list)
+      elseif type(callback_list) == "table" then
+        -- Array of callbacks
+        for _, callback in ipairs(callback_list) do
+          self:add_callback(event, callback)
+        end
+      end
+    end
+  end
+
+  self:dispatch("on_creation")
+
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
   end
 
-  if self.on_creation then
-    return self:on_creation(self.on_creation)
-  end
-
   return self ---@type CodeCompanion.Chat
 end
 
----Execute a callback on the creation of the chat buffer class
----@param cb fun(chat: CodeCompanion.Chat)
+---Add a callback for a specific event
+---@param event string The event name
+---@param callback fun(chat: CodeCompanion.Chat) The callback function
 ---@return CodeCompanion.Chat
-function Chat:on_creation(cb)
-  if type(cb) == "function" then
-    cb(self)
+function Chat:add_callback(event, callback)
+  if not self.callbacks[event] then
+    self.callbacks[event] = {}
+  end
+  if type(callback) == "function" then
+    table.insert(self.callbacks[event], callback)
+  end
+  return self
+end
+
+---Dispatch callbacks for a specific event
+---@param event string The event name
+---@param ... any Additional arguments to pass to callbacks
+---@return CodeCompanion.Chat
+function Chat:dispatch(event, ...)
+  local callbacks = self.callbacks[event]
+  if not callbacks then
+    return self
+  end
+
+  for _, callback in ipairs(callbacks) do
+    local ok, err = pcall(callback, self, ...)
+    if not ok then
+      log:error("Callback error for %s: %s", event, err)
+    end
   end
   return self
 end
