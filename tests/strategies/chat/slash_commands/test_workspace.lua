@@ -56,7 +56,7 @@ T["Workspace"]["system prompts are added in the correct order along with a group
 
   messages = child.lua_get([[_G.chat.messages]])
 
-  h.eq(config.opts.system_prompt, messages[1].content)
+  h.eq(config.strategies.chat.opts.system_prompt, messages[1].content)
   h.eq(workspace_json.system_prompt, messages[2].content)
   h.eq(workspace_json.groups[1].system_prompt, messages[3].content)
 

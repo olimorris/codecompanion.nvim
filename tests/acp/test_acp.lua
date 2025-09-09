@@ -95,10 +95,10 @@ T["ACP Connection"]["can handle real initialize response"] = function()
     -- Simulate the connection flow
     connection._initialized = false
     connection._authenticated = false
-    connection._state.handle = mock_process
+      connection._state.handle = mock_process
 
-    -- Test handling real initialize response
-    connection:_process_json_message(load_acp_stub('initialize_response.txt'))
+      -- Test handling real initialize response
+      connection:handle_rpc_message(load_acp_stub('initialize_response.txt'))
   ]])
 
   local result = child.lua([[
@@ -113,7 +113,7 @@ T["ACP Connection"]["can handle real initialize response"] = function()
   h.eq(result.response[1].authMethods[2].id, "gemini-api-key")
 end
 
-T["ACP Connection"]["connect() end-to-end with real responses"] = function()
+T["ACP Connection"]["connect_and_initialize() end-to-end with real responses"] = function()
   local result = child.lua([[
     local init_resp = vim.json.decode(load_acp_stub('initialize_response.txt'))
     local auth_resp = vim.json.decode(load_acp_stub('authenticate_response.txt'))
@@ -127,9 +127,9 @@ T["ACP Connection"]["connect() end-to-end with real responses"] = function()
       },
     })
 
-    -- Mock _send_request to return our real responses directly
-    local original_send_request = connection._send_request
-    function connection:_send_request(method, params)
+      -- Mock send_rpc_request to return our real responses directly
+      local original_send_request = connection.send_rpc_request
+      function connection:send_rpc_request(method, params)
       if method == "initialize" then
         return init_resp.result
       elseif method == "authenticate" then
@@ -140,15 +140,15 @@ T["ACP Connection"]["connect() end-to-end with real responses"] = function()
       return nil
     end
 
-    -- Skip process creation
-    connection._state.handle = { write = function() end }
+      -- Skip process creation
+      connection._state.handle = { write = function() end }
 
-    -- Avoid env/command munging
-    function connection:_setup_adapter()
-      return test_adapter
-    end
+      -- Avoid env/command munging
+      function connection:prepare_adapter()
+        return test_adapter
+      end
 
-    local conn = connection:connect()
+      local conn = connection:connect_and_initialize()
     return {
       ok = conn ~= nil,
       initialized = connection._initialized,
@@ -173,10 +173,10 @@ T["ACP Connection"]["skips authenticate when agent has no auth methods"] = funct
         schedule_wrap = function(fn) return fn end,
       }
     })
-    function connection:_setup_adapter() return test_adapter end
+      function connection:prepare_adapter() return test_adapter end
     connection._state.handle = { write = function() end }
 
-    function connection:_send_request(method, params)
+      function connection:send_rpc_request(method, params)
       table.insert(calls, method)
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
@@ -185,7 +185,7 @@ T["ACP Connection"]["skips authenticate when agent has no auth methods"] = funct
       end
     end
 
-    local ok = connection:connect()
+    local ok = connection:connect_and_initialize()
     return {
       ok = ok ~= nil,
       session_id = connection.session_id,
@@ -210,11 +210,11 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
         schedule_wrap = function(fn) return fn end,
       }
     })
-    function connection:_setup_adapter() return test_adapter end
+      function connection:prepare_adapter() return test_adapter end
     connection._state.handle = { write = function() end }
     connection.session_id = "prev-session"
 
-    function connection:_send_request(method, params)
+      function connection:send_rpc_request(method, params)
       table.insert(calls, method)
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
@@ -223,7 +223,7 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
       end
     end
 
-    local ok = connection:connect()
+    local ok = connection:connect_and_initialize()
     return { ok = ok ~= nil, called = calls, session_id = connection.session_id }
   ]])
 
@@ -243,11 +243,11 @@ T["ACP Connection"]["falls back to session/new if session/load fails"] = functio
         schedule_wrap = function(fn) return fn end,
       }
     })
-    function connection:_setup_adapter() return test_adapter end
+      function connection:prepare_adapter() return test_adapter end
     connection._state.handle = { write = function() end }
     connection.session_id = "prev-session"
 
-    function connection:_send_request(method, params)
+      function connection:send_rpc_request(method, params)
       table.insert(calls, method)
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
@@ -258,7 +258,7 @@ T["ACP Connection"]["falls back to session/new if session/load fails"] = functio
       end
     end
 
-    local ok = connection:connect()
+    local ok = connection:connect_and_initialize()
     return { ok = ok ~= nil, called = calls, session_id = connection.session_id }
   ]])
 
@@ -279,15 +279,15 @@ T["ACP Responses"]["handles partial JSON messages correctly"] = function()
 
     -- Track processed messages
     local processed_messages = {}
-    function connection:_process_json_message(line)
-      table.insert(processed_messages, line)
-    end
+      function connection:handle_rpc_message(line)
+        table.insert(processed_messages, line)
+      end
 
-    -- Simulate partial JSON arriving in chunks
-    connection:_process_output('{"jsonrpc":"2.0","id":1,')
-    connection:_process_output('"result":{"test":"value"}}\n')
-    connection:_process_output('{"jsonrpc":"2.0","id":2,"result":null}\n{"jsonrpc"')
-    connection:_process_output(':"2.0","id":3,"result":{}}\n')
+      -- Simulate partial JSON arriving in chunks
+      connection:buffer_stdout_and_dispatch('{"jsonrpc":"2.0","id":1,')
+      connection:buffer_stdout_and_dispatch('"result":{"test":"value"}}\n')
+      connection:buffer_stdout_and_dispatch('{"jsonrpc":"2.0","id":2,"result":null}\n{"jsonrpc"')
+      connection:buffer_stdout_and_dispatch(':"2.0","id":3,"result":{}}\n')
 
     return {
       message_count = #processed_messages,
@@ -310,10 +310,10 @@ T["ACP Responses"]["handles CRLF line endings in stdout"] = function()
       opts = { schedule_wrap = function(fn) return fn end }
     })
     local processed = {}
-    function connection:_process_json_message(line)
-      table.insert(processed, line)
-    end
-    connection:_process_output('{"jsonrpc":"2.0","id":10,"result":{}}\r\n{"jsonrpc":"2.0","id":11,"result":{}}\n')
+      function connection:handle_rpc_message(line)
+        table.insert(processed, line)
+      end
+      connection:buffer_stdout_and_dispatch('{"jsonrpc":"2.0","id":10,"result":{}}\r\n{"jsonrpc":"2.0","id":11,"result":{}}\n')
     return processed
   ]])
 
@@ -331,17 +331,17 @@ T["ACP Responses"]["processes real streaming prompt responses"] = function()
 
     -- Track session updates
     local updates = {}
-    connection._active_prompt = {
-      _handle_session_update = function(self, update)
-        table.insert(updates, update)
-      end
-    }
+      connection._active_prompt = {
+        handle_session_update = function(self, update)
+          table.insert(updates, update)
+        end
+      }
 
     -- Read the file content and ensure final newline
     local lines = vim.fn.readfile('tests/stubs/acp/prompt_response.txt')
     local prompt_data = table.concat(lines, '\n') .. '\n'
 
-    connection:_process_output(prompt_data)
+      connection:buffer_stdout_and_dispatch(prompt_data)
 
     return {
       update_count = #updates,
@@ -368,19 +368,19 @@ T["ACP Responses"]["dispatches session/request_permission to active prompt"] = f
     })
     connection.session_id = "sess-123"
     local captured = {}
-    connection._active_prompt = {
-      _handle_permission_request = function(_, id, params)
-        captured.id = id
-        captured.sid = params.sessionId
-      end
-    }
+      connection._active_prompt = {
+        handle_permission_request = function(_, id, params)
+          captured.id = id
+          captured.sid = params.sessionId
+        end
+      }
     local req = vim.json.encode({
       jsonrpc = "2.0",
       id = 99,
       method = "session/request_permission",
       params = { sessionId = "sess-123", options = {}, toolCall = { toolCallId = "tc1" } }
     })
-    connection:_process_output(req .. "\r\n")
+      connection:buffer_stdout_and_dispatch(req .. "\r\n")
     return captured
   ]])
   h.eq(result.id, 99)
@@ -394,10 +394,10 @@ T["ACP Responses"]["_handle_done when stopReason present"] = function()
       opts = { schedule_wrap = function(fn) return fn end }
     })
     local seen
-    connection._active_prompt = {
-      _handle_done = function(_, sr) seen = sr end
-    }
-    connection:_process_json_message('{"jsonrpc":"2.0","id":1,"result":{"stopReason":"end_turn"}}')
+      connection._active_prompt = {
+        handle_done = function(_, sr) seen = sr end
+      }
+      connection:handle_rpc_message('{"jsonrpc":"2.0","id":1,"result":{"stopReason":"end_turn"}}')
     return seen
   ]])
   h.eq(result, "end_turn")
@@ -415,15 +415,15 @@ T["ACP Connection"]["_handle_exit resets state, calls on_exit and prompts done(c
       }
     }
     local seen_done
-    connection._active_prompt = {
-      _handle_done = function(_, sr) seen_done = sr end
-    }
+      connection._active_prompt = {
+        handle_done = function(_, sr) seen_done = sr end
+      }
     connection._initialized = true
     connection._authenticated = true
     connection.session_id = "sid"
     connection.pending_responses = { x = 1 }
 
-    connection:_handle_exit(123, 0)
+      connection:handle_process_exit(123, 0)
 
     return {
       init = connection._initialized,
@@ -456,10 +456,10 @@ T["ACP Responses"]["fs/read_text_file and returns content"] = function()
     connection.session_id = "test-session-123"
 
     local sent = {}
-    connection._write_to_process = function(self, data)
-      table.insert(sent, vim.trim(data))
-      return true
-    end
+      function connection:write_message(data)
+        table.insert(sent, vim.trim(data))
+        return true
+      end
 
     local req = vim.json.encode({
       jsonrpc = "2.0",
@@ -467,7 +467,7 @@ T["ACP Responses"]["fs/read_text_file and returns content"] = function()
       method = "fs/read_text_file",
       params = { sessionId = "test-session-123", path = tmp }
     })
-    connection:_process_output(req .. "\n")
+      connection:buffer_stdout_and_dispatch(req .. "\n")
 
     local reply = vim.json.decode(sent[#sent])
     return reply
@@ -489,15 +489,15 @@ T["ACP Responses"]["fs/read_text_file ENOENT returns empty content"] = function(
     })
     connection.session_id = "s1"
     local sent = {}
-    function connection:_write_to_process(data)
-      table.insert(sent, vim.trim(data))
-      return true
-    end
+      function connection:write_message(data)
+        table.insert(sent, vim.trim(data))
+        return true
+      end
     local req = vim.json.encode({
       jsonrpc = "2.0", id = 5, method = "fs/read_text_file",
       params = { sessionId = "s1", path = "/tmp/missing.txt" }
     })
-    connection:_process_output(req .. "\n")
+      connection:buffer_stdout_and_dispatch(req .. "\n")
     return vim.json.decode(sent[#sent])
   ]])
   h.eq(result.id, 5)
@@ -515,7 +515,7 @@ T["ACP Responses"]["fs/read_text_file rejects invalid sessionId"] = function()
     })
     connection.session_id = "correct-session"
     local sent = {}
-    function connection:_write_to_process(data)
+    function connection:write_message(data)
       table.insert(sent, vim.trim(data))
       return true
     end
@@ -523,7 +523,7 @@ T["ACP Responses"]["fs/read_text_file rejects invalid sessionId"] = function()
       jsonrpc = "2.0", id = 6, method = "fs/read_text_file",
       params = { sessionId = "wrong-session", path = "/tmp/x" }
     })
-    connection:_process_output(req .. "\n")
+      connection:buffer_stdout_and_dispatch(req .. "\n")
     return vim.json.decode(sent[#sent])
   ]])
 
@@ -550,10 +550,10 @@ T["ACP Responses"]["fs/write_text_file and responds with null"] = function()
 
     -- Capture what we send back to the agent
     local sent = {}
-    connection._write_to_process = function(self, data)
-      table.insert(sent, vim.trim(data))
-      return true
-    end
+      function connection:write_message(data)
+        table.insert(sent, vim.trim(data))
+        return true
+      end
 
     -- Simulate agent request
     local req = vim.json.encode({
@@ -566,7 +566,7 @@ T["ACP Responses"]["fs/write_text_file and responds with null"] = function()
         content = "print('ok')\n",
       }
     })
-    connection:_process_output(req .. "\n")
+      connection:buffer_stdout_and_dispatch(req .. "\n")
 
     return {
       writes = writes,
@@ -599,10 +599,10 @@ T["ACP Responses"]["fs/write_text_file rejects invalid sessionId"] = function()
     connection.session_id = "correct-session"
 
     local sent = {}
-    connection._write_to_process = function(self, data)
-      table.insert(sent, vim.trim(data))
-      return true
-    end
+      function connection:write_message(data)
+        table.insert(sent, vim.trim(data))
+        return true
+      end
 
     local req = vim.json.encode({
       jsonrpc = "2.0",
@@ -614,7 +614,7 @@ T["ACP Responses"]["fs/write_text_file rejects invalid sessionId"] = function()
         content = "nope",
       }
     })
-    connection:_process_output(req .. "\n")
+    connection:buffer_stdout_and_dispatch(req .. "\n")
 
     return vim.tbl_map(function(s) return vim.json.decode(s) end, sent)
   ]])
@@ -638,7 +638,7 @@ T["ACP Responses"]["fs/write_text_file failure returns JSON-RPC error"] = functi
     })
     connection.session_id = "s1"
     local sent = {}
-    function connection:_write_to_process(data)
+    function connection:write_message(data)
       table.insert(sent, vim.trim(data))
       return true
     end
@@ -646,7 +646,7 @@ T["ACP Responses"]["fs/write_text_file failure returns JSON-RPC error"] = functi
       jsonrpc = "2.0", id = 8, method = "fs/write_text_file",
       params = { sessionId = "s1", path = "/root/forbidden", content = "x" }
     })
-    connection:_process_output(req .. "\n")
+    connection:buffer_stdout_and_dispatch(req .. "\n")
     return vim.json.decode(sent[#sent])
   ]])
 
@@ -665,7 +665,7 @@ T["ACP Responses"]["ignores notifications for other sessions"] = function()
 
     local updates = {}
     connection._active_prompt = {
-      _handle_session_update = function(self, u)
+      handle_session_update = function(self, u)
         table.insert(updates, u)
       end
     }
@@ -683,7 +683,7 @@ T["ACP Responses"]["ignores notifications for other sessions"] = function()
       params = { sessionId = "session-A", update = { sessionUpdate = "agent_message_chunk", content = { type="text", text="seen" } } }
     })
 
-    connection:_process_output(other .. "\n" .. ours .. "\n")
+      connection:buffer_stdout_and_dispatch(other .. "\n" .. ours .. "\n")
     return { count = #updates, last = updates[#updates] and updates[#updates].content and updates[#updates].content.text }
   ]])
 

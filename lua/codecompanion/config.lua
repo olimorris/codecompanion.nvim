@@ -35,6 +35,7 @@ local defaults = {
       },
     },
     acp = {
+      claude_code = "claude_code",
       gemini_cli = "gemini_cli",
     },
   },
@@ -58,6 +59,7 @@ local defaults = {
         groups = {
           ["full_stack_dev"] = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
+            prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
               "cmd_runner",
               "create_file",
@@ -67,7 +69,6 @@ local defaults = {
               "insert_edit_into_file",
               "list_code_usages",
               "read_file",
-              "search_web",
             },
             opts = {
               collapse_tools = true,
@@ -75,6 +76,7 @@ local defaults = {
           },
           ["files"] = {
             description = "Tools related to creating, reading and editing files",
+            prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
               "create_file",
               "file_search",
@@ -191,6 +193,53 @@ local defaults = {
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
+
+          system_prompt = {
+            enabled = true, -- Enable the tools system prompt?
+            replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
+
+            ---The tool system prompt
+            ---@param args { tools: string[]} The tools available
+            ---@return string
+            prompt = function(args)
+              return [[<instructions>
+You are a highly sophisticated automated coding agent with expert-level knowledge across many different programming languages and frameworks.
+The user will ask a question, or ask you to perform a task, and it may require lots of research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
+You will be given some context and attachments along with the user prompt. You can use them if they are relevant to the task, and ignore them if not.
+If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, make sure to keep them in mind when making changes.
+If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
+If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have. It's YOUR RESPONSIBILITY to make sure that you have done all you can to collect necessary context.
+Don't make assumptions about the situation - gather context first, then perform the task or answer the question.
+Think creatively and explore the workspace in order to make a complete fix.
+Don't repeat yourself after a tool call, pick up where you left off.
+NEVER print out a codeblock with a terminal command to run unless the user asked for it.
+You don't need to read a file if it's already provided in context.
+</instructions>
+<toolUseInstructions>
+When using a tool, follow the json schema very carefully and make sure to include ALL required properties.
+Always output valid JSON when using a tool.
+If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
+If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
+Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
+Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
+When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
+</toolUseInstructions>
+<outputFormatting>
+Use proper Markdown formatting in your answers. When referring to a filename or symbol in the user's workspace, wrap it in backticks.
+Any code block examples must be wrapped in four backticks with the programming language.
+<example>
+````languageId
+// Your code here
+````
+</example>
+The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
+If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+</outputFormatting>]]
+            end,
+          },
+
+          tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
       variables = {
@@ -435,11 +484,11 @@ local defaults = {
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
-        auto_tool_mode = {
-          modes = { n = "gta" },
+        yolo_mode = {
+          modes = { n = "gty" },
           index = 18,
-          callback = "keymaps.auto_tool_mode",
-          description = "Toggle automatic tool mode",
+          callback = "keymaps.yolo_mode",
+          description = "YOLO mode toggle",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -490,6 +539,80 @@ local defaults = {
 
         ---@type string|fun(path: string)
         goto_file_action = ui.tabnew_reuse,
+
+        ---This is the default prompt which is sent with every request in the chat
+        ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
+        ---but with some modifications. You can choose to remove this via
+        ---your own config but note that LLM results may not be as good
+        ---@param args { adapter: CodeCompanion.HTTPAdapter, language: string }
+        ---@return string
+        system_prompt = function(args)
+          -- Determine the user's machine
+          local machine = vim.uv.os_uname().sysname
+          if machine == "Darwin" then
+            machine = "Mac"
+          end
+          if machine:find("Windows") then
+            machine = "Windows"
+          end
+
+          return fmt(
+            [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
+
+You can answer general programming questions and perform the following tasks:
+* Answer general programming questions.
+* Explain how the code in a Neovim buffer works.
+* Review the selected code from a Neovim buffer.
+* Generate unit tests for the selected code.
+* Propose fixes for problems in the selected code.
+* Scaffold code for a new workspace.
+* Find relevant code to the user's query.
+* Propose fixes for test failures.
+* Answer questions about Neovim.
+
+Follow the user's requirements carefully and to the letter.
+Use the context and attachments the user provides.
+Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
+All non-code text responses must be written in the %s language.
+Use Markdown formatting in your answers.
+Do not use H1 or H2 markdown headers.
+When suggesting code changes or new content, use Markdown code blocks.
+To start a code block, use 4 backticks.
+After the backticks, add the programming language name as the language ID.
+To close a code block, use 4 backticks on a new line.
+If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
+If you want the user to decide where to place the code, do not add the file path comment.
+In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
+Code block example:
+````languageId
+// filepath: /path/to/file
+// ...existing code...
+{ changed code }
+// ...existing code...
+{ changed code }
+// ...existing code...
+````
+Ensure line comments use the correct syntax for the programming language (e.g. "#" for Python, "--" for Lua).
+For code blocks use four backticks to start and end.
+Avoid wrapping the whole response in triple backticks.
+Do not include diff formatting unless explicitly asked.
+Do not include line numbers in code blocks.
+
+When given a task:
+1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
+2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
+3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
+
+Additional context:
+The current date is %s.
+The user's Neovim version is %s.
+The user is working on a %s machine. Please respond with system specific commands if applicable.]],
+            args.language or "English",
+            os.date("%B %d, %Y"),
+            vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+            machine
+          )
+        end,
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
@@ -646,8 +769,8 @@ local defaults = {
             role = constants.USER_ROLE,
             opts = { auto_submit = false },
             content = function()
-              -- Enable turbo mode!!!
-              vim.g.codecompanion_auto_tool_mode = true
+              -- Enable YOLO mode!
+              vim.g.codecompanion_yolo_mode = true
 
               return [[### Instructions
 
@@ -1181,81 +1304,6 @@ You must create or modify a workspace file through a series of prompts over mult
 
     job_start_delay = 1500, -- Delay in milliseconds between cmd tools
     submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer
-
-    ---This is the default prompt which is sent with every request in the chat
-    ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
-    ---but with some modifications. You can choose to remove this via
-    ---your own config but note that LLM results may not be as good
-    ---@param args { adapter: CodeCompanion.HTTPAdapter, language: string }
-    ---@return string
-    system_prompt = function(args)
-      -- Determine the user's machine
-      local machine = vim.uv.os_uname().sysname
-      if machine == "Darwin" then
-        machine = "Mac"
-      end
-      if machine:find("Windows") then
-        machine = "Windows"
-      end
-
-      return fmt(
-        [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
-
-You can answer general programming questions and perform the following tasks:
-* Answer general programming questions.
-* Explain how the code in a Neovim buffer works.
-* Review the selected code from a Neovim buffer.
-* Generate unit tests for the selected code.
-* Propose fixes for problems in the selected code.
-* Scaffold code for a new workspace.
-* Find relevant code to the user's query.
-* Propose fixes for test failures.
-* Answer questions about Neovim.
-* Running tools.
-
-Follow the user's requirements carefully and to the letter.
-Use the context and attachments the user provides.
-Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
-All non-code text responses must be written in the %s language.
-Use Markdown formatting in your answers.
-Do not use H1 or H2 markdown headers.
-When suggesting code changes or new content, use Markdown code blocks.
-To start a code block, use 4 backticks.
-After the backticks, add the programming language name.
-If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
-If you want the user to decide where to place the code, do not add the file path comment.
-In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
-For code blocks use four backticks to start and end.
-Code block example:
-````languageId
-// filepath: /path/to/file
-// ...existing code...
-{ changed code }
-// ...existing code...
-{ changed code }
-// ...existing code...
-````
-Ensure line comments are specific to the programming language.
-Do not include diff formatting unless explicitly asked.
-Do not include line numbers in code blocks.
-Avoid wrapping the whole response in triple backticks.
-
-When given a task:
-1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in detailed pseudocode.
-2. Output the final code in a single code block, ensuring that only relevant code is included.
-3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
-4. Provide exactly one complete reply per conversation turn.
-
-Additional context:
-The current date is %s.
-The user's Neovim version is %s.
-The user is working on a %s machine. Please respond with system specific commands if applicable.]],
-        args.language or "English",
-        os.date("%B %d, %Y"),
-        vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-        machine
-      )
-    end,
   },
 }
 
@@ -1274,7 +1322,14 @@ M.setup = function(args)
       { title = "CodeCompanion" }
     )
   end
+
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
+
+  -- TODO: Add a deprecation warning at some point
+  if M.config.opts and M.config.opts.system_prompt then
+    M.config.strategies.chat.opts.system_prompt = M.config.opts.system_prompt
+    M.config.opts.system_prompt = nil
+  end
 end
 
 M.can_send_code = function()

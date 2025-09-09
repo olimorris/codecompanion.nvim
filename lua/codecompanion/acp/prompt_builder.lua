@@ -21,7 +21,11 @@ function PromptBuilder.new(connection, messages)
   local self = setmetatable({
     connection = connection,
     handlers = {},
-    messages = connection.adapter.handlers.form_messages(connection.adapter, messages),
+    messages = connection.adapter.handlers.form_messages(
+      connection.adapter,
+      messages,
+      connection._agent_info.agentCapabilities
+    ),
     options = {},
     _sent = false,
   }, { __index = PromptBuilder }) ---@cast self CodeCompanion.ACP.PromptBuilder
@@ -106,7 +110,7 @@ function PromptBuilder:send()
     params = { sessionId = self.connection.session_id, prompt = self.messages },
   }
   self.connection._state.next_id = self.connection._state.next_id + 1
-  self.connection:_write_to_process(self.connection.methods.encode(req) .. "\n")
+  self.connection:write_message(self.connection.methods.encode(req) .. "\n")
 
   self._streaming_started = false
   return {
@@ -119,7 +123,7 @@ end
 ---Extract renderable text from a content block
 ---@param block table|nil
 ---@return string|nil
-function PromptBuilder:_extract_text(block)
+function PromptBuilder:get_renderable_text(block)
   if not block or type(block) ~= "table" then
     return nil
   end
@@ -150,7 +154,7 @@ end
 ---Handle session update from the server
 ---@param params table
 ---@return nil
-function PromptBuilder:_handle_session_update(params)
+function PromptBuilder:handle_session_update(params)
   -- Fire streaming event on first chunk
   if self.options and not self._streaming_started then
     self._streaming_started = true
@@ -161,13 +165,13 @@ function PromptBuilder:_handle_session_update(params)
 
   if params.sessionUpdate == "agent_message_chunk" then
     if self.handlers.message_chunk then
-      local text = self:_extract_text(params.content)
+      local text = self:get_renderable_text(params.content)
       if text and text ~= "" then
         self.handlers.message_chunk(text)
       end
     end
   elseif params.sessionUpdate == "agent_thought_chunk" then
-    local text = self:_extract_text(params.content)
+    local text = self:get_renderable_text(params.content)
     if text and text ~= "" and self.handlers.thought_chunk then
       self.handlers.thought_chunk(text)
     end
@@ -190,7 +194,7 @@ end
 ---@param id number
 ---@param params table
 ---@return nil
-function PromptBuilder:_handle_permission_request(id, params)
+function PromptBuilder:handle_permission_request(id, params)
   if not id or not params then
     return
   end
@@ -198,7 +202,7 @@ function PromptBuilder:_handle_permission_request(id, params)
   local options = params.options or {}
 
   local function respond(outcome)
-    self.connection:_send_result(id, { outcome = outcome })
+    self.connection:send_result(id, { outcome = outcome })
   end
 
   local request = {
@@ -225,7 +229,7 @@ end
 ---Handle done event from the server
 ---@param stop_reason string
 ---@return nil
-function PromptBuilder:_handle_done(stop_reason)
+function PromptBuilder:handle_done(stop_reason)
   local status = "success"
   if stop_reason == "refusal" then
     status = "error"
@@ -259,7 +263,10 @@ end
 ---@return nil
 function PromptBuilder:cancel()
   if self.connection.session_id then
-    self.connection:_notify(self.connection.METHODS.SESSION_CANCEL, { sessionId = self.connection.session_id })
+    self.connection:send_notification(
+      self.connection.METHODS.SESSION_CANCEL,
+      { sessionId = self.connection.session_id }
+    )
     if self.options and not self.options.silent then
       self.options.status = "cancelled"
       util.fire("RequestFinished", self.options)

@@ -2,8 +2,8 @@ local helpers = require("codecompanion.adapters.acp.helpers")
 
 ---@class CodeCompanion.ACPAdapter.GeminiCLI: CodeCompanion.ACPAdapter
 return {
-  name = "gemini_cli",
-  formatted_name = "Gemini CLI",
+  name = "claude_code",
+  formatted_name = "Claude Code",
   type = "acp",
   roles = {
     llm = "assistant",
@@ -14,22 +14,18 @@ return {
   },
   commands = {
     default = {
-      "gemini",
-      "--experimental-acp",
-    },
-    yolo = {
-      "gemini",
-      "--yolo",
-      "--experimental-acp",
+      "npx",
+      "--silent",
+      "--yes",
+      "@zed-industries/claude-code-acp",
     },
   },
   defaults = {
-    auth_method = "oauth-personal", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
     mcpServers = {},
     timeout = 20000, -- 20 seconds
   },
   env = {
-    GEMINI_API_KEY = "GEMINI_API_KEY",
+    CLAUDE_CODE_OAUTH_TOKEN = "CLAUDE_CODE_OAUTH_TOKEN",
   },
   parameters = {
     protocolVersion = 1,
@@ -46,6 +42,18 @@ return {
     ---@return boolean
     setup = function(self)
       return true
+    end,
+
+    ---Manually handle authentication
+    ---@param self CodeCompanion.ACPAdapter
+    ---@return boolean
+    auth = function(self)
+      local token = self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN
+      if token and token ~= "" then
+        vim.env.CLAUDE_CODE_OAUTH_TOKEN = token
+        return true
+      end
+      return false
     end,
 
     ---@param self CodeCompanion.ACPAdapter

@@ -14,9 +14,9 @@ local M = {}
 function M.for_decision(id, events, callback, opts)
   opts = opts or {}
 
-  -- Auto-approve if in auto mode
+  -- Auto-approve if in YOLO mode
   -- Generally, most tools will avoid us reaching this point, but it's a good fallback
-  if vim.g.codecompanion_auto_tool_mode then
+  if vim.g.codecompanion_yolo_mode then
     return callback({ accepted = true, auto_approved = true })
   end
 

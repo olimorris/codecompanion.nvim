@@ -45,6 +45,31 @@ local T = new_set({
             end
           }
         }
+
+        agent_info = {
+          agentCapabilities = {
+            loadSession = false,
+            promptCapabilities = {
+              audio = true,
+              embeddedContext = true,
+              image = true
+            }
+          },
+          authMethods = { {
+              description = vim.NIL,
+              id = "oauth-personal",
+              name = "Log in with Google"
+            }, {
+              description = "Requires setting the `GEMINI_API_KEY` environment variable",
+              id = "gemini-api-key",
+              name = "Use Gemini API key"
+            }, {
+              description = vim.NIL,
+              id = "vertex-ai",
+              name = "Vertex AI"
+            } },
+          protocolVersion = 1
+        }
       ]])
     end,
     post_once = child.stop,
@@ -59,18 +84,19 @@ T["Prompt Builder"]["PromptBuilder"] = function()
     connection.session_id = "test-session-123"
     connection.process = { next_id = 10 }
     connection.methods = { encode = vim.json.encode }
+    connection._agent_info = agent_info
 
     -- Track handler calls and sent data
     local handler_calls = {}
     local sent_data = ""
 
-    connection._write_to_process = function(self, data)
+    connection.write_message = function(self, data)
       sent_data = data
       return true
     end
 
     -- Create prompt with fluent API
-    local prompt = connection:prompt({
+    local prompt = connection:session_prompt({
       { role = "user", content = "Test message" }
     })
     :on_message_chunk(function(content)
@@ -86,15 +112,15 @@ T["Prompt Builder"]["PromptBuilder"] = function()
 
     -- Send and simulate responses
     local job = prompt:send()
-    prompt:_handle_session_update({
+    prompt:handle_session_update({
       sessionUpdate = "agent_thought_chunk",
       content = { type = "text", text = "Thinking..." }
     })
-    prompt:_handle_session_update({
+    prompt:handle_session_update({
       sessionUpdate = "agent_message_chunk",
       content = { type = "text", text = "Hello!" }
     })
-    prompt:_handle_done()
+    prompt:handle_done()
 
     return {
       handler_count = #handler_calls,
@@ -121,22 +147,23 @@ T["Prompt Builder"]["extracts text safely from non-text content"] = function()
   local result = child.lua([[
     local connection = ACP.new({ adapter = test_adapter })
     connection.session_id = "test-session-123"
+    connection._agent_info = agent_info
 
     local seen = {}
-    local prompt = connection:prompt({ { role = "user", content = "hi" } })
+    local prompt = connection:session_prompt({ { role = "user", content = "hi" } })
       :on_message_chunk(function(text) table.insert(seen, text) end)
       :on_thought_chunk(function(text) table.insert(seen, "T:" .. text) end)
 
     -- Simulate image and resource_link chunks
-    prompt:_handle_session_update({
+    prompt:handle_session_update({
       sessionUpdate = "agent_message_chunk",
       content = { type = "image", data = "..." }
     })
-    prompt:_handle_session_update({
+    prompt:handle_session_update({
       sessionUpdate = "agent_message_chunk",
       content = { type = "resource_link", uri = "file:///tmp/x.txt", name = "x" }
     })
-    prompt:_handle_session_update({
+    prompt:handle_session_update({
       sessionUpdate = "agent_thought_chunk",
       content = { type = "text", text = "thinking" }
     })
@@ -156,14 +183,15 @@ T["Prompt Builder"]["cancel sends notification (no id)"] = function()
     connection.session_id = "test-session-123"
     connection.methods = { encode = vim.json.encode }
     connection._state = { next_id = 1 } -- ensure state
+    connection._agent_info = agent_info
 
     local sent = {}
-    connection._write_to_process = function(self, data)
+    connection.write_message = function(self, data)
       table.insert(sent, vim.trim(data))
       return true
     end
 
-    local prompt = connection:prompt({ { role = "user", content = "hi" } })
+    local prompt = connection:session_prompt({ { role = "user", content = "hi" } })
     prompt:cancel()
 
     local obj = vim.json.decode(sent[#sent])
@@ -180,21 +208,22 @@ T["Prompt Builder"]["Sends selected outcome response"] = function()
     local Connection = require("codecompanion.acp")
 
     local adapter = {
-      handlers = { form_messages = function(_, msgs) return msgs end },
+      handlers = { form_messages = function(_, msgs, capabilities) return msgs end },
       defaults = {},
       commands = { default = "noop" },
     }
 
-    local conn = Connection.new({ adapter = adapter })
-    conn.session_id = "test-session-2"
+    local connection = Connection.new({ adapter = adapter })
+    connection.session_id = "test-session-2"
+    connection._agent_info = agent_info
 
     _G.captured = nil
-    conn._write_to_process = function(self, data)
+    connection.write_message = function(self, data)
       _G.captured = data
       return true
     end
 
-    local pb = conn:prompt({ { type = "text", text = "hi" } })
+    local pb = connection:session_prompt({ { type = "text", text = "hi" } })
 
     pb:on_permission_request(function(req)
       req.respond("opt-2", false)
@@ -215,7 +244,7 @@ T["Prompt Builder"]["Sends selected outcome response"] = function()
       },
     }
 
-    pb:_handle_permission_request(7, params)
+    pb:handle_permission_request(7, params)
 
     local sent = vim.json.decode(_G.captured or "{}")
     return {
@@ -240,16 +269,17 @@ T["Prompt Builder"]["Auto-cancels when no handler is registered"] = function()
       commands = { default = "noop" },
     }
 
-    local conn = Connection.new({ adapter = adapter })
-    conn.session_id = "test-session-3"
+    local connection = Connection.new({ adapter = adapter })
+    connection.session_id = "test-session-3"
+    connection._agent_info = agent_info
 
     _G.captured = nil
-    conn._write_to_process = function(self, data)
+    connection.write_message = function(self, data)
       _G.captured = data
       return true
     end
 
-    local pb = conn:prompt({ { type = "text", text = "hello" } })
+    local pb = connection:session_prompt({ { type = "text", text = "hello" } })
 
     local params = {
       sessionId = "sess-3",
@@ -265,7 +295,7 @@ T["Prompt Builder"]["Auto-cancels when no handler is registered"] = function()
       },
     }
 
-    pb:_handle_permission_request(13, params)
+    pb:handle_permission_request(13, params)
 
     local sent = vim.json.decode(_G.captured or "{}")
     return {

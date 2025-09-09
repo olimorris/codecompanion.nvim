@@ -322,9 +322,9 @@ M.codeblock = {
     local ft = chat.buffer_context.filetype or ""
 
     local codeblock = {
-      "```" .. ft,
+      "````" .. ft,
       "",
-      "```",
+      "````",
     }
 
     api.nvim_buf_set_lines(bufnr, line - 1, line, false, codeblock)
@@ -575,7 +575,7 @@ M.change_adapter = {
       end
 
       -- Update the system prompt
-      local system_prompt = config.opts.system_prompt
+      local system_prompt = config.strategies.chat.opts.system_prompt
       if type(system_prompt) == "function" then
         if chat.messages[1] and chat.messages[1].role == "system" then
           local opts = { adapter = chat.adapter, language = config.opts.language }
@@ -614,6 +614,7 @@ M.change_adapter = {
             return model ~= new_model
           end)
           :totable()
+        table.sort(models)
         table.insert(models, 1, new_model)
 
         vim.ui.select(models, select_opts("Select Model", new_model), function(selected_model)
@@ -695,15 +696,15 @@ M.toggle_system_prompt = {
   end,
 }
 
-M.auto_tool_mode = {
-  desc = "Toggle automatic tool mode",
+M.yolo_mode = {
+  desc = "Toggle YOLO mode",
   callback = function(chat)
-    if vim.g.codecompanion_auto_tool_mode then
-      vim.g.codecompanion_auto_tool_mode = nil
-      return util.notify("Disabled automatic tool mode", vim.log.levels.INFO)
+    if vim.g.codecompanion_yolo_mode then
+      vim.g.codecompanion_yolo_mode = nil
+      return util.notify("YOLO mode disabled", vim.log.levels.INFO)
     else
-      vim.g.codecompanion_auto_tool_mode = true
-      return util.notify("Enabled automatic tool mode", vim.log.levels.INFO)
+      vim.g.codecompanion_yolo_mode = true
+      return util.notify("YOLO mode enabled", vim.log.levels.INFO)
     end
   end,
 }

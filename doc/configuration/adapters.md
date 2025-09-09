@@ -71,7 +71,15 @@ require("codecompanion").setup({
 > [!NOTE]
 > In this example, we're using the 1Password CLI to extract the Gemini API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
 
-Environment variables can also be functions and as a parameter, they receive a copy of the adapter itself.
+## Environment Variables
+
+Setting environment variables within adapters is a key part of configuration. The adapter `env` table lets you define values that will be interpolated into the adapter's URL, headers, parameters and other fields at runtime.
+
+Supported `env` value types:
+- **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
+- **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
+- **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
+- **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
 
 ## Changing a Model
 
@@ -83,7 +91,7 @@ require("codecompanion").setup({
     chat = {
       adapter = {
         name = "copilot",
-        model = "claude-sonnet-4-20250514",
+        model = "claude-sonnet-4",
       },
     },
   },
@@ -107,6 +115,34 @@ require("codecompanion").setup({
     end,
   },
 }),
+```
+
+## Changing Auth Method of an ACP Adapter
+
+> [!NOTE]
+> The auth methods for each ACP adapter are output in the [logs](/configuration/others#log-level) when the `log_level` is set to `DEBUG`.
+
+It's important to note that each agent adapter handles authentication differently. CodeCompanion endeavours to share the available options in the agent's adapter as a comment. However, it's recommended to consult the documentation of the agent you're working with.
+
+An example of changing the Gemini CLI's auth method to use the API key and a 1Password vault:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      gemini_cli = function()
+        return require("codecompanion.adapters").extend("gemini_cli", {
+          defaults = {
+            auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+          },
+          env = {
+            GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+          },
+        })
+      end,
+    },
+  },
+})
 ```
 
 ## Configuring Adapter Settings
@@ -254,7 +290,57 @@ require("codecompanion").setup({
 
 With `show_model_choices = false`, the default model (as defined in the adapter's schema) will be automatically selected when changing adapters, and no model selection will be shown to the user.
 
-## Example: Using Ollama Remotely
+## Setup: Claude Code via ACP
+
+To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion, you'll need to take the following steps:
+
+1. [Install](https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code) Claude Code
+2. [Install](https://github.com/zed-industries/claude-code-acp) the Zed ACP adapter for Claude Code
+
+### Using Claude Pro Subscription
+
+3. In your CLI, run `claude setup-token`. You'll be redirected to the Claude.ai website for authorization:
+<img src="https://github.com/user-attachments/assets/28b70ba1-6fd2-4431-9905-c60c83286e4c">
+4. Back in your CLI, copy the OAuth token (in yellow):
+<img src="https://github.com/user-attachments/assets/73992480-20a6-4858-a9fe-93a4e49004ff">
+5. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on [environment variables](#environment-variables) for other ways to do this):
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          env = {
+            CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+### Using an API Key
+
+3. [Create](https://console.anthropic.com/settings/keys) an API key in your Anthropic console.
+4. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          env = {
+            ANTHROPIC_API_KEY = "my-api-key",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+## Setup: Using Ollama Remotely
 
 To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
 
@@ -280,7 +366,7 @@ require("codecompanion").setup({
 })
 ```
 
-## Example: Azure OpenAI
+## Setup: Azure OpenAI
 
 Below is an example of how you can leverage the `azure_openai` adapter within the plugin:
 

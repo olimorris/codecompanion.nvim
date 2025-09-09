@@ -47,7 +47,7 @@ M.always_accept = {
       inline.diff:accept()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
     end
-    vim.g.codecompanion_auto_tool_mode = true
+    vim.g.codecompanion_yolo_mode = true
     utils.notify("Auto tool mode enabled - future edits will be automatically accepted")
     log:trace("[Inline] Auto tool mode enabled")
   end,

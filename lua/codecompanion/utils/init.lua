@@ -79,7 +79,7 @@ end
 
 ---Replace any placeholders (e.g. ${placeholder}) in a string or table
 ---@param t table|string
----@param replacements table
+---@param replacements {placeholder: string, replacement: string}
 ---@return nil|string
 function M.replace_placeholders(t, replacements)
   if type(t) == "string" then

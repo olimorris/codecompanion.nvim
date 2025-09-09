@@ -226,6 +226,15 @@ return {
           description = "Tool group extended",
         },
         groups = {
+          ["senior_dev"] = {
+            description = "Tool Group",
+            prompt = "I'm giving you access to ${tools} to help me out",
+            tools = {
+              "func",
+              "cmd",
+            },
+          },
+
           ["tool_group"] = {
             description = "Tool Group",
             system_prompt = "My tool group system prompt",
@@ -263,6 +272,7 @@ return {
               "invalid",
             },
           },
+          tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
       variables = {
@@ -336,6 +346,7 @@ return {
       opts = {
         blank_prompt = "",
         wait_timeout = 3000,
+        system_prompt = "default system prompt",
       },
     },
     inline = {
@@ -448,7 +459,5 @@ return {
       warning = " ",
     },
   },
-  opts = {
-    system_prompt = "default system prompt",
-  },
+  opts = {},
 }

@@ -16,13 +16,13 @@ T = new_set({
           connected = false,
           session_id = nil,
 
-          connect = function(self)
+          connect_and_initialize = function(self)
             self.connected = true
             self.session_id = "test-session-123"
             return self
           end,
 
-          prompt = function(self, messages)
+          session_prompt = function(self, messages)
             return {
               messages = messages,
               handlers = {},
@@ -163,8 +163,8 @@ T["ACPHandler"]["handles streaming message chunks"] = function()
     end
 
     -- Simulate message chunk handling
-    handler:_handle_message_chunk("Hello ")
-    handler:_handle_message_chunk("there!")
+    handler:handle_message_chunk("Hello ")
+    handler:handle_message_chunk("there!")
 
     return {
       message_count = #buffer_messages,
@@ -200,8 +200,8 @@ T["ACPHandler"]["handles thought chunks"] = function()
     end
 
     -- Simulate thought chunk handling
-    handler:_handle_thought_chunk("Let me think about this...")
-    handler:_handle_thought_chunk("I need to consider...")
+    handler:handle_thought_chunk("Let me think about this...")
+    handler:handle_thought_chunk("I need to consider...")
 
     return {
       message_count = #buffer_messages,
@@ -238,10 +238,10 @@ T["ACPHandler"]["coordinates completion flow"] = function()
     end
 
     -- Simulate full interaction
-    handler:_handle_message_chunk("Response part 1")
-    handler:_handle_message_chunk(" and part 2")
-    handler:_handle_thought_chunk("My reasoning")
-    handler:_handle_completion("end_turn")
+    handler:handle_message_chunk("Response part 1")
+    handler:handle_message_chunk(" and part 2")
+    handler:handle_thought_chunk("My reasoning")
+    handler:handle_completion("end_turn")
 
     return {
       status = chat.status,
@@ -275,7 +275,7 @@ T["ACPHandler"]["handles connection errors"] = function()
     package.loaded["codecompanion.acp"] = {
       new = function(args)
         return {
-          connect = function() return nil end -- Connection fails
+          connect_and_initialize = function() return nil end -- Connection fails
         }
       end
     }
