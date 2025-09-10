@@ -10,6 +10,8 @@ T = new_set({
       h.child_start(child)
       child.lua([[
         h = require('tests.helpers')
+        config = require('codecompanion.config')
+        config.strategies.chat.opts.memory_default = nil
         h.setup_plugin()
       ]])
     end,
