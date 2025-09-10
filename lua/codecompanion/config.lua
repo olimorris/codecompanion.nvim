@@ -540,7 +540,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
-        memory_default = "default", -- The default memory group to use in the chat buffer
         register = "+", -- The register to use for yanking code
         undo_levels = 10, -- Number of undo levels to add to chat buffers
         wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
@@ -1158,7 +1157,7 @@ You must create or modify a workspace file through a series of prompts over mult
   -- MEMORY -------------------------------------------------------------------
   memory = {
     default = {
-      description = "Default rule selection for CodeCompanion",
+      description = "Collection of common rules for all projects",
       rules = {
         ".rules",
         ".goosehints",
@@ -1170,6 +1169,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "AGENTS.md",
         "CLAUDE.md",
       },
+      is_default = true,
     },
     CodeCompanion = {
       description = "CodeCompanion plugin memory rules",
@@ -1180,27 +1180,33 @@ You must create or modify a workspace file through a series of prompts over mult
       end,
       rules = {
         ["acp"] = {
-          description = "ACP implementation",
+          description = "The ACP implementation",
           rules = {
             ".codecompanion/acp/acp.md",
           },
-          opts = {
-            default = true,
-          },
         },
       },
+      is_default = true,
     },
     claude = {
-      description = "Claude Code memory rules",
+      description = "Memory rules for Claude Code users",
       parser = "claude",
       rules = {
         "~/.claude/CLAUDE.md",
         "CLAUDE.md",
         "CLAUDE.local.md",
       },
+      is_default = true,
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
+    },
+    opts = {
+      chat = {
+        enabled = true, -- Enable memory to be automatically added to chat buffers?
+        default_memory = "default", -- The default memory group to use in the chat buffer
+      },
+      show_defaults = true, -- Show the default memory rules in the picker?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------

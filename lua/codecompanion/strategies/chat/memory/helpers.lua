@@ -1,3 +1,4 @@
+local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
 local util = require("codecompanion.utils")
 
@@ -46,6 +47,9 @@ function M.list()
   local exclusions = { "opts", "parsers" }
 
   for name, cfg in pairs(config.memory or {}) do
+    if cfg.is_default and config.memory.opts.show_defaults == false then
+      goto continue
+    end
     if cfg.enabled == false then
       goto continue
     end
@@ -87,9 +91,11 @@ end
 function M.add_context(rules, chat)
   for _, item in ipairs(rules) do
     local id = "<memory>" .. item.name .. "</memory>"
-    chat:add_context({
-      content = item.content,
-    }, item.name, id, { tag = "memory" })
+    if not chat_helpers.has_context(id, chat.messages) then
+      chat:add_context({
+        content = item.content,
+      }, item.name, id, { tag = "memory" })
+    end
   end
 end
 
