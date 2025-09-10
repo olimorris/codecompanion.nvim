@@ -12,24 +12,6 @@ local CodeCompanion = {
   extensions = _extensions.manager,
 }
 
----Keep the chat buffer open when switching tabs
----@return nil
-local function setup_sticky_chat_buffer()
-  api.nvim_create_autocmd("TabEnter", {
-    group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
-    callback = function(args)
-      local chat = CodeCompanion.last_chat()
-      if chat and chat.ui:is_visible_non_curtab() then
-        chat.buffer_context = context_utils.get(args.buf)
-        vim.schedule(function()
-          CodeCompanion.close_last_chat()
-          chat.ui:open({ toggled = true })
-        end)
-      end
-    end,
-  })
-end
-
 ---Add a callback to a set of callbacks
 ---@param callbacks table|nil The existing callbacks
 ---@param event string The event to add the callback to
@@ -486,7 +468,19 @@ CodeCompanion.setup = function(opts)
 
   local window_config = config.display.chat.window
   if window_config.sticky and (window_config.layout ~= "buffer") then
-    setup_sticky_chat_buffer()
+    api.nvim_create_autocmd("TabEnter", {
+      group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
+      callback = function(args)
+        local chat = CodeCompanion.last_chat()
+        if chat and chat.ui:is_visible_non_curtab() then
+          chat.buffer_context = context_utils.get(args.buf)
+          vim.schedule(function()
+            CodeCompanion.close_last_chat()
+            chat.ui:open({ toggled = true })
+          end)
+        end
+      end,
+    })
   end
 end
 
