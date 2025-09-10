@@ -87,6 +87,7 @@ return {
         },
         required = { "query", "domains" },
       },
+      strict = true,
     },
   },
   output = {

@@ -306,6 +306,7 @@ Request to list all usages (references, definitions, implementations etc) of a f
           "symbol_name",
         },
       },
+      strict = true,
     },
   },
   handlers = {
