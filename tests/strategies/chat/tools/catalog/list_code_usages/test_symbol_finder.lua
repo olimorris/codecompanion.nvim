@@ -12,6 +12,10 @@ local T = new_set({
         SymbolFinder = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.symbol_finder")
         Utils = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.utils")
 
+        -- Make vim.schedule synchronous for tests to avoid waiting
+        -- This makes callbacks run immediately and removes need for long vim.wait calls.
+        vim.schedule = function(fn) fn() end
+
         -- Mock vim.lsp functions for testing
         _G.mock_lsp = {
           clients = {},
@@ -64,11 +68,9 @@ local T = new_set({
                 params = params
               }
 
-              -- Simulate async callback
-              vim.schedule(function()
-                local result = _G.mock_lsp.results[self.name] or {}
-                callback(nil, result, nil, nil)
-              end)
+              -- Call callback synchronously for faster tests (vim.schedule was made sync above)
+              local result = _G.mock_lsp.results[self.name] or {}
+              callback(nil, result, nil, nil)
             end
           }
         end
@@ -110,7 +112,8 @@ T["find_with_lsp_async"]["handles no LSP clients available"] = function()
       callback_result = result
     end)
 
-    vim.wait(100)
+    -- scheduling is synchronous in this test env; no need for long waits
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -154,7 +157,7 @@ T["find_with_lsp_async"]["finds symbols with single client"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -222,7 +225,7 @@ T["find_with_lsp_async"]["finds symbols with multiple clients"] = function()
       callback_result = result
     end)
 
-    vim.wait(300)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -271,7 +274,7 @@ T["find_with_lsp_async"]["filters symbols by filepaths"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -299,7 +302,7 @@ T["find_with_lsp_async"]["handles empty results from client"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -346,7 +349,7 @@ T["find_with_grep_async"]["finds symbols with grep"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -392,7 +395,7 @@ T["find_with_grep_async"]["includes file extension filter"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -429,7 +432,7 @@ T["find_with_grep_async"]["includes directory exclusions"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -468,7 +471,7 @@ T["find_with_grep_async"]["includes filepaths in command"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -498,7 +501,7 @@ T["find_with_grep_async"]["handles grep command failure"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -523,7 +526,7 @@ T["find_with_grep_async"]["handles empty quickfix list"] = function()
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
@@ -556,7 +559,7 @@ T["find_with_grep_async"]["escapes special characters in symbol name"] = functio
       callback_result = result
     end)
 
-    vim.wait(200)
+    vim.wait(0)
 
     _G.test_result = {
       callback_called = callback_called,
