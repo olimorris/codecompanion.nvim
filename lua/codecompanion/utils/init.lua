@@ -49,10 +49,13 @@ end
 ---@param t table
 ---@return boolean
 M.is_array = function(t)
-  if type(t) == "table" and type(t[1]) == "table" then
-    return true
+  if type(t) ~= "table" then
+    return false
   end
-  return false
+  if vim.islist then
+    return vim.islist(t)
+  end
+  return vim.tbl_islist(t)
 end
 
 ---@param table table

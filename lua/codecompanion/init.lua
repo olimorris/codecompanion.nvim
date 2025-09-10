@@ -30,6 +30,23 @@ local function setup_sticky_chat_buffer()
   })
 end
 
+---Add a callback to a set of callbacks
+---@param callbacks table|nil The existing callbacks
+---@param event string The event to add the callback to
+---@param fn function The callback function
+local function callbacks_add(callbacks, event, fn)
+  callbacks = callbacks or {}
+  local existing = callbacks[event]
+  if not existing then
+    callbacks[event] = fn
+  elseif type(existing) == "function" then
+    callbacks[event] = { existing, fn }
+  else
+    table.insert(existing, fn)
+  end
+  return callbacks
+end
+
 ---Register an extension with setup and exports
 ---@param name string The name of the extension
 ---@param extension CodeCompanion.Extension The extension implementation
@@ -134,7 +151,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, has_memory: boolean, messages: CodeCompanion.Chat.Messages }
+---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -172,13 +189,34 @@ CodeCompanion.chat = function(args)
     auto_submit = args.auto_submit
   end
 
+  -- Add memory to the chat buffer
+  if config.strategies.chat.opts.memory_default then
+    local selected = config.strategies.chat.opts.memory_default
+    local memory = config.memory[selected]
+
+    if memory then
+      -- Avoid overwriting user callbacks; append ours
+      local function add_memory(chat)
+        require("codecompanion.strategies.chat.memory")
+          .init({
+            name = selected,
+            opts = memory.opts,
+            parser = memory.parser,
+            rules = memory.rules,
+          })
+          :make(chat)
+      end
+
+      args.callbacks = callbacks_add(args.callbacks, "on_creation", add_memory)
+    end
+  end
+
   return require("codecompanion.strategies.chat").new({
     auto_submit = auto_submit,
     adapter = adapter,
     buffer_context = context,
     callbacks = args.callbacks,
     messages = has_messages and messages or nil,
-    has_memory = args.has_memory or false,
   })
 end
 

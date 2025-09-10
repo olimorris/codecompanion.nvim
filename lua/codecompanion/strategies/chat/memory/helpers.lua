@@ -1,26 +1,74 @@
 local config = require("codecompanion.config")
+local util = require("codecompanion.utils")
 
 local M = {}
 
----List all of the memory from the config
+---Recursively expand memory groups (supports groups of groups)
+---@param picker_items string[] Flat output list to mutate
+---@param group_path string Display name path (e.g. "parent/child")
+---@param group_config table Group config to expand
+---@param parent_cfg? { parser?: any, opts?: table, description?: string } Inherited values from parent
+---@return nil
+local function expand_memory_group(picker_items, group_path, group_config, parent_cfg)
+  local inherited = {
+    parser = group_config.parser or (parent_cfg and parent_cfg.parser or nil),
+    opts = vim.tbl_extend("force", parent_cfg and parent_cfg.opts or {}, group_config.opts or {}),
+    description = group_config.description or (parent_cfg and parent_cfg.description or nil),
+  }
+
+  local rules = group_config.rules or {}
+
+  -- If this group holds a list of rules, add it as a selectable picker item
+  if util.is_array(rules) then
+    table.insert(picker_items, {
+      name = group_path,
+      description = inherited.description,
+      opts = inherited.opts or {},
+      parser = inherited.parser,
+      rules = rules,
+    })
+    return
+  end
+
+  -- Otherwise, recurse into subgroups
+  for subgroup_name, subgroup_config in pairs(rules) do
+    if type(subgroup_config) == "table" then
+      local child_path = group_path .. "/" .. subgroup_name
+      expand_memory_group(picker_items, child_path, subgroup_config, inherited)
+    end
+  end
+end
+
+---List all of the memory from the config (flattened)
 ---@return table
 function M.list()
-  local memory_items = {}
+  local picker_items = {}
   local exclusions = { "opts", "parsers" }
 
-  for name, data in pairs(config.memory) do
-    if not vim.tbl_contains(exclusions, name) then
-      table.insert(memory_items, {
-        name = name,
-        description = data.description,
-        opts = data.opts,
-        parser = data.parser,
-        rules = data.rules,
-      })
+  for group_name, group_config in pairs(config.memory or {}) do
+    if not vim.tbl_contains(exclusions, group_name) and type(group_config) == "table" then
+      local rules = group_config.rules or {}
+      if util.is_array(rules) then
+        -- Simple group with rule list
+        table.insert(picker_items, {
+          name = group_name,
+          description = group_config.description,
+          opts = group_config.opts,
+          parser = group_config.parser,
+          rules = rules,
+        })
+      else
+        -- Group of groups
+        expand_memory_group(picker_items, group_name, group_config, nil)
+      end
     end
   end
 
-  return memory_items
+  table.sort(picker_items, function(a, b)
+    return a.name < b.name
+  end)
+
+  return picker_items
 end
 
 ---Add context to the chat based on the memory rules

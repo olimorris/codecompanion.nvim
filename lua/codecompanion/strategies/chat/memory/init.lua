@@ -41,9 +41,12 @@ end
 function Memory:extract()
   for _, rule in ipairs(self.rules) do
     local path = rule
+    local rule_parser = nil
+
     if type(rule) == "table" then
       assert(rule.path, "Rule table must contain a 'path' key")
       path = rule.path
+      rule_parser = rule.parser
     end
 
     local normalized = vim.fs.normalize(path)
@@ -56,7 +59,7 @@ function Memory:extract()
           content = content,
           path = normalized,
           filename = vim.fn.fnamemodify(path, ":t"),
-          parser = rule.parser,
+          parser = rule_parser,
         })
       end
     end
