@@ -6,6 +6,25 @@ local utils = require("codecompanion.utils.adapters")
 
 local _cached_adapter
 
+---Structure:
+---```lua
+---adapter_cache[url][model_name] = { can_reason = true, has_vision = false }
+---```
+---@type table<string, table<string, { nice_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
+local adapter_cache = {}
+
+---@param url string
+---@param opts? {last: boolean}
+local function get_models_from_cache(url, opts)
+  assert(adapter_cache[url] ~= nil, "Model info is not available in the cache.")
+  local models = adapter_cache[url]
+  if opts and opts.last then
+    return vim.tbl_keys(models)[1]
+  else
+    return models
+  end
+end
+
 ---Get a list of available Ollama models
 ---@params self CodeCompanion.HTTPAdapter
 ---@params opts? table
@@ -13,28 +32,33 @@ local _cached_adapter
 local function get_models(self, opts)
   -- Prevent the adapter from being resolved multiple times due to `get_models`
   -- having both `default` and `choices` functions
-  if not _cached_adapter then
-    local adapter = require("codecompanion.adapters").resolve(self)
-    if not adapter then
-      log:error("Could not resolve Ollama adapter in the `get_models` function")
-      return {}
-    end
-    _cached_adapter = adapter
-  end
 
-  utils.get_env_vars(_cached_adapter)
-  local url = _cached_adapter.env_replaced.url
+  local adapter = require("codecompanion.adapters").resolve(self)
+  if not adapter then
+    log:error("Could not resolve Ollama adapter in the `get_models` function")
+    return {}
+  end
+  utils.get_env_vars(adapter)
+  local url = adapter.env_replaced.url
+  if adapter_cache[url] == nil then
+    log:trace("Cache miss. Fetching model info from Ollama server %s.", url)
+    adapter_cache[url] = {}
+  else
+    -- cache hit
+    log:trace("Cache hit for Ollama server %s:\n%s", url, vim.inspect(adapter_cache))
+    return get_models_from_cache(url, opts)
+  end
 
   local headers = {
     ["content-type"] = "application/json",
   }
 
   local auth_header = "Bearer "
-  if _cached_adapter.env_replaced.authorization then
+  if adapter.env_replaced.authorization then
     auth_header = _cached_adapter.env_replaced.authorization .. " "
   end
-  if _cached_adapter.env_replaced.api_key then
-    headers["Authorization"] = auth_header .. _cached_adapter.env_replaced.api_key
+  if adapter.env_replaced.api_key then
+    headers["Authorization"] = auth_header .. adapter.env_replaced.api_key
   end
 
   local ok, response = pcall(function()
@@ -56,7 +80,6 @@ local function get_models(self, opts)
     return {}
   end
 
-  local models = {}
   local jobs = {}
 
   for _, model_obj in ipairs(json.models) do
@@ -67,12 +90,14 @@ local function get_models(self, opts)
       proxy = config.adapters.http.opts.proxy,
       body = vim.json.encode({ model = model_obj.name }),
       callback = function(output)
-        models[model_obj.name] = { nice_name = model_obj.name, opts = {} }
+        adapter_cache[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
         if output.status == 200 then
           local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
           if ok then
-            models[model_obj.name].opts.can_reason = vim.list_contains(model_info_json.capabilities or {}, "thinking")
-            models[model_obj.name].opts.has_vision = vim.list_contains(model_info_json.capabilities or {}, "vision")
+            adapter_cache[url][model_obj.name].opts.can_reason =
+              vim.list_contains(model_info_json.capabilities or {}, "thinking")
+            adapter_cache[url][model_obj.name].opts.has_vision =
+              vim.list_contains(model_info_json.capabilities or {}, "vision")
           end
         end
       end,
@@ -85,12 +110,7 @@ local function get_models(self, opts)
     job:wait()
   end
 
-  local latest_model = json.models[1]
-  if opts and opts.last and latest_model then
-    return latest_model.name
-  end
-
-  return models
+  return get_models_from_cache(url, opts)
 end
 
 ---Return `true` if the model of the adapter supports thinking.
