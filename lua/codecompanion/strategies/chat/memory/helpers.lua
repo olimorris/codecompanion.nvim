@@ -6,17 +6,17 @@ local M = {}
 ---Recursively expand memory groups (supports groups of groups)
 ---@param picker_items string[] Flat output list to mutate
 ---@param group_path string Display name path (e.g. "parent/child")
----@param group_config table Group config to expand
+---@param group_cfg table Group config to expand
 ---@param parent_cfg? { parser?: any, opts?: table, description?: string } Inherited values from parent
 ---@return nil
-local function expand_memory_group(picker_items, group_path, group_config, parent_cfg)
+local function expand_memory_group(picker_items, group_path, group_cfg, parent_cfg)
   local inherited = {
-    parser = group_config.parser or (parent_cfg and parent_cfg.parser or nil),
-    opts = vim.tbl_extend("force", parent_cfg and parent_cfg.opts or {}, group_config.opts or {}),
-    description = group_config.description or (parent_cfg and parent_cfg.description or nil),
+    parser = group_cfg.parser or (parent_cfg and parent_cfg.parser or nil),
+    opts = vim.tbl_extend("force", parent_cfg and parent_cfg.opts or {}, group_cfg.opts or {}),
+    description = group_cfg.description or (parent_cfg and parent_cfg.description or nil),
   }
 
-  local rules = group_config.rules or {}
+  local rules = group_cfg.rules or {}
 
   -- If this group holds a list of rules, add it as a selectable picker item
   if util.is_array(rules) then
@@ -45,23 +45,32 @@ function M.list()
   local picker_items = {}
   local exclusions = { "opts", "parsers" }
 
-  for group_name, group_config in pairs(config.memory or {}) do
-    if not vim.tbl_contains(exclusions, group_name) and type(group_config) == "table" then
-      local rules = group_config.rules or {}
+  for name, cfg in pairs(config.memory or {}) do
+    if cfg.enabled == false then
+      goto continue
+    end
+    if cfg.enabled and type(cfg.enabled) == "function" then
+      if not cfg.enabled() then
+        goto continue
+      end
+    end
+    if not vim.tbl_contains(exclusions, name) and type(cfg) == "table" then
+      local rules = cfg.rules or {}
       if util.is_array(rules) then
-        -- Simple group with rule list
+        -- Memory is a singular group
         table.insert(picker_items, {
-          name = group_name,
-          description = group_config.description,
-          opts = group_config.opts,
-          parser = group_config.parser,
+          name = name,
+          description = cfg.description,
+          opts = cfg.opts,
+          parser = cfg.parser,
           rules = rules,
         })
       else
-        -- Group of groups
-        expand_memory_group(picker_items, group_name, group_config, nil)
+        -- If the memory contains multiple groups
+        expand_memory_group(picker_items, name, cfg, nil)
       end
     end
+    ::continue::
   end
 
   table.sort(picker_items, function(a, b)

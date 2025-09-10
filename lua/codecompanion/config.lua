@@ -1173,6 +1173,11 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     CodeCompanion = {
       description = "CodeCompanion plugin memory rules",
+      ---@type fun(): boolean
+      enabled = function()
+        -- Don't show this to users who aren't working on CodeCompanion itself
+        return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
+      end,
       rules = {
         ["acp"] = {
           description = "ACP implementation",
