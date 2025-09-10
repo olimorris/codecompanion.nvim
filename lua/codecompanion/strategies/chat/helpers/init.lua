@@ -132,4 +132,30 @@ function M.apply_settings_and_model(chat, settings)
   end
 end
 
+---Determine if a tag exists in the messages table
+---@param tag string
+---@param messages CodeCompanion.Chat.Messages
+---@return boolean
+function M.has_tag(tag, messages)
+  return vim.tbl_contains(
+    vim.tbl_map(function(msg)
+      return msg.opts and msg.opts.tag
+    end, messages),
+    tag
+  )
+end
+
+---Determine if context has already been added to the messages
+---@param context string
+---@param messages CodeCompanion.Chat.Messages
+---@return boolean
+function M.has_context(context, messages)
+  return vim.tbl_contains(
+    vim.tbl_map(function(msg)
+      return msg.opts and msg.opts.context_id
+    end, messages),
+    context
+  )
+end
+
 return M

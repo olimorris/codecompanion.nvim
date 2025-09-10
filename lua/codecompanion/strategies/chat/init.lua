@@ -148,19 +148,6 @@ local function find_tool_call(id, messages)
   return nil
 end
 
----Determine if a tag exists in the messages table
----@param tag string
----@param messages CodeCompanion.Chat.Messages
----@return boolean
-local function has_tag(tag, messages)
-  return vim.tbl_contains(
-    vim.tbl_map(function(msg)
-      return msg.opts and msg.opts.tag
-    end, messages),
-    tag
-  )
-end
-
 ---Increment the cycle count in the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@return nil
@@ -659,7 +646,7 @@ function Chat:add_system_prompt(prompt, opts)
   opts = opts or { visible = false, tag = "system_prompt_from_config" }
 
   -- If the system prompt already exists, update it
-  if has_tag(opts.tag, self.messages) then
+  if helpers.has_tag(opts.tag, self.messages) then
     self:remove_tagged_message(opts.tag)
   end
 
