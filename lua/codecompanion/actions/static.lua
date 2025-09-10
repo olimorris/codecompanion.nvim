@@ -1,5 +1,9 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+local memory = require("codecompanion.strategies.chat.memory")
+local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+
+local memory_list = memory_helpers.list()
 
 local function send_code(context)
   local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -88,16 +92,13 @@ return {
       stop_context_insertion = true,
     },
     condition = function()
-      return vim.tbl_count(config.memory) > 0
+      return vim.tbl_count(memory_list) > 0
     end,
     picker = {
       prompt = "Select a memory",
       items = function()
-        local memory = require("codecompanion.strategies.chat.memory")
-        local helpers = require("codecompanion.strategies.chat.memory.helpers")
-
         local formatted = {}
-        for _, item in ipairs(helpers.list()) do
+        for _, item in ipairs(memory_list) do
           table.insert(formatted, {
             name = item.name,
             strategy = "chat",
