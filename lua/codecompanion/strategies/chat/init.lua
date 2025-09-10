@@ -1163,6 +1163,10 @@ function Chat:close()
     last_chat = nil
   end
 
+  util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
+  util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
+  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
+
   table.remove(
     _G.codecompanion_buffers,
     vim.iter(_G.codecompanion_buffers):enumerate():find(function(_, v)
@@ -1187,9 +1191,6 @@ function Chat:close()
     self.acp_connection:disconnect()
   end
 
-  util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
-  util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
-  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
   self = nil
 end
 
