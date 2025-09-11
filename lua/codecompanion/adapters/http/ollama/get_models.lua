@@ -3,6 +3,14 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.adapters")
 
+local CONSTANTS = {
+  TIMEOUT = 3000, -- 3 seconds
+  POLL_INTERVAL = 10,
+}
+
+---Whether there are already some requests running.
+local running = false
+
 M = {}
 
 ---Structure:
@@ -24,30 +32,16 @@ local function get_cached_models(url, opts)
   end
 end
 
----Get a list of available Ollama models
----@params self CodeCompanion.HTTPAdapter
----@params opts? table
----@return table
-function M.choices(self, opts)
-  -- Prevent the adapter from being resolved multiple times due to `get_models`
-  -- having both `default` and `choices` functions
-
-  local adapter = require("codecompanion.adapters").resolve(self)
-  if not adapter then
-    log:error("Could not resolve Ollama adapter in the `get_models` function")
-    return {}
+---@param adapter CodeCompanion.HTTPAdapter
+---@param url string
+local function fetch_async(adapter, url)
+  assert(adapter ~= nil)
+  assert(url ~= nil)
+  if running then
+    return
   end
-  utils.get_env_vars(adapter)
-  local url = adapter.env_replaced.url
-  if _cached_models[url] == nil then
-    log:trace("Cache miss. Fetching model info from Ollama server %s.", url)
-    _cached_models[url] = {}
-  else
-    -- cache hit
-    log:trace("Cache hit for Ollama server %s:\n%s", url, vim.inspect(_cached_models))
-    return get_cached_models(url, opts)
-  end
-
+  running = true
+  _cached_models[url] = _cached_models[url] or {}
   local headers = {
     ["content-type"] = "application/json",
   }
@@ -83,7 +77,7 @@ function M.choices(self, opts)
 
   for _, model_obj in ipairs(json.models) do
     -- start async requests
-    local job = Curl.post(url .. "/api/show", {
+    jobs[model_obj.name] = Curl.post(url .. "/api/show", {
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
@@ -99,15 +93,34 @@ function M.choices(self, opts)
               vim.list_contains(model_info_json.capabilities or {}, "vision")
           end
         end
+        jobs[model_obj.name] = nil
+        if vim.tbl_isempty(jobs) then
+          running = false
+        end
       end,
     })
-    table.insert(jobs, job)
   end
+end
 
-  for _, job in ipairs(jobs) do
-    -- wait for the requests to finish.
-    job:wait()
+---Get a list of available Ollama models
+---@param self CodeCompanion.HTTPAdapter.Ollama
+---@param opts? table
+---@return table
+function M.choices(self, opts)
+  local adapter = require("codecompanion.adapters").resolve(self) --[[@as CodeCompanion.HTTPAdapter]]
+  if not adapter then
+    log:error("Could not resolve Ollama adapter in the `choices` function")
+    return {}
   end
+  utils.get_env_vars(adapter)
+  local url = adapter.env_replaced.url
+
+  fetch_async(adapter, url)
+
+  vim.wait(CONSTANTS.TIMEOUT, function()
+    local models = _cached_models[url]
+    return models ~= nil and not vim.tbl_isempty(models)
+  end)
 
   return get_cached_models(url, opts)
 end
