@@ -32,8 +32,12 @@ local function get_cached_models(url, opts)
   end
 end
 
+---Fetch model list and model info.
+---Aborts if there's another fetch job running.
+---Returns the number of models if the fetches are fired.
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@param url string
+---@return integer?
 local function fetch_async(adapter, url)
   assert(adapter ~= nil)
   assert(url ~= nil)
@@ -64,13 +68,13 @@ local function fetch_async(adapter, url)
   end)
   if not ok then
     log:error("Could not get the Ollama models from " .. url .. "/api/tags.\nError: %s", response)
-    return {}
+    return
   end
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
     log:error("Could not parse the response from " .. url .. "/api/tags")
-    return {}
+    return
   end
 
   local jobs = {}
@@ -100,27 +104,37 @@ local function fetch_async(adapter, url)
       end,
     })
   end
+  return #json.models
 end
 
 ---Get a list of available Ollama models
----@param self CodeCompanion.HTTPAdapter.Ollama
+---@param self CodeCompanion.HTTPAdapter
 ---@param opts? table
 ---@return table
 function M.choices(self, opts)
-  local adapter = require("codecompanion.adapters").resolve(self) --[[@as CodeCompanion.HTTPAdapter]]
+  local adapter = require("codecompanion.adapters.http").resolve(self) --[[@as CodeCompanion.HTTPAdapter]]
+  opts = opts or { async = true }
   if not adapter then
     log:error("Could not resolve Ollama adapter in the `choices` function")
     return {}
   end
   utils.get_env_vars(adapter)
   local url = adapter.env_replaced.url
+  local is_uninitialised = _cached_models[url] == nil
 
-  fetch_async(adapter, url)
+  local num_models = fetch_async(adapter, url)
 
-  vim.wait(CONSTANTS.TIMEOUT, function()
-    local models = _cached_models[url]
-    return models ~= nil and not vim.tbl_isempty(models)
-  end)
+  if not opts.async or is_uninitialised then
+    -- block here if `async == false` or uninitialised
+    vim.wait(CONSTANTS.TIMEOUT, function()
+      local models = _cached_models[url]
+      if num_models ~= nil then
+        return #vim.tbl_keys(models) == num_models
+      else
+        return models ~= nil and not vim.tbl_isempty(models)
+      end
+    end)
+  end
 
   return get_cached_models(url, opts)
 end
