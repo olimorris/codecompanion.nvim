@@ -8,16 +8,16 @@ local _cached_adapter
 
 ---Structure:
 ---```lua
----adapter_cache[url][model_name] = { can_reason = true, has_vision = false }
+---_cached_models[url][model_name] = { opts = { can_reason = true, has_vision = false }, nice_name = 'nice_name' }
 ---```
 ---@type table<string, table<string, { nice_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
-local adapter_cache = {}
+local _cached_models = {}
 
 ---@param url string
 ---@param opts? {last: boolean}
-local function get_models_from_cache(url, opts)
-  assert(adapter_cache[url] ~= nil, "Model info is not available in the cache.")
-  local models = adapter_cache[url]
+local function get_cached_models(url, opts)
+  assert(_cached_models[url] ~= nil, "Model info is not available in the cache.")
+  local models = _cached_models[url]
   if opts and opts.last then
     return vim.tbl_keys(models)[1]
   else
@@ -29,7 +29,7 @@ end
 ---@params self CodeCompanion.HTTPAdapter
 ---@params opts? table
 ---@return table
-local function get_models(self, opts)
+local function choices(self, opts)
   -- Prevent the adapter from being resolved multiple times due to `get_models`
   -- having both `default` and `choices` functions
 
@@ -40,13 +40,13 @@ local function get_models(self, opts)
   end
   utils.get_env_vars(adapter)
   local url = adapter.env_replaced.url
-  if adapter_cache[url] == nil then
+  if _cached_models[url] == nil then
     log:trace("Cache miss. Fetching model info from Ollama server %s.", url)
-    adapter_cache[url] = {}
+    _cached_models[url] = {}
   else
     -- cache hit
-    log:trace("Cache hit for Ollama server %s:\n%s", url, vim.inspect(adapter_cache))
-    return get_models_from_cache(url, opts)
+    log:trace("Cache hit for Ollama server %s:\n%s", url, vim.inspect(_cached_models))
+    return get_cached_models(url, opts)
   end
 
   local headers = {
@@ -90,13 +90,13 @@ local function get_models(self, opts)
       proxy = config.adapters.http.opts.proxy,
       body = vim.json.encode({ model = model_obj.name }),
       callback = function(output)
-        adapter_cache[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
+        _cached_models[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
         if output.status == 200 then
           local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
           if ok then
-            adapter_cache[url][model_obj.name].opts.can_reason =
+            _cached_models[url][model_obj.name].opts.can_reason =
               vim.list_contains(model_info_json.capabilities or {}, "thinking")
-            adapter_cache[url][model_obj.name].opts.has_vision =
+            _cached_models[url][model_obj.name].opts.has_vision =
               vim.list_contains(model_info_json.capabilities or {}, "vision")
           end
         end
@@ -110,7 +110,7 @@ local function get_models(self, opts)
     job:wait()
   end
 
-  return get_models_from_cache(url, opts)
+  return get_cached_models(url, opts)
 end
 
 ---Return `true` if the model of the adapter supports thinking.
@@ -122,11 +122,11 @@ local function check_thinking_capability(self, model)
   if type(model) == "function" then
     model = model(self)
   end
-  local choices = self.schema.model.choices
-  if type(choices) == "function" then
-    choices = choices(self)
+  local _choices = self.schema.model.choices
+  if type(_choices) == "function" then
+    _choices = _choices(self)
   end
-  if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+  if _choices and _choices[model] and _choices[model].opts and _choices[model].opts.can_reason then
     return true
   end
   return false
@@ -373,10 +373,10 @@ return {
       type = "enum",
       desc = "ID of the model to use.",
       default = function(self)
-        return get_models(self, { last = true })
+        return choices(self, { last = true })
       end,
       choices = function(self)
-        return get_models(self)
+        return choices(self)
       end,
     },
     ---@type CodeCompanion.Schema
