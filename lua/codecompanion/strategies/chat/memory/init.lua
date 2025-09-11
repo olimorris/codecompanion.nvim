@@ -1,4 +1,6 @@
-local file_utils = require("codecompanion.utils.files")
+local Path = require("plenary.path")
+local Scandir = require("plenary.scandir")
+
 local helpers = require("codecompanion.strategies.chat.memory.helpers")
 local parsers = require("codecompanion.strategies.chat.memory.parsers")
 
@@ -39,6 +41,37 @@ end
 ---Extract the memory from the rules file
 ---@return CodeCompanion.Chat.Memory
 function Memory:extract()
+  local function add_file(fullpath, rule_parser)
+    local normalized_file = vim.fs.normalize(fullpath)
+    local p = Path:new(normalized_file)
+    if p:exists() and not p:is_dir() then
+      local ok, content = pcall(function()
+        return p:read()
+      end)
+      if ok then
+        table.insert(self.processed, {
+          name = normalized_file,
+          content = content,
+          path = normalized_file,
+          filename = vim.fn.fnamemodify(normalized_file, ":t"),
+          parser = rule_parser,
+        })
+      end
+    end
+  end
+
+  local function walk_dir(dir, rule_parser)
+    local entries = Scandir.scan_dir(dir, {
+      add_dirs = false,
+      hidden = true,
+      respect_gitignore = false,
+      depth = math.huge,
+    })
+    for _, entry in ipairs(entries) do
+      add_file(entry, rule_parser)
+    end
+  end
+
   for _, rule in ipairs(self.rules) do
     local path = rule
     local rule_parser = nil
@@ -49,20 +82,34 @@ function Memory:extract()
       rule_parser = rule.parser
     end
 
-    local normalized = vim.fs.normalize(path)
+    -- Expand glob patterns (e.g. "dir/**", "src/*.md")
+    if tostring(path):match("[%*%?%[]") then
+      local matches = vim.fn.glob(path, false, true) or {}
+      for _, m in ipairs(matches) do
+        local p = vim.fs.normalize(m)
+        local filepath = Path:new(p)
+        if filepath:exists() then
+          if filepath:is_dir() then
+            walk_dir(p, rule_parser)
+          else
+            add_file(p, rule_parser)
+          end
+        end
+      end
+      goto continue
+    end
 
-    if file_utils.exists(normalized) then
-      local ok, content = pcall(file_utils.read, normalized)
-      if ok then
-        table.insert(self.processed, {
-          name = path,
-          content = content,
-          path = normalized,
-          filename = vim.fn.fnamemodify(path, ":t"),
-          parser = rule_parser,
-        })
+    local normalized = vim.fs.normalize(path)
+    local filepath = Path:new(normalized)
+
+    if filepath:exists() then
+      if filepath:is_dir() then
+        walk_dir(normalized, rule_parser)
+      else
+        add_file(normalized, rule_parser)
       end
     end
+    ::continue::
   end
 
   return self

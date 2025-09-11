@@ -145,7 +145,7 @@ function M.has_tag(tag, messages)
   )
 end
 
----Determine if context has already been added to the messages
+---Determine if context has already been added to the messages stack
 ---@param context string
 ---@param messages CodeCompanion.Chat.Messages
 ---@return boolean
