@@ -172,7 +172,7 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add memory to the chat buffer
-  if config.memory.opts.chat.enabled and config.memory.opts.chat.default_memory then
+  if config.memory.opts and config.memory.opts.chat.enabled and config.memory.opts.chat.default_memory then
     local selected = config.memory.opts.chat.default_memory
     local memory = config.memory[selected]
 
