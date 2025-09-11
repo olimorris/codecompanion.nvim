@@ -243,11 +243,11 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = function(self)
-        return get_models.choices(self, { last = true })
+      default = function(self, opts)
+        return get_models.choices(self, vim.tbl_deep_extend("force", opts or {}, { last = true }))
       end,
-      choices = function(self)
-        return get_models.choices(self)
+      choices = function(self, opts)
+        return get_models.choices(self, opts)
       end,
     },
     ---@type CodeCompanion.Schema
