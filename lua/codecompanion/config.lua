@@ -1203,7 +1203,7 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     opts = {
       chat = {
-        enabled = true, -- Enable memory to be automatically added to chat buffers?
+        enabled = false, -- Automatically add memory to new chat buffers?
         default_memory = "default", -- The default memory group to use in the chat buffer
       },
       show_defaults = true, -- Show the default memory rules in the picker?
