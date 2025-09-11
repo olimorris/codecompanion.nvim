@@ -64,6 +64,7 @@ local function fetch_async(adapter, url)
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
+      timeout = CONSTANTS.TIMEOUT,
     })
   end)
   if not ok then
@@ -86,6 +87,7 @@ local function fetch_async(adapter, url)
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
       body = vim.json.encode({ model = model_obj.name }),
+      timeout = CONSTANTS.TIMEOUT,
       callback = function(output)
         _cached_models[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
         if output.status == 200 then
@@ -113,7 +115,7 @@ end
 ---@return table
 function M.choices(self, opts)
   local adapter = require("codecompanion.adapters.http").resolve(self) --[[@as CodeCompanion.HTTPAdapter]]
-  opts = opts or { async = true }
+  opts = vim.tbl_deep_extend("force", { async = true }, opts or {})
   if not adapter then
     log:error("Could not resolve Ollama adapter in the `choices` function")
     return {}
@@ -124,7 +126,7 @@ function M.choices(self, opts)
 
   local num_models = fetch_async(adapter, url)
 
-  if not opts.async or is_uninitialised then
+  if is_uninitialised or not opts.async then
     -- block here if `async == false` or uninitialised
     vim.wait(CONSTANTS.TIMEOUT, function()
       local models = _cached_models[url]
