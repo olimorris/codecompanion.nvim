@@ -4,14 +4,12 @@ local config = require("codecompanion.config")
 local M = {}
 
 ---Hide chat if floating diff is being used
----@param chat_bufnr number The chat buffer number
+---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
-function M.hide_chat_for_floating_diff(chat_bufnr)
-  local codecompanion = require("codecompanion")
+function M.hide_chat_for_floating_diff(chat)
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
   local diff_layout = inline_config.layout or "non_float"
   if diff_layout == "float" and config.display.chat.window.layout == "float" then
-    local chat = codecompanion.buf_get_chat(chat_bufnr)
     if chat and chat.ui:is_visible() then
       chat.ui:hide()
     end

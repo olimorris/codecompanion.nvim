@@ -2,7 +2,7 @@ local Path = require("plenary.path")
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
-local diff = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
+local diff = require("codecompanion.strategies.chat.helpers.diff")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
 local wait = require("codecompanion.strategies.chat.helpers.wait")
@@ -59,11 +59,11 @@ end
 
 ---Edit code in a file
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
----@param chat_bufnr number The chat buffer number
+---@param chat CodeCompanion.Chat The chat instance
 ---@param output_handler function The callback to call when done
 ---@param opts? table Additional options
 ---@return nil
-local function edit_file(action, chat_bufnr, output_handler, opts)
+local function edit_file(action, chat, output_handler, opts)
   opts = opts or {}
   local filepath = helpers.validate_and_normalize_filepath(action.filepath)
   if not filepath then
@@ -138,7 +138,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- 6. Create diff for the file using new file path capability
-  helpers.hide_chat_for_floating_diff(chat_bufnr)
+  helpers.hide_chat_for_floating_diff(chat)
   local diff_id = math.random(10000000)
   local should_diff = diff.create(p.filename, diff_id, {
     original_content = original_content,
@@ -158,7 +158,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
     local wait_opts = {
-      chat_bufnr = chat_bufnr,
+      chat_bufnr = chat.bufnr,
       notify = config.display.icons.warning .. " Waiting for decision ...",
       sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
     }
@@ -181,7 +181,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
         }
       end
       -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
-      codecompanion.restore(chat_bufnr)
+      codecompanion.restore(chat.bufnr)
       return output_handler(response)
     end, wait_opts)
   else
@@ -192,12 +192,12 @@ end
 
 ---Edit code in a buffer
 ---@param bufnr number The buffer number to edit
----@param chat_bufnr number The chat buffer number
+---@param chat CodeCompanion.Chat The chat instance
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
 ---@param output_handler function The callback to call when done
 ---@param opts? table Additional options
 ---@return string|nil, string|nil
-local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
+local function edit_buffer(bufnr, chat, action, output_handler, opts)
   opts = opts or {}
 
   local should_diff
@@ -254,7 +254,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Create diff with original content
   if original_content then
-    helpers.hide_chat_for_floating_diff(chat_bufnr)
+    helpers.hide_chat_for_floating_diff(chat)
     log:debug("[Insert Edit Into File Tool] Creating diff with original content (%d lines)", #original_content)
     should_diff = diff.create(bufnr, diff_id, {
       original_content = original_content,
@@ -293,7 +293,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
     local wait_opts = {
-      chat_bufnr = chat_bufnr,
+      chat_bufnr = chat.bufnr,
       notify = config.display.icons.warning .. " Waiting for diff approval ...",
       sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
     }
@@ -322,7 +322,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         }
       end
       -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
-      codecompanion.restore(chat_bufnr)
+      codecompanion.restore(chat.bufnr)
       return output_handler(response)
     end, wait_opts)
   else
@@ -346,9 +346,9 @@ return {
 
       local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
       if bufnr then
-        return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
+        return edit_buffer(bufnr, self.chat, args, output_handler, self.tool.opts)
       else
-        return edit_file(args, self.chat.bufnr, output_handler, self.tool.opts)
+        return edit_file(args, self.chat, output_handler, self.tool.opts)
       end
     end,
   },
