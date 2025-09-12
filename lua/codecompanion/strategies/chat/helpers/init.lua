@@ -3,6 +3,19 @@ local config = require("codecompanion.config")
 
 local M = {}
 
+---Hide chat if floating diff is being used
+---@param chat CodeCompanion.Chat The chat instance
+---@return nil
+function M.hide_chat_for_floating_diff(chat)
+  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
+  local diff_layout = inline_config.layout or "non_float"
+  if diff_layout == "float" and config.display.chat.window.layout == "float" then
+    if chat and chat.ui:is_visible() then
+      chat.ui:hide()
+    end
+  end
+end
+
 ---Format the given role without any separator
 ---@param role string
 ---@return string
