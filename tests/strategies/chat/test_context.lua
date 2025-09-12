@@ -344,7 +344,7 @@ T["Context"]["file context_items always have a relative id"] = function()
    ]])
 
   h.expect_starts_with(
-    '<attachment filepath="tests/stubs/file.txt">Here is the updated content from the file',
+    '<attachment filepath="tests/stubs/file.txt">Here is the content from the file',
     child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
   )
   h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages].opts.context_id]]))
