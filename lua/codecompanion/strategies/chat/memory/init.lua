@@ -1,6 +1,7 @@
 local Path = require("plenary.path")
 local Scandir = require("plenary.scandir")
 
+local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.memory.helpers")
 local parsers = require("codecompanion.strategies.chat.memory.parsers")
 
@@ -119,7 +120,11 @@ end
 ---@return CodeCompanion.Chat.Memory
 function Memory:parse()
   vim.iter(self.processed):each(function(rule)
-    rule.content = parsers.parse(rule, self.parser)
+    local parsed = parsers.parse(rule, self.parser)
+    if parsed then
+      rule.content = parsed.content
+      rule.meta = parsed.meta
+    end
   end)
 
   return self
@@ -129,12 +134,34 @@ end
 ---@param chat CodeCompanion.Chat
 function Memory:add(chat)
   helpers.add_context(self.processed, chat)
+  --TODO: Add included_files as buffers or files
 end
 
 ---Make the memory message
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function Memory:make(chat)
+  local condition = config
+    and config.memory
+    and config.memory.opts
+    and config.memory.opts.chat
+    and config.memory.opts.chat.condition
+
+  if condition ~= nil then
+    local ctype = type(condition)
+
+    if ctype == "function" then
+      local ok, result = pcall(condition, chat)
+      if not ok or not result then
+        return
+      end
+    elseif ctype == "boolean" then
+      if not condition then
+        return
+      end
+    end
+  end
+
   return self:extract():parse():add(chat)
 end
 

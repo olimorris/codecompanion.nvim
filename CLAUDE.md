@@ -2,6 +2,8 @@
 
 ## What is CodeCompanion?
 
+@./lua/codecompanion/strategies/chat/init.lua
+
 CodeCompanion.nvim is a sophisticated Neovim plugin that brings LLM-powered coding assistance directly into your editor. Think of it as "Copilot Chat meets Zed AI, in Neovim" - it provides an integrated chat interface for conversing with large language models while maintaining full context of your codebase.
 
 ### Core Features
@@ -35,6 +37,16 @@ CodeCompanion follows a modular architecture with clear separation of concerns:
 - **Performance-First**: Async execution, lazy loading, and efficient Tree-sitter parsing
 - **User Experience**: Intuitive keymaps, visual feedback, and error handling
 - **Extensibility**: Plugin system for custom tools, variables, and slash commands
+
+### Function and Variable Naming
+
+- Favour being explicit over being overly concise.
+  - For example: use `pattern` instead of `pat` for a variable holding a specific filepath pattern
+- Function names should describe what they do, concisely.
+  - For example: `should_include` instead of `include_ok` when determining if something should be added to a table
+- When used in conditionals, variables and functions should make the conditional human readable.
+  - For example: `if should_include(pattern) then`
+- When working in `for` loops, it's okay to shorten an item's config values to `cfg` so as not to clash with any imports that may be named `config`.
 
 ### Lua Code Style
 
@@ -228,3 +240,7 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+## IMPORTANT
+
+- If returning markdown code blocks, use four backticks (````) to open and close the code block, and specify the language (e.g., `lua`, `markdown`).

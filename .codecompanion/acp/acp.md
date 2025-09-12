@@ -1,346 +1,219 @@
-# ACP Integration in CodeCompanion.nvim: Comprehensive Overview
+# ACP (Agent Client Protocol) in CodeCompanion.nvim
 
-This document explains how CodeCompanion.nvim integrates the **Agent Communication Protocol (ACP)** to enable advanced, session-based interactions with Large Language Models (LLMs) and agents. It covers the architecture, workflow, message schema, and how ACP fits into the chat buffer experience.
+ACP (Agent Client Protocol) is a JSON-RPC based protocol that enables sophisticated communication between CodeCompanion.nvim and AI agents like Claude Code and Gemini CLI. Unlike traditional HTTP-based API calls, ACP provides session-based interactions with streaming responses, tool execution, and interactive permission handling.
 
----
+## What is ACP?
 
-## 1. **What is ACP?**
+@.codecompanion/acp/acp_json_schema.json
 
-ACP (Agent Communication Protocol) is a JSON-RPC-based protocol designed for robust, multi-turn, session-oriented communication between clients (like CodeCompanion.nvim) and AI agents. It supports authentication, session management, streaming responses, tool calls, and permission handling.
+ACP is a protocol specification that defines how clients (like CodeCompanion.nvim) communicate with AI agents through a standardized message format. Key features include:
 
-ACP is schema-driven, with a [JSON schema](llm_notes/acp_json_schema.json) that defines all request, response, and notification types exchanged between client and agent.
+- **Session Management**: Persistent conversation contexts across multiple interactions
+- **Streaming Responses**: Real-time message delivery as the agent processes requests
+- **Tool Execution**: Agents can execute tools (file operations, shell commands, etc.) with user permission
+- **Authentication**: Secure authentication methods including OAuth tokens and API keys
+- **Permission System**: Interactive approval system for potentially sensitive operations
 
----
+## Architecture Overview
 
-## 2. **ACP in CodeCompanion.nvim: Architectural Integration**
+### Core Components
 
-### **Adapter Pattern**
+#### ACP Connection
 
-- **ACPAdapter**: CodeCompanion uses an adapter abstraction (`ACPadapter`) to encapsulate ACP-specific logic. This allows the chat buffer to interact with ACP agents in a unified way, regardless of the underlying agent implementation.
+@./lua/codecompanion/acp/init.lua
 
-### **Connection Management**
+The main ACP connection manager that handles:
+- Process spawning and lifecycle management
+- JSON-RPC message parsing and routing
+- Session initialization and authentication
+- Request/response correlation
+- Error handling and timeout management
 
-- **ACPConnection**: Handles process spawning, session lifecycle, authentication, and streaming communication with the agent.
-- **PromptBuilder**: Fluent API for constructing and sending prompts, handling streamed responses, tool calls, and errors.
+#### ACP Adapters
 
-### **Chat Buffer Workflow**
+@./lua/codecompanion/adapters/acp/claude_code.lua
+@./lua/codecompanion/adapters/acp/helpers.lua
 
-1. **User Types Message**: In a Markdown-formatted Neovim buffer, under an H2 header.
-2. **Tree-sitter Parsing**: The buffer is parsed to extract the user's message.
-3. **ACP Adapter Selection**: The chat buffer uses the ACP adapter if configured.
-4. **Session Management**: ACPConnection initializes, authenticates, and creates a session with the agent.
-5. **Prompt Submission**: The user's message is sent as a `session/prompt` ACP request.
-6. **Streaming Response**: The agent streams back responses, thoughts, and tool calls, which are rendered in the buffer.
-7. **Tool Execution & Permissions**: If the agent requests tool execution or permissions, CodeCompanion handles these via ACP notifications and requests.
+Adapter implementations for specific ACP agents:
 
----
+- `claude_code.lua` - Claude Code agent integration
+- `gemini_cli.lua` - Gemini CLI agent integration
+- `helpers.lua` - Shared utilities for ACP adapters
 
-## 3. **ACP Message Flow: Key Steps**
+#### Prompt Builder
 
-### **Initialization**
+@./lua/codecompanion/acp/prompt_builder.lua
 
-- **Client → Agent**: `initialize` request (see `InitializeRequest` in schema)
-  - Includes client capabilities (e.g., file system access), protocol version.
-- **Agent → Client**: `InitializeResponse`
-  - Returns supported agent capabilities, authentication methods, protocol version.
+A fluent API for constructing and sending prompts with streaming response handling:
 
-### **Authentication**
+```lua
+local prompt = PromptBuilder.new(connection, messages)
+  :on_message_chunk(function(chunk) ... end)
+  :on_thought_chunk(function(thought) ... end)
+  :on_tool_call(function(tool) ... end)
+  :with_options({ bufnr = bufnr })
+  :send()
+```
 
-- **Client → Agent**: `authenticate` request (`AuthenticateRequest`)
-  - Specifies authentication method (e.g., API key).
-- **Agent → Client**: `AuthenticateResponse`
-  - Indicates success/failure.
+#### ACP Handlers
 
-### **Session Creation**
+@./lua/codecompanion/strategies/chat/acp/handler.lua
+@./lua/codecompanion/strategies/chat/acp/request_permission.lua
 
-- **Client → Agent**: `session/new` request (`NewSessionRequest`)
-  - Includes working directory, MCP servers.
-- **Agent → Client**: `NewSessionResponse`
-  - Returns session ID.
+Chat-specific ACP integration:
+- `handler.lua` - Main chat buffer ACP handler
+- `request_permission.lua` - Interactive permission request UI
 
-### **Prompting**
+## Message Flow
 
-- **Client → Agent**: `session/prompt` request (`PromptRequest`)
-  - Contains session ID and an array of `ContentBlock` objects (parsed from buffer).
-- **Agent → Client**: Streaming `SessionNotification`
-  - Types:
-    - `agent_message_chunk`: LLM's streamed response.
-    - `agent_thought_chunk`: LLM's reasoning or plan.
-    - `tool_call` / `tool_call_update`: Tool execution requests and updates.
-    - `plan`: High-level execution plan.
-  - Each notification includes session ID and update payload.
+### 1. Initialization
 
-### **Tool Calls & Permissions**
+```
+Client → Agent: initialize request
+Agent → Client: capabilities and auth methods
+```
 
-- **Agent → Client**: `session/request_permission` notification
-  - Requests permission for tool execution, with options (`PermissionOption`).
-- **Client → Agent**: `RequestPermissionResponse`
-  - User selects allow/reject; response sent back to agent.
+### 2. Authentication
 
-### **Session Lifecycle**
+```
+Client → Agent: authenticate request
+Agent → Client: success/failure response
+```
 
-- **Session Load/Save**: ACP supports loading and saving sessions (`session/load`), enabling persistent conversations.
-- **Cancel**: Client can send `CancelNotification` to abort a turn.
+### 3. Session Creation
 
----
+```
+Client → Agent: session/new request
+Agent → Client: session ID
+```
 
-## 4. **ACP Schema: Key Types and Their Use**
+### 4. Prompt Exchange
 
-Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
+```
+Client → Agent: session/prompt request
+Agent → Client: streaming session/update notifications
+```
 
-- **ContentBlock**: Core unit for messages, supporting text, images, audio, resource links, and embedded resources.
-- **SessionNotification**: Used for streaming agent responses, thoughts, tool calls, and plans.
-- **ToolCall**: Structure for tool execution requests, including kind, status, locations, and content.
-- **PermissionOption/RequestPermissionRequest**: Used for interactive permission handling when agent wants to execute tools.
-- **StopReason**: Indicates why a turn ended (e.g., success, max tokens, refusal, cancelled).
+### 5. Tool Execution
 
----
+```
+Agent → Client: session/request_permission
+Client → Agent: permission response
+Agent → Client: tool execution results
+```
 
-## 5. **CodeCompanion ACP Implementation Details**
+## Key ACP Message Types
 
-### **ACPConnection (lua/codecompanion/acp.lua)**
+### Session Updates
 
-- **Process Management**: Spawns agent process, manages stdin/stdout, buffers output for JSON-RPC message boundaries.
-- **Session State**: Tracks initialization, authentication, session ID, pending responses.
-- **Request/Response Handling**: Synchronous requests (initialize, authenticate, session/new), streaming notifications.
-- **Permission Handling**: Presents permission dialogs to user, sends outcome to agent.
+- `agent_message_chunk` - Streamed response content
+- `agent_thought_chunk` - Agent reasoning/planning
+- `tool_call` - Tool execution request
+- `tool_call_update` - Tool execution progress/completion
+- `plan` - High-level execution plan
 
-### **PromptBuilder**
+### Permission Requests
 
-- **Fluent API**: Allows chaining handlers for message chunks, thought chunks, tool calls, completion, and errors.
-- **Streaming**: Handles streamed agent responses, updating the chat buffer in real time.
+When agents need to execute potentially sensitive operations, they request permission:
 
-### **Chat Buffer (lua/codecompanion/strategies/chat/init.lua)**
-
-- **Message Parsing**: Uses Tree-sitter to extract user messages and context.
-- **ACP Submission**: If ACP adapter is selected, uses ACPConnection to submit prompt and handle streaming responses.
-- **Buffer Updates**: Streams agent responses, thoughts, and tool outputs into the buffer under appropriate headers.
-
----
-
-## 6. **Example ACP Message Exchange**
-
-**User prompt:**
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 42,
-  "method": "session/prompt",
+  "method": "session/request_permission",
   "params": {
     "sessionId": "abc123",
-    "prompt": [
-      { "type": "text", "text": "How do I use the grep_search tool?" }
-    ]
-  }
-}
-```
-
-**Agent thinking response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "session/update",
-  "params": {
-    "sessionId": "abc123",
-    "update": {
-      "sessionUpdate": "agent_thought_chunk",
-      "content": { "type": "text", "text": "Thinking about how to search for code..." }
+    "options": [
+      {"optionId": "allow_once", "name": "Allow", "kind": "allow_once"},
+      {"optionId": "reject", "name": "Reject", "kind": "reject_once"}
+    ],
+    "toolCall": {
+      "title": "Writing to config.lua",
+      "kind": "edit",
+      "content": [{"type": "diff", "path": "config.lua", ...}]
     }
   }
 }
 ```
 
-**Agent response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "session/update",
-  "params": {
-    "sessionId": "abc123",
-    "update": {
-      "sessionUpdate": "agent_message_chunk",
-      "content": { "type": "text", "text": "Here are the results of your search..." }
+## Integration with Chat Buffer
+
+ACP is seamlessly integrated into CodeCompanion's chat buffer experience:
+
+1. **User Input**: User types message in chat buffer
+2. **Message Parsing**: Tree-sitter extracts user content
+3. **ACP Submission**: If ACP adapter is selected, message sent via ACP
+4. **Streaming Display**: Agent responses stream into buffer in real-time
+5. **Tool Visualization**: Tool calls and results displayed with appropriate formatting
+6. **Permission Dialogs**: Interactive prompts for tool execution approval
+
+## Configuration
+
+ACP adapters are configured in the main config:
+
+```lua
+adapters = {
+  claude_code = {
+    name = "claude_code",
+    type = "acp",
+    commands = {
+      default = {"npx", "--yes", "@zed-industries/claude-code-acp"}
+    },
+    env = {
+      CLAUDE_CODE_OAUTH_TOKEN = "your_token_here"
     }
   }
 }
 ```
 
-**Agent requesting permission with diff:**
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 0,
-    "method": "session/request_permission",
-    "params": {
-        "sessionId": "370030f3-a287-4054-b2a7-010b4bb084e8",
-        "options": [
-            {
-                "optionId": "proceed_always",
-                "name": "Allow All Edits",
-                "kind": "allow_always"
-            },
-            {
-                "optionId": "proceed_once",
-                "name": "Allow",
-                "kind": "allow_once"
-            },
-            {
-                "optionId": "cancel",
-                "name": "Reject",
-                "kind": "reject_once"
-            }
-        ],
-        "toolCall": {
-            "toolCallId": "write_file-1754861800410",
-            "status": "pending",
-            "title": "Writing to test.txt",
-            "content": [
-                {
-                    "type": "diff",
-                    "path": "test.txt",
-                    "oldText": "This is some old text",
-                    "newText": "This is some new text"
-                }
-            ],
-            "locations": [],
-            "kind": "edit"
-        }
-    }
-}
-```
+## Supported Agents
 
-**Agent requesting permission with no diff**:
+### Claude Code
 
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 0,
-    "method": "session/request_permission",
-    "params": {
-        "sessionId": "06d32abb-9ecc-46f3-af80-c5aeb4aafc0c",
-        "options": [
-            {
-                "optionId": "proceed_always",
-                "name": "Always Allow ls",
-                "kind": "allow_always"
-            },
-            {
-                "optionId": "proceed_once",
-                "name": "Allow",
-                "kind": "allow_once"
-            },
-            {
-                "optionId": "cancel",
-                "name": "Reject",
-                "kind": "reject_once"
-            }
-        ],
-        "toolCall": {
-            "toolCallId": "run_shell_command-1755793277864",
-            "status": "pending",
-            "title": "ls -F (Lists the files and directories in the current working directory, adding symbols to indicate their type (e.g., a '/' for directories).)",
-            "content": [],
-            "locations": [],
-            "kind": "execute"
-        }
-    }
-}
-```
+Official Claude Code agent with:
+- OAuth authentication
+- File system operations
+- Vision support
+- Comprehensive tool suite
 
-**Tool call in progress:**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "session/update",
-  "params": {
-    "sessionId": "711e49ae-79d1-4d6e-8481-8844a71f997a",
-    "update": {
-      "sessionUpdate": "tool_call",
-      "toolCallId": "google_web_search-1755377262369",
-      "status": "in_progress",
-      "title": "Searching the web for: \"neovim nightly vim.pack.add\"",
-      "content": [],
-      "locations": [],
-      "kind": "search"
-    }
-  }
-}
-```
+### Gemini CLI
 
-**Completed tool call:**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "session/update",
-  "params": {
-    "sessionId": "711e49ae-79d1-4d6e-8481-8844a71f997a",
-    "update": {
-      "sessionUpdate": "tool_call_update",
-      "toolCallId": "google_web_search-1755377262369",
-      "status": "completed",
-      "content": [
-        {
-          "type": "content",
-          "content": {
-            "type": "text",
-            "text": "Search results for \"neovim nightly vim.pack.add\" returned."
-          }
-        }
-      ]
-    }
-  }
-}
-```
+Google's Gemini CLI agent with:
+- API key authentication
+- Code generation and analysis
+- Multi-modal support
 
-**fs/write_text_file call**
+## File System Integration
 
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "fs/write_text_file",
-    "params": {
-        "path": "/Users/Oli/Code/Neovim/codecompanion.nvim/quotes.lua",
-        "content": "local quotes = {\n  [\"Oli Morris\"] = \"CodeCompanion is the best\",\n  [\"Edsger W. Dijkstra\"] = \"Simplicity is a prerequisite for reliability.\",\n  [\"Brian Kernighan\"] = \"Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.\",\n  [\"Linus Torvalds\"] = \"Talk is cheap. Show me the code.\",\n  [\"Grace Hopper\"] = \"The most damaging phrase in the language is: 'It's always been done that way.'\",\n}\n\nreturn quotes",
-        "sessionId": "f13b85cb-fc4e-4bec-902f-95be32325f99"
-    }
-}
-```
----
+ACP agents can interact with the file system through standardized methods:
 
-## 7. **Summary Table: ACP Workflow in CodeCompanion**
+- `fs/read_text_file` - Read file contents
+- `fs/write_text_file` - Write file contents
 
-| Step                | ACP Message Type         | CodeCompanion Component      | Buffer Effect                |
-|---------------------|-------------------------|-----------------------------|------------------------------|
-| Initialization      | `initialize`            | ACPConnection               | Setup agent process/session  |
-| Authentication      | `authenticate`          | ACPConnection               | Auth dialog if needed        |
-| Session Creation    | `session/new`           | ACPConnection               | Session ID assigned          |
-| Prompt Submission   | `session/prompt`        | PromptBuilder/Chat Buffer   | User message sent            |
-| Streaming Response  | `session/update`        | PromptBuilder/Chat Buffer   | LLM/agent responses streamed |
-| Tool Calls          | `tool_call`/`tool_call_update` | PromptBuilder/Chat Buffer | Tool execution requests      |
-| Permission Request  | `session/request_permission` | ACPConnection/Chat Buffer | User permission dialog       |
-| Completion          | `PromptResponse`        | PromptBuilder/Chat Buffer   | End of turn, ready for next  |
+All file operations require user permission and show diffs when applicable.
 
----
+## Error Handling
 
-## 8. **Extensibility and Schema Awareness**
+Robust error handling throughout the ACP stack:
+- Connection failures and timeouts
+- Authentication errors
+- Protocol version mismatches
+- Tool execution failures
+- Graceful degradation when agents become unavailable
 
-- **Schema-Driven**: All ACP interactions are validated and mapped according to the schema, ensuring compatibility and extensibility.
-- **Event-Driven**: CodeCompanion fires events for key ACP lifecycle moments (request started, streaming, finished, permission requested), allowing plugins and workflows to hook in.
-- **Tooling**: ACP enables rich tool integration, with permission gating and streaming updates.
+## Testing
 
----
+Comprehensive test coverage in `tests/acp/` and `tests/strategies/chat/acp/`:
+- Unit tests for core ACP functionality
+- Integration tests for chat buffer interaction
+- Mock agents for testing without external dependencies
+- Permission system testing
 
-## 9. **References**
+## Extending ACP Support
 
-- [ACP JSON Schema](llm_notes/acp_json_schema.json)
-- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)
-- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)
-- [Zed ACP Protocol Reference](https://github.com/zed-industries/agent-protocol)
+To add support for new ACP agents:
 
----
+1. Create adapter in `lua/codecompanion/adapters/acp/your_agent.lua`
+2. Implement required handlers and protocol methods
+3. Add configuration to main config
+4. Add tests for new adapter
 
-## 10. **Conclusion**
-
-ACP integration in CodeCompanion.nvim provides a powerful, extensible, and schema-driven foundation for conversational AI, tool automation, and session management. By leveraging ACP, CodeCompanion can support advanced agent features, robust tool workflows, and interactive permission handling—all seamlessly integrated into the Neovim chat buffer experience.
-
+The modular architecture makes it straightforward to integrate new ACP-compatible agents while maintaining consistent behavior and user experience.

@@ -495,27 +495,33 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
+        memory = {
+          modes = { n = "gM" },
+          index = 18,
+          callback = "keymaps.clear_memory",
+          description = "Clear memory",
+        },
         yolo_mode = {
           modes = { n = "gty" },
-          index = 18,
+          index = 19,
           callback = "keymaps.yolo_mode",
           description = "YOLO mode toggle",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
-          index = 19,
+          index = 20,
           callback = "keymaps.goto_file_under_cursor",
           description = "Open the file under cursor in a new tab.",
         },
         copilot_stats = {
           modes = { n = "gS" },
-          index = 20,
+          index = 21,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
         },
         super_diff = {
           modes = { n = "gD" },
-          index = 21,
+          index = 22,
           callback = "keymaps.super_diff",
           description = "Show Super Diff",
         },
@@ -1179,6 +1185,7 @@ You must create or modify a workspace file through a series of prompts over mult
         return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
       end,
       rules = {
+        parser = "claude",
         ["acp"] = {
           description = "The ACP implementation",
           rules = {
@@ -1204,6 +1211,14 @@ You must create or modify a workspace file through a series of prompts over mult
     opts = {
       chat = {
         enabled = false, -- Automatically add memory to new chat buffers?
+
+        ---Function to determine if memory should be added to a chat
+        ---This requires `enabled` to be true
+        ---@param chat CodeCompanion.Chat
+        condition = function(chat)
+          return chat.adapter.type ~= "acp"
+        end,
+
         default_memory = "default", -- The default memory group to use in the chat buffer
       },
       show_defaults = true, -- Show the default memory rules in the picker?

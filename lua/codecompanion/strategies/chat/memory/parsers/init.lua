@@ -2,11 +2,15 @@ local config = require("codecompanion.config")
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
+---@class CodeCompanion.Chat.Memory.Parser
+---@field content string The content of the memory rule
+---@field meta? { included_files: string[] } The filename of the memory rule
+
 local M = {}
 
 ---Resolve the parser from the config
 ---@param parser string
----@return table|nil
+---@return CodeCompanion.Chat.Memory.Parser|nil
 function M.resolve(parser)
   if not parser then
     return nil
@@ -22,9 +26,6 @@ function M.resolve(parser)
 
   parser = config.memory.parsers[parser]
 
-  if type(parser) == "table" then
-    return parser
-  end
   if type(parser) == "function" then
     return parser()
   end
@@ -61,18 +62,24 @@ function M.resolve(parser)
 end
 
 ---Parse the content through the parser and return it
----@param p_rule CodeCompanion.Chat.Memory.ProcessedRule The processed rule
+---@param rule CodeCompanion.Chat.Memory.ProcessedRule The processed rule
 ---@param group_parser? string The parser from the group level
----@return string
-function M.parse(p_rule, group_parser)
+---@return CodeCompanion.Chat.Memory.Parser The parsed content, or a parser object
+function M.parse(rule, group_parser)
   local parser
 
   -- If the parser exists at a rule level, that takes precedence
-  if p_rule.parser then
-    parser = M.resolve(p_rule.parser)
+  if rule.parser then
+    parser = M.resolve(rule.parser)
     if parser then
-      assert(parser.content, "Parser must return a content function")
-      return parser.content(p_rule)
+      local ok, parsed = pcall(parser, rule)
+      if not ok then
+        log:error("[Memory] Parser error: %s", parsed)
+        return { content = rule.content }
+      end
+
+      assert(parsed.content, "Parser must return content")
+      return parsed
     end
   end
 
@@ -80,13 +87,19 @@ function M.parse(p_rule, group_parser)
   if group_parser then
     parser = M.resolve(group_parser)
     if parser then
-      assert(parser.content, "Parser must return a content function")
-      return parser.content(p_rule)
+      local ok, parsed = pcall(parser, rule)
+      if not ok then
+        log:error("[Memory] Parser error: %s", parsed)
+        return { content = rule.content }
+      end
+
+      assert(parsed.content, "Parser must return content")
+      return parsed
     end
   end
 
   -- Or return unchanged content
-  return p_rule.content
+  return { content = rule.content }
 end
 
 return M
