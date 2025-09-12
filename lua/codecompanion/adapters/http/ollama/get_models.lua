@@ -37,7 +37,6 @@ end
 ---Returns the number of models if the fetches are fired.
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@param url string
----@return integer?
 local function fetch_async(adapter, url)
   assert(adapter ~= nil)
   assert(url ~= nil)
@@ -58,55 +57,56 @@ local function fetch_async(adapter, url)
     headers["Authorization"] = auth_header .. adapter.env_replaced.api_key
   end
 
-  local ok, response = pcall(function()
+  pcall(function()
     return Curl.get(url .. "/api/tags", {
-      sync = true,
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
       timeout = CONSTANTS.TIMEOUT,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the Ollama models from " .. url .. "/api/tags.\nError: %s", response)
-    return
-  end
-
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Could not parse the response from " .. url .. "/api/tags")
-    return
-  end
-
-  local jobs = {}
-
-  for _, model_obj in ipairs(json.models) do
-    -- start async requests
-    jobs[model_obj.name] = Curl.post(url .. "/api/show", {
-      headers = headers,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-      body = vim.json.encode({ model = model_obj.name }),
-      timeout = CONSTANTS.TIMEOUT,
-      callback = function(output)
-        _cached_models[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
-        if output.status == 200 then
-          local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
-          if ok then
-            _cached_models[url][model_obj.name].opts.can_reason =
-              vim.list_contains(model_info_json.capabilities or {}, "thinking")
-            _cached_models[url][model_obj.name].opts.has_vision =
-              vim.list_contains(model_info_json.capabilities or {}, "vision")
-          end
+      callback = function(response)
+        if response.status ~= 200 then
+          return log:error("Could not get the Ollama models from " .. url .. "/api/tags.\nError: %s", response)
         end
-        jobs[model_obj.name] = nil
-        if vim.tbl_isempty(jobs) then
-          running = false
+
+        local ok, json = pcall(vim.json.decode, response.body)
+        if not ok then
+          return log:error("Could not parse the response from " .. url .. "/api/tags")
+        end
+
+        -- A container for pending requests.
+        -- New jobs are added on creation and removed on completion.
+        local jobs = {}
+
+        for _, model_obj in ipairs(json.models) do
+          jobs[model_obj.name] = Curl.post(url .. "/api/show", {
+            headers = headers,
+            insecure = config.adapters.http.opts.allow_insecure,
+            proxy = config.adapters.http.opts.proxy,
+            body = vim.json.encode({ model = model_obj.name }),
+            timeout = CONSTANTS.TIMEOUT,
+            callback = function(output)
+              _cached_models[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
+              if output.status == 200 then
+                local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
+                if ok then
+                  _cached_models[url][model_obj.name].opts.can_reason =
+                    vim.list_contains(model_info_json.capabilities or {}, "thinking")
+                  _cached_models[url][model_obj.name].opts.has_vision =
+                    vim.list_contains(model_info_json.capabilities or {}, "vision")
+                end
+              end
+              jobs[model_obj.name] = nil
+              if vim.tbl_isempty(jobs) then
+                -- when the last curl request job is removed,
+                -- mark the current `fetch_async` job as finished
+                running = false
+              end
+            end,
+          })
         end
       end,
     })
-  end
-  return #json.models
+  end)
 end
 
 ---Get a list of available Ollama models
@@ -124,17 +124,13 @@ function M.choices(self, opts)
   local url = adapter.env_replaced.url
   local is_uninitialised = _cached_models[url] == nil
 
-  local num_models = fetch_async(adapter, url)
+  fetch_async(adapter, url)
 
   if is_uninitialised or not opts.async then
     -- block here if `async == false` or uninitialised
     vim.wait(CONSTANTS.TIMEOUT, function()
       local models = _cached_models[url]
-      if num_models ~= nil then
-        return #vim.tbl_keys(models) == num_models
-      else
-        return models ~= nil and not vim.tbl_isempty(models)
-      end
+      return models ~= nil and not vim.tbl_isempty(models)
     end)
   end
 
