@@ -35,14 +35,13 @@ end
 ---Fetch model list and model info.
 ---Aborts if there's another fetch job running.
 ---Returns the number of models if the fetches are fired.
----@param adapter CodeCompanion.HTTPAdapter
----@param url string
-local function fetch_async(adapter, url)
+---@param adapter CodeCompanion.HTTPAdapter Ollama adapter with env var replaced.
+local function fetch_async(adapter)
   assert(adapter ~= nil)
-  assert(url ~= nil)
   if running then
     return
   end
+  local url = adapter.env_replaced.url
   running = true
   _cached_models[url] = _cached_models[url] or {}
   local headers = {
@@ -124,7 +123,7 @@ function M.choices(self, opts)
   local url = adapter.env_replaced.url
   local is_uninitialised = _cached_models[url] == nil
 
-  fetch_async(adapter, url)
+  fetch_async(adapter)
 
   if is_uninitialised or not opts.async then
     -- block here if `async == false` or uninitialised
