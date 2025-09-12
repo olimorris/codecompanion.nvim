@@ -1001,9 +1001,9 @@ end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
 ---@param data { role?: string, content: string }
----@param source string
----@param id string
----@param opts? table Options for the message
+---@param source string The source of the context
+---@param id string The uniqie ID linkin the context to the message
+---@param opts? { bufnr: number, context_opts: table, path: string, tag: string, visible: boolean}
 function Chat:add_context(data, source, id, opts)
   opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
 
@@ -1011,8 +1011,9 @@ function Chat:add_context(data, source, id, opts)
     data.role = config.constants.USER_ROLE
   end
 
-  self.context:add({ source = source, id = id })
-  self:add_message(data, opts)
+  -- Context is created by adding it to the context class and linking it to a message on the chat buffer
+  self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
+  self:add_message(data, { context_id = id, tag = opts.tag or source, visible = opts.visible })
 end
 
 ---TODO: Remove this method in v18.0.0
