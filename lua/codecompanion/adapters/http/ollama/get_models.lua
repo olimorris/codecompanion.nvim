@@ -130,7 +130,7 @@ function M.choices(self, opts)
     -- block here if `async == false` or uninitialised
     vim.wait(CONSTANTS.TIMEOUT, function()
       local models = _cached_models[url]
-      return models ~= nil and not vim.tbl_isempty(models)
+      return models ~= nil and not vim.tbl_isempty(models) and not running
     end)
   end
 
