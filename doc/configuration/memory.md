@@ -49,7 +49,7 @@ The example above is taken from the config itself, as by default, the plugin wil
 
 ## Working with Groups
 
-In the plugin, memory groups are a collection of files. Below is an example of what a `claude` group might look like:
+In the plugin, memory groups are a collection of files and/or directories. Below is an example of what a `claude` group might look like:
 
 ```lua
 require("codecompanion").setup({
