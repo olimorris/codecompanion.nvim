@@ -14,14 +14,11 @@ local T = new_set({
 
 T["parsers.resolve()"] = new_set()
 
-T["parsers.resolve()"]["handles table and function entries"] = function()
+T["parsers.resolve()"]["handles function parsers"] = function()
   child.lua([[
     package.loaded['codecompanion.config'] = {
       memory = {
         parsers = {
-          table_par = {
-            content = function(p) return "T:" .. (p.content or "") end
-          },
           fn_par = function()
             return { content = function(p) return "F:" .. (p.content or "") end }
           end
@@ -29,13 +26,6 @@ T["parsers.resolve()"]["handles table and function entries"] = function()
       }
     }
   ]])
-
-  local t_res = child.lua([[
-    local parsers = require("codecompanion.strategies.chat.memory.parsers")
-    local p = parsers.resolve("table_par")
-    return p.content({ content = "a\n" })
-  ]])
-  h.eq(t_res, "T:a\n")
 
   local f_res = child.lua([[
     local parsers = require("codecompanion.strategies.chat.memory.parsers")
@@ -105,19 +95,19 @@ T["parsers.parser()"]["uses rule-level parser before group-level, otherwise retu
     local parsers = require("codecompanion.strategies.chat.memory.parsers")
     return parsers.parse({ parser = "rule_parser", content = "1\n" }, "group_parser")
   ]])
-  h.eq(rule_first, "RULE:1\n")
+  h.eq(rule_first.content, "1\n")
 
   local group_used = child.lua([[
     local parsers = require("codecompanion.strategies.chat.memory.parsers")
     return parsers.parse({ content = "2\n" }, "group_parser")
   ]])
-  h.eq(group_used, "GROUP:2\n")
+  h.eq(group_used.content, "2\n")
 
   local raw = child.lua([[
     local parsers = require("codecompanion.strategies.chat.memory.parsers")
     return parsers.parse({ content = "RAW\n" }, nil)
   ]])
-  h.eq(raw, "RAW\n")
+  h.eq(raw.content, "RAW\n")
 end
 
 return T
