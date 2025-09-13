@@ -2,8 +2,6 @@
 
 ## What is CodeCompanion?
 
-@./lua/codecompanion/strategies/chat/init.lua
-
 CodeCompanion.nvim is a sophisticated Neovim plugin that brings LLM-powered coding assistance directly into your editor. Think of it as "Copilot Chat meets Zed AI, in Neovim" - it provides an integrated chat interface for conversing with large language models while maintaining full context of your codebase.
 
 ### Core Features
@@ -66,6 +64,7 @@ sort_requires = true
 ### Key Conventions
 
 #### File Organization
+
 ```
 lua/codecompanion/
 ├── adapters/           # LLM provider integrations
@@ -236,6 +235,7 @@ Before contributing:
 ## Test
 
 # important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
@@ -243,4 +243,8 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 
 ## IMPORTANT
 
-- If returning markdown code blocks, use four backticks (````) to open and close the code block, and specify the language (e.g., `lua`, `markdown`).
+- If returning markdown code blocks, use four backticks (````) to open and close the code block, and specify the language (e.g., `lua`, `markdown`):
+
+````lua
+-- Your code here
+````
