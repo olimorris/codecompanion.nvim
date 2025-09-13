@@ -348,6 +348,37 @@ require("codecompanion").setup({
 })
 ```
 
+## Setup: Goose via ACP
+
+[Goose](https://github.com/block/goose) is an open-source developer agent that can be used with CodeCompanion via the Agent Client Protocol (ACP).
+
+To use Goose within CodeCompanion:
+
+1. [Install](https://github.com/block/goose#installation) Goose
+2. Configure the adapter in your CodeCompanion config:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      goose = function()
+        return require("codecompanion.adapters").extend("goose", {
+          -- Optional: Add MCP servers configuration if needed
+          defaults = {
+            mcpServers = {},
+            timeout = 20000, -- 20 seconds
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+3. Select "goose" as your adapter when using CodeCompanion
+
+The Goose adapter supports vision capabilities and file system operations (read/write) through ACP.
+
 ## Setup: Using Ollama Remotely
 
 To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:

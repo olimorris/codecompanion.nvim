@@ -65,6 +65,9 @@ return {
         command = { "node", "test-agent.js" },
         roles = { user = "user", assistant = "assistant" },
       },
+      goose = function()
+        return require("codecompanion.adapters.acp.goose")
+      end,
     },
   },
   strategies = {
