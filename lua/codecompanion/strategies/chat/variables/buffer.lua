@@ -1,4 +1,5 @@
 local buf_utils = require("codecompanion.utils.buffers")
+local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
@@ -84,10 +85,8 @@ function Variable:output(selected, opts)
     message = "Here is the updated file content (including line numbers)"
   end
 
-  local ok, content, id, _ = pcall(buf_utils.format_for_llm, {
-    bufnr = bufnr,
-    path = buf_utils.get_info(bufnr).path,
-  }, { message = message })
+  local ok, content, id, _ =
+    pcall(chat_helpers.format_buffer_for_llm, bufnr, buf_utils.get_info(bufnr).path, { message = message })
   if not ok then
     return log:warn(content)
   end

@@ -336,6 +336,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
+        ["memory"] = {
+          callback = "strategies.chat.slash_commands.memory",
+          description = "Insert a memory into the chat buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["now"] = {
           callback = "strategies.chat.slash_commands.now",
           description = "Insert the current date and time",
@@ -343,6 +350,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+
         ["symbols"] = {
           callback = "strategies.chat.slash_commands.symbols",
           description = "Insert symbols for a selected file",
@@ -487,27 +495,33 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle system prompt",
         },
+        memory = {
+          modes = { n = "gM" },
+          index = 18,
+          callback = "keymaps.clear_memory",
+          description = "Clear memory",
+        },
         yolo_mode = {
           modes = { n = "gty" },
-          index = 18,
+          index = 19,
           callback = "keymaps.yolo_mode",
           description = "YOLO mode toggle",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
-          index = 19,
+          index = 20,
           callback = "keymaps.goto_file_under_cursor",
           description = "Open file under cursor",
         },
         copilot_stats = {
           modes = { n = "gS" },
-          index = 20,
+          index = 21,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot statistics",
         },
         super_diff = {
           modes = { n = "gD" },
-          index = 21,
+          index = 22,
           callback = "keymaps.super_diff",
           description = "Show Super Diff",
         },
@@ -533,9 +547,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
-        yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
         undo_levels = 10, -- Number of undo levels to add to chat buffers
         wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
+        yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
 
         -- What to do when an ACP permission request times out? (allow_once|reject_once)
         acp_timeout_response = "reject_once",
@@ -1144,6 +1158,72 @@ You must create or modify a workspace file through a series of prompts over mult
           end,
         },
       },
+    },
+  },
+  -- MEMORY -------------------------------------------------------------------
+  memory = {
+    default = {
+      description = "Collection of common files for all projects",
+      files = {
+        ".rules",
+        ".goosehints",
+        ".cursorrules",
+        ".windsurfrules",
+        ".clinerules",
+        ".github/copilot-instructions.md",
+        "AGENT.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+      },
+      is_default = true,
+    },
+    CodeCompanion = {
+      description = "CodeCompanion plugin memory files",
+      ---@type fun(): boolean
+      enabled = function()
+        -- Don't show this to users who aren't working on CodeCompanion itself
+        return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
+      end,
+      files = {
+        parser = "claude",
+        ["acp"] = {
+          description = "The ACP implementation",
+          files = {
+            ".codecompanion/acp/acp.md",
+          },
+        },
+      },
+      is_default = true,
+    },
+    claude = {
+      description = "Memory files for Claude Code users",
+      parser = "claude",
+      files = {
+        "~/.claude/CLAUDE.md",
+        "CLAUDE.md",
+        "CLAUDE.local.md",
+      },
+      is_default = true,
+    },
+    parsers = {
+      claude = "claude", -- Parser for CLAUDE.md files
+      none = "none", -- No parsing, just raw text
+    },
+    opts = {
+      chat = {
+        enabled = false, -- Automatically add memory to new chat buffers?
+
+        ---Function to determine if memory should be added to a chat buffer
+        ---This requires `enabled` to be true
+        ---@param chat CodeCompanion.Chat
+        condition = function(chat)
+          return chat.adapter.type ~= "acp"
+        end,
+
+        default_memory = "default", -- The memory groups to load
+        default_params = "watch", -- watch|pin - when adding a buffer to the chat
+      },
+      show_defaults = true, -- Show the default memory files in the action palette?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------

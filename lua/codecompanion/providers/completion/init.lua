@@ -12,7 +12,6 @@ local trigger = {
   slash_commands = "/",
 }
 
-local api = vim.api
 local _vars_aug = nil
 local _vars_cache = nil
 local _vars_cache_valid = false

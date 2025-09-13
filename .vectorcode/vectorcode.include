@@ -1,4 +1,0 @@
-doc/*.md
-lua/**/*.lua
-queries/**
-tests/**

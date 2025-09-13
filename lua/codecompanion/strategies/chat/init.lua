@@ -10,13 +10,14 @@
 ---@field aug number The ID for the autocmd group
 ---@field bufnr number The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
----@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
+---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
 ---@field id number The unique identifier for the chat
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
@@ -41,6 +42,7 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
@@ -144,19 +146,6 @@ local function find_tool_call(id, messages)
     end
   end
   return nil
-end
-
----Determine if a tag exists in the messages table
----@param tag string
----@param messages CodeCompanion.Chat.Messages
----@return boolean
-local function has_tag(tag, messages)
-  return vim.tbl_contains(
-    vim.tbl_map(function(msg)
-      return msg.opts and msg.opts.tag
-    end, messages),
-    tag
-  )
 end
 
 ---Increment the cycle count in the chat buffer
@@ -355,6 +344,7 @@ function Chat.new(args)
   local self = setmetatable({
     acp_session_id = args.acp_session_id or nil,
     buffer_context = args.buffer_context,
+    callbacks = {},
     context_items = {},
     cycle = 1,
     header_line = 1,
@@ -466,11 +456,10 @@ function Chat.new(args)
   end
 
   self.close_last_chat()
-  self.ui:open():render(self.buffer_context, self.messages, args)
+  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
-    ---@cast self CodeCompanion.Chat
     local header_line = parser.headers(self, self.chat_parser)
     self.header_line = header_line and (header_line + 1) or 1
   end
@@ -525,12 +514,62 @@ function Chat.new(args)
     end
   end
 
+  -- Handle callbacks
+  if args.callbacks then
+    for event, callback_list in pairs(args.callbacks) do
+      if type(callback_list) == "function" then
+        -- Single callback
+        self:add_callback(event, callback_list)
+      elseif type(callback_list) == "table" then
+        -- Array of callbacks
+        for _, callback in ipairs(callback_list) do
+          self:add_callback(event, callback)
+        end
+      end
+    end
+  end
+
+  self:dispatch("on_creation")
+
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
   end
 
   return self ---@type CodeCompanion.Chat
+end
+
+---Add a callback for a specific event
+---@param event string The event name
+---@param callback fun(chat: CodeCompanion.Chat) The callback function
+---@return CodeCompanion.Chat
+function Chat:add_callback(event, callback)
+  if not self.callbacks[event] then
+    self.callbacks[event] = {}
+  end
+  if type(callback) == "function" then
+    table.insert(self.callbacks[event], callback)
+  end
+  return self
+end
+
+---Dispatch callbacks for a specific event
+---@param event string The event name
+---@param ... any Additional arguments to pass to callbacks
+---@return CodeCompanion.Chat
+function Chat:dispatch(event, ...)
+  local callbacks = self.callbacks[event]
+  if not callbacks then
+    return self
+  end
+
+  for _, callback in ipairs(callbacks) do
+    local ok, err = pcall(callback, self, ...)
+    if not ok then
+      log:error("Callback error for %s: %s", event, err)
+    end
+  end
+  return self
 end
 
 ---Format and apply settings to the chat buffer
@@ -607,7 +646,7 @@ function Chat:add_system_prompt(prompt, opts)
   opts = opts or { visible = false, tag = "system_prompt_from_config" }
 
   -- If the system prompt already exists, update it
-  if has_tag(opts.tag, self.messages) then
+  if helpers.has_tag(opts.tag, self.messages) then
     self:remove_tagged_message(opts.tag)
   end
 
@@ -842,7 +881,7 @@ function Chat:submit(opts)
     -- Such as when tools auto-submitting responses. So, we need to ensure
     -- that we only manage context if the last message was from the user.
     if message_to_submit then
-      message_to_submit = self.context:clear(self.messages[#self.messages])
+      message_to_submit = self.context:remove(self.messages[#self.messages])
       self:replace_vars_and_tools(message_to_submit)
       self:check_images(message_to_submit)
       self:check_context()
@@ -961,15 +1000,20 @@ function Chat:done(output, reasoning, tools, status)
 end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
----@param data { role: string, content: string }
----@param source string
----@param id string
----@param opts? table Options for the message
+---@param data { role?: string, content: string }
+---@param source string The source of the context
+---@param id string The uniqie ID linkin the context to the message
+---@param opts? { bufnr: number, context_opts: table, path: string, tag: string, visible: boolean}
 function Chat:add_context(data, source, id, opts)
-  opts = opts or { context_id = id, visible = false }
+  opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
 
-  self.context:add({ source = source, id = id })
-  self:add_message(data, opts)
+  if not data.role then
+    data.role = config.constants.USER_ROLE
+  end
+
+  -- Context is created by adding it to the context class and linking it to a message on the chat buffer
+  self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
+  self:add_message(data, { context_id = id, tag = opts.tag or source, visible = opts.visible })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1099,6 +1143,34 @@ function Chat:check_context()
   end
   self.tool_registry.schemas = schemas_to_keep
   self.tool_registry.in_use = tools_in_use_to_keep
+end
+
+---Refresh the chat context by syncing to message-linked context IDs and re-rendering
+---@return CodeCompanion.Chat
+function Chat:refresh_context()
+  -- Collect the set of context IDs still referenced by messages
+  local ids_in_messages = {}
+  for _, msg in ipairs(self.messages or {}) do
+    if msg.opts and msg.opts.context_id then
+      ids_in_messages[msg.opts.context_id] = true
+    end
+  end
+
+  -- Keep only context items that are still referenced by messages
+  if self.context_items and not vim.tbl_isempty(self.context_items) then
+    self.context_items = vim
+      .iter(self.context_items)
+      :filter(function(ctx)
+        return ids_in_messages[ctx.id] == true
+      end)
+      :totable()
+  end
+
+  -- Clear currently rendered Context block and re-render
+  self.context:clear_rendered()
+  self.context:render()
+
+  return self
 end
 
 ---Regenerate the response from the LLM

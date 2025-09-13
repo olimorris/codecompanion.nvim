@@ -49,8 +49,16 @@ function M.write_to_path(path, content)
   return true
 end
 
+---Check if a file or directory exists at the given path
+---@param path string The file or directory path to check
+---@return boolean
+function M.exists(path)
+  local stat = uv.fs_stat(path)
+  return stat ~= nil
+end
+
 ---Read the content of a file at a given path
----@param path string The file path to write to
+---@param path string The file to read
 ---@return string
 function M.read(path)
   local fd = assert(uv.fs_open(path, "r", 420))
