@@ -319,7 +319,7 @@ T["Context"]["can be cleared from messages"] = function()
        role = "user",
        content = "> Context:\n> -  <buf>pinned example</buf>\n\nHello, World",
      }
-     return _G.chat.context:clear(message).content
+     return _G.chat.context:remove(message).content
    ]])
 
   h.eq("Hello, World", content)

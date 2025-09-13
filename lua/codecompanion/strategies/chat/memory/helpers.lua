@@ -140,7 +140,7 @@ function M.add_files_or_buffers(included_files, chat)
         end
       end
 
-      chat:add_context({ content = content }, "memory", id, {
+      return chat:add_context({ content = content }, "memory", id, {
         bufnr = bufnr,
         path = path,
         context_opts = opts,

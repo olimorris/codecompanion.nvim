@@ -881,7 +881,7 @@ function Chat:submit(opts)
     -- Such as when tools auto-submitting responses. So, we need to ensure
     -- that we only manage context if the last message was from the user.
     if message_to_submit then
-      message_to_submit = self.context:clear(self.messages[#self.messages])
+      message_to_submit = self.context:remove(self.messages[#self.messages])
       self:replace_vars_and_tools(message_to_submit)
       self:check_images(message_to_submit)
       self:check_context()
@@ -1143,6 +1143,34 @@ function Chat:check_context()
   end
   self.tool_registry.schemas = schemas_to_keep
   self.tool_registry.in_use = tools_in_use_to_keep
+end
+
+---Refresh the chat context by syncing to message-linked context IDs and re-rendering
+---@return CodeCompanion.Chat
+function Chat:refresh_context()
+  -- Collect the set of context IDs still referenced by messages
+  local ids_in_messages = {}
+  for _, msg in ipairs(self.messages or {}) do
+    if msg.opts and msg.opts.context_id then
+      ids_in_messages[msg.opts.context_id] = true
+    end
+  end
+
+  -- Keep only context items that are still referenced by messages
+  if self.context_items and not vim.tbl_isempty(self.context_items) then
+    self.context_items = vim
+      .iter(self.context_items)
+      :filter(function(ctx)
+        return ids_in_messages[ctx.id] == true
+      end)
+      :totable()
+  end
+
+  -- Clear currently rendered Context block and re-render
+  self.context:clear_rendered()
+  self.context:render()
+
+  return self
 end
 
 ---Regenerate the response from the LLM

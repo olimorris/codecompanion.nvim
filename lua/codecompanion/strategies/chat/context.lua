@@ -173,10 +173,10 @@ function Context:add(context)
   end
 end
 
----Clear any context items from a message in the chat buffer before submission
+---Remove any context items from a message in the chat buffer before submission
 ---@param message table
 ---@return table
-function Context:clear(message)
+function Context:remove(message)
   if vim.tbl_isempty(self.Chat.context_items) or not config.display.chat.show_context then
     return message or nil
   end
@@ -260,6 +260,19 @@ function Context:render()
 
   api.nvim_buf_set_lines(chat.bufnr, start_row, start_row, false, lines)
   self:create_folds()
+end
+
+---Clear the rendered context block from the chat buffer (if present)
+---@return CodeCompanion.Chat.Context
+function Context:clear_rendered()
+  local start_row, end_row = get_range(self.Chat)
+  if not start_row or not end_row then
+    return self
+  end
+
+  api.nvim_buf_set_lines(self.Chat.bufnr, start_row, end_row + 1, false, {})
+
+  return self
 end
 
 ---Fold all of the context items in the chat buffer

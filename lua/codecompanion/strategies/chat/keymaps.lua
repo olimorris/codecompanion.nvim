@@ -699,8 +699,8 @@ M.toggle_system_prompt = {
 M.clear_memory = {
   desc = "Clear memory",
   callback = function(chat)
-    -- Use Tree-sitter to remove all `<memory>` references in the current range
     chat:remove_tagged_message("memory")
+    chat:refresh_context()
     return util.notify("Cleared the memory", vim.log.levels.INFO)
   end,
 }

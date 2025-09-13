@@ -1212,7 +1212,7 @@ You must create or modify a workspace file through a series of prompts over mult
       chat = {
         enabled = false, -- Automatically add memory to new chat buffers?
 
-        ---Function to determine if memory should be added to a chat
+        ---Function to determine if memory should be added to a chat buffer
         ---This requires `enabled` to be true
         ---@param chat CodeCompanion.Chat
         condition = function(chat)
@@ -1222,7 +1222,7 @@ You must create or modify a workspace file through a series of prompts over mult
         default_memory = "default", -- The default memory group to use in the chat buffer
         default_params = "watch", -- watch|pin - when adding a buffer to the chat
       },
-      show_defaults = true, -- Show the default memory rules in the picker?
+      show_defaults = true, -- Show the default memory rules in the action palette?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------
