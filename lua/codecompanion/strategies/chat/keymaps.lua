@@ -171,7 +171,7 @@ M.options = {
 
     for key, val in sorted_pairs(vars) do
       local desc = clean_and_truncate(val.description)
-      table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. desc)
+      table.insert(lines, indent .. pad("#{" .. key .. "}", max_length, 4) .. " " .. desc)
     end
 
     -- Tools
@@ -181,7 +181,7 @@ M.options = {
     for key, val in sorted_pairs(tools) do
       if key ~= "opts" then
         local desc = clean_and_truncate(val.description)
-        table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. desc)
+        table.insert(lines, indent .. pad("@{" .. key .. "}", max_length, 4) .. " " .. desc)
       end
     end
 
