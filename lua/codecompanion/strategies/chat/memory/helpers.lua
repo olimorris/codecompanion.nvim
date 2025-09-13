@@ -158,7 +158,7 @@ function M.add_files_or_buffers(included_files, chat)
     else
       -- Otherwise, check the wider filesystem
       if not file_utils.exists(path) then
-        return log:debug("[Memory] Could not find the file %s", path)
+        return log:warn("Could not find the memory file `%s`", path)
       end
     end
 
