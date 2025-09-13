@@ -210,7 +210,7 @@ T["Prompt Library"]["can add memory"] = function()
       return chat.context_items
     ]])
 
-  h.eq(1, #mem_items)
+  h.eq(2, #mem_items)
   h.eq("<memory>CLAUDE.md</memory>", mem_items[1].id)
 end
 
