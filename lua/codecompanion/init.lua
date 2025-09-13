@@ -307,6 +307,7 @@ CodeCompanion.has = function(feature)
     "function-calling",
     "extensions",
     "acp",
+    "memory",
   }
 
   if type(feature) == "string" then
