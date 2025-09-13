@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2025 September 13
+*codecompanion.txt*        For NVIM v0.11       Last change: 2025 September 14
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -71,6 +71,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
+-  Support for |codecompanion-usage-chat-buffer-memory| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-extending-prompts|, Variables and Slash Commands
