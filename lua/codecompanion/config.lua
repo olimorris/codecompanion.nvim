@@ -1165,43 +1165,35 @@ You must create or modify a workspace file through a series of prompts over mult
     default = {
       description = "Collection of common files for all projects",
       files = {
-        ".rules",
-        ".goosehints",
-        ".cursorrules",
-        ".windsurfrules",
         ".clinerules",
+        ".cursorrules",
+        ".goosehints",
+        ".rules",
+        ".windsurfrules",
         ".github/copilot-instructions.md",
         "AGENT.md",
         "AGENTS.md",
-        "CLAUDE.md",
+        { path = "CLAUDE.md", parser = "claude" },
+        { path = "CLAUDE.local.md", parser = "claude" },
+        { path = "~/.claude/CLAUDE.md", parser = "claude" },
       },
       is_default = true,
     },
     CodeCompanion = {
       description = "CodeCompanion plugin memory files",
-      ---@type fun(): boolean
+      parser = "claude",
+      ---@return boolean
       enabled = function()
         -- Don't show this to users who aren't working on CodeCompanion itself
         return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
       end,
       files = {
-        parser = "claude",
         ["acp"] = {
           description = "The ACP implementation",
           files = {
             ".codecompanion/acp/acp.md",
           },
         },
-      },
-      is_default = true,
-    },
-    claude = {
-      description = "Memory files for Claude Code users",
-      parser = "claude",
-      files = {
-        "~/.claude/CLAUDE.md",
-        "CLAUDE.md",
-        "CLAUDE.local.md",
       },
       is_default = true,
     },
@@ -1216,6 +1208,7 @@ You must create or modify a workspace file through a series of prompts over mult
         ---Function to determine if memory should be added to a chat buffer
         ---This requires `enabled` to be true
         ---@param chat CodeCompanion.Chat
+        ---@return boolean
         condition = function(chat)
           return chat.adapter.type ~= "acp"
         end,
