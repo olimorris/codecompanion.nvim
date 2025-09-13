@@ -28,7 +28,10 @@ end
 ---@return nil
 CodeCompanion.inline = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
+  -- Forward any inline options (e.g., no_diff) into the Inline strategy
+  return require("codecompanion.strategies.inline")
+    .new({ buffer_context = context, opts = args.opts })
+    :prompt(args.args)
 end
 
 ---Initiate a prompt from the prompt library
@@ -292,6 +295,7 @@ CodeCompanion.has = function(feature)
     "prompt-library",
     "function-calling",
     "extensions",
+    "autocompletion",
     "acp",
   }
 
