@@ -53,7 +53,7 @@ T["Goose ACP Adapter"]["has correct default configuration"] = function()
     roles = { llm = "assistant", user = "user" },
     opts = { vision = true },
     commands = { default = { "goose", "acp" }, selected = { "goose", "acp" } },
-    defaults = { mcpServers = {}, timeout = 20000 },
+    defaults = { timeout = 20000 },
   }, result)
 end
 
