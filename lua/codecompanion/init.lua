@@ -2,6 +2,7 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
+local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -116,14 +117,16 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? table
----@return nil
+---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages }
+---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
-  local adapter
-  local messages = {}
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  args = args or {}
 
-  if args and args.fargs and #args.fargs > 0 then
+  local adapter
+  local messages = args.messages or {}
+  local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
+
+  if args.fargs and #args.fargs > 0 then
     local prompt = args.fargs[1]:lower()
 
     -- Check if the adapter is available
@@ -147,12 +150,23 @@ CodeCompanion.chat = function(args)
   end
 
   local has_messages = not vim.tbl_isempty(messages)
+  local auto_submit = has_messages
+  if args.auto_submit ~= nil then
+    auto_submit = args.auto_submit
+  end
+
+  -- Add memory to the chat buffer
+  local memory_cb = memory_helpers.add_callbacks(args)
+  if memory_cb then
+    args.callbacks = memory_cb
+  end
 
   return require("codecompanion.strategies.chat").new({
+    auto_submit = auto_submit,
     adapter = adapter,
     buffer_context = context,
+    callbacks = args.callbacks,
     messages = has_messages and messages or nil,
-    auto_submit = has_messages,
   })
 end
 
@@ -293,6 +307,7 @@ CodeCompanion.has = function(feature)
     "function-calling",
     "extensions",
     "acp",
+    "memory",
   }
 
   if type(feature) == "string" then

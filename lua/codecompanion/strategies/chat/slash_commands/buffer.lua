@@ -1,4 +1,4 @@
-local buf = require("codecompanion.utils.buffers")
+local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
@@ -161,7 +161,8 @@ function SlashCommand:output(selected, opts)
     message = "Here is the updated content from a file (including line numbers)"
   end
 
-  local ok, content, id, filename = pcall(buf.format_for_llm, selected, { message = message })
+  local ok, content, id, filename =
+    pcall(chat_helpers.format_buffer_for_llm, selected.bufnr, selected.path, { message = message })
   if not ok then
     return log:warn(content)
   end

@@ -52,6 +52,10 @@ The _help_ slash command allows you to add content from a vim help file (`:h hel
 
 The _image_ slash command allows you to add images into a chat buffer via remote URLs and through your file system. In the config for the slash command, you can specify a group of directories (with `opts.dirs`) that the image picker will always search in, alongside the current working directory. Currently the image picker is only available with _snacks.nvim_ and the `vim.ui.select`.
 
+## /memory
+
+The _memory_ slash command allows you to add [memory](/usage/chat-buffer/memory) groups to the chat buffer.
+
 ## /now
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
