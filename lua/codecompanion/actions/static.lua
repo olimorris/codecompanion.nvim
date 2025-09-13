@@ -111,9 +111,9 @@ return {
                     memory
                       .init({
                         name = item.name,
+                        files = item.files,
                         opts = item.opts,
                         parser = item.parser,
-                        files = item.files,
                       })
                       :make(chat)
                   end,
