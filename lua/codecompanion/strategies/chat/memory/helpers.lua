@@ -1,5 +1,9 @@
 local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
+
+local buf_utils = require("codecompanion.utils.buffers")
+local file_utils = require("codecompanion.utils.files")
+local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
 local M = {}
@@ -92,11 +96,65 @@ function M.add_context(rules, chat)
   for _, item in ipairs(rules) do
     local id = "<memory>" .. item.name .. "</memory>"
     if not chat_helpers.has_context(id, chat.messages) then
-      chat:add_context({
-        content = item.content,
-      }, item.name, id, { tag = "memory" })
+      chat:add_context({ content = item.content }, "memory", id, {
+        path = item.path,
+      })
     end
   end
+end
+
+---Add a file or buffer as context to the chat
+---@param included_files string[]
+---@param chat CodeCompanion.Chat
+---@return nil
+function M.add_files_or_buffers(included_files, chat)
+  vim.iter(included_files):each(function(f)
+    local opts = {}
+
+    local path = vim.fs.normalize(f)
+
+    -- Check if the file exists in the current working directory
+    if file_utils.exists(vim.fs.joinpath(vim.fn.getcwd(), path)) then
+      path = vim.fs.joinpath(vim.fn.getcwd(), path)
+    else
+      -- Otherwise, check the wider filesystem
+      if not file_utils.exists(path) then
+        return log:debug("[Memory] Could not find the file %s", path)
+      end
+    end
+
+    -- Then determine if the file is open as a buffer
+    local bufnr = buf_utils.get_bufnr_from_filepath(path)
+    if bufnr then
+      local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
+      if not ok then
+        return log:debug("[Memory] Could not add buffer %d to chat buffer", bufnr)
+      end
+
+      local buffer_opts = config.memory.opts.chat and config.memory.opts.chat.default_params
+      if buffer_opts then
+        if buffer_opts == "pin" then
+          opts.pinned = true
+        elseif buffer_opts == "watch" then
+          opts.watched = true
+        end
+      end
+
+      chat:add_context({ content = content }, "memory", id, {
+        bufnr = bufnr,
+        path = path,
+        context_opts = opts,
+      })
+    end
+
+    -- Otherwise, add it as file context
+    local ok, content, id, _, _, _ = pcall(chat_helpers.format_file_for_llm, path, opts)
+    if ok then
+      chat:add_context({ content = content }, "memory", id, {
+        path = path,
+      })
+    end
+  end)
 end
 
 return M

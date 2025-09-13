@@ -1,9 +1,12 @@
+local Path = require("plenary.path")
+
 local base64 = require("codecompanion.utils.base64")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 
 local M = {}
 
+local api = vim.api
 local fmt = string.format
 
 ---Format the given role without any separator
@@ -173,8 +176,8 @@ function M.format_buffer_for_llm(bufnr, path, opts)
 
   -- Handle unloaded buffers
   local content
-  if not vim.api.nvim_buf_is_loaded(bufnr) then
-    local file_content = require("plenary.path").new(path):read()
+  if not api.nvim_buf_is_loaded(bufnr) then
+    local file_content = Path.new(path):read()
     if file_content == "" then
       error("Could not read the file: " .. path)
     end
@@ -226,13 +229,7 @@ end
 function M.format_file_for_llm(path, opts)
   opts = opts or {}
 
-  local ok, file_contents = pcall(function()
-    return require("plenary.path").new(path):read()
-  end)
-
-  if not ok then
-    error("Could not read the file: " .. path)
-  end
+  local file_contents = Path.new(path):read()
 
   local ft = vim.filetype.match({ filename = path })
   local relative_path = vim.fn.fnamemodify(path, ":.")

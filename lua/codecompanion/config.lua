@@ -1220,6 +1220,7 @@ You must create or modify a workspace file through a series of prompts over mult
         end,
 
         default_memory = "default", -- The default memory group to use in the chat buffer
+        default_params = "watch", -- watch|pin - when adding a buffer to the chat
       },
       show_defaults = true, -- Show the default memory rules in the picker?
     },

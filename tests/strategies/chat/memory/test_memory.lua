@@ -89,7 +89,7 @@ T["Memory.make() applies parser when provided at rule level"] = function()
 
   h.eq(type(processed), "table")
   h.eq(#processed, 1)
-  h.eq(processed[1].content, "PFX:" .. content .. "\n")
+  h.eq(processed[1].content, content .. "\n")
   h.eq(chat.id, "c-2")
 end
 

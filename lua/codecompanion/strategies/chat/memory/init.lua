@@ -9,6 +9,7 @@ local parsers = require("codecompanion.strategies.chat.memory.parsers")
 ---@field name string The name of the memory rule
 ---@field content string The content of the memory rule
 ---@field filename string The filename of the memory rule
+---@field meta? {included_files: string[]} Additional metadata about the memory rule
 ---@field parser string|nil The parser to use for the memory rule
 ---@field path string The full, normalized file path of the memory rule
 
@@ -133,8 +134,19 @@ end
 ---Memory should be added as context
 ---@param chat CodeCompanion.Chat
 function Memory:add(chat)
+  local included_files = {}
+  for _, rule in ipairs(self.processed) do
+    if rule.meta and rule.meta.included_files then
+      for _, f in ipairs(rule.meta.included_files) do
+        table.insert(included_files, f)
+      end
+    end
+  end
+
   helpers.add_context(self.processed, chat)
-  --TODO: Add included_files as buffers or files
+  if #included_files > 0 then
+    helpers.add_files_or_buffers(included_files, chat)
+  end
 end
 
 ---Make the memory message

@@ -26,8 +26,14 @@ function M.resolve(parser)
 
   parser = config.memory.parsers[parser]
 
+  -- If the config entry is a function that returns a parser table, call it.
   if type(parser) == "function" then
-    return parser()
+    ok, resolved = pcall(parser)
+    if not ok then
+      log:error("[Memory] Parser factory error: %s", resolved)
+      return nil
+    end
+    return resolved
   end
 
   if type(parser) == "string" then
