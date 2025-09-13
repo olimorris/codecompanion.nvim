@@ -154,6 +154,7 @@ return {
           "end_line_number_base_zero",
         },
       },
+      strict = true,
     },
   },
   handlers = {

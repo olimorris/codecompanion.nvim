@@ -120,6 +120,7 @@ return {
           },
         },
       },
+      strict = true,
     },
   },
   handlers = {

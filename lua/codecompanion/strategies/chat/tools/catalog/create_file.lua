@@ -162,6 +162,7 @@ return {
           "content",
         },
       },
+      strict = true,
     },
   },
   handlers = {

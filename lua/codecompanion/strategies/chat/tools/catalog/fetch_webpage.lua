@@ -79,6 +79,7 @@ return {
         },
         required = { "url" },
       },
+      strict = true,
     },
   },
   output = {

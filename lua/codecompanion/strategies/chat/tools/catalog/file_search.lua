@@ -104,6 +104,7 @@ return {
           "query",
         },
       },
+      strict = true,
     },
   },
   handlers = {
