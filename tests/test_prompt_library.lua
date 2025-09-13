@@ -186,6 +186,13 @@ end
 T["Prompt Library"]["can add memory"] = function()
   local mem_items = child.lua([[
       codecompanion.setup({
+        memory = {
+          default = {
+            files = {
+              "tests/stubs/file.txt"
+            }
+          }
+        },
         prompt_library = {
           ["Test Prompt"] = {
             strategy = "chat",
@@ -210,8 +217,8 @@ T["Prompt Library"]["can add memory"] = function()
       return chat.context_items
     ]])
 
-  h.eq(2, #mem_items)
-  h.eq("<memory>CLAUDE.md</memory>", mem_items[1].id)
+  h.eq(1, #mem_items)
+  h.eq("<memory>tests/stubs/file.txt</memory>", mem_items[1].id)
 end
 
 -- New: ensure ignore_system_prompt prevents adding the configured default system prompt
