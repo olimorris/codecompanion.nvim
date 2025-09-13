@@ -377,7 +377,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { i = "<C-_>" },
           index = 1,
           callback = "keymaps.completion",
-          description = "Completion Menu",
+          description = "Completion menu",
         },
         send = {
           modes = {
@@ -386,13 +386,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
           index = 2,
           callback = "keymaps.send",
-          description = "Send",
+          description = "Send message",
         },
         regenerate = {
           modes = { n = "gr" },
           index = 3,
           callback = "keymaps.regenerate",
-          description = "Regenerate the last response",
+          description = "Regenerate last response",
         },
         close = {
           modes = {
@@ -401,31 +401,31 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
           index = 4,
           callback = "keymaps.close",
-          description = "Close Chat",
+          description = "Close chat",
         },
         stop = {
           modes = { n = "q" },
           index = 5,
           callback = "keymaps.stop",
-          description = "Stop Request",
+          description = "Stop request",
         },
         clear = {
           modes = { n = "gx" },
           index = 6,
           callback = "keymaps.clear",
-          description = "Clear Chat",
+          description = "Clear chat",
         },
         codeblock = {
           modes = { n = "gc" },
           index = 7,
           callback = "keymaps.codeblock",
-          description = "Insert Codeblock",
+          description = "Insert codeblock",
         },
         yank_code = {
           modes = { n = "gy" },
           index = 8,
           callback = "keymaps.yank_code",
-          description = "Yank Code",
+          description = "Yank code",
         },
         pin = {
           modes = { n = "gp" },
@@ -437,31 +437,31 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gw" },
           index = 10,
           callback = "keymaps.toggle_watch",
-          description = "Watch Buffer",
+          description = "Watch buffer",
         },
         next_chat = {
           modes = { n = "}" },
           index = 11,
           callback = "keymaps.next_chat",
-          description = "Next Chat",
+          description = "Next chat",
         },
         previous_chat = {
           modes = { n = "{" },
           index = 12,
           callback = "keymaps.previous_chat",
-          description = "Previous Chat",
+          description = "Previous chat",
         },
         next_header = {
           modes = { n = "]]" },
           index = 13,
           callback = "keymaps.next_header",
-          description = "Next Header",
+          description = "Next header",
         },
         previous_header = {
           modes = { n = "[[" },
           index = 14,
           callback = "keymaps.previous_header",
-          description = "Previous Header",
+          description = "Previous header",
         },
         change_adapter = {
           modes = { n = "ga" },
@@ -485,7 +485,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gs" },
           index = 17,
           callback = "keymaps.toggle_system_prompt",
-          description = "Toggle the system prompt",
+          description = "Toggle system prompt",
         },
         yolo_mode = {
           modes = { n = "gty" },
@@ -497,13 +497,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gR" },
           index = 19,
           callback = "keymaps.goto_file_under_cursor",
-          description = "Open the file under cursor in a new tab.",
+          description = "Open file under cursor",
         },
         copilot_stats = {
           modes = { n = "gS" },
           index = 20,
           callback = "keymaps.copilot_stats",
-          description = "Show Copilot usage statistics",
+          description = "Show Copilot statistics",
         },
         super_diff = {
           modes = { n = "gD" },
