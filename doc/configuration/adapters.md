@@ -363,9 +363,7 @@ require("codecompanion").setup({
     acp = {
       goose = function()
         return require("codecompanion.adapters").extend("goose", {
-          -- Optional: Add MCP servers configuration if needed
           defaults = {
-            mcpServers = {},
             timeout = 20000, -- 20 seconds
           },
         })
