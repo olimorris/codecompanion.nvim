@@ -39,7 +39,7 @@ function SlashCommand:output(selected)
       name = selected.name,
       opts = selected.opts,
       parser = selected.parser,
-      rules = selected.rules,
+      files = selected.files,
     })
     :make(self.Chat)
 end

@@ -12,7 +12,7 @@ local T = new_set({
   },
 })
 
-T["Memory.make() with string rule (no parser)"] = function()
+T["Memory.make() with string file (no parser)"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
   local content = "plain memory content"
   child.fn.writefile({ content }, tmp)
@@ -32,7 +32,7 @@ T["Memory.make() with string rule (no parser)"] = function()
   child.lua(string.format(
     [[
     local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({ name = "t1", rules = { %q } }):make({ id = "c-1" })
+    Memory.init({ name = "t1", files = { %q } }):make({ id = "c-1" })
   ]],
     tmp
   ))
@@ -51,7 +51,7 @@ T["Memory.make() with string rule (no parser)"] = function()
   h.eq(chat.id, "c-1")
 end
 
-T["Memory.make() applies parser when provided at rule level"] = function()
+T["Memory.make() applies parser when provided at file level"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
   local content = "to be parsed"
   child.fn.writefile({ content }, tmp)
@@ -78,7 +78,7 @@ T["Memory.make() applies parser when provided at rule level"] = function()
     local Memory = require("codecompanion.strategies.chat.memory.init")
     Memory.init({
       name = "t2",
-      rules = { { path = %q, parser = "prefix" } },
+      files = { { path = %q, parser = "prefix" } },
     }):make({ id = "c-2" })
   ]],
     tmp
@@ -93,7 +93,7 @@ T["Memory.make() applies parser when provided at rule level"] = function()
   h.eq(chat.id, "c-2")
 end
 
-T["Memory.make() with directory rule (no parser)"] = function()
+T["Memory.make() with directory file (no parser)"] = function()
   local tmpdir = child.lua("return vim.fn.tempname()")
   -- create directory
   child.fn.mkdir(tmpdir)
@@ -115,7 +115,7 @@ T["Memory.make() with directory rule (no parser)"] = function()
   child.lua(string.format(
     [[
     local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({ name = "t3", rules = { %q } }):make({ id = "c-3" })
+    Memory.init({ name = "t3", files = { %q } }):make({ id = "c-3" })
   ]],
     tmpdir
   ))
@@ -155,7 +155,7 @@ T["Memory.make() with glob pattern"] = function()
   child.lua(string.format(
     [[
     local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({ name = "t5", rules = { %q } }):make({ id = "c-5" })
+    Memory.init({ name = "t5", files = { %q } }):make({ id = "c-5" })
   ]],
     pattern
   ))
@@ -191,7 +191,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
     config.memory = vim.tbl_deep_extend("force", config.memory or {}, {
       default = {
         description = "integration default",
-        rules = { %q },
+        files = { %q },
         is_default = true,
       },
       parsers = {},

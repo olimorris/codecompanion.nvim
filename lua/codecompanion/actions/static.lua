@@ -113,7 +113,7 @@ return {
                         name = item.name,
                         opts = item.opts,
                         parser = item.parser,
-                        rules = item.rules,
+                        files = item.files,
                       })
                       :make(chat)
                   end,

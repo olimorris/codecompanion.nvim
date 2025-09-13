@@ -2,6 +2,7 @@ local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
+local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
 
 ---A user may specify an adapter for the prompt
 ---@param strategy CodeCompanion.Strategies
@@ -115,10 +116,18 @@ function Strategies:chat()
     if type(opts.pre_hook) == "function" then
       opts.pre_hook()
     end
+
+    local callbacks = opts and opts.callbacks or {}
+    local memory_cb = memory_helpers.add_callbacks(callbacks, self.selected.opts.default_memory)
+    if memory_cb then
+      callbacks = memory_cb
+    end
+
     log:info("[Strategy] Chat Initiated")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
       buffer_context = self.buffer_context,
+      callbacks = callbacks,
       messages = messages,
       from_prompt_library = self.selected.description and true or false,
       auto_submit = (opts and opts.auto_submit) or false,

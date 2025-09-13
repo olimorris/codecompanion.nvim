@@ -21,22 +21,22 @@ local function expand_memory_group(picker_items, group_path, group_cfg, parent_c
     description = group_cfg.description or (parent_cfg and parent_cfg.description or nil),
   }
 
-  local rules = group_cfg.rules or {}
+  local files = group_cfg.files or {}
 
-  -- If this group holds a list of rules, add it as a selectable picker item
-  if util.is_array(rules) then
+  -- If this group holds a list of files, add it as a selectable picker item
+  if util.is_array(files) then
     table.insert(picker_items, {
       name = group_path,
       description = inherited.description,
       opts = inherited.opts or {},
       parser = inherited.parser,
-      rules = rules,
+      files = files,
     })
     return
   end
 
   -- Otherwise, recurse into subgroups
-  for subgroup_name, subgroup_config in pairs(rules) do
+  for subgroup_name, subgroup_config in pairs(files) do
     if type(subgroup_config) == "table" then
       local child_path = group_path .. "/" .. subgroup_name
       expand_memory_group(picker_items, child_path, subgroup_config, inherited)
@@ -63,15 +63,15 @@ function M.list()
       end
     end
     if not vim.tbl_contains(exclusions, name) and type(cfg) == "table" then
-      local rules = cfg.rules or {}
-      if util.is_array(rules) then
+      local files = cfg.files or {}
+      if util.is_array(files) then
         -- Memory is a singular group
         table.insert(picker_items, {
           name = name,
           description = cfg.description,
           opts = cfg.opts,
           parser = cfg.parser,
-          rules = rules,
+          files = files,
         })
       else
         -- If the memory contains multiple groups
@@ -88,16 +88,55 @@ function M.list()
   return picker_items
 end
 
----Add context to the chat based on the memory rules
----@param rules CodeCompanion.Chat.Memory.ProcessedRule
+---Add callbacks to a chat creation request
+---@param args table
+---@param memory_name? string The name of the memory instance to use (if any)
+---@return table|nil
+function M.add_callbacks(args, memory_name)
+  local memory = config.memory and config.memory.opts and config.memory.opts.chat
+  if not memory_name and not (memory and memory.enabled and memory.default_memory) then
+    return args.callbacks
+  end
+
+  local defaults = memory_name or memory.default_memory
+  local memories = {}
+  if type(defaults) == "string" then
+    memories = { defaults }
+  elseif type(defaults) == "table" then
+    memories = vim.deepcopy(defaults)
+  else
+    return args.callbacks
+  end
+
+  for _, name in ipairs(memories) do
+    local current = config.memory[name]
+    if current then
+      args.callbacks = util.callbacks_add(args.callbacks, "on_creation", function(chat)
+        require("codecompanion.strategies.chat.memory").add_to_chat({
+          name = name,
+          opts = current.opts,
+          parser = current.parser,
+          files = current.files,
+        }, chat)
+      end)
+    else
+      log:warn("Could not find `%s` memory", name)
+    end
+  end
+
+  return args.callbacks
+end
+
+---Add context to the chat based on the memory files
+---@param files CodeCompanion.Chat.Memory.ProcessedFile
 ---@param chat CodeCompanion.Chat
 ---@return nil
-function M.add_context(rules, chat)
-  for _, item in ipairs(rules) do
-    local id = "<memory>" .. item.name .. "</memory>"
+function M.add_context(files, chat)
+  for _, file in ipairs(files) do
+    local id = "<memory>" .. file.name .. "</memory>"
     if not chat_helpers.has_context(id, chat.messages) then
-      chat:add_context({ content = item.content }, "memory", id, {
-        path = item.path,
+      chat:add_context({ content = file.content }, "memory", id, {
+        path = file.path,
       })
     end
   end

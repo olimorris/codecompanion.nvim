@@ -1163,8 +1163,8 @@ You must create or modify a workspace file through a series of prompts over mult
   -- MEMORY -------------------------------------------------------------------
   memory = {
     default = {
-      description = "Collection of common rules for all projects",
-      rules = {
+      description = "Collection of common files for all projects",
+      files = {
         ".rules",
         ".goosehints",
         ".cursorrules",
@@ -1178,17 +1178,17 @@ You must create or modify a workspace file through a series of prompts over mult
       is_default = true,
     },
     CodeCompanion = {
-      description = "CodeCompanion plugin memory rules",
+      description = "CodeCompanion plugin memory files",
       ---@type fun(): boolean
       enabled = function()
         -- Don't show this to users who aren't working on CodeCompanion itself
         return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
       end,
-      rules = {
+      files = {
         parser = "claude",
         ["acp"] = {
           description = "The ACP implementation",
-          rules = {
+          files = {
             ".codecompanion/acp/acp.md",
           },
         },
@@ -1196,9 +1196,9 @@ You must create or modify a workspace file through a series of prompts over mult
       is_default = true,
     },
     claude = {
-      description = "Memory rules for Claude Code users",
+      description = "Memory files for Claude Code users",
       parser = "claude",
-      rules = {
+      files = {
         "~/.claude/CLAUDE.md",
         "CLAUDE.md",
         "CLAUDE.local.md",
@@ -1207,6 +1207,7 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
+      none = "none", -- No parsing, just raw text
     },
     opts = {
       chat = {
@@ -1222,7 +1223,7 @@ You must create or modify a workspace file through a series of prompts over mult
         default_memory = "default", -- The memory groups to load
         default_params = "watch", -- watch|pin - when adding a buffer to the chat
       },
-      show_defaults = true, -- Show the default memory rules in the action palette?
+      show_defaults = true, -- Show the default memory files in the action palette?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------

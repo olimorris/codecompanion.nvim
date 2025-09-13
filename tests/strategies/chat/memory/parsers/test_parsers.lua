@@ -79,23 +79,23 @@ end
 
 T["parsers.parser()"] = new_set()
 
-T["parsers.parser()"]["uses rule-level parser before group-level, otherwise returns content"] = function()
+T["parsers.parser()"]["uses file-level parser before group-level, otherwise returns content"] = function()
   child.lua([[
     package.loaded['codecompanion.config'] = {
       memory = {
         parsers = {
-          rule_parser = { content = function(p) return "RULE:" .. (p.content or "") end },
+          file_parser = { content = function(p) return "FILE:" .. (p.content or "") end },
           group_parser = { content = function(p) return "GROUP:" .. (p.content or "") end }
         }
       }
     }
   ]])
 
-  local rule_first = child.lua([[
+  local file_first = child.lua([[
     local parsers = require("codecompanion.strategies.chat.memory.parsers")
-    return parsers.parse({ parser = "rule_parser", content = "1\n" }, "group_parser")
+    return parsers.parse({ parser = "file_parser", content = "1\n" }, "group_parser")
   ]])
-  h.eq(rule_first.content, "1\n")
+  h.eq(file_first.content, "1\n")
 
   local group_used = child.lua([[
     local parsers = require("codecompanion.strategies.chat.memory.parsers")

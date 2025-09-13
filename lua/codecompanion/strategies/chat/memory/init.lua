@@ -5,33 +5,33 @@ local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.memory.helpers")
 local parsers = require("codecompanion.strategies.chat.memory.parsers")
 
----@class CodeCompanion.Chat.Memory.ProcessedRule
----@field name string The name of the memory rule
----@field content string The content of the memory rule
----@field filename string The filename of the memory rule
----@field meta? {included_files: string[]} Additional metadata about the memory rule
----@field parser string|nil The parser to use for the memory rule
----@field path string The full, normalized file path of the memory rule
+---@class CodeCompanion.Chat.Memory.ProcessedFile
+---@field name string The name of the memory file
+---@field content string The content of the memory file
+---@field filename string The filename of the memory file
+---@field meta? {included_files: string[]} Additional metadata about the memory file
+---@field parser string|nil The parser to use for the memory file
+---@field path string The full, normalized file path of the memory file
 
 ---@class CodeCompanion.Chat.Memory
 ---@field name string The name of the memory group
 ---@field opts table Additional options for the memory instance
 ---@field parser string|table|function|nil The parser to use for the memory group
----@field processed CodeCompanion.Chat.Memory.ProcessedRule[] The processed rules
----@field rules string[]|{ path: string, parser: string} The memory rules as an array of strings
+---@field processed CodeCompanion.Chat.Memory.ProcessedFile[] The processed files
+---@field files string[]|{ path: string, parser: string} The memory files as an array of strings
 local Memory = {}
 
 ---@class CodeCompanion.Chat.MemoryArgs
 ---@field name string The name of the memory instance
 ---@field opts table Additional options for the memory instance
 ---@field parser string|function|nil The parser to use for the memory group
----@field rules table The memory rules as an array of strings
+---@field files table The memory files as an array of strings
 function Memory.init(args)
   local self = setmetatable({
     name = args.name,
     opts = args.opts,
     parser = args.parser,
-    rules = args.rules,
+    files = args.files,
 
     -- Internal use
     processed = {},
@@ -41,10 +41,10 @@ function Memory.init(args)
   return self
 end
 
----Extract the memory from the rules file
+---Extract the memory from the files file
 ---@return CodeCompanion.Chat.Memory
 function Memory:extract()
-  local function add_file(fullpath, rule_parser)
+  local function add_file(fullpath, file_parser)
     local normalized_file = vim.fs.normalize(fullpath)
     local p = Path:new(normalized_file)
     if p:exists() and not p:is_dir() then
@@ -57,13 +57,13 @@ function Memory:extract()
           content = content,
           path = normalized_file,
           filename = vim.fn.fnamemodify(normalized_file, ":t"),
-          parser = rule_parser,
+          parser = file_parser,
         })
       end
     end
   end
 
-  local function walk_dir(dir, rule_parser)
+  local function walk_dir(dir, file_parser)
     local entries = Scandir.scan_dir(dir, {
       add_dirs = false,
       hidden = true,
@@ -71,18 +71,18 @@ function Memory:extract()
       depth = math.huge,
     })
     for _, entry in ipairs(entries) do
-      add_file(entry, rule_parser)
+      add_file(entry, file_parser)
     end
   end
 
-  for _, rule in ipairs(self.rules) do
-    local path = rule
-    local rule_parser = nil
+  for _, file in ipairs(self.files) do
+    local path = file
+    local file_parser = nil
 
-    if type(rule) == "table" then
-      assert(rule.path, "Rule table must contain a 'path' key")
-      path = rule.path
-      rule_parser = rule.parser
+    if type(file) == "table" then
+      assert(file.path, "file table must contain a 'path' key")
+      path = file.path
+      file_parser = file.parser
     end
 
     -- Expand glob patterns (e.g. "dir/**", "src/*.md")
@@ -93,9 +93,9 @@ function Memory:extract()
         local filepath = Path:new(p)
         if filepath:exists() then
           if filepath:is_dir() then
-            walk_dir(p, rule_parser)
+            walk_dir(p, file_parser)
           else
-            add_file(p, rule_parser)
+            add_file(p, file_parser)
           end
         end
       end
@@ -107,9 +107,9 @@ function Memory:extract()
 
     if filepath:exists() then
       if filepath:is_dir() then
-        walk_dir(normalized, rule_parser)
+        walk_dir(normalized, file_parser)
       else
-        add_file(normalized, rule_parser)
+        add_file(normalized, file_parser)
       end
     end
     ::continue::
@@ -121,11 +121,11 @@ end
 ---Parse the memory contents
 ---@return CodeCompanion.Chat.Memory
 function Memory:parse()
-  vim.iter(self.processed):each(function(rule)
-    local parsed = parsers.parse(rule, self.parser)
+  vim.iter(self.processed):each(function(file)
+    local parsed = parsers.parse(file, self.parser)
     if parsed then
-      rule.content = parsed.content
-      rule.meta = parsed.meta
+      file.content = parsed.content
+      file.meta = parsed.meta
     end
   end)
 
@@ -136,9 +136,9 @@ end
 ---@param chat CodeCompanion.Chat
 function Memory:add(chat)
   local included_files = {}
-  for _, rule in ipairs(self.processed) do
-    if rule.meta and rule.meta.included_files then
-      for _, f in ipairs(rule.meta.included_files) do
+  for _, file in ipairs(self.processed) do
+    if file.meta and file.meta.included_files then
+      for _, f in ipairs(file.meta.included_files) do
         table.insert(included_files, f)
       end
     end

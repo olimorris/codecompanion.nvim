@@ -2,6 +2,7 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
+local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -11,23 +12,6 @@ local CodeCompanion = {
   ---@type table Access to extension exports via extensions.foo
   extensions = _extensions.manager,
 }
-
----Add a callback to a set of callbacks
----@param callbacks table|nil The existing callbacks
----@param event string The event to add the callback to
----@param fn function The callback function
-local function callbacks_add(callbacks, event, fn)
-  callbacks = callbacks or {}
-  local existing = callbacks[event]
-  if not existing then
-    callbacks[event] = fn
-  elseif type(existing) == "function" then
-    callbacks[event] = { existing, fn }
-  else
-    table.insert(existing, fn)
-  end
-  return callbacks
-end
 
 ---Register an extension with setup and exports
 ---@param name string The name of the extension
@@ -132,44 +116,6 @@ CodeCompanion.add = function(args)
   chat.ui:open()
 end
 
----Add default memory callbacks to a chat creation request
----@param args table
----@return table|nil
-local function add_memory_callbacks(args)
-  local memory = config.memory and config.memory.opts and config.memory.opts.chat or nil
-  if not (memory and memory.enabled and memory.default_memory) then
-    return args.callbacks
-  end
-
-  local defaults = memory.default_memory
-  local memories = {}
-  if type(defaults) == "string" then
-    memories = { defaults }
-  elseif type(defaults) == "table" then
-    memories = vim.deepcopy(defaults)
-  else
-    return args.callbacks
-  end
-
-  for _, name in ipairs(memories) do
-    local current = config.memory[name]
-    if current then
-      args.callbacks = callbacks_add(args.callbacks, "on_creation", function(chat)
-        require("codecompanion.strategies.chat.memory").add_to_chat({
-          name = name,
-          opts = current.opts,
-          parser = current.parser,
-          rules = current.rules,
-        }, chat)
-      end)
-    else
-      log:warn("Could not find `%s` memory", name)
-    end
-  end
-
-  return args.callbacks
-end
-
 ---Open a chat buffer and converse with an LLM
 ---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages }
 ---@return CodeCompanion.Chat|nil
@@ -210,7 +156,7 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add memory to the chat buffer
-  local memory_cb = add_memory_callbacks(args)
+  local memory_cb = memory_helpers.add_callbacks(args)
   if memory_cb then
     args.callbacks = memory_cb
   end

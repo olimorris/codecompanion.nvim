@@ -9,10 +9,10 @@
 ===============================================================================
 --]]
 
----@param rule CodeCompanion.Chat.Memory.ProcessedRule
+---@param file CodeCompanion.Chat.Memory.ProcessedFile
 ---@return CodeCompanion.Chat.Memory.Parser
-return function(rule)
-  local content = rule.content or ""
+return function(file)
+  local content = file.content or ""
   local included_files = {}
 
   if content == "" then

@@ -3,8 +3,8 @@ local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.Memory.Parser
----@field content string The content of the memory rule
----@field meta? { included_files: string[] } The filename of the memory rule
+---@field content string The content of the memory file
+---@field meta? { included_files: string[] } The filename of the memory file
 
 local M = {}
 
@@ -68,20 +68,20 @@ function M.resolve(parser)
 end
 
 ---Parse the content through the parser and return it
----@param rule CodeCompanion.Chat.Memory.ProcessedRule The processed rule
+---@param file CodeCompanion.Chat.Memory.ProcessedFile The processed file
 ---@param group_parser? string The parser from the group level
 ---@return CodeCompanion.Chat.Memory.Parser The parsed content, or a parser object
-function M.parse(rule, group_parser)
+function M.parse(file, group_parser)
   local parser
 
-  -- If the parser exists at a rule level, that takes precedence
-  if rule.parser then
-    parser = M.resolve(rule.parser)
+  -- If the parser exists at a file level, that takes precedence
+  if file.parser then
+    parser = M.resolve(file.parser)
     if parser then
-      local ok, parsed = pcall(parser, rule)
+      local ok, parsed = pcall(parser, file)
       if not ok then
         log:error("[Memory] Parser error: %s", parsed)
-        return { content = rule.content }
+        return { content = file.content }
       end
 
       assert(parsed.content, "Parser must return content")
@@ -93,10 +93,10 @@ function M.parse(rule, group_parser)
   if group_parser then
     parser = M.resolve(group_parser)
     if parser then
-      local ok, parsed = pcall(parser, rule)
+      local ok, parsed = pcall(parser, file)
       if not ok then
         log:error("[Memory] Parser error: %s", parsed)
-        return { content = rule.content }
+        return { content = file.content }
       end
 
       assert(parsed.content, "Parser must return content")
@@ -105,7 +105,7 @@ function M.parse(rule, group_parser)
   end
 
   -- Or return unchanged content
-  return { content = rule.content }
+  return { content = file.content }
 end
 
 return M
