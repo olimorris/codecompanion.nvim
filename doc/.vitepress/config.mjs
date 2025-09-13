@@ -113,6 +113,7 @@ export default withMermaid(
           items: [
             { text: "Creating Adapters", link: "/extending/adapters" },
             { text: "Creating Extensions", link: "/extending/extensions" },
+            { text: "Creating Memory Parsers", link: "/extending/parsers" },
             { text: "Creating Prompts", link: "/extending/prompts" },
             { text: "Creating Tools", link: "/extending/tools" },
             { text: "Creating Workflows", link: "/extending/workflows" },
