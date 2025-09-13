@@ -24,6 +24,7 @@ local Memory = {}
 ---@class CodeCompanion.Chat.MemoryArgs
 ---@field name string The name of the memory instance
 ---@field opts table Additional options for the memory instance
+---@field parser string|function|nil The parser to use for the memory group
 ---@field rules table The memory rules as an array of strings
 function Memory.init(args)
   local self = setmetatable({
@@ -175,6 +176,15 @@ function Memory:make(chat)
   end
 
   return self:extract():parse():add(chat)
+end
+
+---Add memory to the chat based on the provided options (external API)
+---@param opts CodeCompanion.Chat.MemoryArgs The memory options
+---@param chat CodeCompanion.Chat The chat instance
+---@return nil
+function Memory.add_to_chat(opts, chat)
+  local memory = Memory.init(opts)
+  return memory:make(chat)
 end
 
 return Memory

@@ -132,6 +132,44 @@ CodeCompanion.add = function(args)
   chat.ui:open()
 end
 
+---Add default memory callbacks to a chat creation request
+---@param args table
+---@return table|nil
+local function add_memory_callbacks(args)
+  local memory = config.memory and config.memory.opts and config.memory.opts.chat or nil
+  if not (memory and memory.enabled and memory.default_memory) then
+    return args.callbacks
+  end
+
+  local defaults = memory.default_memory
+  local memories = {}
+  if type(defaults) == "string" then
+    memories = { defaults }
+  elseif type(defaults) == "table" then
+    memories = vim.deepcopy(defaults)
+  else
+    return args.callbacks
+  end
+
+  for _, name in ipairs(memories) do
+    local current = config.memory[name]
+    if current then
+      args.callbacks = callbacks_add(args.callbacks, "on_creation", function(chat)
+        require("codecompanion.strategies.chat.memory").add_to_chat({
+          name = name,
+          opts = current.opts,
+          parser = current.parser,
+          rules = current.rules,
+        }, chat)
+      end)
+    else
+      log:warn("Could not find `%s` memory", name)
+    end
+  end
+
+  return args.callbacks
+end
+
 ---Open a chat buffer and converse with an LLM
 ---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages }
 ---@return CodeCompanion.Chat|nil
@@ -172,25 +210,9 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add memory to the chat buffer
-  if config.memory.opts and config.memory.opts.chat.enabled and config.memory.opts.chat.default_memory then
-    local selected = config.memory.opts.chat.default_memory
-    local memory = config.memory[selected]
-
-    if memory then
-      -- Avoid overwriting user callbacks; append ours
-      local function add_memory(chat)
-        require("codecompanion.strategies.chat.memory")
-          .init({
-            name = selected,
-            opts = memory.opts,
-            parser = memory.parser,
-            rules = memory.rules,
-          })
-          :make(chat)
-      end
-
-      args.callbacks = callbacks_add(args.callbacks, "on_creation", add_memory)
-    end
+  local memory_cb = add_memory_callbacks(args)
+  if memory_cb then
+    args.callbacks = memory_cb
   end
 
   return require("codecompanion.strategies.chat").new({
