@@ -93,7 +93,7 @@ end
 ---@param tool_call table
 ---@return string|nil
 function M.summarize_tool_content(tool_call)
-  local contents = tool_call and tool_call.content
+  local contents = tool_call.content
   if type(contents) ~= "table" then
     return nil
   end
