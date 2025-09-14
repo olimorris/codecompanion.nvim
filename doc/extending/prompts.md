@@ -328,7 +328,7 @@ As outlined in the [classification](/usage/inline-assistant.html#classification)
 
 In this example, the LLM's response will be placed in a new buffer.
 
-### Ignoring the default system prompt
+### Ignoring the Default System Prompt
 
 It may also be useful to create custom prompts that do not send the default system prompt with the request:
 
@@ -343,7 +343,7 @@ It may also be useful to create custom prompts that do not send the default syst
 }
 ```
 
-### Setting a custom intro message
+### Setting a Custom Intro Message
 
 To customize the chat buffer UI, you can set a custom intro message:
 
@@ -404,6 +404,24 @@ It can be useful to pre-load a chat buffer with context from _files_, _symbols_ 
       },
     },
   },
+},
+```
+
+### Prompts with Memory
+
+You can specify a default memory group to load with a prompt:
+
+```lua
+["Test Context"] = {
+  strategy = "chat",
+  description = "Add some context",
+  opts = {
+    -- Some options for brevity
+    default_memory = "my_custom_memory_group",
+  },
+  prompts = {
+    -- Removed for brevity
+  }
 },
 ```
 

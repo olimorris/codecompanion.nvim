@@ -5089,6 +5089,25 @@ This can now accomplished, as per the example below:
 <
 
 
+PROMPTS WITH MEMORY
+
+You can specify a default memory group to load with a prompt:
+
+>lua
+    ["Test Context"] = {
+      strategy = "chat",
+      description = "Add some context",
+      opts = {
+        -- Some options for brevity
+        default_memory = "my_custom_memory_group",
+      },
+      prompts = {
+        -- Removed for brevity
+      }
+    },
+<
+
+
 CONCLUSION ~
 
 Hopefully this serves as a useful introduction on how you can expand
