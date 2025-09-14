@@ -114,7 +114,9 @@ Agent → Client: tool execution results
 
 ### Permission Requests
 
-When agents need to execute potentially sensitive operations, they request permission:
+When agents need to execute potentially sensitive operations, they request permission. This can come in two forms:
+
+#### 1. Tool calls with permission
 
 ```json
 {
@@ -131,6 +133,71 @@ When agents need to execute potentially sensitive operations, they request permi
       "content": [{"type": "diff", "path": "config.lua", ...}]
     }
   }
+}
+```
+
+#### 2. Tool calls followed by permission
+
+> Note that the two calls below are linked by the `toolCallId`:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+        "sessionId": "01992f51-373e-772d-9632-bb7d38a8d47b",
+        "update": {
+            "toolCallId": "toolu_01FzKhxc4Mo5abCyAipUdLo3",
+            "sessionUpdate": "tool_call",
+            "status": "pending",
+            "title": "Edit `/Some/Path/Neovim/codecompanion.nvim/test.txt`",
+            "kind": "edit",
+            "content": [
+                {
+                    "type": "diff",
+                    "path": "/Some/Path/Code/Neovim/codecompanion.nvim/test.txt",
+                    "oldText": "Hello World",
+                    "newText": "Hello World\nHave a wonderful day! 🌟"
+                }
+            ],
+            "locations": [
+                {
+                    "path": "/Some/Path/Code/Neovim/codecompanion.nvim/test.txt"
+                }
+            ]
+        }
+    }
+}
+```
+
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "session/request_permission",
+    "params": {
+        "options": [
+            {
+                "kind": "allow_always",
+                "name": "Always Allow",
+                "optionId": "allow_always"
+            },
+            {
+                "kind": "allow_once",
+                "name": "Allow",
+                "optionId": "allow"
+            },
+            {
+                "kind": "reject_once",
+                "name": "Reject",
+                "optionId": "reject"
+            }
+        ],
+        "sessionId": "01992f51-373e-772d-9632-bb7d38a8d47b",
+        "toolCall": {
+            "toolCallId": "toolu_01FzKhxc4Mo5abCyAipUdLo3"
+        }
+    }
 }
 ```
 
@@ -188,7 +255,9 @@ ACP agents can interact with the file system through standardized methods:
 - `fs/read_text_file` - Read file contents
 - `fs/write_text_file` - Write file contents
 
-All file operations require user permission and show diffs when applicable.
+All file operations require user permission and show diffs when applicable. The file containing this logic is:
+
+@./lua/codecompanion/strategies/chat/acp/fs.lua
 
 ## Error Handling
 
@@ -198,22 +267,3 @@ Robust error handling throughout the ACP stack:
 - Protocol version mismatches
 - Tool execution failures
 - Graceful degradation when agents become unavailable
-
-## Testing
-
-Comprehensive test coverage in `tests/acp/` and `tests/strategies/chat/acp/`:
-- Unit tests for core ACP functionality
-- Integration tests for chat buffer interaction
-- Mock agents for testing without external dependencies
-- Permission system testing
-
-## Extending ACP Support
-
-To add support for new ACP agents:
-
-1. Create adapter in `lua/codecompanion/adapters/acp/your_agent.lua`
-2. Implement required handlers and protocol methods
-3. Add configuration to main config
-4. Add tests for new adapter
-
-The modular architecture makes it straightforward to integrate new ACP-compatible agents while maintaining consistent behavior and user experience.
