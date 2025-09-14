@@ -1,5 +1,13 @@
 # Changelog
 
+## [17.22.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.22.0...v17.22.1) (2025-09-14)
+
+
+### Bug Fixes
+
+* **chat:** claude code diff and fs/read_text_file fixes ([#2126](https://github.com/olimorris/codecompanion.nvim/issues/2126)) ([b76621b](https://github.com/olimorris/codecompanion.nvim/commit/b76621b1ced981f0ea358b9515e93bf86bb5acb5))
+* **chat:** safely set undolevels ([#2123](https://github.com/olimorris/codecompanion.nvim/issues/2123)) ([5807e04](https://github.com/olimorris/codecompanion.nvim/commit/5807e0457111f0de267fc9a6543b41fae0f5c2b1))
+
 ## [17.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.21.0...v17.22.0) (2025-09-13)
 
 
