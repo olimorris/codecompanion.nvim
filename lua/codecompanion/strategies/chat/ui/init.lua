@@ -266,9 +266,11 @@ end
 ---Render the settings and any messages in the chat buffer
 ---@param context table
 ---@param messages table
----@param opts table
+---@param opts {force_header?: boolean, stop_context_insertion?: boolean}
 ---@return self
 function UI:render(context, messages, opts)
+  opts = vim.tbl_extend("keep", opts or {}, { force_header = false, stop_context_insertion = false })
+
   local lines = {}
 
   local function spacer()
@@ -332,7 +334,10 @@ function UI:render(context, messages, opts)
     spacer()
   end
 
-  if vim.tbl_isempty(messages) or not helpers.has_user_messages(messages) then
+  -- NOTE: Typically, we wouldn't want to render a header if there are existing
+  -- messages. However, provide an option to force the header to be rendered
+  -- for scenarios where there is no user prompt
+  if opts.force_header or (vim.tbl_isempty(messages) or not helpers.has_user_messages(messages)) then
     log:trace("Setting the header for the chat buffer")
     self:set_header(lines, self.roles.user)
     spacer()

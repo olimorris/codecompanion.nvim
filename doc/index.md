@@ -23,6 +23,7 @@ CodeCompanion is a productivity tool which streamlines how you develop with LLMs
 - :heart_hands: User contributed and supported [adapters](/configuration/adapters#community-adapters)
 - :rocket: [Inline transformations](/usage/inline-assistant.html), code creation and refactoring
 - :robot: [Variables](/usage/chat-buffer/variables), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/tools) and [Workflows](/usage/workflows) to improve LLM output
+- :brain: Support for [memory](/usage/chat-buffer/memory) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 - :crystal_ball: Native [Super Diff](/usage/chat-buffer/index#super-diff) for tracking agent edits
 - :sparkles: Built-in [prompt library](/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own [custom prompts](extending/prompts), Variables and Slash Commands

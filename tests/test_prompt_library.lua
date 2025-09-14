@@ -139,4 +139,120 @@ T["Prompt Library"]["can add context"] = function()
   h.eq("<file>lua/codecompanion/http.lua</file>", items[2].id)
 end
 
+T["Prompt Library"]["can add context"] = function()
+  local items = child.lua([[
+      codecompanion.setup({
+        prompt_library = {
+          ["Test context"] = {
+            strategy = "chat",
+            description = "Add some references",
+            opts = {
+              index = 1,
+              is_default = true,
+              is_slash_cmd = false,
+              short_name = "test_context",
+              auto_submit = false,
+            },
+            context = {
+              {
+                type = "file",
+                path = {
+                  "lua/codecompanion/health.lua",
+                  "lua/codecompanion/http.lua",
+                },
+              },
+            },
+            prompts = {
+              {
+                role = "foo",
+                content = "I need some references",
+              },
+            },
+          },
+        },
+      })
+
+      codecompanion.prompt("test_context")
+      local chat = codecompanion.last_chat()
+      return chat.context_items
+    ]])
+
+  h.eq(2, #items)
+  h.eq("<file>lua/codecompanion/health.lua</file>", items[1].id)
+  h.eq("<file>lua/codecompanion/http.lua</file>", items[2].id)
+end
+
+-- New: ensure default_memory adds a memory context item
+T["Prompt Library"]["can add memory"] = function()
+  local mem_items = child.lua([[
+      codecompanion.setup({
+        memory = {
+          default = {
+            files = {
+              "tests/stubs/file.txt"
+            }
+          }
+        },
+        prompt_library = {
+          ["Test Prompt"] = {
+            strategy = "chat",
+            description = "Chat with your test prompt",
+            opts = {
+              index = 4,
+              short_name = "test_prompt",
+              ignore_system_prompt = true,
+              default_memory = "default",
+            },
+            prompts = {
+              {
+                role = "system",
+                content = "my prompt",
+              },
+            },
+          },
+        },
+      })
+      codecompanion.prompt("test_prompt")
+      local chat = codecompanion.last_chat()
+      return chat.context_items
+    ]])
+
+  h.eq(1, #mem_items)
+  h.eq("<memory>tests/stubs/file.txt</memory>", mem_items[1].id)
+end
+
+-- New: ensure ignore_system_prompt prevents adding the configured default system prompt
+T["Prompt Library"]["can ignore system prompt"] = function()
+  local has_system_tag = child.lua([[
+      codecompanion.setup({
+        prompt_library = {
+          ["No System"] = {
+            strategy = "chat",
+            description = "No system prompt from config",
+            opts = {
+              short_name = "no_sys",
+              index = 1,
+              ignore_system_prompt = true,
+            },
+            prompts = {
+              {
+                role = "user",
+                content = "Just a user message",
+              },
+            },
+          },
+        },
+      })
+      codecompanion.prompt("no_sys")
+      local chat = codecompanion.last_chat()
+      for _, msg in ipairs(chat.messages) do
+        if msg.opts and msg.opts.tag == "system_prompt_from_config" then
+          return true
+        end
+      end
+      return false
+    ]])
+  h.eq(false, has_system_tag)
+end
+
 return T
