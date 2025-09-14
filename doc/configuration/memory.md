@@ -18,12 +18,15 @@ require("codecompanion").setup({
 })
 ```
 
-Once enabled, the plugin will look to load a common, or default, set of files every time a chat buffer is created. Some of these files are:
+Once enabled, the plugin will look to load a common, or default, set of files every time a chat buffer is created. An example set of these files are:
 
 - `.cursorrules`
 - `.goosehints`
 - `.rules`
 - `CLAUDE.md`
+
+> [!INFO]
+> Refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/5807e0457111f0de267fc9a6543b41fae0f5c2b1/lua/codecompanion/config.lua#L1167-L1179) file for the full set of files included in the default group.
 
 You can also conditionally determine if memory should be added to a chat buffer:
 
@@ -39,7 +42,7 @@ require("codecompanion").setup({
         condition = function(chat)
           return chat.adapter.type ~= "acp"
         end,
-      }
+      },
     },
   },
 })
@@ -88,51 +91,6 @@ require("codecompanion").setup({
 })
 ```
 
-### Setting Parsers
-
-You can also apply parsers at a group level, to ensure that all files in the group are parsed in the same way:
-
-```lua
-require("codecompanion").setup({
-  memory = {
-    claude = {
-      description = "Memory files for Claude Code users",
-      parser = "claude",
-      files = {
-        "CLAUDE.md",
-        "CLAUDE.local.md",
-        "~/.claude/CLAUDE.md",
-      },
-    },
-  },
-})
-```
-
-In the example above, every file within the group will be sent through the `claude` parser before being added to the chat buffer.
-
-Alternatively, you can also apply parsers at a file level.
-
-```lua
-require("codecompanion").setup({
-  memory = {
-    default = {
-      description = "Collection of common files for all projects",
-      files = {
-        { path = "CLAUDE.md", parser = "claude" },
-        { path = "CLAUDE.local.md", parser = "claude" },
-        { path = "~/.claude/CLAUDE.md", parser = "claude" },
-      },
-    },
-  },
-})
-```
-
-Or combine both approaches, whereby the parsers at a file level will take precedence.
-
-### Disabling Parsers
-
-To disable a parser against a memory group, simply assign it a parser of `none`.
-
 ### Nesting Groups
 
 It's also possible to nest groups within a group. This can be a convenient way of applying the same conditional to multiple groups alongside keeping your config clean:
@@ -159,6 +117,64 @@ require("codecompanion").setup({
 In the example above, the main group is `CodeCompanion` and a sub-group, `acp`, sits within the files table. The `claude` parser sits across all of the groups.
 
 When using the _Action Palette_ or the slash command, the plugin will extract these nested groups and display them.
+
+
+## Parsers
+
+> [!NOTE]
+> Parsers are an optional addition to memory in the plugin.
+
+Currently, the plugin has two in-built parsers:
+
+- `claude` - which will import files into the chat buffer in the same way Claude Code [does](https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports). Note, this requires memory to be `markdown` files
+- `none` - a blank parser which can be used to overwrite parsers that have been set on the default memory groups
+
+Please see the guide on [Creating Memory Parsers](/extending/parsers) to understand how you can create and apply your own.
+
+### Applying Parsers
+
+You can apply parsers at a group level, to ensure that all files in the group are parsed in the same way:
+
+```lua
+require("codecompanion").setup({
+  memory = {
+    claude = {
+      description = "Memory files for Claude Code users",
+      parser = "claude",
+      files = {
+        "CLAUDE.md",
+        "CLAUDE.local.md",
+        "~/.claude/CLAUDE.md",
+      },
+    },
+  },
+})
+```
+
+In the example above, every file within the group will be sent through the `claude` parser before being added to the chat buffer.
+
+Alternatively, you can apply parsers at a file level.
+
+```lua
+require("codecompanion").setup({
+  memory = {
+    default = {
+      description = "Collection of common files for all projects",
+      files = {
+        { path = "CLAUDE.md", parser = "claude" },
+        { path = "CLAUDE.local.md", parser = "claude" },
+        { path = "~/.claude/CLAUDE.md", parser = "claude" },
+      },
+    },
+  },
+})
+```
+
+Or combine both approaches, whereby the parsers at a file level will take precedence.
+
+### Disabling Parsers
+
+To disable a parser against a memory group, simply assign it a parser of `none`.
 
 ## Changing Defaults
 
