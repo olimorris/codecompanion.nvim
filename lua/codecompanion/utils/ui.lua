@@ -14,11 +14,12 @@ function M.create_background_window()
   if M._background_win and api.nvim_win_is_valid(M._background_win) then
     return M._background_win
   end
+
   local config = require("codecompanion.config")
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
   local winblend = inline_config.dim or 30
-  M._background_buf = api.nvim_create_buf(false, true)
 
+  M._background_buf = api.nvim_create_buf(false, true)
   M._background_win = api.nvim_open_win(M._background_buf, false, {
     relative = "editor",
     row = 0,
@@ -31,6 +32,7 @@ function M.create_background_window()
     noautocmd = true,
     zindex = 50,
   })
+
   -- Set winblend for dimming effect
   api.nvim_set_option_value("winblend", winblend, { win = M._background_win })
 
@@ -62,13 +64,13 @@ M.create_float = function(lines, opts)
   local config = require("codecompanion.config")
   local window_width = config.resolve_value(window.width)
   local width = window_width and (window_width > 1 and window_width or opts.width or 85) or opts.width or 85
-
   local window_height = config.resolve_value(window.height)
   local height = window_height and (window_height > 1 and window_height or opts.height or 17) or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
 
   require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+
   -- Calculate center position if not specified
   local row = opts.row or window.row or 10
   local col = opts.col or window.col or 0

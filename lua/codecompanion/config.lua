@@ -1279,9 +1279,8 @@ You must create or modify a workspace file through a series of prompts over mult
           wrap = true,
         },
       },
-      -- Window options for any windows that open within the chat buffer
+      -- Options for any windows that open within the chat buffer
       child_window = {
-        ---functions will make the dimensions dynamic based on the editor's width and height
         ---@return number|fun(): number
         width = function()
           return vim.o.columns - 5
@@ -1299,9 +1298,8 @@ You must create or modify a workspace file through a series of prompts over mult
           relativenumber = false,
         },
       },
-      -- You can also extend/override the child_window options for a diff
+      -- Extend/override the child_window options for a diff
       diff_window = {
-        ---functions will make the dimensions dynamic based on the editor's width and height
         ---@return number|fun(): number
         width = function()
           return math.min(120, vim.o.columns - 10)
