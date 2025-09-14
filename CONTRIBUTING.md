@@ -84,7 +84,6 @@ CodeCompanion.nvim is organized into several key directories:
   dir = "/full/path/to/local/codecompanion.nvim",
   dev = true,
   dependencies = {
-    { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
     { "nvim-lua/plenary.nvim" },
     -- Include any optional dependencies needed for your development
   },

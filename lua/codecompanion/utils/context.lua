@@ -2,8 +2,6 @@ local api = vim.api
 
 local M = {}
 
-local ESC_FEEDKEY = api.nvim_replace_termcodes("<ESC>", true, false, true)
-
 ---@param bufnr nil|number
 ---@return string
 M.get_filetype = function(bufnr)

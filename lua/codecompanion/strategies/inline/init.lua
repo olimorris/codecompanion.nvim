@@ -233,20 +233,23 @@ end
 ---@param prompt string
 ---@return string The cleaned prompt
 function Inline:parse_special_syntax(prompt)
-  -- 1. Handle adapter syntax: <adapter_name>
   local adapter_pattern = "<([%w_]+)>"
   local adapter_match = prompt:match(adapter_pattern)
-  if adapter_match and config.adapters[adapter_match] then
-    self:set_adapter(config.adapters[adapter_match])
-    prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
-  end
-
-  -- 2. Handle legacy first-word adapter detection for backward compatibility
-  if not adapter_match then
+  --TODO: change this as soon as `config.adapters` is removed in V18.0.0
+  local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http, config.adapters)
+  if adapter_match then
+    if config_adapters[adapter_match] then
+      self:set_adapter(adapter_match)
+      prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
+    else
+      util.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
+    end
+  else
+    -- Handle legacy first-word adapter detection for backward compatibility
     local split = vim.split(prompt, " ")
     local first_word = split[1]
-    if config.adapters[first_word] then
-      self:set_adapter(config.adapters[first_word])
+    if config_adapters[first_word] then
+      self:set_adapter(first_word)
       table.remove(split, 1)
       prompt = table.concat(split, " ")
     end
@@ -556,8 +559,8 @@ end
 function Inline:parse_output(output)
   -- Try parsing as plain JSON first
   output = output:gsub("^```json", ""):gsub("```$", "")
-  local _, json = pcall(vim.json.decode, output)
-  if json then
+  local ok, json = pcall(vim.json.decode, output)
+  if ok then
     log:debug("[Inline] Parsed json:\n%s", json)
     return json
   end
@@ -565,8 +568,8 @@ function Inline:parse_output(output)
   -- Fall back to Tree-sitter parsing
   local markdown_code = parse_with_treesitter(output)
   if markdown_code then
-    _, json = pcall(vim.json.decode, markdown_code)
-    if json then
+    ok, json = pcall(vim.json.decode, markdown_code)
+    if ok then
       log:debug("[Inline] Parsed markdown JSON:\n%s", json)
       return json
     end

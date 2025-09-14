@@ -1,5 +1,20 @@
 # Changelog
 
+## [17.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.21.0...v17.22.0) (2025-09-13)
+
+
+### Features
+
+* **adapters:** allow hiding of acp adapters ([#2086](https://github.com/olimorris/codecompanion.nvim/issues/2086)) ([aa7c937](https://github.com/olimorris/codecompanion.nvim/commit/aa7c937ac9f73e061da74dec6ab5f1fc6909dd37))
+* **chat:** :sparkles: add memory ([#2093](https://github.com/olimorris/codecompanion.nvim/issues/2093)) ([b3fe1b0](https://github.com/olimorris/codecompanion.nvim/commit/b3fe1b020262ef970e9bcd43f0faec856a5bd472))
+
+
+### Bug Fixes
+
+* **inline:** Check result from vim.json.decode pcall ([#2101](https://github.com/olimorris/codecompanion.nvim/issues/2101)) ([d5f4070](https://github.com/olimorris/codecompanion.nvim/commit/d5f40701ca4299300e94910f35342beb47861bcf))
+* **inline:** parse adapters ([#2069](https://github.com/olimorris/codecompanion.nvim/issues/2069)) ([12c617a](https://github.com/olimorris/codecompanion.nvim/commit/12c617a969f53738f1126a389e8f72f4f754f6c0))
+* **prompt:** tags renamed to be tag ([#2115](https://github.com/olimorris/codecompanion.nvim/issues/2115)) ([a869f19](https://github.com/olimorris/codecompanion.nvim/commit/a869f190f627123de8bf97df9e9b5bd6f61645f9))
+
 ## [17.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.20.0...v17.21.0) (2025-09-03)
 
 

@@ -123,15 +123,6 @@
 ---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
 
----@class CodeCompanion.Chat.ContextItem
----@field bufnr? number The buffer number if this is buffer context
----@field id string The unique ID of the context which links it to a message in the chat buffer and is displayed to the user
----@field source string The source of the context e.g. slash_command
----@field opts? table
----@field opts.pinned? boolean Whether this context item is pinned
----@field opts.watched? boolean Whether this context item is being watched for changes
----@field opts.visible? boolean Whether this context item should be shown in the chat UI
-
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
