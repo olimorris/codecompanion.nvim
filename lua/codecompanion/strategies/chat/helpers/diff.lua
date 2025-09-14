@@ -216,7 +216,7 @@ end
 ---@return number|nil bufnr, number|nil winnr
 local function open_buffer_and_window(bufnr_or_filepath)
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local layout = inline_config.layout or "non_float"
+  local layout = inline_config.layout or "buffer"
   local is_filepath = type(bufnr_or_filepath) == "string"
   local bufnr
 
@@ -337,11 +337,8 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     return nil
   end
 
-  -- Use provided content or fallback to current buffer content
-  local original_content = opts.original_content or api.nvim_buf_get_lines(bufnr, 0, -1, true)
-
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local layout = inline_config.layout or "non_float"
+  local layout = inline_config.layout or "buffer"
 
   local diff_args = {
     bufnr = bufnr,
