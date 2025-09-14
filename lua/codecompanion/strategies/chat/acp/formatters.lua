@@ -90,9 +90,10 @@ function M.short_title(tool_call)
 end
 
 ---Summarize the content of a tool call
----@param contents table|nil
+---@param tool_call table
 ---@return string|nil
-function M.summarize_tool_content(contents)
+function M.summarize_tool_content(tool_call)
+  local contents = tool_call.content
   if type(contents) ~= "table" then
     return nil
   end
@@ -126,12 +127,22 @@ function M.tool_message(tool_call)
   local status = tool_call.status or "pending"
   local title = M.short_title(tool_call)
   if status == "completed" then
-    local summary = M.summarize_tool_content(tool_call.content)
+    local summary
+    if tool_call.kind == "read" then
+      local output = "Completed"
+      -- Account for Claude Code echoing the whole contents of the fs/read_text_file back into the buffer
+      if tool_call.rawInput and tool_call.rawInput.abs_path then
+        output = tool_call.rawInput.abs_path
+      end
+      summary = string.format("Read: %s", output)
+    else
+      summary = M.summarize_tool_content(tool_call)
+    end
     return summary or (title .. " — completed")
   elseif status == "in_progress" then
     return title .. " — running"
   elseif status == "failed" then
-    local summary = M.summarize_tool_content(tool_call.content)
+    local summary = M.summarize_tool_content(tool_call)
     return summary and (title .. " — failed: " .. summary) or (title .. " — failed")
   else
     return title
