@@ -171,7 +171,7 @@ M.options = {
 
     for key, val in sorted_pairs(vars) do
       local desc = clean_and_truncate(val.description)
-      table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. desc)
+      table.insert(lines, indent .. pad("#{" .. key .. "}", max_length, 4) .. " " .. desc)
     end
 
     -- Tools
@@ -181,7 +181,7 @@ M.options = {
     for key, val in sorted_pairs(tools) do
       if key ~= "opts" then
         local desc = clean_and_truncate(val.description)
-        table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. desc)
+        table.insert(lines, indent .. pad("@{" .. key .. "}", max_length, 4) .. " " .. desc)
       end
     end
 
@@ -693,6 +693,15 @@ M.toggle_system_prompt = {
   desc = "Toggle the system prompt",
   callback = function(chat)
     chat:toggle_system_prompt()
+  end,
+}
+
+M.clear_memory = {
+  desc = "Clear memory",
+  callback = function(chat)
+    chat:remove_tagged_message("memory")
+    chat:refresh_context()
+    return util.notify("Cleared the memory", vim.log.levels.INFO)
   end,
 }
 

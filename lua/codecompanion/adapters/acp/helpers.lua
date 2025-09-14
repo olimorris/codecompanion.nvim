@@ -46,12 +46,12 @@ M.form_messages = function(self, messages, capabilities)
           -- the context is wrapped in <attachment> tags so it's clearer
           -- to the LLM what we're sending. But this doesn't make much
           -- sense for ACP clients, hence the file utils read here.
-          local ok, file_content = pcall(file_utils.read, msg.opts.absolute_path)
+          local ok, file_content = pcall(file_utils.read, msg.opts.path)
           if ok then
             return {
               type = "resource",
               resource = {
-                uri = "file://" .. msg.opts.absolute_path,
+                uri = "file://" .. msg.opts.path,
                 text = file_content,
               },
             }

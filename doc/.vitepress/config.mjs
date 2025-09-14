@@ -69,13 +69,14 @@ export default withMermaid(
             { text: "Action Palette", link: "/configuration/action-palette" },
             { text: "Adapters", link: "/configuration/adapters" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
+            { text: "Extensions", link: "/configuration/extensions" },
             {
               text: "Inline Assistant",
               link: "/configuration/inline-assistant",
             },
+            { text: "Memory", link: "/configuration/memory" },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
-            { text: "Extensions", link: "/configuration/extensions" },
             { text: "Others", link: "/configuration/others" },
           ],
         },
@@ -91,6 +92,7 @@ export default withMermaid(
               collapsed: true,
               items: [
                 { text: "Agents", link: "/usage/chat-buffer/agents" },
+                { text: "Memory", link: "/usage/chat-buffer/memory" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
@@ -110,11 +112,12 @@ export default withMermaid(
           collapsed: true,
           items: [
             { text: "Creating Adapters", link: "/extending/adapters" },
+            { text: "Creating Extensions", link: "/extending/extensions" },
+            { text: "Creating Memory Parsers", link: "/extending/parsers" },
             { text: "Creating Prompts", link: "/extending/prompts" },
             { text: "Creating Tools", link: "/extending/tools" },
             { text: "Creating Workflows", link: "/extending/workflows" },
             { text: "Creating Workspaces", link: "/extending/workspace" },
-            { text: "Creating Extensions", link: "/extending/extensions" },
           ],
         },
         { text: "Community Extensions", link: "/extensions" },

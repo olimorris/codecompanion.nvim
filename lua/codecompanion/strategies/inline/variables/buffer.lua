@@ -1,4 +1,5 @@
 local buf_utils = require("codecompanion.utils.buffers")
+local chat_helpers = require("codecompanion.strategies.chat.helpers")
 
 ---@class CodeCompanion.Inline.Variables.Buffer: CodeCompanion.Inline.Variables
 local Buffer = {}
@@ -15,10 +16,12 @@ end
 function Buffer:output()
   local message = "To help you assist with my user prompt, I'm attaching the contents of a buffer"
 
-  local ok, content, _, _ = pcall(buf_utils.format_for_llm, {
-    bufnr = self.context.bufnr,
-    path = buf_utils.get_info(self.context.bufnr).path,
-  }, { message = message })
+  local ok, content, _, _ = pcall(
+    chat_helpers.format_buffer_for_llm,
+    self.context.bufnr,
+    buf_utils.get_info(self.context.bufnr).path,
+    { message = message }
+  )
 
   if not ok then
     return
