@@ -18,6 +18,19 @@ H.is_true = MiniTest.new_expectation(
 )
 
 --[[@type function]]
+H.is_false = MiniTest.new_expectation(
+  "value is false",
+  -- Predicate: returns false if value is false and not nil
+  function(value)
+    return value == false
+  end,
+  -- Fail context: explains why it failed
+  function(value)
+    return string.format("\nExpected value to be false (not true or nil), but got:\n%s", vim.inspect(value))
+  end
+)
+
+--[[@type function]]
 H.eq_info = MiniTest.new_expectation(
   -- this exactly like H.eq
   -- but it also takes in 3rd argument for better error message

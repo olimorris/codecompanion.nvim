@@ -1200,6 +1200,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/acp/acp.md",
           },
         },
+        ["tests"] = {
+          description = "Testing in the plugin",
+          files = {
+            ".codecompanion/tests/test.md",
+          },
+        },
         ["ui"] = {
           description = "The chat UI implementation",
           files = {

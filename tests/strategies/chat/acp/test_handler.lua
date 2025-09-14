@@ -351,4 +351,108 @@ T["ACPHandler"]["integrates with chat submit flow"] = function()
   h.is_true(result.last_prompt_set)
 end
 
+T["ACPHandler"]["hydrates permission request with cached diff tool_call"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    -- Pre-populate cache with a diff tool call
+    local id = "toolu_abc123"
+    handler.tools[id] = {
+      toolCallId = id,
+      kind = "edit",
+      status = "pending",
+      title = "Edit `/tmp/file.txt`",
+      content = {
+        { type = "diff", path = "/tmp/file.txt", oldText = "old", newText = "new" }
+      },
+    }
+
+    -- Stub the permission UI to capture the request
+    _G.last_permission_request = nil
+    package.loaded["codecompanion.strategies.chat.acp.request_permission"] = {
+      show = function(chat_arg, request)
+        _G.last_permission_request = request
+      end
+    }
+
+    -- Simulate a permission request that only includes toolCallId
+    handler:handle_permission_request({
+      tool_call = { toolCallId = id },
+      options = {
+        { kind = "allow_once", optionId = "allow", name = "Allow" },
+        { kind = "reject_once", optionId = "reject", name = "Reject" },
+      }
+    })
+
+    local req = _G.last_permission_request
+    return {
+      hydrated = req ~= nil and req.tool_call ~= nil and req.tool_call.content ~= nil,
+      toolCallId = req and req.tool_call and req.tool_call.toolCallId or nil,
+      diff_type = req and req.tool_call and req.tool_call.content and req.tool_call.content[1] and req.tool_call.content[1].type or nil,
+      newText = req and req.tool_call and req.tool_call.content and req.tool_call.content[1] and req.tool_call.content[1].newText or nil,
+    }
+  ]])
+
+  h.is_true(result.hydrated)
+  h.eq("toolu_abc123", result.toolCallId)
+  h.eq("diff", result.diff_type)
+  h.eq("new", result.newText)
+end
+
+T["ACPHandler"]["permission request passes through when toolCallId unknown"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    -- Stub the permission UI to capture the request
+    _G.last_permission_request = nil
+    package.loaded["codecompanion.strategies.chat.acp.request_permission"] = {
+      show = function(chat_arg, request)
+        _G.last_permission_request = request
+      end
+    }
+
+    -- Simulate a permission request that references an unknown toolCallId
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "unknown_tool_id" },
+      options = {
+        { kind = "allow_once", optionId = "allow", name = "Allow" },
+        { kind = "reject_once", optionId = "reject", name = "Reject" },
+      }
+    })
+
+    local req = _G.last_permission_request
+    return {
+      has_request = req ~= nil,
+      has_tool_call = req and req.tool_call ~= nil,
+      has_content = req and req.tool_call and req.tool_call.content ~= nil,
+      toolCallId = req and req.tool_call and req.tool_call.toolCallId or nil,
+    }
+  ]])
+
+  h.is_true(result.has_request)
+  h.is_true(result.has_tool_call)
+  h.is_false(result.has_content)
+  h.eq("unknown_tool_id", result.toolCallId)
+end
+
 return T

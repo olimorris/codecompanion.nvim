@@ -66,6 +66,7 @@ local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils")
 
 local api = vim.api
+local fmt = string.format
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat",
@@ -356,11 +357,11 @@ function Chat.new(args)
     intro_message = args.intro_message or config.display.chat.intro_message,
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
-      api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
-      vim.bo[bufnr].filetype = "codecompanion"
-      vim.bo[bufnr].undolevels = config.strategies.chat.opts.undolevels or 10
+      api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
+      api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
+      api.nvim_buf_set_option(bufnr, "undolevels", config.strategies.chat.opts.undolevels or 10)
 
-      -- safely attach treesitter
+      -- Safely attach treesitter
       vim.schedule(function()
         pcall(vim.treesitter.start, bufnr)
       end)
@@ -1051,7 +1052,7 @@ function Chat:check_images(message)
       helpers.add_image(self, encoded_image)
 
       -- Replace the image link in the message with "image"
-      local to_remove = string.format("[Image](%s)", image.path)
+      local to_remove = fmt("[Image](%s)", image.path)
       message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
     end
   end
