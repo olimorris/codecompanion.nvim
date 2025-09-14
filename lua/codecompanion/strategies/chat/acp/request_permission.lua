@@ -305,7 +305,7 @@ local function get_diff(tool_call)
     kind = tool_call.kind,
     new = tool_call.content[1].newText,
     old = tool_call.content[1].oldText,
-    path = vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path),
+    path = tool_call.content[1].path,
     status = tool_call.status,
     title = tool_call.title,
     tool_call_id = tool_call.toolCallId,
