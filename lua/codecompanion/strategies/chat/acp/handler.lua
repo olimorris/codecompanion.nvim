@@ -136,9 +136,13 @@ function ACPHandler:process_tool_call(tool_call)
     else
       self.tools[id] = merged
     end
+    tool_call = merged or tool_call
   end
 
-  local content = formatter.tool_message(tool_call)
+  local ok, content = pcall(formatter.tool_message, tool_call)
+  if not ok then
+    content = "[Error formatting tool output]"
+  end
 
   table.insert(self.output, content)
   self.chat:add_buf_message({
