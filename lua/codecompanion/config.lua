@@ -1212,6 +1212,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/ui.md",
           },
         },
+        ["workflows"] = {
+          description = "The workflow implementation",
+          files = {
+            ".codecompanion/workflows.md",
+          },
+        },
       },
       is_default = true,
     },
