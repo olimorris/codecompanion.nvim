@@ -139,7 +139,7 @@ function ACPHandler:process_tool_call(tool_call)
     tool_call = merged or tool_call
   end
 
-  local ok, content = pcall(formatter.tool_message, tool_call)
+  local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
   if not ok then
     content = "[Error formatting tool output]"
   end

@@ -122,19 +122,15 @@ end
 
 ---Create a one-line message for tool-call events
 ---@param tool_call table
+---@param adapter CodeCompanion.ACPAdapter
 ---@return string
-function M.tool_message(tool_call)
+function M.tool_message(tool_call, adapter)
   local status = tool_call.status or "pending"
   local title = M.short_title(tool_call)
   if status == "completed" then
     local summary
-    if tool_call.kind == "read" then
-      local output = "Completed"
-      -- Account for Claude Code echoing the whole contents of the fs/read_text_file back into the buffer
-      if tool_call.rawInput and tool_call.rawInput.abs_path then
-        output = tool_call.rawInput.abs_path
-      end
-      summary = string.format("Read: %s", output)
+    if adapter.name == "claude_code" then
+      summary = title
     else
       summary = M.summarize_tool_content(tool_call)
     end
