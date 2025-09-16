@@ -15,8 +15,7 @@ If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply t
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
+    "nvim-lua/plenary.nvim"
   },
   opts = {
     strategies = {
