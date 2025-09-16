@@ -329,8 +329,7 @@ local function show_diff(chat, request)
   local old_lines = vim.split(d.old or "", "\n", { plain = true })
   local new_lines = vim.split(d.new or "", "\n", { plain = true })
 
-  local window_config =
-    vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window or {})
+  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
   local bufnr, winnr = ui.create_float(new_lines, {
     window = { width = window_config.width, height = window_config.height },
