@@ -221,4 +221,122 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
   h.eq(last_message.content, content .. "\n")
 end
 
+T["add_files_or_buffers() prevents duplicate files from being added"] = function()
+  local tmp1 = child.lua("return vim.fn.tempname()")
+  local tmp2 = child.lua("return vim.fn.tempname()")
+  local content1 = "first file content"
+  local content2 = "second file content"
+  child.fn.writefile({ content1 }, tmp1)
+  child.fn.writefile({ content2 }, tmp2)
+
+  -- Setup the test environment
+  child.lua(string.format(
+    [[
+    local h = require("tests.helpers")
+    h.setup_plugin()
+
+    local chat_helpers = require("codecompanion.strategies.chat.helpers")
+    local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+
+    -- Create a mock chat object
+    local chat = {
+      messages = {},
+      add_context = function(self, content, tag, id, opts)
+        table.insert(self.messages, {
+          content = content.content,
+          opts = {
+            tag = tag,
+            context_id = id,
+            meta = opts
+          }
+        })
+      end
+    }
+
+    -- Add the same file multiple times
+    local files = { %q, %q, %q }
+    memory_helpers.add_files_or_buffers(files, chat)
+
+    _G.__dup_test_messages = chat.messages
+  ]],
+    tmp1,
+    tmp2,
+    tmp1 -- Duplicate of tmp1
+  ))
+
+  local messages = child.lua_get([[_G.__dup_test_messages]])
+
+  -- Should only have 2 messages (no duplicate for tmp1)
+  h.eq(#messages, 2)
+
+  -- Verify the two unique files are present
+  local has_tmp1 = false
+  local has_tmp2 = false
+  for _, msg in ipairs(messages) do
+    if msg.opts.meta.path == tmp1 then
+      has_tmp1 = true
+    elseif msg.opts.meta.path == tmp2 then
+      has_tmp2 = true
+    end
+  end
+
+  h.eq(has_tmp1, true)
+  h.eq(has_tmp2, true)
+end
+
+T["add_context() prevents duplicate memory context from being added"] = function()
+  -- Setup the test environment
+  child.lua([[
+    local h = require("tests.helpers")
+    h.setup_plugin()
+
+    local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+    local chat_helpers = require("codecompanion.strategies.chat.helpers")
+
+    -- Mock chat_helpers.has_context to track calls
+    local has_context_calls = 0
+    local original_has_context = chat_helpers.has_context
+    chat_helpers.has_context = function(id, messages)
+      has_context_calls = has_context_calls + 1
+      -- Return true on second call to simulate duplicate
+      return has_context_calls > 1
+    end
+
+    -- Create a mock chat object
+    local chat = {
+      messages = {},
+      add_context = function(self, content, tag, id, opts)
+        table.insert(self.messages, {
+          content = content.content,
+          opts = {
+            tag = tag,
+            context_id = id,
+            meta = opts
+          }
+        })
+      end
+    }
+
+    -- Create test files
+    local files = {
+      { name = "file1.txt", content = "content 1", path = "/tmp/file1.txt" },
+      { name = "file1.txt", content = "content 1", path = "/tmp/file1.txt" }, -- duplicate
+    }
+
+    -- Add context twice with the same file
+    memory_helpers.add_context(files, chat)
+
+    _G.__context_test_messages = chat.messages
+    _G.__context_test_calls = has_context_calls
+  ]])
+
+  local messages = child.lua_get([[_G.__context_test_messages]])
+  local calls = child.lua_get([[_G.__context_test_calls]])
+
+  -- Should only have 1 message (no duplicate)
+  h.eq(#messages, 1)
+  -- has_context should have been called twice (once for each file in the list)
+  h.eq(calls, 2)
+end
+
 return T
