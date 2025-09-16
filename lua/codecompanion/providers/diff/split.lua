@@ -40,10 +40,12 @@ function Diff.new(args)
 
   log:trace("Using default diff")
 
-  -- Set the diff properties
-  vim.cmd("set diffopt=" .. table.concat(config.display.diff.opts, ","))
+  local split_opts = config.display.diff.provider_opts.split
 
-  local vertical = (config.display.diff.layout == "vertical")
+  -- Set the diff properties
+  vim.cmd("set diffopt=" .. table.concat(split_opts.opts, ","))
+
+  local vertical = (split_opts.layout == "vertical")
 
   -- Get current properties
   local buf_opts = {
@@ -57,7 +59,7 @@ function Diff.new(args)
 
   --- Minimize the chat buffer window if there's not enough screen estate
   local last_chat = require("codecompanion").last_chat()
-  if last_chat and last_chat.ui:is_visible() and config.display.diff.close_chat_at > vim.o.columns then
+  if last_chat and last_chat.ui:is_visible() and split_opts.close_chat_at > vim.o.columns then
     last_chat.ui:hide()
   end
 

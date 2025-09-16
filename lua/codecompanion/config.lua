@@ -1350,18 +1350,22 @@ You must create or modify a workspace file through a series of prompts over mult
     diff = {
       enabled = true,
       provider = providers.diff, -- mini_diff|split|inline
-      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
 
-      -- Options for the `default` diff provider
-      layout = "vertical", -- vertical|horizontal split
-      opts = {
-        "internal",
-        "filler",
-        "closeoff",
-        "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-        "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-        "followwrap",
-        "linematch:120",
+      provider_opts = {
+        -- Options for the split provider
+        split = {
+          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+          layout = "vertical", -- vertical|horizontal split
+          opts = {
+            "internal",
+            "filler",
+            "closeoff",
+            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "followwrap",
+            "linematch:120",
+          },
+        },
       },
 
       -- Options for inline diff
