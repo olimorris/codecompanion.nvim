@@ -1352,6 +1352,40 @@ You must create or modify a workspace file through a series of prompts over mult
       provider = providers.diff, -- mini_diff|split|inline
 
       provider_opts = {
+        -- Options for inline diff provider
+        inline = {
+          layout = "float", -- float|buffer - Where to display the diff
+
+          diff_signs = {
+            signs = {
+              text = "▌", -- Sign text for normal changes
+              reject = "✗", -- Sign text for rejected changes in super_diff
+              highlight_groups = {
+                addition = "DiagnosticOk",
+                deletion = "DiagnosticError",
+                modification = "DiagnosticWarn",
+              },
+            },
+            -- Super Diff options
+            icons = {
+              accepted = " ",
+              rejected = " ",
+            },
+            colors = {
+              accepted = "DiagnosticOk",
+              rejected = "DiagnosticError",
+            },
+          },
+
+          opts = {
+            context_lines = 3, -- Number of context lines in hunks
+            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+            full_width_removed = true, -- Make removed lines span full width
+            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+            show_removed = true, -- Show removed lines as virtual text
+          },
+        },
+
         -- Options for the split provider
         split = {
           close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
@@ -1366,38 +1400,6 @@ You must create or modify a workspace file through a series of prompts over mult
             "linematch:120",
           },
         },
-      },
-
-      -- Options for inline diff
-      diff_signs = {
-        signs = {
-          text = "▌", -- Sign text for normal changes
-          reject = "✗", -- Sign text for rejected changes in super_diff
-          highlight_groups = {
-            addition = "DiagnosticOk",
-            deletion = "DiagnosticError",
-            modification = "DiagnosticWarn",
-          },
-        },
-        -- Super Diff options
-        icons = {
-          accepted = " ",
-          rejected = " ",
-        },
-        colors = {
-          accepted = "DiagnosticOk",
-          rejected = "DiagnosticError",
-        },
-      },
-      -- Inline diff specific options
-      inline = {
-        show_removed = true, -- Show removed lines as virtual text
-        full_width_removed = true, -- Make removed lines span full width
-        priority = 100, -- Highlight priority for diffs; increase if using inlay hints or if highlights are not visible.
-        context_lines = 3, -- Number of context lines in hunks
-        show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-        layout = "float", -- float|buffer - Where to display the diff
-        dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
       },
     },
     inline = {

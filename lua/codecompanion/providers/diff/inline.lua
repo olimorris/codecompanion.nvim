@@ -103,8 +103,8 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
 
   -- WARN: We need to lazy load the config here to avoid a circular dependency issue
   local config = require("codecompanion.config")
-  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local context_lines = inline_config.context_lines or 3
+  local inline_config = config.display.diff.provider_opts.inline
+  local context_lines = inline_config.opts.context_lines or 3
   local hunks = InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
   local first_diff_line = nil
 
@@ -113,7 +113,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     local first_hunk = hunks[1]
     first_diff_line = math.max(1, first_hunk.new_start) -- Store for cursor positioning
     -- Only show keymap hints if config allows it, not in test mode, and not floating
-    local show_keymap_hints = inline_config.show_keymap_hints
+    local show_keymap_hints = inline_config.opts.show_keymap_hints
     if show_keymap_hints == nil then
       show_keymap_hints = true -- Default to true
     end
@@ -148,8 +148,8 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   end
 
   local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
-    show_removed = inline_config.show_removed ~= false,
-    full_width_removed = inline_config.full_width_removed ~= false,
+    show_removed = inline_config.opts.show_removed ~= false,
+    full_width_removed = inline_config.opts.full_width_removed ~= false,
     is_floating = self.is_floating,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)

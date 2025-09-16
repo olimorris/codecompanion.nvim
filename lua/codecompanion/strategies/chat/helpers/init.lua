@@ -13,8 +13,8 @@ local fmt = string.format
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
 function M.hide_chat_for_floating_diff(chat)
-  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local diff_layout = inline_config.layout or "buffer"
+  local inline_config = config.display.diff.provider_opts.inline
+  local diff_layout = inline_config.layout or "float"
   if diff_layout == "float" and config.display.chat.window.layout == "float" then
     if chat and chat.ui:is_visible() then
       chat.ui:hide()

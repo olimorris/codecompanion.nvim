@@ -8,7 +8,7 @@ local utils = require("codecompanion.utils")
 local api = vim.api
 local fmt = string.format
 
-local diff_signs_config = config.display.diff.diff_signs or {}
+local diff_signs_config = config.display.diff.provider_opts.inline.diff_signs
 
 local CONSTANTS = {
   icons = diff_signs_config.icons or {

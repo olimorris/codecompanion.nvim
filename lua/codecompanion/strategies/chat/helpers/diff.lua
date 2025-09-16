@@ -215,8 +215,8 @@ end
 ---@param bufnr_or_filepath number|string
 ---@return number|nil bufnr, number|nil winnr
 local function open_buffer_and_window(bufnr_or_filepath)
-  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local layout = inline_config.layout or "buffer"
+  local inline_config = config.display.diff.provider_opts.inline
+  local layout = inline_config.layout or "float"
   local is_filepath = type(bufnr_or_filepath) == "string"
   local bufnr
 
@@ -337,8 +337,8 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     return nil
   end
 
-  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local layout = inline_config.layout or "buffer"
+  local inline_config = config.display.diff.provider_opts.inline
+  local layout = inline_config.layout or "float"
 
   local diff_args = {
     bufnr = bufnr,

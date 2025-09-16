@@ -663,8 +663,8 @@ T["InlineDiff Screenshots"]["Shows floating window diff for simple changes"] = f
   child.lua([[
     -- Configure inline diff to use float layout
     local config = require("codecompanion.config")
-    config.display.diff.inline.layout = "float"
-    
+    config.display.diff.provider_opts.inline.layout = "float"
+
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_set_current_buf(bufnr)
     vim.bo.filetype = "python"
@@ -707,8 +707,8 @@ T["InlineDiff Screenshots"]["Shows floating window diff for complex file changes
   child.lua([[
     -- Configure inline diff to use float layout
     local config = require("codecompanion.config")
-    config.display.diff.inline.layout = "float"
-    
+    config.display.diff.provider_opts.inline.layout = "float"
+
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_set_current_buf(bufnr)
     vim.bo.filetype = "javascript"

@@ -94,7 +94,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
 
   -- Get sign configuration from config (lazy load to avoid circular dependency)
   local config = require("codecompanion.config")
-  local diff_signs_config = config.display and config.display.diff and config.display.diff.diff_signs or {}
+  local diff_signs_config = config.display.diff.provider_opts.inline.diff_signs or {}
   local signs = diff_signs_config.signs or {}
   local sign_text = signs.text or "▌"
   local highlight_groups = signs.highlight_groups
