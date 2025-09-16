@@ -164,8 +164,7 @@ end
 ---@param filepath string|nil Optional filepath for window title
 ---@return number? winnr Window number of the created floating window
 local function create_diff_floating_window(bufnr, filepath)
-  local window_config =
-    vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window or {})
+  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
   local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
   local content = {} -- Dummy content for create_float function
@@ -174,9 +173,9 @@ local function create_diff_floating_window(bufnr, filepath)
     bufnr = bufnr,
     set_content = false, -- Don't overwrite existing buffer content
     window = { width = window_config.width, height = window_config.height },
-    row = window_config.row or "center",
-    col = window_config.col or "center",
-    relative = window_config.relative or "editor",
+    row = window_config.row,
+    col = window_config.col,
+    relative = window_config.relative,
     filetype = filetype,
     title = ui.build_float_title({
       title_prefix = " Diff",
@@ -216,7 +215,7 @@ end
 ---@return number|nil bufnr, number|nil winnr
 local function open_buffer_and_window(bufnr_or_filepath)
   local inline_config = config.display.diff.provider_opts.inline
-  local layout = inline_config.layout or "float"
+  local layout = inline_config.layout
   local is_filepath = type(bufnr_or_filepath) == "string"
   local bufnr
 
@@ -338,7 +337,7 @@ function M.create(bufnr_or_filepath, diff_id, opts)
   end
 
   local inline_config = config.display.diff.provider_opts.inline
-  local layout = inline_config.layout or "float"
+  local layout = inline_config.layout
 
   local diff_args = {
     bufnr = bufnr,

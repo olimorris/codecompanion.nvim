@@ -14,7 +14,7 @@ local fmt = string.format
 ---@return nil
 function M.hide_chat_for_floating_diff(chat)
   local inline_config = config.display.diff.provider_opts.inline
-  local diff_layout = inline_config.layout or "float"
+  local diff_layout = inline_config.layout
   if diff_layout == "float" and config.display.chat.window.layout == "float" then
     if chat and chat.ui:is_visible() then
       chat.ui:hide()
