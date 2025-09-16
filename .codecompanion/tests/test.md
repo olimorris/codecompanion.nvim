@@ -11,6 +11,7 @@ A full overview of how Mini.Test works is included in the file above.
 ## Helpers
 
 @./tests/helpers.lua
+@./tests/expectations.lua
 
 The plugin has some test helpers that allow for easier setting up of the plugin, additional assertion and some helper functions that come in handy.
 
