@@ -134,7 +134,8 @@ end
 function M.add_context(files, chat)
   for _, file in ipairs(files) do
     local id = "<memory>" .. file.name .. "</memory>"
-    if not chat_helpers.has_context(id, chat.messages) then
+    local context_exists = chat_helpers.has_context(id, chat.messages)
+    if not context_exists then
       chat:add_context({ content = file.content }, "memory", id, {
         path = file.path,
       })
@@ -170,6 +171,11 @@ function M.add_files_or_buffers(included_files, chat)
         return log:debug("[Memory] Could not add buffer %d to chat buffer", bufnr)
       end
 
+      local context_exists = chat_helpers.has_context(id, chat.messages)
+      if context_exists then
+        return
+      end
+
       local buffer_opts = config.memory.opts.chat and config.memory.opts.chat.default_params
       if buffer_opts then
         if buffer_opts == "pin" then
@@ -189,9 +195,12 @@ function M.add_files_or_buffers(included_files, chat)
     -- Otherwise, add it as file context
     local ok, content, id, _, _, _ = pcall(chat_helpers.format_file_for_llm, path, opts)
     if ok then
-      chat:add_context({ content = content }, "memory", id, {
-        path = path,
-      })
+      local context_exists = chat_helpers.has_context(id, chat.messages)
+      if not context_exists then
+        chat:add_context({ content = content }, "memory", id, {
+          path = path,
+        })
+      end
     end
   end)
 end
