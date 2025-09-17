@@ -1,5 +1,18 @@
 # Changelog
 
+## [17.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.22.1...v17.23.0) (2025-09-17)
+
+
+### Features
+
+* **chat:** add floating diff layout with focus effects ([#2016](https://github.com/olimorris/codecompanion.nvim/issues/2016)) ([d556e1b](https://github.com/olimorris/codecompanion.nvim/commit/d556e1b2c0ac85037a589ae15dae461255297bc1))
+
+
+### Bug Fixes
+
+* **chat:** clip claude code tool output ([#2134](https://github.com/olimorris/codecompanion.nvim/issues/2134)) ([b890561](https://github.com/olimorris/codecompanion.nvim/commit/b8905612ccb08d6b4b166dd2508a458c33db7c84))
+* **chat:** don't add duplicate memory ([#2131](https://github.com/olimorris/codecompanion.nvim/issues/2131)) ([669bbdf](https://github.com/olimorris/codecompanion.nvim/commit/669bbdf0940029a08074292d1f31f945af18d0cf))
+
 ## [17.22.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.22.0...v17.22.1) (2025-09-14)
 
 
