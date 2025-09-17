@@ -659,4 +659,122 @@ T["InlineDiff Screenshots"]["Shows complex mixed changes"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["InlineDiff Screenshots"]["Shows floating window diff for simple changes"] = function()
+  child.lua([[
+    -- Configure inline diff to use float layout
+    local config = require("codecompanion.config")
+    config.display.diff.provider_opts.inline.layout = "float"
+
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "python"
+
+    local original_content = {
+      "def calculate_area(radius):",
+      "    return 3.14 * radius * radius",
+      "",
+      "def main():",
+      "    area = calculate_area(5)",
+      "    print(f'Area: {area}')"
+    }
+
+    local new_content = {
+      "def calculate_area(radius):",
+      "    import math",
+      "    return math.pi * radius ** 2",
+      "",
+      "def main():",
+      "    area = calculate_area(5)",
+      "    print(f'Circle area: {area:.2f}')"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+    local diff = diff_helper.create(bufnr, "float_test_1", {
+      original_content = original_content
+    })
+
+    -- Wait a bit for the floating window to be created
+    vim.wait(100)
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["InlineDiff Screenshots"]["Shows floating window diff for complex file changes"] = function()
+  child.lua([[
+    -- Configure inline diff to use float layout
+    local config = require("codecompanion.config")
+    config.display.diff.provider_opts.inline.layout = "float"
+
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "javascript"
+
+    local original_content = {
+      "class UserManager {",
+      "  constructor() {",
+      "    this.users = [];",
+      "  }",
+      "",
+      "  addUser(name, email) {",
+      "    this.users.push({ name, email });",
+      "  }",
+      "",
+      "  getUser(name) {",
+      "    return this.users.find(u => u.name === name);",
+      "  }",
+      "}"
+    }
+
+    local new_content = {
+      "class UserManager {",
+      "  constructor() {",
+      "    this.users = [];",
+      "    this.nextId = 1;",
+      "  }",
+      "",
+      "  addUser(name, email) {",
+      "    if (!name || !email) {",
+      "      throw new Error('Name and email are required');",
+      "    }",
+      "    const user = { id: this.nextId++, name, email, active: true };",
+      "    this.users.push(user);",
+      "    return user;",
+      "  }",
+      "",
+      "  getUser(identifier) {",
+      "    if (typeof identifier === 'number') {",
+      "      return this.users.find(u => u.id === identifier);",
+      "    }",
+      "    return this.users.find(u => u.name === identifier);",
+      "  }",
+      "",
+      "  deactivateUser(id) {",
+      "    const user = this.getUser(id);",
+      "    if (user) {",
+      "      user.active = false;",
+      "    }",
+      "    return user;",
+      "  }",
+      "}"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+    local diff = diff_helper.create(bufnr, "float_test_2", {
+      original_content = original_content
+    })
+
+    -- Wait a bit for the floating window to be created
+    vim.wait(100)
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

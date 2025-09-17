@@ -95,7 +95,7 @@ end
 ---@param winnr number
 ---@return number|nil bufnr
 local function create_buffer_in_window(filepath, winnr)
-  if not vim.fn.filereadable(filepath) then
+  if not vim.uv.fs_stat(vim.fs.normalize(filepath)) then
     log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
     return nil
   end
@@ -135,11 +135,124 @@ local function create_split_window(bufnr_or_filepath)
   end
 end
 
+---Setup winbar for diff window with keymap hints
+---@param winnr number Window number to set up winbar for
+---@return nil
+local function place_diff_winbar(winnr)
+  local keymaps_config = config.strategies.inline.keymaps
+  if not keymaps_config then
+    return
+  end
+
+  local parts = {}
+  if keymaps_config.accept_change.modes.n then
+    table.insert(parts, "[Accept: " .. keymaps_config.accept_change.modes.n .. "]")
+  end
+  if keymaps_config.reject_change.modes.n then
+    table.insert(parts, "[Reject: " .. keymaps_config.reject_change.modes.n .. "]")
+  end
+  if keymaps_config.always_accept.modes.n then
+    table.insert(parts, "[Always Accept: " .. keymaps_config.always_accept.modes.n .. "]")
+  end
+
+  local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
+  ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+end
+
+---Create diff floating window using create_float
+---@param bufnr number Buffer to display in the floating window
+---@param filepath string|nil Optional filepath for window title
+---@return number? winnr Window number of the created floating window
+local function create_diff_floating_window(bufnr, filepath)
+  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
+
+  local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
+  local content = {} -- Dummy content for create_float function
+
+  local _, winnr = ui.create_float(content, {
+    bufnr = bufnr,
+    set_content = false, -- Don't overwrite existing buffer content
+    window = { width = window_config.width, height = window_config.height },
+    row = window_config.row,
+    col = window_config.col,
+    relative = window_config.relative,
+    filetype = filetype,
+    title = ui.build_float_title({
+      title_prefix = " Diff",
+      filepath = filepath,
+    }),
+    lock = false, -- Allow edits for diff
+    ignore_keymaps = true,
+    opts = window_config.opts,
+    show_dim = true,
+  })
+
+  if winnr then
+    place_diff_winbar(winnr)
+  end
+
+  return winnr
+end
+
+---Create floating window only (no buffer creation)
+---@param bufnr number Buffer number to display in the floating window
+---@param filepath string|nil Optional filepath for window title
+---@return number|nil winnr Window number of the floating window
+local function create_floating_window_only(bufnr, filepath)
+  local display_filepath = filepath
+  if not display_filepath and bufnr and api.nvim_buf_is_valid(bufnr) then
+    local buf_name = api.nvim_buf_get_name(bufnr)
+    if buf_name and buf_name ~= "" then
+      display_filepath = buf_name
+    end
+  end
+
+  return create_diff_floating_window(bufnr, display_filepath)
+end
+
 ---Open buffer or file and return buffer number and window
 ---@param bufnr_or_filepath number|string
 ---@return number|nil bufnr, number|nil winnr
 local function open_buffer_and_window(bufnr_or_filepath)
+  local inline_config = config.display.diff.provider_opts.inline
+  local layout = inline_config.layout
   local is_filepath = type(bufnr_or_filepath) == "string"
+  local bufnr
+
+  -- First, get or create the buffer
+  if is_filepath then
+    local filepath = bufnr_or_filepath --[[@as string]]
+    local existing_bufnr = get_existing_buffer(filepath)
+    if existing_bufnr then
+      bufnr = existing_bufnr
+    else
+      if not vim.uv.fs_stat(vim.fs.normalize(filepath)) then
+        log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
+        return nil, nil
+      end
+      bufnr = vim.fn.bufnr(filepath, true)
+      api.nvim_buf_call(bufnr, function()
+        vim.cmd("silent edit " .. vim.fn.fnameescape(filepath))
+      end)
+    end
+  else
+    bufnr = bufnr_or_filepath --[[@as number]]
+  end
+
+  if not api.nvim_buf_is_valid(bufnr) then
+    log:debug("[catalog::helpers::diff::create] Invalid buffer")
+    return nil, nil
+  end
+
+  -- Now handle window creation based on layout
+  if layout == "float" then
+    local filepath = is_filepath and bufnr_or_filepath or nil --[[@as string]]
+    local winnr = create_floating_window_only(bufnr, filepath)
+    if winnr then
+      return bufnr, winnr
+    end
+    return nil, nil
+  end
 
   if is_filepath then
     local filepath = bufnr_or_filepath --[[@as string]]
@@ -154,21 +267,20 @@ local function open_buffer_and_window(bufnr_or_filepath)
       -- Case 2: Buffer exists but not visible
       local winnr = find_suitable_window()
       if winnr then
-        local bufnr = set_buffer_in_window(existing_bufnr, winnr)
-        return bufnr, winnr
+        local result_bufnr = set_buffer_in_window(existing_bufnr, winnr)
+        return result_bufnr, winnr
       end
     else
       -- Case 3: Buffer doesn't exist
       local winnr = find_suitable_window()
       if winnr then
-        local bufnr = create_buffer_in_window(filepath, winnr)
-        return bufnr, winnr
+        local result_bufnr = create_buffer_in_window(filepath, winnr)
+        return result_bufnr, winnr
       end
     end
 
     return create_split_window(filepath), api.nvim_get_current_win() -- Fallback
   else
-    local bufnr = bufnr_or_filepath --[[@as number]]
     local existing_win = ui.buf_get_win(bufnr)
 
     if existing_win then
@@ -224,14 +336,20 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     return nil
   end
 
-  local diff = diff_module.new({
+  local inline_config = config.display.diff.provider_opts.inline
+  local layout = inline_config.layout
+
+  local diff_args = {
     bufnr = bufnr,
     -- Use provided content or fallback to current buffer content
     contents = opts.original_content or api.nvim_buf_get_lines(bufnr, 0, -1, true),
     filetype = api.nvim_get_option_value("filetype", { buf = bufnr }),
     id = diff_id,
     winnr = winnr,
-  })
+    is_floating = layout == "float",
+  }
+
+  local diff = diff_module.new(diff_args)
 
   if diff and opts.set_keymaps then
     vim.schedule(function()
@@ -253,6 +371,8 @@ function M.setup_keymaps(diff, opts)
     return
   end
 
+  -- For floating windows, we show keymaps in winbar and still set them up
+  -- For non-floating windows, we just set them up normally
   keymaps
     .new({
       bufnr = diff.bufnr,

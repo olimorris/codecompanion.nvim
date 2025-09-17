@@ -1291,10 +1291,16 @@ You must create or modify a workspace file through a series of prompts over mult
           wrap = true,
         },
       },
-      -- Window options for any windows that open within the chat buffer
+      -- Options for any windows that open within the chat buffer
       child_window = {
-        width = vim.o.columns - 5,
-        height = vim.o.lines - 2,
+        ---@return number|fun(): number
+        width = function()
+          return vim.o.columns - 5
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 2
+        end,
         row = "center",
         col = "center",
         relative = "editor",
@@ -1304,8 +1310,16 @@ You must create or modify a workspace file through a series of prompts over mult
           relativenumber = false,
         },
       },
-      -- You can also extend/override the child_window options for a diff
+      -- Extend/override the child_window options for a diff
       diff_window = {
+        ---@return number|fun(): number
+        width = function()
+          return math.min(120, vim.o.columns - 10)
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 4
+        end,
         opts = {
           number = true,
         },
@@ -1336,48 +1350,56 @@ You must create or modify a workspace file through a series of prompts over mult
     diff = {
       enabled = true,
       provider = providers.diff, -- mini_diff|split|inline
-      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
 
-      -- Options for the `default` diff provider
-      layout = "vertical", -- vertical|horizontal split
-      opts = {
-        "internal",
-        "filler",
-        "closeoff",
-        "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-        "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-        "followwrap",
-        "linematch:120",
-      },
+      provider_opts = {
+        -- Options for inline diff provider
+        inline = {
+          layout = "float", -- float|buffer - Where to display the diff
 
-      -- Options for inline diff
-      diff_signs = {
-        signs = {
-          text = "▌", -- Sign text for normal changes
-          reject = "✗", -- Sign text for rejected changes in super_diff
-          highlight_groups = {
-            addition = "DiagnosticOk",
-            deletion = "DiagnosticError",
-            modification = "DiagnosticWarn",
+          diff_signs = {
+            signs = {
+              text = "▌", -- Sign text for normal changes
+              reject = "✗", -- Sign text for rejected changes in super_diff
+              highlight_groups = {
+                addition = "DiagnosticOk",
+                deletion = "DiagnosticError",
+                modification = "DiagnosticWarn",
+              },
+            },
+            -- Super Diff options
+            icons = {
+              accepted = " ",
+              rejected = " ",
+            },
+            colors = {
+              accepted = "DiagnosticOk",
+              rejected = "DiagnosticError",
+            },
+          },
+
+          opts = {
+            context_lines = 3, -- Number of context lines in hunks
+            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+            full_width_removed = true, -- Make removed lines span full width
+            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+            show_removed = true, -- Show removed lines as virtual text
           },
         },
-        -- Super Diff options
-        icons = {
-          accepted = " ",
-          rejected = " ",
+
+        -- Options for the split provider
+        split = {
+          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+          layout = "vertical", -- vertical|horizontal split
+          opts = {
+            "internal",
+            "filler",
+            "closeoff",
+            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "followwrap",
+            "linematch:120",
+          },
         },
-        colors = {
-          accepted = "DiagnosticOk",
-          rejected = "DiagnosticError",
-        },
-      },
-      -- Inline diff specific options
-      inline = {
-        show_removed = true, -- Show removed lines as virtual text
-        full_width_removed = true, -- Make removed lines span full width
-        priority = 100, -- Highlight priority for diffs; increase if using inlay hints or if highlights are not visible.
-        context_lines = 3, -- Number of context lines in hunks
-        show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
       },
     },
     inline = {
@@ -1439,6 +1461,13 @@ M.can_send_code = function()
     return M.config.opts.send_code()
   end
   return false
+end
+
+---Resolve a config value that might be a function or static value
+---@param value any
+---@return any
+function M.resolve_value(value)
+  return type(value) == "function" and value() or value
 end
 
 return setmetatable(M, {

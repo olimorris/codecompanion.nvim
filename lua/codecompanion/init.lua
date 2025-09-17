@@ -240,6 +240,9 @@ CodeCompanion.restore = function(bufnr)
   end
 
   if chat.ui:is_visible() then
+    if chat.ui.winnr and api.nvim_win_is_valid(chat.ui.winnr) then
+      pcall(api.nvim_set_current_win, chat.ui.winnr)
+    end
     return
   end
   chat.ui:open()

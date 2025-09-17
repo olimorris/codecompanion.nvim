@@ -138,10 +138,10 @@ local function build_banner(normalized, kind_map)
   return " Keymaps: " .. table.concat(maps, " | ") .. " "
 end
 
----Place banner below the last line; only show keys that actually exist
----@param winnr number
----@param normalized table<string, string>
----@param kind_map table<string, string>
+---Place banner in the winbar of the given window, or notify if that fails
+---@param winnr number Window number to set up winbar for
+---@param normalized table<string, string> kind -> lhs mapping
+---@param kind_map table<string, string> kind -> optionId mapping
 local function place_banner(winnr, normalized, kind_map)
   local banner = build_banner(normalized, kind_map)
 
@@ -301,11 +301,14 @@ end
 ---@param tool_call table
 ---@return table
 local function get_diff(tool_call)
+  local absolute_path = tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path
+  local path = absolute_path or vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path)
+
   return {
     kind = tool_call.kind,
     new = tool_call.content[1].newText,
     old = tool_call.content[1].oldText,
-    path = tool_call.content[1].path,
+    path = path,
     status = tool_call.status,
     title = tool_call.title,
     tool_call_id = tool_call.toolCallId,
@@ -326,8 +329,7 @@ local function show_diff(chat, request)
   local old_lines = vim.split(d.old or "", "\n", { plain = true })
   local new_lines = vim.split(d.new or "", "\n", { plain = true })
 
-  local window_config =
-    vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window or {})
+  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
   local bufnr, winnr = ui.create_float(new_lines, {
     window = { width = window_config.width, height = window_config.height },
@@ -335,11 +337,20 @@ local function show_diff(chat, request)
     col = window_config.col or "center",
     relative = window_config.relative or "editor",
     filetype = vim.filetype.match({ filename = d.path }),
-    title = "Edit Requested: " .. vim.fn.fnamemodify(d.path or "", ":."),
+    title = ui.build_float_title({
+      title_prefix = "Edit Requested",
+      filepath = d.path,
+    }),
     lock = true,
     ignore_keymaps = true,
     opts = window_config.opts,
+    show_dim = true,
   })
+
+  -- Build present kinds and normalize keymaps from config, then setup winbar
+  local kind_map = build_kind_map(request.options)
+  local normalized = normalize_maps(config.strategies.chat.keymaps)
+  place_banner(winnr, normalized, kind_map)
 
   local diff_id = math.random(10000000)
   -- Force users to use the inline diff
@@ -350,15 +361,12 @@ local function show_diff(chat, request)
     contents = old_lines,
     id = diff_id,
     winnr = winnr,
+    is_floating = true, -- so we don't show inline keymap hints
   })
   if not diff then
     log:debug("[chat::acp::interactions] Failed to create diff; auto-canceling permission")
     return request.respond(nil, true)
   end
-
-  -- Build present kinds and normalize keymaps from config
-  local kind_map = build_kind_map(request.options)
-  local normalized = normalize_maps(config.strategies.chat.keymaps)
 
   local mapped_lhs = {}
   local finish = on_user_response(request, diff, {
@@ -368,7 +376,6 @@ local function show_diff(chat, request)
   })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
-  place_banner(winnr, normalized, kind_map)
   setup_autocmds(bufnr, winnr, finish)
 
   return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
