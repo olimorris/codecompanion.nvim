@@ -504,7 +504,7 @@ function Chat.new(args)
   end
 
   ---@cast self CodeCompanion.Chat
-  self:add_system_prompt()
+  self:set_system_prompt()
   set_autocmds(self)
 
   last_chat = self
@@ -588,6 +588,28 @@ function Chat:apply_settings(settings)
   return self
 end
 
+---Change the adapter in the chat buffer
+---@param name string
+---@param model? string
+function Chat:change_adapter(name, model)
+  local function fire()
+    return util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
+  end
+
+  self.adapter = require("codecompanion.adapters").resolve(name)
+  self.ui.adapter = self.adapter
+
+  if model then
+    self:apply_model(model)
+    return fire()
+  end
+
+  self:set_system_prompt()
+  self:update_metadata()
+  self:apply_settings()
+  fire()
+end
+
 ---Set a model in the chat buffer
 ---@param model string
 ---@return CodeCompanion.Chat
@@ -599,7 +621,9 @@ function Chat:apply_model(model)
   self.settings.model = model
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
-  self:add_system_prompt()
+  self:set_system_prompt()
+  self:update_metadata()
+  self:apply_settings()
 
   return self
 end
@@ -641,7 +665,7 @@ end
 ---@params prompt? string
 ---@params opts? table
 ---@return CodeCompanion.Chat
-function Chat:add_system_prompt(prompt, opts)
+function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
     return self
   end
@@ -701,7 +725,7 @@ function Chat:toggle_system_prompt()
     self:remove_tagged_message("system_prompt_from_config")
     util.notify("Removed system prompt")
   else
-    self:add_system_prompt()
+    self:set_system_prompt()
     util.notify("Added system prompt")
   end
 end
@@ -1348,7 +1372,7 @@ function Chat:clear()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
-  self:add_system_prompt()
+  self:set_system_prompt()
   util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
 

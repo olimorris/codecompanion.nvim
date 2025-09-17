@@ -568,14 +568,7 @@ M.change_adapter = {
 
       if current_adapter ~= selected_adapter then
         chat.acp_connection = nil
-        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected_adapter])
-        util.fire(
-          "ChatAdapter",
-          { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
-        )
-        chat.ui.adapter = chat.adapter
-        chat:update_metadata()
-        chat:apply_settings()
+        chat:change_adapter(selected_adapter)
       end
 
       -- Update the system prompt
@@ -631,8 +624,6 @@ M.change_adapter = {
           end
 
           chat:apply_model(selected_model)
-          chat:update_metadata()
-          chat:apply_settings()
         end)
       end
 
