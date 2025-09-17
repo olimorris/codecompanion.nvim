@@ -8,7 +8,7 @@ Below is the `default` memory group in the plugin:
 require("codecompanion").setup({
   memory = {
     default = {
-      description = "My default group",
+      description = "Collection of common files for all projects",
       files = {
         ".clinerules",
         ".cursorrules",
