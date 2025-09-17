@@ -32,6 +32,7 @@
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watched_buffers CodeCompanion.Watchers The buffer watcher instance
+---@field window_opts? table Window configuration options for the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
@@ -52,6 +53,7 @@
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
+---@field window_opts? table Window configuration options for the chat buffer-
 
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
