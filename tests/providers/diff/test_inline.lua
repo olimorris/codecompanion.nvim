@@ -190,6 +190,7 @@ T["InlineDiff"]["apply_diff_highlights - applies highlights for changes"] = func
   diff:apply_diff_highlights(old_lines, new_lines)
 
   h.expect_truthy(#diff.extmark_ids >= initial_extmarks)
+  h.eq(vim.api.nvim_get_mode().mode, "n")
 end
 
 T["InlineDiff"]["clear_highlights - removes all extmarks"] = function()
