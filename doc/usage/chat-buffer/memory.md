@@ -2,6 +2,31 @@
 
 LLMs don’t retain memory between completions. In CodeCompanion, memory provides persistent, reusable context for chat buffers, via the notion of groups.
 
+Below is the `default` memory group in the plugin:
+
+```lua
+require("codecompanion").setup({
+  memory = {
+    default = {
+      description = "My default group",
+      files = {
+        ".clinerules",
+        ".cursorrules",
+        ".goosehints",
+        ".rules",
+        ".windsurfrules",
+        ".github/copilot-instructions.md",
+        "AGENT.md",
+        "AGENTS.md",
+        { path = "CLAUDE.md", parser = "claude" },
+        { path = "CLAUDE.local.md", parser = "claude" },
+        { path = "~/.claude/CLAUDE.md", parser = "claude" },
+      },
+    },
+  },
+})
+```
+
 Once [enabled](/configuration/memory#enabling-memory), there are many ways that memory can be added to the chat buffer.
 
 ## Creating Memory
