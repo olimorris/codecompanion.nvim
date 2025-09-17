@@ -123,8 +123,10 @@ function Debug:render()
     local keys = {}
 
     -- Collect all settings keys including those with nil defaults
-    for key, _ in pairs(self.settings) do
-      table.insert(keys, key)
+    if self.settings then
+      for key, _ in pairs(self.settings) do
+        table.insert(keys, key)
+      end
     end
 
     -- Add any schema keys that have an explicit nil default
