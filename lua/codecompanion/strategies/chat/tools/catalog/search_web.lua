@@ -33,7 +33,7 @@ return {
       args.query = string.gsub(args.query, "%f[%w_]search_web%f[^%w_]", "", 1)
 
       local tool_adapter = config.strategies.chat.tools.search_web.opts.adapter
-      local adapter = vim.deepcopy(adapters.resolve(config.adapters[tool_adapter]))
+      local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
       adapter.methods.tools.search_web.setup(adapter, opts.opts, args)
 
       local query = args.query
@@ -117,7 +117,7 @@ return {
     error = function(self, tools, _, stderr, _)
       local chat = tools.chat
       local args = self.args
-      log:debug("[Web Search Tool] Error output: %s", stderr)
+      log:debug("[Search Web Tool] Error output: %s", stderr)
 
       local error_output = fmt([[Error searching for `%s`]], args.query)
 

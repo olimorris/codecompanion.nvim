@@ -11,16 +11,14 @@ local configs = {
   telescope = { module = "telescope", name = "telescope" },
   mini_pick = { module = "mini.pick", name = "mini_pick" },
   fzf_lua = { module = "fzf-lua", name = "fzf_lua" },
-  snacks = {
-    module = "snacks",
-    name = "snacks",
-    condition = function(snacks)
-      -- Snacks can be installed but the Picker is disabled
-      return snacks and snacks.config.picker.enabled
-    end,
-  },
+  snacks = { module = "snacks", name = "snacks" },
 
   -- Diffs
+  inline = {
+    module = "codecompanion.providers.diff.inline", -- Internal module path
+    name = "inline",
+    -- No condition needed - always available since it's internal
+  },
   mini_diff = {
     module = "mini.diff",
     name = "mini_diff",
@@ -87,8 +85,8 @@ end
 ---Get the default Diff provider
 ---@return string
 local function diff_providers()
-  local providers = { "mini_diff" }
-  return find_provider(providers, configs, "default")
+  local providers = { "inline", "split", "mini_diff" }
+  return find_provider(providers, configs, "inline")
 end
 
 ---Get the default Completion provider

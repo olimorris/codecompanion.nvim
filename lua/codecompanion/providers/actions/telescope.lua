@@ -6,6 +6,7 @@ local entry_display = require("telescope.pickers.entry_display")
 local previewers = require("telescope.previewers")
 local telescope_actions = require("telescope.actions")
 
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local function wrap_text_to_table(text, max_line_length)
@@ -100,7 +101,7 @@ function Provider:picker(items, opts)
 
   return pickers
     .new(opts, {
-      prompt_title = opts.prompt or "CodeCompanion actions",
+      prompt_title = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions",
       finder = finders.new_table({
         results = items,
         entry_maker = function(entry)

@@ -37,7 +37,8 @@ end
 ---@param include_params? boolean Whether to include parameters in the pattern
 ---@return string The compiled regex pattern
 function Variables:_pattern(var, include_params)
-  return CONSTANTS.PREFIX .. "{" .. var .. "}" .. (include_params and "{[^}]*}" or "")
+  local escaped_var = vim.pesc(var)
+  return CONSTANTS.PREFIX .. "{" .. escaped_var .. "}" .. (include_params and "{[^}]*}" or "")
 end
 
 ---Check a prompt for a variable
@@ -114,7 +115,7 @@ function Variables:output()
 
     ::append::
 
-    local output = var_output.new({ context = self.inline.context }):output()
+    local output = var_output.new({ context = self.inline.buffer_context }):output()
     if output then
       table.insert(outputs, output)
     end

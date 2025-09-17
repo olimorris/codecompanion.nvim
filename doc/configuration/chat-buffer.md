@@ -61,6 +61,27 @@ require("codecompanion").setup({
 })
 ```
 
+### Pinning and Watching
+
+To [pin or watch](/usage/chat-buffer/variables#with-parameters) buffers by default, you can add this configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      variables = {
+        ["buffer"] = {
+          opts = {
+            default_params = 'pin', -- or 'watch'
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+
 ## Slash Commands
 
 [Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
@@ -365,10 +386,7 @@ or:
 
 ## Diff
 
-> [!NOTE]
-> Currently the plugin only supports native Neovim diff or [mini.diff](https://github.com/echasnovski/mini.diff)
-
-If you utilize the `insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
+CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
 
 There are a number of diff settings available to you:
 
@@ -377,14 +395,111 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal split for default provider
-      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-      provider = "default", -- default|mini_diff
+      provider = providers.diff, -- mini_diff|split|inline
+
+      provider_opts = {
+        -- Options for inline diff provider
+        inline = {
+          layout = "float", -- float|buffer - Where to display the diff
+
+          diff_signs = {
+            signs = {
+              text = "▌", -- Sign text for normal changes
+              reject = "✗", -- Sign text for rejected changes in super_diff
+              highlight_groups = {
+                addition = "DiagnosticOk",
+                deletion = "DiagnosticError",
+                modification = "DiagnosticWarn",
+              },
+            },
+            -- Super Diff options
+            icons = {
+              accepted = " ",
+              rejected = " ",
+            },
+            colors = {
+              accepted = "DiagnosticOk",
+              rejected = "DiagnosticError",
+            },
+          },
+
+          opts = {
+            context_lines = 3, -- Number of context lines in hunks
+            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+            full_width_removed = true, -- Make removed lines span full width
+            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+            show_removed = true, -- Show removed lines as virtual text
+          },
+        },
+
+        -- Options for the split provider
+        split = {
+          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+          layout = "vertical", -- vertical|horizontal split
+          opts = {
+            "internal",
+            "filler",
+            "closeoff",
+            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "followwrap",
+            "linematch:120",
+          },
+        },
+      },
     },
   },
-}),
+})
 ```
+
+You can also customize the window that the diff appears in (taking precedence over `child_window`):
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      -- Extend/override the child_window options for a diff
+      diff_window = {
+        ---@return number|fun(): number
+        width = function()
+          return math.min(120, vim.o.columns - 10)
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 4
+        end,
+        opts = {
+          number = true,
+        },
+      },
+    },
+  },
+})
+```
+
+
+The keymaps for accepting and rejecting the diff sit within the `inline` strategy configuration and can be changed via:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    inline = {
+      keymaps = {
+        accept_change = {
+          modes = { n = "gda" }, -- Remember this as DiffAccept
+        },
+        reject_change = {
+          modes = { n = "gdr" }, -- Remember this as DiffReject
+        },
+        always_accept = {
+          modes = { n = "gdy" }, -- Remember this as DiffYolo
+        },
+      },
+    },
+  },
+})
+```
+
 
 ## User Interface (UI)
 
@@ -419,6 +534,100 @@ By default, the LLM's responses will be placed under a header such as `CodeCompa
 
 The user role is currently only available as a string.
 
+### Floating Child Windows
+
+The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [Super Diff](/usage/chat-buffer/#super-diff), [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions).
+
+The default sizing of this window can be configured:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      child_window = {
+        width = vim.o.columns - 5,
+        height = vim.o.lines - 2,
+        row = "center",
+        col = "center",
+        relative = "editor",
+        opts = {
+          wrap = false,
+          number = false,
+          relativenumber = false,
+        },
+      },
+    },
+  },
+})
+```
+
+### Auto Scrolling
+
+By default, the page scrolls down automatically as the response streams, with the cursor placed at the end. This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response. You can disable this behavior using a flag:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      auto_scroll = false,
+    },
+  },
+})
+```
+
+### Folding
+
+It's not uncommon for users to share many items, as context, with an LLM. This can impact the chat buffer's UI significantly, leaving a large space between the LLM's last response and the user's input. To minimize this impact, the context can be folded:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      icons = {
+        chat_context = "📎️", -- You can also apply an icon to the fold
+      },
+      fold_context = true,
+    },
+  },
+})
+```
+
+Reasoning content is also folded by default:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      icons = {
+        chat_fold = " ",
+      },
+      fold_reasoning = true,
+    },
+  },
+})
+```
+
+### Additional UI Options
+
+There are also a number of other options that you can customize in the UI:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
+      separator = "─", -- The separator between the different messages in the chat buffer
+      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
+      show_settings = false, -- Show LLM settings at the top of the chat buffer?
+      show_token_count = true, -- Show the token count for each response?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
+      start_in_insert_mode = false, -- Open the chat buffer in insert mode?
+    },
+  },
+})
+```
+
 ### Completion
 
 By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete variables, slash commands and tools. However, you can override this in your config:
@@ -436,57 +645,6 @@ require("codecompanion").setup({
 ```
 
 The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
-
-### Auto Scrolling
-
-By default, the page scrolls down automatically as the response streams, with the cursor placed at the end. This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response. You can disable this behavior using a flag:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      auto_scroll = false,
-    },
-  },
-}),
-```
-
-### Fold Context
-
-It's not uncommon for users to share many items, as context, with an LLM. This can impact the chat buffer's UI significantly, leaving a large space between the LLM's last response and the user's input. To minimize this impact, the context can be folded:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      icons = {
-        chat_context = "📎️", -- You can also apply an icon to the fold
-      },
-      fold_context = true,
-    },
-  },
-}),
-```
-
-### Additional UI Options
-
-There are also a number of other options that you can customize in the UI:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
-      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
-      separator = "─", -- The separator between the different messages in the chat buffer
-      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
-      show_settings = false, -- Show LLM settings at the top of the chat buffer?
-      show_token_count = true, -- Show the token count for each response?
-      start_in_insert_mode = false, -- Open the chat buffer in insert mode?
-    },
-  },
-}),
-```
 
 ## Jump Action
 

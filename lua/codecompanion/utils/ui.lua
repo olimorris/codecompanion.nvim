@@ -4,24 +4,78 @@ local api = vim.api
 
 local M = {}
 
+-- Background window references for floating diff focus effect
+M._background_win = nil
+M._background_buf = nil
+
+---Create a background window with winblend for focus effect
+---@return number|nil winnr Background window number
+function M.create_background_window()
+  if M._background_win and api.nvim_win_is_valid(M._background_win) then
+    return M._background_win
+  end
+
+  local config = require("codecompanion.config")
+  local inline_config = config.display.diff.provider_opts.inline
+  local winblend = inline_config.opts.dim or 25
+
+  M._background_buf = api.nvim_create_buf(false, true)
+  M._background_win = api.nvim_open_win(M._background_buf, false, {
+    relative = "editor",
+    row = 0,
+    col = 0,
+    width = vim.o.columns,
+    height = vim.o.lines,
+    style = "minimal",
+    border = "none",
+    focusable = false,
+    noautocmd = true,
+    zindex = 50,
+  })
+
+  -- Set winblend for dimming effect
+  api.nvim_set_option_value("winblend", winblend, { win = M._background_win })
+
+  return M._background_win
+end
+
+---Close the background window
+---@return nil
+function M.close_background_window()
+  if M._background_win and api.nvim_win_is_valid(M._background_win) then
+    pcall(api.nvim_win_close, M._background_win, true)
+  end
+  M._background_win = nil
+  M._background_buf = nil
+end
+
 ---Open a floating window with the provided lines
 ---@param lines table
 ---@param opts table
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
   local window = opts.window
-  local optsWidth = opts.window.width == "auto" and 0.45 or opts.window.width
-  local width = optsWidth > 1 and optsWidth or opts.width or 85
-  local height = window.height > 1 and window.height or opts.height or 17
+
+  -- Create background window for dimming effect if enabled
+  if opts.show_dim then
+    M.create_background_window()
+  end
+
+  local config = require("codecompanion.config")
+  local window_width = config.resolve_value(window.width)
+  local width = window_width and (window_width > 1 and window_width or opts.width or 85) or opts.width or 85
+  local window_height = config.resolve_value(window.height)
+  local height = window_height and (window_height > 1 and window_height or opts.height or 17) or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
 
   require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+
   -- Calculate center position if not specified
   local row = opts.row or window.row or 10
   local col = opts.col or window.col or 0
   if row == "center" then
-    row = math.floor((vim.o.lines - height) / 2)
+    row = math.floor((vim.o.lines - height) / 2 - 1) -- Account for status line for better UX
   end
   if col == "center" then
     col = math.floor((vim.o.columns - width) / 2)
@@ -33,14 +87,18 @@ M.create_float = function(lines, opts)
     border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
     width = width,
     height = height,
-    style = "minimal",
+    style = opts.style,
     row = row,
     col = col,
     title = opts.title or "Options",
     title_pos = "center",
+    zindex = opts.show_dim and 99 or nil, -- When dimming, set above background win but below notifications
   })
 
-  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  -- Only set content if we created a new buffer OR if not explicitly disabled
+  if not opts.bufnr or opts.set_content ~= false then
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  end
 
   if opts.lock then
     vim.bo[bufnr].modified = false
@@ -49,6 +107,17 @@ M.create_float = function(lines, opts)
 
   if opts.opts then
     M.set_win_options(winnr, opts.opts)
+  end
+
+  -- Set up autocmd to clean up background window if dimming is enabled
+  if winnr and opts.show_dim then
+    api.nvim_create_autocmd("WinClosed", {
+      pattern = tostring(winnr),
+      callback = function()
+        M.close_background_window()
+      end,
+      once = true,
+    })
   end
 
   if opts.ignore_keymaps then
@@ -63,6 +132,32 @@ M.create_float = function(lines, opts)
   vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
 
   return bufnr, winnr
+end
+
+---Build a floating window title with smart filepath handling
+---@param opts { title?: string, title_prefix?: string, filepath?: string }
+---@return string title The formatted title
+function M.build_float_title(opts)
+  opts = opts or {}
+  local title = opts.title or opts.title_prefix or "CodeCompanion"
+
+  if opts.filepath then
+    local filename = vim.fs.basename(opts.filepath)
+    local function format_dirname(path)
+      local dirname = vim.fs.dirname(path)
+      if dirname and dirname ~= "." and dirname ~= "" then
+        return dirname .. "/"
+      end
+      return ""
+    end
+    local ok, relative_path = pcall(function()
+      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
+    end)
+    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
+    title = " " .. (opts.title_prefix or " Diff") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
+  end
+
+  return title
 end
 
 ---@param bufnr number
@@ -171,8 +266,8 @@ M.buf_is_active = function(bufnr)
   return api.nvim_get_current_buf() == bufnr
 end
 
----@param bufnr nil|integer
----@return integer[]
+---@param bufnr nil|number
+---@return number[]
 M.buf_list_wins = function(bufnr)
   local wins = {}
 
@@ -199,7 +294,7 @@ M.scroll_to_end = function(winnr)
   api.nvim_win_set_cursor(winnr, { lnum, api.nvim_strwidth(last_line) })
 end
 
----@param bufnr nil|integer
+---@param bufnr nil|number
 ---@return nil
 M.buf_scroll_to_end = function(bufnr)
   for _, winnr in ipairs(M.buf_list_wins(bufnr or 0)) do
@@ -247,8 +342,8 @@ function M.scroll_and_highlight(bufnr, line_num, num_lines)
   end, 2000) -- 2 seconds
 end
 
----@param bufnr nil|integer
----@return nil|integer
+---@param bufnr nil|number
+---@return nil|number
 M.buf_get_win = function(bufnr)
   for _, winnr in ipairs(api.nvim_list_wins()) do
     if api.nvim_win_get_buf(winnr) == bufnr then
@@ -258,7 +353,7 @@ M.buf_get_win = function(bufnr)
 end
 
 ---Source: https://github.com/stevearc/oil.nvim/blob/dd432e76d01eda08b8658415588d011009478469/lua/oil/layout.lua#L22C8-L22C8
----@return integer
+---@return number
 M.get_editor_height = function()
   local editor_height = vim.o.lines - vim.o.cmdheight
   -- Subtract 1 if tabline is visible
@@ -381,7 +476,7 @@ end
 --- Otherwise, open it in a new tab.
 --- Returns the window ID after the jump.
 ---@param path string?
----@return integer
+---@return number
 function M.tabnew_reuse(path)
   local uri
   if path then
@@ -400,6 +495,32 @@ function M.tabnew_reuse(path)
   end
   vim.cmd("tabnew " .. path)
   return api.nvim_get_current_win()
+end
+
+---Set a winbar for a specific window
+---@param winnr number
+---@param text string Text to set in the winbar
+---@param hl string Highlight group to use for the winbar
+---@return nil
+function M.set_winbar(winnr, text, hl)
+  if not vim.api.nvim_win_is_valid(winnr) then
+    return
+  end
+
+  local centered = "%=" .. (text or ""):gsub("%%", "%%%%") .. "%="
+  vim.wo[winnr].winhighlight = "WinBar:" .. hl .. ",WinBarNC:" .. hl
+  vim.wo[winnr].winbar = centered
+end
+
+---A simple confirmation dialog using vim.fn.confirm
+---@param prompt string The prompt message
+---@param choices table Choices
+---@param opts? {default: number, highlight_group: string}  Additional options (currently unused)
+---@return number The index of the selected choice (1-based), or 0 if cancelled
+function M.confirm(prompt, choices, opts)
+  opts = opts or { default = 1, highlight_group = "Question" }
+  local formatted_choices = table.concat(choices, "\n")
+  return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
 end
 
 return M

@@ -10,10 +10,12 @@
 ---@field stdout table The stdout of the tool
 ---@field stderr table The stderr of the tool
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
----@field tools_ns integer The namespace for the virtual text that appears in the header
+---@field tools_ns number The namespace for the virtual text that appears in the header
 
+local EditTracker = require("codecompanion.strategies.chat.edit_tracker")
 local Orchestrator = require("codecompanion.strategies.chat.tools.orchestrator")
 local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
+
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
@@ -33,11 +35,145 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
-  PROCESSING_MSG = config.display.icons.loading .. " Tools processing ...",
+  PROCESSING_MSG = (config.display.chat.icons.tools_in_progress or "⚡") .. " Tools processing ...",
 }
 
 ---@class CodeCompanion.Tools
 local Tools = {}
+
+-- Private helper methods
+
+---Creates a regex pattern to match a tool name in a message
+---@param tool string The tool name to create a pattern for
+---@return string The compiled regex pattern
+function Tools:_pattern(tool)
+  return CONSTANTS.PREFIX .. "{" .. tool .. "}"
+end
+
+---Handle missing or invalid tool errors
+---@param tool table The tool that failed
+---@param error_message string The error message
+---@return nil
+function Tools:_handle_tool_error(tool, error_message)
+  local name = tool["function"].name
+  local tool_call = vim.deepcopy(tool)
+  tool_call.name = name
+  tool_call.function_call = tool_call
+
+  log:error(error_message)
+
+  local available_tools_msg = ""
+  if self.chat and self.chat.tool_registry and self.chat.tool_registry.in_use then
+    local available_tools = vim.tbl_keys(self.chat.tool_registry.in_use)
+    if next(available_tools) then
+      available_tools_msg = "The available tools are: "
+        .. table.concat(
+          vim.tbl_map(function(t)
+            return "`" .. t .. "`"
+          end, available_tools),
+          ", "
+        )
+    else
+      available_tools_msg = "No tools available"
+    end
+  else
+    available_tools_msg = "No tools available"
+  end
+
+  self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
+  return util.fire("ToolsFinished", { bufnr = self.bufnr })
+end
+
+---Resolve and prepare a tool for execution
+---@param tool table The tool call from the LLM
+---@return table|nil resolved_tool The resolved tool or nil if failed
+---@return string|nil error_msg Error message if resolution failed
+---@return boolean|nil is_json_error Whether this is a JSON parsing error that needs special handling
+function Tools:_resolve_and_prepare_tool(tool)
+  local name = tool["function"].name
+  local tool_config = self.tools_config[name]
+
+  if not tool_config then
+    return nil, string.format("Couldn't find the tool `%s`", name), false
+  end
+
+  local ok, resolved_tool = pcall(function()
+    return Tools.resolve(tool_config)
+  end)
+
+  if not ok or not resolved_tool then
+    return nil, string.format("Couldn't resolve the tool `%s`", name), false
+  end
+
+  local prepared_tool = vim.deepcopy(resolved_tool)
+  prepared_tool.name = name
+  prepared_tool.function_call = tool
+
+  -- Parse and set arguments - handle JSON errors specially like the original code
+  if tool["function"].arguments then
+    local args = tool["function"].arguments
+    -- For some adapter's that aren't streaming, the args are strings rather than tables
+    if type(args) == "string" then
+      if args == "" then
+        args = "{}"
+      end
+      local decoded
+      local json_ok = xpcall(function()
+        decoded = vim.json.decode(args)
+      end, function(err)
+        log:error("Couldn't decode the tool arguments: %s", args)
+        self.chat:add_tool_output(
+          prepared_tool,
+          string.format('You made an error in calling the %s tool: "%s"', name, err),
+          ""
+        )
+        return util.fire("ToolsFinished", { bufnr = self.bufnr })
+      end)
+
+      if not json_ok then
+        return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
+      end
+
+      args = decoded
+    end
+    prepared_tool.args = args
+  end
+
+  -- Merge options
+  prepared_tool.opts = vim.tbl_extend("force", prepared_tool.opts or {}, tool_config.opts or {})
+
+  -- Handle environment variables
+  if prepared_tool.env then
+    local env = type(prepared_tool.env) == "function" and prepared_tool.env(vim.deepcopy(prepared_tool)) or {}
+    util.replace_placeholders(prepared_tool.cmds, env)
+  end
+
+  return prepared_tool, nil, false
+end
+
+---Start edit tracking for all tools
+---@param tools table The tools to track
+---@return nil
+function Tools:_start_edit_tracking(tools)
+  for _, tool in ipairs(tools) do
+    local tool_name = tool["function"].name
+    local tool_args = tool["function"].arguments
+
+    -- Handle argument parsing more robustly, like the original code
+    if type(tool_args) == "string" then
+      local success, decoded = pcall(vim.json.decode, tool_args)
+      if success then
+        tool_args = decoded
+      else
+        tool_args = nil
+      end
+    end
+
+    EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
+  end
+end
+
+-- Public interface methods
 
 ---@param args table
 function Tools.new(args)
@@ -99,7 +235,7 @@ function Tools:set_autocmds()
             })
           end
 
-          if vim.g.codecompanion_auto_tool_mode then
+          if vim.g.codecompanion_yolo_mode then
             return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
@@ -121,95 +257,50 @@ end
 ---@param tools table The tools requested by the LLM
 ---@return nil
 function Tools:execute(chat, tools)
+  local id = math.random(10000000)
   self.chat = chat
 
-  ---Resolve and run the tool
-  ---@param orchestrator CodeCompanion.Tools.Orchestrator The orchestrator instance
-  ---@param tool table The tool to run
-  local function enqueue_tool(orchestrator, tool)
-    local name = tool["function"].name
-    local tool_config = self.tools_config[name]
-    local function handle_missing_tool(tool_call, err_message)
-      tool_call.name = name
-      tool_call.function_call = tool_call
-      log:error(err_message)
-      local available_tools_msg = next(chat.tool_registry.in_use or {})
-          and "The available tools are: " .. table.concat(
-            vim.tbl_map(function(t)
-              return "`" .. t .. "`"
-            end, vim.tbl_keys(chat.tool_registry.in_use)),
-            ", "
-          )
-        or "No tools available"
-      self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
-      return util.fire("ToolsFinished", { bufnr = self.bufnr })
-    end
-    if not tool_config then
-      return handle_missing_tool(vim.deepcopy(tool), string.format("Couldn't find the tool `%s`", name))
-    end
+  -- Start edit tracking for all tools
+  self:_start_edit_tracking(tools)
 
-    local ok, resolved_tool = pcall(function()
-      return Tools.resolve(tool_config)
-    end)
-    if not ok or not resolved_tool then
-      return handle_missing_tool(vim.deepcopy(tool), string.format("Couldn't resolve the tool `%s`", name))
-    end
+  -- Wrap the entire tool execution in error handling
+  local function safe_execute()
+    local orchestrator = Orchestrator.new(self, id)
 
-    self.tool = vim.deepcopy(resolved_tool)
+    -- Process each tool
+    for _, tool in ipairs(tools) do
+      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
 
-    self.tool.name = name
-    self.tool.function_call = tool
-    if tool["function"].arguments then
-      local args = tool["function"].arguments
-      -- For some adapter's that aren't streaming, the args are strings rather than tables
-      if type(args) == "string" then
-        local decoded
-        xpcall(function()
-          decoded = vim.json.decode(args)
-        end, function(err)
-          log:error("Couldn't decode the tool arguments: %s", args)
-          self.chat:add_tool_output(
-            self.tool,
-            string.format('You made an error in calling the %s tool: "%s"', name, err),
-            ""
-          )
-          return util.fire("ToolsFinished", { bufnr = self.bufnr })
-        end)
-        args = decoded
+      if not resolved_tool then
+        if is_json_error then
+          -- JSON error was already handled by _resolve_and_prepare_tool
+          return
+        else
+          return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
+        end
       end
-      self.tool.args = args
+
+      self.tool = resolved_tool
+      orchestrator.queue:push(self.tool)
     end
-    self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
 
-    if self.tool.env then
-      local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}
-      util.replace_placeholders(self.tool.cmds, env)
-    end
-    return orchestrator.queue:push(self.tool)
-  end
-
-  local id = math.random(10000000)
-  local orchestrator = Orchestrator.new(self, id)
-
-  for _, tool in ipairs(tools) do
-    enqueue_tool(orchestrator, tool)
-  end
-  self:set_autocmds()
-
-  util.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
-  xpcall(function()
+    self:set_autocmds()
+    util.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
     orchestrator:setup()
-  end, function(err)
-    log:error("Tool System execution error:\n%s", err)
-    util.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
-  end)
-end
+  end
 
----Creates a regex pattern to match a tool name in a message
----@param tool string The tool name to create a pattern for
----@return string The compiled regex pattern
-function Tools:_pattern(tool)
-  return CONSTANTS.PREFIX .. "{" .. tool .. "}"
+  -- Execute all tools with error handling
+  local ok, err = xpcall(safe_execute, function(error_msg)
+    return debug.traceback(error_msg, 2)
+  end)
+
+  if not ok then
+    log:error("chat::tools::init::execute - Execution error %s", err)
+    self.status = CONSTANTS.STATUS_ERROR
+    vim.schedule(function()
+      util.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
+    end)
+  end
 end
 
 ---Look for tools in a given message
@@ -288,13 +379,23 @@ end
 function Tools:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      message = vim.trim(regex.replace(message, self:_pattern(tool), tool))
+      local replacement = util.replace_placeholders(self.tools_config.opts.tool_replacement_message, { tool = tool })
+      message = vim.trim(regex.replace(message, self:_pattern(tool), replacement))
     end
   end
+
   for group, _ in pairs(self.tools_config.groups) do
-    local tools = table.concat(self.tools_config.groups[group].tools, ", ")
-    message = vim.trim(regex.replace(message, self:_pattern(group), tools))
+    local replacement
+    local group_config = self.tools_config.groups[group]
+    local tools = table.concat(group_config.tools, ", ")
+
+    if group_config.prompt then
+      replacement = util.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
+    end
+
+    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or tools))
   end
+
   return message
 end
 
@@ -372,13 +473,15 @@ function Tools.resolve(tool)
   local err
   module, err = loadfile(callback)
   if err then
-    return error()
+    return log:error("[Tools] Failed to load tool from %s: %s", callback, err)
   end
 
   if module then
     log:debug("[Tools] %s identified", callback)
     return module()
   end
+
+  return nil
 end
 
 return Tools

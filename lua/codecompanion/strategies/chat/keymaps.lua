@@ -17,6 +17,7 @@ M.options = {
       title = "Options",
       lock = true,
       window = config.display.chat.window,
+      style = "minimal",
     }
 
     if next(_cached_options) ~= nil then
@@ -80,8 +81,14 @@ M.options = {
       end
     end
 
+    -- Filter out private keymaps
+    local keymaps = {}
+    for k, v in pairs(config.strategies.chat.keymaps) do
+      if k:sub(1, 1) ~= "_" then
+        keymaps[k] = v
+      end
+    end
     -- Workout the column spacing
-    local keymaps = config.strategies.chat.keymaps
     local keymaps_max = max("description", keymaps)
 
     local vars = {}
@@ -164,7 +171,7 @@ M.options = {
 
     for key, val in sorted_pairs(vars) do
       local desc = clean_and_truncate(val.description)
-      table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. desc)
+      table.insert(lines, indent .. pad("#{" .. key .. "}", max_length, 4) .. " " .. desc)
     end
 
     -- Tools
@@ -174,7 +181,7 @@ M.options = {
     for key, val in sorted_pairs(tools) do
       if key ~= "opts" then
         local desc = clean_and_truncate(val.description)
-        table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. desc)
+        table.insert(lines, indent .. pad("@{" .. key .. "}", max_length, 4) .. " " .. desc)
       end
     end
 
@@ -207,7 +214,15 @@ M.completion = {
         -- Process each item to match the completion format
         for _, item in ipairs(items) do
           if item.label then
-            item.word = item.label
+            -- Add bracket wrapping for variables and tools like cmp/blink do
+            if item.type == "variable" then
+              item.word = string.format("#{%s}", item.label:sub(2))
+            elseif item.type == "tool" then
+              item.word = string.format("@{%s}", item.label:sub(2))
+            else
+              item.word = item.label
+            end
+
             item.abbr = item.label:sub(2)
             item.menu = item.description or item.detail
             item.icase = 1
@@ -249,7 +264,7 @@ M.completion = {
         vim.fn.complete(
           start + 1,
           vim.tbl_filter(function(item)
-            return vim.startswith(item.word:lower(), prefix:lower())
+            return vim.startswith(item.label:lower(), prefix:lower())
           end, items)
         )
       end)
@@ -309,9 +324,9 @@ M.codeblock = {
     local ft = chat.buffer_context.filetype or ""
 
     local codeblock = {
-      "```" .. ft,
+      "````" .. ft,
       "",
-      "```",
+      "````",
     }
 
     api.nvim_buf_set_lines(bufnr, line - 1, line, false, codeblock)
@@ -418,7 +433,7 @@ M.toggle_watch = {
         if item.opts.watched then
           -- Check if buffer is still valid before watching
           if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
-            chat.watchers:watch(item.bufnr)
+            chat.watched_buffers:watch(item.bufnr)
             new_line = string.format("> - %s%s", icons.watched_buffer or icons.buffer_watch, clean_id)
           else
             -- Buffer is invalid, can't watch it
@@ -427,7 +442,7 @@ M.toggle_watch = {
             util.notify("Cannot watch invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
           end
         else
-          chat.watchers:unwatch(item.bufnr)
+          chat.watched_buffers:unwatch(item.bufnr)
           new_line = string.format("> - %s", clean_id)
         end
 
@@ -517,14 +532,26 @@ M.change_adapter = {
       }
     end
 
-    local adapters = vim.deepcopy(config.adapters)
+    --TODO: Remove `config.adapters` in V18.0.0
+    local adapters = vim.tbl_deep_extend(
+      "force",
+      {},
+      vim.deepcopy(config.adapters.acp),
+      vim.deepcopy(config.adapters.http),
+      vim.deepcopy(config.adapters)
+    )
     local current_adapter = chat.adapter.name
-    local current_model = vim.deepcopy(chat.adapter.schema.model.default)
+    local current_model
+
+    if current_adapter.type == "http" then
+      current_model = vim.deepcopy(chat.adapter.schema.model.default)
+    end
 
     local adapters_list = vim
       .iter(adapters)
       :filter(function(adapter)
-        return adapter ~= "opts" and adapter ~= "non_llm" and adapter ~= current_adapter
+        -- Clear out the acp and http keys
+        return adapter ~= "opts" and adapter ~= "acp" and adapter ~= "http" and adapter ~= current_adapter
       end)
       :map(function(adapter, _)
         return adapter
@@ -534,23 +561,25 @@ M.change_adapter = {
     table.sort(adapters_list)
     table.insert(adapters_list, 1, current_adapter)
 
-    vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected)
-      if not selected then
+    vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected_adapter)
+      if not selected_adapter then
         return
       end
 
-      if current_adapter ~= selected then
-        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
+      if current_adapter ~= selected_adapter then
+        chat.acp_connection = nil
+        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected_adapter])
         util.fire(
           "ChatAdapter",
           { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
         )
         chat.ui.adapter = chat.adapter
+        chat:update_metadata()
         chat:apply_settings()
       end
 
       -- Update the system prompt
-      local system_prompt = config.opts.system_prompt
+      local system_prompt = config.strategies.chat.opts.system_prompt
       if type(system_prompt) == "function" then
         if chat.messages[1] and chat.messages[1].role == "system" then
           local opts = { adapter = chat.adapter, language = config.opts.language }
@@ -559,49 +588,84 @@ M.change_adapter = {
       end
 
       -- Select a model
-      local models = chat.adapter.schema.model.choices
-      if not config.adapters.opts.show_model_choices then
-        models = { chat.adapter.schema.model.default }
-      end
-      if type(models) == "function" then
-        models = models(chat.adapter)
-      end
-      if not models or vim.tbl_count(models) < 2 then
-        return
-      end
-
-      local new_model = chat.adapter.schema.model.default
-      if type(new_model) == "function" then
-        new_model = new_model(chat.adapter)
-      end
-
-      models = vim
-        .iter(models)
-        :map(function(model, value)
-          if type(model) == "string" then
-            return model
-          else
-            return value -- This is for the table entry case
-          end
-        end)
-        :filter(function(model)
-          return model ~= new_model
-        end)
-        :totable()
-      table.insert(models, 1, new_model)
-
-      vim.ui.select(models, select_opts("Select Model", new_model), function(selected)
-        if not selected then
+      if chat.adapter.type == "http" then
+        local models = chat.adapter.schema.model.choices
+        if not config.adapters.http.opts.show_model_choices then
+          models = { chat.adapter.schema.model.default }
+        end
+        if type(models) == "function" then
+          models = models(chat.adapter, { async = false })
+        end
+        if not models or vim.tbl_count(models) < 2 then
           return
         end
 
-        if current_model ~= selected then
-          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+        local new_model = chat.adapter.schema.model.default
+        if type(new_model) == "function" then
+          new_model = new_model(chat.adapter)
         end
 
-        chat:apply_model(selected)
-        chat:apply_settings()
-      end)
+        models = vim
+          .iter(models)
+          :map(function(model, value)
+            if type(model) == "string" then
+              return model
+            else
+              return value -- This is for the table entry case
+            end
+          end)
+          :filter(function(model)
+            return model ~= new_model
+          end)
+          :totable()
+        table.sort(models)
+        table.insert(models, 1, new_model)
+
+        vim.ui.select(models, select_opts("Select Model", new_model), function(selected_model)
+          if not selected_model then
+            return
+          end
+
+          if current_model ~= selected_model then
+            util.fire("ChatModel", { bufnr = chat.bufnr, model = selected_model })
+          end
+
+          chat:apply_model(selected_model)
+          chat:update_metadata()
+          chat:apply_settings()
+        end)
+      end
+
+      -- Select a command
+      if chat.adapter.type == "acp" then
+        local commands = chat.adapter.commands
+        if not commands or vim.tbl_count(commands) < 2 then
+          return
+        end
+
+        commands = vim
+          .iter(commands)
+          :map(function(key, _)
+            if type(key) == "string" then
+              return key
+            end
+          end)
+          :filter(function(key)
+            return key ~= "selected"
+          end)
+          :totable()
+        table.sort(commands)
+
+        vim.ui.select(commands, select_opts("Select a Command", commands), function(selected_command)
+          if not selected_command then
+            return
+          end
+          local selected = chat.adapter.commands[selected_command]
+          chat.adapter.commands.selected = selected
+          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+          chat:update_metadata()
+        end)
+      end
     end)
   end,
 }
@@ -636,15 +700,24 @@ M.toggle_system_prompt = {
   end,
 }
 
-M.auto_tool_mode = {
-  desc = "Toggle automatic tool mode",
+M.clear_memory = {
+  desc = "Clear memory",
   callback = function(chat)
-    if vim.g.codecompanion_auto_tool_mode then
-      vim.g.codecompanion_auto_tool_mode = nil
-      return util.notify("Disabled automatic tool mode", vim.log.levels.INFO)
+    chat:remove_tagged_message("memory")
+    chat:refresh_context()
+    return util.notify("Cleared the memory", vim.log.levels.INFO)
+  end,
+}
+
+M.yolo_mode = {
+  desc = "Toggle YOLO mode",
+  callback = function(chat)
+    if vim.g.codecompanion_yolo_mode then
+      vim.g.codecompanion_yolo_mode = nil
+      return util.notify("YOLO mode disabled", vim.log.levels.INFO)
     else
-      vim.g.codecompanion_auto_tool_mode = true
-      return util.notify("Enabled automatic tool mode", vim.log.levels.INFO)
+      vim.g.codecompanion_yolo_mode = true
+      return util.notify("YOLO mode enabled", vim.log.levels.INFO)
     end
   end,
 }
@@ -697,14 +770,17 @@ M.goto_file_under_cursor = {
 M.copilot_stats = {
   desc = "Show Copilot usage statistics",
   callback = function(chat)
-    if chat.adapter.name ~= "copilot" then
-      return util.notify("Copilot stats are only available when using the Copilot adapter", vim.log.levels.WARN)
+    if not chat.adapter.show_copilot_stats then
+      return util.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
-    if chat.adapter.show_copilot_stats then
-      chat.adapter.show_copilot_stats()
-    else
-      util.notify("Copilot stats function not available", vim.log.levels.ERROR)
-    end
+    chat.adapter.show_copilot_stats()
+  end,
+}
+
+M.super_diff = {
+  desc = "Show super diff buffer",
+  callback = function(chat)
+    require("codecompanion.strategies.chat.helpers.super_diff").show_super_diff(chat)
   end,
 }
 

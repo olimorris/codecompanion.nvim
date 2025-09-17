@@ -32,6 +32,27 @@ local function set_llm_role(role, adapter)
 end
 
 ---@class CodeCompanion.Chat.UI
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter in use for the chat
+---@field aug number The autocmd group ID
+---@field chat_bufnr number The buffer number of the chat
+---@field chat_id number The unique ID of the chat
+---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
+---@field header_ns number The namespace for the header
+---@field roles table The roles in the chat
+---@field winnr number The window number of the chat
+---@field settings table The settings for the chat
+---@field tokens number The current token count in the chat
+
+---@class CodeCompanion.Chat.UIArgs
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field chat_bufnr number
+---@field chat_id number
+---@field roles table
+---@field winnr number
+---@field settings table
+---@field tokens number
+
+---@class CodeCompanion.Chat.UI
 local UI = {}
 
 ---@param args CodeCompanion.Chat.UIArgs
@@ -263,9 +284,11 @@ end
 ---Render the settings and any messages in the chat buffer
 ---@param context table
 ---@param messages table
----@param opts table
+---@param opts {force_header?: boolean, stop_context_insertion?: boolean}
 ---@return self
 function UI:render(context, messages, opts)
+  opts = vim.tbl_extend("keep", opts or {}, { force_header = false, stop_context_insertion = false })
+
   local lines = {}
 
   local function spacer()
@@ -313,7 +336,7 @@ function UI:render(context, messages, opts)
     end
   end
 
-  if config.display.chat.show_settings then
+  if config.display.chat.show_settings and self.adapter.type == "http" then
     log:trace("Showing chat settings")
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter)
@@ -329,7 +352,10 @@ function UI:render(context, messages, opts)
     spacer()
   end
 
-  if vim.tbl_isempty(messages) or not helpers.has_user_messages(messages) then
+  -- NOTE: Typically, we wouldn't want to render a header if there are existing
+  -- messages. However, provide an option to force the header to be rendered
+  -- for scenarios where there is no user prompt
+  if opts.force_header or (vim.tbl_isempty(messages) or not helpers.has_user_messages(messages)) then
     log:trace("Setting the header for the chat buffer")
     self:set_header(lines, self.roles.user)
     spacer()
@@ -432,7 +458,7 @@ function UI:clear_virtual_text(extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
----@return integer, integer, integer
+---@return number, integer, integer
 function UI:last()
   local line_count = api.nvim_buf_line_count(self.chat_bufnr)
 
@@ -453,7 +479,7 @@ end
 
 ---Display the tokens in the chat buffer
 ---@param parser table
----@param start_row integer
+---@param start_row number
 ---@return nil
 function UI:display_tokens(parser, start_row)
   if config.display.chat.show_token_count and self.tokens then
@@ -523,7 +549,7 @@ function UI:add_line_break()
   local _, _, line_count = self:last()
 
   self:unlock_buf()
-  vim.api.nvim_buf_set_lines(self.chat_bufnr, line_count, line_count, false, { "" })
+  api.nvim_buf_set_lines(self.chat_bufnr, line_count, line_count, false, { "" })
   self:lock_buf()
 
   self:move_cursor(true)

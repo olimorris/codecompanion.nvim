@@ -6,55 +6,65 @@ return {
     SYSTEM_ROLE = "system",
   },
   adapters = {
-    test_adapter = {
-      name = "test_adapter",
-      url = "https://api.openai.com/v1/chat/completions",
-      roles = {
-        llm = "assistant",
-        user = "user",
+    http = {
+      test_adapter = {
+        name = "test_adapter",
+        url = "https://api.openai.com/v1/chat/completions",
+        roles = {
+          llm = "assistant",
+          user = "user",
+        },
+        opts = {
+          stream = true,
+        },
+        headers = {
+          content_type = "application/json",
+        },
+        parameters = {
+          stream = true,
+        },
+        handlers = {
+          form_parameters = function()
+            return {}
+          end,
+          form_messages = function()
+            return {}
+          end,
+          is_complete = function()
+            return false
+          end,
+          tools = {
+            format_tool_calls = function(self, tools)
+              return tools
+            end,
+            output_response = function(self, tool_call, output)
+              return {
+                role = "tool",
+                tool_call_id = tool_call.id,
+                content = output,
+                opts = { tag = tool_call.id, visible = false },
+              }
+            end,
+          },
+        },
+        schema = {
+          model = {
+            default = "gpt-3.5-turbo",
+          },
+        },
       },
       opts = {
-        stream = true,
-      },
-      headers = {
-        content_type = "application/json",
-      },
-      parameters = {
-        stream = true,
-      },
-      handlers = {
-        form_parameters = function()
-          return {}
-        end,
-        form_messages = function()
-          return {}
-        end,
-        is_complete = function()
-          return false
-        end,
-        tools = {
-          format_tool_calls = function(self, tools)
-            return tools
-          end,
-          output_response = function(self, tool_call, output)
-            return {
-              role = "tool",
-              tool_call_id = tool_call.id,
-              content = output,
-              opts = { tag = tool_call.id, visible = false },
-            }
-          end,
-        },
-      },
-      schema = {
-        model = {
-          default = "gpt-3.5-turbo",
-        },
+        allow_insecure = false,
+        proxy = nil,
       },
     },
-    opts = {
-      allow_insecure = false,
-      proxy = nil,
+    acp = {
+      test_acp = {
+        name = "test_acp",
+        type = "acp",
+        command = { "node", "test-agent.js" },
+        roles = { user = "user", assistant = "assistant" },
+      },
     },
   },
   strategies = {
@@ -124,6 +134,10 @@ return {
         },
         ["weather"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/weather.lua",
+          description = "Get the latest weather",
+        },
+        ["weather_with_default"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/weather_with_default.lua",
           description = "Get the latest weather",
         },
         ["func"] = {
@@ -212,6 +226,15 @@ return {
           description = "Tool group extended",
         },
         groups = {
+          ["senior_dev"] = {
+            description = "Tool Group",
+            prompt = "I'm giving you access to ${tools} to help me out",
+            tools = {
+              "func",
+              "cmd",
+            },
+          },
+
           ["tool_group"] = {
             description = "Tool Group",
             system_prompt = "My tool group system prompt",
@@ -241,7 +264,6 @@ return {
         },
         opts = {
           system_prompt = "My tool system prompt",
-          wait_timeout = 3000,
           folds = {
             enabled = false,
             failure_words = {
@@ -250,6 +272,7 @@ return {
               "invalid",
             },
           },
+          tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
       variables = {
@@ -322,6 +345,8 @@ return {
       },
       opts = {
         blank_prompt = "",
+        wait_timeout = 3000,
+        system_prompt = "default system prompt",
       },
     },
     inline = {
@@ -394,6 +419,15 @@ return {
       },
     },
   },
+  memory = {
+    default = {
+      description = "Default file selection for CodeCompanion",
+      files = {
+        "tests/stubs/memory/.rules",
+        "tests/stubs/memory/CLAUDE.md",
+      },
+    },
+  },
   display = {
     chat = {
       icons = {
@@ -428,13 +462,64 @@ return {
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
       show_tools_processing = false, -- Show the loading message when tools are being executed?
     },
-    diff = { enabled = false },
+    diff = {
+      enabled = false,
+      provider = "inline",
+      provider_opts = {
+        -- Options for inline diff provider
+        inline = {
+          layout = "float", -- float|buffer - Where to display the diff
+
+          diff_signs = {
+            signs = {
+              text = "▌", -- Sign text for normal changes
+              reject = "✗", -- Sign text for rejected changes in super_diff
+              highlight_groups = {
+                addition = "DiagnosticOk",
+                deletion = "DiagnosticError",
+                modification = "DiagnosticWarn",
+              },
+            },
+            -- Super Diff options
+            icons = {
+              accepted = " ",
+              rejected = " ",
+            },
+            colors = {
+              accepted = "DiagnosticOk",
+              rejected = "DiagnosticError",
+            },
+          },
+
+          opts = {
+            context_lines = 3, -- Number of context lines in hunks
+            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+            full_width_removed = true, -- Make removed lines span full width
+            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+            show_removed = true, -- Show removed lines as virtual text
+          },
+        },
+
+        -- Options for the split provider
+        split = {
+          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+          layout = "vertical", -- vertical|horizontal split
+          opts = {
+            "internal",
+            "filler",
+            "closeoff",
+            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "followwrap",
+            "linematch:120",
+          },
+        },
+      },
+    },
     icons = {
       loading = " ",
       warning = " ",
     },
   },
-  opts = {
-    system_prompt = "default system prompt",
-  },
+  opts = {},
 }

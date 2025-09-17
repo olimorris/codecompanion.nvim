@@ -1,4 +1,5 @@
 local Snacks = require("snacks")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Actions.Provider.Snacks: CodeCompanion.SlashCommand.Provider
@@ -38,7 +39,7 @@ function Provider:picker(items, opts)
   -- Create Snacks picker
   Snacks.picker({
     items = picker_items,
-    title = opts.prompt or "CodeCompanion actions",
+    title = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions",
     -- Use the default layout for the picker
     layout = { preset = "select" },
     -- Define what happens when an item is confirmed

@@ -2,6 +2,7 @@ local Queue = require("codecompanion.strategies.chat.tools.runtime.queue")
 local Runner = require("codecompanion.strategies.chat.tools.runtime.runner")
 local log = require("codecompanion.utils.log")
 local tool_utils = require("codecompanion.utils.tools")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -106,18 +107,29 @@ end
 function Orchestrator:setup_handlers()
   self.handlers = {
     setup = function()
+      if not self.tool then
+        return
+      end
       _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         return self.tool.handlers.setup(self.tool, self.tools)
       end
     end,
     prompt_condition = function()
+      if not self.tool then
+        return
+      end
+
       if self.tool.handlers and self.tool.handlers.prompt_condition then
         return self.tool.handlers.prompt_condition(self.tool, self.tools, self.tools.tools_config)
       end
       return true
     end,
     on_exit = function()
+      if not self.tool then
+        return
+      end
+
       if self.tool.handlers and self.tool.handlers.on_exit then
         return self.tool.handlers.on_exit(self.tool, self.tools)
       end
@@ -126,11 +138,19 @@ function Orchestrator:setup_handlers()
 
   self.output = {
     prompt = function()
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.prompt then
         return self.tool.output.prompt(self.tool, self.tools)
       end
     end,
     rejected = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.rejected then
         self.tool.output.rejected(self.tool, self.tools, cmd)
       else
@@ -139,6 +159,10 @@ function Orchestrator:setup_handlers()
       end
     end,
     error = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.error then
         self.tool.output.error(self.tool, self.tools, cmd, self.tools.stderr)
       else
@@ -146,6 +170,10 @@ function Orchestrator:setup_handlers()
       end
     end,
     cancelled = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.cancelled then
         self.tool.output.cancelled(self.tool, self.tools, cmd)
       else
@@ -153,6 +181,10 @@ function Orchestrator:setup_handlers()
       end
     end,
     success = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.success then
         self.tool.output.success(self.tool, self.tools, cmd, self.tools.stdout)
       else
@@ -196,7 +228,7 @@ function Orchestrator:setup(input)
   log:debug("Orchestrator:execute - `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and not vim.g.codecompanion_auto_tool_mode then
+  if self.tool.opts and not vim.g.codecompanion_yolo_mode then
     local requires_approval = self.tool.opts.requires_approval
 
     -- Users can set this to be a function if necessary
@@ -217,33 +249,19 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      vim.ui.select({ "Yes", "No", "Cancel" }, {
-        kind = "codecompanion.nvim",
-        prompt = prompt,
-        format_item = function(item)
-          if item == "Yes" then
-            return "Yes"
-          elseif item == "No" then
-            return "No"
-          else
-            return "Cancel"
-          end
-        end,
-      }, function(choice)
-        if not choice or choice == "Cancel" then -- No selection or cancelled
-          log:debug("Orchestrator:execute - Tool cancelled")
-          self:close()
-          self.output.cancelled(cmd)
-          return self:setup()
-        elseif choice == "Yes" then -- Selected yes
-          log:debug("Orchestrator:execute - Tool approved")
-          self:execute(cmd, input)
-        elseif choice == "No" then -- Selected no
-          log:debug("Orchestrator:execute - Tool rejected")
-          self.output.rejected(cmd)
-          self:setup()
-        end
-      end)
+      local choice = ui_utils.confirm(prompt, { "1 Approve", "2 Reject", "3 Cancel" })
+      if choice == 1 then
+        log:debug("Orchestrator:execute - Tool approved")
+        return self:execute(cmd, input)
+      elseif choice == 2 then
+        self.output.rejected(cmd)
+        return self:setup()
+      else
+        log:debug("Orchestrator:execute - Tool cancelled")
+        self:close()
+        self.output.cancelled(cmd)
+        return self:setup()
+      end
     else
       return self:execute(cmd, input)
     end
@@ -258,6 +276,8 @@ end
 ---@return nil
 function Orchestrator:execute(cmd, input)
   utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
+  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+  self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
   return Runner.new(self, cmd, 1):setup(input)
 end
 
@@ -269,7 +289,23 @@ function Orchestrator:error(action, error)
   log:debug("Orchestrator:error")
   self.tools.status = self.tools.constants.STATUS_ERROR
   table.insert(self.tools.stderr, error)
-  self.output.error(action)
+
+  -- Finish tool monitoring with error status
+  if self.tool and self.tool.name then
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
+  end
+
+  local ok, err = pcall(function()
+    self.output.error(action)
+  end)
+  if not ok then
+    log:error("Internal error with the %s error handler: %s", self.tool.name, err)
+    if self.tool and self.tool.function_call then
+      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+    end
+  end
+
   self:setup()
 end
 
@@ -280,19 +316,34 @@ end
 function Orchestrator:success(action, output)
   log:debug("Orchestrator:success")
   self.tools.status = self.tools.constants.STATUS_SUCCESS
+  -- Direct call to finish tool monitoring
+  if self.tool and self.tool.name then
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
+  end
   if output then
     table.insert(self.tools.stdout, output)
   end
-  self.output.success(action)
+  local ok, err = pcall(function()
+    self.output.success(action)
+  end)
+
+  if not ok then
+    log:error("Internal error with the %s success handler: %s", self.tool.name, err)
+    if self.tool and self.tool.function_call then
+      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+    end
+  end
 end
 
 ---Close the execution of the tool
 ---@return nil
 function Orchestrator:close()
-  --TODO: This is a workaround that avoids the close method being called more than once
   if self.tool then
     log:debug("Orchestrator:close")
-    self.handlers.on_exit()
+    pcall(function()
+      self.handlers.on_exit()
+    end)
     utils.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.tools.bufnr })
     self.tool = nil
   end

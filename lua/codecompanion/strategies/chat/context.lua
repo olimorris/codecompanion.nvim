@@ -25,9 +25,9 @@ local context_header = "> Context:"
 ---@param chat CodeCompanion.Chat
 ---@return table|nil
 local function ts_parse_buffer(chat)
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
 
-  local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
+  local tree = chat.chat_parser:parse({ chat.header_line - 1, -1 })[1]
   local root = tree:root()
 
   -- Check if there are any context items already in the chat buffer
@@ -74,7 +74,7 @@ end
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param context CodeCompanion.Chat.ContextItem
----@param row integer
+---@param row number
 local function add(chat, context, row)
   if not context.opts.visible then
     return
@@ -107,6 +107,15 @@ local function add(chat, context, row)
     chat.ui:lock_buf()
   end
 end
+
+---@class CodeCompanion.Chat.ContextItem
+---@field bufnr? number The buffer number if this is buffer context
+---@field id string The unique ID of the context which links it to a message in the chat buffer and is displayed to the user
+---@field source string The source of the context e.g. slash_command
+---@field opts? table
+---@field opts.pinned? boolean Whether this context item is pinned
+---@field opts.watched? boolean Whether this context item is being watched for changes
+---@field opts.visible? boolean Whether this context item should be shown in the chat UI
 
 ---@class CodeCompanion.Chat.Context
 ---@field Chat CodeCompanion.Chat
@@ -146,7 +155,7 @@ function Context:add(context)
     table.insert(self.Chat.context_items, context)
     -- If it's buffer context and it's being watched, start watching
     if context.bufnr and context.opts.watched then
-      self.Chat.watchers:watch(context.bufnr)
+      self.Chat.watched_buffers:watch(context.bufnr)
     end
   end
 
@@ -164,16 +173,16 @@ function Context:add(context)
   end
 end
 
----Clear any context items from a message in the chat buffer before submission
+---Remove any context items from a message in the chat buffer before submission
 ---@param message table
 ---@return table
-function Context:clear(message)
+function Context:remove(message)
   if vim.tbl_isempty(self.Chat.context_items) or not config.display.chat.show_context then
     return message or nil
   end
 
   local parser = vim.treesitter.get_string_parser(message.content, "markdown")
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
   local root = parser:parse()[1]:root()
 
   local items = nil
@@ -199,9 +208,9 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return number|nil, number|nil
 local function get_range(chat)
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
 
-  local tree = chat.parser:parse()[1]
+  local tree = chat.chat_parser:parse()[1]
   local root = tree:root()
 
   local role = nil
@@ -253,6 +262,19 @@ function Context:render()
   self:create_folds()
 end
 
+---Clear the rendered context block from the chat buffer (if present)
+---@return CodeCompanion.Chat.Context
+function Context:clear_rendered()
+  local start_row, end_row = get_range(self.Chat)
+  if not start_row or not end_row then
+    return self
+  end
+
+  api.nvim_buf_set_lines(self.Chat.bufnr, start_row, end_row + 1, false, {})
+
+  return self
+end
+
 ---Fold all of the context items in the chat buffer
 ---@return nil
 function Context:create_folds()
@@ -302,9 +324,9 @@ end
 ---Get the context items from the chat buffer
 ---@return table
 function Context:get_from_chat()
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
 
-  local tree = self.Chat.parser:parse()[1]
+  local tree = self.Chat.chat_parser:parse()[1]
   local root = tree:root()
 
   local items = {}

@@ -1,7 +1,10 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
 local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
+local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
+
+local api = vim.api
 
 local trigger = {
   tools = "@",
@@ -9,7 +12,57 @@ local trigger = {
   slash_commands = "/",
 }
 
+local _vars_aug = nil
+local _vars_cache = nil
+local _vars_cache_valid = false
+
+---Setup the variable cache
+---@return nil
+local function _vars_cache_setup()
+  if _vars_aug then
+    return
+  end
+
+  _vars_aug = api.nvim_create_augroup("codecompanion.chat.variables", { clear = true })
+
+  -- Invalidate the cache on the following events
+  api.nvim_create_autocmd({
+    "BufAdd",
+    "BufDelete",
+    "BufWipeout",
+    "BufUnload",
+    "BufNewFile",
+    "BufReadPost",
+  }, {
+    group = _vars_aug,
+    callback = function()
+      _vars_cache_valid = false
+    end,
+  })
+end
+
 local M = {}
+
+-- Cache adapter types per buffer so we can conditionally enable completions
+local adapter_types = {}
+
+api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatAdapter",
+  callback = function(args)
+    local bufnr = args.data.bufnr
+    if args.data.adapter then
+      adapter_types[bufnr] = args.data.adapter.type
+    else
+      adapter_types[bufnr] = nil
+    end
+  end,
+})
+
+api.nvim_create_autocmd("BufDelete", {
+  callback = function(args)
+    adapter_types[args.buf] = nil
+  end,
+})
 
 ---Return the slash commands to be used for completion
 ---@return table
@@ -53,7 +106,7 @@ end
 ---@return nil
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
-    --TODO: Remove this check in v18.0.0
+    --TODO: Remove `selected.config.references` check in v18.0.0
     local context = selected.config.references or selected.config.context
     if context then
       strategy.add_context(selected.config, chat)
@@ -75,6 +128,12 @@ end
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
+  -- Tools are not available to ACP adapters
+  local bufnr = api.nvim_get_current_buf()
+  if adapter_types[bufnr] == "acp" then
+    return {}
+  end
+
   -- Get filtered tools configuration (this uses the cache!)
   local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
 
@@ -117,9 +176,14 @@ end
 ---Return the variables to be used for completion
 ---@return table
 function M.variables()
-  local variables = config.strategies.chat.variables
-  return vim
-    .iter(variables)
+  _vars_cache_setup()
+  if _vars_cache and _vars_cache_valid then
+    return _vars_cache
+  end
+
+  local config_vars = config.strategies.chat.variables
+  local variables = vim
+    .iter(config_vars)
     :map(function(label, data)
       return {
         label = trigger.variables .. label,
@@ -128,6 +192,36 @@ function M.variables()
       }
     end)
     :totable()
+
+  local open_buffers = buf_utils.get_open()
+
+  local name_counts = vim.iter(open_buffers):fold({}, function(acc, item)
+    acc[item.name] = (acc[item.name] or 0) + 1
+    return acc
+  end)
+
+  local buffers = vim
+    .iter(open_buffers)
+    :map(function(buf)
+      local name
+      if name_counts[buf.name] > 1 then
+        name = buf.short_path
+      else
+        name = buf.name
+      end
+
+      return {
+        label = trigger.variables .. "buffer:" .. name,
+        detail = "Path: " .. buf.relative_path .. "\nBuffer: " .. buf.bufnr,
+        type = "variable",
+      }
+    end)
+    :totable()
+
+  _vars_cache = vim.list_extend(variables, buffers)
+  _vars_cache_valid = true
+
+  return _vars_cache
 end
 
 return M

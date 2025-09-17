@@ -14,7 +14,15 @@ next:
 
 You can open a chat buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()`. You can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
 
-The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
+The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
+
+## Changing Adapter
+
+<img src="https://github.com/user-attachments/assets/e19ade4f-1daa-4634-b071-4ecd400371eb" />
+
+One of the joys of working with CodeCompanion is being able to switch between conversing with an LLM and an agent, all from within the chat buffer.
+
+To do this, simply press `ga` to open up the _Select Adapter_ select window. If your chosen adapter has more than one model (in the case of HTTP adapters) or command (in the case of ACP adapters) then you'll be prompted to make another selection.
 
 ## Messages
 
@@ -54,6 +62,15 @@ If a context item is added by mistake, it can be removed from the chat buffer by
 
 Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always have that it to refer to.
 
+## Super Diff
+
+<img alt="Super Diff" src="https://github.com/user-attachments/assets/e530d6dd-6f14-4085-b839-6d30439b356f" />
+
+When an LLM uses tools like [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file) to make changes across multiple files and buffers, it can be difficult to keep track. This is amplified if the tools are working without requiring approvals (perhaps via [automatic tool mode](/usage/chat-buffer/tools.html#automatic-tool-mode)) and it simply isn't impossible to keep track of what an LLM has added, deleted or modified.
+
+Super Diff gives you a single, unified view of all edits made in via the chat buffer. Open it with `gD` to review every change, grouped by file, with visual diffs and status indicators. You can accept or reject changes before they’re applied, keeping you in control of your codebase. You can even send changes to the quickfix list for easier navigation and review.
+
+
 ## Settings
 
 <img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
@@ -69,7 +86,6 @@ When conversing with an LLM, it can be useful to tweak model settings in between
 
 You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
-
 ## Keymaps
 
 The plugin has a host of keymaps available in the chat buffer. Pressing `?` in the chat buffer will conveniently display all of them to you.
@@ -82,15 +98,17 @@ The keymaps available to the user in normal mode are:
 - `ga` to change the adapter for the currentchat
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer's contents
+- `gD` to view the chat buffer's super diff feature
 - `gf` to fold any codeblocks in the chat buffer
+- `gM` to clear all memory from the chat buffer
 - `gp` to pin an item to the context in the chat buffer
-- `gw` to watch a buffer as context in the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it'll jump
   to the existing window. Otherwise, it'll be opened in a new tab.
 - `gs` to toggle the system prompt on/off
 - `gS` to show copilot usage stats
 - `gta` to toggle auto tool mode
+- `gw` to watch a buffer as context in the chat buffer
 - `gx` to clear the chat buffer's contents
 - `gy` to yank the last codeblock in the chat buffer
 - `[[` to move to the previous header

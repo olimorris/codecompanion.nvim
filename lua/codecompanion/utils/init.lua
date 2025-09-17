@@ -49,10 +49,13 @@ end
 ---@param t table
 ---@return boolean
 M.is_array = function(t)
-  if type(t) == "table" and type(t[1]) == "table" then
-    return true
+  if type(t) ~= "table" then
+    return false
   end
-  return false
+  if vim.islist then
+    return vim.islist(t)
+  end
+  return vim.tbl_islist(t)
 end
 
 ---@param table table
@@ -79,7 +82,7 @@ end
 
 ---Replace any placeholders (e.g. ${placeholder}) in a string or table
 ---@param t table|string
----@param replacements table
+---@param replacements {placeholder: string, replacement: string}
 ---@return nil|string
 function M.replace_placeholders(t, replacements)
   if type(t) == "string" then
@@ -129,7 +132,7 @@ function M.safe_filetype(filetype)
 end
 
 ---Set an option in Neovim
----@param bufnr integer
+---@param bufnr number
 ---@param opt string
 ---@param value any
 function M.set_option(bufnr, opt, value)
@@ -159,6 +162,23 @@ function M.make_relative(timestamp)
   else
     return math.floor(diff / 86400) .. "d"
   end
+end
+
+---Add a callback to a set of callbacks
+---@param callbacks table|nil The existing callbacks
+---@param event string The event to add the callback to
+---@param fn function The callback function
+function M.callbacks_add(callbacks, event, fn)
+  callbacks = callbacks or {}
+  local existing = callbacks[event]
+  if not existing then
+    callbacks[event] = fn
+  elseif type(existing) == "function" then
+    callbacks[event] = { existing, fn }
+  else
+    table.insert(existing, fn)
+  end
+  return callbacks
 end
 
 return M

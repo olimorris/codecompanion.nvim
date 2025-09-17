@@ -1,4 +1,5 @@
 local Path = require("plenary.path")
+local helpers = require("codecompanion.strategies.chat.helpers")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -7,16 +8,12 @@ local fmt = string.format
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
 ---@return {status: "success"|"error", data: string}
 local function read(action)
-  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  filepath = vim.fs.normalize(filepath)
+  local filepath = helpers.validate_and_normalize_filepath(action.filepath)
   local p = Path:new(filepath)
-  p.filename = p:expand()
-
-  local exists, _ = p:exists()
-  if not exists then
+  if not p:exists() or not p:is_file() then
     return {
       status = "error",
-      data = fmt("Error reading `%s`, does not exist", action.filepath),
+      data = fmt("Error reading `%s`\nFile does not exist or is not a file", filepath),
     }
   end
 

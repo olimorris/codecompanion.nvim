@@ -6,11 +6,11 @@ doc/getting-started.md
 
 # Configuration
 ```{.include shift-heading-level-by=1}
-doc/configuration/introduction.md
 doc/configuration/action-palette.md
 doc/configuration/adapters.md
 doc/configuration/chat-buffer.md
 doc/configuration/inline-assistant.md
+doc/configuration/memory.md
 doc/configuration/prompt-library.md
 doc/configuration/system-prompt.md
 doc/configuration/extensions.md
@@ -22,6 +22,8 @@ doc/configuration/others.md
 doc/usage/introduction.md
 doc/usage/action-palette.md
 doc/usage/chat-buffer/index.md
+doc/usage/chat-buffer/agents.md
+doc/usage/chat-buffer/memory.md
 doc/usage/chat-buffer/tools.md
 doc/usage/chat-buffer/slash-commands.md
 doc/usage/chat-buffer/variables.md
@@ -34,6 +36,7 @@ doc/usage/workflows.md
 # Extending
 ```{.include shift-heading-level-by=1}
 doc/extending/adapters.md
+doc/extending/parsers.md
 doc/extending/prompts.md
 doc/extending/tools.md
 doc/extending/workflows.md

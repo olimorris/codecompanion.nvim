@@ -1,9 +1,6 @@
 # Using Tools
 
 > [!IMPORTANT]
-> As of `v17.5.0`, tools must be wrapped in curly braces, such as `@{grep_search}` or `@{files}`
-
-> [!IMPORTANT]
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
@@ -17,7 +14,7 @@ In the plugin, tools are simply context and actions that are shared with an LLM 
 > [!IMPORTANT]
 > The use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and approving their use.
 
-## How Tools Work
+## How They Work
 
 Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow OpenAI's function calling specification, [here](https://platform.openai.com/docs/guides/function-calling#defining-functions).
 
@@ -25,33 +22,32 @@ When a tool is added to the chat buffer, the LLM is instructured by the plugin t
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
 
-## Community Tools
+## Tools
 
-There is also a thriving ecosystem of user created tools:
+CodeCompanion replaces the tool call in any prompt you send to the LLM with the value of `opts.tool_replacement_message`. This is to ensure that you can call a tool efficiently whilst making the prompt readable to the LLM.
 
-- [VectorCode](https://github.com/Davidyz/VectorCode/tree/main) - A code repository indexing tool to supercharge your LLM experience
-- [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
+So calling a tool with:
 
-The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
+```md
+Use @{lorem_ipsum} to generate a random paragraph
+```
 
-## Security and Approvals
+will yield:
 
-CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
-
-The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
-
-## Available Tools
+```
+Use the lorem_ipsum tool to generate a random paragraph
+```
 
 ### cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
 
 ```md
-Can you use the @{cmd_runner} tool to run my test suite with `pytest`?
+Can you use @{cmd_runner} to run my test suite with `pytest`?
 ```
 
 ```md
-Use the @{cmd_runner} tool to install any missing libraries in my project
+Use @{cmd_runner} to install any missing libraries in my project
 ```
 
 Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
@@ -69,7 +65,7 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 Create a file within the current working directory:
 
 ```md
-Can you create some test fixtures using the @{create_file} tool?
+Can you create some test fixtures using @{create_file}?
 ```
 
 **Options:**
@@ -80,7 +76,7 @@ Can you create some test fixtures using the @{create_file} tool?
 This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
 
 ```md
-Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
+Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 ```
 
 **Options:**
@@ -91,7 +87,7 @@ Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
 
 ```md
-Use the @{file_search} tool to list all the lua files in my project
+Use @{file_search} to list all the lua files in my project
 ```
 
 **Options:**
@@ -102,7 +98,7 @@ Use the @{file_search} tool to list all the lua files in my project
 This tool enables an LLM to get git diffs of any file changes in the current working directory. It will return a diff which can contain `staged`, `unstaged` and `merge-conflicts`.
 
 ```md
-Use the @{get_changed_files} tool see what's changed
+Use @{get_changed_files} see what's changed
 ```
 
 **Options:**
@@ -116,7 +112,7 @@ Use the @{get_changed_files} tool see what's changed
 This tool enables an LLM to search for text, within files, in the current working directory. For every match, the output (`{filename}:{line number} {relative filepath}`) will be shared with the LLM:
 
 ```md
-Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
+Use @{grep_search} to find all occurrences of `buf_add_message`?
 ```
 
 **Options:**
@@ -135,11 +131,11 @@ Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 This tool can edit buffers and files for code changes from an LLM:
 
 ```md
-Use the @{insert_edit_into_file} tool to refactor the code in #buffer
+Use @{insert_edit_into_file} to refactor the code in #buffer
 ```
 
 ```md
-Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
+Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
 ```
 
 **Options:**
@@ -165,7 +161,7 @@ The tool provides comprehensive information about symbols including:
 - **Documentation**: Hover documentation when available
 
 ```md
-Use the @{list_code_usages} tool to find all usages of the `create_file` function
+Use @{list_code_usages} to find all usages of the `create_file` function
 ```
 
 ```md
@@ -188,42 +184,113 @@ This tool can read the contents of a specific file in the current working direct
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
 
 ```md
-Use @{search_web} tool to find the latest version of Neovim?
+Use @{search_web} to find the latest version of Neovim?
 ```
 
 ```md
-Use the @{search_web} tool to search neovim.io and explain how I can configure a new language server
+Use @{search_web} to search neovim.io and explain how I can configure a new language server
 ```
 
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
-## Groups
+## Tool Groups
 
-CodeCompanion comes with two built-in tool groups:
+Tool Groups are a convenient way to combine multiple tools together in the chat buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and `@{files}`.
 
-- `full_stack_dev` - Containing all of the tools
-- `files` - Containing `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
+When you include a tool group in the chat, all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
 
-When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
+Groups may also have a `prompt` field which is used to replace their reference in a message in the chat buffer. This ensures that the LLM receives a useful message rather than the name of the tools themselves.
 
-If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
+For example, the following prompt:
+
+```md
+@{full_stack_dev}. Can you create Snake for me, in Python?
+```
+
+Is replaced by:
+
+```
+I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, list_code_usages, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
+```
+
+This is because the `@{full_stack_dev}` group has the following prompt set in the config:
+
+```lua
+groups = {
+  ["full_stack_dev"] = {
+    -- ...
+    prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
+    -- ...
+  }
+},
+```
+
+
+### full_stack_dev
+
+The `@{full_stack_dev}` is a collection of tools which have been curated to enable an LLM to create applications and understand and refactor code bases.
+
+It contains the following tools:
+
+- [cmd_runner](/usage/chat-buffer/tools#cmd-runner)
+- [create_file](/usage/chat-buffer/tools#create-file)
+- [file_search](/usage/chat-buffer/tools#file-search)
+- [get_changed_files](/usage/chat-buffer/tools#get-changed-files)
+- [grep_search](/usage/chat-buffer/tools#grep-search)
+- [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file)
+- [list_code_usages](/usage/chat-buffer/tools#list-code-usages)
+- [read_file](/usage/chat-buffer/tools#read-file)
+
+You can use it with:
+
+```md
+@{full_stack_dev}. Can we create a todo list in Vue.js?
+```
+
+### files
+
+The `@{files}` tool is a collection of tools that allows an LLM to carry out file operations in your current working directory. It contains the following files:
+
+- [create_file](/usage/chat-buffer/tools#create-file)
+- [file_search](/usage/chat-buffer/tools#file-search)
+- [get_changed_files](/usage/chat-buffer/tools#get-changed-files)
+- [grep_search](/usage/chat-buffer/tools#grep-search)
+- [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file)
+- [read_file](/usage/chat-buffer/tools#read-file)
+
+You can use it with:
+
+```md
+@{files}. Can you scaffold out the folder structure for a python package?
+```
 
 ## Useful Tips
 
-### Combining Tools
+### YOLO mode
 
-Consider combining tools for complex tasks:
+The plugin allows you to run tools on autopilot, with YOLO mode. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that tools may have edited. In the chat buffer, the keymap `gty` will toggle YOLO mode on/off. Alternatively, set the global variable `vim.g.codecompanion_yolo_mode` to enable this or set it to `nil` to undo this.
 
-```md
-@{full_stack_dev} I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
-```
+## Community Tools
 
-### Automatic Tool Mode
+There is also a thriving ecosystem of user created tools:
 
-The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that tools may have edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
+- [VectorCode](https://github.com/Davidyz/VectorCode/tree/main) - A code repository indexing tool to supercharge your LLM experience
+- [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
+
+The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
+
+## Security and Approvals
+
+CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
+
+The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
+
 
 ## Compatibility
+
+> [!NOTE]
+> Tools are not supported for ACP adapters.
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
@@ -239,6 +306,5 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Mistral           | All               | :x:                | Not supported yet                   |
 | Novita            |                   | :white_check_mark:                | Dependent on the model  |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
-| OpenAI Compatible |                   | :exclamation:      | Dependent on the model and provider |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | All               | :x:                | Not supported yet                   |

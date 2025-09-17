@@ -1,5 +1,6 @@
 local Path = require("plenary.path")
 
+local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
@@ -159,8 +160,8 @@ function SlashCommand:read(selected)
 end
 
 ---Output from the slash command in the chat buffer
----@param selected { relative_path: string?, path: string, description: string? }
----@param opts? { silent: boolean, pin: boolean }
+---@param selected { path: string, relative_path?: string, description?: string }
+---@param opts? { message?:string, description?: string, silent: boolean, pin: boolean }
 ---@return nil
 function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
@@ -168,44 +169,21 @@ function SlashCommand:output(selected, opts)
   end
   opts = opts or {}
 
-  local content, ft, id, relative_path = self:read(selected)
-
-  if content == "" then
-    return log:warn("Could not read the file: %s", selected.path)
-  end
-
-  -- Workspaces allow the user to set their own custom description which should take priority
-  local description
   if selected.description then
-    description = fmt(
-      [[%s
-
-```%s
-%s
-```]],
-      selected.description,
-      ft,
-      content
-    )
-  else
-    description = fmt(
-      [[<attachment filepath="%s">%s:
-
-```%s
-%s
-```
-</attachment>]],
-      relative_path,
-      opts.pin and "Here is the updated content from the file" or "Here is the content from the file",
-      ft,
-      content
-    )
+    opts.message = selected.description
   end
+
+  local content, id, relative_path, _, _ = chat_helpers.format_file_for_llm(selected.path, opts)
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = description or "",
-  }, { context_id = id, visible = false })
+    content = content or "",
+  }, {
+    path = selected.path,
+    context_id = id,
+    tag = "file",
+    visible = false,
+  })
 
   if opts.pin then
     return

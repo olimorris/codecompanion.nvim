@@ -2,6 +2,8 @@ local CodeExtractor = require("codecompanion.strategies.chat.tools.catalog.list_
 local Utils = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
+local api = vim.api
+
 ---@class ListCodeUsages.ResultProcessor
 local ResultProcessor = {}
 
@@ -199,7 +201,7 @@ function ResultProcessor.process_quickfix_references(qflist, symbol_data)
       local col = qfitem.col - 1 -- Convert to 0-indexed
 
       -- Load buffer if needed
-      if not vim.api.nvim_buf_is_loaded(target_bufnr) then
+      if not api.nvim_buf_is_loaded(target_bufnr) then
         vim.fn.bufload(target_bufnr)
       end
 

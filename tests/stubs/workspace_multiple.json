@@ -2,7 +2,7 @@
   "name": "Workspace Example - When combining multiple workspace files",
   "version": "1.0.0",
   "workspace_spec": "1.0",
-  "system_prompt": "Workspace Multiple Example Prompt",
+  "system_prompt": "System Prompt for Workspace Multiple Example Prompt",
   "groups": [
     {
       "name": "Test 1",

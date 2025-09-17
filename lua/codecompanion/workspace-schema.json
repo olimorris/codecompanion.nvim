@@ -3,7 +3,14 @@
   "title": "CodeCompanion.nvim workspace configuration file",
   "description": "Schema for a CodeCompanion.nvim workspace configuration file. A workspace is a collection of groups which relate to functionality in a codebase",
   "type": "object",
-  "required": ["name", "version", "system_prompt", "groups", "data"],
+  "required": [
+    "name",
+    "version",
+    "description",
+    "system_prompt",
+    "groups",
+    "data"
+  ],
   "properties": {
     "name": {
       "type": "string",
@@ -12,6 +19,10 @@
     "version": {
       "type": "string",
       "description": "Version of the workspace file. Allows teams to know if there have been any changes to the file"
+    },
+    "description": {
+      "type": "string",
+      "description": "The default user prompt that's sent to an LLM when a workspace group is selected"
     },
     "system_prompt": {
       "type": "string",
@@ -29,11 +40,15 @@
       "description": "A group is a collection of objects from the data object in this schema, which relate to features and functionality in the codebase",
       "items": {
         "type": "object",
-        "required": ["name", "system_prompt", "data"],
+        "required": ["name", "description", "system_prompt", "data"],
         "properties": {
           "name": {
             "type": "string",
             "description": "The name of the group"
+          },
+          "description": {
+            "type": "string",
+            "description": "The user prompt specific to the group that is shared with an LLM when the group is selected"
           },
           "system_prompt": {
             "type": "string",

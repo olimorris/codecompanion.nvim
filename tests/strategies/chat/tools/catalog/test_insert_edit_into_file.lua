@@ -8,7 +8,7 @@ local T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        _G.TEST_TMPFILE = '/tests/stubs/cc_test_file.txt'
+        _G.TEST_TMPFILE = 'tests/stubs/cc_test_file.txt'
         _G.TEST_TMPFILE_ABSOLUTE = vim.fs.joinpath(vim.fn.getcwd(), _G.TEST_TMPFILE)
 
         -- ensure no leftover from previous run
