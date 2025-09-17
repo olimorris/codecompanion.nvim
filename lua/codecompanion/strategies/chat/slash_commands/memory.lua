@@ -37,11 +37,11 @@ function SlashCommand:output(selected)
   return memory
     .init({
       name = selected.name,
+      files = selected.files,
       opts = selected.opts,
       parser = selected.parser,
-      files = selected.files,
     })
-    :make(self.Chat)
+    :make(self.Chat, { force = true })
 end
 
 return SlashCommand

@@ -152,15 +152,18 @@ end
 
 ---Make the memory message
 ---@param chat CodeCompanion.Chat
+---@param opts? { force: boolean } Additional options
 ---@return nil
-function Memory:make(chat)
+function Memory:make(chat, opts)
+  opts = vim.tbl_extend("force", { force = false }, opts or {})
+
   local condition = config
     and config.memory
     and config.memory.opts
     and config.memory.opts.chat
     and config.memory.opts.chat.condition
 
-  if condition ~= nil then
+  if condition ~= nil and opts.force == false then
     local ctype = type(condition)
 
     if ctype == "function" then
