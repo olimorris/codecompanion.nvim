@@ -379,11 +379,6 @@ require("codecompanion").setup({
 }),
 ```
 
-The chat buffer's window settings may be overridden. For example:
-`require("codecompanion").toggle({ layout = "float", width = 0.6 })`
-or:
-`require("codecompanion").chat({window_opts: {layout = "float", width = 0.6 }})`
-
 ## Diff
 
 CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
