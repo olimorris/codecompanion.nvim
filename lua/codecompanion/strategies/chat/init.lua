@@ -53,7 +53,7 @@
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
----@field window_opts? table Window configuration options for the chat buffer-
+---@field window_opts? table Window configuration options for the chat buffer
 
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
