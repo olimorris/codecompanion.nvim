@@ -18,12 +18,7 @@ require("codecompanion").setup({
 })
 ```
 
-Once enabled, the plugin will look to load a common, or default, set of files every time a chat buffer is created. An example set of these files are:
-
-- `.cursorrules`
-- `.goosehints`
-- `.rules`
-- `CLAUDE.md`
+Once enabled, the plugin will look to load a common, or default, set of files every time a chat buffer is created. 
 
 > [!INFO]
 > Refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/5807e0457111f0de267fc9a6543b41fae0f5c2b1/lua/codecompanion/config.lua#L1167-L1179) file for the full set of files included in the default group.
