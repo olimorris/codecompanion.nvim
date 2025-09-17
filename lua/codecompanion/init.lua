@@ -117,7 +117,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages }
+---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, window_opts: table }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -137,7 +137,7 @@ CodeCompanion.chat = function(args)
       if prompt == "add" then
         return CodeCompanion.add(args)
       elseif prompt == "toggle" then
-        return CodeCompanion.toggle(args.window_opts)
+        return CodeCompanion.toggle(args)
       elseif prompt == "refreshcache" then
         return CodeCompanion.refresh_cache()
       else
