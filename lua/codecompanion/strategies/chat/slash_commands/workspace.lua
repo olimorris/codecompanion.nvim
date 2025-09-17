@@ -182,7 +182,7 @@ function SlashCommand:output(selected_group, opts)
 
   -- Add the high-level prompts first
   if self.workspace.system_prompt then
-    self.Chat:add_system_prompt(
+    self.Chat:set_system_prompt(
       replace_vars(self.workspace, group, self.workspace.system_prompt),
       { visible = false, tag = self.workspace.name .. " // Workspace" }
     )
@@ -195,7 +195,7 @@ function SlashCommand:output(selected_group, opts)
   end
 
   if group.system_prompt then
-    self.Chat:add_system_prompt(
+    self.Chat:set_system_prompt(
       replace_vars(self.workspace, group, group.system_prompt),
       { visible = false, tag = group.name .. " // Workspace Group" }
     )
