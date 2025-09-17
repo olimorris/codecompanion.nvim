@@ -68,7 +68,7 @@ Buffer context items can be _watched_ via the `gw` keymap (when your cursor is o
 
 If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
 
-Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always have that it to refer to.
+Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
 
 ## Super Diff
 
