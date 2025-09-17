@@ -42,6 +42,7 @@ end
 ---@field winnr number The window number of the chat
 ---@field settings table The settings for the chat
 ---@field tokens number The current token count in the chat
+---@field window_opts? table The window configuration options for the chat buffer
 
 ---@class CodeCompanion.Chat.UIArgs
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
@@ -51,6 +52,7 @@ end
 ---@field winnr number
 ---@field settings table
 ---@field tokens number
+---@field window_opts? table
 
 ---@class CodeCompanion.Chat.UI
 local UI = {}
@@ -65,6 +67,7 @@ function UI.new(args)
     settings = args.settings,
     tokens = args.tokens,
     winnr = args.winnr,
+    window_opts = args.window_opts,
   }, { __index = UI })
 
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
@@ -102,7 +105,19 @@ function UI:open(opts)
     end)
   end
 
-  local window = config.display.chat.window
+  if opts.window_opts then
+    if opts.window_opts.default then
+      self.window_opts = nil
+    else
+      self.window_opts = opts.window_opts
+    end
+  end
+  local window
+  if self.window_opts then
+    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts)
+  else
+    window = config.display.chat.window
+  end
   local width = math.floor(vim.o.columns * 0.45)
   if window.width ~= "auto" then
     width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
@@ -186,7 +201,12 @@ end
 ---Hide the chat buffer from view
 ---@return nil
 function UI:hide()
-  local layout = config.display.chat.window.layout
+  local layout
+  if self.window_opts then
+    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts).layout
+  else
+    layout = config.display.chat.window.layout
+  end
 
   if layout == "float" or layout == "vertical" or layout == "horizontal" then
     if self:is_active() then

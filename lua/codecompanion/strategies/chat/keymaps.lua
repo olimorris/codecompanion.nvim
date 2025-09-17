@@ -294,7 +294,9 @@ M.close = {
     if vim.tbl_count(chats) == 0 then
       return
     end
-    chats[1].chat.ui:open()
+
+    local window_opts = chat.ui.window_opts or { default = true }
+    chats[1].chat.ui:open({ window_opts = window_opts })
   end,
 }
 
@@ -470,8 +472,10 @@ local function move_buffer(chat, direction)
 
   local codecompanion = require("codecompanion")
 
-  codecompanion.buf_get_chat(chat.bufnr).ui:hide()
-  codecompanion.buf_get_chat(next_buf).ui:open()
+  local prev_ui = codecompanion.buf_get_chat(chat.bufnr).ui
+  prev_ui:hide()
+  local window_opts = prev_ui.window_opts or { default = true }
+  codecompanion.buf_get_chat(next_buf).ui:open({ window_opts = window_opts })
 end
 
 M.next_chat = {
