@@ -42,6 +42,7 @@ end
 ---@field winnr number The window number of the chat
 ---@field settings table The settings for the chat
 ---@field tokens number The current token count in the chat
+---@field window_opts? table The window configuration options for the chat buffer
 
 ---@class CodeCompanion.Chat.UIArgs
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
@@ -51,6 +52,7 @@ end
 ---@field winnr number
 ---@field settings table
 ---@field tokens number
+---@field window_opts? table
 
 ---@class CodeCompanion.Chat.UI
 local UI = {}
