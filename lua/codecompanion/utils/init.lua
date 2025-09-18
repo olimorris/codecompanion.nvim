@@ -168,7 +168,7 @@ end
 ---@param callbacks table|nil The existing callbacks
 ---@param event string The event to add the callback to
 ---@param fn function The callback function
-function M.callbacks_add(callbacks, event, fn)
+function M.callbacks_extend(callbacks, event, fn)
   callbacks = callbacks or {}
   local existing = callbacks[event]
   if not existing then

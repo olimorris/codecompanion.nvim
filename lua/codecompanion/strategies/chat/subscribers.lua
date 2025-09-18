@@ -39,10 +39,16 @@ function Subscribers:unsubscribe(event)
   end
 end
 
+---Return the number of queued subscribers
+---@return number
+function Subscribers:size()
+  return #self.queue
+end
+
 ---Does the chat buffer have any subscribers?
 ---@return boolean
 function Subscribers:has_subscribers()
-  return #self.queue > 0
+  return self:size() > 0
 end
 
 ---Execute the subscriber's callback
@@ -60,7 +66,7 @@ function Subscribers:action(chat, event)
     end
     self:unsubscribe(event)
     -- Don't auto submit a reuse prompt if it's the last one
-    if vim.tbl_isempty(self.queue) then
+    if self:size() == 0 then
       self.stopped = true
     end
     return
