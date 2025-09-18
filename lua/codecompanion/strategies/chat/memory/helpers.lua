@@ -112,7 +112,7 @@ function M.add_callbacks(args, memory_name)
     local current = config.memory[name]
     if current then
       -- Ensure that we extend any existing callbacks
-      args.callbacks = util.callbacks_extend(args.callbacks, "on_creation", function(chat)
+      args.callbacks = util.callbacks_extend(args.callbacks, "on_created", function(chat)
         require("codecompanion.strategies.chat.memory").add_to_chat({
           name = name,
           opts = current.opts,

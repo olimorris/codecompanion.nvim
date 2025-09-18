@@ -537,14 +537,14 @@ function Chat.new(args)
   self:add_callback("on_ready", function(c)
     c.subscribers:process(c)
   end)
-  self:add_callback("on_stop", function(c)
+  self:add_callback("on_cancelled", function(c)
     c.subscribers:stop()
   end)
-  self:add_callback("on_close", function(c)
+  self:add_callback("on_closed", function(c)
     c.subscribers:stop()
   end)
 
-  self:dispatch("on_creation")
+  self:dispatch("on_created")
 
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
@@ -1037,7 +1037,7 @@ function Chat:done(output, reasoning, tools, status)
 
   ready_chat_buffer(self)
 
-  self:dispatch("on_done", { status = self.status })
+  self:dispatch("on_completed", { status = self.status })
   util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
@@ -1230,7 +1230,7 @@ end
 function Chat:stop()
   local job
   self.status = CONSTANTS.STATUS_CANCELLING
-  self:dispatch("on_stopped")
+  self:dispatch("on_cancelled")
   util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
@@ -1270,7 +1270,7 @@ function Chat:close()
     self:stop()
   end
 
-  self:dispatch("on_close")
+  self:dispatch("on_closed")
 
   edit_tracker.handle_chat_close(self)
   edit_tracker.clear(self)

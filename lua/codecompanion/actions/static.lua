@@ -107,7 +107,7 @@ return {
               codecompanion.chat({
                 buffer_context = context,
                 callbacks = {
-                  on_creation = function(chat)
+                  on_created = function(chat)
                     memory
                       .init({
                         name = item.name,
