@@ -86,3 +86,10 @@ return {
   },
 }
 ```
+
+## Tests
+
+The tests can be found:
+
+@./tests/strategies/chat/test_workflows.lua
+

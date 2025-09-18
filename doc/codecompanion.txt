@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2025 September 17
+*codecompanion.txt*        For NVIM v0.11       Last change: 2025 September 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2001,12 +2001,7 @@ By default, memory is not enabled in the chat buffer. To enable it:
 <
 
 Once enabled, the plugin will look to load a common, or default, set of files
-every time a chat buffer is created. An example set of these files are:
-
-- `.cursorrules`
-- `.goosehints`
-- `.rules`
-- `CLAUDE.md`
+every time a chat buffer is created.
 
 
   [!INFO] Refer to the config.lua
@@ -2813,9 +2808,11 @@ If a context item is added by mistake, it can be removed from the chat buffer
 by simply deleting it from the `Context` blockquote. On the next turn, all data
 related to that context item will be removed from the message history.
 
-Finally, it’s important to note that all LLM endpoints require the sending of
-previous messages that make up the conversation. So even though you’ve shared
-context once, many messages ago, the LLM will always have that it to refer to.
+Finally, it’s important to note that all http adapter endpoints require the
+sending of previous messages that make up the conversation. So even though
+you’ve shared context once, many messages ago, the LLM will always be able to
+refer to it, unless you actively alter the history of the conversation via
+`gd`.
 
 
 SUPER DIFF ~
@@ -2973,6 +2970,31 @@ MEMORY                                            *codecompanion-usage-memory*
 LLMs don’t retain memory between completions. In CodeCompanion, memory
 provides persistent, reusable context for chat buffers, via the notion of
 groups.
+
+Below is the `default` memory group in the plugin:
+
+>lua
+    require("codecompanion").setup({
+      memory = {
+        default = {
+          description = "Collection of common files for all projects",
+          files = {
+            ".clinerules",
+            ".cursorrules",
+            ".goosehints",
+            ".rules",
+            ".windsurfrules",
+            ".github/copilot-instructions.md",
+            "AGENT.md",
+            "AGENTS.md",
+            { path = "CLAUDE.md", parser = "claude" },
+            { path = "CLAUDE.local.md", parser = "claude" },
+            { path = "~/.claude/CLAUDE.md", parser = "claude" },
+          },
+        },
+      },
+    })
+<
 
 Once |codecompanion-configuration-memory-enabling-memory|, there are many ways
 that memory can be added to the chat buffer.
@@ -6144,7 +6166,7 @@ prompts above:
 
 **Specifying an Adapter**
 
-You can specify a specific adapter for a workflow prompt:
+You can specify a specific adapter for a workflow:
 
 >lua
     ["Workflow"] = {
@@ -6160,6 +6182,42 @@ You can specify a specific adapter for a workflow prompt:
     },
 <
 
+You can even specify an adapter and model on each workflow prompt:
+
+>lua
+    -- Workflow config goes above this
+    prompts = {
+      {
+        {
+          role = constants.USER_ROLE,
+          content = "Do not write any code. Let's brainstorm ideas first. Come up with a plan for ___",
+          opts = {
+            adapter = {
+              name = "copilot",
+              model = "gpt-5", -- Use a better model for the planning tasks
+            },
+            auto_submit = false,
+          },
+        },
+      },
+      {
+        {
+          role = constants.USER_ROLE,
+          content = "Plan looks good. Let's implement it.",
+          opts = {
+            adapter = {
+              name = "copilot",
+              model = "gpt-4.1", -- And a cheaper model for the token intensive activities
+            },
+            auto_submit = false,
+          },
+        },
+      },
+    },
+<
+
+
+  [!NOTE] The adapter name is required however model is optional.
 **Persistent Prompts**
 
 By default, all workflow prompts are of the type `once`. That is, they are
