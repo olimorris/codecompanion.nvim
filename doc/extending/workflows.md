@@ -208,6 +208,9 @@ prompts = {
 },
 ```
 
+> [!NOTE]
+> The adapter name is required however model is optional.
+
 **Persistent Prompts**
 
 By default, all workflow prompts are of the type `once`. That is, they are consumed once and then removed. However, this can be changed:
