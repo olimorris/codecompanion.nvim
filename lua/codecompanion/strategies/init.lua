@@ -221,7 +221,8 @@ function Strategies:workflow()
     local order = 1
     vim.iter(prompts):each(function(prompt)
       for _, val in ipairs(prompt) do
-        local event_data = vim.tbl_deep_extend("keep", {}, val, { type = "once" })
+        local event_type = (type(val.repeat_until) == "function") and "repeat" or "once"
+        local event_data = vim.tbl_deep_extend("keep", {}, val, { type = event_type })
         local event = {
           callback = function()
             if type(val.content) == "function" then

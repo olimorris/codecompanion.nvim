@@ -189,7 +189,7 @@ local function ready_chat_buffer(chat, opts)
     chat.ui:display_tokens(chat.chat_parser, chat.header_line)
     chat.context:render()
 
-    chat.subscribers:process(chat)
+    chat:dispatch("on_ready")
   end
 
   chat:update_metadata()
@@ -532,6 +532,17 @@ function Chat.new(args)
       end
     end
   end
+
+  -- Set up subscriber callbacks
+  self:add_callback("on_ready", function(c)
+    c.subscribers:process(c)
+  end)
+  self:add_callback("on_stop", function(c)
+    c.subscribers:stop()
+  end)
+  self:add_callback("on_close", function(c)
+    c.subscribers:stop()
+  end)
 
   self:dispatch("on_creation")
 
@@ -937,6 +948,8 @@ function Chat:submit(opts)
   log:trace("Tools:\n%s", payload.tools)
   log:info("Chat request started")
 
+  self:dispatch("on_submitted", { payload = payload })
+
   if self.adapter.type == "http" then
     self:_submit_http(payload)
   elseif self.adapter.type == "acp" then
@@ -1024,6 +1037,7 @@ function Chat:done(output, reasoning, tools, status)
 
   ready_chat_buffer(self)
 
+  self:dispatch("on_done", { status = self.status })
   util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
@@ -1216,6 +1230,7 @@ end
 function Chat:stop()
   local job
   self.status = CONSTANTS.STATUS_CANCELLING
+  self:dispatch("on_stopped")
   util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
@@ -1242,8 +1257,6 @@ function Chat:stop()
     end
   end
 
-  self.subscribers:stop()
-
   vim.schedule(function()
     log:debug("Chat request cancelled")
     self:done(nil, nil, nil, "stopped")
@@ -1256,6 +1269,9 @@ function Chat:close()
   if self.current_request then
     self:stop()
   end
+
+  self:dispatch("on_close")
+
   edit_tracker.handle_chat_close(self)
   edit_tracker.clear(self)
 
