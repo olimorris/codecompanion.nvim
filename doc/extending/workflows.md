@@ -158,7 +158,7 @@ There are also a number of options which haven't been covered in the example pro
 
 **Specifying an Adapter**
 
-You can specify a specific adapter for a workflow prompt:
+You can specify a specific adapter for a workflow:
 
 ```lua
 ["Workflow"] = {
@@ -171,6 +171,40 @@ You can specify a specific adapter for a workflow prompt:
     }
   },
   -- Prompts go here
+},
+```
+
+You can even specify an adapter and model on each workflow prompt:
+
+```lua
+-- Workflow config goes above this
+prompts = {
+  {
+    {
+      role = constants.USER_ROLE,
+      content = "Do not write any code. Let's brainstorm ideas first. Come up with a plan for ___",
+      opts = {
+        adapter = {
+          name = "copilot",
+          model = "gpt-5", -- Use a better model for the planning tasks
+        },
+        auto_submit = false,
+      },
+    },
+  },
+  {
+    {
+      role = constants.USER_ROLE,
+      content = "Plan looks good. Let's implement it.",
+      opts = {
+        adapter = {
+          name = "copilot",
+          model = "gpt-4.1", -- And a cheaper model for the token intensive activities
+        },
+        auto_submit = false,
+      },
+    },
+  },
 },
 ```
 
