@@ -198,7 +198,7 @@ function Strategies:workflow()
 
   local messages = prompts[1]
 
-  -- Set the workflow adapter if one is specified (Single adapter for entire workflow)
+  -- Set the workflow adapter if one is specified
   add_adapter(self, workflow.opts or {})
 
   -- We send the first batch of prompts to the chat buffer as messages
@@ -222,13 +222,15 @@ function Strategies:workflow()
     vim.iter(prompts):each(function(prompt)
       for _, val in ipairs(prompt) do
         local event_data = vim.tbl_deep_extend("keep", {}, val, { type = "once" })
-
         local event = {
           callback = function()
             if type(val.content) == "function" then
               val.content = val.content(self.buffer_context)
             end
             chat:add_buf_message(val)
+            if val.opts and val.opts.adapter and val.opts.adapter.name then
+              chat:change_adapter(val.opts.adapter.name, val.opts.adapter.model)
+            end
           end,
           data = event_data,
           order = order,
