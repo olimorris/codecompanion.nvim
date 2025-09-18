@@ -211,11 +211,11 @@ end
 ---@param opts? table
 ---@return nil
 CodeCompanion.toggle = function(opts)
-  opts = opts or {}
-  local chat = CodeCompanion.last_chat()
+  local window_opts = opts and opts.window_opts
 
+  local chat = CodeCompanion.last_chat()
   if not chat then
-    return CodeCompanion.chat(opts)
+    return CodeCompanion.chat(window_opts and { window_opts = window_opts })
   end
 
   if chat.ui:is_visible_non_curtab() then
@@ -226,7 +226,12 @@ CodeCompanion.toggle = function(opts)
 
   chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
-  chat.ui:open({ toggled = true, window_opts = opts.window_opts })
+
+  local opts = { toggled = true }
+  if window_opts then
+    opts.window_opts = window_opts
+  end
+  chat.ui:open(opts)
 end
 
 ---Make a previously hidden chat buffer, visible again
