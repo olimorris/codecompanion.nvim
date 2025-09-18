@@ -227,7 +227,7 @@ CodeCompanion.toggle = function(opts)
   chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
 
-  local opts = { toggled = true }
+  opts = { toggled = true }
   if window_opts then
     opts.window_opts = window_opts
   end
