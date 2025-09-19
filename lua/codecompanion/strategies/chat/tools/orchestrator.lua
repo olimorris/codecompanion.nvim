@@ -9,9 +9,10 @@ local fmt = string.format
 
 ---Add a response to the chat buffer regarding a tool's execution
 ---@param exec CodeCompanion.Tools.Orchestrator
----@msg string
-local send_response_to_chat = function(exec, msg)
-  exec.tools.chat:add_tool_output(exec.tool, msg)
+---@param llm_message string
+---@param user_message? string
+local send_response_to_chat = function(exec, llm_message, user_message)
+  exec.tools.chat:add_tool_output(exec.tool, llm_message, user_message)
 end
 
 ---Converts a cmd-based tool to a function-based tool.
@@ -177,7 +178,11 @@ function Orchestrator:setup_handlers()
       if self.tool.output and self.tool.output.cancelled then
         self.tool.output.cancelled(self.tool, self.tools, cmd)
       else
-        send_response_to_chat(self, fmt("Cancelled `%s`", self.tool.name))
+        send_response_to_chat(
+          self,
+          fmt("The user cancelled the execution of the %s tool", self.tool.name),
+          fmt("Cancelled `%s`", self.tool.name)
+        )
       end
     end,
     success = function(cmd)
@@ -258,8 +263,10 @@ function Orchestrator:setup(input)
         return self:setup()
       else
         log:debug("Orchestrator:execute - Tool cancelled")
-        self:close()
+        -- NOTE: Cancel current tool, then cancel all queued tools
         self.output.cancelled(cmd)
+        self:close()
+        self:cancel_pending_tools()
         return self:setup()
       end
     else
@@ -267,6 +274,27 @@ function Orchestrator:setup(input)
     end
   else
     return self:execute(cmd, input)
+  end
+end
+
+---Cancel all pending tools in the queue
+---@return nil
+function Orchestrator:cancel_pending_tools()
+  while not self.queue:is_empty() do
+    local pending_tool = self.queue:pop()
+    local previous_tool = self.tool
+    self.tool = pending_tool
+
+    -- Prepare handlers/output first
+    self:setup_handlers()
+    local first_cmd = pending_tool.cmds and pending_tool.cmds[1] or nil
+
+    local ok, err = pcall(function()
+      self.output.cancelled(first_cmd)
+    end)
+    if not ok then
+      log:error("Failed to run cancelled handler for tool %s: %s", tostring(pending_tool.name), err)
+    end
   end
 end
 
