@@ -34,7 +34,7 @@ Use @{lorem_ipsum} to generate a random paragraph
 
 will yield:
 
-```
+```md
 Use the lorem_ipsum tool to generate a random paragraph
 ```
 
@@ -271,26 +271,22 @@ You can use it with:
 
 The plugin allows you to run tools on autopilot, with YOLO mode. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that tools may have edited. In the chat buffer, the keymap `gty` will toggle YOLO mode on/off. Alternatively, set the global variable `vim.g.codecompanion_yolo_mode` to enable this or set it to `nil` to undo this.
 
-## Community Tools
-
-There is also a thriving ecosystem of user created tools:
-
-- [VectorCode](https://github.com/Davidyz/VectorCode/tree/main) - A code repository indexing tool to supercharge your LLM experience
-- [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
-
-The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
-
 ## Security and Approvals
 
 CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
 
-The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
+The plugin also puts approvals at the heart of its workflow. Some tools, such as the [@cmd_runner](#cmd-runner), require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
 
+When using CodeCompanion's in-built tools, there are three choices:
+
+1. **Approve** - The tool will be executed
+2. **Reject** - The tool will **NOT** be executed
+3. **Cancel** - All tools in the queue will **NOT** be executed
 
 ## Compatibility
 
 > [!NOTE]
-> Tools are not supported for ACP adapters.
+> Tools are not supported for ACP adapters as they have their own set.
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
