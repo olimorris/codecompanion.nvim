@@ -20,3 +20,8 @@ The plugin has some test helpers that allow for easier setting up of the plugin,
 @./tests/adapters/http/test_tools_in_chat_buffer.lua
 
 One of Mini.Tests unique selling points is its ability to allow for screenshot tests. That is, you can assert that Neovim looks as expected.
+
+## Tips
+
+Be mindful when using `child.lua` and `child.lua_get`. The former allows you to use `return` to output a value for use elsewhere in the test. The latter, applys `return` automatically and will fail if you include it.
+

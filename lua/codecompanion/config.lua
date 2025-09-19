@@ -1206,6 +1206,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/tests/test.md",
           },
         },
+        ["tools"] = {
+          description = "Tools implementation in the plugin",
+          files = {
+            ".codecompanion/tools.md",
+          },
+        },
         ["ui"] = {
           description = "The chat UI implementation",
           files = {
