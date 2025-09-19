@@ -22,8 +22,22 @@ end
 ---@param target_kinds? string[] Optional list of symbol kinds to include (default: all)
 ---@return table[]|nil symbols Array of symbols with name, kind, start_line, end_line
 ---@return string|nil content File content if successful
+---@return string|nil filetype File type if successful
 function M.extract_file_symbols(filepath, target_kinds)
-  local ft = vim.filetype.match({ filename = filepath })
+  local ok, content = pcall(function()
+    return Path.new(filepath):read()
+  end)
+
+  if not ok then
+    log:error("[chat::slash_commands::helpers] Could not read the file at %s", filepath)
+    return nil, nil, nil
+  end
+
+  local ft = vim.filetype.match({
+    filename = filepath,
+    contents = vim.fn.split(content, "\n"),
+  })
+
   if not ft then
     local base_name = vim.fs.basename(filepath)
     local split_name = vim.split(base_name, "%.")
@@ -36,27 +50,18 @@ function M.extract_file_symbols(filepath, target_kinds)
   end
 
   if not ft then
-    return nil, nil
-  end
-
-  local ok, content = pcall(function()
-    return Path.new(filepath):read()
-  end)
-
-  if not ok then
-    log:error("[chat::slash_commands::helpers] Could not read the file at %s", filepath)
-    return nil, nil
+    return nil, nil, nil
   end
 
   local query = vim.treesitter.query.get(ft, "cc_symbols")
   if not query then
-    return nil, content
+    return nil, content, ft
   end
 
   local ok, parser = pcall(vim.treesitter.get_string_parser, content, ft)
   if not ok then
     log:error("[chat::slash_commands::helpers] Failed to get parser for %s", ft)
-    return nil, content
+    return nil, content, ft
   end
   local tree = parser:parse()[1]
 
@@ -105,7 +110,7 @@ function M.extract_file_symbols(filepath, target_kinds)
     ::continue::
   end
 
-  return symbols, content
+  return symbols, content, ft
 end
 
 return M
