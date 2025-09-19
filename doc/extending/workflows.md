@@ -176,18 +176,24 @@ You can specify a specific adapter for a workflow:
 
 You can even specify an adapter and model on each workflow prompt:
 
+> [!NOTE]
+> The adapter name is required however model is optional.
+
+
 ```lua
--- Workflow config goes above this
+-- ... Workflow config goes above this
+opts = {
+  adapter = {
+    name = "copilot",
+    model = "gpt-5",
+  },
+},
 prompts = {
   {
     {
       role = constants.USER_ROLE,
       content = "Do not write any code. Let's brainstorm ideas first. Come up with a plan for ___",
       opts = {
-        adapter = {
-          name = "copilot",
-          model = "gpt-5", -- Use a better model for the planning tasks
-        },
         auto_submit = false,
       },
     },
@@ -199,7 +205,9 @@ prompts = {
       opts = {
         adapter = {
           name = "copilot",
-          model = "gpt-4.1", -- And a cheaper model for the token intensive activities
+          -- Use a more cost effective cheaper model for token intensive activities
+          -- This model will persist for the duration of the chat unless changed
+          model = "gpt-4.1",
         },
         auto_submit = false,
       },
@@ -208,10 +216,10 @@ prompts = {
 },
 ```
 
-> [!NOTE]
-> The adapter name is required however model is optional.
-
 **Persistent Prompts**
+
+> [!NOTE]
+> Persistent prompts are not available for the first prompt group.
 
 By default, all workflow prompts are of the type `once`. That is, they are consumed once and then removed. However, this can be changed:
 
@@ -236,6 +244,4 @@ By default, all workflow prompts are of the type `once`. That is, they are consu
   },
 },
 ```
-
-Note that persistent prompts are not available for the first prompt group.
 

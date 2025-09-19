@@ -416,11 +416,10 @@ You can specify a default memory group to load with a prompt:
   strategy = "chat",
   description = "Add some context",
   opts = {
-    -- Some options for brevity
     default_memory = "my_custom_memory_group",
   },
   prompts = {
-    -- Removed for brevity
+    -- Prompt go here
   }
 },
 ```
