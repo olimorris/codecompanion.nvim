@@ -189,6 +189,7 @@ return {
           "query",
         },
       },
+      strict = true,
     },
     type = "function",
   },
