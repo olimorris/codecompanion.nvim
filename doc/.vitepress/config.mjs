@@ -120,7 +120,6 @@ export default withMermaid(
             { text: "Creating Workspaces", link: "/extending/workspace" },
           ],
         },
-        { text: "Community Extensions", link: "/extensions" },
       ],
 
       editLink: {
