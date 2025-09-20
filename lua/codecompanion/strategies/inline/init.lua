@@ -54,7 +54,7 @@ local CONSTANTS = {
 Your task:
 - Carefully follow the user's prompt (enclosed in <prompt></prompt> tags).
 - Use any provided code context to inform your response.
-- Output only valid JSON as specified below.
+- Output only valid JSON as specified below, being sure to escape all newline and '"' characters in the JSON strings.
 
 Response schema:
 %s
@@ -557,9 +557,12 @@ end
 ---@param output string
 ---@return table|nil
 function Inline:parse_output(output)
-  -- Try parsing as plain JSON first
-  output = output:gsub("^```json", ""):gsub("```$", "")
-  local ok, json = pcall(vim.json.decode, output)
+  -- Filter out content between <think> and </think> tags
+  local ntoutput = output:gsub("<think>.*</think>", "")
+
+  --sf Try parsing as plain JSON first
+  local loutput = ntoutput:gsub("^```json", ""):gsub("```$", "")
+  local ok, json = pcall(vim.json.decode, loutput)
   if ok then
     log:debug("[Inline] Parsed json:\n%s", json)
     return json
@@ -575,6 +578,7 @@ function Inline:parse_output(output)
     end
   end
 
+  log:debug("[Inline] Failed to parse this response:\n%s", output)
   return log:error("[Inline] Failed to parse the response")
 end
 
