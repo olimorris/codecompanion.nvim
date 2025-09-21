@@ -1,7 +1,6 @@
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
-local eq = MiniTest.expect.equality
 
 local child = MiniTest.new_child_neovim()
 
@@ -189,6 +188,77 @@ T["calls done then emits error callback for HTTP status >= 400"] = function()
   h.eq(child.lua_get([[_G.__calls.done_called]]), true)
   h.eq(child.lua_get([[_G.__calls.callback_calls]]), 2)
   h.eq(child.lua_get([[_G.__calls.err_received]]), "500 error: ")
+end
+
+T["send_sync returns response on success"] = function()
+  child.lua([[
+    -- Override POST to return a synchronous success response
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        _G.__calls.post = _G.__calls.post + 1
+        _G.__last_request_opts = opts
+        return { status = 200, headers = { "OK" }, body = "ok", exit = 0 }
+      end,
+    }
+
+    local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
+    local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
+
+    _G.__sync_resp_status = resp and resp.status or nil
+    _G.__sync_resp_body = resp and resp.body or nil
+    _G.__sync_err_is_nil = (err == nil)
+  ]])
+
+  h.eq(child.lua_get([[_G.__calls.post]]), 1)
+  h.eq(child.lua_get([[_G.__sync_resp_status]]), 200)
+  h.eq(child.lua_get([[_G.__sync_resp_body]]), "ok")
+  h.eq(child.lua_get([[_G.__sync_err_is_nil]]), true)
+end
+
+T["send_sync returns error on HTTP status >= 400"] = function()
+  child.lua([[
+    -- Override POST to return a synchronous 500 response
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        _G.__calls.post = _G.__calls.post + 1
+        _G.__last_request_opts = opts
+        return { status = 500, headers = { "ERR" }, body = "boom", exit = 0 }
+      end,
+    }
+
+    local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
+    local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
+
+    _G.__sync_resp_is_nil = (resp == nil)
+    _G.__sync_err_message = err and err.message or nil
+  ]])
+
+  h.eq(child.lua_get([[_G.__calls.post]]), 1)
+  h.eq(child.lua_get([[_G.__sync_resp_is_nil]]), true)
+  h.eq(child.lua_get([[_G.__sync_err_message]]), "500 error: ")
+end
+
+T["send_sync returns error when curl call fails"] = function()
+  child.lua([[
+    -- Override POST to simulate a thrown error in curl
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        _G.__calls.post = _G.__calls.post + 1
+        _G.__last_request_opts = opts
+        error("curl failed")
+      end,
+    }
+
+    local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
+    local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
+
+    _G.__sync_resp_is_nil = (resp == nil)
+    _G.__sync_err_message = err and err.message or nil
+  ]])
+
+  h.eq(child.lua_get([[_G.__calls.post]]), 1)
+  h.eq(child.lua_get([[_G.__sync_resp_is_nil]]), true)
+  h.expect_contains("curl failed", child.lua_get([[_G.__sync_err_message]]))
 end
 
 return T
