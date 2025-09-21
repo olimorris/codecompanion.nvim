@@ -124,8 +124,7 @@ function Client:send(payload, opts)
       end
     end,
 
-    -- For streaming success, legacy request() calls actions.done() then (only if error) calls callback(err).
-    -- We defer calling on_done to the next tick so we can suppress it if an error arrives afterwards.
+    -- Defer on_done to the next tick to suppress it if an error arrives later on
     done = function()
       local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
       if not is_streaming then
