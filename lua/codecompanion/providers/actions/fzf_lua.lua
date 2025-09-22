@@ -14,6 +14,8 @@ function ActionPreviewer:new(o, opts)
   self.name_to_item = o.name_to_item
 end
 
+---Return enforced window options for the preview window
+---@return table
 function ActionPreviewer:gen_winopts()
   local enforced_win_opts = {
     wrap = true,
@@ -29,10 +31,16 @@ function ActionPreviewer:gen_winopts()
   return vim.tbl_extend("force", self.winopts, enforced_win_opts)
 end
 
+---Disable clearing preview between updates
+---@param _ any
+---@return boolean
 function ActionPreviewer:should_clear_preview(_)
   return false
 end
 
+---Parse the selected entry string into the original action item
+---@param entry_str string
+---@return CodeCompanion.ActionItem|table
 function ActionPreviewer:parse_entry(entry_str)
   if not entry_str or entry_str == "" then
     return {}
@@ -40,6 +48,9 @@ function ActionPreviewer:parse_entry(entry_str)
   return self.name_to_item[entry_str] or {}
 end
 
+---Render the preview buffer for the provided entry
+---@param entry_str string
+---@return nil
 function ActionPreviewer:populate_preview_buf(entry_str)
   if not self.win or not self.win:validate_preview() then
     return
@@ -81,7 +92,7 @@ function FZF.new(args)
   return setmetatable(args, { __index = FZF })
 end
 
----@param items table The items to display in the picker
+---@param items CodeCompanion.ActionItem[] The items to display in the picker
 ---@param opts? table The options for the picker
 ---@return nil
 function FZF:picker(items, opts)
