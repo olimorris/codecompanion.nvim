@@ -98,7 +98,7 @@ function FZF:picker(items, opts)
   end
 
   fzf.fzf_exec(names, {
-    prompt = opts.prompt,
+    winopts = { title = " " .. opts.prompt .. " " },
     previewer = {
       _ctor = function()
         return ActionPreviewer
