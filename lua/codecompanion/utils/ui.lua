@@ -508,7 +508,9 @@ function M.set_winbar(winnr, text, hl)
   end
 
   local centered = "%=" .. (text or ""):gsub("%%", "%%%%") .. "%="
-  vim.wo[winnr].winhighlight = "WinBar:" .. hl .. ",WinBarNC:" .. hl
+  local existing_hl = vim.wo[winnr].winhighlight or ""
+  existing_hl = #existing_hl > 0 and existing_hl .. "," or existing_hl
+  vim.wo[winnr].winhighlight = existing_hl .. "WinBar:" .. hl .. ",WinBarNC:" .. hl
   vim.wo[winnr].winbar = centered
 end
 
