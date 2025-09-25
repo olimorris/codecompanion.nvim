@@ -142,19 +142,12 @@ function M.build_float_title(opts)
   local title = opts.title or opts.title_prefix or "CodeCompanion"
 
   if opts.filepath then
-    local filename = vim.fs.basename(opts.filepath)
-    local function format_dirname(path)
-      local dirname = vim.fs.dirname(path)
-      if dirname and dirname ~= "." and dirname ~= "" then
-        return dirname .. "/"
-      end
-      return ""
-    end
     local ok, relative_path = pcall(function()
       return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
     end)
     local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
-    title = " " .. (opts.title_prefix or " Diff") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
+
+    title = " " .. (opts.title_prefix or " Diff") .. ": " .. path_to_use .. " "
   end
 
   return title
@@ -508,7 +501,9 @@ function M.set_winbar(winnr, text, hl)
   end
 
   local centered = "%=" .. (text or ""):gsub("%%", "%%%%") .. "%="
-  vim.wo[winnr].winhighlight = "WinBar:" .. hl .. ",WinBarNC:" .. hl
+  local existing_hl = vim.wo[winnr].winhighlight or ""
+  existing_hl = #existing_hl > 0 and existing_hl .. "," or existing_hl
+  vim.wo[winnr].winhighlight = existing_hl .. "WinBar:" .. hl .. ",WinBarNC:" .. hl
   vim.wo[winnr].winbar = centered
 end
 

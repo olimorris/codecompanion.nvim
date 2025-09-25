@@ -127,9 +127,11 @@ end
 function M.tool_message(tool_call, adapter)
   local status = tool_call.status or "pending"
   local title = M.short_title(tool_call)
+  local trim_tool_output = adapter.opts and adapter.opts.trim_tool_output
+
   if status == "completed" then
     local summary
-    if adapter.name == "claude_code" then
+    if trim_tool_output then
       summary = title
     else
       summary = M.summarize_tool_content(tool_call)
@@ -138,8 +140,13 @@ function M.tool_message(tool_call, adapter)
   elseif status == "in_progress" then
     return title .. " — running"
   elseif status == "failed" then
-    local summary = M.summarize_tool_content(tool_call)
-    return summary and (title .. " — failed: " .. summary) or (title .. " — failed")
+    local summary
+    if trim_tool_output then
+      summary = title
+    else
+      summary = M.summarize_tool_content(tool_call)
+    end
+    return summary or (title .. " — failed")
   else
     return title
   end
