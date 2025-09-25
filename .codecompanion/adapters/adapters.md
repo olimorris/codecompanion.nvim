@@ -22,27 +22,14 @@ There are some functions that are shared between the two adapter types and these
 
 This is the logic for the HTTP adapters. Various logic sits within this file which allows the adapter to be resolved into a CodeCompanion.HTTPAdapter object before it's used throughout the plugin to connect to an LLM endpoint.
 
-### adapters/acp/init.lua
-
-@./lua/codecompanion/adapters/acp/init.lua
-
-The ACP equivalent of _adapters/http/init.lua_.
-
 ### Example Adapter: openai.lua
 
 @./lua/codecompanion/adapters/http/openai.lua
 
 Sharing an example HTTP adapter for OpenAI.
 
-### Tests
-
-@./tests/adapters/test_adapters.lua
-
-This is a test file for adapter's broadly, which might give you more of an understand of what is required by an adapter deep within CodeCompanion.
-
 ## HTTP Client
 
-@./tests/test_http.lua
 @./lua/codecompanion/http.lua
 @.codecompanion/adapters/plenary_curl.md
 
