@@ -11,6 +11,9 @@ return {
   },
   opts = {
     vision = true,
+    -- Claude Code has an annoying habit of outputting the entire contents of a
+    -- file in a tool call. This messes up the chat buffer formatting.
+    trim_tool_output = true,
   },
   commands = {
     default = {
