@@ -172,8 +172,7 @@ function SlashCommand:output(selected, opts)
   end
   opts = opts or {}
 
-  local ft = vim.filetype.match({ filename = selected.path })
-  local symbols, content = helpers.extract_file_symbols(selected.path)
+  local symbols, content, ft = helpers.extract_file_symbols(selected.path)
 
   if not symbols then
     return no_query(ft)
