@@ -22,7 +22,7 @@ end
 ---@return table
 function FZF:display(transformer)
   return {
-    prompt = self.title,
+    winopts = { title = " " .. self.title .. " " },
     actions = {
       ["default"] = function(selected, opts)
         if selected or vim.tbl_count(selected) ~= 0 then
