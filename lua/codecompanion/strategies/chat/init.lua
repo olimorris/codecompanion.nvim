@@ -814,58 +814,63 @@ function Chat:_submit_http(payload)
   local mapped_settings = adapter:map_schema_to_params(self.settings)
   log:trace("Settings:\n%s", mapped_settings)
 
-  local output = {}
-  local reasoning = {}
-  local tools = {}
-  self.current_request = get_client(adapter).new({ adapter = mapped_settings }):request(payload, {
-    ---@param err { message: string, stderr: string }
-    ---@param data table
-    callback = function(err, data)
-      if err and err.stderr ~= "{}" then
-        self.status = CONSTANTS.STATUS_ERROR
-        log:error("[chat::init::_submit_http] Error: %s", err.stderr)
-        return self:done(output)
-      end
+  local output, reasoning, tools = {}, {}, {}
 
-      if data then
-        if adapter.features.tokens then
-          local tokens = adapter.handlers.tokens(adapter, data)
-          if tokens then
-            self.ui.tokens = tokens
-          end
-        end
-
-        local result = adapter.handlers.chat_output(adapter, data, tools)
-        if result and result.status then
-          self.status = result.status
-          if self.status == CONSTANTS.STATUS_SUCCESS then
-            if result.output.role then
-              result.output.role = config.constants.LLM_ROLE
-              self._last_role = result.output.role
-            end
-            if result.output.reasoning then
-              table.insert(reasoning, result.output.reasoning)
-              self:add_buf_message({
-                role = config.constants.LLM_ROLE,
-                content = result.output.reasoning.content,
-              }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
-            end
-            table.insert(output, result.output.content)
-            self:add_buf_message({
-              role = config.constants.LLM_ROLE,
-              content = result.output.content,
-            }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
-          elseif self.status == CONSTANTS.STATUS_ERROR then
-            log:error("[chat::init::_submit_http] Error: %s", result.output)
-            return self:done(output)
-          end
-        end
+  local function process_chunk(data)
+    if adapter.features.tokens then
+      local tokens = adapter.handlers.tokens(adapter, data)
+      if tokens then
+        self.ui.tokens = tokens
       end
+    end
+
+    local result = adapter.handlers.chat_output(adapter, data, tools)
+    if result and result.status then
+      self.status = result.status
+      if self.status == CONSTANTS.STATUS_SUCCESS then
+        if result.output.role then
+          result.output.role = config.constants.LLM_ROLE
+          self._last_role = result.output.role
+        end
+        if result.output.reasoning then
+          table.insert(reasoning, result.output.reasoning)
+          self:add_buf_message({
+            role = config.constants.LLM_ROLE,
+            content = result.output.reasoning.content,
+          }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+        end
+        table.insert(output, result.output.content)
+        self:add_buf_message({
+          role = config.constants.LLM_ROLE,
+          content = result.output.content,
+        }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+      elseif self.status == CONSTANTS.STATUS_ERROR then
+        log:error("[chat::_submit_http] Error: %s", result.output)
+        self:done(output)
+      end
+    end
+  end
+
+  local handle = get_client(adapter).new({ adapter = mapped_settings }):send(payload, {
+    on_chunk = function(data)
+      process_chunk(data)
     end,
-    done = function()
+    on_done = function(_)
       self:done(output, reasoning, tools)
     end,
-  }, { bufnr = self.bufnr, strategy = "chat" })
+    on_error = function(err)
+      if self.status == CONSTANTS.STATUS_CANCELLING then
+        return
+      end
+      self.status = CONSTANTS.STATUS_ERROR
+      log:error("[chat::_submit_http] Error: %s", (err and (err.stderr or err.message)) or "unknown")
+      self:done(output)
+    end,
+    bufnr = self.bufnr,
+    strategy = "chat",
+  })
+
+  self.current_request = handle
 end
 
 ---Make a request to the LLM using the ACP client
@@ -1228,29 +1233,31 @@ end
 ---Stop streaming the response from the LLM
 ---@return nil
 function Chat:stop()
-  local job
   self.status = CONSTANTS.STATUS_CANCELLING
   self:dispatch("on_cancelled")
   util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
-    job = self.current_tool
+    local tool_job = self.current_tool
     self.current_tool = nil
 
     _G.codecompanion_cancel_tool = true
     pcall(function()
-      job:shutdown()
+      tool_job:shutdown()
     end)
   end
 
   if self.current_request then
-    job = self.current_request
+    print("Cancelling request...")
+    local handle = self.current_request
     self.current_request = nil
-    if job then
-      pcall(function()
-        job:shutdown()
-      end)
-    end
+
+    pcall(function()
+      if handle and type(handle.cancel) == "function" then
+        print("Should be cancelled")
+        handle.cancel()
+      end
+    end)
 
     if self.adapter.handlers and self.adapter.handlers.on_exit then
       self.adapter.handlers.on_exit(self.adapter)

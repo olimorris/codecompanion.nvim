@@ -1188,6 +1188,12 @@ You must create or modify a workspace file through a series of prompts over mult
         return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
       end,
       files = {
+        ["adapters"] = {
+          description = "The adapters implementation",
+          files = {
+            ".codecompanion/adapters/adapters.md",
+          },
+        },
         ["chat"] = {
           description = "The chat buffer",
           files = {
