@@ -13,7 +13,7 @@ local _cached_adapter
 local function get_models(self, opts)
   -- Prevent the adapter from being resolved multiple times due to `get_models`
   -- having both `default` and `choices` functions
-  if not _cached_adapter then
+  if not _cached_adapter or self.opts.cache_adapter == false then
     local adapter = require("codecompanion.adapters").resolve(self)
     if not adapter then
       log:error("Could not resolve Ollama adapter in the `get_models` function")
@@ -124,6 +124,7 @@ return {
     stream = true,
     tools = true,
     vision = true,
+    cache_adapter = true, -- Cache the resolved adapter to prevent multiple resolutions
   },
   features = {
     text = true,
