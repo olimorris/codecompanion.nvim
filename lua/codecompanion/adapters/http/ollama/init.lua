@@ -15,6 +15,7 @@ return {
     stream = true,
     tools = true,
     vision = true,
+    cache_adapter = true, -- Cache the resolved adapter to prevent multiple resolutions
   },
   features = {
     text = true,

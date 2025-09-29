@@ -20,8 +20,10 @@ M = {}
 ---@type table<string, table<string, { nice_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
 local _cached_models = {}
 
+---@alias OllamaGetModelsOpts {last?: boolean, async?: boolean}
+
 ---@param url string
----@param opts? {last: boolean}
+---@param opts? OllamaGetModelsOpts
 local function get_cached_models(url, opts)
   assert(_cached_models[url] ~= nil, "Model info is not available in the cache.")
   local models = _cached_models[url]
@@ -36,7 +38,8 @@ end
 ---Aborts if there's another fetch job running.
 ---Returns the number of models if the fetches are fired.
 ---@param adapter CodeCompanion.HTTPAdapter Ollama adapter with env var replaced.
-local function fetch_async(adapter)
+---@param opts OllamaGetModelsOpts
+local function fetch_async(adapter, opts)
   assert(adapter ~= nil)
   if running then
     return
@@ -57,7 +60,7 @@ local function fetch_async(adapter)
   end
 
   pcall(function()
-    return Curl.get(url .. "/api/tags", {
+    local job = Curl.get(url .. "/api/tags", {
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
@@ -105,12 +108,18 @@ local function fetch_async(adapter)
         end
       end,
     })
+    if adapter.opts.cache_adapter == false then
+      vim.wait(CONSTANTS.TIMEOUT, function()
+        local models = _cached_models[url]
+        return models ~= nil and not vim.tbl_isempty(models) and not running
+      end)
+    end
   end)
 end
 
 ---Get a list of available Ollama models
----@param self CodeCompanion.HTTPAdapter
----@param opts? table
+---@param self CodeCompanion.HTTPAdapter.Ollama|CodeCompanion.HTTPAdapter
+---@param opts? OllamaGetModelsOpts
 ---@return table
 function M.choices(self, opts)
   local adapter = require("codecompanion.adapters.http").resolve(self) --[[@as CodeCompanion.HTTPAdapter]]
@@ -123,21 +132,20 @@ function M.choices(self, opts)
   local url = adapter.env_replaced.url
   local is_uninitialised = _cached_models[url] == nil
 
-  fetch_async(adapter)
+  local should_block = (self.opts.cache_adapter == false) or is_uninitialised or not opts.async
 
-  if is_uninitialised or not opts.async then
-    -- block here if `async == false` or uninitialised
+  fetch_async(adapter, { async = not should_block }) -- should_block means NO async
+
+  if should_block and running then
     vim.wait(CONSTANTS.TIMEOUT, function()
-      local models = _cached_models[url]
-      return models ~= nil and not vim.tbl_isempty(models) and not running
+      return not running
     end)
   end
-
   return get_cached_models(url, opts)
 end
 
 ---Return `true` if the model of the adapter supports thinking.
----@param self CodeCompanion.HTTPAdapter
+---@param self CodeCompanion.HTTPAdapter.Ollama
 ---@param model? string|function
 ---@return boolean
 function M.check_thinking_capability(self, model)
