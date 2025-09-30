@@ -40,11 +40,11 @@ function M.calculate_hunks(removed_lines, added_lines, context_lines)
     local original_start, original_count, updated_start, updated_count = unpack(hunk)
 
     -- Extract changed lines
-    local orignal_hunk_lines = {}
+    local original_hunk_lines = {}
     for i = 0, original_count - 1 do
       local original_line_index = original_start + i
       if removed_lines[original_line_index] then
-        table.insert(orignal_hunk_lines, removed_lines[original_line_index])
+        table.insert(original_hunk_lines, removed_lines[original_line_index])
       end
     end
 
@@ -77,7 +77,7 @@ function M.calculate_hunks(removed_lines, added_lines, context_lines)
       original_count = original_count,
       updated_start = updated_start,
       updated_count = updated_count,
-      removed_lines = orignal_hunk_lines,
+      removed_lines = original_hunk_lines,
       added_lines = updated_hunk_lines,
       context_before = context_before,
       context_after = context_after,
