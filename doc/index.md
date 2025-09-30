@@ -1,4 +1,5 @@
 ---
+description: Welcome to CodeCompanion.nvim. A Neovim productivity tool which streamlines how you develop with LLMs.
 prev: false
 next:
   text: 'Installation'
