@@ -1,3 +1,7 @@
+---
+description: Learn how to leverage extensions to expand CodeCompanion's functionality
+---
+
 # Configuring Extensions
 
 CodeCompanion supports extensions similar to telescope.nvim, allowing users to create functionality that can be shared with others. Extensions can either be distributed as plugins or defined locally in your configuration.
@@ -13,7 +17,7 @@ CodeCompanion supports extensions that add additional functionality to the plugi
   "olimorris/codecompanion.nvim",
   dependencies = {
     -- Add mcphub.nvim as a dependency
-    "ravitemer/mcphub.nvim" 
+    "ravitemer/mcphub.nvim"
   }
 }
 ```
@@ -27,9 +31,9 @@ require("codecompanion").setup({
     mcphub = {
       callback = "mcphub.extensions.codecompanion",
       opts = {
-        make_vars = true,       
+        make_vars = true,
         make_slash_commands = true,
-        show_result_in_chat = true  
+        show_result_in_chat = true
       }
     }
   }

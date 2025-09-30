@@ -1,3 +1,7 @@
+---
+description: Learn how Slash Commands improve your productivity in CodeCompanion
+---
+
 # Using Slash Commands
 
 <p>

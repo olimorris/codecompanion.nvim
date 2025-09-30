@@ -1,4 +1,5 @@
 ---
+description: How to use the chat buffer in CodeCompanion.nvim
 prev:
   text: 'Action Palette'
   link: '/usage/action-palette'

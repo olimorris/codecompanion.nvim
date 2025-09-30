@@ -1,3 +1,7 @@
+---
+description: Learn how variables can add context to the chat buffer in CodeCompanion
+---
+
 # Using Variables
 
 <p align="center">

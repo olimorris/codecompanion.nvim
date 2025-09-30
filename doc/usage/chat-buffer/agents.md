@@ -1,3 +1,7 @@
+---
+description: Learn how to use agents in CodeCompanion
+---
+
 # Using Agents
 
 CodeCompanion enables you to work with agents such as [Gemini](https://github.com/google-gemini/gemini-cli) by leveraging the [Agent Client Protocol](https://agentclientprotocol.com).

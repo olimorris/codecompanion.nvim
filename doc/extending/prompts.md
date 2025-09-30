@@ -1,3 +1,7 @@
+---
+description: Learn how to create your own prompts for the prompt library in CodeCompanion
+---
+
 # Creating Prompts
 
 The purpose of this guide is to showcase how you can extend the functionality of CodeCompanion by adding your own prompts to the config that are reflected in the _Action Palette_. The _Action Palette_ is a lua table which is parsed by the plugin and displayed as a `vim.ui.select` component. By specifying certain keys, the behaviour of the table can be customised further.
