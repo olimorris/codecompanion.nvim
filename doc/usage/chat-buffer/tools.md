@@ -1,3 +1,7 @@
+---
+description: Learn how tools can aid your code, in CodeCompanion
+---
+
 # Using Tools
 
 > [!IMPORTANT]

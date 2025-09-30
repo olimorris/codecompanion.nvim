@@ -1,3 +1,7 @@
+---
+description: Learn how to use the Inline Assistant in CodeCompanion
+---
+
 # Using the Inline Assistant
 
 <p align="center">

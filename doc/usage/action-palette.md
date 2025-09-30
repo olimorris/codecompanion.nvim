@@ -1,3 +1,7 @@
+---
+description: How to use the action palette in CodeCompanion
+---
+
 # Using the Action Palette
 
 <p>

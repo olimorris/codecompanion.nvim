@@ -1,3 +1,7 @@
+---
+description: Some useful tips on how to get the most out of  CodeCompanion
+---
+
 # Using CodeCompanion
 
 CodeCompanion continues to evolve with regular frequency. This page will endeavour to serve as focal point for providing useful productivity tips for the plugin.
