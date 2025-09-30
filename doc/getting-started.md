@@ -1,3 +1,7 @@
+---
+description: Getting started with CodeCompanion
+---
+
 # Getting Started
 
 Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup the plugin.

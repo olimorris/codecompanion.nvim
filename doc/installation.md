@@ -1,3 +1,7 @@
+---
+description: How to install CodeCompanion and it's dependencies
+---
+
 # Installation
 
 > [!IMPORTANT]

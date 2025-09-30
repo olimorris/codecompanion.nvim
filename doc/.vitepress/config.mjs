@@ -16,18 +16,32 @@ if (inProd) {
   }
 }
 
+const siteUrl = "https://codecompanion.olimorris.dev";
+
 const baseHeaders = [
   ["meta", { name: "twitter:site", content: "@olimorris_" }],
   ["meta", { name: "twitter:card", content: "summary_large_image" }],
   [
     "meta",
-    { name: "twitter:image", content: "/assets/images/social_banner.png" },
+    {
+      name: "twitter:image:src",
+      content: siteUrl + "/assets/images/social_banner.png",
+    },
   ],
   ["meta", { property: "og:image:width", content: "1280" }],
   ["meta", { property: "og:image:height", content: "640" }],
   ["meta", { property: "og:image:type", content: "image/png" }],
   ["meta", { property: "og:site_name", content: "CodeCompanion.nvim" }],
   ["meta", { property: "og:type", content: "website" }],
+  [
+    "link",
+    {
+      rel: "sitemap",
+      type: "application/xml",
+      title: "Sitemap",
+      href: siteUrl + "/sitemap.xml",
+    },
+  ],
 ];
 
 const umamiScript = [
@@ -39,8 +53,6 @@ const umamiScript = [
   },
 ];
 const headers = inProd ? [...baseHeaders, umamiScript] : baseHeaders;
-
-const siteUrl = "https://codecompanion.olimorris.dev";
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
