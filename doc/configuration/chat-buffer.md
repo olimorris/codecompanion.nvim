@@ -1,3 +1,7 @@
+---
+description: Configure CodeCompanion's native chat buffer, to enable Vim like coding with AI
+---
+
 # Configuring the Chat Buffer
 
 By default, CodeCompanion provides a "chat" strategy that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.

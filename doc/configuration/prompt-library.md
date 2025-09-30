@@ -1,3 +1,7 @@
+---
+description: The prompt library enables you to use pre-built prompts in CodeCompanion. Learn how to configure it here
+---
+
 # Configuring the Prompt Library
 
 The plugin comes with a number of pre-built prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or via the cmdline. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette or even to the slash command completion menu in the chat buffer.

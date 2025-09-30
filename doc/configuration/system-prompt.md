@@ -1,3 +1,7 @@
+---
+description: Configure the default system prompt in CodeCompanion
+---
+
 # Configuring System Prompts
 
 ## Chat System Prompt
