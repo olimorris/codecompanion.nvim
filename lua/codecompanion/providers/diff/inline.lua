@@ -41,7 +41,7 @@ function InlineDiff.new(args)
   ---@cast self CodeCompanion.Diff.Inline
 
   local current_content = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
-  if self:contents_equal(self.contents, current_content) then
+  if self:are_contents_equal(self.contents, current_content) then
     log:trace("[providers::diff::inline::new] No changes detected")
     util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
     return self
@@ -94,8 +94,8 @@ end
 ---@param content1 string[] First content array
 ---@param content2 string[] Second content array
 ---@return boolean equal True if contents are identical
-function InlineDiff:contents_equal(content1, content2)
-  return diff_utils.contents_equal(content1, content2)
+function InlineDiff:are_contents_equal(content1, content2)
+  return diff_utils.are_contents_equal(content1, content2)
 end
 
 ---Apply diff highlights to this instance
@@ -115,7 +115,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   -- Add keymap hint above the first hunk if there are changes
   if #hunks > 0 then
     local first_hunk = hunks[1]
-    first_diff_line = math.max(1, first_hunk.new_start) -- Store for cursor positioning
+    first_diff_line = math.max(1, first_hunk.updated_start) -- Store for cursor positioning
     -- Only show keymap hints if config allows it, not in test mode, and not floating
     local show_keymap_hints = inline_config.opts.show_keymap_hints
     if show_keymap_hints == nil then
@@ -126,7 +126,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     local is_testing = _G.MiniTest ~= nil
     -- Don't show hints for floating windows since they use winbar instead
     if show_keymap_hints and not is_testing and not self.is_floating then
-      local attach_line = math.max(0, first_hunk.new_start - 2)
+      local attach_line = math.max(0, first_hunk.updated_start - 2)
       if first_diff_line == 1 then
         attach_line = attach_line + 1
       end
