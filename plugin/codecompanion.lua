@@ -37,8 +37,8 @@ pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, de
 
 -- Setup syntax highlighting for the chat buffer
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
-api.nvim_create_autocmd("FileType", {
-  pattern = "codecompanion",
+api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
   group = syntax_group,
   callback = vim.schedule_wrap(function()
     vim.iter(config.strategies.chat.variables):each(function(name)
