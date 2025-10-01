@@ -56,18 +56,7 @@ end
 ---Ensure ACP connection is established
 ---@return boolean success
 function ACPHandler:ensure_connection()
-  if not self.chat.acp_connection then
-    self.chat.acp_connection = get_client().new({
-      adapter = self.chat.adapter, --[[@type CodeCompanion.ACPAdapter]]
-    })
-
-    local connected = self.chat.acp_connection:connect_and_initialize()
-
-    if not connected then
-      return false
-    end
-  end
-  return true
+  return self.chat:ensure_acp_connection()
 end
 
 ---Create and configure the prompt request with all handlers

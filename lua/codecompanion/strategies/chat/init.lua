@@ -74,10 +74,16 @@ local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat",
 
   STATUS_CANCELLING = "cancelling",
+  STATUS_CONNECTING = "connecting",
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
+}
+
+local ACP_MESSAGES = {
+  CONNECTING = "Connecting to ACP...",
+  FAILED = "Failed to connect to ACP",
 }
 
 local clients = {} -- Cache for HTTP and ACP clients
@@ -163,6 +169,13 @@ end
 ---@return number
 local function make_id(val)
   return hash.hash(val)
+end
+
+local function should_show_intro(chat)
+  if not chat.messages or vim.tbl_isempty(chat.messages) then
+    return true
+  end
+  return not helpers.has_user_messages(chat.messages)
 end
 
 ---Set the editable text area. This allows us to scope the Tree-sitter queries to a specific area
@@ -357,6 +370,9 @@ function Chat.new(args)
     opts = args,
     status = "",
     intro_message = args.intro_message or config.display.chat.intro_message,
+    _acp_connecting = false,
+    _acp_connect_scheduled = false,
+    _acp_connect_extmark = nil,
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
@@ -435,7 +451,8 @@ function Chat.new(args)
     { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
   )
 
-  if self.adapter.type == "http" then
+  local needs_acp_connect = self.adapter.type == "acp"
+  if not needs_acp_connect then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
   end
 
@@ -468,7 +485,15 @@ function Chat.new(args)
     self.header_line = header_line and (header_line + 1) or 1
   end
 
-  if vim.tbl_isempty(self.messages) or not helpers.has_user_messages(args.messages) then
+  local intro_shown = false
+  if needs_acp_connect then
+    self.status = CONSTANTS.STATUS_CONNECTING
+    if should_show_intro(self) then
+      intro_shown = true
+      self:_set_acp_status_message(ACP_MESSAGES.CONNECTING)
+    end
+  elseif should_show_intro(self) then
+    intro_shown = true
     self.ui:set_intro_msg(self.intro_message)
   end
 
@@ -547,6 +572,10 @@ function Chat.new(args)
   self:dispatch("on_created")
 
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
+  if needs_acp_connect then
+    self:_schedule_acp_connection(intro_shown)
+  end
+
   if args.auto_submit then
     self:submit()
   end
@@ -599,6 +628,163 @@ function Chat:apply_settings(settings)
   return self
 end
 
+---Ensure the ACP connection is established and session is available as soon as the chat opens.
+---@return boolean
+function Chat:ensure_acp_connection()
+  if self.adapter.type ~= "acp" then
+    return true
+  end
+
+  if self.status ~= CONSTANTS.STATUS_CONNECTING then
+    self.status = CONSTANTS.STATUS_CONNECTING
+  end
+
+  if self.acp_connection and self.acp_connection:is_connected() then
+    self.acp_connection.chat = self
+    self.acp_session_id = self.acp_connection.session_id
+    self:_clear_acp_status_message()
+    if should_show_intro(self) and self.ui then
+      self.ui:set_intro_msg(self.intro_message)
+    end
+    if self.status == CONSTANTS.STATUS_CONNECTING then
+      self.status = ""
+    end
+    return true
+  end
+
+  if self._acp_connecting then
+    if self.ui and should_show_intro(self) then
+      self:_set_acp_status_message(ACP_MESSAGES.CONNECTING)
+    end
+    vim.wait(20000, function()
+      return (self.acp_connection and self.acp_connection:is_connected()) or not self._acp_connecting
+    end, 50)
+    return self.acp_connection and self.acp_connection:is_connected()
+  end
+
+  if self.ui and should_show_intro(self) then
+    self:_set_acp_status_message(ACP_MESSAGES.CONNECTING)
+  end
+
+  self._acp_connecting = true
+  local connection = self.acp_connection
+  if not connection then
+    local client = get_client(self.adapter)
+    if not client or type(client.new) ~= "function" then
+      util.notify("ACP client not available", vim.log.levels.ERROR)
+      log:error("[chat::ensure_acp_connection] ACP client module missing `new`")
+      self._acp_connecting = false
+      return false
+    end
+    connection = client.new({
+      adapter = self.adapter,
+      session_id = self.acp_session_id,
+    })
+  end
+
+  connection.chat = self
+  local connected = connection:connect_and_initialize()
+  self._acp_connecting = false
+  if not connected then
+    self.status = CONSTANTS.STATUS_ERROR
+    if self.ui and should_show_intro(self) then
+      local warning = (config.display.icons and config.display.icons.warning) or ""
+      self:_set_acp_status_message(warning .. ACP_MESSAGES.FAILED)
+    end
+    util.notify("Failed to connect to ACP session", vim.log.levels.ERROR)
+    log:error("[chat::ensure_acp_connection] connect_and_initialize failed")
+    return false
+  end
+
+  self.acp_connection = connection
+  self.acp_session_id = connection.session_id
+  if self.ui then
+    self:_clear_acp_status_message()
+    if should_show_intro(self) then
+      self.ui:set_intro_msg(self.intro_message)
+    end
+  end
+  if self.status == CONSTANTS.STATUS_CONNECTING then
+    self.status = ""
+  end
+  self:update_metadata()
+  return true
+end
+
+---Schedule establishing the ACP connection so the UI can render first.
+---@param show_intro boolean
+function Chat:_schedule_acp_connection(show_intro)
+  if self.adapter.type ~= "acp" then
+    return
+  end
+
+  if self.acp_connection and self.acp_connection:is_connected() then
+    self:_clear_acp_status_message()
+    if show_intro and should_show_intro(self) then
+      self.ui:set_intro_msg(self.intro_message)
+    end
+    if self.status == CONSTANTS.STATUS_CONNECTING then
+      self.status = ""
+    end
+    self:update_metadata()
+    return
+  end
+
+  if self._acp_connect_scheduled then
+    return
+  end
+
+  self._acp_connect_scheduled = true
+  if not show_intro then
+    self:_clear_acp_status_message()
+  end
+
+  vim.schedule(function()
+    self._acp_connect_scheduled = false
+    if not api.nvim_buf_is_valid(self.bufnr) then
+      return
+    end
+
+    local ok = self:ensure_acp_connection()
+    if ok then
+      self:_clear_acp_status_message()
+      if show_intro and should_show_intro(self) and self.ui then
+        self.ui:set_intro_msg(self.intro_message)
+      end
+      if self.status == CONSTANTS.STATUS_CONNECTING then
+        self.status = ""
+      end
+      self:update_metadata()
+    else
+      self.status = CONSTANTS.STATUS_ERROR
+      if show_intro and should_show_intro(self) then
+        local warning = (config.display.icons and config.display.icons.warning) or ""
+        self:_set_acp_status_message(warning .. ACP_MESSAGES.FAILED)
+      end
+    end
+  end)
+end
+
+---@param message string
+function Chat:_set_acp_status_message(message)
+  self:_clear_acp_status_message()
+  if not message or message == "" then
+    return
+  end
+  if not self.ui then
+    return
+  end
+  self._acp_connect_extmark = self.ui:set_virtual_text(message, "eol")
+end
+
+function Chat:_clear_acp_status_message()
+  if not self._acp_connect_extmark or not self.ui then
+    return
+  end
+  self.ui:clear_virtual_text(self._acp_connect_extmark)
+  self._acp_connect_extmark = nil
+end
+
 ---Change the adapter in the chat buffer
 ---@param name string
 ---@param model? string
@@ -613,6 +799,21 @@ function Chat:change_adapter(name, model)
   if model then
     self:apply_model(model)
     return fire()
+  end
+
+  local connecting = self.adapter.type == "acp"
+  if connecting then
+    self.status = CONSTANTS.STATUS_CONNECTING
+    local show_intro = should_show_intro(self)
+    if show_intro then
+      self:_set_acp_status_message(ACP_MESSAGES.CONNECTING)
+    end
+    self:_schedule_acp_connection(show_intro)
+  elseif self.acp_connection then
+    self.acp_connection:disconnect()
+    self.acp_connection = nil
+    self.acp_session_id = nil
+    self:_clear_acp_status_message()
   end
 
   self:set_system_prompt()
@@ -1290,6 +1491,8 @@ function Chat:close()
   util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
 
+  self:_clear_acp_status_message()
+
   table.remove(
     _G.codecompanion_buffers,
     vim.iter(_G.codecompanion_buffers):enumerate():find(function(_, v)
@@ -1390,6 +1593,7 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.context_items = {}
+  self:_clear_acp_status_message()
 
   self.tool_registry:clear()
 
@@ -1477,7 +1681,7 @@ end
 ---@return nil
 function Chat.set_session_mode()
   if last_chat and not vim.tbl_isempty(last_chat) then
-    if last_chat.acp_connection:is_connected() then
+    if last_chat:ensure_acp_connection() and last_chat.acp_connection then
       last_chat.acp_connection:set_session_mode(last_chat)
     end
   end
