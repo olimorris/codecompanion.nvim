@@ -37,27 +37,30 @@ local function cmd_to_func_tool(tool)
         ---@param tools CodeCompanion.Tools
         return function(tools, _, _, cb)
           cb = vim.schedule_wrap(cb)
-          vim.system(tool_utils.build_shell_command(cmd), {}, function(out)
+          local system_on_exit_cb = function(process_result_obj)
             -- Flags can be read higher up in the tool's execution
             if flag then
               tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
-              tools.chat.tool_registry.flags[flag] = (out.code == 0)
+              tools.chat.tool_registry.flags[flag] = (process_result_obj.code == 0)
             end
-            if out.code == 0 then
+            local split_pattern = vim.fn.has("win32") == 1 and "\r?\n" or "\n"
+            if process_result_obj.code == 0 then
               cb({
                 status = "success",
-                data = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
+                data = tool_utils.strip_ansi(vim.split(process_result_obj.stdout, split_pattern, { trimempty = true })),
               })
             else
               local stderr = {}
-              if out.stderr and out.stderr ~= "" then
-                stderr = tool_utils.strip_ansi(vim.split(out.stderr, "\n", { trimempty = true }))
+              if process_result_obj.stderr and process_result_obj.stderr ~= "" then
+                stderr =
+                  tool_utils.strip_ansi(vim.split(process_result_obj.stderr, split_pattern, { trimempty = true }))
               end
 
               -- Some commands may return an error but populate stdout
               local stdout = {}
-              if out.stdout and out.stdout ~= "" then
-                stdout = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true }))
+              if process_result_obj.stdout and process_result_obj.stdout ~= "" then
+                stdout =
+                  tool_utils.strip_ansi(vim.split(process_result_obj.stdout, split_pattern, { trimempty = true }))
               end
 
               local combined = {}
@@ -69,7 +72,22 @@ local function cmd_to_func_tool(tool)
                 data = combined,
               })
             end
-          end)
+          end
+
+          if vim.fn.has("win32") == 1 then
+            -- See PR #2186
+            local shell_line = table.concat(cmd, " ") .. "\r\n" .. "EXIT %ERRORLEVEL%" .. "\r\n"
+            local system_args = { "cmd.exe", "/Q", "/K" }
+            local system_opts = {
+              stdin = shell_line,
+              env = {
+                PROMPT = "\r\n",
+              },
+            }
+            vim.system(system_args, system_opts, system_on_exit_cb)
+          else
+            vim.system(tool_utils.build_shell_command(cmd), {}, system_on_exit_cb)
+          end
         end
       end
     end)
