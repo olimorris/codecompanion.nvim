@@ -79,7 +79,7 @@ export default withMermaid(
       theme: "base", // Use base theme to allow CSS variables to take effect
     },
     // optionally set additional config for plugin itself with MermaidPluginConfig
-    title: "CodeCompanion.nvim Documentation",
+    title: "CodeCompanion.nvim",
     description:
       "AI coding in Neovim, leveraging LLMs from OpenAI and Anthropic. Support for agents and tools.",
     lang: "en",
