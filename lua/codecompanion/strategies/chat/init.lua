@@ -1473,4 +1473,14 @@ function Chat.close_last_chat()
   end
 end
 
+---Set Session Mode
+---@return nil
+function Chat.set_session_mode()
+  if last_chat and not vim.tbl_isempty(last_chat) then
+    if last_chat.acp_connection:is_connected() then
+      last_chat.acp_connection:set_session_mode(last_chat)
+    end
+  end
+end
+
 return Chat

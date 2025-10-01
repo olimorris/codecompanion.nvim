@@ -140,6 +140,8 @@ CodeCompanion.chat = function(args)
         return CodeCompanion.toggle(args)
       elseif prompt == "refreshcache" then
         return CodeCompanion.refresh_cache()
+      elseif prompt == "setsessionmode" then
+        return CodeCompanion.set_session_mode()
       else
         table.insert(messages, {
           role = config.constants.USER_ROLE,
@@ -254,6 +256,17 @@ CodeCompanion.restore = function(bufnr)
     return
   end
   chat.ui:open()
+end
+
+---Set Session Mode
+---@return nil
+CodeCompanion.set_session_mode = function()
+  local chat = CodeCompanion.last_chat()
+  if not chat then
+    return
+  end
+
+  chat.set_session_mode()
 end
 
 ---Return a chat buffer

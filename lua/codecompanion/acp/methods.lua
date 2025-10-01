@@ -4,6 +4,7 @@ return {
   SESSION_CANCEL = "session/cancel",
   SESSION_LOAD = "session/load",
   SESSION_NEW = "session/new",
+  SESSION_SET_MODE = "session/set_mode",
   SESSION_PROMPT = "session/prompt",
   SESSION_REQUEST_PERMISSION = "session/request_permission",
   SESSION_UPDATE = "session/update",

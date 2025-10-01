@@ -46,6 +46,7 @@ local chat_subcommands = vim.deepcopy(adapters)
 table.insert(chat_subcommands, "Toggle")
 table.insert(chat_subcommands, "Add")
 table.insert(chat_subcommands, "RefreshCache")
+table.insert(chat_subcommands, "SetSessionMode")
 
 ---@type CodeCompanion.Command[]
 return {
