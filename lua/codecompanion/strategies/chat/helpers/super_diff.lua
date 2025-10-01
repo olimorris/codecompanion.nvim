@@ -170,23 +170,23 @@ end
 ---@param sorted_operations table
 ---@param accepted_operations table
 ---@param tracked_file table
----@return table|nil old_content, table|nil new_content
+---@return table|nil original_content, table|nil updated_content
 local function determine_diff_content(sorted_operations, accepted_operations, tracked_file)
   local earliest_original = nil
   local final_content = nil
   if #sorted_operations > 0 then
     earliest_original = sorted_operations[1].original_content
-    -- For final content, use the last accepted operation's new_content
+    -- For final content, use the last accepted operation's updated_content
     if #accepted_operations > 0 then
       local last_accepted_op = accepted_operations[#accepted_operations]
-      final_content = last_accepted_op.new_content
+      final_content = last_accepted_op.updated_content
     end
   end
   local current_content = get_current_content(tracked_file) -- as fallback
-  local old_content = earliest_original or current_content
-  local new_content = final_content or current_content
+  local original_content = earliest_original or current_content
+  local updated_content = final_content or current_content
 
-  return old_content, new_content
+  return original_content, updated_content
 end
 
 -- Helper function to generate operations summary
@@ -270,7 +270,7 @@ end
 
 -- Helper function to calculate accepted hunks for a file
 ---@param file_data table
----@return string[]|nil old_content, string[]|nil new_content, table hunks
+---@return string[]|nil original_content, string[]|nil updated_content, table hunks
 local function calculate_file_accepted_hunks(file_data)
   local tracked_file = file_data.tracked_file
   local display_name = file_data.display_name
@@ -278,20 +278,20 @@ local function calculate_file_accepted_hunks(file_data)
   if #accepted_operations == 0 then
     return nil, nil, {}
   end
-  local old_content, new_content = determine_diff_content(sorted_operations, accepted_operations, tracked_file)
-  if old_content and new_content and not diff_utils.contents_equal(old_content, new_content) then
-    local hunks = diff_utils.calculate_hunks(old_content, new_content, 0)
-    return old_content, new_content, hunks
+  local original_content, updated_content = determine_diff_content(sorted_operations, accepted_operations, tracked_file)
+  if original_content and updated_content and not diff_utils.are_contents_equal(original_content, updated_content) then
+    local hunks = diff_utils.calculate_hunks(original_content, updated_content, 0)
+    return original_content, updated_content, hunks
   end
 
-  return old_content, new_content, {}
+  return original_content, updated_content, {}
 end
 
 -- Helper function to process accepted changes diff
 ---@param lines table
 ---@param diff_info table
----@param old_content table
----@param new_content table
+---@param original_content table
+---@param updated_content table
 ---@param tracked_file table
 ---@param display_name string
 ---@param stats table
@@ -299,8 +299,8 @@ end
 local function process_accepted_diff(
   lines,
   diff_info,
-  old_content,
-  new_content,
+  original_content,
+  updated_content,
   tracked_file,
   display_name,
   stats,
@@ -319,8 +319,8 @@ local function process_accepted_diff(
       start_line = code_content_start,
       end_line = #lines - 2,
       hunks = hunks,
-      old_content = calc_old_content,
-      new_content = calc_new_content,
+      original_content = calc_old_content,
+      updated_content = calc_new_content,
       status = stats.rejected > 0 and "mixed" or "accepted",
       file_data = file_data,
       line_mappings = line_mappings,
@@ -341,11 +341,11 @@ local function process_rejected_operations(lines, diff_info, rejected_operations
   if #rejected_operations > 0 then
     table.insert(lines, "**Rejected Changes:**")
     for _, operation in ipairs(rejected_operations) do
-      if operation.original_content and operation.new_content then
+      if operation.original_content and operation.updated_content then
         local op_old_content = operation.original_content
-        local op_new_content = operation.new_content
+        local op_new_content = operation.updated_content
 
-        if not diff_utils.contents_equal(op_old_content, op_new_content) then
+        if not diff_utils.are_contents_equal(op_old_content, op_new_content) then
           local op_hunks = diff_utils.calculate_hunks(op_old_content, op_new_content, 0)
           if #op_hunks > 0 then
             table.insert(lines, fmt("* REJECTED: %s*", operation.tool_name))
@@ -400,8 +400,8 @@ local function process_rejected_operations(lines, diff_info, rejected_operations
               start_line = code_content_start,
               end_line = #lines - 2,
               hunks = op_hunks,
-              old_content = op_old_content,
-              new_content = op_new_content,
+              original_content = op_old_content,
+              updated_content = op_new_content,
               status = "rejected",
               file_data = file_data,
               line_mappings = line_mappings,
@@ -447,9 +447,19 @@ local function process_single_file(file_data, lines, diff_info)
     table.insert(lines, "")
   else
     local sorted_operations, accepted_operations, rejected_operations = process_operations(file_data)
-    local old_content, new_content = determine_diff_content(sorted_operations, accepted_operations, tracked_file)
+    local original_content, updated_content =
+      determine_diff_content(sorted_operations, accepted_operations, tracked_file)
     add_operations_summary(lines, file_data)
-    process_accepted_diff(lines, diff_info, old_content, new_content, tracked_file, display_name, stats, file_data)
+    process_accepted_diff(
+      lines,
+      diff_info,
+      original_content,
+      updated_content,
+      tracked_file,
+      display_name,
+      stats,
+      file_data
+    )
     process_rejected_operations(lines, diff_info, rejected_operations, tracked_file, file_data)
   end
   table.insert(lines, "---")
@@ -612,18 +622,18 @@ function M.setup_keymaps(bufnr, chat, file_actions, ns_id)
       for _, operation in ipairs(tracked_file.edit_operations) do
         if operation.status == "pending" or operation.status == "rejected" then
           -- Apply the content to files/buffers
-          if operation.new_content then
+          if operation.updated_content then
             if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
-              api.nvim_buf_set_lines(tracked_file.bufnr, 0, -1, false, operation.new_content)
+              api.nvim_buf_set_lines(tracked_file.bufnr, 0, -1, false, operation.updated_content)
             elseif tracked_file.filepath then
-              vim.fn.writefile(operation.new_content, tracked_file.filepath)
+              vim.fn.writefile(operation.updated_content, tracked_file.filepath)
               local file_bufnr = vim.fn.bufnr(tracked_file.filepath)
               if file_bufnr ~= -1 and api.nvim_buf_is_loaded(file_bufnr) then
                 api.nvim_command("checktime " .. file_bufnr)
               end
             end
           end
-          edit_tracker.update_edit_status(chat, operation.id, "accepted", operation.new_content)
+          edit_tracker.update_edit_status(chat, operation.id, "accepted", operation.updated_content)
           log:debug("[helpers::super_diff::setup_keymaps] Accepted operation %s", operation.id)
         end
       end

@@ -1,3 +1,7 @@
+---
+description: Configure memory (such as CLAUDE.md or Cursor rules) in CodeCompanion
+---
+
 # Configuring Memory
 
 Fundamentally, memory is a way of adding persistent context to a chat buffer. CodeCompanion uses _groups_ to create a collection of files that can be added to chats. Groups can also be linked to a _parser_ which can offer post-processing customization such as parsing file paths and adding them as buffers or files to the chat buffer.
@@ -18,7 +22,7 @@ require("codecompanion").setup({
 })
 ```
 
-Once enabled, the plugin will look to load a common, or default, set of files every time a chat buffer is created. 
+Once enabled, the plugin will look to load a common, or default, set of files every time a chat buffer is created.
 
 > [!INFO]
 > Refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/5807e0457111f0de267fc9a6543b41fae0f5c2b1/lua/codecompanion/config.lua#L1167-L1179) file for the full set of files included in the default group.

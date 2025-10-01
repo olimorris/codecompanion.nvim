@@ -1,3 +1,7 @@
+---
+description: Some useful UI tips and tricks you can leverage
+---
+
 # User Interface
 
 <p>

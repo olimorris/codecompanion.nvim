@@ -1,4 +1,5 @@
 ---
+description: CodeCompanion is a Neovim plugin which streamlines how you write code with LLMs, in Neovim
 prev: false
 next:
   text: 'Installation'
@@ -9,7 +10,7 @@ next:
 
 > AI Coding, Vim Style
 
-CodeCompanion is a productivity tool which streamlines how you develop with LLMs, in Neovim.
+CodeCompanion is a Neovim plugin which streamlines how you write code with LLMs, in Neovim.
 
 <p>
 <video controls muted src="https://github.com/user-attachments/assets/3cc83544-2690-49b5-8be6-51e671db52ef"></video>

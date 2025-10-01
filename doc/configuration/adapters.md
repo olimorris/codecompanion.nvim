@@ -1,3 +1,7 @@
+---
+description: Learn how to configure adapters like OpenAI, Anthropic, Claude Code in CodeCompanion
+---
+
 # Configuring Adapters
 
 > [!TIP]

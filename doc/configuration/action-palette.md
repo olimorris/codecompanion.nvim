@@ -1,3 +1,7 @@
+---
+description: How to configure the action palette in CodeCompanion
+---
+
 # Configuring the Action Palette
 
 <p align="center">

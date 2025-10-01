@@ -1,3 +1,7 @@
+---
+description: Learn how to create your own extensions in CodeCompanion
+---
+
 # Creating Extensions
 
 CodeCompanion supports extensions similar to telescope.nvim, allowing users to create functionality that can be shared with others. Extensions can either be distributed as plugins or defined locally in your configuration.
@@ -53,7 +57,7 @@ The init.lua file should export a module that provides setup and optional export
 local Extension = {}
 
 ---Setup the extension
----@param opts table Configuration options 
+---@param opts table Configuration options
 function Extension.setup(opts)
   -- Initialize extension
   -- Add actions, keymaps etc.
@@ -77,10 +81,10 @@ A common pattern is to add keymaps, slash_commands, tools to the codecompanion.c
 function Extension.setup(opts)
   -- Add action to chat keymaps
   local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
-  
+
   chat_keymaps.open_saved_chats = {
     modes = {
-      n = opts.keymap or "gh", 
+      n = opts.keymap or "gh",
     },
     description = "Open Saved Chats",
     callback = function(chat)
@@ -144,12 +148,12 @@ require("codecompanion").setup({
 
 The callback can be:
 - A function returning the extension table
-- The extension table directly 
+- The extension table directly
 - A string path to a module that returns the extension
 
 ## Dynamic registration
 
-Extensions can also be added dynamically using 
+Extensions can also be added dynamically using
 
 ```lua
 require("codecompanion").register_extension("codecompanion_history", {

@@ -1,3 +1,7 @@
+---
+description: Learn how to consume events within Neovim in CodeCompanion
+---
+
 # Events / Hooks
 
 In order to enable a tighter integration between CodeCompanion and your Neovim config, the plugin fires events at various points during its lifecycle.

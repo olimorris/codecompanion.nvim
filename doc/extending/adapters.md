@@ -1,3 +1,7 @@
+---
+description: Learn how to create your own adapters in CodeCompanion
+---
+
 # Creating Adapters
 
 > [!TIP]

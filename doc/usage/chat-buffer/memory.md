@@ -1,3 +1,7 @@
+---
+description: Learn how to get the most out of memory in CodeCompanion
+---
+
 # Using Memory
 
 LLMs don’t retain memory between completions. In CodeCompanion, memory provides persistent, reusable context for chat buffers, via the notion of groups.

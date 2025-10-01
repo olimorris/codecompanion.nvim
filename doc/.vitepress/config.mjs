@@ -1,3 +1,4 @@
+import { joinURL, withoutTrailingSlash } from "ufo";
 import { defineConfig } from "vitepress";
 import { execSync } from "node:child_process";
 import { withMermaid } from "vitepress-plugin-mermaid";
@@ -15,7 +16,34 @@ if (inProd) {
   }
 }
 
-const baseHeaders = [];
+const siteUrl = "https://codecompanion.olimorris.dev";
+
+const baseHeaders = [
+  ["meta", { name: "twitter:site", content: "@olimorris_" }],
+  ["meta", { name: "twitter:card", content: "summary_large_image" }],
+  [
+    "meta",
+    {
+      name: "twitter:image:src",
+      content: siteUrl + "/assets/images/social_banner.png",
+    },
+  ],
+  ["meta", { property: "og:image:width", content: "1280" }],
+  ["meta", { property: "og:image:height", content: "640" }],
+  ["meta", { property: "og:image:type", content: "image/png" }],
+  ["meta", { property: "og:site_name", content: "CodeCompanion.nvim" }],
+  ["meta", { property: "og:type", content: "website" }],
+  [
+    "link",
+    {
+      rel: "sitemap",
+      type: "application/xml",
+      title: "Sitemap",
+      href: siteUrl + "/sitemap.xml",
+    },
+  ],
+];
+
 const umamiScript = [
   "script",
   {
@@ -24,9 +52,7 @@ const umamiScript = [
     "data-website-id": "6fb6c149-1aba-4531-b613-7fc54d42191a",
   },
 ];
-const headers = inProd ? [baseHeaders, umamiScript] : baseHeaders;
-
-const siteUrl = "https://codecompanion.olimorris.dev";
+const headers = inProd ? [...baseHeaders, umamiScript] : baseHeaders;
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
@@ -36,8 +62,11 @@ export default withMermaid(
       theme: "base", // Use base theme to allow CSS variables to take effect
     },
     // optionally set additional config for plugin itself with MermaidPluginConfig
-    title: "CodeCompanion",
-    description: "AI Coding, Vim Style",
+    title: "CodeCompanion.nvim",
+    description:
+      "AI coding in Neovim, leveraging LLMs from OpenAI and Anthropic. Support for agents and tools.",
+    lang: "en",
+    cleanUrls: true,
     head: headers,
     sitemap: { hostname: siteUrl },
     themeConfig: {
@@ -141,6 +170,68 @@ export default withMermaid(
       ],
 
       search: { provider: "local" },
+    },
+    transformPageData: (page, { siteConfig }) => {
+      page.frontmatter = page.frontmatter || {};
+
+      // Initialize the `head` frontmatter if it doesn't exist.
+      page.frontmatter.head ??= [];
+
+      const title =
+        (page.frontmatter.title || page.title) + " | " + siteConfig.site.title;
+      const description =
+        page.frontmatter.description ||
+        page.description ||
+        siteConfig.site.description;
+      const url = joinURL(
+        siteUrl,
+        withoutTrailingSlash(page.filePath.replace(/(index)?\.md$/, "")),
+      );
+
+      page.frontmatter.head.push(
+        [
+          "meta",
+          {
+            property: "og:title",
+            content: title,
+          },
+        ],
+        [
+          "meta",
+          {
+            name: "twitter:title",
+            content: title,
+          },
+        ],
+        [
+          "meta",
+          {
+            property: "og:description",
+            content: description,
+          },
+        ],
+        [
+          "meta",
+          {
+            name: "twitter:description",
+            content: description,
+          },
+        ],
+        [
+          "link",
+          {
+            rel: "canonical",
+            href: url,
+          },
+        ],
+        [
+          "meta",
+          {
+            property: "og:url",
+            content: url,
+          },
+        ],
+      );
     },
   }),
 );
