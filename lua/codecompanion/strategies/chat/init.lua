@@ -361,7 +361,7 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
       api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
-      api.nvim_set_option_value("undolevels", config.strategies.chat.opts.undolevels or 10, { buf = bufnr })
+      api.nvim_set_option_value("undolevels", config.strategies.chat.opts.undo_levels or 10, { buf = bufnr })
 
       -- Safely attach treesitter
       vim.schedule(function()
