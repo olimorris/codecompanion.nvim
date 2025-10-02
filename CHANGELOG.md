@@ -1,5 +1,31 @@
 # Changelog
 
+## [17.24.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.23.0...v17.24.0) (2025-10-02)
+
+
+### Features
+
+* **chat:** better tool cancelling ([#2153](https://github.com/olimorris/codecompanion.nvim/issues/2153)) ([119bd84](https://github.com/olimorris/codecompanion.nvim/commit/119bd84413611380045994d6ab5c2e077ed546c5)), closes [#2149](https://github.com/olimorris/codecompanion.nvim/issues/2149)
+* **ui:** customize chat buffer window config when opening ([#1678](https://github.com/olimorris/codecompanion.nvim/issues/1678)) ([3a10ec9](https://github.com/olimorris/codecompanion.nvim/commit/3a10ec951a0285f149a6f76ba3cf544b3e4b7c63))
+* **workflows:** can change adapter on each prompt ([#2146](https://github.com/olimorris/codecompanion.nvim/issues/2146)) ([8d55059](https://github.com/olimorris/codecompanion.nvim/commit/8d55059b63bcf53e8b4d3d0885c37b2282d6fa2d))
+
+
+### Bug Fixes
+
+* **acp:** fix claude always outputting tool content ([062126b](https://github.com/olimorris/codecompanion.nvim/commit/062126b178783834c4bccc871cb3b200cc5aa3b9))
+* **adapters:** fix claude-code always outputting tool content ([#2169](https://github.com/olimorris/codecompanion.nvim/issues/2169)) ([062126b](https://github.com/olimorris/codecompanion.nvim/commit/062126b178783834c4bccc871cb3b200cc5aa3b9))
+* **chat:** debug window with acp adapters ([#2141](https://github.com/olimorris/codecompanion.nvim/issues/2141)) ([35c591f](https://github.com/olimorris/codecompanion.nvim/commit/35c591f457895f28f244684fa7e744fa3c9438c0))
+* **chat:** default system prompt uses safer date format ([#2091](https://github.com/olimorris/codecompanion.nvim/issues/2091)) ([f97108b](https://github.com/olimorris/codecompanion.nvim/commit/f97108b9e9b13fe5df7e7e00fb1612ecb56aac34))
+* **chat:** force memory to be added via slash command ([#2140](https://github.com/olimorris/codecompanion.nvim/issues/2140)) ([8899c27](https://github.com/olimorris/codecompanion.nvim/commit/8899c278c2e34108aec573b5f782a6bb7915d83c))
+* **chat:** infinite loop when toggling chat ([#2145](https://github.com/olimorris/codecompanion.nvim/issues/2145)) ([30fec3a](https://github.com/olimorris/codecompanion.nvim/commit/30fec3a084832d89cddb8d45827ff061e3564993))
+* **chat:** pass in opts to toggle ([#2143](https://github.com/olimorris/codecompanion.nvim/issues/2143)) ([971e584](https://github.com/olimorris/codecompanion.nvim/commit/971e584c29ea04aca189188378a0c9b10a1c531b))
+* **chat:** recursive chat open calls ([59a29bd](https://github.com/olimorris/codecompanion.nvim/commit/59a29bd5aea9d82489b13405895b0eead990c49b))
+* **chat:** use file contents to detect filetype for symbols ([#1827](https://github.com/olimorris/codecompanion.nvim/issues/1827)) ([ee1c317](https://github.com/olimorris/codecompanion.nvim/commit/ee1c317d4ac468f8c5938d7e954e65cb037757e7))
+* **ui:** append to existing winhighlight values ([#2166](https://github.com/olimorris/codecompanion.nvim/issues/2166)) ([5c8ec88](https://github.com/olimorris/codecompanion.nvim/commit/5c8ec88568115c4091cca331c4cbc42888cb5dc7))
+* **ui:** chat buffer syntax highlighting ([#2192](https://github.com/olimorris/codecompanion.nvim/issues/2192)) ([4336066](https://github.com/olimorris/codecompanion.nvim/commit/4336066619f08dd93b2c8900c542cbb6bac5f18a))
+* **ui:** default to normal mode after applying inline diff ([#2014](https://github.com/olimorris/codecompanion.nvim/issues/2014)) ([b75615a](https://github.com/olimorris/codecompanion.nvim/commit/b75615a3064685f02b837b591f648536904bb702))
+* use correct config item ([#2195](https://github.com/olimorris/codecompanion.nvim/issues/2195)) ([7f28c3c](https://github.com/olimorris/codecompanion.nvim/commit/7f28c3cc3abb116f14281ed4f490929684ffb1e7))
+
 ## [17.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.22.1...v17.23.0) (2025-09-17)
 
 
