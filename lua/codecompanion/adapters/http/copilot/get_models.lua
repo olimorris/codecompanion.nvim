@@ -101,6 +101,14 @@ local function fetch_async(adapter, provided_token)
 
         local models = {}
         for _, model in ipairs(json.data) do
+          if model.supported_endpoints then
+            for _, endpoint in ipairs(model.supported_endpoints) do
+              if endpoint == "/responses" then
+                log:debug("[Copilot] Skipping `%s` as it supports the /responses endpoint", model.id)
+                goto continue
+              end
+            end
+          end
           if model.model_picker_enabled and model.capabilities and model.capabilities.type == "chat" then
             local choice_opts = {}
 
@@ -116,6 +124,7 @@ local function fetch_async(adapter, provided_token)
 
             models[model.id] = { vendor = model.vendor, nice_name = model.name, opts = choice_opts }
           end
+          ::continue::
         end
 
         _cached_models = models
