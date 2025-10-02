@@ -116,7 +116,12 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
 end
 
 T["Chat"]["images are replaced in text and base64 encoded"] = function()
-  local prompt = string.format("What does this [Image](%s) do?", vim.fn.getcwd() .. "/tests/stubs/logo.png")
+  if vim.fn.executable("base64") == 0 then
+    MiniTest.skip("base64 is not installed, skipping test")
+  end
+
+  local prompt =
+    string.format("What does this [Image](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
   local message = child.lua(string.format(
     [[
       _G.chat:add_buf_message({
@@ -132,10 +137,6 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq("What does this image do?", message)
 
-  if vim.fn.executable("base64") == 0 then
-    MiniTest.skip("base64 is not installed, skipping test")
-  end
-
   message = child.lua([[
     local messages = _G.chat.messages
     return messages[#messages]
@@ -143,7 +144,7 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq({
     mimetype = "image/png",
-    context_id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
+    context_id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fs.normalize(vim.fn.getcwd())),
     tag = "image",
     visible = false,
   }, message.opts)
