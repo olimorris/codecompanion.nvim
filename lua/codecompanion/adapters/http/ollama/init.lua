@@ -1,116 +1,7 @@
-local Curl = require("plenary.curl")
-local config = require("codecompanion.config")
+local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
-
-local _cached_adapter
-
----Get a list of available Ollama models
----@params self CodeCompanion.HTTPAdapter
----@params opts? table
----@return table
-local function get_models(self, opts)
-  -- Prevent the adapter from being resolved multiple times due to `get_models`
-  -- having both `default` and `choices` functions
-  if not _cached_adapter then
-    local adapter = require("codecompanion.adapters").resolve(self)
-    if not adapter then
-      log:error("Could not resolve Ollama adapter in the `get_models` function")
-      return {}
-    end
-    _cached_adapter = adapter
-  end
-
-  utils.get_env_vars(_cached_adapter)
-  local url = _cached_adapter.env_replaced.url
-
-  local headers = {
-    ["content-type"] = "application/json",
-  }
-
-  local auth_header = "Bearer "
-  if _cached_adapter.env_replaced.authorization then
-    auth_header = _cached_adapter.env_replaced.authorization .. " "
-  end
-  if _cached_adapter.env_replaced.api_key then
-    headers["Authorization"] = auth_header .. _cached_adapter.env_replaced.api_key
-  end
-
-  local ok, response = pcall(function()
-    return Curl.get(url .. "/api/tags", {
-      sync = true,
-      headers = headers,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the Ollama models from " .. url .. "/api/tags.\nError: %s", response)
-    return {}
-  end
-
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Could not parse the response from " .. url .. "/api/tags")
-    return {}
-  end
-
-  local models = {}
-  local jobs = {}
-
-  for _, model_obj in ipairs(json.models) do
-    -- start async requests
-    local job = Curl.post(url .. "/api/show", {
-      headers = headers,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-      body = vim.json.encode({ model = model_obj.name }),
-      callback = function(output)
-        models[model_obj.name] = { nice_name = model_obj.name, opts = {} }
-        if output.status == 200 then
-          local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
-          if ok then
-            models[model_obj.name].opts.can_reason = vim.list_contains(model_info_json.capabilities or {}, "thinking")
-            models[model_obj.name].opts.has_vision = vim.list_contains(model_info_json.capabilities or {}, "vision")
-          end
-        end
-      end,
-    })
-    table.insert(jobs, job)
-  end
-
-  for _, job in ipairs(jobs) do
-    -- wait for the requests to finish.
-    job:wait()
-  end
-
-  local latest_model = json.models[1]
-  if opts and opts.last and latest_model then
-    return latest_model.name
-  end
-
-  return models
-end
-
----Return `true` if the model of the adapter supports thinking.
----@param self CodeCompanion.HTTPAdapter
----@param model? string|function
----@return boolean
-local function check_thinking_capability(self, model)
-  model = model or self.schema.model.default
-  if type(model) == "function" then
-    model = model(self)
-  end
-  local choices = self.schema.model.choices
-  if type(choices) == "function" then
-    choices = choices(self)
-  end
-  if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
-    return true
-  end
-  return false
-end
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
 return {
@@ -124,6 +15,7 @@ return {
     stream = true,
     tools = true,
     vision = true,
+    cache_adapter = true, -- Cache the resolved adapter to prevent multiple resolutions
   },
   features = {
     text = true,
@@ -352,11 +244,11 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = function(self)
-        return get_models(self, { last = true })
+      default = function(self, opts)
+        return get_models.choices(self, vim.tbl_deep_extend("force", opts or {}, { last = true }))
       end,
-      choices = function(self)
-        return get_models(self)
+      choices = function(self, opts)
+        return get_models.choices(self, opts)
       end,
     },
     ---@type CodeCompanion.Schema
@@ -365,8 +257,8 @@ return {
       mapping = "parameters",
       type = "boolean",
       desc = "Whether to enable thinking mode.",
-      condition = check_thinking_capability,
-      default = check_thinking_capability,
+      condition = get_models.check_thinking_capability,
+      default = get_models.check_thinking_capability,
     },
     ---@type CodeCompanion.Schema
     temperature = {

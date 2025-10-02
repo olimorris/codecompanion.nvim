@@ -28,10 +28,27 @@ const baseHeaders = [
       content: siteUrl + "/assets/images/social_banner.png",
     },
   ],
+  [
+    "meta",
+    {
+      property: "og:image",
+      content: siteUrl + "/assets/images/social_banner.png",
+    },
+  ],
+  [
+    "meta",
+    {
+      name: "twitter:image",
+      content: siteUrl + "/assets/images/social_banner.png",
+    },
+  ],
   ["meta", { property: "og:image:width", content: "1280" }],
   ["meta", { property: "og:image:height", content: "640" }],
   ["meta", { property: "og:image:type", content: "image/png" }],
-  ["meta", { property: "og:site_name", content: "CodeCompanion.nvim" }],
+  [
+    "meta",
+    { property: "og:site_name", content: "CodeCompanion.nvim Documentation" },
+  ],
   ["meta", { property: "og:type", content: "website" }],
   [
     "link",
