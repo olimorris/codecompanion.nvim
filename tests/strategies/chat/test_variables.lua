@@ -149,7 +149,7 @@ T["Variables"][":replace"]["should replace buffer and the buffer name"] = functi
 
   local message = "what does #{buffer:init.lua} do?"
   local result = vars:replace(message, 0)
-  h.expect_starts_with("what does file `lua/codecompanion/init.lua`", result)
+  h.expect_match(result, "^what does file `lua[\\/]codecompanion[\\/]init.lua`")
 end
 
 T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()
