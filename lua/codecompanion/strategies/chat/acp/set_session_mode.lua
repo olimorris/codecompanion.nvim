@@ -24,54 +24,68 @@ local function mode_label(mode, current_mode_id)
   return name
 end
 
----Build prompt and mappings for vim.fn.confirm
+---Build prompt and choice entries for the session mode selector
 ---@param modes table[]
 ---@param current_mode_id string|nil
----@return string, string[], table<number, string>, table<string, number>
+---@return string, table[], number
 local function build_choices(modes, current_mode_id)
   local prompt = string.format("%s: %s?", util.capitalize(CONSTANTS.PROMPT_KIND), CONSTANTS.PROMPT_TITLE)
-  local choices, index_to_mode, mode_to_index = {}, {}, {}
+  local entries = {}
+  local default_index = 1
 
-  for index, mode in ipairs(modes or {}) do
-    local choice_label = mode_label(mode, current_mode_id)
-    table.insert(choices, string.format("&%d %s", index, choice_label))
-    if mode and mode.id then
-      index_to_mode[index] = mode.id
-      mode_to_index[mode.id] = index
+  for _, mode in ipairs(modes or {}) do
+    if type(mode) == "table" and mode.id then
+      local position = #entries + 1
+      table.insert(entries, {
+        id = mode.id,
+        mode = mode,
+        label = mode_label(mode, current_mode_id),
+      })
+      if current_mode_id and mode.id == current_mode_id then
+        default_index = position
+      end
     end
   end
 
-  return prompt, choices, index_to_mode, mode_to_index
+  return prompt, entries, default_index
 end
 
----Display the available modes and return the selected mode id (if any)
+---Display the available modes and invoke a callback with the selection
 ---@param chat CodeCompanion.Chat|nil
----@param opts { available_modes: table[], current_mode_id?: string|nil }
----@return string|nil
+---@param opts { available_modes: table[], current_mode_id?: string|nil, on_select?: fun(mode_id: string|nil, mode: table|nil, index?: number) }
 function M.show(chat, opts)
   opts = opts or {}
   local _ = chat
   local modes = opts.available_modes or {}
   if vim.tbl_isempty(modes) then
-    return nil
+    if type(opts.on_select) == "function" then
+      opts.on_select(nil, nil)
+    end
+    return
   end
 
-  local prompt, choices, index_to_mode, mode_to_index = build_choices(modes, opts.current_mode_id)
-  if #choices == 0 then
-    return nil
+  local prompt, entries, default_index = build_choices(modes, opts.current_mode_id)
+  if #entries == 0 then
+    if type(opts.on_select) == "function" then
+      opts.on_select(nil, nil)
+    end
+    return
   end
 
-  local default_choice = 1
-  if opts.current_mode_id and mode_to_index[opts.current_mode_id] then
-    default_choice = mode_to_index[opts.current_mode_id]
-  end
-
-  local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), default_choice, "Question")
-  if picked <= 0 then
-    return nil
-  end
-
-  return index_to_mode[picked]
+  vim.ui.select(entries, {
+    prompt = prompt,
+    default = default_index,
+    kind = "codecompanion_acp_session_mode",
+    format_item = function(item)
+      return item.label
+    end,
+  }, function(choice, idx)
+    local selected_mode_id = choice and choice.id or nil
+    local selected_mode = choice and choice.mode or nil
+    if type(opts.on_select) == "function" then
+      opts.on_select(selected_mode_id, selected_mode, idx)
+    end
+  end)
 end
 
 return M

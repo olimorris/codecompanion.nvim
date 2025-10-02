@@ -642,33 +642,56 @@ function Connection:set_session_mode(chat)
     return false
   end
 
-  local selected_mode_id = require("codecompanion.strategies.chat.acp.set_session_mode").show(self.chat, {
-    available_modes = self.modes.availableModes,
-    current_mode_id = self.modes.currentModeId,
-  })
-
-  if not selected_mode_id then
+  local available_modes = self.modes.availableModes
+  if vim.tbl_isempty(available_modes) then
     return false
   end
 
-  for _, mode in ipairs(self.modes.availableModes) do
-    if mode and mode.id == selected_mode_id then
-      local result = self:send_rpc_request(METHODS.SESSION_SET_MODE, {
-        sessionId = self.session_id,
-        modeId = selected_mode_id,
-      })
-      if result ~= nil then
-        self.modes.currentModeId = selected_mode_id
-        self.modes.currentMode = mode
-        return true
-      end
+  local schedule_wrap = self.methods.schedule_wrap or vim.schedule_wrap
+  local function handle_selection(selected_mode_id, selected_mode)
+    if not selected_mode_id then
+      return
+    end
 
-      return false
+    local mode = selected_mode
+    if not mode or mode.id ~= selected_mode_id then
+      for _, candidate in ipairs(self.modes.availableModes or {}) do
+        if candidate and candidate.id == selected_mode_id then
+          mode = candidate
+          break
+        end
+      end
+    end
+
+    if not mode then
+      log:error("[acp::set_mode] Unknown modeId '%s'", tostring(selected_mode_id))
+      return
+    end
+
+    local result = self:send_rpc_request(METHODS.SESSION_SET_MODE, {
+      sessionId = self.session_id,
+      modeId = selected_mode_id,
+    })
+
+    if result ~= nil then
+      self.modes.currentModeId = selected_mode_id
+      self.modes.currentMode = mode
+    else
+      log:error(
+        "[acp::set_mode] Failed to set mode '%s' for session %s",
+        tostring(selected_mode_id),
+        tostring(self.session_id)
+      )
     end
   end
 
-  log:error("[acp::set_mode] Unknown modeId '%s'", tostring(selected_mode_id))
-  return false
+  require("codecompanion.strategies.chat.acp.set_session_mode").show(self.chat, {
+    available_modes = available_modes,
+    current_mode_id = self.modes.currentModeId,
+    on_select = schedule_wrap(handle_selection),
+  })
+
+  return true
 end
 
 return Connection
