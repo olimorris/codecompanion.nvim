@@ -13,11 +13,7 @@ local running = false
 
 M = {}
 
----Structure:
----```lua
----_cached_models[url][model_name] = { opts = { can_reason = true, has_vision = false }, nice_name = 'nice_name' }
----```
----@type table<string, table<string, { nice_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
+---@type table<string, table<string, { formatted_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
 local _cached_models = {}
 
 ---@alias OllamaGetModelsOpts {last?: boolean, async?: boolean}
@@ -87,7 +83,7 @@ local function fetch_async(adapter, opts)
             body = vim.json.encode({ model = model_obj.name }),
             timeout = CONSTANTS.TIMEOUT,
             callback = function(output)
-              _cached_models[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
+              _cached_models[url][model_obj.name] = { formatted_name = model_obj.name, opts = {} }
               if output.status == 200 then
                 local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
                 if ok then
