@@ -451,8 +451,8 @@ function Chat.new(args)
     { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
   )
 
-  local needs_acp_connect = self.adapter.type == "acp"
-  if not needs_acp_connect then
+  local need_acp_connect = self.adapter.type == "acp"
+  if not need_acp_connect then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
   end
 
@@ -486,7 +486,7 @@ function Chat.new(args)
   end
 
   local intro_shown = false
-  if needs_acp_connect then
+  if need_acp_connect then
     self.status = CONSTANTS.STATUS_CONNECTING
     if should_show_intro(self) then
       intro_shown = true
@@ -572,7 +572,7 @@ function Chat.new(args)
   self:dispatch("on_created")
 
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
-  if needs_acp_connect then
+  if need_acp_connect then
     self:_schedule_acp_connection(intro_shown)
   end
 
@@ -1679,7 +1679,7 @@ end
 
 ---Set Session Mode
 ---@return nil
-function Chat.set_session_mode()
+function Chat.set_acp_session_mode()
   if last_chat and not vim.tbl_isempty(last_chat) then
     if last_chat:ensure_acp_connection() and last_chat.acp_connection then
       last_chat.acp_connection:set_session_mode(last_chat)
