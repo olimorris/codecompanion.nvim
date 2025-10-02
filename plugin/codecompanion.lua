@@ -37,7 +37,11 @@ pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, de
 
 -- Setup syntax highlighting for the chat buffer
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
-local make_hl_syntax = vim.schedule_wrap(function()
+
+---@param bufnr? integer
+local make_hl_syntax = vim.schedule_wrap(function(bufnr)
+  vim.bo[bufnr or 0].syntax = "ON"
+  -- assert(not vim.tbl_isempty(config.strategies.chat.variables), vim.inspect(config.strategies.chat.variables))
   vim.iter(config.strategies.chat.variables):each(function(name)
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
@@ -55,15 +59,20 @@ local make_hl_syntax = vim.schedule_wrap(function()
     vim.cmd.syntax('match CodeCompanionChatToolGroup "@{' .. name .. '}"')
   end)
 end)
+
 api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
   group = syntax_group,
-  callback = make_hl_syntax,
-})
-api.nvim_create_autocmd("User", {
-  pattern = "CodeCompanionChatCreated",
-  group = syntax_group,
-  callback = make_hl_syntax,
+  callback = function(args)
+    api.nvim_create_autocmd("BufEnter", {
+      buffer = args.buf,
+      group = syntax_group,
+      callback = function()
+        make_hl_syntax(args.buf)
+      end,
+      once = true,
+    })
+  end,
 })
 
 -- Set the diagnostic namespace for the chat buffer settings

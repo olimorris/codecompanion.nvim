@@ -160,6 +160,10 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     -- Trigger our FileType autocmd (plugin should already be loaded in pre_once)
     vim.bo[buf].filetype = 'codecompanion'
     vim.cmd('doautocmd FileType codecompanion')
+    vim.cmd('doautocmd BufEnter ' .. tostring(buf))
+    
+    -- wait for some time so that the `vim.schedule`ed :syntax commands are executed
+    vim.wait(10)
 
     -- Find the column of '#'
     local line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
