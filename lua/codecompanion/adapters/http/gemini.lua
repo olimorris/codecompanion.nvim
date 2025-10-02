@@ -86,16 +86,16 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-2.5-flash",
       choices = {
-        ["gemini-2.5-pro"] = { nice_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
-        ["gemini-2.5-flash"] = { nice_name = "Gemini 2.5 Flash", opts = { can_reason = true, has_vision = true } },
+        ["gemini-2.5-pro"] = { formatted_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
+        ["gemini-2.5-flash"] = { formatted_name = "Gemini 2.5 Flash", opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash-preview-05-20"] = {
-          nice_name = "Gemini 2.5 Flash Preview",
+          formatted_name = "Gemini 2.5 Flash Preview",
           opts = { can_reason = true, has_vision = true },
         },
-        ["gemini-2.0-flash"] = { nice_name = "Gemini 2.0 Flash", opts = { has_vision = true } },
-        ["gemini-2.0-flash-lite"] = { nice_name = "Gemini 2.0 Flash Lite", opts = { has_vision = true } },
-        ["gemini-1.5-pro"] = { nice_name = "Gemini 1.5 Pro", opts = { has_vision = true } },
-        ["gemini-1.5-flash"] = { nice_name = "Gemini 1.5 Flash", opts = { has_vision = true } },
+        ["gemini-2.0-flash"] = { formatted_name = "Gemini 2.0 Flash", opts = { has_vision = true } },
+        ["gemini-2.0-flash-lite"] = { formatted_name = "Gemini 2.0 Flash Lite", opts = { has_vision = true } },
+        ["gemini-1.5-pro"] = { formatted_name = "Gemini 1.5 Pro", opts = { has_vision = true } },
+        ["gemini-1.5-flash"] = { formatted_name = "Gemini 1.5 Flash", opts = { has_vision = true } },
       },
     },
     ---@type CodeCompanion.Schema

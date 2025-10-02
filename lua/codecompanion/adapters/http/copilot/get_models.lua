@@ -12,7 +12,7 @@ local CONSTANTS = {
 local M = {}
 
 ---@class CopilotModels
----@field nice_name string
+---@field formatted_name string
 ---@field vendor string
 ---@field opts {can_stream: boolean, can_use_tools: boolean, has_vision: boolean}
 
@@ -122,7 +122,7 @@ local function fetch_async(adapter, provided_token)
               choice_opts.has_vision = true
             end
 
-            models[model.id] = { vendor = model.vendor, nice_name = model.name, opts = choice_opts }
+            models[model.id] = { vendor = model.vendor, formatted_name = model.name, opts = choice_opts }
           end
           ::continue::
         end

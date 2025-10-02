@@ -333,47 +333,47 @@ return {
         -- https://news.ycombinator.com/item?id=44837367
         -- (see also #2017)
         ["gpt-5"] = {
-          nice_name = "GPT 5",
+          formatted_name = "GPT 5",
           opts = { has_vision = true, can_reason = true, stream = false },
         },
         ["gpt-5-mini"] = {
-          nice_name = "GPT 5 Mini",
+          formatted_name = "GPT 5 Mini",
           opts = { has_vision = true, can_reason = true, stream = false },
         },
         ["gpt-5-nano"] = {
-          nice_name = "GPT 5 Nano",
+          formatted_name = "GPT 5 Nano",
           opts = { has_vision = true, can_reason = true },
         },
         ["o4-mini-2025-04-16"] = {
-          nice_name = "o4 Mini",
+          formatted_name = "o4 Mini",
           opts = { has_vision = true, can_reason = true },
         },
         ["o3-mini-2025-01-31"] = {
-          nice_name = "o3 Mini",
+          formatted_name = "o3 Mini",
           opts = { can_reason = true },
         },
         ["o3-2025-04-16"] = {
-          nice_name = "o3",
+          formatted_name = "o3",
           opts = { has_vision = true, can_reason = true },
         },
         ["o1-2024-12-17"] = {
-          nice_name = "o1",
+          formatted_name = "o1",
           opts = { has_vision = true, can_reason = true },
         },
         ["gpt-4.1"] = {
-          nice_name = "GPT 4.1",
+          formatted_name = "GPT 4.1",
           opts = { has_vision = true },
         },
         ["gpt-4o"] = {
-          nice_name = "GPT-4o",
+          formatted_name = "GPT-4o",
           opts = { has_vision = true },
         },
         ["gpt-4o-mini"] = {
-          nice_name = "GPT-4o Mini",
+          formatted_name = "GPT-4o Mini",
           opts = { has_vision = true },
         },
         ["gpt-4-turbo-preview"] = {
-          nice_name = "GPT-4 Turbo Preview",
+          formatted_name = "GPT-4 Turbo Preview",
           opts = { has_vision = true },
         },
         "gpt-4",
