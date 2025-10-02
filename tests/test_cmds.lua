@@ -139,4 +139,43 @@ T["cmds"][":CodeCompanionChat Toggle does not recurse when no chat exists"] = fu
   h.expect_truthy(child.lua_get("require('codecompanion').last_chat() ~= nil"))
 end
 
+T["cmds"]["chat variable syntax highlighting"] = function()
+  -- Run entirely inside the child Neovim
+  local hl = child.lua([[
+    -- Ensure syntax is enabled
+    vim.cmd('syntax on')
+
+    -- Make sure test variable exists before setting filetype
+    local cfg = require('codecompanion.config')
+    cfg.strategies = cfg.strategies or {}
+    cfg.strategies.chat = cfg.strategies.chat or {}
+    cfg.strategies.chat.variables = cfg.strategies.chat.variables or {}
+    cfg.strategies.chat.variables.testvar = cfg.strategies.chat.variables.testvar or {}
+
+    -- New buffer with placeholder
+    vim.cmd('enew')
+    local buf = vim.api.nvim_get_current_buf()
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { 'Some text #{testvar} more text' })
+
+    -- Trigger our FileType autocmd (plugin should already be loaded in pre_once)
+    vim.bo[buf].filetype = 'codecompanion'
+    vim.cmd('doautocmd FileType codecompanion')
+    vim.cmd('doautocmd BufEnter ' .. tostring(buf))
+    
+    -- wait for some time so that the `vim.schedule`ed :syntax commands are executed
+    vim.wait(10)
+
+    -- Find the column of '#'
+    local line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+    local col = line:find('#')
+    if not col then return 'NO_HASH_FOUND' end
+
+    local id = vim.fn.synID(1, col, 1)
+    assert(id ~= 0, string.format('Failed to get the synID for row: %d, col: %d', 1, col))
+    return vim.fn.synIDattr(id, 'name')
+  ]])
+
+  h.eq(hl, "CodeCompanionChatVariable")
+end
+
 return T
