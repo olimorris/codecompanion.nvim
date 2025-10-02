@@ -217,7 +217,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
 
   h.eq(#messages, 2) -- System prompt + memory
   h.eq(last_message.opts.tag, "memory")
-  h.eq(last_message.opts.context_id, "<memory>" .. tmp .. "</memory>")
+  h.eq(last_message.opts.context_id, "<memory>" .. string.gsub(tmp, "\\", "/") .. "</memory>")
   h.eq(last_message.content, content .. "\n")
 end
 
@@ -273,9 +273,9 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   local has_tmp1 = false
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
-    if msg.opts.meta.path == tmp1 then
+    if msg.opts.meta.path == string.gsub(tmp1, "\\", "/") then
       has_tmp1 = true
-    elseif msg.opts.meta.path == tmp2 then
+    elseif msg.opts.meta.path == string.gsub(tmp2, "\\", "/") then
       has_tmp2 = true
     end
   end
