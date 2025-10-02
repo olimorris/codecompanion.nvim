@@ -37,27 +37,33 @@ pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, de
 
 -- Setup syntax highlighting for the chat buffer
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
+local make_hl_syntax = vim.schedule_wrap(function()
+  vim.iter(config.strategies.chat.variables):each(function(name)
+    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
+    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
+    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
+  end)
+  vim
+    .iter(config.strategies.chat.tools)
+    :filter(function(name)
+      return name ~= "groups" and name ~= "opts"
+    end)
+    :each(function(name, _)
+      vim.cmd.syntax('match CodeCompanionChatTool "@{' .. name .. '}"')
+    end)
+  vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
+    vim.cmd.syntax('match CodeCompanionChatToolGroup "@{' .. name .. '}"')
+  end)
+end)
+api.nvim_create_autocmd("FileType", {
+  pattern = "codecompanion",
+  group = syntax_group,
+  callback = make_hl_syntax,
+})
 api.nvim_create_autocmd("User", {
   pattern = "CodeCompanionChatCreated",
   group = syntax_group,
-  callback = vim.schedule_wrap(function()
-    vim.iter(config.strategies.chat.variables):each(function(name)
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
-    end)
-    vim
-      .iter(config.strategies.chat.tools)
-      :filter(function(name)
-        return name ~= "groups" and name ~= "opts"
-      end)
-      :each(function(name, _)
-        vim.cmd.syntax('match CodeCompanionChatTool "@{' .. name .. '}"')
-      end)
-    vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
-      vim.cmd.syntax('match CodeCompanionChatToolGroup "@{' .. name .. '}"')
-    end)
-  end),
+  callback = make_hl_syntax,
 })
 
 -- Set the diagnostic namespace for the chat buffer settings
