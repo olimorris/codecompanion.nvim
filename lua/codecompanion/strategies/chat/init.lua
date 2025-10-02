@@ -656,7 +656,8 @@ function Chat:ensure_acp_connection()
     if self.ui and should_show_intro(self) then
       self:_set_acp_status_message(ACP_MESSAGES.CONNECTING)
     end
-    vim.wait(20000, function()
+    local wait_timeout = (config.strategies.chat.opts and config.strategies.chat.opts.wait_timeout) or 20000
+    vim.wait(wait_timeout, function()
       return (self.acp_connection and self.acp_connection:is_connected()) or not self._acp_connecting
     end, 50)
     return self.acp_connection and self.acp_connection:is_connected()
