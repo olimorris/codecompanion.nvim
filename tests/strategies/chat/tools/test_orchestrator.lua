@@ -144,12 +144,12 @@ end
 T["cmd_runner handles Windows pipe command with empty string argument"] = function()
   -- Skip on non-Windows systems
   if vim.fn.has("win32") == 0 then
-    MiniTest.skip("Skipping Windows-specific test on non-Windows system")
+    MiniTest.skip("Skipping Windows specific test")
   end
 
   child.lua([[
     local h = require("tests.helpers")
-    
+
     -- Mock vim.system to execute real command but not call out_cb
     local command_results = {}
     local original_system = vim.system
@@ -160,7 +160,7 @@ T["cmd_runner handles Windows pipe command with empty string argument"] = functi
         -- Don't call the original callback - we'll handle the result in the test
       end)
     end
-    
+
     -- Use the actual cmd_runner tool
     local cfg = {
       strategies = {
@@ -171,28 +171,28 @@ T["cmd_runner handles Windows pipe command with empty string argument"] = functi
         }
       }
     }
-    
+
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools, _G.command_results = chat, tools, command_results
-    
+
     -- Simulate LLM calling cmd_runner with pipe and find command that has empty string argument
     local calls = {
-      { 
-        ["function"] = { 
-          name = "cmd_runner", 
+      {
+        ["function"] = {
+          name = "cmd_runner",
           -- Use full path to find.exe, since I know developers
           -- who have added a POSIX find.exe earlier in their PATH
           -- Using find.exe to explicitly pass in an empty argument
           -- which needs to make it AS an empty argument and not
           -- overly escaped or overly quoted strings
-          arguments = '{"cmd": "echo hello there | %windir%\\\\System32\\\\find.exe /c /v \\"\\"", "flag": null}' 
-        } 
+          arguments = '{"cmd": "echo hello there | %windir%\\\\System32\\\\find.exe /c /v \\"\\"", "flag": null}'
+        }
       },
     }
-    
+
     _G.tools:execute(_G.chat, calls)
     vim.wait(1000) -- Give more time for the real command to execute
-    
+
     -- Restore original vim.system
     vim.system = original_system
   ]])
