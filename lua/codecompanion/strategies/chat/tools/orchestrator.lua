@@ -15,80 +15,64 @@ local send_response_to_chat = function(exec, llm_message, user_message)
   exec.tools.chat:add_tool_output(exec.tool, llm_message, user_message)
 end
 
+---Execute a shell command with platform-specific handling
+---@param cmd table
+---@param callback function
+local function execute_shell_command(cmd, callback)
+  if vim.fn.has("win32") == 1 then
+    -- See PR #2186
+    local shell_cmd = table.concat(cmd, " ") .. "\r\nEXIT %ERRORLEVEL%\r\n"
+    vim.system({ "cmd.exe", "/Q", "/K" }, {
+      stdin = shell_cmd,
+      env = { PROMPT = "\r\n" },
+    }, callback)
+  else
+    vim.system(tool_utils.build_shell_command(cmd), {}, callback)
+  end
+end
+
 ---Converts a cmd-based tool to a function-based tool.
 ---@param tool CodeCompanion.Tools.Tool
 ---@return CodeCompanion.Tools.Tool
 local function cmd_to_func_tool(tool)
-  --NOTE: The `env` field should be processed in the tool beforehand
-
   tool.cmds = vim
     .iter(tool.cmds)
     :map(function(cmd)
       if type(cmd) == "function" then
-        -- function-based tool
         return cmd
-      else
-        local flag = cmd.flag
-        cmd = cmd.cmd or cmd
-        if type(cmd) == "string" then
-          cmd = vim.split(cmd, " ", { trimempty = true })
-        end
+      end
 
-        ---@param tools CodeCompanion.Tools
-        return function(tools, _, _, cb)
-          cb = vim.schedule_wrap(cb)
-          local system_on_exit_cb = function(process_result_obj)
-            -- Flags can be read higher up in the tool's execution
-            if flag then
-              tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
-              tools.chat.tool_registry.flags[flag] = (process_result_obj.code == 0)
-            end
-            local split_pattern = vim.fn.has("win32") == 1 and "\r?\n" or "\n"
-            if process_result_obj.code == 0 then
-              cb({
-                status = "success",
-                data = tool_utils.strip_ansi(vim.split(process_result_obj.stdout, split_pattern, { trimempty = true })),
-              })
-            else
-              local stderr = {}
-              if process_result_obj.stderr and process_result_obj.stderr ~= "" then
-                stderr =
-                  tool_utils.strip_ansi(vim.split(process_result_obj.stderr, split_pattern, { trimempty = true }))
-              end
+      local flag = cmd.flag
+      cmd = cmd.cmd or cmd
+      if type(cmd) == "string" then
+        cmd = vim.split(cmd, " ", { trimempty = true })
+      end
 
-              -- Some commands may return an error but populate stdout
-              local stdout = {}
-              if process_result_obj.stdout and process_result_obj.stdout ~= "" then
-                stdout =
-                  tool_utils.strip_ansi(vim.split(process_result_obj.stdout, split_pattern, { trimempty = true }))
-              end
-
-              local combined = {}
-              vim.list_extend(combined, stderr)
-              vim.list_extend(combined, stdout)
-
-              cb({
-                status = "error",
-                data = combined,
-              })
-            end
+      ---@param tools CodeCompanion.Tools
+      return function(tools, _, _, cb)
+        cb = vim.schedule_wrap(cb)
+        execute_shell_command(cmd, function(out)
+          if flag then
+            tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
+            tools.chat.tool_registry.flags[flag] = (out.code == 0)
           end
 
-          if vim.fn.has("win32") == 1 then
-            -- See PR #2186
-            local shell_line = table.concat(cmd, " ") .. "\r\n" .. "EXIT %ERRORLEVEL%" .. "\r\n"
-            local system_args = { "cmd.exe", "/Q", "/K" }
-            local system_opts = {
-              stdin = shell_line,
-              env = {
-                PROMPT = "\r\n",
-              },
-            }
-            vim.system(system_args, system_opts, system_on_exit_cb)
+          if out.code == 0 then
+            cb({
+              status = "success",
+              data = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
+            })
           else
-            vim.system(tool_utils.build_shell_command(cmd), {}, system_on_exit_cb)
+            local combined = {}
+            if out.stderr and out.stderr ~= "" then
+              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stderr, "\n", { trimempty = true })))
+            end
+            if out.stdout and out.stdout ~= "" then
+              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })))
+            end
+            cb({ status = "error", data = combined })
           end
-        end
+        end)
       end
     end)
     :totable()
