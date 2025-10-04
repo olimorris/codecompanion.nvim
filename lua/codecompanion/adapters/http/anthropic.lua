@@ -523,8 +523,8 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-4-20250514",
       choices = {
-        ["claude-opus-4-20250514"] = {
-          formatted_name = "Claude Opus 4",
+        ["claude-sonnet-4-5-20250929"] = {
+          formatted_name = "Claude Sonnet 4.5",
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-sonnet-4-20250514"] = {
@@ -538,6 +538,14 @@ return {
         ["claude-3-5-sonnet-20241022"] = {
           formatted_name = "Claude Sonnet 3.5",
           opts = { has_vision = true },
+        },
+        ["claude-opus-4-1-20250805"] = {
+          formatted_name = "Claude Opus 4.1",
+          opts = { can_reason = true, has_vision = true },
+        },
+        ["claude-opus-4-20250514"] = {
+          formatted_name = "Claude Opus 4",
+          opts = { can_reason = true, has_vision = true },
         },
         ["claude-3-5-haiku-20241022"] = {
           formatted_name = "Claude Haiku 3.5",
