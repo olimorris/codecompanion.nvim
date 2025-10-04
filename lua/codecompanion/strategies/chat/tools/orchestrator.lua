@@ -57,18 +57,20 @@ local function cmd_to_func_tool(tool)
             tools.chat.tool_registry.flags[flag] = (out.code == 0)
           end
 
+          local eol_pattern = vim.fn.has("win32") == 1 and "\r?\n" or "\n"
+
           if out.code == 0 then
             cb({
               status = "success",
-              data = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
+              data = tool_utils.strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })),
             })
           else
             local combined = {}
             if out.stderr and out.stderr ~= "" then
-              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stderr, "\n", { trimempty = true })))
+              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stderr, eol_pattern, { trimempty = true })))
             end
             if out.stdout and out.stdout ~= "" then
-              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })))
+              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })))
             end
             cb({ status = "error", data = combined })
           end
