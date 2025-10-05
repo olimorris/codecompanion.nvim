@@ -23,6 +23,7 @@ local defaults = {
       mistral = "mistral",
       ollama = "ollama",
       openai = "openai",
+      openai_responses = "openai_responses",
       xai = "xai",
       jina = "jina",
       tavily = "tavily",
