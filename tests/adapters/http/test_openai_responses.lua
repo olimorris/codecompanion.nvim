@@ -100,34 +100,80 @@ T["OpenAI Responses adapter"]["it can form tools to be sent to the API"] = funct
   local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
+  local expected = {
+    ["type"] = "function",
+    ["name"] = "weather",
+    ["description"] = "Retrieves current weather for the given location.",
+    ["parameters"] = {
+      ["type"] = "object",
+      ["properties"] = {
+        ["location"] = {
+          ["type"] = "string",
+          ["description"] = "City and country e.g. Bogotá, Colombia",
+        },
+        ["units"] = {
+          ["type"] = "string",
+          ["enum"] = { "celsius", "fahrenheit" },
+          ["description"] = "Units the temperature will be returned in.",
+        },
+      },
+      ["required"] = { "location", "units" },
+      ["additionalProperties"] = false,
+    },
+    ["strict"] = true,
+  }
+
+  -- We need to adjust the tools format slightly with Responses
+  -- https://platform.openai.com/docs/api-reference/responses
+  h.eq({ tools = { expected } }, adapter.handlers.form_tools(adapter, tools))
 end
 
--- T["OpenAI Responses adapter"]["it can form messages with tools"] = function()
---   local messages = {
---     {
---       role = "assistant",
---       tool_calls = {
---         {
---           id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
---           ["function"] = {
---             name = "weather",
---             arguments = '{"location": "London", "units": "celsius"}',
---           },
---         },
---         {
---           id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
---           ["function"] = {
---             name = "weather",
---             arguments = '{"location": "Paris", "units": "celsius"}',
---           },
---         },
---       },
---     },
---   }
---
---   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
--- end
+T["OpenAI Responses adapter"]["it can form messages with tools"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          _index = 0,
+          id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+          call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "London", "units": "celsius"}',
+          },
+        },
+        {
+          _index = 1,
+          id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+          call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "Paris", "units": "celsius"}',
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      type = "function_call",
+      id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      name = "weather",
+      arguments = '{"location": "London", "units": "celsius"}',
+    },
+    {
+      type = "function_call",
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      name = "weather",
+      arguments = '{"location": "Paris", "units": "celsius"}',
+    },
+  }
+
+  h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
+end
 --
 --
 -- T["OpenAI Responses adapter"]["can output tool call"] = function()
@@ -151,51 +197,7 @@ end
 --   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 -- end
 --
--- T["OpenAI Responses adapter"]["Streaming"] = new_set()
 --
--- T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
---   local output = ""
---   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_streaming.txt")
---   for _, line in ipairs(lines) do
---     local chat_output = adapter.handlers.chat_output(adapter, line)
---     if chat_output and chat_output.output.content then
---       output = output .. chat_output.output.content
---     end
---   end
---
---   h.expect_starts_with("Dynamic, Flexible", output)
--- end
---
--- T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
---   local tools = {}
---   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_streaming.txt")
---   for _, line in ipairs(lines) do
---     adapter.handlers.chat_output(adapter, line, tools)
---   end
---
---   local tool_output = {
---     {
---       _index = 0,
---       ["function"] = {
---         arguments = '{"location": "London", "units": "celsius"}',
---         name = "weather",
---       },
---       id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
---       type = "function",
---     },
---     {
---       _index = 1,
---       ["function"] = {
---         arguments = '{"location": "Paris", "units": "celsius"}',
---         name = "weather",
---       },
---       id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
---       type = "function",
---     },
---   }
---
---   h.eq(tool_output, tools)
--- end
 --
 -- T["OpenAI Responses adapter"]["No Streaming"] = new_set({
 --   hooks = {
@@ -327,6 +329,39 @@ T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the ch
   end
 
   h.expect_starts_with("\nElegant language", output)
+end
+
+T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.chat_output(adapter, line, tools)
+  end
+
+  local expected = {
+    {
+      _index = 0,
+      ["function"] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        name = "weather",
+      },
+      id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      call_id = "call_L07YMw4V0erO5h5JvtKV3AMh",
+      type = "function",
+    },
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location":"Paris, France","units":"celsius"}',
+        name = "weather",
+      },
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      call_id = "call_tY62Os9Hez2R2twVYRnYyGYq",
+      type = "function",
+    },
+  }
+
+  h.eq(expected, tools)
 end
 
 return T

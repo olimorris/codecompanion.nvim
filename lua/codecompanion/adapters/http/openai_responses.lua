@@ -1,5 +1,6 @@
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
+local tool_utils = require("codecompanion.utils.tool_transformers")
 local utils = require("codecompanion.utils.adapters")
 
 ---@type string|nil
@@ -124,6 +125,25 @@ return {
                 content = combined_content,
               })
             end
+          elseif m.tool_calls then
+            if m.tool_calls then
+              m.tool_calls = vim
+                .iter(m.tool_calls)
+                :map(function(tool_call)
+                  return {
+                    type = "function_call",
+                    id = tool_call.id,
+                    call_id = tool_call.call_id,
+                    name = tool_call["function"].name,
+                    arguments = tool_call["function"].arguments,
+                  }
+                end)
+                :totable()
+
+              for _, tool_call in ipairs(m.tool_calls) do
+                table.insert(input, tool_call)
+              end
+            end
           else
             -- Regular text message
             table.insert(input, {
@@ -147,7 +167,21 @@ return {
     ---@param tools table<string, table>
     ---@return table|nil
     form_tools = function(self, tools)
-      return openai.handlers.form_tools(self, tools)
+      if not self.opts.tools or not tools then
+        return
+      end
+      if vim.tbl_count(tools) == 0 then
+        return
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, tool_utils.transform_schema_if_needed(schema))
+        end
+      end
+
+      return { tools = transformed }
     end,
 
     ---Returns the number of tokens generated from the LLM
@@ -155,7 +189,16 @@ return {
     ---@param data table The data from the LLM
     ---@return number|nil
     tokens = function(self, data)
-      return openai.handlers.tokens(self, data)
+      if data and data ~= "" then
+        local data_mod = utils.clean_streamed_data(data)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+        if ok then
+          if json.type == "response.completed" and json.response.usage then
+            return json.response.usage.total_tokens
+          end
+        end
+      end
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
@@ -191,6 +234,20 @@ return {
           content = json.delta,
           meta = { response_id = response_id },
         }
+      elseif json.type == "response.output_item.done" and json.item and json.item.type == "function_call" then
+        local tool = json.item
+        if tools and tool and tool.name and tool.arguments then
+          table.insert(tools, {
+            _index = json.output_index,
+            id = tool.id,
+            call_id = tool.call_id,
+            type = "function",
+            ["function"] = {
+              name = tool.name,
+              arguments = tool.arguments or "",
+            },
+          })
+        end
       end
 
       if not output then
@@ -216,19 +273,20 @@ return {
       ---@param tools table The raw tools collected by chat_output
       ---@return table
       format_tool_calls = function(self, tools)
-        return openai.handlers.format_tool_calls(self, tools)
+        return tools
       end,
 
       ---Output the LLM's tool call so we can include it in the messages
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tool_call {id: string, function: table, name: string}
+      ---@param tool_call {id: string, call_id: string, function: table, name: string}
       ---@param output string
       ---@return table
       output_response = function(self, tool_call, output)
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
-          tool_call_id = tool_call.id,
+          tool_id = tool_call.id,
+          tool_call_id = tool_call.call_id,
           content = output,
           opts = { visible = false },
         }
