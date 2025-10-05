@@ -128,7 +128,7 @@ T["OpenAI Responses adapter"]["it can form tools to be sent to the API"] = funct
   h.eq({ tools = { expected } }, adapter.handlers.form_tools(adapter, tools))
 end
 
-T["OpenAI Responses adapter"]["it can form messages with tools"] = function()
+T["OpenAI Responses adapter"]["it can form messages with tool calls"] = function()
   local messages = {
     {
       role = "assistant",
@@ -174,28 +174,61 @@ T["OpenAI Responses adapter"]["it can form messages with tools"] = function()
 
   h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
 end
---
---
--- T["OpenAI Responses adapter"]["can output tool call"] = function()
---   local output = "The weather in London is 15 degrees"
---   local tool_call = {
---     ["function"] = {
---       arguments = '{"location": "London", "units": "celsius"}',
---       name = "weather",
---     },
---     id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
---     type = "function",
---   }
---
---   h.eq({
---     content = output,
---     opts = {
---       visible = false,
---     },
---     role = "tool",
---     tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
---   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
--- end
+
+T["OpenAI Responses adapter"]["it can form messages with tool output"] = function()
+  local messages = {
+    {
+      role = "tool",
+      content = "The weather in London is 15 degrees",
+      tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      tool_id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+    },
+    {
+      role = "tool",
+      content = "The weather in Paris is 15 degrees",
+      tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+    },
+  }
+
+  local expected = {
+    {
+      type = "function_call_output",
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      output = "The weather in London is 15 degrees",
+    },
+    {
+      type = "function_call_output",
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      output = "The weather in Paris is 15 degrees",
+    },
+  }
+
+  h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["OpenAI Responses adapter"]["can output tool call"] = function()
+  local output = "The weather in London is 15 degrees"
+  local tool_call = {
+    ["function"] = {
+      arguments = '{"location": "London", "units": "celsius"}',
+      name = "weather",
+    },
+    id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+    call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+    type = "function",
+  }
+
+  h.eq({
+    content = output,
+    opts = {
+      visible = false,
+    },
+    role = "tool",
+    tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+    tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
+end
 --
 --
 --
@@ -264,57 +297,6 @@ end
 --   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
 -- end
 --
--- T["OpenAI Responses adapter"]["reasoning_effort condition"] = function()
---   -- Test when choices is a function and model supports reasoning
---   local adapter_with_reasoning = require("codecompanion.adapters").extend("openai", {
---     schema = {
---       model = {
---         default = "o1-2024-12-17",
---         choices = function(self)
---           return {
---             ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
---             ["gpt-4o"] = { opts = { has_vision = true } },
---           }
---         end,
---       },
---     },
---   })
---   local condition_result = adapter_with_reasoning.schema.reasoning_effort.condition(adapter_with_reasoning)
---   h.eq(true, condition_result)
---
---   -- Test when choices is a function but model doesn't support reasoning
---   local adapter_without_reasoning = require("codecompanion.adapters").extend("openai", {
---     schema = {
---       model = {
---         default = "gpt-4o",
---         choices = function(self)
---           return {
---             ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
---             ["gpt-4o"] = { opts = { has_vision = true } },
---           }
---         end,
---       },
---     },
---   })
---   local condition_result_false = adapter_without_reasoning.schema.reasoning_effort.condition(adapter_without_reasoning)
---   h.eq(false, condition_result_false)
---
---   -- Test when model doesn't exist in choices
---   local adapter_missing_model = require("codecompanion.adapters").extend("openai", {
---     schema = {
---       model = {
---         default = "nonexistent-model",
---         choices = function(self)
---           return {
---             ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
---           }
---         end,
---       },
---     },
---   })
---   local condition_result_missing = adapter_missing_model.schema.reasoning_effort.condition(adapter_missing_model)
---   h.eq(false, condition_result_missing)
--- end
 
 T["OpenAI Responses adapter"]["Streaming"] = new_set()
 

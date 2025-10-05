@@ -125,6 +125,12 @@ return {
                 content = combined_content,
               })
             end
+          elseif m.role == "tool" then
+            table.insert(input, {
+              type = "function_call_output",
+              call_id = m.tool_call_id,
+              output = m.content,
+            })
           elseif m.tool_calls then
             if m.tool_calls then
               m.tool_calls = vim
