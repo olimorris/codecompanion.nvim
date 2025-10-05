@@ -12,7 +12,9 @@ T["OpenAI Responses adapter"] = new_set({
   },
 })
 
-T["OpenAI Responses adapter"]["it can form messages"] = function()
+T["OpenAI Responses adapter"]["form_messages"] = new_set()
+
+T["OpenAI Responses adapter"]["form_messages"]["messages only"] = function()
   local messages = {
     {
       content = "You are a helpful assistant.",
@@ -39,7 +41,7 @@ T["OpenAI Responses adapter"]["it can form messages"] = function()
   }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["it can form messages with images"] = function()
+T["OpenAI Responses adapter"]["form_messages"]["images"] = function()
   local messages = {
     {
       _meta = { sent = true },
@@ -96,7 +98,7 @@ T["OpenAI Responses adapter"]["it can form messages with images"] = function()
   h.eq(expected, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["it can form tools to be sent to the API"] = function()
+T["OpenAI Responses adapter"]["form_messages"]["format available tools to call"] = function()
   local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
   local tools = { weather = { weather } }
 
@@ -128,7 +130,7 @@ T["OpenAI Responses adapter"]["it can form tools to be sent to the API"] = funct
   h.eq({ tools = { expected } }, adapter.handlers.form_tools(adapter, tools))
 end
 
-T["OpenAI Responses adapter"]["it can form messages with tool calls"] = function()
+T["OpenAI Responses adapter"]["form_messages"]["format tool calls"] = function()
   local messages = {
     {
       role = "assistant",
@@ -175,7 +177,7 @@ T["OpenAI Responses adapter"]["it can form messages with tool calls"] = function
   h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["it can form messages with tool output"] = function()
+T["OpenAI Responses adapter"]["form_messages"]["format tool output"] = function()
   local messages = {
     {
       role = "tool",
@@ -207,7 +209,9 @@ T["OpenAI Responses adapter"]["it can form messages with tool output"] = functio
   h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["can output tool call"] = function()
+T["OpenAI Responses adapter"]["chat_output"] = new_set()
+
+T["OpenAI Responses adapter"]["chat_output"]["can output tool calls"] = function()
   local output = "The weather in London is 15 degrees"
   local tool_call = {
     ["function"] = {
@@ -229,9 +233,7 @@ T["OpenAI Responses adapter"]["can output tool call"] = function()
     tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end
---
---
---
+
 -- T["OpenAI Responses adapter"]["No Streaming"] = new_set({
 --   hooks = {
 --     pre_case = function()
@@ -314,6 +316,7 @@ T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the ch
 end
 
 T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
+  -- Adds tool calls to the tools table
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")
   for _, line in ipairs(lines) do
