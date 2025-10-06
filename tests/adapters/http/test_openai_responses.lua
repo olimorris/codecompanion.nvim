@@ -234,27 +234,27 @@ T["OpenAI Responses adapter"]["chat_output"]["can output tool calls"] = function
   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end
 
--- T["OpenAI Responses adapter"]["No Streaming"] = new_set({
---   hooks = {
---     pre_case = function()
---       adapter = require("codecompanion.adapters").extend("openai", {
---         opts = {
---           stream = false,
---         },
---       })
---     end,
---   },
--- })
---
--- T["OpenAI Responses adapter"]["No Streaming"]["can output for the chat buffer"] = function()
---   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
---   data = table.concat(data, "\n")
---
---   -- Match the format of the actual request
---   local json = { body = data }
---
---   h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
--- end
+T["OpenAI Responses adapter"]["No Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("openai_responses", {
+        opts = {
+          stream = false,
+        },
+      })
+    end,
+  },
+})
+
+T["OpenAI Responses adapter"]["No Streaming"]["chat_output"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Dynamic, expressive", adapter.handlers.chat_output(adapter, json).output.content)
+end
 --
 -- T["OpenAI Responses adapter"]["No Streaming"]["can process tools"] = function()
 --   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_no_streaming.txt")

@@ -862,7 +862,10 @@ function Chat:_submit_http(payload)
     on_chunk = function(data)
       process_chunk(data)
     end,
-    on_done = function(_)
+    on_done = function(data)
+      if data and not adapter.opts.stream then
+        process_chunk(data)
+      end
       self:done(output, reasoning, tools, meta)
     end,
     on_error = function(err)

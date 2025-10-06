@@ -1,4 +1,3 @@
-local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local tool_utils = require("codecompanion.utils.tool_transformers")
 local utils = require("codecompanion.utils.adapters")
@@ -68,7 +67,7 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
-      return openai.handlers.form_parameters(self, params, messages)
+      return params
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
@@ -222,6 +221,17 @@ return {
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
       if not ok then
         return nil
+      end
+
+      -- Handle non-streamed response
+      if not self.opts.stream then
+        return {
+          status = "success",
+          output = {
+            role = self.roles.llm,
+            content = json.output and json.output[1].content[1].text or "",
+          },
+        }
       end
 
       if json.type == "response.created" then
