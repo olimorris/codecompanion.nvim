@@ -672,7 +672,6 @@ function Chat:ensure_acp_connection()
   if not connection then
     local client = get_client(self.adapter)
     if not client or type(client.new) ~= "function" then
-      util.notify("ACP client not available", vim.log.levels.ERROR)
       log:error("[chat::ensure_acp_connection] ACP client module missing `new`")
       self._acp_connecting = false
       return false
@@ -692,7 +691,6 @@ function Chat:ensure_acp_connection()
       local warning = (config.display.icons and config.display.icons.warning) or ""
       self:_set_acp_status_message(warning .. ACP_MESSAGES.FAILED)
     end
-    util.notify("Failed to connect to ACP session", vim.log.levels.ERROR)
     log:error("[chat::ensure_acp_connection] connect_and_initialize failed")
     return false
   end
