@@ -255,50 +255,51 @@ T["OpenAI Responses adapter"]["No Streaming"]["chat_output"] = function()
 
   h.eq("Dynamic, expressive", adapter.handlers.chat_output(adapter, json).output.content)
 end
---
--- T["OpenAI Responses adapter"]["No Streaming"]["can process tools"] = function()
---   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_no_streaming.txt")
---   data = table.concat(data, "\n")
---
---   local tools = {}
---
---   -- Match the format of the actual request
---   local json = { body = data }
---   adapter.handlers.chat_output(adapter, json, tools)
---
---   local tool_output = {
---     {
---       _index = 1,
---       ["function"] = {
---         arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
---         name = "weather",
---       },
---       id = "call_VGkXa0hqNLEe2HSgMO1EpOe6",
---       type = "function",
---     },
---     {
---       _index = 2,
---       ["function"] = {
---         arguments = '{"location": "Paris, France", "units": "celsius"}',
---         name = "weather",
---       },
---       id = "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
---       type = "function",
---     },
---   }
---   h.eq(tool_output, tools)
--- end
---
--- T["OpenAI Responses adapter"]["No Streaming"]["can output for the inline assistant"] = function()
---   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
---   data = table.concat(data, "\n")
---
---   -- Match the format of the actual request
---   local json = { body = data }
---
---   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
--- end
---
+
+T["OpenAI Responses adapter"]["No Streaming"]["can process tools"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+
+  -- Match the format of the actual request
+  local json = { body = data }
+  adapter.handlers.chat_output(adapter, json, tools)
+
+  local tool_output = {
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        name = "weather",
+      },
+      call_id = "call_tgWgQU4IzqjLCPTdsbODFoOh",
+      id = "fc_07f118f077c91f1a0068e4319f231481969324b4a9180f3bda",
+      type = "function",
+    },
+    {
+      _index = 2,
+      ["function"] = {
+        arguments = '{"location":"Paris, France","units":"celsius"}',
+        name = "weather",
+      },
+      call_id = "call_kGgpknBihLExIymnhL9421wC",
+      id = "fc_07f118f077c91f1a0068e4319f6ac481969fde8ab4fb4e0f50",
+      type = "function",
+    },
+  }
+  h.eq(tool_output, tools)
+end
+
+T["OpenAI Responses adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Dynamic, expressive", adapter.handlers.inline_output(adapter, json).output)
+end
 
 T["OpenAI Responses adapter"]["Streaming"] = new_set()
 

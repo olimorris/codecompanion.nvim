@@ -1,3 +1,4 @@
+local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local tool_utils = require("codecompanion.utils.tool_transformers")
 local utils = require("codecompanion.utils.adapters")
@@ -225,11 +226,40 @@ return {
 
       -- Handle non-streamed response
       if not self.opts.stream then
+        if json.output and tools then
+          local index = 1
+          vim
+            .iter(json.output)
+            :filter(function(item)
+              return item.type == "function_call"
+            end)
+            :each(function(tool)
+              table.insert(tools, {
+                _index = index,
+                id = tool.id,
+                call_id = tool.call_id,
+                type = "function",
+                ["function"] = {
+                  name = tool.name,
+                  arguments = tool.arguments or "",
+                },
+              })
+              index = index + 1
+            end)
+        end
+
+        local content = json.output
+            and json.output[1]
+            and json.output[1].content
+            and json.output[1].content[1]
+            and json.output[1].content[1].text
+          or nil
+
         return {
           status = "success",
           output = {
             role = self.roles.llm,
-            content = json.output and json.output[1].content[1].text or "",
+            content = content,
           },
         }
       end
@@ -281,7 +311,30 @@ return {
     ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context? table Useful context about the buffer to inline to
     ---@return {status: string, output: table}|nil
-    inline_output = function(self, data, context) end,
+    inline_output = function(self, data, context)
+      if self.opts.stream then
+        return log:error("Inline output is not supported for non-streaming models")
+      end
+
+      if data and data ~= "" then
+        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
+
+        if not ok then
+          log:error("Error decoding JSON: %s", data.body)
+          return { status = "error", output = json }
+        end
+
+        if json.output then
+          local content = json.output
+              and json.output[1]
+              and json.output[1].content
+              and json.output[1].content[1]
+              and json.output[1].content[1].text
+            or nil
+          return { status = "success", output = content }
+        end
+      end
+    end,
 
     tools = {
       ---Format the LLM's tool calls for inclusion back in the request
