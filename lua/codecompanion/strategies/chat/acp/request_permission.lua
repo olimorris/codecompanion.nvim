@@ -331,6 +331,9 @@ local function show_diff(chat, request)
 
   local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
+  local inline_config = config.display.diff.provider_opts.inline or {}
+  local show_dim = inline_config.opts and inline_config.opts.show_dim
+
   local bufnr, winnr = ui.create_float(new_lines, {
     window = { width = window_config.width, height = window_config.height },
     row = window_config.row or "center",
@@ -344,7 +347,7 @@ local function show_diff(chat, request)
     lock = true,
     ignore_keymaps = true,
     opts = window_config.opts,
-    show_dim = true,
+    show_dim = show_dim,
   })
 
   -- Build present kinds and normalize keymaps from config, then setup winbar
