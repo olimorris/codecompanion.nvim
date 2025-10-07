@@ -474,6 +474,11 @@ function Client:request(payload, actions, opts)
     end
   end
 
+  -- Unify the API across the plugin
+  job.cancel = function()
+    job:shutdown()
+  end
+
   return job
 end
 

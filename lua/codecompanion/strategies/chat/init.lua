@@ -1243,18 +1243,16 @@ function Chat:stop()
 
     _G.codecompanion_cancel_tool = true
     pcall(function()
-      tool_job:shutdown()
+      tool_job.cancel()
     end)
   end
 
   if self.current_request then
-    print("Cancelling request...")
     local handle = self.current_request
     self.current_request = nil
 
     pcall(function()
       if handle and type(handle.cancel) == "function" then
-        print("Should be cancelled")
         handle.cancel()
       end
     end)
