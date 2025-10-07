@@ -45,8 +45,8 @@ One of the challenges with inline editing is determining how the LLM's response 
 
 By default, an inline assistant prompt will trigger the diff feature, showing differences between the original buffer and the changes made by the LLM. This can be turned off in your config via the `display.diff.provider` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
 
-- `ga` - Accept an inline edit
-- `gr` - Reject an inline edit
+- `gda` - Accept an inline edit
+- `gdr` - Reject an inline edit
 
 These keymaps can also be changed in your config via the `strategies.inline.keymaps` table.
 

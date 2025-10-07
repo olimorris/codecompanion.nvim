@@ -1259,7 +1259,7 @@ function Chat:stop()
 
     _G.codecompanion_cancel_tool = true
     pcall(function()
-      tool_job:shutdown()
+      tool_job.cancel()
     end)
   end
 

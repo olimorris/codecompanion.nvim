@@ -425,6 +425,9 @@ function Connection:handle_rpc_message(line)
   end
 
   if message.error then
+    if message.error.code == -32603 then
+      return log:debug("[acp::handle_rpc_message] Error: %s", message.error)
+    end
     log:error("[acp::handle_rpc_message] Error: %s", message.error)
   end
 end

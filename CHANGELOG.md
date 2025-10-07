@@ -1,5 +1,19 @@
 # Changelog
 
+## [17.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.24.0...v17.25.0) (2025-10-07)
+
+
+### Features
+
+* **adapters:** add support for Claude Sonnet 4.5 ([#2207](https://github.com/olimorris/codecompanion.nvim/issues/2207)) ([e629759](https://github.com/olimorris/codecompanion.nvim/commit/e629759ae6960418244f90b037f584323b3bc05c))
+
+
+### Bug Fixes
+
+* **acp:** ensure jobs can be cancelled ([#2225](https://github.com/olimorris/codecompanion.nvim/issues/2225)) ([a61dfc1](https://github.com/olimorris/codecompanion.nvim/commit/a61dfc1b916f4fabe482a68d106b7876800b371b)), closes [#2223](https://github.com/olimorris/codecompanion.nvim/issues/2223)
+* **super_diff:** align variable names with updated diff hunk naming ([#2218](https://github.com/olimorris/codecompanion.nvim/issues/2218)) ([0380600](https://github.com/olimorris/codecompanion.nvim/commit/03806002044f94f8789b28435efd6d383675ba87))
+* **tools:** `cmd_runner` tool on Windows ([#2186](https://github.com/olimorris/codecompanion.nvim/issues/2186)) ([d5491dd](https://github.com/olimorris/codecompanion.nvim/commit/d5491dd9a1509c845c52276ad7d42cb5ff0ee550)), closes [#2179](https://github.com/olimorris/codecompanion.nvim/issues/2179)
+
 ## [17.24.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.23.0...v17.24.0) (2025-10-02)
 
 
