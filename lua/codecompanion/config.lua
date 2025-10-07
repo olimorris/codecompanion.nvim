@@ -66,12 +66,13 @@ local defaults = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
             prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
+              "edit_tool_exp",
               "cmd_runner",
               "create_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              "insert_edit_into_file",
+              -- "insert_edit_into_file",
               "list_code_usages",
               "read_file",
             },
@@ -101,6 +102,17 @@ local defaults = {
           description = "Run shell commands initiated by the LLM",
           opts = {
             requires_approval = true,
+          },
+        },
+        ["edit_tool_exp"] = {
+          callback = "strategies.chat.tools.catalog.edit_tool_exp",
+          description = "Robustly edit files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = true, -- For editing files in the current working directory
+            },
+            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
         },
         ["create_file"] = {
