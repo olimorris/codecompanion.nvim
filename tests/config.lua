@@ -102,7 +102,17 @@ return {
           callback = "strategies.chat.tools.catalog.memory",
           description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
         },
-
+        ["edit_tool_exp"] = {
+          callback = "strategies.chat.tools.catalog.edit_tool_exp",
+          description = "Robustly edit files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = {
+              buffer = false,
+              file = false,
+            },
+            user_confirmation = false,
+          },
+        },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
