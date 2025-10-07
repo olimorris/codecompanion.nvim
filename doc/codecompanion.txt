@@ -1694,6 +1694,29 @@ strategy configuration and can be changed via:
     })
 <
 
+The keymaps for accepting and rejecting the diff sit within the `inline`
+configuration and can be changed via:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        inline = {
+          keymaps = {
+            accept_change = {
+              modes = { n = "gda" }, -- gDiffAccept
+            },
+            reject_change = {
+              modes = { n = "gdr" }, -- gDiffReject
+            },
+            always_accept = {
+              modes = { n = "gdt" },
+            },
+          },
+        },
+      },
+    })
+<
+
 
 USER INTERFACE (UI) ~
 
@@ -2638,7 +2661,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-tools-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -4274,7 +4297,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
