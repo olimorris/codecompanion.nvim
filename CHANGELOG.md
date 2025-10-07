@@ -6,7 +6,6 @@
 ### Features
 
 * **adapters:** add support for Claude Sonnet 4.5 ([#2207](https://github.com/olimorris/codecompanion.nvim/issues/2207)) ([e629759](https://github.com/olimorris/codecompanion.nvim/commit/e629759ae6960418244f90b037f584323b3bc05c))
-* add sonnet-4-5 ([e629759](https://github.com/olimorris/codecompanion.nvim/commit/e629759ae6960418244f90b037f584323b3bc05c))
 
 
 ### Bug Fixes
