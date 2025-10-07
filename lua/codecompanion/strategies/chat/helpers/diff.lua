@@ -139,6 +139,13 @@ end
 ---@param winnr number Window number to set up winbar for
 ---@return nil
 local function place_diff_winbar(winnr)
+  local inline_config = config.display.diff.provider_opts.inline or {}
+  local show_keymap_hints = inline_config.opts and inline_config.opts.show_keymap_hints
+
+  if not show_keymap_hints then
+    return
+  end
+
   local keymaps_config = config.strategies.inline.keymaps
   if not keymaps_config then
     return
@@ -166,6 +173,9 @@ end
 local function create_diff_floating_window(bufnr, filepath)
   local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
+  local inline_config = config.display.diff.provider_opts.inline or {}
+  local show_dim = inline_config.opts and inline_config.opts.show_dim
+
   local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
   local content = {} -- Dummy content for create_float function
 
@@ -184,7 +194,7 @@ local function create_diff_floating_window(bufnr, filepath)
     lock = false, -- Allow edits for diff
     ignore_keymaps = true,
     opts = window_config.opts,
-    show_dim = true,
+    show_dim = show_dim,
   })
 
   if winnr then

@@ -1394,6 +1394,7 @@ You must create or modify a workspace file through a series of prompts over mult
             dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
             full_width_removed = true, -- Make removed lines span full width
             show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+            show_dim = true, -- Enable dimming background for floating windows (applies to both diff and super_diff)
             show_removed = true, -- Show removed lines as virtual text
           },
         },
