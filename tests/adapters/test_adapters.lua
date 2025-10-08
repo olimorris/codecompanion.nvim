@@ -122,7 +122,6 @@ end
 
 T["Adapter"]["can use schema to created nested parameters"] = function()
   local result = child.lua([[
-    require("tests.log")
     local adapter = require("codecompanion.adapters").extend("openai", {
       schema = {
         ["reasoning.effort"] = {
