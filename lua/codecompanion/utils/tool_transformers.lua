@@ -23,7 +23,7 @@ end
 ---Check if the schema is in the old OpenAI format
 ---@param schema table
 ---@return boolean
-M.schema_is_old = function(schema)
+M.schema_is_legacy_format = function(schema)
   return schema["function"] ~= nil
 end
 
@@ -52,7 +52,7 @@ end
 ---@param schema table
 ---@return table
 M.transform_schema_if_needed = function(schema)
-  if M.schema_is_old(schema) then
+  if M.schema_is_legacy_format(schema) then
     return M.to_new_openai(schema)
   end
   return schema
