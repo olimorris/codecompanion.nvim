@@ -53,6 +53,9 @@ return {
         if not model_opts[model].opts.has_vision then
           self.opts.vision = false
         end
+        if not model_opts[model].opts.has_function_calling then
+          self.opts.tools = false
+        end
       end
 
       if self.opts and self.opts.stream then
@@ -226,6 +229,21 @@ return {
 
       -- Handle non-streamed response
       if not self.opts.stream then
+        -- Reasoning
+        local reasoning
+        if json.output then
+          for _, item in ipairs(json.output) do
+            if item.type == "reasoning" then
+              for _, block in ipairs(item.summary) do
+                if block.type == "summary_text" then
+                  reasoning = reasoning and (reasoning .. "\n\n" .. block.text) or block.text
+                end
+              end
+            end
+          end
+        end
+
+        -- Tools
         if json.output and tools then
           local index = 1
           vim
@@ -259,6 +277,7 @@ return {
           status = "success",
           output = {
             role = self.roles.llm,
+            reasoning = { content = reasoning },
             content = content,
           },
         }
@@ -269,15 +288,16 @@ return {
       end
 
       local output = {}
-      if json.type == "response.content_part.added" then
+      if json.type == "response.reasoning_summary_text.delta" then
         output = {
           role = self.roles.llm,
-          content = "\n",
+          reasoning = { content = json.delta },
+          meta = { response_id = response_id },
         }
       elseif json.type == "response.output_text.delta" then
         output = {
           role = self.roles.llm,
-          content = json.delta,
+          content = json.delta or "",
           meta = { response_id = response_id },
         }
       elseif json.type == "response.output_item.done" and json.item and json.item.type == "function_call" then
@@ -296,7 +316,7 @@ return {
         end
       end
 
-      if not output then
+      if vim.tbl_count(output) == 0 then
         return nil
       end
 
@@ -372,8 +392,95 @@ return {
     end,
   },
   schema = {
-    model = openai.schema.model,
-    reasoning_effort = openai.schema.reasoning_effort,
+    model = {
+      order = 1,
+      mapping = "parameters",
+      type = "enum",
+      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      ---@type string|fun(): string
+      default = "gpt-5",
+      choices = {
+        ["gpt-5-codex"] = {
+          formatted_name = "GPT 5 Codex",
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5-pro-2025-10-06"] = {
+          formatted_name = "GPT 5 Pro",
+          opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
+        },
+        ["o4-mini-deep-research-2025-06-26"] = {
+          formatted_name = "o4 Mini Deep Research",
+          opts = { has_function_calling = false, has_vision = true, can_reason = true },
+        },
+        ["o3-deep-research-2025-06-26"] = {
+          formatted_name = "o3 Deep Research",
+          opts = { has_function_calling = false, has_vision = true, can_reason = true },
+        },
+        ["o3-pro-2025-06-10"] = {
+          formatted_name = "o3 Pro",
+          opts = { has_function_calling = false, has_vision = true, can_reason = true, stream = false },
+        },
+        ["o1-pro-2025-03-19"] = {
+          formatted_name = "o1 Pro",
+          opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
+        },
+      },
+    },
+    ["reasoning.effort"] = {
+      order = 2,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      condition = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        local choices = self.schema.model.choices
+        if type(choices) == "function" then
+          choices = choices(self)
+        end
+        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+          return true
+        end
+        return false
+      end,
+      default = "medium",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      choices = {
+        "high",
+        "medium",
+        "low",
+        "minimal",
+      },
+    },
+    ["reasoning.summary"] = {
+      order = 3,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      condition = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        local choices = self.schema.model.choices
+        if type(choices) == "function" then
+          choices = choices(self)
+        end
+        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+          return true
+        end
+        return false
+      end,
+      default = "auto",
+      desc = "A summary of the reasoning performed by the model. This can be useful for debugging and understanding the model's reasoning process.",
+      choices = {
+        "auto",
+        "concise",
+        "detailed",
+      },
+    },
     temperature = openai.schema.temperature,
     top_p = openai.schema.top_p,
     stop = openai.schema.stop,

@@ -301,6 +301,19 @@ T["OpenAI Responses adapter"]["No Streaming"]["can output for the inline assista
   h.eq("Dynamic, expressive", adapter.handlers.inline_output(adapter, json).output)
 end
 
+T["OpenAI Responses adapter"]["No Streaming"]["can process reasoning output"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq(
+    "First block\n\nSecond block\n\nThird block\n\nFourth block",
+    adapter.handlers.chat_output(adapter, json).output.reasoning.content
+  )
+end
+
 T["OpenAI Responses adapter"]["Streaming"] = new_set()
 
 T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
@@ -313,7 +326,20 @@ T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the ch
     end
   end
 
-  h.expect_starts_with("\nElegant language", output)
+  h.expect_starts_with("Elegant language", output)
+end
+
+T["OpenAI Responses adapter"]["Streaming"]["can process reasoning output"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.output and chat_output.output.reasoning and chat_output.output.reasoning.content then
+      output = output .. chat_output.output.reasoning.content
+    end
+  end
+
+  h.expect_starts_with("**summarizing ruby's strengths**", output)
 end
 
 T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
