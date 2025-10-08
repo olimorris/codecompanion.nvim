@@ -120,6 +120,37 @@ T["Adapter"]["can form parameters from a chat buffer's settings"] = function()
   h.eq(child.lua_get([[_G.chat_buffer_settings]]), result)
 end
 
+T["Adapter"]["can use schema to created nested parameters"] = function()
+  local result = child.lua([[
+    require("tests.log")
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      schema = {
+        ["reasoning.effort"] = {
+          order = 2,
+          mapping = "parameters",
+          type = "string",
+          optional = true,
+          default = "medium",
+          desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+          choices = {
+            "high",
+            "medium",
+            "low",
+            "minimal",
+          }
+        }
+      }
+    })
+    return adapter:map_schema_to_params().parameters
+  ]])
+
+  local expected = {
+    effort = "medium",
+  }
+
+  h.eq(expected, result.reasoning)
+end
+
 T["Adapter"]["can nest parameters based on an adapter's schema"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(_G.test_adapter)
