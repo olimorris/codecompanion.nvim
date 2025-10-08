@@ -464,7 +464,7 @@ temperature = {
 
 You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
 
-For some endpoints, like OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses), schema values may need to be nested, like with reasoning effort:
+For some endpoints, like OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses), schema values may need to be nested in the parameters:
 
 ```bash
 curl https://api.openai.com/v1/responses \
@@ -479,7 +479,7 @@ curl https://api.openai.com/v1/responses \
   }'
 ```
 
-You can use dot notation to accomplish this in CodeCompanion:
+To accomplish this, you can use dot notation:
 
 ```lua
 ["reasoning.effort"] = {
