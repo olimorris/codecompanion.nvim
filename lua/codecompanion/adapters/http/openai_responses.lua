@@ -6,6 +6,21 @@ local utils = require("codecompanion.utils.adapters")
 ---@type string|nil
 local response_id
 
+---Resolves the options that a model has
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table
+local function resolve_model_opts(adapter)
+  local model = adapter.schema.model.default
+  local choices = adapter.schema.model.choices
+  if type(model) == "function" then
+    model = model(adapter)
+  end
+  if type(choices) == "function" then
+    choices = choices(adapter, { async = false })
+  end
+  return choices[model]
+end
+
 ---@class CodeCompanion.HTTPAdapter.OpenAIResponses: CodeCompanion.HTTPAdapter
 return {
   name = "openai_responses",
@@ -28,6 +43,9 @@ return {
   env = {
     api_key = "OPENAI_API_KEY",
   },
+  parameters = {
+    store = false,
+  },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
@@ -37,13 +55,7 @@ return {
     ---@return boolean
     setup = function(self)
       local model = self.schema.model.default
-      if type(model) == "function" then
-        model = model(self)
-      end
-      local model_opts = self.schema.model.choices
-      if type(model_opts) == "function" then
-        model_opts = model_opts(self)
-      end
+      local model_opts = resolve_model_opts(self)
 
       self.opts.vision = true
 
@@ -71,6 +83,10 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      local model_opts = resolve_model_opts(self)
+      if model_opts and model_opts.opts and model_opts.opts.can_reason then
+        params.include = { "reasoning.encrypted_content" }
+      end
       return params
     end,
 
@@ -103,6 +119,30 @@ return {
         local m = messages[i]
 
         if m.role ~= "system" then
+          -- Reasoning comes first
+          if m.reasoning then
+            local reasoning_item = {
+              type = "reasoning",
+            }
+
+            -- Include summary if we have content
+            if m.reasoning.content then
+              reasoning_item.summary = {
+                {
+                  type = "summary_text",
+                  text = m.reasoning.content,
+                },
+              }
+            end
+
+            -- Include encrypted_content if available (required for stateless mode)
+            if m.reasoning.encrypted_content then
+              reasoning_item.encrypted_content = m.reasoning.encrypted_content
+            end
+
+            table.insert(input, reasoning_item)
+          end
+
           -- Check if this is an image message followed by a text message from the same user
           if m.opts and m.opts.tag == "image" and m.opts.mimetype then
             if self.opts and self.opts.vision then
@@ -168,6 +208,39 @@ return {
       return {
         instructions = has_instructions and instructions or nil,
         input = input,
+      }
+    end,
+
+    ---Form the reasoning output that is stored in the chat buffer
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table The reasoning output from the LLM
+    ---@return nil|{ content: string, _data: table }
+    form_reasoning = function(self, data)
+      local content = vim
+        .iter(data)
+        :map(function(item)
+          return item.content
+        end)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      local reasoning_id
+      local encrypted_content
+      vim.iter(data):each(function(item) -- Changed from :map to :each
+        if item.id then
+          reasoning_id = item.id
+        end
+        if item.encrypted_content then
+          encrypted_content = item.encrypted_content
+        end
+      end)
+
+      return {
+        content = content,
+        id = reasoning_id, -- Store directly for easy access
+        encrypted_content = encrypted_content, -- Store directly for easy access
       }
     end,
 
@@ -291,7 +364,7 @@ return {
       if json.type == "response.reasoning_summary_text.delta" then
         output = {
           role = self.roles.llm,
-          reasoning = { content = json.delta },
+          reasoning = { content = json.delta or "" },
           meta = { response_id = response_id },
         }
       elseif json.type == "response.output_text.delta" then
@@ -300,19 +373,45 @@ return {
           content = json.delta or "",
           meta = { response_id = response_id },
         }
-      elseif json.type == "response.output_item.done" and json.item and json.item.type == "function_call" then
-        local tool = json.item
-        if tools and tool and tool.name and tool.arguments then
-          table.insert(tools, {
-            _index = json.output_index,
-            id = tool.id,
-            call_id = tool.call_id,
-            type = "function",
-            ["function"] = {
-              name = tool.name,
-              arguments = tool.arguments or "",
+      elseif json.type == "response.completed" then
+        if json.response and json.response.output then
+          local reasoning = {}
+          vim
+            .iter(json.response.output)
+            :filter(function(reasoning_output)
+              return reasoning_output.type == "reasoning"
+            end)
+            :each(function(reasoning_output)
+              reasoning.id = reasoning_output.id
+              reasoning.encrypted_content = reasoning_output.encrypted_content
+            end)
+
+          vim
+            .iter(json.response.output)
+            :filter(function(item)
+              return item.type == "function_call" and item.status == "completed"
+            end)
+            :each(function(tool)
+              if tools then
+                table.insert(tools, {
+                  id = tool.id,
+                  call_id = tool.call_id,
+                  type = "function",
+                  ["function"] = {
+                    name = tool.name,
+                    arguments = tool.arguments or "",
+                  },
+                })
+              end
+            end)
+
+          output = {
+            role = self.roles.llm,
+            reasoning = reasoning,
+            meta = {
+              response_id = response_id,
             },
-          })
+          }
         end
       end
 
@@ -400,6 +499,14 @@ return {
       ---@type string|fun(): string
       default = "gpt-5",
       choices = {
+        ["gpt-4.1"] = {
+          formatted_name = "GPT 4.1",
+          opts = { has_function_calling = true, has_vision = true },
+        },
+        ["gpt-5"] = {
+          formatted_name = "GPT 5",
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
         ["gpt-5-codex"] = {
           formatted_name = "GPT 5 Codex",
           opts = { has_function_calling = true, has_vision = true, can_reason = true },

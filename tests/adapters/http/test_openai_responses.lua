@@ -209,6 +209,102 @@ T["OpenAI Responses adapter"]["form_messages"]["format tool output"] = function(
   h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["OpenAI Responses adapter"]["form_messages"]["can handle reasoning"] = function()
+  local messages = {
+    {
+      _meta = {
+        sent = true,
+      },
+      content = "Can you tell me what the the weather tool is for London and Paris?",
+      cycle = 1,
+      id = 449094129,
+      opts = {
+        visible = true,
+      },
+      role = "user",
+    },
+    {
+      _meta = {},
+      cycle = 1,
+      id = 486936684,
+      opts = {
+        visible = false,
+      },
+      reasoning = {
+        encrypted_content = "somefakebase64encoding",
+        reasoning_id = "rs_123",
+        content = "I need to workout the weather",
+      },
+      role = "llm",
+      tool_calls = {
+        {
+          call_id = "call_balVirseGsQYwrVoigfUfF5G",
+          ["function"] = {
+            arguments = '{"location":"London, United Kingdom","units":"celsius"}',
+            name = "weather",
+          },
+          id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+          type = "function",
+        },
+        {
+          call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+          ["function"] = {
+            arguments = '{"location":"Paris, France","units":"celsius"}',
+            name = "weather",
+          },
+          id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+          type = "function",
+        },
+      },
+    },
+    {
+      content = "Ran the weather tool The weather in London, United Kingdom is 15° celsius",
+      cycle = 1,
+      id = 1997051449,
+      opts = {
+        visible = true,
+      },
+      role = "tool",
+      tool_call_id = "call_balVirseGsQYwrVoigfUfF5G",
+      tool_id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+    },
+    {
+      content = "Ran the weather tool The weather in Paris, France is 15° celsius",
+      cycle = 1,
+      id = 210818266,
+      opts = {
+        visible = true,
+      },
+      role = "tool",
+      tool_call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+      tool_id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+    },
+    {
+      _meta = {
+        response_id = "resp_123",
+      },
+      content = "- London: 15°C\n- Paris: 15°C\n\nNeed anything else, like Fahrenheit or a weekly forecast?",
+      cycle = 1,
+      id = 933614700,
+      opts = {
+        visible = true,
+      },
+      role = "llm",
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  h.eq({
+    summary = { {
+      text = "I need to workout the weather",
+      type = "summary_text",
+    } },
+    encrypted_content = "somefakebase64encoding",
+    type = "reasoning",
+  }, result.input[2])
+end
+
 T["OpenAI Responses adapter"]["chat_output"] = new_set()
 
 T["OpenAI Responses adapter"]["chat_output"]["can output tool calls"] = function()
@@ -339,7 +435,7 @@ T["OpenAI Responses adapter"]["Streaming"]["can process reasoning output"] = fun
     end
   end
 
-  h.expect_starts_with("**summarizing ruby's strengths**", output)
+  h.expect_starts_with("**Deciding on Ruby's description**", output)
 end
 
 T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
@@ -352,23 +448,21 @@ T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
 
   local expected = {
     {
-      _index = 0,
+      call_id = "call_hvKk3FjuupQx8xeHeVbQNZkM",
       ["function"] = {
-        arguments = '{"location":"London, UK","units":"celsius"}',
+        arguments = '{"units":"celsius","location":"London, United Kingdom"}',
         name = "weather",
       },
-      id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
-      call_id = "call_L07YMw4V0erO5h5JvtKV3AMh",
+      id = "fc_0cebe04c7f5006bd0068e827962aa8819592a7e51f7fa0d0b3",
       type = "function",
     },
     {
-      _index = 1,
+      call_id = "call_lzBOVwzUEAuTss7Gifvp1Rwi",
       ["function"] = {
-        arguments = '{"location":"Paris, France","units":"celsius"}',
+        arguments = '{"units":"celsius","location":"Paris, France"}',
         name = "weather",
       },
-      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-      call_id = "call_tY62Os9Hez2R2twVYRnYyGYq",
+      id = "fc_0cebe04c7f5006bd0068e827963dfc81958741d3a9f70c8a94",
       type = "function",
     },
   }
