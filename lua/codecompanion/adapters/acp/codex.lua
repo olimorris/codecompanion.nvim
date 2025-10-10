@@ -1,9 +1,9 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.GeminiCLI: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.Codex: CodeCompanion.ACPAdapter
 return {
-  name = "claude_code",
-  formatted_name = "Claude Code",
+  name = "codex",
+  formatted_name = "Codex",
   type = "acp",
   roles = {
     llm = "assistant",
@@ -11,9 +11,6 @@ return {
   },
   opts = {
     vision = true,
-    -- Claude Code has an annoying habit of outputting the entire contents of a
-    -- file in a tool call. This messes up the chat buffer formatting.
-    trim_tool_output = true,
   },
   commands = {
     default = {
