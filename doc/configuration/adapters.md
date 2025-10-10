@@ -302,6 +302,41 @@ require("codecompanion").setup({
 
 With `show_model_choices = false`, the default model (as defined in the adapter's schema) will be automatically selected when changing adapters, and no model selection will be shown to the user.
 
+## Setup: OpenAI Responses API
+
+CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      adapter = "openai_responses",
+    },
+    inline = {
+      adapter = "openai_responses",
+    },
+  },
+}),
+```
+
+and it can be configured as with any other adapter:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    openai_responses = function()
+      return require("codecompanion.adapters").extend("openai_responses", {
+        env = {
+          api_key = "OPENAI_API_KEY",
+        },
+      })
+    end,
+  },
+},
+```
+
+By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
+
 ## Setup: Claude Code via ACP
 
 To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion, you'll need to take the following steps:

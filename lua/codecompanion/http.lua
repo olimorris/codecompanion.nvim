@@ -383,7 +383,7 @@ function Client:request(payload, actions, opts)
     callback = function(data)
       self.methods.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
-          log:trace("Output data:\n%s", data)
+          log:debug("Output data:\n%s", data)
           cb(nil, data, adapter)
         end
         if handlers and handlers.on_exit then
@@ -432,7 +432,7 @@ function Client:request(payload, actions, opts)
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
-        log:trace("Output data:\n%s", data)
+        log:debug("Output data:\n%s", data)
       end
       if not has_started_steaming then
         has_started_steaming = true

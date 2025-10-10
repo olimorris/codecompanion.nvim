@@ -1,12 +1,39 @@
 local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.http.openai")
 local stats = require("codecompanion.adapters.http.copilot.stats")
 local token = require("codecompanion.adapters.http.copilot.token")
 local utils = require("codecompanion.utils.adapters")
 
 local _fetching_models = false
 local version = vim.version()
+
+---Resolves the options that a model has
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table
+local function resolve_model_opts(adapter)
+  local model = adapter.schema.model.default
+  local choices = adapter.schema.model.choices
+  if type(model) == "function" then
+    model = model(adapter)
+  end
+  if type(choices) == "function" then
+    choices = choices(adapter, { async = false })
+  end
+  return choices[model]
+end
+
+---Return the handlers of a specific adapter, ensuring the correct endpoint is set
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table
+local function handlers(adapter)
+  local model_opts = resolve_model_opts(adapter)
+  if model_opts.endpoint == "responses" then
+    adapter.url = "https://api.githubcopilot.com/responses"
+    return require("codecompanion.adapters.http.openai_responses").handlers
+  end
+  adapter.url = "https://api.githubcopilot.com/chat/completions"
+  return require("codecompanion.adapters.http.openai").handlers
+end
 
 ---@class CodeCompanion.HTTPAdapter.Copilot: CodeCompanion.HTTPAdapter
 return {
@@ -64,15 +91,7 @@ return {
     ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
-      local model = self.schema.model.default
-      local choices = self.schema.model.choices
-      if type(model) == "function" then
-        model = model(self)
-      end
-      if type(choices) == "function" then
-        choices = choices(self, { async = false })
-      end
-      local model_opts = choices[model]
+      local model_opts = resolve_model_opts(self)
 
       if (self.opts and self.opts.stream) and (model_opts and model_opts.opts and model_opts.opts.can_stream) then
         self.parameters.stream = true
@@ -91,7 +110,7 @@ return {
 
     --- Use the OpenAI adapter for the bulk of the work
     form_parameters = function(self, params, messages)
-      return openai.handlers.form_parameters(self, params, messages)
+      return handlers(self).form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
       for _, m in ipairs(messages) do
@@ -109,10 +128,10 @@ return {
         self.headers["X-Initiator"] = "agent"
       end
 
-      return openai.handlers.form_messages(self, messages)
+      return handlers(self).form_messages(self, messages)
     end,
     form_tools = function(self, tools)
-      return openai.handlers.form_tools(self, tools)
+      return handlers(self).form_tools(self, tools)
     end,
     tokens = function(self, data)
       if data and data ~= "" then
@@ -132,22 +151,22 @@ return {
       end
     end,
     chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
+      return handlers(self).chat_output(self, data, tools)
     end,
     tools = {
       format_tool_calls = function(self, tools)
-        return openai.handlers.tools.format_tool_calls(self, tools)
+        return handlers(self).tools.format_tool_calls(self, tools)
       end,
       output_response = function(self, tool_call, output)
-        return openai.handlers.tools.output_response(self, tool_call, output)
+        return handlers(self).tools.output_response(self, tool_call, output)
       end,
     },
     inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
+      return handlers(self).inline_output(self, data, context)
     end,
     on_exit = function(self, data)
       get_models.reset_cache()
-      return openai.handlers.on_exit(self, data)
+      return handlers(self).on_exit(self, data)
     end,
   },
   schema = {
@@ -181,7 +200,7 @@ return {
         if type(model) == "function" then
           model = model()
         end
-        return not vim.startswith(model, "o1")
+        return not vim.startswith(model, "o1") and not model:find("codex")
       end,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
