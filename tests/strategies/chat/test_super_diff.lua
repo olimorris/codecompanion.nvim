@@ -462,6 +462,89 @@ T["integration - complete workflow"] = function()
   h.expect_truthy(result)
 end
 
+T["sticky header - ignores markdown headers inside code blocks"] = function()
+  child.lua([[
+    -- Test that sticky header shows correct filename when cursor is on markdown headers inside code blocks
+    local test_lines = {
+      "# Super Diff Summary",
+      "",
+      "## test.md",
+      "*1 edits by tool: 1 accepted*",
+      "",
+      "**Current State (Accepted Changes):**",
+      "```markdown",
+      "# User Guide",
+      "",
+      "## Introduction",
+      "",
+      "Some intro text.",
+      "",
+      "## Installation",
+      "",
+      "Install instructions here.",
+      "```",
+      "",
+      "---",
+      "",
+    }
+
+    -- Create a test buffer with these lines
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, test_lines)
+    vim.bo[buf].filetype = "markdown"
+    vim.api.nvim_set_current_buf(buf)
+    local win = vim.api.nvim_get_current_win()
+
+    -- Place cursor on line 10 (## Introduction inside code block)
+    vim.api.nvim_win_set_cursor(win, {10, 0})
+
+    -- Setup sticky header
+    super_diff.setup_sticky_header(buf, win, test_lines)
+
+    -- Give it a moment to process
+    vim.wait(100)
+
+    -- Find the sticky window and check its content
+    local sticky_window_content = nil
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      if w ~= win and vim.api.nvim_win_is_valid(w) then
+        local sticky_buf = vim.api.nvim_win_get_buf(w)
+        if vim.api.nvim_buf_is_valid(sticky_buf) then
+          local lines = vim.api.nvim_buf_get_lines(sticky_buf, 0, -1, false)
+          if #lines > 0 then
+            sticky_window_content = lines[1]
+          end
+        end
+      end
+    end
+
+    _G.test_result = {
+      has_sticky_window = sticky_window_content ~= nil,
+      sticky_shows_test_md = sticky_window_content and sticky_window_content:match("test%.md") ~= nil,
+      sticky_shows_introduction = sticky_window_content and sticky_window_content:match("Introduction") ~= nil,
+      sticky_content = sticky_window_content
+    }
+
+    -- Cleanup
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      if w ~= win and vim.api.nvim_win_is_valid(w) then
+        pcall(vim.api.nvim_win_close, w, true)
+      end
+    end
+    if vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end
+  ]])
+
+  local result = child.lua_get("_G.test_result")
+
+  -- Verify the sticky header shows "test.md" and NOT "Introduction"
+  -- This validates our fix that skips markdown headers inside code blocks
+  h.expect_truthy(result.has_sticky_window, "Sticky window should be created")
+  h.expect_truthy(result.sticky_shows_test_md, "Sticky header should show 'test.md'")
+  h.expect_truthy(not result.sticky_shows_introduction, "Sticky header should NOT show 'Introduction'")
+end
+
 T["reject then accept workflow - operations can be reapplied"] = function()
   child.lua([[
     -- First create the edit operation through the normal flow
