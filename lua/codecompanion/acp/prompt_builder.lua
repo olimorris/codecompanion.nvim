@@ -113,8 +113,9 @@ function PromptBuilder:send()
   self.connection:write_message(self.connection.methods.encode(req) .. "\n")
 
   self._streaming_started = false
+
   return {
-    shutdown = function()
+    cancel = function()
       self:cancel()
     end,
   }

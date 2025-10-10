@@ -180,6 +180,9 @@ function Debug:render()
         elseif type(val) == "number" or type(val) == "boolean" then
           table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
         elseif type(val) == "string" then
+          if key:find("%.") then
+            key = '["' .. key .. '"]'
+          end
           table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
         elseif type(val) == "function" then
           local expanded_val = val(self.adapter)

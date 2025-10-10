@@ -101,14 +101,19 @@ local function fetch_async(adapter, provided_token)
 
         local models = {}
         for _, model in ipairs(json.data) do
+          -- Copilot models can use the "completions" or "responses" endpoint
+          local internal_endtype = "completions"
           if model.supported_endpoints then
             for _, endpoint in ipairs(model.supported_endpoints) do
               if endpoint == "/responses" then
-                log:debug("[Copilot] Skipping `%s` as it supports the /responses endpoint", model.id)
+                internal_endtype = "responses"
+              else
+                -- Ensure that by default we don't use any other endpoint
                 goto continue
               end
             end
           end
+
           if model.model_picker_enabled and model.capabilities and model.capabilities.type == "chat" then
             local choice_opts = {}
 
@@ -122,7 +127,12 @@ local function fetch_async(adapter, provided_token)
               choice_opts.has_vision = true
             end
 
-            models[model.id] = { vendor = model.vendor, formatted_name = model.name, opts = choice_opts }
+            models[model.id] = {
+              endpoint = internal_endtype,
+              vendor = model.vendor,
+              formatted_name = model.name,
+              opts = choice_opts,
+            }
           end
           ::continue::
         end

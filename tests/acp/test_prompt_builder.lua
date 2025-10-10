@@ -127,7 +127,7 @@ T["Prompt Builder"]["PromptBuilder"] = function()
       thought_call = handler_calls[1],
       message_call = handler_calls[2],
       complete_call = handler_calls[3],
-      has_shutdown = type(job.shutdown) == "function",
+      has_cancel = type(job.cancel) == "function",
       sent_request = vim.json.decode(vim.trim(sent_data)),
     }
   ]])
@@ -138,7 +138,7 @@ T["Prompt Builder"]["PromptBuilder"] = function()
   h.eq(result.message_call.type, "message")
   h.eq(result.message_call.content, "Hello!")
   h.eq(result.complete_call.type, "complete")
-  h.eq(result.has_shutdown, true)
+  h.eq(result.has_cancel, true)
   h.eq(result.sent_request.method, "session/prompt")
   h.eq(result.sent_request.params.sessionId, "test-session-123")
 end

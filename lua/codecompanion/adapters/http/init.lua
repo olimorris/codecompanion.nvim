@@ -78,29 +78,37 @@ function Adapter:map_schema_to_params(settings)
   for k, v in pairs(settings) do
     local mapping = self.schema[k] and self.schema[k].mapping
     if mapping then
-      local segments = {}
+      -- Parse the mapping path
+      local mapping_segments = {}
       for segment in string.gmatch(mapping, "[^.]+") do
-        table.insert(segments, segment)
+        table.insert(mapping_segments, segment)
       end
 
+      -- Navigate to the mapping location
       local current = self
-      for i = 1, #segments - 1 do
-        if not current[segments[i]] then
-          current[segments[i]] = {}
+      for i = 1, #mapping_segments do
+        if not current[mapping_segments[i]] then
+          current[mapping_segments[i]] = {}
         end
-        current = current[segments[i]]
+        current = current[mapping_segments[i]]
       end
 
-      -- Before setting the value, ensure the target exists or initialize it.
-      local target = segments[#segments]
-      if not current[target] then
-        current[target] = {}
+      -- Parse the schema key for nested structure (e.g., "reasoning.effort")
+      local key_segments = {}
+      for segment in string.gmatch(k, "[^.]+") do
+        table.insert(key_segments, segment)
       end
 
-      -- Ensure 'target' is not nil and 'k' can be assigned to the final segment.
-      if target then
-        current[target][k] = v
+      -- Create nested structure based on the key segments
+      for i = 1, #key_segments - 1 do
+        if not current[key_segments[i]] then
+          current[key_segments[i]] = {}
+        end
+        current = current[key_segments[i]]
       end
+
+      -- Set the final value at the deepest level
+      current[key_segments[#key_segments]] = v
     end
   end
 

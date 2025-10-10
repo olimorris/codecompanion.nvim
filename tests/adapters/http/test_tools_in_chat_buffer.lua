@@ -125,7 +125,10 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
 
   h.eq(messages, reference)
 
-  expect.reference_screenshot(child.get_screenshot())
+  expect.reference_screenshot(
+    child.get_screenshot(),
+    "tests/screenshots/adapters/http/tools_chat_buffer_" .. adapter .. "_" .. file
+  )
 end
 
 return T

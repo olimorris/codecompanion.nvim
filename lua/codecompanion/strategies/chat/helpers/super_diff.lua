@@ -229,29 +229,29 @@ local function add_diff_hunks(lines, diff_info, hunks, tracked_file, display_nam
 
   for hunk_idx, hunk in ipairs(hunks) do
     -- Add a line number indicator for context
-    local line_indicator = fmt("@@ Line %d @@", hunk.old_start)
+    local line_indicator = fmt("@@ Line %d @@", hunk.original_start)
     table.insert(lines, line_indicator)
     buffer_line = buffer_line + 1
 
     -- Add removed lines
-    for _, old_line in ipairs(hunk.old_lines) do
+    for _, old_line in ipairs(hunk.removed_lines) do
       table.insert(lines, old_line)
       buffer_line = buffer_line + 1
       table.insert(line_mappings, {
         buffer_line = buffer_line - 1,
         type = "removed",
-        is_modification = #hunk.new_lines > 0,
+        is_modification = #hunk.added_lines > 0,
       })
     end
 
     -- Add new lines
-    for _, new_line in ipairs(hunk.new_lines) do
+    for _, new_line in ipairs(hunk.added_lines) do
       table.insert(lines, new_line)
       buffer_line = buffer_line + 1
       table.insert(line_mappings, {
         buffer_line = buffer_line - 1,
         type = "added",
-        is_modification = #hunk.old_lines > 0,
+        is_modification = #hunk.removed_lines > 0,
       })
     end
 
@@ -361,29 +361,29 @@ local function process_rejected_operations(lines, diff_info, rejected_operations
             local line_mappings = {}
             local buffer_line = code_content_start
             for hunk_idx, hunk in ipairs(op_hunks) do
-              local line_indicator = fmt("@@ Line %d @@", hunk.old_start)
+              local line_indicator = fmt("@@ Line %d @@", hunk.original_start)
               table.insert(lines, line_indicator)
               buffer_line = buffer_line + 1
 
               -- Add removed lines
-              for _, old_line in ipairs(hunk.old_lines) do
+              for _, old_line in ipairs(hunk.removed_lines) do
                 table.insert(lines, old_line)
                 buffer_line = buffer_line + 1
                 table.insert(line_mappings, {
                   buffer_line = buffer_line - 1,
                   type = "removed",
-                  is_modification = #hunk.new_lines > 0,
+                  is_modification = #hunk.added_lines > 0,
                 })
               end
 
               -- Add new lines
-              for _, new_line in ipairs(hunk.new_lines) do
+              for _, new_line in ipairs(hunk.added_lines) do
                 table.insert(lines, new_line)
                 buffer_line = buffer_line + 1
                 table.insert(line_mappings, {
                   buffer_line = buffer_line - 1,
                   type = "added",
-                  is_modification = #hunk.old_lines > 0,
+                  is_modification = #hunk.removed_lines > 0,
                 })
               end
 
@@ -552,11 +552,8 @@ function M.show_super_diff(chat, opts)
 
   local ui = require("codecompanion.utils.ui")
   local window_config = config.display.chat.child_window
-    or { opts = {
-      wrap = false,
-      number = true,
-      relativenumber = false,
-    } }
+  local inline_config = config.display.diff.provider_opts.inline or {}
+  local show_dim = inline_config.opts and inline_config.opts.show_dim
   local title = opts.title
   if not title then
     local simplified_accepted = stats.accepted_operations + stats.pending_operations
@@ -578,6 +575,8 @@ function M.show_super_diff(chat, opts)
     window = window_config,
     style = "minimal",
     ignore_keymaps = true,
+    show_dim = show_dim,
+    opts = window_config.opts,
   })
 
   api.nvim_buf_set_name(bufnr, "CodeCompanion_super_diff")
@@ -900,15 +899,15 @@ function M.create_quickfix_list(chat)
       accepted_operations_count = accepted_operations_count + 1
       for _, hunk in ipairs(hunks) do
         local filename = tracked_file.filepath or ""
-        local line_num = hunk.old_start - 1 -- 0-based indexing
-        local added_count = #hunk.new_lines
-        local deleted_count = #hunk.old_lines
+        local line_num = hunk.original_start - 1 -- 0-based indexing
+        local added_count = #hunk.added_lines
+        local deleted_count = #hunk.removed_lines
         -- Get sample line content to show what was changed
         local line_content = ""
-        if added_count > 0 and #hunk.new_lines > 0 then
-          line_content = hunk.new_lines[1]:gsub("^%s*", ""):gsub("%s*$", "") -- trim whitespace
-        elseif deleted_count > 0 and #hunk.old_lines > 0 then
-          line_content = hunk.old_lines[1]:gsub("^%s*", ""):gsub("%s*$", "") -- trim whitespace
+        if added_count > 0 and #hunk.added_lines > 0 then
+          line_content = hunk.added_lines[1]:gsub("^%s*", ""):gsub("%s*$", "") -- trim whitespace
+        elseif deleted_count > 0 and #hunk.removed_lines > 0 then
+          line_content = hunk.removed_lines[1]:gsub("^%s*", ""):gsub("%s*$", "") -- trim whitespace
         end
         local change_type = ""
         if added_count > 0 and deleted_count > 0 then
