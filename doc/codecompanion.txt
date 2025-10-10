@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2025 September 19
+*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -59,7 +59,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 
 
   AI Coding, Vim Style
-CodeCompanion is a productivity tool which streamlines how you develop with
+CodeCompanion is a Neovim plugin which streamlines how you write code with
 LLMs, in Neovim.
 
 
@@ -1008,6 +1008,48 @@ selection UI), you can set the `show_model_choices` option to `false`:
 With `show_model_choices = false`, the default model (as defined in the
 adapter’s schema) will be automatically selected when changing adapters, and
 no model selection will be shown to the user.
+
+
+SETUP: OPENAI RESPONSES API ~
+
+CodeCompanion supports OpenAI’s Responses API
+<https://platform.openai.com/docs/api-reference/responses> out of the box, via
+a separate adapter:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          adapter = "openai_responses",
+        },
+        inline = {
+          adapter = "openai_responses",
+        },
+      },
+    }),
+<
+
+and it can be configured as with any other adapter:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        openai_responses = function()
+          return require("codecompanion.adapters").extend("openai_responses", {
+            env = {
+              api_key = "OPENAI_API_KEY",
+            },
+          })
+        end,
+      },
+    },
+<
+
+By default, CodeCompanion sets `store = false` to ensure that state isn’t
+stored
+<https://platform.openai.com/docs/api-reference/responses/create#responses-create-store>
+via the API. This is standard behaviour across all http adapters within the
+plugin.
 
 
 SETUP: CLAUDE CODE VIA ACP ~
@@ -2520,7 +2562,7 @@ lazy.nvim:
       "olimorris/codecompanion.nvim",
       dependencies = {
         -- Add mcphub.nvim as a dependency
-        "ravitemer/mcphub.nvim" 
+        "ravitemer/mcphub.nvim"
       }
     }
 <
@@ -2534,9 +2576,9 @@ lazy.nvim:
         mcphub = {
           callback = "mcphub.extensions.codecompanion",
           opts = {
-            make_vars = true,       
+            make_vars = true,
             make_slash_commands = true,
-            show_result_in_chat = true  
+            show_result_in_chat = true
           }
         }
       }
@@ -3860,8 +3902,8 @@ can be turned off in your config via the `display.diff.provider` table. You can
 also choose to accept or reject the LLM’s suggestions with the following
 keymaps:
 
-- `ga` - Accept an inline edit
-- `gr` - Reject an inline edit
+- `gda` - Accept an inline edit
+- `gdr` - Reject an inline edit
 
 These keymaps can also be changed in your config via the
 `strategies.inline.keymaps` table.
@@ -4112,7 +4154,7 @@ CREATING ADAPTERS                  *codecompanion-extending-creating-adapters*
   [!TIP] Does your LLM state that it is "OpenAI Compatible"? If so, good news,
   you can extend from the `openai` adapter or use the `openai_compatible` one.
   Something we did with the xAI
-  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/xai.lua>
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua>
   adapter
 In CodeCompanion, adapters are interfaces that act as a bridge between the
 plugin’s functionality and an LLM. All adapters must follow the interface,
@@ -4660,6 +4702,33 @@ simply checking that the model name doesn’t start with `o1` as these models
 don’t accept temperature as a parameter. You’ll also see we’ve specified
 a function call for the `validate` key. We’re simply checking that the value
 of the temperature is between 0 and 2.
+
+For some endpoints, like OpenAI’s Responses API
+<https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses>,
+schema values may need to be nested in the parameters:
+
+>bash
+    curl https://api.openai.com/v1/responses \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -d '{
+        "model": "o3-mini",
+        "input": "How much wood would a woodchuck chuck?",
+        "reasoning": {
+          "effort": "high"
+        }
+      }'
+<
+
+To accomplish this, you can use dot notation:
+
+>lua
+    ["reasoning.effort"] = {
+      mapping = "parameters",
+      type = "string",
+      -- ...
+    },
+<
 
 
 FUNCTION CALLING / TOOL USE ~
@@ -6531,7 +6600,7 @@ exports:
     local Extension = {}
     
     ---Setup the extension
-    ---@param opts table Configuration options 
+    ---@param opts table Configuration options
     function Extension.setup(opts)
       -- Initialize extension
       -- Add actions, keymaps etc.
@@ -6557,10 +6626,10 @@ codecompanion.config object inside setup function.
     function Extension.setup(opts)
       -- Add action to chat keymaps
       local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
-      
+    
       chat_keymaps.open_saved_chats = {
         modes = {
-          n = opts.keymap or "gh", 
+          n = opts.keymap or "gh",
         },
         description = "Open Saved Chats",
         callback = function(chat)
