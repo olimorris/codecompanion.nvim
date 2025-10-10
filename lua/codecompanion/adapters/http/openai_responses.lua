@@ -502,38 +502,42 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5",
+      default = "gpt-5-2025-08-07",
       choices = {
-        ["gpt-4.1"] = {
-          formatted_name = "GPT 4.1",
-          opts = { has_function_calling = true, has_vision = true },
+        ["gpt-5-2025-08-07"] = {
+          formatted_name = "GPT-5",
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
-        ["gpt-5"] = {
-          formatted_name = "GPT 5",
+        ["codex-mini-latest"] = {
+          formatted_name = "Codex-mini",
           opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
         ["gpt-5-codex"] = {
-          formatted_name = "GPT 5 Codex",
+          formatted_name = "GPT-5 Codex",
           opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
+        ["gpt-5-chat-latest"] = {
+          formatted_name = "GPT-5 Chat",
+          opts = { has_function_calling = true, has_vision = true },
+        },
         ["gpt-5-pro-2025-10-06"] = {
-          formatted_name = "GPT 5 Pro",
+          formatted_name = "GPT-5 Pro",
           opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
         },
         ["o4-mini-deep-research-2025-06-26"] = {
-          formatted_name = "o4 Mini Deep Research",
+          formatted_name = "o4-mini-deep-research",
           opts = { has_function_calling = false, has_vision = true, can_reason = true },
         },
         ["o3-deep-research-2025-06-26"] = {
-          formatted_name = "o3 Deep Research",
+          formatted_name = "o3-deep-research",
           opts = { has_function_calling = false, has_vision = true, can_reason = true },
         },
         ["o3-pro-2025-06-10"] = {
-          formatted_name = "o3 Pro",
+          formatted_name = "o3-pro",
           opts = { has_function_calling = false, has_vision = true, can_reason = true, stream = false },
         },
         ["o1-pro-2025-03-19"] = {
-          formatted_name = "o1 Pro",
+          formatted_name = "o1-pro",
           opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
         },
       },
@@ -594,7 +598,7 @@ return {
       },
     },
     temperature = {
-      order = 3,
+      order = 4,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -604,8 +608,19 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    top_logprobs = {
+      order = 5,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log probability.",
+      validate = function(n)
+        return n >= 0 and n <= 20, "Must be between 0 and 20"
+      end,
+    },
     top_p = {
-      order = 4,
+      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -615,22 +630,8 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
-    stop = {
-      order = 5,
-      mapping = "parameters",
-      type = "list",
-      optional = true,
-      default = nil,
-      subtype = {
-        type = "string",
-      },
-      desc = "Up to 4 sequences where the API will stop generating further tokens.",
-      validate = function(l)
-        return #l >= 1 and #l <= 4, "Must have between 1 and 4 elements"
-      end,
-    },
-    max_tokens = {
-      order = 6,
+    max_output_tokens = {
+      order = 7,
       mapping = "parameters",
       type = "integer",
       optional = true,
@@ -638,34 +639,6 @@ return {
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
       validate = function(n)
         return n > 0, "Must be greater than 0"
-      end,
-    },
-    logit_bias = {
-      order = 9,
-      mapping = "parameters",
-      type = "map",
-      optional = true,
-      default = nil,
-      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
-      subtype_key = {
-        type = "integer",
-      },
-      subtype = {
-        type = "integer",
-        validate = function(n)
-          return n >= -100 and n <= 100, "Must be between -100 and 100"
-        end,
-      },
-    },
-    user = {
-      order = 10,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      default = nil,
-      desc = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.",
-      validate = function(u)
-        return u:len() < 100, "Cannot be longer than 100 characters"
       end,
     },
   },
