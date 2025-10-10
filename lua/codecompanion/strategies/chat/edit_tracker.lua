@@ -74,6 +74,8 @@ end
 local function normalize_status(status)
   if status == "rejected" then
     return "rejected"
+  elseif status == "pending" then
+    return "pending"
   else
     return "accepted"
   end
@@ -299,10 +301,12 @@ function EditTracker.get_edit_stats(chat)
         stats.accepted_operations = stats.accepted_operations + 1
       elseif operation.status == "rejected" then
         stats.rejected_operations = stats.rejected_operations + 1
+      elseif operation.status == "pending" then
+        stats.pending_operations = stats.pending_operations + 1
       else
-        -- Fallback for any old pending status
-        log:warn("[Edit Tracker] Found unexpected status: %s, treating as accepted", operation.status)
-        stats.accepted_operations = stats.accepted_operations + 1
+        -- Fallback for any unexpected status
+        log:warn("[Edit Tracker] Found unexpected status: %s, treating as pending", operation.status)
+        stats.pending_operations = stats.pending_operations + 1
       end
       if not vim.tbl_contains(stats.tools_used, operation.tool_name) then
         table.insert(stats.tools_used, operation.tool_name)

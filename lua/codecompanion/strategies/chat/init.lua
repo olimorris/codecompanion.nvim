@@ -877,8 +877,11 @@ end
 ---@param payload table The payload to send to the LLM
 ---@return nil
 function Chat:_submit_acp(payload)
-  local acp_handler = require("codecompanion.strategies.chat.acp.handler").new(self)
-  self.current_request = acp_handler:submit(payload)
+  -- Reuse existing handler to maintain tool_edit_map, or create new one
+  if not self.acp_handler then
+    self.acp_handler = require("codecompanion.strategies.chat.acp.handler").new(self)
+  end
+  self.current_request = self.acp_handler:submit(payload)
 end
 
 ---Submit the chat buffer's contents to the LLM

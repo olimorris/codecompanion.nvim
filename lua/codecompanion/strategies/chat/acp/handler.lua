@@ -1,11 +1,16 @@
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.strategies.chat.acp.formatters")
+local log = require("codecompanion.utils.log")
+
+---@type number Maximum length for tool titles in super_diff
+local MAX_TOOL_TITLE_LENGTH = 60
 
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
 ---@field output table Standard output message from the Agent
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
+---@field tool_edit_map table<string, string> Map of toolCallId to edit_tracker edit_id
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -16,6 +21,7 @@ function ACPHandler.new(chat)
     output = {},
     reasoning = {},
     tools = {},
+    tool_edit_map = {},
   }, { __index = ACPHandler })
 
   return self --[[@type CodeCompanion.Chat.ACPHandler]]
@@ -39,6 +45,116 @@ local function merge_tool_call(existing, incoming)
     end
   end
   return out
+end
+
+---Sanitize tool title to prevent showing invalid or malformed content
+---@param title string|nil The raw title from tool_call
+---@param tool_call_id string The toolCallId as fallback
+---@return string sanitized_title A clean, readable title
+local function sanitize_tool_title(title, tool_call_id)
+  if not title or title == "" then
+    return "ACP:" .. tool_call_id
+  end
+
+  -- If title contains newlines, the agent is sending malformed data - use just toolCallId
+  if title:find("\n") or title:find("\r") then
+    return "ACP:" .. tool_call_id
+  end
+
+  -- Truncate long titles and append to toolCallId format
+  if #title > MAX_TOOL_TITLE_LENGTH then
+    return "ACP:" .. tool_call_id .. " (" .. title:sub(1, MAX_TOOL_TITLE_LENGTH) .. "...)"
+  end
+
+  return "ACP:" .. tool_call_id .. " (" .. title .. ")"
+end
+
+---Track tool edit operations for super_diff
+---@param tool_call table The tool call/update from ACP
+---@return string|nil edit_id The registered edit ID if tracked
+function ACPHandler:track_tool_edit(tool_call)
+  -- For tool_call_update, get kind from cache if missing
+  local kind = tool_call.kind
+  if not kind and tool_call.toolCallId and self.tools[tool_call.toolCallId] then
+    kind = self.tools[tool_call.toolCallId].kind
+  end
+
+  if kind ~= "edit" or not tool_call.content then
+    log:trace("[ACPHandler] Skipping non-edit tool call: kind=%s, has_content=%s", kind, tool_call.content ~= nil)
+    return nil
+  end
+
+  local content = tool_call.content[1]
+  if not content or content.type ~= "diff" then
+    return nil
+  end
+
+  -- Get filepath from locations first, then from content, or from cached tool call
+  local filepath = (tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path) or content.path
+
+  if not filepath and tool_call.toolCallId and self.tools[tool_call.toolCallId] then
+    local cached = self.tools[tool_call.toolCallId]
+    filepath = (cached.locations and cached.locations[1] and cached.locations[1].path)
+      or (cached.content and cached.content[1] and cached.content[1].path)
+  end
+
+  if not filepath then
+    log:warn("[ACPHandler] No filepath found in tool call: %s", tool_call.toolCallId)
+    return nil
+  end
+
+  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+
+  -- Register edit if not already tracked
+  if not self.tool_edit_map[tool_call.toolCallId] then
+    edit_tracker.init(self.chat)
+
+    -- Determine initial status: if tool is already completed when we first see it, register as accepted
+    local initial_status = "pending"
+    if tool_call.status == "completed" then
+      initial_status = "accepted"
+    elseif tool_call.status == "failed" or tool_call.status == "cancelled" then
+      initial_status = "rejected"
+    end
+
+    local edit_id = edit_tracker.register_edit_operation(self.chat, {
+      filepath = filepath,
+      tool_name = sanitize_tool_title(tool_call.title, tool_call.toolCallId),
+      original_content = vim.split(content.oldText or "", "\n", { plain = true }),
+      new_content = vim.split(content.newText or "", "\n", { plain = true }),
+      status = initial_status,
+      metadata = {
+        explanation = tool_call.title,
+        tool_call_id = tool_call.toolCallId,
+        kind = tool_call.kind,
+        auto_detected = false,
+        detection_method = "acp_tool_call",
+      },
+    })
+
+    if edit_id and tool_call.toolCallId then
+      self.tool_edit_map[tool_call.toolCallId] = edit_id
+      log:debug("[ACPHandler] Tracked edit for %s (edit_id=%s, status=%s)", filepath, edit_id, initial_status)
+    else
+      log:debug("[ACPHandler] Failed to register edit: edit_id=%s, toolCallId=%s", edit_id, tool_call.toolCallId)
+    end
+
+    return edit_id
+  elseif tool_call.status and self.tool_edit_map[tool_call.toolCallId] then
+    -- Update status on tool_call_update (only if status changed)
+    local edit_id = self.tool_edit_map[tool_call.toolCallId]
+    local status_map = {
+      completed = "accepted",
+      failed = "rejected",
+      cancelled = "rejected",
+    }
+    if status_map[tool_call.status] then
+      edit_tracker.update_edit_status(self.chat, edit_id, status_map[tool_call.status])
+      log:trace("[ACPHandler] Updated edit status to %s for %s", status_map[tool_call.status], filepath)
+    end
+  end
+
+  return nil
 end
 
 ---Submit payload to ACP and handle streaming response
@@ -159,12 +275,14 @@ end
 ---Handle tool call notifications
 ---@param tool_call table
 function ACPHandler:handle_tool_call(tool_call)
+  self:track_tool_edit(tool_call)
   return self:process_tool_call(tool_call)
 end
 
 ---Handle tool call updates and their respective status
 ---@param tool_call table
 function ACPHandler:handle_tool_update(tool_call)
+  self:track_tool_edit(tool_call)
   return self:process_tool_call(tool_call)
 end
 
@@ -184,6 +302,12 @@ function ACPHandler:handle_permission_request(request)
       -- Merge the cached tool call details into the request's tool call to enable the diff UI to activate
       request.tool_call = merge_tool_call(cached, tool_call)
     end
+  end
+
+  -- Cache the tool_call for edit tracking (some agents `gemini_cli` skip the initial tool_call notification)
+  if tool_call and tool_call.toolCallId then
+    self.tools[tool_call.toolCallId] = merge_tool_call(self.tools[tool_call.toolCallId], tool_call)
+    self:track_tool_edit(tool_call)
   end
 
   return require("codecompanion.strategies.chat.acp.request_permission").show(self.chat, request)
