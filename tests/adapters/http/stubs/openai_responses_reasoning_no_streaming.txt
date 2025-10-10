@@ -1,12 +1,9 @@
 {
-  "id": "resp_06d16ae24452f0b20068e6b67e7d50819799a1a06b70a96cb0",
+  "id": "resp_0a10a8c968d594670168e91d0170388195949117cf743bfd61",
   "object": "response",
-  "created_at": 1759950462,
+  "created_at": 1760107777,
   "status": "completed",
   "background": false,
-  "billing": {
-    "payer": "developer"
-  },
   "error": null,
   "incomplete_details": null,
   "max_output_tokens": null,
@@ -14,29 +11,18 @@
   "model": "gpt-5-2025-08-07",
   "output": [
     {
-      "id": "rs_06d16ae24452f0b20068e6b67f580c8197b9b0f665d4852e55",
+      "id": "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
       "type": "reasoning",
+      "encrypted_content": "gAAAAABo6",
       "summary": [
         {
           "type": "summary_text",
-          "text": "First block"
-        },
-        {
-          "type": "summary_text",
-          "text": "Second block"
-        },
-        {
-          "type": "summary_text",
-          "text": "Third block"
-        },
-        {
-          "type": "summary_text",
-          "text": "Fourth block"
+          "text": "**Choosing descriptive terms**\nI\\u2019ve decided on the final answer: \\u201cDynamic, expressive.\\u201d I need to make sure it\\u2019s exactly two words, not three. I think that should work fine, but some people might nitpick about character counts, including spaces. I considered \\u201cExpressive elegant\\u201d, but that feels a bit awkward. So I\\u2019ll go with \\u201cDynamic expressive\\u201d instead. It strikes me as a more natural choice. I\\u2019ll return it as plain text."
         }
       ]
     },
     {
-      "id": "msg_06d16ae24452f0b20068e6b692c5448197ba722b1ddd57d1ea",
+      "id": "msg_0a10a8c968d594670168e91d0b8c908195bcacf8707ecbd2f2",
       "type": "message",
       "status": "completed",
       "content": [
@@ -44,45 +30,10 @@
           "type": "output_text",
           "annotations": [],
           "logprobs": [],
-          "text": "This is where the output text is"
+          "text": "Dynamic expressive"
         }
       ],
       "role": "assistant"
     }
-  ],
-  "parallel_tool_calls": true,
-  "previous_response_id": null,
-  "prompt_cache_key": null,
-  "reasoning": {
-    "effort": "medium",
-    "summary": "detailed"
-  },
-  "safety_identifier": null,
-  "service_tier": "default",
-  "store": true,
-  "temperature": 1.0,
-  "text": {
-    "format": {
-      "type": "text"
-    },
-    "verbosity": "medium"
-  },
-  "tool_choice": "auto",
-  "tools": [],
-  "top_logprobs": 0,
-  "top_p": 1.0,
-  "truncation": "disabled",
-  "usage": {
-    "input_tokens": 991,
-    "input_tokens_details": {
-      "cached_tokens": 0
-    },
-    "output_tokens": 866,
-    "output_tokens_details": {
-      "reasoning_tokens": 640
-    },
-    "total_tokens": 1857
-  },
-  "user": null,
-  "metadata": {}
+  ]
 }

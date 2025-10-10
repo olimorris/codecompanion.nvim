@@ -4,7 +4,7 @@ local adapter
 local new_set = MiniTest.new_set
 T = new_set()
 
-T["OpenAI Responses adapter"] = new_set({
+T["Responses"] = new_set({
   hooks = {
     pre_case = function()
       adapter = require("codecompanion.adapters").resolve("openai_responses")
@@ -12,9 +12,58 @@ T["OpenAI Responses adapter"] = new_set({
   },
 })
 
-T["OpenAI Responses adapter"]["form_messages"] = new_set()
+T["Responses"]["can form reasoning output"] = function()
+  local input = {
+    {
+      content = "Ruby ",
+    },
+    {
+      content = "is a ",
+    },
+    {
+      content = "dynamic, expressive programming language",
+    },
+    {
+      id = "rs_123",
+      encrypted_content = "somefakebase64encoding",
+    },
+  }
 
-T["OpenAI Responses adapter"]["form_messages"]["messages only"] = function()
+  local expected = {
+    content = "Ruby is a dynamic, expressive programming language",
+    id = "rs_123",
+    encrypted_content = "somefakebase64encoding",
+  }
+
+  h.eq(expected, adapter.handlers.form_reasoning(adapter, input))
+end
+
+T["Responses"]["can output tool calls"] = function()
+  local output = "The weather in London is 15 degrees"
+  local tool_call = {
+    ["function"] = {
+      arguments = '{"location": "London", "units": "celsius"}',
+      name = "weather",
+    },
+    id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+    call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+    type = "function",
+  }
+
+  h.eq({
+    content = output,
+    opts = {
+      visible = false,
+    },
+    role = "tool",
+    tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+    tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
+end
+
+T["Responses"]["form_messages"] = new_set()
+
+T["Responses"]["form_messages"]["messages only"] = function()
   local messages = {
     {
       content = "You are a helpful assistant.",
@@ -41,7 +90,7 @@ T["OpenAI Responses adapter"]["form_messages"]["messages only"] = function()
   }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["form_messages"]["images"] = function()
+T["Responses"]["form_messages"]["images"] = function()
   local messages = {
     {
       _meta = { sent = true },
@@ -98,7 +147,7 @@ T["OpenAI Responses adapter"]["form_messages"]["images"] = function()
   h.eq(expected, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["form_messages"]["format available tools to call"] = function()
+T["Responses"]["form_messages"]["format available tools to call"] = function()
   local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
   local tools = { weather = { weather } }
 
@@ -130,7 +179,7 @@ T["OpenAI Responses adapter"]["form_messages"]["format available tools to call"]
   h.eq({ tools = { expected } }, adapter.handlers.form_tools(adapter, tools))
 end
 
-T["OpenAI Responses adapter"]["form_messages"]["format tool calls"] = function()
+T["Responses"]["form_messages"]["format tool calls"] = function()
   local messages = {
     {
       role = "assistant",
@@ -177,7 +226,7 @@ T["OpenAI Responses adapter"]["form_messages"]["format tool calls"] = function()
   h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["form_messages"]["format tool output"] = function()
+T["Responses"]["form_messages"]["format tool output"] = function()
   local messages = {
     {
       role = "tool",
@@ -209,7 +258,7 @@ T["OpenAI Responses adapter"]["form_messages"]["format tool output"] = function(
   h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI Responses adapter"]["form_messages"]["can handle reasoning"] = function()
+T["Responses"]["form_messages"]["can handle reasoning"] = function()
   local messages = {
     {
       _meta = {
@@ -305,32 +354,7 @@ T["OpenAI Responses adapter"]["form_messages"]["can handle reasoning"] = functio
   }, result.input[2])
 end
 
-T["OpenAI Responses adapter"]["chat_output"] = new_set()
-
-T["OpenAI Responses adapter"]["chat_output"]["can output tool calls"] = function()
-  local output = "The weather in London is 15 degrees"
-  local tool_call = {
-    ["function"] = {
-      arguments = '{"location": "London", "units": "celsius"}',
-      name = "weather",
-    },
-    id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-    call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-    type = "function",
-  }
-
-  h.eq({
-    content = output,
-    opts = {
-      visible = false,
-    },
-    role = "tool",
-    tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-    tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
-end
-
-T["OpenAI Responses adapter"]["No Streaming"] = new_set({
+T["Responses"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
       adapter = require("codecompanion.adapters").extend("openai_responses", {
@@ -342,7 +366,7 @@ T["OpenAI Responses adapter"]["No Streaming"] = new_set({
   },
 })
 
-T["OpenAI Responses adapter"]["No Streaming"]["chat_output"] = function()
+T["Responses"]["No Streaming"]["chat_output"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
   data = table.concat(data, "\n")
 
@@ -352,7 +376,7 @@ T["OpenAI Responses adapter"]["No Streaming"]["chat_output"] = function()
   h.eq("Dynamic, expressive", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
-T["OpenAI Responses adapter"]["No Streaming"]["can process tools"] = function()
+T["Responses"]["No Streaming"]["can process tools"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
@@ -387,7 +411,7 @@ T["OpenAI Responses adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
-T["OpenAI Responses adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+T["Responses"]["No Streaming"]["can output for the inline assistant"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
   data = table.concat(data, "\n")
 
@@ -397,22 +421,28 @@ T["OpenAI Responses adapter"]["No Streaming"]["can output for the inline assista
   h.eq("Dynamic, expressive", adapter.handlers.inline_output(adapter, json).output)
 end
 
-T["OpenAI Responses adapter"]["No Streaming"]["can process reasoning output"] = function()
+T["Responses"]["No Streaming"]["can process reasoning output"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq(
-    "First block\n\nSecond block\n\nThird block\n\nFourth block",
+  h.expect_contains(
+    "**Choosing descriptive terms**",
     adapter.handlers.chat_output(adapter, json).output.reasoning.content
   )
+
+  h.eq(
+    "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
+    adapter.handlers.chat_output(adapter, json).output.reasoning.id
+  )
+  h.eq("gAAAAABo6", adapter.handlers.chat_output(adapter, json).output.reasoning.encrypted_content)
 end
 
-T["OpenAI Responses adapter"]["Streaming"] = new_set()
+T["Responses"]["Streaming"] = new_set()
 
-T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
+T["Responses"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_streaming.txt")
   for _, line in ipairs(lines) do
@@ -425,7 +455,7 @@ T["OpenAI Responses adapter"]["Streaming"]["can output streamed data into the ch
   h.expect_starts_with("Elegant language", output)
 end
 
-T["OpenAI Responses adapter"]["Streaming"]["can process reasoning output"] = function()
+T["Responses"]["Streaming"]["can process reasoning output"] = function()
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
@@ -438,7 +468,7 @@ T["OpenAI Responses adapter"]["Streaming"]["can process reasoning output"] = fun
   h.expect_starts_with("**Deciding on Ruby's description**", output)
 end
 
-T["OpenAI Responses adapter"]["Streaming"]["can process tools"] = function()
+T["Responses"]["Streaming"]["can process tools"] = function()
   -- Adds tool calls to the tools table
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")

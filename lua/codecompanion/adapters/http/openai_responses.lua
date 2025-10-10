@@ -216,7 +216,10 @@ return {
     ---@param data table The reasoning output from the LLM
     ---@return nil|{ content: string, _data: table }
     form_reasoning = function(self, data)
-      local content = vim
+      local reasoning = {}
+
+      -- Join the content deltas into a single string
+      reasoning.content = vim
         .iter(data)
         :map(function(item)
           return item.content
@@ -226,22 +229,22 @@ return {
         end)
         :join("")
 
-      local reasoning_id
-      local encrypted_content
-      vim.iter(data):each(function(item) -- Changed from :map to :each
+      -- ID and encrypted content appear once, at the end. As we've turned state
+      -- off, we need to store the encrypted reasoning tokens
+      vim.iter(data):each(function(item)
         if item.id then
-          reasoning_id = item.id
+          reasoning.id = item.id
         end
         if item.encrypted_content then
-          encrypted_content = item.encrypted_content
+          reasoning.encrypted_content = item.encrypted_content
         end
       end)
 
-      return {
-        content = content,
-        id = reasoning_id, -- Store directly for easy access
-        encrypted_content = encrypted_content, -- Store directly for easy access
-      }
+      if vim.tbl_count(reasoning) == 0 then
+        return nil
+      end
+
+      return reasoning
     end,
 
     ---Provides the schemas of the tools that are available to the LLM to call
@@ -303,13 +306,15 @@ return {
       -- Handle non-streamed response
       if not self.opts.stream then
         -- Reasoning
-        local reasoning
+        local reasoning = {}
         if json.output then
           for _, item in ipairs(json.output) do
             if item.type == "reasoning" then
+              reasoning.id = item.id
+              reasoning.encrypted_content = item.encrypted_content
               for _, block in ipairs(item.summary) do
                 if block.type == "summary_text" then
-                  reasoning = reasoning and (reasoning .. "\n\n" .. block.text) or block.text
+                  reasoning.content = reasoning.content and (reasoning.content .. "\n\n" .. block.text) or block.text
                 end
               end
             end
@@ -350,7 +355,7 @@ return {
           status = "success",
           output = {
             role = self.roles.llm,
-            reasoning = { content = reasoning },
+            reasoning = reasoning,
             content = content,
           },
         }
@@ -588,11 +593,80 @@ return {
         "detailed",
       },
     },
-    temperature = openai.schema.temperature,
-    top_p = openai.schema.top_p,
-    stop = openai.schema.stop,
-    max_tokens = openai.schema.max_tokens,
-    logit_bias = openai.schema.logit_bias,
-    user = openai.schema.user,
+    temperature = {
+      order = 3,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 1,
+      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      validate = function(n)
+        return n >= 0 and n <= 2, "Must be between 0 and 2"
+      end,
+    },
+    top_p = {
+      order = 4,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 1,
+      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
+      validate = function(n)
+        return n >= 0 and n <= 1, "Must be between 0 and 1"
+      end,
+    },
+    stop = {
+      order = 5,
+      mapping = "parameters",
+      type = "list",
+      optional = true,
+      default = nil,
+      subtype = {
+        type = "string",
+      },
+      desc = "Up to 4 sequences where the API will stop generating further tokens.",
+      validate = function(l)
+        return #l >= 1 and #l <= 4, "Must have between 1 and 4 elements"
+      end,
+    },
+    max_tokens = {
+      order = 6,
+      mapping = "parameters",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    logit_bias = {
+      order = 9,
+      mapping = "parameters",
+      type = "map",
+      optional = true,
+      default = nil,
+      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
+      subtype_key = {
+        type = "integer",
+      },
+      subtype = {
+        type = "integer",
+        validate = function(n)
+          return n >= -100 and n <= 100, "Must be between -100 and 100"
+        end,
+      },
+    },
+    user = {
+      order = 10,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = nil,
+      desc = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.",
+      validate = function(u)
+        return u:len() < 100, "Cannot be longer than 100 characters"
+      end,
+    },
   },
 }
