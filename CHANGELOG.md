@@ -1,5 +1,17 @@
 # Changelog
 
+## [17.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.25.0...v17.26.0) (2025-10-10)
+
+
+### Features
+
+* **adapters:** add support for OpenAI's Responses API ([#2213](https://github.com/olimorris/codecompanion.nvim/issues/2213)) ([a3e55ba](https://github.com/olimorris/codecompanion.nvim/commit/a3e55baea86cc961fd4a172384d05c2f2d4c1446))
+
+
+### Bug Fixes
+
+* **chat:** undolevels leaking outside of codecompanion ([#2234](https://github.com/olimorris/codecompanion.nvim/issues/2234)) ([ebce7c7](https://github.com/olimorris/codecompanion.nvim/commit/ebce7c77585d421ca428233fb480c5e3a2873f50))
+
 ## [17.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.24.0...v17.25.0) (2025-10-07)
 
 
