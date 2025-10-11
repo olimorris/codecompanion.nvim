@@ -73,7 +73,6 @@ end
 ---@param tool_call table The tool call/update from ACP
 ---@return string|nil edit_id The registered edit ID if tracked
 function ACPHandler:track_tool_edit(tool_call)
-  -- For tool_call_update, get kind from cache if missing
   local kind = tool_call.kind
   if not kind and tool_call.toolCallId and self.tools[tool_call.toolCallId] then
     kind = self.tools[tool_call.toolCallId].kind
@@ -89,27 +88,45 @@ function ACPHandler:track_tool_edit(tool_call)
     return nil
   end
 
-  -- Get filepath from locations first, then from content, or from cached tool call
-  local filepath = (tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path) or content.path
+  -- WARNING: this logic because of inconsistent tool_call path data from gemini_cli
+  -- Get filepath - priority: current locations > cached locations > content path
+  local filepath = nil
 
+  -- Try current tool_call locations first (most reliable, usually absolute)
+  if tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path then
+    filepath = tool_call.locations[1].path
+  end
+
+  -- If not found, check cached tool call for locations
   if not filepath and tool_call.toolCallId and self.tools[tool_call.toolCallId] then
     local cached = self.tools[tool_call.toolCallId]
-    filepath = (cached.locations and cached.locations[1] and cached.locations[1].path)
-      or (cached.content and cached.content[1] and cached.content[1].path)
+    if cached.locations and cached.locations[1] and cached.locations[1].path then
+      filepath = cached.locations[1].path
+    end
+  end
+
+  -- Fall back to content path (often relative in gemini_cli)
+  if not filepath then
+    filepath = content.path
   end
 
   if not filepath then
-    log:warn("[ACPHandler] No filepath found in tool call: %s", tool_call.toolCallId)
+    log:debug("[ACPHandler] No filepath found in tool call: %s", tool_call.toolCallId)
     return nil
   end
 
+  -- Normalize path to absolute if it's relative (gemini_cli issues)
+  if not vim.startswith(filepath, "/") and not filepath:match("^%a:") then
+    filepath = vim.fs.joinpath(vim.fn.getcwd(), filepath)
+  end
+
+  -- Prevent circular dependencies and enable more efficient lazy-loading
   local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 
   -- Register edit if not already tracked
   if not self.tool_edit_map[tool_call.toolCallId] then
     edit_tracker.init(self.chat)
 
-    -- Determine initial status: if tool is already completed when we first see it, register as accepted
     local initial_status = "pending"
     if tool_call.status == "completed" then
       initial_status = "accepted"
@@ -275,6 +292,12 @@ end
 ---Handle tool call notifications
 ---@param tool_call table
 function ACPHandler:handle_tool_call(tool_call)
+  -- Merge with cache first to get complete data (including locations, because of gemini_cli)
+  local id = tool_call.toolCallId
+  if id and self.tools[id] then
+    tool_call = merge_tool_call(self.tools[id], tool_call)
+  end
+
   self:track_tool_edit(tool_call)
   return self:process_tool_call(tool_call)
 end
@@ -282,6 +305,12 @@ end
 ---Handle tool call updates and their respective status
 ---@param tool_call table
 function ACPHandler:handle_tool_update(tool_call)
+  -- Merge with cache first to get complete data (including locations, because of gemini_cli)
+  local id = tool_call.toolCallId
+  if id and self.tools[id] then
+    tool_call = merge_tool_call(self.tools[id], tool_call)
+  end
+
   self:track_tool_edit(tool_call)
   return self:process_tool_call(tool_call)
 end
