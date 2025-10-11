@@ -710,23 +710,41 @@ function M.setup_sticky_header(bufnr, winnr, lines)
   ---@param cursor_line number 1-based cursor line number
   ---@return string|nil filename, string|nil relative_dir
   local function find_current_file_header(cursor_line)
-    -- Look backwards from cursor to find the nearest ## header
+    -- First, determine if cursor is currently inside a code block
+    -- by counting ``` from start of buffer to cursor
+    local code_block_count = 0
+    for i = 1, cursor_line do
+      local line = lines[i]
+      if line and line:match("^```") then
+        code_block_count = code_block_count + 1
+      end
+    end
+    -- Odd count means we're inside a code block
+    local in_code_block = (code_block_count % 2 == 1)
+
+    -- Now look backwards from cursor to find the nearest ## header
     for i = cursor_line, 1, -1 do
       local line = lines[i]
-      if line and line:match("^## ") then
-        local full_path = line:match("^## (.+)")
-        if full_path and full_path ~= "" then
-          -- Handle buffer names (e.g., "Buffer 123")
-          if full_path:match("^Buffer %d+") then
-            return full_path, ""
+      if line then
+        if line:match("^```") then
+          in_code_block = not in_code_block
+        end
+
+        if not in_code_block and line:match("^## ") then
+          local full_path = line:match("^## (.+)")
+          if full_path and full_path ~= "" then
+            -- Handle buffer names (e.g., "Buffer 123")
+            if full_path:match("^Buffer %d+") then
+              return full_path, ""
+            end
+            local filename = vim.fs.basename(full_path)
+            local dirname = vim.fs.dirname(full_path)
+            local relative_dir = ""
+            if dirname and dirname ~= "." and dirname ~= "" then
+              relative_dir = dirname .. "/"
+            end
+            return filename, relative_dir
           end
-          local filename = vim.fs.basename(full_path)
-          local dirname = vim.fs.dirname(full_path)
-          local relative_dir = ""
-          if dirname and dirname ~= "." and dirname ~= "" then
-            relative_dir = dirname .. "/"
-          end
-          return filename, relative_dir
         end
       end
     end

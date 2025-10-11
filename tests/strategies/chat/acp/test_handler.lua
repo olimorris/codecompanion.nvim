@@ -455,4 +455,224 @@ T["ACPHandler"]["permission request passes through when toolCallId unknown"] = f
   h.eq("unknown_tool_id", result.toolCallId)
 end
 
+T["ACPHandler"]["edit tracking - completed status workflow"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    -- Stub add_buf_message to avoid formatter issues
+    chat.add_buf_message = function() end
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    local handler = ACPHandler.new(chat)
+
+    -- Agent sends tool_call with completed status (YOLO mode/auto-approved)
+    handler:handle_tool_call({
+      toolCallId = "complete_001",
+      title = "Update config",
+      kind = "edit",
+      status = "completed",
+      content = {{
+        type = "diff",
+        path = "/tmp/config.lua",
+        oldText = "local debug = false",
+        newText = "local debug = true"
+      }},
+      locations = {{ path = "/tmp/config.lua" }}
+    })
+
+    -- Verify edit was tracked and immediately marked as accepted
+    local edit_id = handler.tool_edit_map["complete_001"]
+    local edit_op = edit_tracker.get_edit_operation(chat, edit_id)
+    local stats = edit_tracker.get_edit_stats(chat)
+
+    return {
+      edit_registered = edit_id ~= nil,
+      initial_status = edit_op and edit_op.status,
+      tool_name_has_acp_prefix = edit_op and edit_op.tool_name:find("^ACP:") ~= nil,
+      accepted_count = stats.accepted_operations,
+      total_count = stats.total_operations
+    }
+  ]])
+
+  h.is_true(result.edit_registered, "Edit should be registered even with completed status")
+  h.eq("accepted", result.initial_status, "Completed status should map to accepted")
+  h.is_true(result.tool_name_has_acp_prefix, "Tool name should be sanitized with ACP: prefix")
+  h.eq(1, result.accepted_count, "Should have 1 accepted operation")
+  h.eq(1, result.total_count, "Should have 1 total operation")
+end
+
+T["ACPHandler"]["edit tracking - mixed statuses across multiple files"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    local handler = ACPHandler.new(chat)
+
+    -- Stub add_buf_message to avoid formatter issues
+    chat.add_buf_message = function() end
+
+    -- Edit 1: main.lua - pending -> completed
+    handler:handle_tool_call({
+      toolCallId = "mixed_001",
+      title = "Refactor main",
+      kind = "edit",
+      status = "pending",
+      content = {{ type = "diff", path = "/tmp/main.lua", oldText = "old1", newText = "new1" }}
+    })
+
+    handler:handle_tool_update({
+      toolCallId = "mixed_001",
+      kind = "edit",
+      status = "completed",
+      content = {{ type = "diff", path = "/tmp/main.lua" }}
+    })
+
+    -- Edit 2: utils.lua - pending -> failed
+    handler:handle_tool_call({
+      toolCallId = "mixed_002",
+      title = "Add utility",
+      kind = "edit",
+      status = "pending",
+      content = {{ type = "diff", path = "/tmp/utils.lua", oldText = "old2", newText = "new2" }}
+    })
+
+    handler:handle_tool_update({
+      toolCallId = "mixed_002",
+      kind = "edit",
+      status = "failed",
+      content = {{ type = "diff", path = "/tmp/utils.lua" }}
+    })
+
+    -- Edit 3: config.lua - pending -> cancelled
+    handler:handle_tool_call({
+      toolCallId = "mixed_003",
+      title = "Update config",
+      kind = "edit",
+      status = "pending",
+      content = {{ type = "diff", path = "/tmp/config.lua", oldText = "old3", newText = "new3" }}
+    })
+
+    handler:handle_tool_update({
+      toolCallId = "mixed_003",
+      kind = "edit",
+      status = "cancelled",
+      content = {{ type = "diff", path = "/tmp/config.lua" }}
+    })
+
+    local stats = edit_tracker.get_edit_stats(chat)
+    local tracked_files = edit_tracker.get_tracked_edits(chat)
+
+    local file_count = 0
+    for _ in pairs(tracked_files) do
+      file_count = file_count + 1
+    end
+
+    return {
+      total_files = file_count,
+      total_ops = stats.total_operations,
+      accepted_ops = stats.accepted_operations,
+      rejected_ops = stats.rejected_operations
+    }
+  ]])
+
+  h.eq(3, result.total_files, "Should track 3 different files")
+  h.eq(3, result.total_ops, "Should have 3 total operations")
+  h.eq(1, result.accepted_ops, "Should have 1 accepted (completed)")
+  h.eq(2, result.rejected_ops, "Should have 2 rejected (failed + cancelled)")
+end
+
+T["ACPHandler"]["edit tracking - handler persistence across submissions"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+
+    -- Stub add_buf_message to avoid formatter issues
+    chat.add_buf_message = function() end
+
+    -- Simulate first submission - handler created and stored (like in chat/init.lua)
+    if not chat.acp_handler then
+      chat.acp_handler = ACPHandler.new(chat)
+    end
+
+    -- First edit
+    chat.acp_handler:handle_tool_call({
+      toolCallId = "persist_001",
+      title = "First edit",
+      kind = "edit",
+      status = "pending",
+      content = {{ type = "diff", path = "/tmp/first.lua", oldText = "a", newText = "b" }}
+    })
+
+    chat.acp_handler:handle_tool_update({
+      toolCallId = "persist_001",
+      kind = "edit",
+      status = "completed",
+      content = {{ type = "diff", path = "/tmp/first.lua" }}
+    })
+
+    local first_registered = chat.acp_handler.tool_edit_map["persist_001"] ~= nil
+
+    -- Simulate second submission - reuse existing handler (this is the key fix)
+    -- Second edit
+    chat.acp_handler:handle_tool_call({
+      toolCallId = "persist_002",
+      title = "Second edit",
+      kind = "edit",
+      status = "pending",
+      content = {{ type = "diff", path = "/tmp/second.lua", oldText = "x", newText = "y" }}
+    })
+
+    chat.acp_handler:handle_tool_update({
+      toolCallId = "persist_002",
+      kind = "edit",
+      status = "completed",
+      content = {{ type = "diff", path = "/tmp/second.lua" }}
+    })
+
+    local second_registered = chat.acp_handler.tool_edit_map["persist_002"] ~= nil
+    local first_still_tracked = chat.acp_handler.tool_edit_map["persist_001"] ~= nil
+
+    local stats = edit_tracker.get_edit_stats(chat)
+
+    return {
+      first_edit_registered = first_registered,
+      second_edit_registered = second_registered,
+      first_still_in_map = first_still_tracked,
+      total_ops = stats.total_operations,
+      accepted_ops = stats.accepted_operations
+    }
+  ]])
+
+  h.is_true(result.first_edit_registered, "First edit should be registered")
+  h.is_true(result.second_edit_registered, "Second edit should be registered")
+  h.is_true(result.first_still_in_map, "First edit should remain in tool_edit_map after second")
+  h.eq(2, result.total_ops, "Should have 2 total operations")
+  h.eq(2, result.accepted_ops, "Should have 2 accepted operations")
+end
+
 return T
