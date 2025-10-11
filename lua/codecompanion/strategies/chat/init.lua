@@ -673,7 +673,7 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@params prompt? string
----@params opts? table
+---@params opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
@@ -681,11 +681,12 @@ function Chat:set_system_prompt(prompt, opts)
   end
 
   prompt = prompt or config.strategies.chat.opts.system_prompt
-  opts = opts or { visible = false, tag = "system_prompt_from_config" }
+  opts = opts and opts.opts or { visible = false }
+  local _meta = opts and opts._meta or { tag = "system_prompt_from_config" }
 
   -- If the system prompt already exists, update it
-  if helpers.has_tag(opts.tag, self.messages) then
-    self:remove_tagged_message(opts.tag)
+  if helpers.has_tag(_meta.tag, self.messages) then
+    self:remove_tagged_message(_meta.tag)
   end
 
   -- Workout in the message stack the last system prompt is
@@ -714,6 +715,7 @@ function Chat:set_system_prompt(prompt, opts)
     system_prompt.id = make_id(system_prompt)
     system_prompt.cycle = self.cycle
     system_prompt.opts = opts
+    system_prompt._meta = _meta
 
     table.insert(self.messages, index or opts.index or 1, system_prompt)
   end
@@ -726,7 +728,7 @@ end
 function Chat:toggle_system_prompt()
   local has_system_prompt = vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts.tag
+      return msg._meta.tag
     end, self.messages),
     "system_prompt_from_config"
   )
@@ -747,7 +749,7 @@ function Chat:remove_tagged_message(tag)
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.tag == tag then
+      if msg._meta and msg._meta.tag == tag then
         return false
       end
       return true
@@ -1075,7 +1077,7 @@ function Chat:add_context(data, source, id, opts)
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { context_id = id, tag = opts.tag or source, visible = opts.visible })
+  self:add_message(data, { context_id = id, visible = opts.visible, _meta = { tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0

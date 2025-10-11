@@ -216,7 +216,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
   local last_message = messages[#messages]
 
   h.eq(#messages, 2) -- System prompt + memory
-  h.eq(last_message.opts.tag, "memory")
+  h.eq(last_message._meta.tag, "memory")
   h.eq(last_message.opts.context_id, "<memory>" .. tmp .. "</memory>")
   h.eq(last_message.content, content .. "\n")
 end
