@@ -87,6 +87,12 @@ return {
       if model_opts and model_opts.opts and model_opts.opts.can_reason then
         params.include = { "reasoning.encrypted_content" }
       end
+
+      if type(params.verbosity) == "string" then
+        params.text = params.text or {}
+        params.text.verbosity = params.verbosity
+        params.verbosity = nil
+      end
       return params
     end,
 
@@ -640,6 +646,19 @@ return {
       validate = function(n)
         return n > 0, "Must be greater than 0"
       end,
+    },
+    verbosity = {
+      order = 8,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = "medium",
+      desc = "Controls verbosity of the model output. low, medium, or high.",
+      choices = {
+        "low",
+        "medium",
+        "high",
+      },
     },
   },
 }
