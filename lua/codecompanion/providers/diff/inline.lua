@@ -194,8 +194,7 @@ function InlineDiff:accept(opts)
     end)
   end
 
-  self:clear_highlights()
-  self:close_floating_window()
+  self:teardown()
 end
 
 ---Rejects the diff changes, restores original content, and clears highlights
@@ -222,8 +221,19 @@ function InlineDiff:reject(opts)
     end)
   end
 
-  self:clear_highlights()
-  self:close_floating_window()
+  self:teardown()
+end
+
+---Close floating window if this diff is in a floating window
+---@return nil
+function InlineDiff:close_floating_window()
+  if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
+    log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
+    pcall(api.nvim_win_close, self.winnr, true)
+    self.winnr = nil
+    local ui = require("codecompanion.utils.ui")
+    ui.close_background_window()
+  end
 end
 
 ---Cleans up the diff instance and fires detachment event
@@ -238,18 +248,6 @@ function InlineDiff:teardown()
   self:clear_highlights()
   self:close_floating_window()
   util.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
-end
-
----Close floating window if this diff is in a floating window
----@return nil
-function InlineDiff:close_floating_window()
-  if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
-    log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
-    pcall(api.nvim_win_close, self.winnr, true)
-    self.winnr = nil
-    local ui = require("codecompanion.utils.ui")
-    ui.close_background_window()
-  end
 end
 
 return InlineDiff

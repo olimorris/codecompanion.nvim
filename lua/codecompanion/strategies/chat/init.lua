@@ -361,7 +361,6 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
       api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
-      api.nvim_set_option_value("undolevels", config.strategies.chat.opts.undo_levels or 10, { buf = bufnr })
 
       -- Safely attach treesitter
       vim.schedule(function()
@@ -777,6 +776,10 @@ function Chat:add_message(data, opts)
     tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
+  if opts._meta then
+    message._meta = vim.tbl_deep_extend("force", message._meta, opts._meta)
+    opts._meta = nil
+  end
   message.opts = opts
 
   if opts.index then
@@ -814,7 +817,7 @@ function Chat:_submit_http(payload)
   local mapped_settings = adapter:map_schema_to_params(self.settings)
   log:trace("Settings:\n%s", mapped_settings)
 
-  local output, reasoning, tools = {}, {}, {}
+  local output, reasoning, tools, meta = {}, {}, {}, {}
 
   local function process_chunk(data)
     if adapter.features.tokens then
@@ -839,6 +842,9 @@ function Chat:_submit_http(payload)
             content = result.output.reasoning.content,
           }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
         end
+        if result.output.meta then
+          meta = vim.tbl_deep_extend("force", meta, result.output.meta)
+        end
         table.insert(output, result.output.content)
         self:add_buf_message({
           role = config.constants.LLM_ROLE,
@@ -855,8 +861,11 @@ function Chat:_submit_http(payload)
     on_chunk = function(data)
       process_chunk(data)
     end,
-    on_done = function(_)
-      self:done(output, reasoning, tools)
+    on_done = function(data)
+      if data and not adapter.opts.stream then
+        process_chunk(data)
+      end
+      self:done(output, reasoning, tools, meta)
     end,
     on_error = function(err)
       if self.status == CONSTANTS.STATUS_CANCELLING then
@@ -991,9 +1000,11 @@ end
 ---@param output? table The message output from the LLM
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
----@param status? "stopped" The reason the done method was called
+---@param meta? table Any metadata from the LLM
+---@param opts? {status: "stopped"} The reason the done method was called
 ---@return nil
-function Chat:done(output, reasoning, tools, status)
+function Chat:done(output, reasoning, tools, meta, opts)
+  opts = opts or {}
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
@@ -1002,6 +1013,7 @@ function Chat:done(output, reasoning, tools, status)
   end
   local has_output = output and not vim.tbl_isempty(output)
   local has_tools = tools and not vim.tbl_isempty(tools)
+  local has_meta = meta and not vim.tbl_isempty(meta)
 
   local content
   if has_output then
@@ -1020,13 +1032,15 @@ function Chat:done(output, reasoning, tools, status)
       role = config.constants.LLM_ROLE,
       content = content,
       reasoning = reasoning_content,
+    }, {
+      _meta = has_meta and meta or nil,
     })
     reasoning_content = nil
   end
 
   -- If a user stops the request, we should be prepared to send the last message
   -- again as we can't be sure what the LLM had actually received
-  if not status or status ~= "stopped" then
+  if not opts.status or opts.status ~= "stopped" then
     self:label_sent_items()
   end
 
@@ -1037,6 +1051,7 @@ function Chat:done(output, reasoning, tools, status)
       role = config.constants.LLM_ROLE,
       reasoning = reasoning_content,
       tool_calls = tools,
+      _meta = has_meta and meta or nil,
     }, {
       visible = false,
     })
@@ -1246,18 +1261,16 @@ function Chat:stop()
 
     _G.codecompanion_cancel_tool = true
     pcall(function()
-      tool_job:shutdown()
+      tool_job.cancel()
     end)
   end
 
   if self.current_request then
-    print("Cancelling request...")
     local handle = self.current_request
     self.current_request = nil
 
     pcall(function()
       if handle and type(handle.cancel) == "function" then
-        print("Should be cancelled")
         handle.cancel()
       end
     end)
@@ -1269,7 +1282,7 @@ function Chat:stop()
 
   vim.schedule(function()
     log:debug("Chat request cancelled")
-    self:done(nil, nil, nil, "stopped")
+    self:done(nil, nil, nil, nil, { status = "stopped" })
   end)
 end
 

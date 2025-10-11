@@ -23,6 +23,7 @@ local defaults = {
       mistral = "mistral",
       ollama = "ollama",
       openai = "openai",
+      openai_responses = "openai_responses",
       xai = "xai",
       jina = "jina",
       tavily = "tavily",
@@ -547,7 +548,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
-        undo_levels = 10, -- Number of undo levels to add to chat buffers
         wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
         yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
 

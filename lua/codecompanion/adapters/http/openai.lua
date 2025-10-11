@@ -334,11 +334,11 @@ return {
         -- (see also #2017)
         ["gpt-5"] = {
           formatted_name = "GPT 5",
-          opts = { has_vision = true, can_reason = true, stream = false },
+          opts = { has_vision = true, can_reason = true },
         },
         ["gpt-5-mini"] = {
           formatted_name = "GPT 5 Mini",
-          opts = { has_vision = true, can_reason = true, stream = false },
+          opts = { has_vision = true, can_reason = true },
         },
         ["gpt-5-nano"] = {
           formatted_name = "GPT 5 Nano",
