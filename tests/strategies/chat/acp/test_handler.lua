@@ -79,6 +79,10 @@ T = new_set({
           disconnect = function(self)
             self.connected = false
             self.session_id = nil
+          end,
+
+          is_connected = function(self)
+            return self.connected
           end
         }
       ]])
@@ -112,6 +116,15 @@ T["ACPHandler"]["establishes connection when needed"] = function()
         }
       }
     })
+
+    package.loaded["codecompanion.acp"] = {
+      new = function()
+        return _G.mock_acp_connection
+      end
+    }
+
+    chat:ensure_acp_connection()
+    chat.status = ""
 
     local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
     local handler = ACPHandler.new(chat)
@@ -241,6 +254,7 @@ T["ACPHandler"]["coordinates completion flow"] = function()
     handler:handle_message_chunk("Response part 1")
     handler:handle_message_chunk(" and part 2")
     handler:handle_thought_chunk("My reasoning")
+    chat.status = ""
     handler:handle_completion("end_turn")
 
     return {
