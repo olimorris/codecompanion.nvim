@@ -304,8 +304,8 @@ function EditTracker.get_edit_stats(chat)
       elseif operation.status == "pending" then
         stats.pending_operations = stats.pending_operations + 1
       else
-        -- Fallback for any unexpected status
-        log:warn("[Edit Tracker] Found unexpected status: %s, treating as pending", operation.status)
+        -- Fallback for any unexpected status, we still count it as pending for robustness. This doesn't affect user workflow
+        log:debug("[Edit Tracker] Unexpected status '%s'; counted as pending for now", tostring(operation.status))
         stats.pending_operations = stats.pending_operations + 1
       end
       if not vim.tbl_contains(stats.tools_used, operation.tool_name) then

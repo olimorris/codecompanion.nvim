@@ -115,10 +115,8 @@ function ACPHandler:track_tool_edit(tool_call)
     return nil
   end
 
-  -- Normalize path to absolute if it's relative (gemini_cli issues)
-  if not vim.startswith(filepath, "/") and not filepath:match("^%a:") then
-    filepath = vim.fs.joinpath(vim.fn.getcwd(), filepath)
-  end
+  -- This is a defensive mechanism: normalize path for gemini_cli
+  filepath = vim.fs.normalize(filepath)
 
   -- Prevent circular dependencies and enable more efficient lazy-loading
   local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
