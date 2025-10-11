@@ -194,8 +194,7 @@ function InlineDiff:accept(opts)
     end)
   end
 
-  self:clear_highlights()
-  self:close_floating_window()
+  self:teardown()
 end
 
 ---Rejects the diff changes, restores original content, and clears highlights
@@ -222,8 +221,7 @@ function InlineDiff:reject(opts)
     end)
   end
 
-  self:clear_highlights()
-  self:close_floating_window()
+  self:teardown()
 end
 
 ---Cleans up the diff instance and fires detachment event
