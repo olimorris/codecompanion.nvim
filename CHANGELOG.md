@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.26.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.26.0...v17.26.1) (2025-10-11)
+
+
+### Bug Fixes
+
+* **diff:** fire detach when inline diff completes ([#2237](https://github.com/olimorris/codecompanion.nvim/issues/2237)) ([a189018](https://github.com/olimorris/codecompanion.nvim/commit/a189018721a692dabdefbf1e0f58971c6204a7d7))
+
 ## [17.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.25.0...v17.26.0) (2025-10-10)
 
 
