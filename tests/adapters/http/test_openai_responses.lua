@@ -265,9 +265,9 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     {
       _meta = {
         sent = true,
+        cycle = 1,
       },
       content = "Can you tell me what the the weather tool is for London and Paris?",
-      cycle = 1,
       id = 449094129,
       opts = {
         visible = true,
@@ -275,8 +275,7 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
       role = "user",
     },
     {
-      _meta = {},
-      cycle = 1,
+      _meta = { cycle = 1 },
       id = 486936684,
       opts = {
         visible = false,
@@ -310,7 +309,7 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     },
     {
       content = "Ran the weather tool The weather in London, United Kingdom is 15° celsius",
-      cycle = 1,
+      _meta = { cycle = 1 },
       id = 1997051449,
       opts = {
         visible = true,
@@ -321,7 +320,9 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     },
     {
       content = "Ran the weather tool The weather in Paris, France is 15° celsius",
-      cycle = 1,
+      _meta = {
+        cycle = 1,
+      },
       id = 210818266,
       opts = {
         visible = true,
@@ -333,9 +334,9 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     {
       _meta = {
         response_id = "resp_123",
+        cycle = 1,
       },
       content = "- London: 15°C\n- Paris: 15°C\n\nNeed anything else, like Fahrenheit or a weekly forecast?",
-      cycle = 1,
       id = 933614700,
       opts = {
         visible = true,

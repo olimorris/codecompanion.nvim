@@ -48,7 +48,9 @@ T["Anthropic adapter"]["form_messages"]["regular chat"] = function()
       opts = {
         visible = true,
       },
-      cycle = 1,
+      _meta = {
+        cycle = 1,
+      },
       id = 1849003275,
       some_made_up_thing = true,
     },

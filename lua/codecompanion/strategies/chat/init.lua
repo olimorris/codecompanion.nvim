@@ -108,7 +108,7 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg._meta and msg._meta.context_id == pin.id and msg.cycle == chat.cycle then
+      if msg._meta and msg._meta.context_id == pin.id and msg._meta.cycle == chat.cycle then
         exists = true
       end
     end)
@@ -718,8 +718,10 @@ function Chat:set_system_prompt(prompt, opts)
       content = prompt,
     }
     system_prompt.id = make_id(system_prompt)
-    system_prompt.cycle = self.cycle
     system_prompt.opts = opts
+    if _meta then
+      _meta.cycle = self.cycle
+    end
     system_prompt._meta = _meta
 
     table.insert(self.messages, index or opts.index or 1, system_prompt)
@@ -775,11 +777,10 @@ function Chat:add_message(data, opts)
   ---@type CodeCompanion.Chat.Message
   local message = {
     id = 1,
-    _meta = {},
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
-    cycle = self.cycle,
+    _meta = { cycle = self.cycle },
     tool_calls = data.tool_calls,
   }
 
@@ -1360,7 +1361,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   log:debug("Tool output: %s", tool_call)
 
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
-  output.cycle = self.cycle
+  output._meta = { cycle = self.cycle }
   output.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
     visible = true,
