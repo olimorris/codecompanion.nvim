@@ -179,10 +179,8 @@ function SlashCommand:output(selected, opts)
     role = config.constants.USER_ROLE,
     content = content or "",
   }, {
-    path = selected.path,
-
     visible = false,
-    _meta = { tag = "file", context_id = id },
+    _meta = { tag = "file", context_id = id, path = selected.path },
   })
 
   if opts.pin then
