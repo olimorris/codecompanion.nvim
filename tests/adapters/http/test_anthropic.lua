@@ -184,28 +184,28 @@ T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results
     },
     {
       role = "tool",
-      content = {
+      content = "The weather in London is 15 degrees celsius",
+      tools = {
         type = "tool_result",
-        content = "The weather in London is 15 degrees celsius",
-        tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+        call_id = "toolu_01A09q90qw90lq917835lq9",
         is_error = false,
       },
     },
     {
       role = "tool",
-      content = {
+      content = ". So enjoy it!",
+      tools = {
         type = "tool_result",
-        content = ". So enjoy it!",
-        tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+        call_id = "toolu_01A09q90qw90lq917835lq9",
         is_error = false,
       },
     },
     {
       role = "tool",
-      content = {
+      content = "The weather in Paris is 15 degrees celsius",
+      tools = {
         type = "tool_result",
-        content = "The weather in Paris is 15 degrees celsius",
-        tool_use_id = "toolu_01A09q90qw90lq917835lq8",
+        call_id = "toolu_01A09q90qw90lq917835lq8",
         is_error = false,
       },
     },

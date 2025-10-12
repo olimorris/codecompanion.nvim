@@ -170,9 +170,28 @@ return {
           has_tools = true
         end
 
-        -- 6. Treat 'tool' role as user
+        -- 6. Treat 'tool' role as user and convert tool results to Anthropic format
         if message.role == "tool" then
           message.role = self.roles.user
+          -- Convert tool result from CodeCompanion format to Anthropic format
+          if message.tools and message.tools.type == "tool_result" then
+            -- Handle content that might already be in Anthropic's format
+            if type(message.content) == "table" and message.content.type == "tool_result" then
+              -- Already in Anthropic format, keep it as-is but ensure it's in an array
+              message.content = { message.content }
+            else
+              -- Convert from CodeCompanion format to Anthropic format
+              message.content = {
+                {
+                  type = "tool_result",
+                  tool_use_id = message.tools.call_id,
+                  content = message.content,
+                  is_error = message.tools.is_error or false,
+                },
+              }
+            end
+            message.tools = nil
+          end
         end
 
         -- 7. Convert any LLM tool_calls into content blocks
@@ -206,13 +225,13 @@ return {
       -- 9. Merge consecutive messages with the same role
       messages = utils.merge_messages(messages)
 
-      -- 10. Ensure that any consecutive tool results are merged
+      -- 10. Ensure that any consecutive tool results are merged and text messages are included
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content and m.content ~= "" then
             -- Check if content is already an array of blocks
             if type(m.content) == "table" and m.content.type then
-              -- If it's a single content block, like a tool_result), make it an array
+              -- If it's a single content block (like a tool_result), make it an array
               m.content = { m.content }
             end
 
@@ -223,6 +242,7 @@ return {
                 if block.type == "tool_result" then
                   local prev = consolidated[#consolidated]
                   if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
+                    -- Merge consecutive tool results with the same tool_use_id
                     prev.content = prev.content .. block.content
                   else
                     table.insert(consolidated, block)
@@ -492,10 +512,10 @@ return {
           -- in the form_messages handler it's easier to identify and merge
           -- with other user messages.
           role = "tool",
-          content = {
+          content = output,
+          tools = {
             type = "tool_result",
-            tool_use_id = tool_call.id,
-            content = output,
+            call_id = tool_call.id,
             is_error = false,
           },
           -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
