@@ -88,11 +88,6 @@ return {
         params.include = { "reasoning.encrypted_content" }
       end
 
-      if type(params.verbosity) == "string" then
-        params.text = params.text or {}
-        params.text.verbosity = params.verbosity
-        params.verbosity = nil
-      end
       return params
     end,
 
@@ -649,11 +644,11 @@ return {
     },
     verbosity = {
       order = 8,
-      mapping = "parameters",
+      mapping = "parameters.text",
       type = "string",
       optional = true,
       default = "medium",
-      desc = "Controls verbosity of the model output. low, medium, or high.",
+      desc = "Determines how many output tokens are generated. Use high when you wish to have thorough explanations and low for concise answers or simple code generation.",
       choices = {
         "low",
         "medium",
