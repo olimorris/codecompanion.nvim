@@ -43,6 +43,7 @@
 ---@field opts.watched? boolean Whether the context is being watched for changes
 ---@field _meta table Internal static metadata (e.g. { sent = true })
 ---@field _meta.id number Unique identifier for the message (generated via hash)
+---@field _meta.index number The index of the chat message in the messages stack
 ---@field _meta.cycle number The chat turn cycle when this message was added
 ---@field _meta.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
 ---@field _meta.context_id? string Link to a context item (used for pinned/context messages)

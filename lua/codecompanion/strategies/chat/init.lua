@@ -721,6 +721,7 @@ function Chat:set_system_prompt(prompt, opts)
 
     _meta.cycle = self.cycle
     _meta.id = make_id(system_prompt)
+    _meta.index = #self.messages + 1
     system_prompt._meta = _meta
 
     table.insert(self.messages, index or opts.index or 1, system_prompt)
@@ -789,6 +790,7 @@ function Chat:add_message(data, opts)
 
   message.opts = opts
   message._meta.id = make_id(message)
+  message._meta.index = #self.messages + 1
 
   if opts.index then
     table.insert(self.messages, opts.index, message)
