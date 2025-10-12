@@ -87,6 +87,7 @@ return {
       if model_opts and model_opts.opts and model_opts.opts.can_reason then
         params.include = { "reasoning.encrypted_content" }
       end
+
       return params
     end,
 
@@ -640,6 +641,19 @@ return {
       validate = function(n)
         return n > 0, "Must be greater than 0"
       end,
+    },
+    verbosity = {
+      order = 8,
+      mapping = "parameters.text",
+      type = "string",
+      optional = true,
+      default = "medium",
+      desc = "Determines how many output tokens are generated. Use high when you wish to have thorough explanations and low for concise answers or simple code generation.",
+      choices = {
+        "low",
+        "medium",
+        "high",
+      },
     },
   },
 }
