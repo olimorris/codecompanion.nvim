@@ -269,10 +269,18 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   local has_tmp1 = false
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
-    if msg.opts.meta.path == tmp1 then
-      has_tmp1 = true
-    elseif msg.opts.meta.path == tmp2 then
-      has_tmp2 = true
+    if msg._meta and msg._meta.context_id then
+      -- Extract the path from the context_id format: <file>path</file>
+      local path = msg._meta.context_id:match("<file>(.-)</file>")
+      if path then
+        -- Convert to absolute path for comparison
+        local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
+        if abs_path == tmp1 then
+          has_tmp1 = true
+        elseif abs_path == tmp2 then
+          has_tmp2 = true
+        end
+      end
     end
   end
 
