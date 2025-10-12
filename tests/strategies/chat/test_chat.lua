@@ -147,6 +147,7 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq({
     cycle = 1,
+    id = message._meta.id,
     mimetype = "image/png",
     context_id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
     tag = "image",

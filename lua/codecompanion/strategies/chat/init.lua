@@ -717,11 +717,10 @@ function Chat:set_system_prompt(prompt, opts)
       role = config.constants.SYSTEM_ROLE,
       content = prompt,
     }
-    system_prompt.id = make_id(system_prompt)
     system_prompt.opts = opts
-    if _meta then
-      _meta.cycle = self.cycle
-    end
+
+    _meta.cycle = self.cycle
+    _meta.id = make_id(system_prompt)
     system_prompt._meta = _meta
 
     table.insert(self.messages, index or opts.index or 1, system_prompt)
@@ -776,11 +775,10 @@ function Chat:add_message(data, opts)
 
   ---@type CodeCompanion.Chat.Message
   local message = {
-    id = 1,
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
-    _meta = { cycle = self.cycle },
+    _meta = { id = 1, cycle = self.cycle },
     tool_calls = data.tool_calls,
   }
 
@@ -790,7 +788,7 @@ function Chat:add_message(data, opts)
   end
 
   message.opts = opts
-  message.id = make_id(message)
+  message._meta.id = make_id(message)
 
   if opts.index then
     table.insert(self.messages, opts.index, message)
@@ -1362,7 +1360,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
 
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
   output._meta = { cycle = self.cycle }
-  output.id = make_id({ role = output.role, content = output.content })
+  output._meta.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
     visible = true,
   })

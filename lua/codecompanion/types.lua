@@ -34,7 +34,6 @@
 ---@alias CodeCompanion.Chat.Messages CodeCompanion.Chat.Message[]
 
 ---@class CodeCompanion.Chat.Message
----@field id number Unique identifier for the message (generated via hash)
 ---@field role string Role of the author (e.g. "user", "llm", "system", "tool")
 ---@field content string The raw Markdown/text content of the message (optional for tool-only entries)
 ---@field opts? table Optional metadata used by the UI and processing
@@ -43,6 +42,7 @@
 ---@field opts.index? number If set, the message was inserted at this index
 ---@field opts.watched? boolean Whether the context is being watched for changes
 ---@field _meta table Internal static metadata (e.g. { sent = true })
+---@field _meta.id number Unique identifier for the message (generated via hash)
 ---@field _meta.cycle number The chat turn cycle when this message was added
 ---@field _meta.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
 ---@field _meta.context_id? string Link to a context item (used for pinned/context messages)
