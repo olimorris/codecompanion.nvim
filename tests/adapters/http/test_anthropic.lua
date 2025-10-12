@@ -152,29 +152,33 @@ T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results
     },
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 1,
-          ["function"] = {
-            arguments = '{"location": "London, UK", "units": "celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "London, UK", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_01A09q90qw90lq917835lq9",
+            type = "function",
           },
-          id = "toolu_01A09q90qw90lq917835lq9",
-          type = "function",
         },
       },
     },
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 1,
-          ["function"] = {
-            arguments = '{"location": "Paris, France", "units": "celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "Paris, France", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_01A09q90qw90lq917835lq8",
+            type = "function",
           },
-          id = "toolu_01A09q90qw90lq917835lq8",
-          type = "function",
         },
       },
     },
@@ -283,12 +287,14 @@ T["Anthropic adapter"]["form_messages"]["handles tool results correctly"] = func
     {
       role = "assistant",
       content = "I'll check the weather for you.",
-      tool_calls = {
-        {
-          id = "call_123",
-          ["function"] = {
-            name = "get_weather",
-            arguments = '{"location": "London"}',
+      tools = {
+        calls = {
+          {
+            id = "call_123",
+            ["function"] = {
+              name = "get_weather",
+              arguments = '{"location": "London"}',
+            },
           },
         },
       },
@@ -431,15 +437,17 @@ T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
     },
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 1,
-          ["function"] = {
-            arguments = '{"location": "London, UK", "units": "celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "London, UK", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_01UjbLnwyzbLtZNjvrDuiRDE",
+            type = "function",
           },
-          id = "toolu_01UjbLnwyzbLtZNjvrDuiRDE",
-          type = "function",
         },
       },
       reasoning = {

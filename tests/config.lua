@@ -40,7 +40,9 @@ return {
             output_response = function(self, tool_call, output)
               return {
                 role = "tool",
-                tool_call_id = tool_call.id,
+                tools = {
+                  call_id = tool_call.id,
+                },
                 content = output,
                 _meta = { tag = tool_call.id },
                 opts = { visible = false },

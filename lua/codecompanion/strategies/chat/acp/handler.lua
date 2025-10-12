@@ -150,7 +150,9 @@ function ACPHandler:process_tool_call(tool_call)
     content = content,
   }, {
     status = tool_call.status,
-    tool_call_id = tool_call.toolCallId,
+    tools = {
+      call_id = tool_call.toolCallId,
+    },
     kind = tool_call.kind,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })

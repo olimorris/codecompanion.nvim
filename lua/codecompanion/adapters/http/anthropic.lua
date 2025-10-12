@@ -146,7 +146,7 @@ return {
             "content",
             "role",
             "reasoning",
-            "tool_calls",
+            "tools",
           },
         })
 
@@ -166,7 +166,7 @@ return {
           end
         end
 
-        if message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+        if message.tools and message.tools.calls and vim.tbl_count(message.tools.calls) > 0 then
           has_tools = true
         end
 
@@ -176,9 +176,9 @@ return {
         end
 
         -- 7. Convert any LLM tool_calls into content blocks
-        if has_tools and message.role == self.roles.llm and message.tool_calls then
+        if has_tools and message.role == self.roles.llm and message.tools and message.tools.calls then
           message.content = message.content or {}
-          for _, call in ipairs(message.tool_calls) do
+          for _, call in ipairs(message.tools.calls) do
             local args = call["function"].arguments
             table.insert(message.content, {
               type = "tool_use",
@@ -187,7 +187,7 @@ return {
               input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
             })
           end
-          message.tool_calls = nil
+          message.tools = nil
         end
 
         -- 8. If reasoning is present, format it as a content block

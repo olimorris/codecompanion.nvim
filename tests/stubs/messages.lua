@@ -31,15 +31,17 @@ local messages = {
       visible = false,
     },
     role = "llm",
-    tool_calls = {
-      {
-        _index = 0,
-        ["function"] = {
-          arguments = '{"query":"add_buf_message"}',
-          name = "grep_search",
+    tools = {
+      calls = {
+        {
+          _index = 0,
+          ["function"] = {
+            arguments = '{"query":"add_buf_message"}',
+            name = "grep_search",
+          },
+          id = "call_8Aoq8io63MloLbV3qPErKwq9",
+          type = "function",
         },
-        id = "call_8Aoq8io63MloLbV3qPErKwq9",
-        type = "function",
       },
     },
   },
@@ -50,7 +52,9 @@ local messages = {
       visible = true,
     },
     role = "tool",
-    tool_call_id = "call_8Aoq8io63MloLbV3qPErKwq9",
+    tools = {
+      call_id = "call_8Aoq8io63MloLbV3qPErKwq9",
+    },
     _meta = {
       cycle = 1,
       tag = "tool_output",

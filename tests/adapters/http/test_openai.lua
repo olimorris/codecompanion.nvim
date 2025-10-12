@@ -82,6 +82,30 @@ T["OpenAI adapter"]["it can form messages with tools"] = function()
   local messages = {
     {
       role = "assistant",
+      tools = {
+        calls = {
+          {
+            id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
+          },
+          {
+            id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "Paris", "units": "celsius"}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      role = "assistant",
       tool_calls = {
         {
           id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
@@ -101,7 +125,7 @@ T["OpenAI adapter"]["it can form messages with tools"] = function()
     },
   }
 
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
 T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
@@ -128,7 +152,9 @@ T["OpenAI adapter"]["can output tool call"] = function()
       visible = false,
     },
     role = "tool",
-    tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    tools = {
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    },
   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end
 

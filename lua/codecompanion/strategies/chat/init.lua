@@ -144,7 +144,7 @@ end
 ---@return table|nil
 local function find_tool_call(id, messages)
   for _, msg in ipairs(messages) do
-    if msg.tool_call_id and msg.tool_call_id == id then
+    if msg.tools and msg.tools.call_id and msg.tools.call_id == id then
       return msg
     end
   end
@@ -780,8 +780,13 @@ function Chat:add_message(data, opts)
     content = data.content,
     reasoning = data.reasoning,
     _meta = { id = 1, cycle = self.cycle },
-    tool_calls = data.tool_calls,
   }
+
+  -- Map tool_calls to tools.calls
+  if data.tool_calls then
+    message.tools = message.tools or {}
+    message.tools.calls = data.tool_calls
+  end
 
   if opts._meta then
     message._meta = vim.tbl_deep_extend("force", message._meta, opts._meta)

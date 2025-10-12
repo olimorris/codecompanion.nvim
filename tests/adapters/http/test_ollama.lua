@@ -41,20 +41,22 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
     },
     {
       role = "llm",
-      tool_calls = {
-        {
-          ["function"] = {
-            arguments = '{"location":"London, UK","units":"fahrenheit"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            type = "function",
           },
-          type = "function",
-        },
-        {
-          ["function"] = {
-            arguments = '{"location":"Paris, France","units":"fahrenheit"}',
-            name = "weather",
+          {
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+              name = "weather",
+            },
+            type = "function",
           },
-          type = "function",
         },
       },
     },

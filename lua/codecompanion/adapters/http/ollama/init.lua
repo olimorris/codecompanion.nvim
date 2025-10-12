@@ -80,10 +80,11 @@ return {
         .iter(messages)
         :map(function(m)
           -- Ensure tool_calls are clean
-          if m.tool_calls then
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
             -- TODO: add tool_name?
-            m.tool_calls = vim
-              .iter(m.tool_calls)
+            tool_calls = vim
+              .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
                   id = tool_call.id,
@@ -106,7 +107,7 @@ return {
           return {
             role = m.role,
             content = m.content,
-            tool_calls = m.tool_calls,
+            tool_calls = tool_calls,
             images = m.images,
           }
         end)
