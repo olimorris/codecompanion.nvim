@@ -682,7 +682,12 @@ function Chat:set_system_prompt(prompt, opts)
 
   prompt = prompt or config.strategies.chat.opts.system_prompt
   opts = opts and opts.opts or { visible = false }
-  local _meta = opts and opts._meta or { tag = "system_prompt_from_config" }
+
+  local _meta = { tag = "system_prompt_from_config" }
+  if opts._meta then
+    _meta = opts._meta
+    opts._meta = nil
+  end
 
   -- If the system prompt already exists, update it
   if helpers.has_tag(_meta.tag, self.messages) then
