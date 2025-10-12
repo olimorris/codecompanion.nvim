@@ -318,7 +318,7 @@ function UI:render(context, messages, opts)
           self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
-        if msg.opts and msg.opts.tag == "tool_output" then
+        if msg._meta and msg._meta.tag == "tool_output" then
           table.insert(lines, "")
         end
 

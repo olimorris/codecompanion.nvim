@@ -244,8 +244,8 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
+          _meta = { tag = tag },
           opts = {
-            tag = tag,
             context_id = id,
             meta = opts
           }
@@ -308,8 +308,8 @@ T["add_context() prevents duplicate memory context from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
+          _meta = { tag = tag },
           opts = {
-            tag = tag,
             context_id = id,
             meta = opts
           }

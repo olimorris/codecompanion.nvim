@@ -188,7 +188,7 @@ function Strategies:workflow()
             p.content = p.content(self.buffer_context)
           end
           if p.role == config.constants.SYSTEM_ROLE and not p.opts then
-            p.opts = { visible = false, tag = "from_custom_prompt" }
+            p.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
           end
           return p
         end)
@@ -293,7 +293,7 @@ function Strategies.evaluate_prompts(prompts, context)
     :map(function(prompt)
       local content = type(prompt.content) == "function" and prompt.content(context) or prompt.content
       if prompt.role == config.constants.SYSTEM_ROLE and not prompt.opts then
-        prompt.opts = { visible = false, tag = "from_custom_prompt" }
+        prompt.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
       end
       return {
         role = prompt.role or "",

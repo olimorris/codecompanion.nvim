@@ -121,14 +121,14 @@ return {
       -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
       messages = vim.tbl_map(function(message)
         -- 3. Account for any images
-        if message.opts and message.opts.tag == "image" and message.opts.mimetype then
+        if message._meta and message._meta.tag == "image" and message._meta.mimetype then
           if self.opts and self.opts.vision then
             message.content = {
               {
                 type = "image",
                 source = {
                   type = "base64",
-                  media_type = message.opts.mimetype,
+                  media_type = message._meta.mimetype,
                   data = message.content,
                 },
               },

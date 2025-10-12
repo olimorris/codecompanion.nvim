@@ -728,7 +728,7 @@ end
 function Chat:toggle_system_prompt()
   local has_system_prompt = vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg._meta.tag
+      return msg._meta and msg._meta.tag
     end, self.messages),
     "system_prompt_from_config"
   )
@@ -777,12 +777,14 @@ function Chat:add_message(data, opts)
     cycle = self.cycle,
     tool_calls = data.tool_calls,
   }
-  message.id = make_id(message)
+
   if opts._meta then
     message._meta = vim.tbl_deep_extend("force", message._meta, opts._meta)
     opts._meta = nil
   end
+
   message.opts = opts
+  message.id = make_id(message)
 
   if opts.index then
     table.insert(self.messages, opts.index, message)

@@ -17,19 +17,19 @@ M.form_messages = function(self, messages, capabilities)
       return msg.role == self.roles.user and not msg._meta.sent
     end)
     :map(function(msg)
-      if msg.opts and msg.opts.tag == "image" then
+      if msg._meta and msg._meta.tag == "image" then
         if not has.image then
           log:warn("The %s agent does not support receiving images", self.formatted_name)
         else
           return {
             type = "image",
             data = msg.content,
-            mimeType = msg.opts.mimetype,
+            mimeType = msg._meta.mimetype,
           }
         end
       end
       if msg.content and msg.content ~= "" then
-        if msg.opts and msg.opts.tag == "file" then
+        if msg._meta and msg._meta.tag == "file" then
           -- If we can't send the file as a resource, send as text
           if not has.embeddedContext then
             log:debug(

@@ -17,7 +17,7 @@ function Screenshot:output()
   self.Chat:add_message({
     role = "user",
     content = "Resolved screenshot variable",
-  }, { tag = "variable", visible = false })
+  }, { _meta = { tag = "variable" }, visible = false })
 end
 
 return Screenshot

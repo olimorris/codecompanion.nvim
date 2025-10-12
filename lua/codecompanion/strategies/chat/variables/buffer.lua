@@ -94,7 +94,7 @@ function Variable:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { context_id = id, tag = "variable", visible = false })
+  }, { context_id = id, _meta = { tag = "variable" }, visible = false })
 
   if opts.pin then
     return

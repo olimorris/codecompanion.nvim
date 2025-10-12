@@ -4,10 +4,12 @@ local messages = {
     cycle = 1,
     id = 126646444,
     opts = {
-      tag = "system_prompt_from_config",
       visible = false,
     },
     role = "system",
+    _meta = {
+      tag = "system_prompt_from_config",
+    },
   },
   {
     content = "Can you search for `add_buf_message` using the grep_search tool?",
@@ -42,11 +44,13 @@ local messages = {
     cycle = 1,
     id = 1528635204,
     opts = {
-      tag = "tool_output",
       visible = true,
     },
     role = "tool",
     tool_call_id = "call_8Aoq8io63MloLbV3qPErKwq9",
+    _meta = {
+      tag = "tool_output",
+    },
   },
   {
     content = "The search for `add_buf_message` returned 27 results across multiple files, including `helpers.lua`, `init.lua`, and several test files.\n\nWould you like to see the code for a specific occurrence, or do you want a summary of how `add_buf_message` is used throughout the codebase?",

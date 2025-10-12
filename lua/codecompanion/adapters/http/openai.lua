@@ -99,13 +99,13 @@ return {
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and m._meta.mimetype then
             if self.opts and self.opts.vision then
               m.content = {
                 {
                   type = "image_url",
                   image_url = {
-                    url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                    url = string.format("data:%s;base64,%s", m._meta.mimetype, m.content),
                   },
                 },
               }

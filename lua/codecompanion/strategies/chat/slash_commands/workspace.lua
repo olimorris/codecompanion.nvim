@@ -184,20 +184,20 @@ function SlashCommand:output(selected_group, opts)
   if self.workspace.system_prompt then
     self.Chat:set_system_prompt(
       replace_vars(self.workspace, group, self.workspace.system_prompt),
-      { visible = false, tag = self.workspace.name .. " // Workspace" }
+      { visible = false, _meta = { tag = self.workspace.name .. " // Workspace" } }
     )
   end
   if self.workspace.description then
     self.Chat:add_message(
       { role = config.constants.USER_ROLE, content = replace_vars(self.workspace, group, self.workspace.description) },
-      { visible = false, tag = self.workspace.name .. " // Workspace" }
+      { visible = false, _meta = { tag = self.workspace.name .. " // Workspace" } }
     )
   end
 
   if group.system_prompt then
     self.Chat:set_system_prompt(
       replace_vars(self.workspace, group, group.system_prompt),
-      { visible = false, tag = group.name .. " // Workspace Group" }
+      { visible = false, _meta = { tag = group.name .. " // Workspace Group" } }
     )
   end
 
