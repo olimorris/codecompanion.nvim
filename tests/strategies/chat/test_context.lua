@@ -65,22 +65,20 @@ T["Context"]["Can be deleted"] = function()
       {
         role = "user",
         content = "Message with some context",
-        opts = {
+        _meta = {
           context_id = "<buf>test.lua</buf>",
         },
       },
       {
         role = "user",
         content = "Message with some more context",
-        opts = {
+        _meta = {
           context_id = "<buf>test2.lua</buf>",
         },
       },
-
       {
         role = "user",
         content = "Message without context",
-        opts = {},
       },
     }
   ]])
@@ -112,12 +110,12 @@ T["Context"]["Can be deleted"] = function()
 
   -- Verify the message with context was removed
   local has_context = vim.iter(messages):any(function(msg)
-    return msg.opts.context_id == "<buf>test.lua</buf>"
+    return msg._meta and msg._meta.context_id == "<buf>test.lua</buf>"
   end)
   h.eq(has_context, false, "Message with first context item should be gone")
 
   has_context = vim.iter(messages):any(function(msg)
-    return msg.opts.context_id == "<buf>test2.lua</buf>"
+    return msg._meta and msg._meta.context_id == "<buf>test2.lua</buf>"
   end)
   h.eq(has_context, true, "Message with second context item should still be present")
 end
@@ -178,14 +176,14 @@ T["Context"]["Can be pinned"] = function()
        {
          role = "user",
          content = "Pinned context",
-         opts = {
+         _meta = {
            context_id = "<buf>pinned example</buf>",
          },
        },
        {
          role = "user",
          content = "Unpinned context",
-         opts = {
+         _meta = {
            context_id = "<buf>unpinned example</buf>",
          },
        },
@@ -347,7 +345,7 @@ T["Context"]["file context_items always have a relative id"] = function()
     '<attachment filepath="tests/stubs/file.txt">Here is the content from the file',
     child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
   )
-  h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages].opts.context_id]]))
+  h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages]._meta.context_id]]))
 end
 
 T["Context"]["Correctly removes tool schema and usage flag on context deletion"] = function()
@@ -474,8 +472,8 @@ T["Context"]["Tool group with collapse_tools shows single group context"] = func
   child.lua([[
      _G.system_msg = nil
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>test_group</group>" then
-         _G.system_msg = { content = msg.content, context_id = msg.opts.context_id }
+       if msg.role == "system" and msg._meta and msg._meta.context_id == "<group>test_group</group>" then
+         _G.system_msg = { content = msg.content, context_id = msg._meta.context_id }
          break
        end
      end
@@ -501,7 +499,7 @@ T["Context"]["Tool group without collapse_tools shows individual tools"] = funct
   child.lua([[
      _G.system_msg_content = nil
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>test_group2</group>" then
+       if msg.role == "system" and msg._meta and msg._meta.context_id == "<group>test_group2</group>" then
          _G.system_msg_content = msg.content
          break
        end
@@ -523,7 +521,7 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   child.lua([[
      _G.initial_system_msg_found = false
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>remove_group</group>" then
+       if msg.role == "system" and msg._meta and msg._meta.context_id == "<group>remove_group</group>" then
          _G.initial_system_msg_found = true
          break
        end
@@ -548,7 +546,7 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   child.lua([[
      _G.system_msg_exists = false
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>remove_group</group>" then
+       if msg.role == "system" and msg._meta and msg._meta.context_id == "<group>remove_group</group>" then
          _G.system_msg_exists = true
          break
        end

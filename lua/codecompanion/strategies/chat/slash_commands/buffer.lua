@@ -174,7 +174,7 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { context_id = id, visible = false })
+  }, { _meta = { context_id = id }, visible = false })
 
   if opts.pin then
     return

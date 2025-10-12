@@ -106,10 +106,10 @@ T["Responses"]["form_messages"]["images"] = function()
       content = "somefakebase64encoding",
       role = "user",
       opts = {
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         visible = false,
       },
       _meta = {
+        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         mimetype = "image/jpg",
         tag = "image",
       },

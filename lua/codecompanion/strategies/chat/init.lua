@@ -108,7 +108,7 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg.opts and msg.opts.context_id == pin.id and msg.cycle == chat.cycle then
+      if msg._meta and msg._meta.context_id == pin.id and msg.cycle == chat.cycle then
         exists = true
       end
     end)
@@ -1076,7 +1076,7 @@ end
 ---@param id string The uniqie ID linkin the context to the message
 ---@param opts? { bufnr: number, context_opts: table, path: string, tag: string, visible: boolean}
 function Chat:add_context(data, source, id, opts)
-  opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
+  opts = vim.tbl_extend("force", { visible = false }, opts or {})
 
   if not data.role then
     data.role = config.constants.USER_ROLE
@@ -1084,7 +1084,7 @@ function Chat:add_context(data, source, id, opts)
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { context_id = id, visible = opts.visible, _meta = { tag = opts.tag or source } })
+  self:add_message(data, { visible = opts.visible, _meta = { context_id = id, tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1183,7 +1183,7 @@ function Chat:check_context()
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.context_id and vim.tbl_contains(to_remove, msg.opts.context_id) then
+      if msg._meta and msg._meta.context_id and vim.tbl_contains(to_remove, msg._meta.context_id) then
         return false
       end
       return true
@@ -1222,8 +1222,8 @@ function Chat:refresh_context()
   -- Collect the set of context IDs still referenced by messages
   local ids_in_messages = {}
   for _, msg in ipairs(self.messages or {}) do
-    if msg.opts and msg.opts.context_id then
-      ids_in_messages[msg.opts.context_id] = true
+    if msg._meta and msg._meta.context_id then
+      ids_in_messages[msg._meta.context_id] = true
     end
   end
 

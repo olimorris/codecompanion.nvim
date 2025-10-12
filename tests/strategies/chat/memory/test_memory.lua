@@ -217,7 +217,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
 
   h.eq(#messages, 2) -- System prompt + memory
   h.eq(last_message._meta.tag, "memory")
-  h.eq(last_message.opts.context_id, "<memory>" .. tmp .. "</memory>")
+  h.eq(last_message._meta.context_id, "<memory>" .. tmp .. "</memory>")
   h.eq(last_message.content, content .. "\n")
 end
 
@@ -244,11 +244,7 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
-          _meta = { tag = tag },
-          opts = {
-            context_id = id,
-            meta = opts
-          }
+          _meta = { tag = tag, context_id = id },
         })
       end
     }
@@ -308,11 +304,7 @@ T["add_context() prevents duplicate memory context from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
-          _meta = { tag = tag },
-          opts = {
-            context_id = id,
-            meta = opts
-          }
+          _meta = { tag = tag, context_id = id },
         })
       end
     }

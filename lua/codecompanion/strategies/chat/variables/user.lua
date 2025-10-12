@@ -22,7 +22,7 @@ function Variable:output()
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = self.config.callback(self),
-  }, { context_id = id, _meta = { tag = "variable" }, visible = false })
+  }, { _meta = { tag = "variable", context_id = id }, visible = false })
 
   self.Chat.context:add({
     bufnr = self.Chat.bufnr,

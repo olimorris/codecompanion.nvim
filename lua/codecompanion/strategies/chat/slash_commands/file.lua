@@ -180,9 +180,9 @@ function SlashCommand:output(selected, opts)
     content = content or "",
   }, {
     path = selected.path,
-    context_id = id,
+
     visible = false,
-    _meta = { tag = "file" },
+    _meta = { tag = "file", context_id = id },
   })
 
   if opts.pin then
