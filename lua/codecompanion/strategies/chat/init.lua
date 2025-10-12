@@ -681,7 +681,7 @@ function Chat:set_system_prompt(prompt, opts)
   end
 
   prompt = prompt or config.strategies.chat.opts.system_prompt
-  opts = opts and opts.opts or { visible = false }
+  opts = opts or { visible = false }
 
   local _meta = { tag = "system_prompt_from_config" }
   if opts._meta then

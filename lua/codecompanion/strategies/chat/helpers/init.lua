@@ -158,7 +158,7 @@ end
 function M.has_tag(tag, messages)
   return vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts and msg.opts.tag
+      return msg._meta and msg._meta.tag
     end, messages),
     tag
   )
