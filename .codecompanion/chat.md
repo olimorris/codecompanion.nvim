@@ -12,33 +12,36 @@ Messages in the chat buffer are lua table objects as seen. They contain the role
 
 ```lua
 { {
-    content = "A system prompt",
-    cycle = 1,
-    id = 708950413,
-    opts = {
+    _meta = {
+      cycle = 1,
+      id = 708950413,
       tag = "system_prompt_from_config",
+    },
+    opts = {
       visible = false
     },
     role = "system"
+    content = "A system prompt",
   }, {
     _meta = {
+      cycle = 1,
+      id = 533315931,
       sent = true
     },
-    content = "Are you working?",
-    cycle = 1,
-    id = 533315931,
     opts = {
       visible = true
     },
     role = "user"
+    content = "Are you working?",
   }, {
-    _meta = {},
-    content = "Yes, I am active and ready to assist you with programming tasks, code explanations, reviews, or Neovim-related questions. What would you like to do next?",
-    cycle = 1,
-    id = 1141409506,
+    _meta = {
+      cycle = 1,
+      id = 1141409506,
+    },
     opts = {
       visible = true
     },
     role = "llm"
+    content = "Yes, I am active and ready to assist you with programming tasks, code explanations, reviews, or Neovim-related questions. What would you like to do next?",
   } }
 ```
