@@ -148,10 +148,12 @@ T["Ollama adapter"]["Streaming"]["can form messages with images"] = function()
     {
       content = "somefakebase64encoding",
       role = "user",
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        mimetype = "image/jpg",
+      },
       _meta = {
         tag = "image",
-        mimetype = "image/jpg",
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
       },
       opts = {
         visible = false,

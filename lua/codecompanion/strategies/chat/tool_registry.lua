@@ -58,7 +58,7 @@ local function add_system_prompt(chat, tool, id)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, _meta = { tag = "tool", context_id = id } }
+      { visible = false, _meta = { tag = "tool" }, context = { id = id } }
     )
   end
 end
@@ -122,7 +122,7 @@ function ToolRegistry:add_group(group, tools_config)
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
-    }, { _meta = { tag = "tool", context_id = group_id }, visible = false })
+    }, { _meta = { tag = "tool" }, context = { id = group_id }, visible = false })
   end
 
   if collapse_tools then

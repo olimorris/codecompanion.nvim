@@ -86,7 +86,7 @@ Note the path to the help file is `%s`.
       content,
       selected.path
     ),
-  }, { _meta = { context_id = id }, visible = false })
+  }, { context = { id = id }, visible = false })
 
   Chat.context:add({
     source = "slash_command",

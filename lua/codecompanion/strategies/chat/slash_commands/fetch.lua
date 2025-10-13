@@ -75,7 +75,7 @@ local function output(chat, data, opts)
   chat:add_message({
     role = config.constants.USER_ROLE,
     content = format_output(data.url, data.content),
-  }, { _meta = { context_id = id }, visible = false })
+  }, { context = { id = id, url = data.url }, visible = false })
 
   chat.context:add({
     source = "slash_command",

@@ -50,7 +50,7 @@
 ---@field _meta.cycle number The chat turn cycle when this message was added
 ---@field _meta.index? number The index of the chat message in the messages stack
 ---@field _meta.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
----@field _meta.context_id? string Link to a context item (used for pinned/context messages)
+---@field context? { id?: string, path?: string, mimetype?: string, url?: string } Optional context object
 ---@field reasoning? CodeCompanion.Chat.Reasoning Optional reasoning object returned by some adapters
 ---@field type? string Optional message type used by the UI (e.g. "llm_message", "tool_message", "reasoning_message")
 ---@field _raw? any Any adapter-specific raw payload stored with the message

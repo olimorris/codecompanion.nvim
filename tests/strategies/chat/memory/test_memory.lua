@@ -217,7 +217,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
 
   h.eq(#messages, 2) -- System prompt + memory
   h.eq(last_message._meta.tag, "memory")
-  h.eq(last_message._meta.context_id, "<memory>" .. tmp .. "</memory>")
+  h.eq(last_message.context.id, "<memory>" .. tmp .. "</memory>")
   h.eq(last_message.content, content .. "\n")
 end
 
@@ -244,7 +244,8 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
-          _meta = { tag = tag, context_id = id },
+          context = { id = id },
+          _meta = { tag = tag },
         })
       end
     }
@@ -269,9 +270,9 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   local has_tmp1 = false
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
-    if msg._meta and msg._meta.context_id then
-      -- Extract the path from the context_id format: <file>path</file>
-      local path = msg._meta.context_id:match("<file>(.-)</file>")
+    if msg.context and msg.context.id then
+      -- Extract the path from the context id format: <file>path</file>
+      local path = msg.context.id:match("<file>(.-)</file>")
       if path then
         -- Convert to absolute path for comparison
         local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
@@ -312,7 +313,8 @@ T["add_context() prevents duplicate memory context from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
-          _meta = { tag = tag, context_id = id },
+          context = { id = id },
+          _meta = { tag = tag },
         })
       end
     }

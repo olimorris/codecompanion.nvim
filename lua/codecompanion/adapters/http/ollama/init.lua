@@ -96,7 +96,7 @@ return {
           end
 
           -- Process any images
-          if m._meta and m._meta.tag == "image" and m._meta.mimetype then
+          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
             m.images = m.images or {}
             if self.opts and self.opts.vision then
               table.insert(m.images, m.content)

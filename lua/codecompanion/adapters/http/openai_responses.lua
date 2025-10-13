@@ -145,13 +145,13 @@ return {
           end
 
           -- Check if this is an image message followed by a text message from the same user
-          if m._meta and m._meta.tag == "image" and m._meta.mimetype then
+          if m._meta and m._meta.tag == "image" and (m.context and m.context.mimetype) then
             if self.opts and self.opts.vision then
               local next_msg = messages[i + 1]
               local combined_content = {
                 {
                   type = "input_image",
-                  image_url = string.format("data:%s;base64,%s", m._meta.mimetype, m.content),
+                  image_url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
                 },
               }
 

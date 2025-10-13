@@ -92,7 +92,7 @@ function M.add_image(Chat, image, opts)
   Chat:add_message({
     role = opts.role or config.constants.USER_ROLE,
     content = image.base64,
-  }, { _meta = { context_id = id, mimetype = image.mimetype, tag = "image" }, visible = false })
+  }, { context = { id = id, mimetype = image.mimetype }, _meta = { tag = "image" }, visible = false })
 
   Chat.context:add({
     bufnr = opts.bufnr or image.bufnr,
@@ -171,7 +171,7 @@ end
 function M.has_context(context, messages)
   return vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg._meta and msg._meta.context_id
+      return msg.context and msg.context.id
     end, messages),
     context
   )

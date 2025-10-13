@@ -108,7 +108,7 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg._meta and msg._meta.context_id == pin.id and msg._meta.cycle == chat.cycle then
+      if (msg.context and msg.context.id == pin.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
         exists = true
       end
     end)
@@ -792,6 +792,10 @@ function Chat:add_message(data, opts)
     message._meta = vim.tbl_deep_extend("force", message._meta, opts._meta)
     opts._meta = nil
   end
+  if opts.context then
+    message.context = opts.context
+    opts.context = nil
+  end
 
   message.opts = opts
   message._meta.id = make_id(message)
@@ -1090,7 +1094,7 @@ function Chat:add_context(data, source, id, opts)
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { visible = opts.visible, _meta = { context_id = id, tag = opts.tag or source } })
+  self:add_message(data, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1189,7 +1193,7 @@ function Chat:check_context()
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg._meta and msg._meta.context_id and vim.tbl_contains(to_remove, msg._meta.context_id) then
+      if msg.context and msg.context.id and vim.tbl_contains(to_remove, msg.context.id) then
         return false
       end
       return true
@@ -1228,8 +1232,8 @@ function Chat:refresh_context()
   -- Collect the set of context IDs still referenced by messages
   local ids_in_messages = {}
   for _, msg in ipairs(self.messages or {}) do
-    if msg._meta and msg._meta.context_id then
-      ids_in_messages[msg._meta.context_id] = true
+    if msg.context and msg.context.id then
+      ids_in_messages[msg.context.id] = true
     end
   end
 

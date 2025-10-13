@@ -119,17 +119,17 @@ return {
         :totable()
 
       -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
-      messages = vim.tbl_map(function(message)
+      messages = vim.tbl_map(function(m)
         -- 3. Account for any images
-        if message._meta and message._meta.tag == "image" and message._meta.mimetype then
+        if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
           if self.opts and self.opts.vision then
-            message.content = {
+            m.content = {
               {
                 type = "image",
                 source = {
                   type = "base64",
-                  media_type = message._meta.mimetype,
-                  data = message.content,
+                  media_type = m.context.mimetype,
+                  data = m.content,
                 },
               },
             }
@@ -140,8 +140,8 @@ return {
         end
 
         -- 4. Remove disallowed keys
-        message = utils.filter_out_messages({
-          message = message,
+        m = utils.filter_out_messages({
+          message = m,
           allowed_words = {
             "content",
             "role",
@@ -151,75 +151,75 @@ return {
         })
 
         -- 5. Turn string content into { { type = "text", text } } and add in the reasoning
-        if message.role == self.roles.user or message.role == self.roles.llm then
+        if m.role == self.roles.user or m.role == self.roles.llm then
           -- Anthropic doesn't allow the user to submit an empty prompt. But
           -- this can be necessary to prompt the LLM to analyze any tool
           -- calls and their output
-          if message.role == self.roles.user and message.content == "" then
-            message.content = "<prompt></prompt>"
+          if m.role == self.roles.user and m.content == "" then
+            m.content = "<prompt></prompt>"
           end
 
-          if type(message.content) == "string" then
-            message.content = {
-              { type = "text", text = message.content },
+          if type(m.content) == "string" then
+            m.content = {
+              { type = "text", text = m.content },
             }
           end
         end
 
-        if message.tools and message.tools.calls and vim.tbl_count(message.tools.calls) > 0 then
+        if m.tools and m.tools.calls and vim.tbl_count(m.tools.calls) > 0 then
           has_tools = true
         end
 
         -- 6. Treat 'tool' role as user and convert tool results to Anthropic format
-        if message.role == "tool" then
-          message.role = self.roles.user
+        if m.role == "tool" then
+          m.role = self.roles.user
           -- Convert tool result from CodeCompanion format to Anthropic format
-          if message.tools and message.tools.type == "tool_result" then
+          if m.tools and m.tools.type == "tool_result" then
             -- Handle content that might already be in Anthropic's format
-            if type(message.content) == "table" and message.content.type == "tool_result" then
+            if type(m.content) == "table" and m.content.type == "tool_result" then
               -- Already in Anthropic format, keep it as-is but ensure it's in an array
-              message.content = { message.content }
+              m.content = { m.content }
             else
               -- Convert from CodeCompanion format to Anthropic format
-              message.content = {
+              m.content = {
                 {
                   type = "tool_result",
-                  tool_use_id = message.tools.call_id,
-                  content = message.content,
-                  is_error = message.tools.is_error or false,
+                  tool_use_id = m.tools.call_id,
+                  content = m.content,
+                  is_error = m.tools.is_error or false,
                 },
               }
             end
-            message.tools = nil
+            m.tools = nil
           end
         end
 
         -- 7. Convert any LLM tool_calls into content blocks
-        if has_tools and message.role == self.roles.llm and message.tools and message.tools.calls then
-          message.content = message.content or {}
-          for _, call in ipairs(message.tools.calls) do
+        if has_tools and m.role == self.roles.llm and m.tools and m.tools.calls then
+          m.content = m.content or {}
+          for _, call in ipairs(m.tools.calls) do
             local args = call["function"].arguments
-            table.insert(message.content, {
+            table.insert(m.content, {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
               input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
             })
           end
-          message.tools = nil
+          m.tools = nil
         end
 
         -- 8. If reasoning is present, format it as a content block
-        if message.reasoning and type(message.content) == "table" then
+        if m.reasoning and type(m.content) == "table" then
           -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#how-extended-thinking-works
-          table.insert(message.content, 1, {
+          table.insert(m.content, 1, {
             type = "thinking",
-            thinking = message.reasoning.content,
-            signature = message.reasoning._data.signature,
+            thinking = m.reasoning.content,
+            signature = m.reasoning._data.signature,
           })
         end
 
-        return message
+        return m
       end, messages)
 
       -- 9. Merge consecutive messages with the same role
