@@ -136,9 +136,10 @@ local function fetch_async(adapter, opts)
         end
 
         for _, model_obj in ipairs(dedup_models(json.data)) do
-          -- For some reason the ocr models advertise themself as completion_chat. But can't respond to text prompts
-          if not model_obj.capabilities.ocr  and not string.find(model_obj.name, "embed") then
 
+          -- Sometime models incorrect advertise capabilities.completion_chat.
+          -- They informed me this is considered a bug, and are working on it.
+          if model_obj.capabilities.completion_chat then
             _cached_models[url][model_obj.id] = { formatted_name = model_obj.name, opts = {} }
             _cached_models[url][model_obj.id].opts.has_vision = model_obj.capabilities.vision or false
             _cached_models[url][model_obj.id].opts.can_use_tools = model_obj.capabilities.function_calling or false
