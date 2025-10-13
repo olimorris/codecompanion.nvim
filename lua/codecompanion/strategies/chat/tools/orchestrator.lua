@@ -258,11 +258,14 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Approve", "2 Reject", "3 Cancel" })
-      if choice == 1 then
+      local choice = ui_utils.confirm(prompt, { "1 Always Approve (YOLO)", "2 Approve Once", "3 Reject", "4 Cancel" })
+      if choice == 1 or choice == 2 then
         log:debug("Orchestrator:execute - Tool approved")
+        if choice == 1 then
+          vim.g.codecompanion_yolo_mode = true
+        end
         return self:execute(cmd, input)
-      elseif choice == 2 then
+      elseif choice == 3 then
         self.output.rejected(cmd)
         return self:setup()
       else
@@ -277,6 +280,7 @@ function Orchestrator:setup(input)
       return self:execute(cmd, input)
     end
   else
+    log:debug("Orchestrator:execute - No tool approval required")
     return self:execute(cmd, input)
   end
 end
