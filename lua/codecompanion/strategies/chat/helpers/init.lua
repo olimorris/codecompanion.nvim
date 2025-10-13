@@ -89,10 +89,17 @@ function M.add_image(Chat, image, opts)
 
   local id = "<image>" .. (image.id or image.path) .. "</image>"
 
-  Chat:add_message({
-    role = opts.role or config.constants.USER_ROLE,
-    content = image.base64,
-  }, { context = { id = id, mimetype = image.mimetype }, _meta = { tag = "image" }, visible = false })
+  Chat:add_message(
+    {
+      role = opts.role or config.constants.USER_ROLE,
+      content = image.base64,
+    },
+    {
+      context = { id = id, mimetype = image.mimetype, path = image.id or image.path },
+      _meta = { tag = "image" },
+      visible = false,
+    }
+  )
 
   Chat.context:add({
     bufnr = opts.bufnr or image.bufnr,
