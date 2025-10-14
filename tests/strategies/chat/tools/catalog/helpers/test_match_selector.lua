@@ -135,7 +135,7 @@ T["Format Helpful Error Tests"]["includes partial results information"] = functi
 
   local error_msg = match_selector.format_helpful_error(failed_result, original_edits)
 
-  h.expect_contains("2 edit(s) before this one completed successfully", error_msg)
+  h.expect_contains("2 edit(s) before this one were processed successfully", error_msg)
 end
 
 T["Format Helpful Error Tests"]["handles long oldText preview"] = function()
@@ -151,7 +151,7 @@ T["Format Helpful Error Tests"]["handles long oldText preview"] = function()
   local error_msg = match_selector.format_helpful_error(failed_result, original_edits)
 
   h.expect_contains("...", error_msg) -- Should be truncated
-  local truncated_part = error_msg:match('"([^"]*%.%.%.)"')
+  local truncated_part = error_msg:match("Failed edit was looking for: (.-%.%.%.)")
   h.eq(truncated_part ~= nil, true, "Should contain truncated text")
   if truncated_part then
     h.eq(#truncated_part, 103, "Should be exactly 100 chars + '...'") -- 100 + 3
