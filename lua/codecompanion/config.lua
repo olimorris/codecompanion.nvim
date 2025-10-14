@@ -84,11 +84,12 @@ local defaults = {
             description = "Tools related to creating, reading and editing files",
             prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
+              "edit_tool_exp",
               "create_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              "insert_edit_into_file",
+              -- "insert_edit_into_file",
               "read_file",
             },
             opts = {
