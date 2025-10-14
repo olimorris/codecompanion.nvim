@@ -151,16 +151,22 @@ function Orchestrator:setup_handlers()
         return self.tool.output.prompt(self.tool, self.tools)
       end
     end,
-    rejected = function(cmd)
+    rejected = function(cmd, opts)
       if not self.tool then
         return
       end
 
+      opts = opts or {}
+
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.tool, self.tools, cmd)
+        self.tool.output.rejected(self.tool, self.tools, cmd, opts)
       else
+        local rejection = fmt("\nThe user rejected the execution of the %s tool", self.tool.name)
+        if opts.reason then
+          rejection = rejection .. fmt(': "%s"', opts.reason)
+        end
         -- If no handler is set then return a default message
-        send_response_to_chat(self, fmt("User rejected `%s`", self.tool.name))
+        send_response_to_chat(self, rejection)
       end
     end,
     error = function(cmd)
@@ -258,7 +264,7 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Always Approve (YOLO)", "2 Approve Once", "3 Reject", "4 Cancel" })
+      local choice = ui_utils.confirm(prompt, { "1 Always Allow", "2 Allow", "3 Reject", "4 Cancel" })
       if choice == 1 or choice == 2 then
         log:debug("Orchestrator:execute - Tool approved")
         if choice == 1 then
@@ -266,8 +272,11 @@ function Orchestrator:setup(input)
         end
         return self:execute(cmd, input)
       elseif choice == 3 then
-        self.output.rejected(cmd)
-        return self:setup()
+        log:debug("Orchestrator:execute - Tool rejected")
+        ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+          self.output.rejected(cmd, { reason = i })
+          return self:setup()
+        end)
       else
         log:debug("Orchestrator:execute - Tool cancelled")
         -- NOTE: Cancel current tool, then cancel all queued tools

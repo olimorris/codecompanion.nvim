@@ -110,9 +110,15 @@ return {
     ---@param self CodeCompanion.Tool.CmdRunner
     ---@param tool CodeCompanion.Tools
     ---@param cmd table
+    ---@param opts table
     ---@return nil
-    rejected = function(self, tool, cmd)
-      tool.chat:add_tool_output(self, fmt("The user rejected the execution of the command `%s`?", self.args.cmd))
+    rejected = function(self, tool, cmd, opts)
+      opts = opts or {}
+      local rejection = fmt("The user rejected the execution of the `%s` command", self.args.cmd)
+      if opts.reason then
+        rejection = fmt('%s, with the reason: "%s"', rejection, opts.reason)
+      end
+      tool.chat:add_tool_output(self, rejection)
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner
