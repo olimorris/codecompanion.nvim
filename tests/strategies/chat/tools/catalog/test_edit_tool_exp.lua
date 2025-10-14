@@ -1029,4 +1029,356 @@ T["Performance"]["handles medium-sized file efficiently"] = function()
   h.eq(found_edit, true, "Edit was not applied in performance test")
 end
 
+-- Test new substring replacement feature
+T["Substring Replacement Tests"] = new_set()
+
+T["Substring Replacement Tests"]["replaces all substring occurrences with replaceAll"] = function()
+  child.lua([[
+    -- create file with multiple var declarations
+    local initial = "var x = 1;\nvar y = 2;\nfunction test() {\n  var z = 3;\n}\nvar a = 4;"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "var ", "newText": "let ", "replaceAll": true}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  -- All 4 occurrences of "var " should be replaced
+  local expected = { "let x = 1;", "let y = 2;", "function test() {", "  let z = 3;", "}", "let a = 4;" }
+  h.eq(output, expected, "Substring replacement did not replace all occurrences")
+end
+
+T["Substring Replacement Tests"]["replaces API namespace prefix"] = function()
+  child.lua([[
+    local initial = "const oldAPI.get();\nconst oldAPI.post();\nconst newAPI.get();"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "oldAPI.", "newText": "newAPI.", "replaceAll": true}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = { "const newAPI.get();", "const newAPI.post();", "const newAPI.get();" }
+  h.eq(output, expected, "API namespace replacement failed")
+end
+
+T["Substring Replacement Tests"]["replaces keyword in middle of lines"] = function()
+  child.lua([[
+    local initial = "// TODO: fix this\nfunction test() {\n  // TODO: refactor\n  return 1;\n}"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "TODO:", "newText": "DONE:", "replaceAll": true}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = { "// DONE: fix this", "function test() {", "  // DONE: refactor", "  return 1;", "}" }
+  h.eq(output, expected, "Keyword replacement in middle of lines failed")
+end
+
+T["Substring Replacement Tests"]["does not use substring mode for multi-line patterns"] = function()
+  child.lua([[
+    local initial = "function test() {\n  return 1;\n}\nfunction test() {\n  return 2;\n}"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function test() {\\n  return 1;\\n}", "newText": "function test() {\\n  return 10;\\n}", "replaceAll": true}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  -- Should use block matching, not substring matching
+  local expected = { "function test() {", "  return 10;", "}", "function test() {", "  return 2;", "}" }
+  h.eq(output, expected, "Multi-line replaceAll should use block matching")
+end
+
+T["Substring Replacement Tests"]["handles special characters in substring"] = function()
+  child.lua([[
+    local initial = "const API_KEY = 'test';\nconst API_URL = 'url';\nconst OTHER = 'val';"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "API_", "newText": "CONFIG_", "replaceAll": true}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = { "const CONFIG_KEY = 'test';", "const CONFIG_URL = 'url';", "const OTHER = 'val';" }
+  h.eq(output, expected, "Special character replacement failed")
+end
+
+T["Substring Replacement Tests"]["substring mode only activates with replaceAll true"] = function()
+  child.lua([[
+    local initial = "var x = 1;\nvar y = 2;\nvar z = 3;"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "var x = 1;", "newText": "let x = 1;", "replaceAll": false}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  -- Only first line should be replaced (exact match strategy)
+  local expected = { "let x = 1;", "var y = 2;", "var z = 3;" }
+  h.eq(output, expected, "replaceAll:false should not use substring mode")
+end
+
+-- Test for sequential edits with ambiguous patterns (real-world scenario)
+T["Sequential Edits with Ambiguous Patterns"] = new_set()
+
+T["Sequential Edits with Ambiguous Patterns"]["handles sequential edits where earlier edit creates ambiguity"] = function()
+  child.lua([[
+    -- Simplified version of the Go code scenario
+    local initial = "function initHelper() {\n  return {};\n}\n\nfunction first() {\n  var data = initHelper();\n  use(data);\n}\n\nfunction second() {\n  var data = initHelper();\n  use(data);\n}"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    -- Three sequential edits:
+    -- 1. Delete the helper function
+    -- 2. Replace first occurrence of "var data = initHelper();"
+    -- 3. Replace second occurrence of "var data = initHelper();"
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function initHelper() {\\n  return {};\\n}", "newText": ""}, {"oldText": "var data = initHelper();", "newText": "var data = {};"}, {"oldText": "var data = initHelper();", "newText": "var data = {};"}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local content = table.concat(output, "\n")
+
+  -- Verify all three edits succeeded:
+  -- 1. initHelper function should be gone
+  h.eq(content:find("function initHelper"), nil, "initHelper function should be deleted")
+
+  -- 2. Both "var data = initHelper();" should be replaced with "var data = {};"
+  h.eq(content:find("initHelper"), nil, "No initHelper calls should remain")
+
+  -- 3. Should have two "var data = {};" lines
+  local count = 0
+  for _ in content:gmatch("var data = {};") do
+    count = count + 1
+  end
+  h.eq(count, 2, "Should have exactly 2 'var data = {};' lines")
+end
+
+T["Sequential Edits with Ambiguous Patterns"]["handles Go-style sequential edits with tabs and identical lines"] = function()
+  child.lua([[
+    -- Closer to the actual Go code with tabs and realistic structure
+    local initial = "package main\n\nfunc initAPIKeys() map[string]string {\n\treturn make(map[string]string)\n}\n\nfunc handlePrompt() {\n\tapiKeys := initAPIKeys()\n\tprocess(apiKeys)\n}\n\nfunc handleService() {\n\tapiKeys := initAPIKeys()\n\tprocess(apiKeys)\n}"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    -- Simulate exact scenario: delete function, then replace 2 identical calls
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "func initAPIKeys() map[string]string {\\n\\treturn make(map[string]string)\\n}", "newText": ""}, {"oldText": "\\tapiKeys := initAPIKeys()", "newText": "\\tapiKeys := make(map[string]string)"}, {"oldText": "\\tapiKeys := initAPIKeys()", "newText": "\\tapiKeys := make(map[string]string)"}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local content = table.concat(output, "\n")
+
+  -- Function should be deleted
+  h.eq(content:find("func initAPIKeys"), nil, "initAPIKeys function should be deleted")
+
+  -- Both calls should be replaced
+  h.eq(content:find("initAPIKeys()"), nil, "No initAPIKeys() calls should remain")
+
+  -- Should have two "apiKeys := make(map[string]string)" lines
+  local count = 0
+  for _ in content:gmatch("apiKeys := make%(map%[string%]string%)") do
+    count = count + 1
+  end
+  h.eq(count, 2, "Should have exactly 2 'apiKeys := make(map[string]string)' lines")
+end
+
+-- Comprehensive real-world tests with mixed edit types
+T["Comprehensive Real-World Tests"] = new_set()
+
+T["Comprehensive Real-World Tests"]["C language: substring replacements then complex block edits"] = function()
+  child.lua([[
+    -- Real-world C code: refactoring error handling from printf to proper logging
+    local initial = "#include <stdio.h>\n#include <stdlib.h>\n\nint process_data(int *data, int size) {\n    if (data == NULL) {\n        printf(\"Error: NULL pointer\\n\");\n        return -1;\n    }\n    if (size <= 0) {\n        printf(\"Error: Invalid size\\n\");\n        return -1;\n    }\n\n    int result = 0;\n    for (int i = 0; i < size; i++) {\n        result += data[i];\n        printf(\"Processing item %d\\n\", i);\n    }\n\n    printf(\"Success: Processed %d items\\n\", size);\n    return result;\n}"
+
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "printf(", "newText": "log_message(", "replaceAll": true}, {"oldText": "int process_data(int *data, int size) {\\n    if (data == NULL) {\\n        log_message(\\"Error: NULL pointer\\\\n\\");\\n        return -1;\\n    }\\n    if (size <= 0) {\\n        log_message(\\"Error: Invalid size\\\\n\\");\\n        return -1;\\n    }", "newText": "int process_data(int *data, int size) {\\n    if (data == NULL) {\\n        log_message(\\"Error: NULL pointer\\\\n\\");\\n        return ERR_NULL_POINTER;\\n    }\\n    if (size <= 0) {\\n        log_message(\\"Error: Invalid size: %%d\\\\n\\", size);\\n        return ERR_INVALID_SIZE;\\n    }"}, {"oldText": "    int result = 0;\\n    for (int i = 0; i < size; i++) {\\n        result += data[i];\\n        log_message(\\"Processing item %%d\\\\n\\", i);\\n    }", "newText": "    int result = 0;\\n    for (int i = 0; i < size; i++) {\\n        if (data[i] < 0) {\\n            log_message(\\"Warning: Negative value at index %%d\\\\n\\", i);\\n        }\\n        result += data[i];\\n        log_message(\\"Debug: Processing item %%d with value %%d\\\\n\\", i, data[i]);\\n    }"}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local content = table.concat(output, "\n")
+
+  -- Verify substring replacements: all printf should be replaced with log_message
+  h.eq(content:find("printf("), nil, "All printf calls should be replaced")
+  local log_count = 0
+  for _ in content:gmatch("log_message%(") do
+    log_count = log_count + 1
+  end
+  h.eq(log_count, 5, "Should have 5 log_message calls (4 original + 1 added in block edit)")
+
+  -- Verify complex block edits
+  h.expect_contains("ERR_NULL_POINTER", content, "Should use error constant instead of -1")
+  h.expect_contains("ERR_INVALID_SIZE", content, "Should use error constant for size")
+  h.expect_contains('log_message("Error: Invalid size: %d\\n", size)', content, "Should log size value")
+  h.expect_contains("if (data[i] < 0)", content, "Should add negative value check")
+  h.expect_contains('log_message("Warning: Negative value', content, "Should add warning log")
+  h.expect_contains(
+    'log_message("Debug: Processing item %d with value %d\\n", i, data[i])',
+    content,
+    "Should enhance debug logging"
+  )
+end
+
+T["Comprehensive Real-World Tests"]["Go language: block edits then block replaceAll then substring replacements"] = function()
+  child.lua([[
+    -- Real-world Go code: refactoring HTTP handler with better error handling and renaming
+    local initial = "package api\n\nimport (\n    \"encoding/json\"\n    \"net/http\"\n)\n\nfunc HandleUser(w http.ResponseWriter, r *http.Request) {\n    if r.Method != \"GET\" {\n        http.Error(w, \"Method not allowed\", 405)\n        return\n    }\n\n    userID := r.URL.Query().Get(\"id\")\n    if userID == \"\" {\n        http.Error(w, \"Missing user ID\", 400)\n        return\n    }\n\n    user := getUser(userID)\n    json.NewEncoder(w).Encode(user)\n}\n\nfunc getUser(id string) map[string]string {\n    return map[string]string{\"id\": id, \"name\": \"John\"}\n}"
+
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "edit_tool_exp",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "    if r.Method != \\"GET\\" {\\n        http.Error(w, \\"Method not allowed\\", 405)\\n        return\\n    }", "newText": "    if r.Method != \\"GET\\" {\\n        respondError(w, http.StatusMethodNotAllowed, \\"Method not allowed\\")\\n        return\\n    }"}, {"oldText": "HandleUser", "newText": "HandleUserRequest", "replaceAll": true}, {"oldText": "getUser", "newText": "fetchUserByID", "replaceAll": true}, {"oldText": "    userID := r.URL.Query().Get(\\"id\\")\\n    if userID == \\"\\" {\\n        http.Error(w, \\"Missing user ID\\", 400)\\n        return\\n    }\\n\\n    user := fetchUserByID(userID)\\n    json.NewEncoder(w).Encode(user)", "newText": "    userID := r.URL.Query().Get(\\"id\\")\\n    if userID == \\"\\" {\\n        respondError(w, http.StatusBadRequest, \\"Missing user ID\\")\\n        return\\n    }\\n\\n    user, err := fetchUserByID(userID)\\n    if err != nil {\\n        respondError(w, http.StatusInternalServerError, \\"Failed to fetch user\\")\\n        return\\n    }\\n\\n    respondJSON(w, http.StatusOK, user)", "replaceAll": false}, {"oldText": "func fetchUserByID(id string) map[string]string {\\n    return map[string]string{\\"id\\": id, \\"name\\": \\"John\\"}\\n}", "newText": "func fetchUserByID(id string) (map[string]string, error) {\\n    if id == \\"\\" {\\n        return nil, errors.New(\\"invalid user ID\\")\\n    }\\n    return map[string]string{\\"id\\": id, \\"name\\": \\"John\\"}, nil\\n}", "replaceAll": true}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    vim.g.codecompanion_yolo_mode = true
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local content = table.concat(output, "\n")
+
+  -- Verify block edits (first two edits)
+  h.expect_contains("respondError(w, http.StatusMethodNotAllowed", content, "Should use respondError helper")
+  h.expect_contains("user, err := fetchUserByID(userID)", content, "Should handle error from user fetch")
+  h.expect_contains("if err != nil", content, "Should check error")
+  h.expect_contains("respondJSON(w, http.StatusOK, user)", content, "Should use respondJSON helper")
+
+  -- Verify block replaceAll with newlines (third edit - function signature change)
+  h.expect_contains(
+    "func fetchUserByID(id string) (map[string]string, error)",
+    content,
+    "Should return error from function"
+  )
+  h.expect_contains('return nil, errors.New("invalid user ID")', content, "Should validate and return error")
+  h.expect_contains(
+    'return map[string]string{"id": id, "name": "John"}, nil',
+    content,
+    "Should return nil error on success"
+  )
+
+  -- Verify substring replacements (last two edits - renaming)
+  h.eq(content:find("HandleUser%("), nil, "Old function name HandleUser should not exist")
+  h.eq(content:find("getUser%("), nil, "Old function name getUser should not exist")
+
+  local handle_count = 0
+  for _ in content:gmatch("HandleUserRequest") do
+    handle_count = handle_count + 1
+  end
+  h.eq(handle_count, 1, "Should have exactly 1 HandleUserRequest (function definition)")
+
+  local fetch_count = 0
+  for _ in content:gmatch("fetchUserByID") do
+    fetch_count = fetch_count + 1
+  end
+  h.eq(fetch_count, 2, "Should have exactly 2 fetchUserByID (definition + call)")
+end
+
 return T
