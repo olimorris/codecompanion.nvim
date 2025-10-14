@@ -1,5 +1,3 @@
-local log = require("codecompanion.utils.log")
-
 local M = {}
 local fmt = string.format
 
