@@ -22,15 +22,53 @@ function M.format_helpful_error(failed_result, original_edits)
     return "Unknown error occurred during edit processing"
   end
 
+  -- Handle missing required fields
+  if failed_result.error == "missing_oldText" then
+    append(fmt("Edit #%d failed: Missing required field 'oldText'", failed_edit_index))
+    append(
+      "",
+      "CRITICAL ERROR: Every edit MUST have both 'oldText' and 'newText' fields.",
+      "",
+      "Check your JSON structure:",
+      '✓ Correct: {"oldText": "text to find", "newText": "replacement text"}',
+      '✗ Wrong: {"newText": "replacement text"}  ← Missing oldText!',
+      "",
+      "Common causes:",
+      "- Putting 'filepath' or 'explanation' inside the edits array (should be at top level)",
+      "- Forgetting to include the text you want to find/replace",
+      "- Malformed JSON structure"
+    )
+    return table.concat(error_parts, "\n")
+  end
+
+  if failed_result.error == "missing_newText" then
+    append(fmt("Edit #%d failed: Missing required field 'newText'", failed_edit_index))
+    append(
+      "",
+      "CRITICAL ERROR: Every edit MUST have both 'oldText' and 'newText' fields.",
+      "",
+      "Check your JSON structure:",
+      '✓ Correct: {"oldText": "text to find", "newText": "replacement text"}',
+      '✗ Wrong: {"oldText": "text to find"}  ← Missing newText!',
+      "",
+      'Note: newText can be an empty string "" for deletions, but the field must exist.'
+    )
+    return table.concat(error_parts, "\n")
+  end
+
   -- Dynamic parts
   append(fmt("Edit #%d failed: %s", failed_edit_index, failed_result.error))
 
   -- Add context about the failed edit
   local old_text_preview = failed_edit.oldText
-  if #old_text_preview > 100 then
+  if old_text_preview and #old_text_preview > 100 then
     old_text_preview = old_text_preview:sub(1, 100) .. "..."
   end
-  append(fmt("Failed edit was looking for: %q", old_text_preview))
+  if old_text_preview then
+    -- Use %s with manual escaping instead of %q to avoid misleading display of tabs as \9
+    local escaped_preview = old_text_preview:gsub("\t", "\\t"):gsub("\n", "\\n"):gsub("\r", "\\r")
+    append(fmt("Failed edit was looking for: %s", escaped_preview))
+  end
 
   -- Handle specific error types
   if failed_result.error == "ambiguous_matches" and failed_result.matches then
@@ -85,7 +123,14 @@ function M.format_helpful_error(failed_result, original_edits)
 
   -- Add information about successful edits if any
   if failed_result.partial_results and #failed_result.partial_results > 0 then
-    append("", fmt("Note: %d edit(s) before this one completed successfully.", #failed_result.partial_results))
+    append(
+      "",
+      fmt(
+        "Note: %d edit(s) before this one were processed successfully, but NO changes were written to the file because this edit failed.",
+        #failed_result.partial_results
+      ),
+      "The file remains unchanged. All edits must succeed for any changes to be applied."
+    )
   end
 
   return table.concat(error_parts, "\n")
