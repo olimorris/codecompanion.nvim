@@ -162,35 +162,117 @@ end
 
 local SYSTEM_PROMPT = [[Use edit_tool_exp for safe, reliable file editing with advanced capabilities.
 
-## Basic Format:
+# Quick Reference – Basic Usage
+```json
 {
   "filepath": "path/to/file.js",
   "edits": [
     {
-      "oldText": "function getName() {\n  return this.name;\n}",
-      "newText": "function getFullName() {\n  return this.firstName + ' ' + this.lastName;\n}",
+      "oldText": "function getName() {\n return this.name;\n}",
+      "newText": "function getFullName() {\n return this.firstName + ' ' + this.lastName;\n}",
       "replaceAll": false
     }
   ],
   "dryRun": false,
-  "mode": "append"
+  "mode": "append",
+  "explanation": "Additional notes"
 }
+```
 
-## Core Parameters:
-- **filepath**: Target file path
-- **edits**: Array of edit operations (processed sequentially)
-- **dryRun**: true (preview) | false (apply) - Always start with false unless user specifically requests a dry run
-- **mode**: "append" (default) | "overwrite" (replace entire file)
-- **explanation**: Optional description of changes
+# CRITICAL SCHEMA REQUIREMENTS
+**EVERY edit MUST have BOTH oldText AND newText - NO EXCEPTIONS**
+
+Common mistakes that will cause FAILURE:
+❌ Missing oldText field (required!)
+❌ Missing newText field (required!)
+❌ Putting "filepath" inside edits array (it goes at top level)
+❌ Putting "explanation" inside edits array (it goes at top level)
+❌ Making "edits" a string instead of an array
+❌ Using single quotes instead of double quotes
+
+Correct structure:
+✓ filepath: at TOP LEVEL
+✓ edits: ARRAY of objects at TOP LEVEL
+✓ Each edit object: {"oldText": "...", "newText": "...", "replaceAll": false}
+✓ explanation: at TOP LEVEL (optional)
+
+# Parameters, Rules, and Best Practices
+- **filepath**: Required. Top-level field. File to edit.
+- **edits**: Required. Top-level ARRAY (not string). Each edit needs "oldText" AND "newText".
+- **oldText**: REQUIRED in every edit. Exact text to find. Cannot be empty for normal edits.
+- **newText**: REQUIRED in every edit. Replacement text. Can be empty for deletions.
+- **replaceAll**: Optional. Set to true for global replacements (substring mode if no newlines).
+- **dryRun**: Optional. Preview changes if true. Default false.
+- **mode**: Optional. "append" (default) or "overwrite" (replace entire file).
+- **explanation**: Optional. Top-level field. Description of changes.
+
 
 ## Edit Operations:
 
-### Standard Replacement:
+### Standard Replacement (Block/Line Matching):
 {
   "oldText": "exact text to find",
   "newText": "replacement text",
   "replaceAll": false  // true to replace ALL occurrences
 }
+
+### Substring Replacement (Token/Pattern Matching):
+When `replaceAll: true` and `oldText` contains NO newlines, the tool automatically uses substring matching for efficient token/keyword replacement:
+
+{
+  "oldText": "var ",
+  "newText": "let ",
+  "replaceAll": true
+}
+
+**Behavior:**
+- Finds ALL plain-text occurrences of oldText within the file (no regex)
+- Does NOT require full-line match - replaces within lines
+- Perfect for: keyword changes (var→let), API renames (oldAPI.→newAPI.), token updates
+- Limit: 1000 matches maximum for performance
+- Must NOT contain newlines in oldText
+
+**Examples:**
+```
+// Replace all var declarations with let
+{ "oldText": "var ", "newText": "let ", "replaceAll": true }
+
+// Update API namespace
+{ "oldText": "oldNS.", "newText": "newNS.", "replaceAll": true }
+
+// Remove trailing spaces
+{ "oldText": "TODO: ", "newText": "DONE: ", "replaceAll": true }
+```
+
+**CRITICAL WARNING - Overlapping Patterns:**
+When using multiple substring replacements, patterns can overlap and cause double replacements!
+
+**Bad Example (WILL CAUSE BUGS):**
+```
+// DON'T DO THIS - 'util' will match inside 'cc_diff_utils'!
+{ "oldText": "diff_utils", "newText": "cc_diff_utils", "replaceAll": true }
+{ "oldText": "util", "newText": "cc_util", "replaceAll": true }
+// Result: cc_diff_utils → cc_diff_cc_utils (WRONG!)
+```
+
+**Good Example (Use specific patterns):**
+```
+// DO THIS - Use word boundaries or delimiters
+{ "oldText": "local diff_utils", "newText": "local cc_diff_utils", "replaceAll": true }
+{ "oldText": "local util ", "newText": "local cc_util ", "replaceAll": true }
+// Or combine into one edit with full context
+```
+
+**Rule:** If newText from Edit #1 contains oldText from Edit #2, you have overlapping patterns!
+- Check: Does "cc_diff_utils" contain "util"? YES → Will cause double replacement
+- Solution: Use more specific patterns that won't match the replaced text
+- Alternative: Make separate edit_tool_exp calls for each rename instead of batching
+
+**NOT for substring mode:**
+- Multi-line text (use block matching instead)
+- Structural changes (functions, classes)
+- When you need indentation/whitespace context
+- Overlapping patterns (causes double replacements)
 
 ### File Boundary Operations:
 - **Start of file**: Use oldText: "^" or "<<START>>"
@@ -217,9 +299,11 @@ local SYSTEM_PROMPT = [[Use edit_tool_exp for safe, reliable file editing with a
 
 ## Smart Matching Features:
 - **Exact matching**: Tries exact text first
+- **Substring matching**: For replaceAll with single-line patterns (automatic)
 - **Whitespace tolerance**: Handles spacing/indentation differences
 - **Newline variants**: Works with/without trailing newlines (fixes echo "text" > file issues)
 - **Block anchoring**: Uses first/last lines for context
+- **Adaptive ambiguity resolution**: If matches are too similar, tries next strategy automatically
 - **Conflict detection**: Prevents overlapping edits
 
 **CRITICAL JSON REQUIREMENTS - TOOL WILL FAIL IF NOT FOLLOWED**:
@@ -292,16 +376,28 @@ local SYSTEM_PROMPT = [[Use edit_tool_exp for safe, reliable file editing with a
   ]
 }
 
+### Substring Replacement Across File:
+{
+  "filepath": "src/app.js",
+  "edits": [
+    { "oldText": "var ", "newText": "let ", "replaceAll": true }
+  ]
+}
+
 ### Add to File Start:
 {
   "filepath": "script.py",
   "edits": [{ "oldText": "^", "newText": "#!/usr/bin/env python3\n" }]
 }
 
-### Replace All Occurrences:
+### Block Replace All (Multi-line):
 {
   "filepath": "legacy.js",
-  "edits": [{ "oldText": "var ", "newText": "let ", "replaceAll": true }]
+  "edits": [{
+    "oldText": "function oldHandler() {\n  return false;\n}",
+    "newText": "function oldHandler() {\n  return true;\n}",
+    "replaceAll": true
+  }]
 }
 
 ## Common Issues & Solutions:
@@ -317,17 +413,19 @@ local SYSTEM_PROMPT = [[Use edit_tool_exp for safe, reliable file editing with a
 - **Remember**: oldText should match file content exactly, not what you see in editors with line numbers
 
  **"Ambiguous matches found"**
-- **DEFAULT BEHAVIOR**: When multiple identical matches exist, the tool automatically edits the FIRST occurrence
-- **To edit a different occurrence**: Include more surrounding context in oldText to make it unique
-- **To edit ALL occurrences**: Use replaceAll: true
+- **NEW BEHAVIOR**: When matches are too similar, the tool tries the next matching strategy automatically for better disambiguation
+- **For substring replacement**: Use replaceAll: true to replace ALL occurrences at once
+- **For targeted edits**: Include more surrounding context in oldText to make it unique
 
 **Example - Multiple identical function definitions:**
 ```
-// If file has multiple: function process() { ... }
-// This edits the FIRST occurrence:
-{ "oldText": "function process() {", "newText": "function process() {\n  // updated" }
+// Strategy 1 finds multiple similar matches → tries strategy 2 automatically
+// Strategy 2 (block anchor) might find unique match using context
 
-// To edit a specific occurrence, add context:
+// To edit ALL occurrences at once:
+{ "oldText": "function process() {", "newText": "function process() {\n  // updated", "replaceAll": true }
+
+// To edit a specific occurrence, add unique context:
 { "oldText": "class DataHandler {\n  function process() {", "newText": "class DataHandler {\n  function process() {\n    // updated specific one" }
 ```
 
@@ -419,6 +517,86 @@ local function write_file_content(filepath, content, file_info)
   return true, nil
 end
 
+---Separate edits into substring replaceAll and other types
+---@param edits table[] Array of all edit operations
+---@return table[], table[] (with original indices preserved)
+local function separate_edits_by_type(edits)
+  local substring_edits = {}
+  local other_edits = {}
+
+  for i, edit in ipairs(edits) do
+    -- Substring edits are: replaceAll=true AND single-line (no newlines in oldText)
+    if edit.replaceAll and edit.oldText and not edit.oldText:find("\n") then
+      table.insert(substring_edits, { edit = edit, original_index = i })
+    else
+      table.insert(other_edits, { edit = edit, original_index = i })
+    end
+  end
+
+  log:debug("[Edit Tool Exp] Separated edits: %d substring, %d block/single", #substring_edits, #other_edits)
+
+  return substring_edits, other_edits
+end
+
+---Process substring replaceAll edits in parallel to avoid overlaps
+---Finds all matches in original content, then applies all replacements at once
+---@param content string The original content
+---@param substring_edits table[] Array of substring replaceAll edits
+---@return string|nil The content with all replacements applied, or nil on error
+---@return string|nil Error message if processing failed
+local function process_substring_edits_parallel(content, substring_edits)
+  -- Collect all matches from original content
+  local all_replacements = {}
+
+  for i, edit in ipairs(substring_edits) do
+    log:debug("[Edit Tool Exp] Finding matches for substring edit %d: '%s'", i, edit.oldText:sub(1, 50))
+
+    -- Find all matches in ORIGINAL content
+    local matches = edit_tool_exp_strategies.substring_exact_match(content, edit.oldText)
+
+    if #matches == 0 then
+      return nil, fmt("Substring edit %d: pattern '%s' not found in file", i, edit.oldText)
+    end
+
+    log:debug("[Edit Tool Exp] Found %d matches for pattern '%s'", #matches, edit.oldText:sub(1, 50))
+
+    -- Store all replacements with their positions
+    for _, match in ipairs(matches) do
+      table.insert(all_replacements, {
+        start_pos = match.start_pos,
+        end_pos = match.end_pos,
+        old_text = edit.oldText,
+        new_text = edit.newText,
+        edit_index = i,
+      })
+    end
+  end
+
+  -- Sort replacements by position (descending) to maintain positions during replacement
+  table.sort(all_replacements, function(a, b)
+    return a.start_pos > b.start_pos
+  end)
+
+  log:debug("[Edit Tool Exp] Applying %d total replacements in parallel", #all_replacements)
+
+  -- Apply all replacements from end to start
+  local result_content = content
+  for _, replacement in ipairs(all_replacements) do
+    local before = result_content:sub(1, replacement.start_pos - 1)
+    local after = result_content:sub(replacement.end_pos + 1)
+    result_content = before .. replacement.new_text .. after
+
+    log:trace(
+      "[Edit Tool Exp] Applied replacement at pos %d: '%s' -> '%s'",
+      replacement.start_pos,
+      replacement.old_text:sub(1, 20),
+      replacement.new_text:sub(1, 20)
+    )
+  end
+
+  return result_content, nil
+end
+
 ---Process multiple edits sequentially
 ---@param content string The current file content
 ---@param edits table[] The array of edits
@@ -429,6 +607,52 @@ local function process_edits_sequentially(content, edits, options)
   local current_content = content
   local results = {}
   local strategies_used = {}
+
+  -- Step 1: Separate edits by type (substring vs block/single)
+  local substring_edits, other_edits = separate_edits_by_type(edits)
+
+  -- Step 2: Process all substring replaceAll edits in parallel (if any)
+  if #substring_edits > 0 then
+    log:debug("[Edit Tool Exp] Processing %d substring replaceAll edits in parallel", #substring_edits)
+
+    local substring_edit_list = vim.tbl_map(function(item)
+      return item.edit
+    end, substring_edits)
+
+    local parallel_result, parallel_error = process_substring_edits_parallel(current_content, substring_edit_list)
+
+    if not parallel_result then
+      return {
+        success = false,
+        error = "substring_parallel_processing_failed",
+        message = parallel_error,
+      }
+    end
+
+    current_content = parallel_result
+
+    -- Record results for all substring edits
+    for _, item in ipairs(substring_edits) do
+      table.insert(results, {
+        edit_index = item.original_index,
+        strategy = "substring_exact_match_parallel",
+        confidence = 1.0,
+        selection_reason = "parallel_processing",
+        auto_selected = true,
+      })
+      table.insert(strategies_used, "substring_exact_match_parallel")
+    end
+
+    log:info(
+      "[Edit Tool Exp] Successfully applied %d substring edits in parallel (prevents overlaps)",
+      #substring_edits
+    )
+  end
+
+  -- Step 3: Process block/single edits sequentially
+  edits = vim.tbl_map(function(item)
+    return item.edit
+  end, other_edits)
 
   -- Handle empty file case
   if current_content == "" and #edits == 1 and (edits[1].oldText == "" or edits[1].oldText == nil) then
@@ -484,8 +708,33 @@ local function process_edits_sequentially(content, edits, options)
   for i, edit in ipairs(edits) do
     log:debug("[Edit Tool Exp] Processing edit %d/%d", i, #edits)
 
+    -- Validate required fields
+    if not edit.oldText and not (current_content == "" or options.mode == "overwrite") then
+      return {
+        success = false,
+        failed_at_edit = i,
+        error = "missing_oldText",
+        partial_results = results,
+        message = "Edit #"
+          .. i
+          .. " is missing required field 'oldText'. Every edit MUST have both 'oldText' and 'newText' fields.",
+      }
+    end
+
+    if not edit.newText and edit.newText ~= "" then
+      return {
+        success = false,
+        failed_at_edit = i,
+        error = "missing_newText",
+        partial_results = results,
+        message = "Edit #"
+          .. i
+          .. " is missing required field 'newText'. Every edit MUST have both 'oldText' and 'newText' fields.",
+      }
+    end
+
     -- Find matches using edit tool exp strategies
-    local match_result = edit_tool_exp_strategies.find_best_match(current_content, edit.oldText)
+    local match_result = edit_tool_exp_strategies.find_best_match(current_content, edit.oldText, edit.replaceAll)
 
     if not match_result.success then
       return {
@@ -740,10 +989,19 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   log:debug("[Edit Tool Exp] Starting buffer edit for buffer: %d", bufnr)
 
+  -- NOTE: Ensure the buffer is loaded before accessing its contents.
+  -- This addresses an issue with snacks.nvim, which may leave buffers unloaded when opening multiple files.
+  if not api.nvim_buf_is_loaded(bufnr) then
+    log:trace("[Edit Tool Exp] Buffer %d not loaded, loading now", bufnr)
+    vim.fn.bufload(bufnr)
+  end
+
   -- Get current buffer content
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local current_content = table.concat(lines, "\n")
   local original_content = vim.deepcopy(lines)
+
+  log:debug("[Edit Tool Exp] Buffer content loaded: %d lines, %d bytes", #lines, #current_content)
 
   -- Track buffer metadata
   local file_info = {
@@ -875,7 +1133,7 @@ return {
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@param output_handler function Async callback for completion
-    ---@return nil
+    ---@return nil|table
     function(self, args, input, output_handler)
       log:debug("[Edit Tool Exp] Execution started for: %s", args.filepath)
 

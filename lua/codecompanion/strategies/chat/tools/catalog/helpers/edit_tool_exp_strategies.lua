@@ -693,7 +693,64 @@ local function get_meaningful_anchor(lines, from_end)
   return vim.trim(lines[start_idx]), start_idx
 end
 
----Strategy 4: Block anchor using first and last lines
+---Strategy 4: Substring exact match for replaceAll operations
+---@param content string The content to search within
+---@param old_text string The substring to find all occurrences of
+---@return table[] Array of matches found using substring exact match
+function M.substring_exact_match(content, old_text)
+  local matches = {}
+
+  -- Only use for simple substring patterns (no newlines)
+  if old_text:find("\n") then
+    log:debug("[Substring Exact Match] Skipping: contains newlines")
+    return matches
+  end
+
+  if old_text == "" then
+    log:debug("[Substring Exact Match] Skipping: empty pattern")
+    return matches
+  end
+
+  local start = 1
+  local max_matches = 1000
+  local match_count = 0
+
+  log:debug("[Substring Exact Match] Searching for pattern: '%s'", old_text:sub(1, 50))
+
+  while match_count < max_matches do
+    local pos = content:find(old_text, start, true) -- plain text search
+    if not pos then
+      break
+    end
+
+    -- Convert byte position to line-based position
+    local line_num = select(2, content:sub(1, pos):gsub("\n", "\n")) + 1
+
+    table.insert(matches, {
+      start_pos = pos,
+      end_pos = pos + #old_text - 1,
+      start_line = line_num,
+      end_line = line_num,
+      matched_text = old_text,
+      confidence = 1.0,
+      strategy = "substring_exact_match",
+    })
+
+    match_count = match_count + 1
+    start = pos + #old_text -- Jump ahead by match length
+
+    log:trace("[Substring Exact Match] Found match %d at position %d (line %d)", match_count, pos, line_num)
+  end
+
+  if match_count >= max_matches then
+    log:warn("[Substring Exact Match] Hit limit of %d matches", max_matches)
+  end
+
+  log:debug("[Substring Exact Match] Found %d total matches", #matches)
+  return matches
+end
+
+---Strategy 5: Block anchor using first and last lines
 ---@param content string The content to search within
 ---@param old_text string The text block to find using anchor-based matching
 ---@return table[] Array of matches found using block anchor strategy
@@ -880,11 +937,13 @@ function M.block_anchor(content, old_text)
   return matches
 end
 
----Main strategy executor - tries strategies in order until success
+---Main strategy executor - tries strategies in order until confident match found
 ---@param content string The content to search within
 ---@param old_text string The text to find the best match for
+---@param replace_all boolean Whether this is a replaceAll operation
 ---@return table Result containing success status, matches, and strategy information
-function M.find_best_match(content, old_text)
+function M.find_best_match(content, old_text, replace_all)
+  replace_all = replace_all or false
   -- Early validation to prevent processing huge inputs
   if #content > 1000000 then -- 1MB limit
     log:warn("[Edit Tool Exp Strategies] Content too large (%d bytes), aborting", #content)
@@ -906,6 +965,7 @@ function M.find_best_match(content, old_text)
 
   local all_strategies = {
     { name = "exact_match", func = M.exact_match, min_confidence = 1.0 },
+    { name = "substring_exact_match", func = M.substring_exact_match, min_confidence = 1.0, only_replace_all = true },
     { name = "whitespace_normalized", func = M.whitespace_normalized, min_confidence = 0.95 },
     { name = "punctuation_normalized", func = M.punctuation_normalized, min_confidence = 0.93 },
     { name = "position_markers", func = M.position_markers, min_confidence = 1.0 },
@@ -913,7 +973,16 @@ function M.find_best_match(content, old_text)
     { name = "block_anchor", func = M.block_anchor, min_confidence = 0.6 },
   }
 
-  for _, strategy in ipairs(all_strategies) do
+  -- Keep track of best ambiguous match as fallback
+  local best_ambiguous_result = nil
+
+  for i, strategy in ipairs(all_strategies) do
+    -- Skip substring_exact_match if not replaceAll
+    if strategy.only_replace_all and not replace_all then
+      log:debug("[Edit Tool Exp Strategies] Skipping %s (only for replaceAll)", strategy.name)
+      goto continue
+    end
+
     log:debug("[Edit Tool Exp Strategies] Trying strategy: %s", strategy.name)
 
     -- Add timeout protection for each strategy
@@ -933,14 +1002,80 @@ function M.find_best_match(content, old_text)
     end, matches)
 
     if #good_matches > 0 then
-      log:debug("[Edit Tool Exp Strategies] Strategy %s succeeded with %d matches", strategy.name, #good_matches)
-      return {
-        success = true,
-        matches = good_matches,
-        strategy_used = strategy.name,
-        total_attempts = vim.tbl_keys(all_strategies),
-      }
+      log:debug("[Edit Tool Exp Strategies] Strategy %s found %d matches", strategy.name, #good_matches)
+
+      -- Check if this is the last strategy
+      local is_last_strategy = (i == #all_strategies)
+
+      -- Try to select best match - if ambiguous, continue to next strategy
+      local selection_result = M.select_best_match(good_matches, replace_all)
+
+      if selection_result.should_try_next then
+        -- Keep track of this as potential fallback
+        if not best_ambiguous_result then
+          best_ambiguous_result = {
+            matches = good_matches,
+            strategy_used = strategy.name,
+          }
+        end
+
+        if is_last_strategy then
+          -- Last strategy and ambiguous - use best match as fallback
+          log:debug("[Edit Tool Exp Strategies] Last strategy with ambiguous matches, using best match as fallback")
+          table.sort(good_matches, function(a, b)
+            if math.abs(a.confidence - b.confidence) > 0.01 then
+              return a.confidence > b.confidence
+            end
+            return (a.start_line or 0) < (b.start_line or 0)
+          end)
+          -- Return only the best match (first after sorting) to avoid re-selection ambiguity
+          return {
+            success = true,
+            matches = { good_matches[1] },
+            strategy_used = strategy.name,
+            total_attempts = vim.tbl_keys(all_strategies),
+            fallback_used = true,
+          }
+        else
+          log:debug("[Edit Tool Exp Strategies] Strategy %s matches too ambiguous, trying next strategy", strategy.name)
+          goto continue
+        end
+      end
+
+      if selection_result.success then
+        log:debug("[Edit Tool Exp Strategies] Strategy %s succeeded with confident match", strategy.name)
+        return {
+          success = true,
+          matches = good_matches,
+          strategy_used = strategy.name,
+          total_attempts = vim.tbl_keys(all_strategies),
+        }
+      end
     end
+
+    ::continue::
+  end
+
+  -- If we have ambiguous matches from any strategy, use them as last resort
+  if best_ambiguous_result then
+    log:debug(
+      "[Edit Tool Exp Strategies] All strategies exhausted, using best ambiguous result from %s",
+      best_ambiguous_result.strategy_used
+    )
+    table.sort(best_ambiguous_result.matches, function(a, b)
+      if math.abs(a.confidence - b.confidence) > 0.01 then
+        return a.confidence > b.confidence
+      end
+      return (a.start_line or 0) < (b.start_line or 0)
+    end)
+    -- Return only the best match (first after sorting) to avoid re-selection ambiguity
+    return {
+      success = true,
+      matches = { best_ambiguous_result.matches[1] },
+      strategy_used = best_ambiguous_result.strategy_used,
+      total_attempts = vim.tbl_keys(all_strategies),
+      fallback_used = true,
+    }
   end
 
   log:debug("[Edit Tool Exp Strategies] All strategies failed")
@@ -982,27 +1117,34 @@ function M.select_best_match(matches, replace_all)
   local best_match = matches[1]
   local second_best = matches[2]
 
-  -- If best match is significantly better, use it
-  if best_match.confidence - second_best.confidence > 0.15 then
+  -- Check if matches are too ambiguous - signal to try next strategy
+  if math.abs(best_match.confidence - second_best.confidence) < 0.15 then
+    log:debug(
+      "[Select Best Match] Ambiguous: best=%.2f, second=%.2f (diff=%.2f)",
+      best_match.confidence,
+      second_best.confidence,
+      math.abs(best_match.confidence - second_best.confidence)
+    )
+
     return {
-      success = true,
-      selected = best_match,
-      selection_reason = "high_confidence_winner",
-      auto_selected = true,
+      success = false,
+      error = "ambiguous_matches",
+      should_try_next = true,
+      matches = matches,
+      suggestion = "Matches are too similar, trying next strategy for better disambiguation",
     }
   end
 
-  -- When matches are very similar (like identical method signatures),
-  -- select the first occurrence as documented in the system prompt
+  -- Clear winner - use it
   return {
     success = true,
     selected = best_match,
-    selection_reason = "first_occurrence_of_similar_matches",
+    selection_reason = "high_confidence_winner",
     auto_selected = true,
   }
 end
 
----Apply replacement to content using line-based operations
+---Apply replacement to content using line-based or byte-based operations
 ---@param content string The original content
 ---@param match table|table[] The match or matches to replace
 ---@param new_text string The replacement text
@@ -1018,13 +1160,38 @@ function M.apply_replacement(content, match, new_text)
     -- Multiple matches (replace_all case)
     log:debug("[DEBUG] Processing multiple matches: %d", #match)
 
-    -- All matches should already be line-based from the new exact_match function
+    -- Check if these are substring matches (have start_pos/end_pos)
+    local first_match = match[1]
+    if first_match.strategy == "substring_exact_match" and first_match.start_pos then
+      log:debug("[DEBUG] Using substring replacement mode")
+
+      -- Sort by position in reverse order (from end to start)
+      local sorted_matches = {}
+      for _, m in ipairs(match) do
+        table.insert(sorted_matches, m)
+      end
+      table.sort(sorted_matches, function(a, b)
+        return a.start_pos > b.start_pos
+      end)
+
+      -- Apply replacements from end to start to maintain positions
+      local current_content = content
+      for _, m in ipairs(sorted_matches) do
+        local before = current_content:sub(1, m.start_pos - 1)
+        local after = current_content:sub(m.end_pos + 1)
+        current_content = before .. new_text .. after
+        log:debug("[DEBUG] Replaced at pos %d-%d", m.start_pos, m.end_pos)
+      end
+
+      return current_content
+    end
+
+    -- Line-based replacement for other strategies
     local line_matches = {}
     for _, m in ipairs(match) do
       if m.start_line and m.end_line then
         table.insert(line_matches, m)
       else
-        -- Fallback for other strategies that might still use byte positions
         log:warn("[DEBUG] Found match without line positions, skipping: %s", m.strategy or "unknown")
       end
     end
@@ -1047,8 +1214,16 @@ function M.apply_replacement(content, match, new_text)
     log:debug("[DEBUG] match.start_line: %s, match.end_line: %s", tostring(match.start_line), tostring(match.end_line))
     log:debug("[DEBUG] match.strategy: %s", tostring(match.strategy))
 
+    -- Check if this is a substring match
+    if match.strategy == "substring_exact_match" and match.start_pos then
+      log:debug("[DEBUG] Using substring replacement for single match")
+      local before = content:sub(1, match.start_pos - 1)
+      local after = content:sub(match.end_pos + 1)
+      return before .. new_text .. after
+    end
+
     if match.start_line and match.end_line then
-      -- Line-based match (from new exact_match or other line-based strategies)
+      -- Line-based match (from exact_match or other line-based strategies)
       return apply_line_replacement(content_lines, match, new_text)
     else
       -- Fallback for strategies that might still use byte positions
