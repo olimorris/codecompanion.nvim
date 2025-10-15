@@ -264,7 +264,7 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Always Allow", "2 Allow", "3 Reject", "4 Cancel" })
+      local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
       if choice == 1 or choice == 2 then
         log:debug("Orchestrator:execute - Tool approved")
         if choice == 1 then
@@ -299,7 +299,6 @@ end
 function Orchestrator:cancel_pending_tools()
   while not self.queue:is_empty() do
     local pending_tool = self.queue:pop()
-    local previous_tool = self.tool
     self.tool = pending_tool
 
     -- Prepare handlers/output first
