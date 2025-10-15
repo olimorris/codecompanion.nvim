@@ -21,8 +21,8 @@ local CONSTANTS = {
 }
 
 ---Finalize window setup by applying the options and setting the filetype. This
----This ensures that any codecompanion specific ftplugin can run after the
----window options are set, allowing the plugin defaults to be overriden
+---This ensures that any codecompanion specific ftplugins can run after the
+---window options are set, allowing the plugin defaults to be overridden
 ---@param winnr number
 ---@param bufnr number
 ---@param opts table Window options to apply
