@@ -64,14 +64,7 @@ api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
   group = syntax_group,
   callback = function(args)
-    api.nvim_create_autocmd("BufEnter", {
-      buffer = args.buf,
-      group = syntax_group,
-      callback = function()
-        make_hl_syntax(args.buf)
-      end,
-      once = true,
-    })
+    make_hl_syntax(args.buf)
   end,
 })
 

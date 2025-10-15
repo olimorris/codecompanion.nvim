@@ -20,6 +20,18 @@ local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
 
+---Finalize window setup by applying the options and setting the filetype. This
+---This ensures that any codecompanion specific ftplugins can run after the
+---window options are set, allowing the plugin defaults to be overridden
+---@param winnr number
+---@param bufnr number
+---@param opts table Window options to apply
+---@return nil
+local function apply_window_config(winnr, bufnr, opts)
+  ui.set_win_options(winnr, opts)
+  api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
+end
+
 ---Set the LLM role based on the adapter
 ---@param role string|function
 ---@param adapter table
@@ -137,6 +149,7 @@ function UI:open(opts)
       zindex = 45,
     }
     self.winnr = api.nvim_open_win(self.chat_bufnr, true, win_opts)
+    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
   elseif window.layout == "vertical" then
     local position = window.position
     local full_height = window.full_height
@@ -163,6 +176,7 @@ function UI:open(opts)
     end
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
+    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
   elseif window.layout == "horizontal" then
     local position = window.position
     if position == nil or (position ~= "top" and position ~= "bottom") then
@@ -178,12 +192,13 @@ function UI:open(opts)
     vim.cmd("resize " .. height)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
+    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
   else
     self.winnr = api.nvim_get_current_win()
     api.nvim_set_current_buf(self.chat_bufnr)
+    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
   end
 
-  ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.chat_bufnr].textwidth = 0
 
   if not opts.toggled then
