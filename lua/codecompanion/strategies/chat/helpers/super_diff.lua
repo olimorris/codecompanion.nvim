@@ -89,14 +89,12 @@ local function group_and_deduplicate_files(tracked_files)
       for _, existing_op in ipairs(unique_files[normalized_key].operations) do
         if existing_op.id == op.id then
           duplicate = true
-          log:trace("[helpers::super_diff::group_and_deduplicate_files] Skipping duplicate operation: %s", op.id)
           break
         end
       end
       if not duplicate then
         table.insert(unique_files[normalized_key].operations, op)
       else
-        log:debug("[helpers::super_diff::group_and_deduplicate_files] Skipped duplicate operation %s", op.id)
       end
     end
   end
@@ -437,11 +435,6 @@ local function process_single_file(file_data, lines, diff_info)
   table.insert(lines, header)
   table.insert(lines, stats_line)
   table.insert(lines, "")
-  log:debug(
-    "[helpers::super_diff::process_single_file] Processing file %s with %d operations",
-    display_name,
-    #file_data.operations
-  )
   if #file_data.operations == 0 then
     table.insert(lines, "*No edit operations recorded*")
     table.insert(lines, "")
