@@ -64,7 +64,6 @@ api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
   group = syntax_group,
   callback = function(args)
-    -- Apply syntax highlighting immediately
     make_hl_syntax(args.buf)
   end,
 })
