@@ -24,7 +24,6 @@ end
 ---@param win_id number Window ID
 ---@return boolean
 local function is_suitable_window(win_id)
-  log:debug("[catalog::helpers::diff::create] Checking window %s", win_id)
   local cfg = api.nvim_win_get_config(win_id)
   -- Return false if it's floating (we want non-floating windows)
   return not ((cfg.relative ~= "" and cfg.relative ~= nil) or cfg.external == true)
@@ -67,7 +66,6 @@ end
 ---@param winnr number
 ---@return number bufnr
 local function use_buffer_in_window(bufnr, winnr)
-  log:debug("[catalog::helpers::diff::create] Using buffer %d in window %d", bufnr, winnr)
   pcall(api.nvim_set_current_win, winnr)
 
   return bufnr
@@ -78,15 +76,12 @@ end
 ---@param winnr number
 ---@return number|nil bufnr
 local function set_buffer_in_window(bufnr, winnr)
-  log:debug("[catalog::helpers::diff::create] Setting buffer %d in window %d", bufnr, winnr)
-
   local ok = pcall(api.nvim_win_set_buf, winnr, bufnr)
   if ok then
     pcall(api.nvim_set_current_win, winnr)
     return bufnr
   end
 
-  log:debug("[catalog::helpers::diff::create] Failed to set buffer %d in window %d", bufnr, winnr)
   return nil
 end
 
@@ -100,7 +95,6 @@ local function create_buffer_in_window(filepath, winnr)
     return nil
   end
 
-  log:debug("[catalog::helpers::diff::create] Creating buffer for file: %s in window %d", filepath, winnr)
   local ok = pcall(api.nvim_win_call, winnr, function()
     vim.cmd.edit(vim.fn.fnameescape(filepath))
     vim.schedule(function()
@@ -320,11 +314,6 @@ function M.create(bufnr_or_filepath, diff_id, opts)
   log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
   if vim.g.codecompanion_yolo_mode or not config.display.diff.enabled then
-    log:trace(
-      "[catalog::helpers::diff::create] Skipping diff - yolo_mode=%s, enabled=%s",
-      tostring(vim.g.codecompanion_yolo_mode),
-      tostring(config.display.diff.enabled)
-    )
     return nil
   end
 
