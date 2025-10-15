@@ -1,5 +1,7 @@
 local Path = require("plenary.path")
 local helpers = require("codecompanion.strategies.chat.helpers")
+local tool_helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
+
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -131,7 +133,7 @@ return {
     type = "function",
     ["function"] = {
       name = "read_file",
-      description = "Read the contents of a file.\n\nYou must specify the line range you're interested in. If the file contents returned are insufficient for your task, you may call this tool again to retrieve more content.",
+      description = "Read the contents of a file.\n\nYou must specify the line range you're interested in. If the file contents returned are insufficient for your task, you may call this tool again to retrieve more content. You do not need to know the full path to run this file.",
       parameters = {
         type = "object",
         properties = {
@@ -200,11 +202,13 @@ return {
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.ReadFile
     ---@param tools CodeCompanion.Tools
-    ---@param cmd table
+    ---@param opts table
     ---@return nil
-    rejected = function(self, tools, cmd)
-      local chat = tools.chat
-      chat:add_tool_output(self, "**Read File Tool**: The user declined to execute")
+    ---@return nil
+    rejected = function(self, tools, cmd, opts)
+      local message = "The user rejected the read file tool"
+      opts = vim.tbl_extend("force", { message = message }, opts or {})
+      tool_helpers.rejected(self, tools, cmd, opts)
     end,
   },
 }

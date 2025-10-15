@@ -1,7 +1,7 @@
 --|---------|---------|---------|---------|---------|---------|---------|---------|
 01|                                                                                
 02|     ┌──────────────────────────────── Diff─────────────────────────────────┐   
-03|     │    Keymaps: [Accept: gda] | [Reject: gdr] | [Always Accept: gdy]     │   
+03|     │    Keymaps: [Always Accept: gdy] | [Accept: gda] | [Reject: gdr]     │   
 04|     │    1 class UserManager {                                             │   
 05|     │    2   constructor() {                                               │   
 06|     │    3     this.users = [];                                            │   
