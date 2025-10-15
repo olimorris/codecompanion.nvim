@@ -1,4 +1,5 @@
 local Job = require("plenary.job")
+local helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -160,10 +161,12 @@ return {
     ---@param self CodeCompanion.Tool.GetChangedFiles
     ---@param tools CodeCompanion.Tools
     ---@param cmd table
+    ---@param opts table
     ---@return nil
-    rejected = function(self, tools, cmd)
-      local chat = tools.chat
-      chat:add_tool_output(self, "The user declined to get changed files")
+    rejected = function(self, tools, cmd, opts)
+      local message = "The user rejected the get changed files tool"
+      opts = vim.tbl_extend("force", { message = message }, opts or {})
+      helpers.rejected(self, tools, cmd, opts)
     end,
   },
 }

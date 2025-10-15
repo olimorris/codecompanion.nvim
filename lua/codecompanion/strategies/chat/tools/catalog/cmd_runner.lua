@@ -1,3 +1,4 @@
+local helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
@@ -108,17 +109,14 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tool CodeCompanion.Tools
+    ---@param tools CodeCompanion.Tools
     ---@param cmd table
     ---@param opts table
     ---@return nil
-    rejected = function(self, tool, cmd, opts)
-      opts = opts or {}
-      local rejection = fmt("The user rejected the execution of the `%s` command", self.args.cmd)
-      if opts.reason then
-        rejection = fmt('%s, with the reason: "%s"', rejection, opts.reason)
-      end
-      tool.chat:add_tool_output(self, rejection)
+    rejected = function(self, tools, cmd, opts)
+      local message = fmt("The user rejected the execution of the `%s` command", self.args.cmd)
+      opts = vim.tbl_extend("force", { message = message }, opts or {})
+      helpers.rejected(self, tools, cmd, opts)
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner
