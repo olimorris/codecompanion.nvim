@@ -152,14 +152,14 @@ local function place_diff_winbar(winnr)
   end
 
   local parts = {}
+  if keymaps_config.always_accept.modes.n then
+    table.insert(parts, "[Always Accept: " .. keymaps_config.always_accept.modes.n .. "]")
+  end
   if keymaps_config.accept_change.modes.n then
     table.insert(parts, "[Accept: " .. keymaps_config.accept_change.modes.n .. "]")
   end
   if keymaps_config.reject_change.modes.n then
     table.insert(parts, "[Reject: " .. keymaps_config.reject_change.modes.n .. "]")
-  end
-  if keymaps_config.always_accept.modes.n then
-    table.insert(parts, "[Always Accept (YOLO): " .. keymaps_config.always_accept.modes.n .. "]")
   end
 
   local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
