@@ -1,7 +1,7 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local tool_utils = require("codecompanion.utils.tool_transformers")
-local utils = require("codecompanion.utils.adapters")
 
 ---@type string|nil
 local response_id
@@ -276,7 +276,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -298,7 +298,7 @@ return {
       end
 
       -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
       if not ok then
         return nil

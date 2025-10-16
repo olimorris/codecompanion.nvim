@@ -1,7 +1,7 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
 return {
@@ -57,7 +57,7 @@ return {
     end,
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok and json.prompt_eval_count ~= nil and json.eval_count ~= nil then
@@ -123,7 +123,7 @@ return {
       end
 
       -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
       if not ok or not json.message then
