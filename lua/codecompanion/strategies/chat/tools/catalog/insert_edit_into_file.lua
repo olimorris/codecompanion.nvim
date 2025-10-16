@@ -79,7 +79,7 @@ end
 ---@return nil
 local function edit_file(action, chat, output_handler, opts)
   opts = opts or {}
-  local filepath = helpers.validate_and_normalize_filepath(action.filepath)
+  local filepath = helpers.validate_and_normalize_path(action.filepath)
   if not filepath then
     return output_handler({
       status = "error",
@@ -342,7 +342,7 @@ return {
     function(self, args, input, output_handler)
       log:debug("[Insert Edit Into File Tool] Execution started for: %s", args.filepath)
 
-      local bufnr = buf_utils.get_bufnr_from_filepath(args.filepath)
+      local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
         return edit_buffer(bufnr, self.chat, args, output_handler, self.tool.opts)
       else
@@ -392,7 +392,7 @@ return {
       local opts = config["insert_edit_into_file"].opts or {}
 
       local args = self.args
-      local bufnr = buf_utils.get_bufnr_from_filepath(args.filepath)
+      local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
         if opts.requires_approval.buffer then
           return true

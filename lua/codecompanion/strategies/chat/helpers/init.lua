@@ -111,10 +111,10 @@ function M.has_user_messages(messages)
   end)
 end
 
----Validate and normalize a filepath from tool args
+---Validate and normalize a path from tool args
 ---@param path string Raw path from tool args
 ---@return string|nil normalized_path Returns nil if path is invalid
-function M.validate_and_normalize_filepath(path)
+function M.validate_and_normalize_path(path)
   local stat = vim.uv.fs_stat(path)
   if stat then
     return vim.fs.normalize(path)

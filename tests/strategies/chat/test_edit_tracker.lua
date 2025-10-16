@@ -23,14 +23,14 @@ local T = new_set({
         end
 
         -- Helper to create edit info structure
-        function create_edit_info(tool_name, filepath, bufnr, original_content, new_content)
+        function create_edit_info(tool_name, path, bufnr, original_content, new_content)
           local info = {
             tool_name = tool_name or "test_tool",
             original_content = original_content or create_test_content()
           }
 
-          if filepath then
-            info.filepath = filepath
+          if path then
+            info.path = path
           elseif bufnr then
             info.bufnr = bufnr
           else
@@ -174,7 +174,7 @@ T["register_edit_operation - requires tool_name"] = function()
     edit_tracker.init(chat)
 
     local edit_info = {
-      filepath = "/test/path.lua",
+      path = "/test/path.lua",
       original_content = { "content" }
     }
     -- Missing tool_name
@@ -196,7 +196,7 @@ T["register_edit_operation - requires original_content"] = function()
 
     local edit_info = {
       tool_name = "test_tool",
-      filepath = "/test/path.lua"
+      path = "/test/path.lua"
     }
     -- Missing original_content
 
@@ -341,18 +341,18 @@ T["get_edit_operation - returns nil for non-existent operation"] = function()
   h.expect_truthy(result.key_is_nil)
 end
 
-T["get_edit_operations_for_file - returns operations for filepath"] = function()
+T["get_edit_operations_for_file - returns operations for path"] = function()
   child.lua([[
     edit_tracker.init(chat)
 
-    local filepath = "/test/specific.lua"
-    local edit_info1 = create_edit_info("tool1", filepath)
-    local edit_info2 = create_edit_info("tool2", filepath)
+    local path = "/test/specific.lua"
+    local edit_info1 = create_edit_info("tool1", path)
+    local edit_info2 = create_edit_info("tool2", path)
 
     edit_tracker.register_edit_operation(chat, edit_info1)
     edit_tracker.register_edit_operation(chat, edit_info2)
 
-    local operations = edit_tracker.get_edit_operations_for_file(chat, filepath)
+    local operations = edit_tracker.get_edit_operations_for_file(chat, path)
 
     _G.test_result = {
       operation_count = #operations,
@@ -534,7 +534,7 @@ T["start_tool_monitoring - sets up monitoring state"] = function()
   child.lua([[
     edit_tracker.init(chat)
 
-    local tool_args = { filepath = "test_monitor.lua" }
+    local tool_args = { path = "test_monitor.lua" }
     edit_tracker.start_tool_monitoring("test_tool", chat, tool_args)
 
     _G.test_result = {

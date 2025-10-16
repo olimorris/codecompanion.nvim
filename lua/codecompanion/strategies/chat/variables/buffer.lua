@@ -44,8 +44,8 @@ function Variable._find_buffer(target)
     end
   end
 
-  -- Try to find by filepath even if not loaded
-  return buf_utils.get_bufnr_from_filepath(target)
+  -- Try to find by path even if not loaded
+  return buf_utils.get_bufnr_from_path(target)
 end
 
 ---Find buffer by display option (filename, relative path, etc.) - Instance method

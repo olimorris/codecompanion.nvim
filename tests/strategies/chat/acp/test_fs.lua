@@ -22,7 +22,7 @@ T["write_text_file uses buffer when present"] = function()
   local result = child.lua([[
     -- Prepare mocks
     package.loaded["codecompanion.utils.buffers"] = {
-      get_bufnr_from_filepath = function(path) return 42 end,
+      get_bufnr_from_path = function(path) return 42 end,
       write = function(bufnr, content)
         _G._buf_write = { bufnr = bufnr, content = content, path = path }
       end,
@@ -57,7 +57,7 @@ T["write_text_file falls back to file write when no buffer"] = function()
   local result = child.lua([[
     -- Mocks: no buffer
     package.loaded["codecompanion.utils.buffers"] = {
-      get_bufnr_from_filepath = function(path) return nil end,
+      get_bufnr_from_path = function(path) return nil end,
       write = function() error("should not be called") end,
     }
 
@@ -86,7 +86,7 @@ end
 T["write_text_file returns error when buffer write fails"] = function()
   local result = child.lua([[
     package.loaded["codecompanion.utils.buffers"] = {
-      get_bufnr_from_filepath = function(path) return 7 end,
+      get_bufnr_from_path = function(path) return 7 end,
       write = function(bufnr, content) error("boom") end,
     }
 
@@ -111,7 +111,7 @@ end
 T["write_text_file returns error when file write fails"] = function()
   local result = child.lua([[
     package.loaded["codecompanion.utils.buffers"] = {
-      get_bufnr_from_filepath = function(path) return nil end,
+      get_bufnr_from_path = function(path) return nil end,
       write = function() end,
     }
 

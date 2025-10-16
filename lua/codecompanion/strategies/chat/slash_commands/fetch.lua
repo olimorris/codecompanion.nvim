@@ -35,7 +35,7 @@ local function get_cached_files()
       local file = Path:new(f):read()
       local content = vim.json.decode(file)
       return {
-        filepath = f,
+        path = f,
         content = content.data,
         filename = vim.fn.fnamemodify(f, ":t"),
         url = content.url,
@@ -133,7 +133,7 @@ local providers = {
     local items = vim.tbl_map(function(file)
       return {
         text = file.display,
-        file = file.filepath,
+        file = file.path,
         url = file.url,
         content = file.content,
         timestamp = file.timestamp,
@@ -182,7 +182,7 @@ local providers = {
             url = entry.url,
             ordinal = entry.display,
             display = entry.display,
-            filename = entry.filepath,
+            filename = entry.path,
           }
         end,
       })

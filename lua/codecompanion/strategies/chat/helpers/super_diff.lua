@@ -33,10 +33,10 @@ local CONSTANTS = {
 local M = {}
 
 ---Get file extension for syntax highlighting
----@param filepath string
+---@param path string
 ---@return string
-local function get_file_extension(filepath)
-  local ext = filepath:match("%.([^%.]+)$")
+local function get_file_extension(path)
+  local ext = path:match("%.([^%.]+)$")
   if not ext then
     return "text"
   end
@@ -60,7 +60,7 @@ local function format_timestamp(timestamp)
   return os.date("%H:%M:%S", seconds)
 end
 
--- Helper function to group files by filepath and deduplicate operations
+-- Helper function to group files by path and deduplicate operations
 ---@param tracked_files table
 ---@return table unique_files
 local function group_and_deduplicate_files(tracked_files)
@@ -68,14 +68,14 @@ local function group_and_deduplicate_files(tracked_files)
   for key, tracked_file in pairs(tracked_files) do
     -- Create a normalized key based on file path
     local normalized_key
-    if tracked_file.filepath then
-      local p = Path:new(tracked_file.filepath)
+    if tracked_file.path then
+      local p = Path:new(tracked_file.path)
       normalized_key = "file:" .. p:expand()
     else
       normalized_key = "buffer:" .. (tracked_file.bufnr or "unknown")
     end
     if not unique_files[normalized_key] then
-      local display_name = tracked_file.filepath or ("Buffer " .. (tracked_file.bufnr or "unknown"))
+      local display_name = tracked_file.path or ("Buffer " .. (tracked_file.bufnr or "unknown"))
       unique_files[normalized_key] = {
         tracked_file = tracked_file,
         operations = {},
@@ -106,11 +106,9 @@ end
 ---@return table stats, string display_name, table tool_names
 local function calculate_file_stats(file_data)
   local tracked_file = file_data.tracked_file
-  local display_name = file_data.display_name
-    or tracked_file.filepath
-    or ("Buffer " .. (tracked_file.bufnr or "unknown"))
-  if tracked_file.filepath then
-    local p = Path:new(tracked_file.filepath)
+  local display_name = file_data.display_name or tracked_file.path or ("Buffer " .. (tracked_file.bufnr or "unknown"))
+  if tracked_file.path then
+    local p = Path:new(tracked_file.path)
     display_name = p:make_relative(vim.uv.cwd())
   end
 
@@ -158,8 +156,8 @@ end
 local function get_current_content(tracked_file)
   if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
     return api.nvim_buf_get_lines(tracked_file.bufnr, 0, -1, false)
-  elseif tracked_file.filepath and vim.uv.fs_stat(vim.fs.normalize(tracked_file.filepath)) then
-    return vim.fn.readfile(tracked_file.filepath)
+  elseif tracked_file.path and vim.uv.fs_stat(vim.fs.normalize(tracked_file.path)) then
+    return vim.fn.readfile(tracked_file.path)
   end
   return nil
 end
@@ -218,7 +216,7 @@ end
 ---@param display_name string
 ---@return table line_mappings
 local function add_diff_hunks(lines, diff_info, hunks, tracked_file, display_name)
-  local lang = tracked_file.filepath and get_file_extension(tracked_file.filepath) or "text"
+  local lang = tracked_file.path and get_file_extension(tracked_file.path) or "text"
   table.insert(lines, "**Current State (Accepted Changes):**")
   table.insert(lines, "```" .. lang)
   local code_content_start = #lines
@@ -351,7 +349,7 @@ local function process_rejected_operations(lines, diff_info, rejected_operations
               table.insert(lines, fmt("*%s*", operation.metadata.explanation))
             end
 
-            local lang = tracked_file.filepath and get_file_extension(tracked_file.filepath) or "text"
+            local lang = tracked_file.path and get_file_extension(tracked_file.path) or "text"
             table.insert(lines, "```" .. lang)
             local code_content_start = #lines
 
@@ -617,9 +615,9 @@ function M.setup_keymaps(bufnr, chat, file_actions, ns_id)
           if operation.updated_content then
             if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
               api.nvim_buf_set_lines(tracked_file.bufnr, 0, -1, false, operation.updated_content)
-            elseif tracked_file.filepath then
-              vim.fn.writefile(operation.updated_content, tracked_file.filepath)
-              local file_bufnr = vim.fn.bufnr(tracked_file.filepath)
+            elseif tracked_file.path then
+              vim.fn.writefile(operation.updated_content, tracked_file.path)
+              local file_bufnr = vim.fn.bufnr(tracked_file.path)
               if file_bufnr ~= -1 and api.nvim_buf_is_loaded(file_bufnr) then
                 api.nvim_command("checktime " .. file_bufnr)
               end
@@ -652,13 +650,13 @@ function M.setup_keymaps(bufnr, chat, file_actions, ns_id)
         if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
           api.nvim_buf_set_lines(tracked_file.bufnr, 0, -1, false, original_content)
           log:debug("[helpers::super_diff::setup_keymaps] Reverted buffer %d to original content", tracked_file.bufnr)
-        elseif tracked_file.filepath then
-          vim.fn.writefile(original_content, tracked_file.filepath)
-          local file_bufnr = vim.fn.bufnr(tracked_file.filepath)
+        elseif tracked_file.path then
+          vim.fn.writefile(original_content, tracked_file.path)
+          local file_bufnr = vim.fn.bufnr(tracked_file.path)
           if file_bufnr ~= -1 and api.nvim_buf_is_loaded(file_bufnr) then
             api.nvim_command("checktime " .. file_bufnr)
           end
-          log:debug("[helpers::super_diff::setup_keymaps] Reverted file %s to original content", tracked_file.filepath)
+          log:debug("[helpers::super_diff::setup_keymaps] Reverted file %s to original content", tracked_file.path)
         end
       end
       -- Mark all operations as rejected
@@ -891,7 +889,7 @@ function M.create_quickfix_list(chat)
     if #hunks > 0 then
       accepted_operations_count = accepted_operations_count + 1
       for _, hunk in ipairs(hunks) do
-        local filename = tracked_file.filepath or ""
+        local filename = tracked_file.path or ""
         local line_num = hunk.original_start - 1 -- 0-based indexing
         local added_count = #hunk.added_lines
         local deleted_count = #hunk.removed_lines

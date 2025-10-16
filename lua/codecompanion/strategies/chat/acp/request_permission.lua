@@ -342,7 +342,7 @@ local function show_diff(chat, request)
     filetype = vim.filetype.match({ filename = d.path }),
     title = ui_utils.build_float_title({
       title_prefix = "Edit Requested",
-      filepath = d.path,
+      path = d.path,
     }),
     lock = true,
     ignore_keymaps = true,

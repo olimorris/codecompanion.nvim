@@ -165,7 +165,7 @@ function M.add_files_or_buffers(included_files, chat)
     end
 
     -- Then determine if the file is open as a buffer
-    local bufnr = buf_utils.get_bufnr_from_filepath(path)
+    local bufnr = buf_utils.get_bufnr_from_path(path)
     if bufnr then
       local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
       if not ok then
