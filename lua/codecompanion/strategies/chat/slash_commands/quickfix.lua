@@ -3,7 +3,7 @@ local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -388,7 +388,7 @@ function SlashCommand:output_entries(entries)
     end
   end
 
-  util.notify(fmt("Added %d file(s) from quickfix list to chat", vim.tbl_count(files)))
+  utils.notify(fmt("Added %d file(s) from quickfix list to chat", vim.tbl_count(files)))
 end
 
 return SlashCommand

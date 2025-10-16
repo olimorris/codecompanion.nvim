@@ -36,7 +36,7 @@ local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 local variables = require("codecompanion.strategies.inline.variables")
 
 local api = vim.api
@@ -242,7 +242,7 @@ function Inline:parse_special_syntax(prompt)
       self:set_adapter(adapter_match)
       prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
     else
-      util.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
+      utils.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
     end
   else
     -- Handle legacy first-word adapter detection for backward compatibility
@@ -447,7 +447,7 @@ end
 ---@param output string The output from the LLM
 ---@return nil
 function Inline:done(output)
-  util.fire("InlineFinished")
+  utils.fire("InlineFinished")
   log:info("[Inline] Request finished")
 
   local adapter_name = self.adapter.formatted_name
@@ -652,8 +652,8 @@ function Inline:place(placement)
       assert(type(bufnr) == "number", "No buffer number returned from the pre_hook function")
     else
       bufnr = api.nvim_create_buf(true, false)
-      local ft = util.safe_filetype(self.buffer_context.filetype)
-      util.set_option(bufnr, "filetype", ft)
+      local ft = utils.safe_filetype(self.buffer_context.filetype)
+      utils.set_option(bufnr, "filetype", ft)
     end
 
     -- TODO: This is duplicated from the chat strategy

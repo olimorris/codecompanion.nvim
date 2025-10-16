@@ -543,7 +543,7 @@ function M.show_super_diff(chat, opts)
   local stats = edit_tracker.get_edit_stats(chat)
   local lines, file_sections, diff_info = generate_markdown_super_diff(tracked_files)
 
-  local ui = require("codecompanion.utils.ui")
+  local ui_utils = require("codecompanion.utils.ui")
   local window_config = config.display.chat.child_window
   local inline_config = config.display.diff.provider_opts.inline or {}
   local show_dim = inline_config.opts and inline_config.opts.show_dim
@@ -562,7 +562,7 @@ function M.show_super_diff(chat, opts)
     )
   end
 
-  local bufnr, winnr = ui.create_float(lines, {
+  local bufnr, winnr = ui_utils.create_float(lines, {
     filetype = "markdown",
     title = title,
     window = window_config,
@@ -577,7 +577,7 @@ function M.show_super_diff(chat, opts)
   vim.bo[bufnr].bufhidden = "wipe"
   vim.bo[bufnr].modifiable = true
   if window_config.opts then
-    ui.set_win_options(winnr, window_config.opts)
+    ui_utils.set_win_options(winnr, window_config.opts)
   else
     vim.wo[winnr].number = true
     vim.wo[winnr].relativenumber = false

@@ -3,9 +3,9 @@ local Path = require("plenary.path")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
+local hash_utils = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
-local util_hash = require("codecompanion.utils.hash")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -40,7 +40,7 @@ local function get_cached_files()
         filename = vim.fn.fnamemodify(f, ":t"),
         url = content.url,
         timestamp = content.timestamp,
-        display = string.format("[%s] %s", util.make_relative(content.timestamp), content.url),
+        display = string.format("[%s] %s", utils.make_relative(content.timestamp), content.url),
       }
     end)
     :totable()
@@ -87,7 +87,7 @@ local function output(chat, data, opts)
     return
   end
 
-  return util.notify(fmt("Added `%s` to the chat", data.url))
+  return utils.notify(fmt("Added `%s` to the chat", data.url))
 end
 
 local providers = {
@@ -98,7 +98,7 @@ local providers = {
     local cached_files = get_cached_files()
 
     if #cached_files == 0 then
-      return util.notify("No cached URLs found", vim.log.levels.WARN)
+      return utils.notify("No cached URLs found", vim.log.levels.WARN)
     end
 
     local default = require("codecompanion.providers.slash_commands.default")
@@ -119,7 +119,7 @@ local providers = {
     local cached_files = get_cached_files()
 
     if #cached_files == 0 then
-      return util.notify("No cached URLs found", vim.log.levels.WARN)
+      return utils.notify("No cached URLs found", vim.log.levels.WARN)
     end
 
     local snacks = require("codecompanion.providers.slash_commands.snacks")
@@ -159,7 +159,7 @@ local providers = {
     local cached_files = get_cached_files()
 
     if #cached_files == 0 then
-      return util.notify("No cached URLs found", vim.log.levels.WARN)
+      return utils.notify("No cached URLs found", vim.log.levels.WARN)
     end
 
     local telescope = require("codecompanion.providers.slash_commands.telescope")
@@ -202,7 +202,7 @@ local providers = {
     local cached_files = get_cached_files()
 
     if #cached_files == 0 then
-      return util.notify("No cached URLs found", vim.log.levels.WARN)
+      return utils.notify("No cached URLs found", vim.log.levels.WARN)
     end
 
     local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
@@ -239,7 +239,7 @@ local providers = {
     local cached_files = get_cached_files()
 
     if #cached_files == 0 then
-      return util.notify("No cached URLs found", vim.log.levels.WARN)
+      return utils.notify("No cached URLs found", vim.log.levels.WARN)
     end
 
     local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
@@ -345,7 +345,7 @@ local function fetch(chat, adapter, url, opts)
             kind = "codecompanion.nvim",
           }, function(selected)
             if selected == "Yes" then
-              local hash = util_hash.hash(url)
+              local hash = hash_utils.hash(url)
               write_cache(
                 hash,
                 vim.json.encode({
@@ -377,7 +377,7 @@ local choice = {
     local cached_files = get_cached_files()
 
     if #cached_files == 0 then
-      return util.notify("No cached URLs found", vim.log.levels.WARN)
+      return utils.notify("No cached URLs found", vim.log.levels.WARN)
     end
 
     return providers[SlashCommand.config.opts.provider](SlashCommand, cached_files)
@@ -440,7 +440,7 @@ function SlashCommand:output(url, opts)
     return fetch(self.Chat, adapter, url, opts)
   end
 
-  local hash = util_hash.hash(url)
+  local hash = hash_utils.hash(url)
 
   if opts and opts.ignore_cache then
     log:debug("Fetch Slash Command: Ignoring cache")

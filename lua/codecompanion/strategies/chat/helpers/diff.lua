@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 
 local api = vim.api
 
@@ -157,7 +157,7 @@ local function place_diff_winbar(winnr)
   end
 
   local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
-  ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+  ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
 end
 
 ---Create diff floating window using create_float
@@ -173,7 +173,7 @@ local function create_diff_floating_window(bufnr, filepath)
   local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
   local content = {} -- Dummy content for create_float function
 
-  local _, winnr = ui.create_float(content, {
+  local _, winnr = ui_utils.create_float(content, {
     bufnr = bufnr,
     set_content = false, -- Don't overwrite existing buffer content
     window = { width = window_config.width, height = window_config.height },
@@ -181,7 +181,7 @@ local function create_diff_floating_window(bufnr, filepath)
     col = window_config.col,
     relative = window_config.relative,
     filetype = filetype,
-    title = ui.build_float_title({
+    title = ui_utils.build_float_title({
       title_prefix = " Diff",
       filepath = filepath,
     }),
@@ -264,7 +264,7 @@ local function open_buffer_and_window(bufnr_or_filepath)
 
     if existing_bufnr then
       -- Case 1: Buffer exists and is visible
-      local existing_win = ui.buf_get_win(existing_bufnr)
+      local existing_win = ui_utils.buf_get_win(existing_bufnr)
       if existing_win then
         return use_buffer_in_window(existing_bufnr, existing_win), existing_win
       end
@@ -285,7 +285,7 @@ local function open_buffer_and_window(bufnr_or_filepath)
 
     return create_split_window(filepath), api.nvim_get_current_win() -- Fallback
   else
-    local existing_win = ui.buf_get_win(bufnr)
+    local existing_win = ui_utils.buf_get_win(bufnr)
 
     if existing_win then
       return use_buffer_in_window(bufnr, existing_win), existing_win
