@@ -449,16 +449,23 @@ return {
           return { status = "error", output = json }
         end
 
-        if json.output then
-          local content = json.output
-              and json.output[1]
-              and json.output[1].content
-              and json.output[1].content[1]
-              and json.output[1].content[1].text
-            or nil
-          return { status = "success", output = content }
-        end
+        local output
+        vim.iter(json.output):each(function(item)
+          if item.type == "message" then
+            if item.content then
+              for _, block in ipairs(item.content) do
+                if block.type == "output_text" then
+                  output = block.text
+                  break
+                end
+              end
+            end
+          end
+        end)
+        return { status = "success", output = output }
       end
+
+      return { status = "error", output = "No output from the model" }
     end,
 
     tools = {
