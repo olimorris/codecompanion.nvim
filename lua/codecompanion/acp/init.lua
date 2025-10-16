@@ -215,6 +215,7 @@ function Connection:connect_and_initialize()
       return nil
     end
     self.session_id = new_session.sessionId
+    self.modes = new_session.modes
     log:debug("Created ACP session: %s", self.session_id)
   end
 
@@ -624,6 +625,76 @@ function Connection:session_prompt(messages)
     return log:error("[acp::session_prompt] Connection not established. Call connect_and_initialize() first.")
   end
   return PromptBuilder.new(self, messages)
+end
+
+---Setting the current session mode
+---@param chat CodeCompanion.Chat|nil
+---@return boolean
+function Connection:set_session_mode(chat)
+  if not self.session_id then
+    log:error("[acp::set_mode] Connection not established. Call connect_and_initialize() first.")
+    return false
+  end
+
+  if chat and type(chat) == "table" then
+    self.chat = chat
+  end
+
+  if not self.modes or type(self.modes.availableModes) ~= "table" then
+    log:error("[acp::set_mode] Modes not available for session %s", tostring(self.session_id))
+    return false
+  end
+
+  local available_modes = self.modes.availableModes
+  if vim.tbl_isempty(available_modes) then
+    return false
+  end
+
+  local schedule_wrap = self.methods.schedule_wrap or vim.schedule_wrap
+  local function handle_selection(selected_mode_id, selected_mode)
+    if not selected_mode_id then
+      return
+    end
+
+    local mode = selected_mode
+    if not mode or mode.id ~= selected_mode_id then
+      for _, candidate in ipairs(self.modes.availableModes or {}) do
+        if candidate and candidate.id == selected_mode_id then
+          mode = candidate
+          break
+        end
+      end
+    end
+
+    if not mode then
+      log:error("[acp::set_mode] Unknown modeId '%s'", tostring(selected_mode_id))
+      return
+    end
+
+    local result = self:send_rpc_request(METHODS.SESSION_SET_MODE, {
+      sessionId = self.session_id,
+      modeId = selected_mode_id,
+    })
+
+    if result ~= nil then
+      self.modes.currentModeId = selected_mode_id
+      self.modes.currentMode = mode
+    else
+      log:error(
+        "[acp::set_mode] Failed to set mode '%s' for session %s",
+        tostring(selected_mode_id),
+        tostring(self.session_id)
+      )
+    end
+  end
+
+  require("codecompanion.strategies.chat.acp.set_session_mode").show(self.chat, {
+    available_modes = available_modes,
+    current_mode_id = self.modes.currentModeId,
+    on_select = schedule_wrap(handle_selection),
+  })
+
+  return true
 end
 
 return Connection
