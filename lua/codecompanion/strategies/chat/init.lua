@@ -435,6 +435,14 @@ function Chat.new(args)
 
   if self.adapter.type == "http" then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
+  elseif self.adapter.type == "acp" then
+    -- Initialize ACP connection early to receive available_commands_update
+    -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
+    vim.schedule(function()
+      local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+      local handler = ACPHandler.new(self)
+      handler:ensure_connection()
+    end)
   end
 
   self.ui = require("codecompanion.strategies.chat.ui").new({

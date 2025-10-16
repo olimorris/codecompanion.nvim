@@ -66,16 +66,73 @@ function ACPHandler:ensure_connection()
     if not connected then
       return false
     end
+
+    -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
+    if self.chat.acp_connection.session_id then
+      local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+      acp_commands.link_buffer_to_session(self.chat.bufnr, self.chat.acp_connection.session_id)
+    end
   end
   return true
+end
+
+---Transform ACP commands in messages from \command to /command
+---@param messages table The messages to transform
+---@return table The transformed messages
+function ACPHandler:transform_acp_commands(messages)
+  if not self.chat.acp_connection or not self.chat.acp_connection.session_id then
+    return messages
+  end
+
+  -- Get available ACP commands for this session
+  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local commands = acp_commands.get_commands_for_session(self.chat.acp_connection.session_id)
+
+  if #commands == 0 then
+    return messages
+  end
+
+  -- Get trigger character
+  local config = require("codecompanion.config")
+  local trigger = "\\"
+  if config.strategies.chat.acp_commands and config.strategies.chat.acp_commands.opts then
+    trigger = config.strategies.chat.acp_commands.opts.trigger or "\\"
+  end
+  local escaped_trigger = vim.pesc(trigger)
+
+  -- Transform messages by replacing each known command
+  local transformed = vim.deepcopy(messages)
+  for _, message in ipairs(transformed) do
+    if message.content and type(message.content) == "string" then
+      -- Replace \command with /command for each known ACP command
+      for _, cmd in ipairs(commands) do
+        local escaped_name = vim.pesc(cmd.name)
+        -- Pattern with trailing space
+        local pattern_space = escaped_trigger .. escaped_name .. "(%s)"
+        message.content = message.content:gsub(pattern_space, "/" .. cmd.name .. "%1")
+        -- Pattern at end of string or followed by non-word character
+        local pattern_end = escaped_trigger .. escaped_name .. "([^%w])"
+        message.content = message.content:gsub(pattern_end, "/" .. cmd.name .. "%1")
+        -- Pattern at end of string
+        local pattern_eol = escaped_trigger .. escaped_name .. "$"
+        message.content = message.content:gsub(pattern_eol, "/" .. cmd.name)
+      end
+    end
+  end
+
+  return transformed
 end
 
 ---Create and configure the prompt request with all handlers
 ---@param payload table
 ---@return table Request object
 function ACPHandler:create_and_send_prompt(payload)
+  -- Transform ACP commands before sending
+  local transformed_payload = vim.deepcopy(payload)
+  transformed_payload.messages = self:transform_acp_commands(payload.messages)
+
   return self.chat.acp_connection
-    :session_prompt(payload.messages)
+    :session_prompt(transformed_payload.messages)
     :on_message_chunk(function(content)
       self:handle_message_chunk(content)
     end)

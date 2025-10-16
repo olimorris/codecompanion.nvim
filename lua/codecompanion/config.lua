@@ -375,6 +375,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
       },
+      acp_commands = {
+        opts = {
+          enabled = true, -- Enable ACP command completion
+          trigger = "\\", -- Trigger character for ACP commands
+        },
+      },
       keymaps = {
         options = {
           modes = { n = "?" },

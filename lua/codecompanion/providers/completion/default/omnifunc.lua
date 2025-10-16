@@ -1,4 +1,5 @@
 local completion = require("codecompanion.providers.completion")
+local config = require("codecompanion.config")
 
 local api = vim.api
 
@@ -14,15 +15,21 @@ function M.omnifunc(findstart, base)
     local line = api.nvim_get_current_line()
     local col = api.nvim_win_get_cursor(0)[2]
 
-    -- Look for trigger characters (#, @, /) at the start of a word
+    -- Look for trigger characters (#, @, /, \) at the start of a word
     local before_cursor = line:sub(1, col)
 
-    -- Find the last occurrence of a trigger character followed by word characters
+    -- Build patterns including ACP command trigger if enabled
     local patterns = {
       "#[%w_]*$", -- Variables: #buffer, #lsp, etc.
       "@[%w_]*$", -- Tools: @tool_name, etc.
       "/[%w_]*$", -- Slash commands: /buffer, /help, etc.
     }
+
+    if config.strategies.chat.acp_commands.opts.enabled then
+      local trigger = config.strategies.chat.acp_commands.opts.trigger or "\\"
+      local escaped = vim.pesc(trigger)
+      table.insert(patterns, escaped .. "[%w_]*$") -- ACP commands
+    end
 
     for _, pattern in ipairs(patterns) do
       local start_pos = before_cursor:find(pattern)
@@ -36,9 +43,26 @@ function M.omnifunc(findstart, base)
   else
     -- Determine what type of completion based on the trigger character
     local trigger_char = base:sub(1, 1)
+    local acp_trigger = config.strategies.chat.acp_commands.opts.trigger or "\\"
     local items = {}
 
-    if trigger_char == "#" then
+    if trigger_char == acp_trigger then
+      -- ACP commands completion
+      local acp_cmds = completion.acp_commands(api.nvim_get_current_buf())
+      for _, item in ipairs(acp_cmds) do
+        table.insert(items, {
+          word = item.label,
+          abbr = item.label:sub(2),
+          menu = item.detail or item.description,
+          kind = "f", -- function
+          icase = 1,
+          user_data = {
+            type = item.type,
+            command = item.command,
+          },
+        })
+      end
+    elseif trigger_char == "#" then
       -- Variables completion
       local vars = completion.variables()
       for _, item in ipairs(vars) do

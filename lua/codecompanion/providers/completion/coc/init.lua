@@ -1,6 +1,7 @@
 --- @module 'coc'
 
 local completion = require("codecompanion.providers.completion")
+local config = require("codecompanion.config")
 
 --- @type table Cache for callback addresses that get lost (replaced by vim.Nil) during serialization.
 local callbacks_cache = {}
@@ -70,11 +71,16 @@ local M = {}
 ---Returns coc.nvim source initialization parameters.
 ---@return table
 function M.init()
+  local triggers = { "/", "#", "@" }
+  if config.strategies.chat.acp_commands.opts.enabled then
+    table.insert(triggers, config.strategies.chat.acp_commands.opts.trigger or "\\")
+  end
+
   return {
     priority = 99,
     shortcut = "CodeCompanion",
     filetypes = { "codecompanion" },
-    triggerCharacters = { "/", "#", "@" },
+    triggerCharacters = triggers,
   }
 end
 
@@ -83,6 +89,7 @@ end
 ---@return table Completion items
 function M.complete(opt)
   local complete_items
+  local trigger = config.strategies.chat.acp_commands.opts.trigger or "\\"
 
   if opt.triggerCharacter == "@" then
     complete_items = transform_complete_items(opt, completion.tools())
@@ -90,6 +97,8 @@ function M.complete(opt)
     complete_items = transform_complete_items(opt, completion.variables())
   elseif opt.triggerCharacter == "/" then
     complete_items = transform_complete_items(opt, completion.slash_commands())
+  elseif opt.triggerCharacter == trigger then
+    complete_items = transform_complete_items(opt, completion.acp_commands(opt.bufnr))
   else
     complete_items = {}
   end
@@ -101,6 +110,11 @@ end
 ---@param opt table The selected item from the completion menu.
 ---@return nil
 function M.execute(opt)
+  -- ACP commands don't need execution, just text insertion
+  if opt.type == "acp_command" then
+    return
+  end
+
   if not (opt.type == "slash_command") then
     return
   end
