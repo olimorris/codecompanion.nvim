@@ -103,7 +103,7 @@ local function fetch_async(adapter, opts)
   end
 
   local url = adapter.env_replaced.url
-  local models_endpoint = adapter.env_replaced.models_endpoint
+  local models_endpoint = "/v1/models"
 
   running = true
   _cached_models[url] = _cached_models[url] or {}
@@ -139,11 +139,14 @@ local function fetch_async(adapter, opts)
 
           -- Sometime models incorrect advertise capabilities.completion_chat.
           -- They informed me this is considered a bug, and are working on it.
-          print(model_obj.deprecation)
-          if model_obj.capabilities.completion_chat and  model_obj.deprecation == vim.NIL then
-            _cached_models[url][model_obj.id] = { formatted_name = model_obj.name, opts = {} }
-            _cached_models[url][model_obj.id].opts.has_vision = model_obj.capabilities.vision or false
-            _cached_models[url][model_obj.id].opts.can_use_tools = model_obj.capabilities.function_calling or false
+          if model_obj.capabilities.completion_chat and model_obj.deprecation == vim.NIL then
+            _cached_models[url][model_obj.id] = {
+                formatted_name = model_obj.name,
+                opts = {
+                  has_vision = model_obj.capabilities.vision or false,
+                  can_use_tools = model_obj.capabilities.function_calling or false,
+                }
+              }
 
           end
         end

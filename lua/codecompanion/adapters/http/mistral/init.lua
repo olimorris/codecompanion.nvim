@@ -23,7 +23,6 @@ return {
   env = {
     url = "https://api.mistral.ai",
     api_key = "MISTRAL_API_KEY",
-    models_endpoint = "/v1/models",
   },
   headers = {
     Authorization = "Bearer ${api_key}",
