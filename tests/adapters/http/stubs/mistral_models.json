@@ -1,0 +1,159 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "mistral-medium-2505",
+      "object": "model",
+      "created": 1760649208,
+      "owned_by": "mistralai",
+      "capabilities": {
+        "completion_chat": true,
+        "function_calling": true,
+        "completion_fim": false,
+        "fine_tuning": true,
+        "vision": true,
+        "ocr": false,
+        "classification": false,
+        "moderation": false,
+        "audio": false
+      },
+      "name": "mistral-medium-2505",
+      "description": "Our frontier-class multimodal model released May 2025.",
+      "max_context_length": 131072,
+      "aliases": [],
+      "deprecation": null,
+      "deprecation_replacement_model": null,
+      "default_model_temperature": 0.3,
+      "type": "base"
+    },
+    {
+      "id": "mistral-large-latest",
+      "object": "model",
+      "created": 1760649208,
+      "owned_by": "mistralai",
+      "capabilities": {
+        "completion_chat": true,
+        "function_calling": true,
+        "completion_fim": false,
+        "fine_tuning": true,
+        "vision": true,
+        "ocr": false,
+        "classification": false,
+        "moderation": false,
+        "audio": false
+      },
+      "name": "mistral-large-latest",
+      "description": "Official mistral-large-latest Mistral AI model",
+      "max_context_length": 131072,
+      "aliases": [],
+      "deprecation": null,
+      "deprecation_replacement_model": null,
+      "default_model_temperature": 0.3,
+      "type": "base"
+    },
+    {
+      "id": "devstral-small-2505",
+      "object": "model",
+      "created": 1760649208,
+      "owned_by": "mistralai",
+      "capabilities": {
+        "completion_chat": true,
+        "function_calling": true,
+        "completion_fim": false,
+        "fine_tuning": false,
+        "vision": false,
+        "ocr": false,
+        "classification": false,
+        "moderation": false,
+        "audio": false
+      },
+      "name": "devstral-small-2505",
+      "description": "Our small open-source code-agentic model.",
+      "max_context_length": 131072,
+      "aliases": [],
+      "deprecation": "2025-11-30T12:00:00Z",
+      "deprecation_replacement_model": "devstral-small-latest",
+      "default_model_temperature": 0.0,
+      "type": "base"
+    },
+    {
+      "id": "magistral-small-2506",
+      "object": "model",
+      "created": 1760649208,
+      "owned_by": "mistralai",
+      "capabilities": {
+        "completion_chat": true,
+        "function_calling": true,
+        "completion_fim": false,
+        "fine_tuning": true,
+        "vision": true,
+        "ocr": false,
+        "classification": false,
+        "moderation": false,
+        "audio": false
+      },
+      "name": "magistral-small-2506",
+      "description": "Our efficient reasoning model released June 2025.",
+      "max_context_length": 40000,
+      "aliases": [],
+      "deprecation": "2025-11-30T12:00:00Z",
+      "deprecation_replacement_model": "magistral-small-latest",
+      "default_model_temperature": 0.7,
+      "type": "base"
+    },
+    {
+      "id": "ministral-8b-latest",
+      "object": "model",
+      "created": 1760649208,
+      "owned_by": "mistralai",
+      "capabilities": {
+        "completion_chat": true,
+        "function_calling": true,
+        "completion_fim": false,
+        "fine_tuning": true,
+        "vision": false,
+        "ocr": false,
+        "classification": false,
+        "moderation": false,
+        "audio": false
+      },
+      "name": "ministral-8b-2410",
+      "description": "Powerful edge model with extremely high performance/price ratio.",
+      "max_context_length": 131072,
+      "aliases": [
+        "ministral-8b-2410"
+      ],
+      "deprecation": null,
+      "deprecation_replacement_model": null,
+      "default_model_temperature": 0.3,
+      "type": "base"
+    },
+    {
+      "id": "ministral-3b-2410",
+      "object": "model",
+      "created": 1760649208,
+      "owned_by": "mistralai",
+      "capabilities": {
+        "completion_chat": false,
+        "function_calling": false,
+        "completion_fim": false,
+        "fine_tuning": false,
+        "vision": false,
+        "ocr": false,
+        "classification": true,
+        "moderation": false,
+        "audio": false
+      },
+      "name": "ministral-3b-2410",
+      "description": "Official ministral-3b-2410 Mistral AI model",
+      "max_context_length": 32768,
+      "aliases": [
+        "ministral-3b-latest"
+      ],
+      "deprecation": null,
+      "deprecation_replacement_model": null,
+      "default_model_temperature": null,
+      "type": "base"
+    }
+  ]
+}
