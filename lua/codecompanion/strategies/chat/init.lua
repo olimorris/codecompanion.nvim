@@ -439,9 +439,7 @@ function Chat.new(args)
     -- Initialize ACP connection early to receive available_commands_update
     -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
     vim.schedule(function()
-      local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
-      local handler = ACPHandler.new(self)
-      handler:ensure_connection()
+      helpers.create_acp_connection(self)
     end)
   end
 
@@ -615,6 +613,12 @@ function Chat:change_adapter(name, model)
 
   self.adapter = require("codecompanion.adapters").resolve(name)
   self.ui.adapter = self.adapter
+
+  if self.adapter.type == "acp" then
+    vim.schedule(function()
+      helpers.create_acp_connection(self)
+    end)
+  end
 
   if model then
     self:apply_model(model)

@@ -9,6 +9,15 @@ local M = {}
 local api = vim.api
 local fmt = string.format
 
+---Create a new ACP connection for the given chat
+---@param chat CodeCompanion.Chat The chat instance
+---@return boolean
+function M.create_acp_connection(chat)
+  local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+  local handler = ACPHandler.new(chat)
+  return handler:ensure_connection()
+end
+
 ---Hide chat if floating diff is being used
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
