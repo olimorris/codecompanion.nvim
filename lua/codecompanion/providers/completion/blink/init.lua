@@ -12,8 +12,8 @@ end
 
 function M:get_trigger_characters()
   local triggers = { "/", "#", "@" }
-  if config.strategies.chat.acp_commands.opts.enabled then
-    table.insert(triggers, config.strategies.chat.acp_commands.opts.trigger or "\\")
+  if config.strategies.chat.slash_commands.opts.acp.enabled then
+    table.insert(triggers, config.strategies.chat.slash_commands.opts.acp.trigger or "\\")
   end
   return triggers
 end
@@ -120,7 +120,7 @@ function M:get_completions(ctx, callback)
     })
 
   -- ACP commands
-  elseif trigger_char == (config.strategies.chat.acp_commands.opts.trigger or "\\") then
+  elseif trigger_char == (config.strategies.chat.slash_commands.opts.acp.trigger or "\\") then
     local acp_cmds = completion.acp_commands(ctx.bufnr)
     local items = vim
       .iter(acp_cmds)

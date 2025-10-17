@@ -8,16 +8,16 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion" and cc_config.strategies.chat.acp_commands.opts.enabled
+  return vim.bo.filetype == "codecompanion" and cc_config.strategies.chat.slash_commands.opts.acp.enabled
 end
 
 function source:get_trigger_characters()
-  local trigger = cc_config.strategies.chat.acp_commands.opts.trigger or "\\"
+  local trigger = cc_config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
   return { trigger }
 end
 
 function source:get_keyword_pattern()
-  local trigger = cc_config.strategies.chat.acp_commands.opts.trigger or "\\"
+  local trigger = cc_config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
   local escaped = vim.pesc(trigger)
   return escaped .. [[\w\+]]
 end

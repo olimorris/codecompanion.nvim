@@ -72,8 +72,8 @@ local M = {}
 ---@return table
 function M.init()
   local triggers = { "/", "#", "@" }
-  if config.strategies.chat.acp_commands.opts.enabled then
-    table.insert(triggers, config.strategies.chat.acp_commands.opts.trigger or "\\")
+  if config.strategies.chat.slash_commands.opts.acp.enabled then
+    table.insert(triggers, config.strategies.chat.slash_commands.opts.acp.trigger or "\\")
   end
 
   return {
@@ -89,7 +89,7 @@ end
 ---@return table Completion items
 function M.complete(opt)
   local complete_items
-  local trigger = config.strategies.chat.acp_commands.opts.trigger or "\\"
+  local trigger = config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
 
   if opt.triggerCharacter == "@" then
     complete_items = transform_complete_items(opt, completion.tools())

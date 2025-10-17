@@ -7,8 +7,8 @@ local strategy = require("codecompanion.strategies")
 local api = vim.api
 
 local function get_acp_trigger()
-  if config.strategies.chat.acp_commands and config.strategies.chat.acp_commands.opts then
-    return config.strategies.chat.acp_commands.opts.trigger or "\\"
+  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
+    return config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
   end
   return "\\"
 end
