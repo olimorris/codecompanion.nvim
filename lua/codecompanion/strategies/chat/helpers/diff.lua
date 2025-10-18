@@ -303,7 +303,7 @@ end
 ---Create a diff for a buffer or file and set up keymaps
 ---@param bufnr_or_path number|string The buffer number or file path to create diff for
 ---@param diff_id number|string Unique identifier for this diff
----@param opts? { original_content: string[], set_keymaps: boolean }
+---@param opts? { original_content: string[], set_keymaps?: boolean }
 ---@return table|nil diff The diff object, or nil if no diff was created
 function M.create(bufnr_or_path, diff_id, opts)
   opts = opts or {}
