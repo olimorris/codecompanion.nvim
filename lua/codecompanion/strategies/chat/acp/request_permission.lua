@@ -304,10 +304,20 @@ local function get_diff(tool_call)
   local absolute_path = tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path
   local path = absolute_path or vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path)
 
+  local old = tool_call.content[1].oldText
+  local new = tool_call.content[1].newText
+
+  if type(old) ~= "string" then
+    old = ""
+  end
+  if type(new) ~= "string" then
+    new = ""
+  end
+
   return {
     kind = tool_call.kind,
-    new = tool_call.content[1].newText,
-    old = tool_call.content[1].oldText,
+    old = old,
+    new = new,
     path = path,
     status = tool_call.status,
     title = tool_call.title,
