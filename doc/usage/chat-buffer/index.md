@@ -124,3 +124,17 @@ The keymaps available to the user in normal mode are:
 - `]]` to move to the next header
 - `{` to move to the previous chat
 - `}` to move to the next chat
+
+To disable a keymap, you can set it to `false` in your configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      keymaps = {
+        clear = false,
+      }
+    }
+  }
+})
+```
