@@ -56,8 +56,10 @@ T["Responses"]["can output tool calls"] = function()
       visible = false,
     },
     role = "tool",
-    tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-    tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+    tools = {
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+    },
   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end
 
@@ -106,10 +108,14 @@ T["Responses"]["form_messages"]["images"] = function()
       content = "somefakebase64encoding",
       role = "user",
       opts = {
-        mimetype = "image/jpg",
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
-        tag = "image",
         visible = false,
+      },
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        mimetype = "image/jpg",
+      },
+      _meta = {
+        tag = "image",
       },
     },
     {
@@ -183,23 +189,25 @@ T["Responses"]["form_messages"]["format tool calls"] = function()
   local messages = {
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 0,
-          id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
-          call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "London", "units": "celsius"}',
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+            call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
           },
-        },
-        {
-          _index = 1,
-          id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-          call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "Paris", "units": "celsius"}',
+          {
+            _index = 1,
+            id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+            call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "Paris", "units": "celsius"}',
+            },
           },
         },
       },
@@ -231,14 +239,18 @@ T["Responses"]["form_messages"]["format tool output"] = function()
     {
       role = "tool",
       content = "The weather in London is 15 degrees",
-      tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-      tool_id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      tools = {
+        call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      },
     },
     {
       role = "tool",
       content = "The weather in Paris is 15 degrees",
-      tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-      tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      tools = {
+        call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+        id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      },
     },
   }
 
@@ -263,9 +275,9 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     {
       _meta = {
         sent = true,
+        cycle = 1,
       },
       content = "Can you tell me what the the weather tool is for London and Paris?",
-      cycle = 1,
       id = 449094129,
       opts = {
         visible = true,
@@ -273,8 +285,7 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
       role = "user",
     },
     {
-      _meta = {},
-      cycle = 1,
+      _meta = { cycle = 1 },
       id = 486936684,
       opts = {
         visible = false,
@@ -285,55 +296,63 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
         content = "I need to workout the weather",
       },
       role = "llm",
-      tool_calls = {
-        {
-          call_id = "call_balVirseGsQYwrVoigfUfF5G",
-          ["function"] = {
-            arguments = '{"location":"London, United Kingdom","units":"celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            call_id = "call_balVirseGsQYwrVoigfUfF5G",
+            ["function"] = {
+              arguments = '{"location":"London, United Kingdom","units":"celsius"}',
+              name = "weather",
+            },
+            id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+            type = "function",
           },
-          id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
-          type = "function",
-        },
-        {
-          call_id = "call_zktz1zuc65awPKojbwCKMLOD",
-          ["function"] = {
-            arguments = '{"location":"Paris, France","units":"celsius"}',
-            name = "weather",
+          {
+            call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"celsius"}',
+              name = "weather",
+            },
+            id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+            type = "function",
           },
-          id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
-          type = "function",
         },
       },
     },
     {
       content = "Ran the weather tool The weather in London, United Kingdom is 15° celsius",
-      cycle = 1,
+      _meta = { cycle = 1 },
       id = 1997051449,
       opts = {
         visible = true,
       },
       role = "tool",
-      tool_call_id = "call_balVirseGsQYwrVoigfUfF5G",
-      tool_id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+      tools = {
+        call_id = "call_balVirseGsQYwrVoigfUfF5G",
+        id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+      },
     },
     {
       content = "Ran the weather tool The weather in Paris, France is 15° celsius",
-      cycle = 1,
+      _meta = {
+        cycle = 1,
+      },
       id = 210818266,
       opts = {
         visible = true,
       },
       role = "tool",
-      tool_call_id = "call_zktz1zuc65awPKojbwCKMLOD",
-      tool_id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+      tools = {
+        call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+        id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+      },
     },
     {
       _meta = {
         response_id = "resp_123",
+        cycle = 1,
       },
       content = "- London: 15°C\n- Paris: 15°C\n\nNeed anything else, like Fahrenheit or a weekly forecast?",
-      cycle = 1,
       id = 933614700,
       opts = {
         visible = true,

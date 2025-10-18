@@ -59,16 +59,28 @@ return {
       messages = utils.merge_messages(messages)
       messages = utils.merge_system_messages(messages)
 
-      -- Ensure that all messages have a content field
       messages = vim
         .iter(messages)
         :map(function(msg)
+          -- Ensure that all messages have a content field
           local content = msg.content
           if content and type(content) == "table" then
             msg.content = table.concat(content, "\n")
           elseif not content then
             msg.content = ""
           end
+
+          -- Process tools
+          if msg.tools then
+            if msg.tools.calls then
+              msg.tool_calls = msg.tools.calls
+            end
+            if msg.tools.call_id then
+              msg.tool_call_id = msg.tools.call_id
+            end
+            msg.tools = nil
+          end
+
           return msg
         end)
         :totable()

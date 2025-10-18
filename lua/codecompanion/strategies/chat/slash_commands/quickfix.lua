@@ -378,7 +378,7 @@ function SlashCommand:output_entries(entries)
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = description,
-      }, { context_id = id, visible = false })
+      }, { context = { id = id }, visible = false })
 
       self.Chat.context:add({
         id = id,

@@ -311,7 +311,9 @@ local function get_diff(tool_call)
     path = path,
     status = tool_call.status,
     title = tool_call.title,
-    tool_call_id = tool_call.toolCallId,
+    tools = {
+      call_id = tool_call.toolCallId,
+    },
   }
 end
 

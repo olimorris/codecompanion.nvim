@@ -114,7 +114,7 @@ return {
     end,
     form_messages = function(self, messages)
       for _, m in ipairs(messages) do
-        if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+        if m._meta and m._meta.tag == "image" and (m.context and m.context.mimetype) then
           self.headers["X-Initiator"] = "user"
           self.headers["Copilot-Vision-Request"] = "true"
           break
