@@ -284,8 +284,10 @@ function Inline:prompt(user_prompt)
       (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT),
       config.opts.language
     ),
-    opts = {
+    _meta = {
       tag = "system_tag",
+    },
+    opts = {
       visible = false,
     },
   })
@@ -376,8 +378,8 @@ function Inline:make_ext_prompts()
           self.buffer_context.filetype,
           self.buffer_context.lines
         ),
+        _meta = { tag = "visual" },
         opts = {
-          tag = "visual",
           visible = false,
         },
       })
@@ -698,11 +700,11 @@ function Inline:to_chat()
 
   for i = #prompt, 1, -1 do
     -- Remove all of the system prompts
-    if prompt[i].opts and prompt[i].opts.tag == "system_tag" then
+    if prompt[i]._meta and prompt[i]._meta.tag == "system_tag" then
       table.remove(prompt, i)
     end
     -- Remove any visual selections as the chat buffer adds these from the context
-    if self.buffer_context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
+    if self.buffer_context.is_visual and (prompt[i]._meta and prompt[i]._meta.tag == "visual") then
       table.remove(prompt, i)
     end
   end

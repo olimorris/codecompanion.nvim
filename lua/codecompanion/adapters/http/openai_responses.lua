@@ -145,13 +145,13 @@ return {
           end
 
           -- Check if this is an image message followed by a text message from the same user
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and (m.context and m.context.mimetype) then
             if self.opts and self.opts.vision then
               local next_msg = messages[i + 1]
               local combined_content = {
                 {
                   type = "input_image",
-                  image_url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                  image_url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
                 },
               }
 
@@ -172,27 +172,25 @@ return {
           elseif m.role == "tool" then
             table.insert(input, {
               type = "function_call_output",
-              call_id = m.tool_call_id,
+              call_id = m.tools and m.tools.call_id or nil,
               output = m.content,
             })
-          elseif m.tool_calls then
-            if m.tool_calls then
-              m.tool_calls = vim
-                .iter(m.tool_calls)
-                :map(function(tool_call)
-                  return {
-                    type = "function_call",
-                    id = tool_call.id,
-                    call_id = tool_call.call_id,
-                    name = tool_call["function"].name,
-                    arguments = tool_call["function"].arguments,
-                  }
-                end)
-                :totable()
+          elseif m.tools and m.tools.calls then
+            local tool_calls = vim
+              .iter(m.tools.calls)
+              :map(function(tool_call)
+                return {
+                  type = "function_call",
+                  id = tool_call.id,
+                  call_id = tool_call.call_id,
+                  name = tool_call["function"].name,
+                  arguments = tool_call["function"].arguments,
+                }
+              end)
+              :totable()
 
-              for _, tool_call in ipairs(m.tool_calls) do
-                table.insert(input, tool_call)
-              end
+            for _, tool_call in ipairs(tool_calls) do
+              table.insert(input, tool_call)
             end
           else
             -- Regular text message
@@ -449,16 +447,23 @@ return {
           return { status = "error", output = json }
         end
 
-        if json.output then
-          local content = json.output
-              and json.output[1]
-              and json.output[1].content
-              and json.output[1].content[1]
-              and json.output[1].content[1].text
-            or nil
-          return { status = "success", output = content }
-        end
+        local output
+        vim.iter(json.output):each(function(item)
+          if item.type == "message" then
+            if item.content then
+              for _, block in ipairs(item.content) do
+                if block.type == "output_text" then
+                  output = block.text
+                  break
+                end
+              end
+            end
+          end
+        end)
+        return { status = "success", output = output }
       end
+
+      return { status = "error", output = "No output from the model" }
     end,
 
     tools = {
@@ -479,8 +484,10 @@ return {
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
-          tool_id = tool_call.id,
-          tool_call_id = tool_call.call_id,
+          tools = {
+            id = tool_call.id,
+            call_id = tool_call.call_id,
+          },
           content = output,
           opts = { visible = false },
         }

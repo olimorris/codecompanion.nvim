@@ -119,17 +119,17 @@ return {
         :totable()
 
       -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
-      messages = vim.tbl_map(function(message)
+      messages = vim.tbl_map(function(m)
         -- 3. Account for any images
-        if message.opts and message.opts.tag == "image" and message.opts.mimetype then
+        if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
           if self.opts and self.opts.vision then
-            message.content = {
+            m.content = {
               {
                 type = "image",
                 source = {
                   type = "base64",
-                  media_type = message.opts.mimetype,
-                  data = message.content,
+                  media_type = m.context.mimetype,
+                  data = m.content,
                 },
               },
             }
@@ -140,79 +140,98 @@ return {
         end
 
         -- 4. Remove disallowed keys
-        message = adapter_utils.filter_out_messages({
-          message = message,
+        m = utils.filter_out_messages({
+          message = m,
           allowed_words = {
             "content",
             "role",
             "reasoning",
-            "tool_calls",
+            "tools",
           },
         })
 
         -- 5. Turn string content into { { type = "text", text } } and add in the reasoning
-        if message.role == self.roles.user or message.role == self.roles.llm then
+        if m.role == self.roles.user or m.role == self.roles.llm then
           -- Anthropic doesn't allow the user to submit an empty prompt. But
           -- this can be necessary to prompt the LLM to analyze any tool
           -- calls and their output
-          if message.role == self.roles.user and message.content == "" then
-            message.content = "<prompt></prompt>"
+          if m.role == self.roles.user and m.content == "" then
+            m.content = "<prompt></prompt>"
           end
 
-          if type(message.content) == "string" then
-            message.content = {
-              { type = "text", text = message.content },
+          if type(m.content) == "string" then
+            m.content = {
+              { type = "text", text = m.content },
             }
           end
         end
 
-        if message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+        if m.tools and m.tools.calls and vim.tbl_count(m.tools.calls) > 0 then
           has_tools = true
         end
 
-        -- 6. Treat 'tool' role as user
-        if message.role == "tool" then
-          message.role = self.roles.user
+        -- 6. Treat 'tool' role as user and convert tool results to Anthropic format
+        if m.role == "tool" then
+          m.role = self.roles.user
+          -- Convert tool result from CodeCompanion format to Anthropic format
+          if m.tools and m.tools.type == "tool_result" then
+            -- Handle content that might already be in Anthropic's format
+            if type(m.content) == "table" and m.content.type == "tool_result" then
+              -- Already in Anthropic format, keep it as-is but ensure it's in an array
+              m.content = { m.content }
+            else
+              -- Convert from CodeCompanion format to Anthropic format
+              m.content = {
+                {
+                  type = "tool_result",
+                  tool_use_id = m.tools.call_id,
+                  content = m.content,
+                  is_error = m.tools.is_error or false,
+                },
+              }
+            end
+            m.tools = nil
+          end
         end
 
         -- 7. Convert any LLM tool_calls into content blocks
-        if has_tools and message.role == self.roles.llm and message.tool_calls then
-          message.content = message.content or {}
-          for _, call in ipairs(message.tool_calls) do
+        if has_tools and m.role == self.roles.llm and m.tools and m.tools.calls then
+          m.content = m.content or {}
+          for _, call in ipairs(m.tools.calls) do
             local args = call["function"].arguments
-            table.insert(message.content, {
+            table.insert(m.content, {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
               input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
             })
           end
-          message.tool_calls = nil
+          m.tools = nil
         end
 
         -- 8. If reasoning is present, format it as a content block
-        if message.reasoning and type(message.content) == "table" then
+        if m.reasoning and type(m.content) == "table" then
           -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#how-extended-thinking-works
-          table.insert(message.content, 1, {
+          table.insert(m.content, 1, {
             type = "thinking",
-            thinking = message.reasoning.content,
-            signature = message.reasoning._data.signature,
+            thinking = m.reasoning.content,
+            signature = m.reasoning._data.signature,
           })
         end
 
-        return message
+        return m
       end, messages)
 
       -- 9. Merge consecutive messages with the same role
       messages = adapter_utils.merge_messages(messages)
 
-      -- 10. Ensure that any consecutive tool results are merged
+      -- 10. Ensure that any consecutive tool results are merged and text messages are included
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content and m.content ~= "" then
             -- Check if content is already an array of blocks
             if type(m.content) == "table" and m.content.type then
-              -- If it's a single content block, like a tool_result), make it an array
+              -- If it's a single content block (like a tool_result), make it an array
               m.content = { m.content }
             end
 
@@ -223,6 +242,7 @@ return {
                 if block.type == "tool_result" then
                   local prev = consolidated[#consolidated]
                   if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
+                    -- Merge consecutive tool results with the same tool_use_id
                     prev.content = prev.content .. block.content
                   else
                     table.insert(consolidated, block)
@@ -492,10 +512,10 @@ return {
           -- in the form_messages handler it's easier to identify and merge
           -- with other user messages.
           role = "tool",
-          content = {
+          content = output,
+          tools = {
             type = "tool_result",
-            tool_use_id = tool_call.id,
-            content = output,
+            call_id = tool_call.id,
             is_error = false,
           },
           -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible

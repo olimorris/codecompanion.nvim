@@ -108,7 +108,7 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg.opts and msg.opts.context_id == pin.id and msg.cycle == chat.cycle then
+      if (msg.context and msg.context.id == pin.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
         exists = true
       end
     end)
@@ -144,7 +144,7 @@ end
 ---@return table|nil
 local function find_tool_call(id, messages)
   for _, msg in ipairs(messages) do
-    if msg.tool_call_id and msg.tool_call_id == id then
+    if msg.tools and msg.tools.call_id and msg.tools.call_id == id then
       return msg
     end
   end
@@ -435,6 +435,12 @@ function Chat.new(args)
 
   if self.adapter.type == "http" then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
+  elseif self.adapter.type == "acp" then
+    -- Initialize ACP connection early to receive available_commands_update
+    -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
+    vim.schedule(function()
+      helpers.create_acp_connection(self)
+    end)
   end
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
@@ -608,6 +614,12 @@ function Chat:change_adapter(name, model)
   self.adapter = require("codecompanion.adapters").resolve(name)
   self.ui.adapter = self.adapter
 
+  if self.adapter.type == "acp" then
+    vim.schedule(function()
+      helpers.create_acp_connection(self)
+    end)
+  end
+
   if model then
     self:apply_model(model)
     return fire()
@@ -672,7 +684,7 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@params prompt? string
----@params opts? table
+---@params opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
@@ -680,11 +692,17 @@ function Chat:set_system_prompt(prompt, opts)
   end
 
   prompt = prompt or config.strategies.chat.opts.system_prompt
-  opts = opts or { visible = false, tag = "system_prompt_from_config" }
+  opts = opts or { visible = false }
+
+  local _meta = { tag = "system_prompt_from_config" }
+  if opts._meta then
+    _meta = opts._meta
+    opts._meta = nil
+  end
 
   -- If the system prompt already exists, update it
-  if helpers.has_tag(opts.tag, self.messages) then
-    self:remove_tagged_message(opts.tag)
+  if helpers.has_tag(_meta.tag, self.messages) then
+    self:remove_tagged_message(_meta.tag)
   end
 
   -- Workout in the message stack the last system prompt is
@@ -710,9 +728,12 @@ function Chat:set_system_prompt(prompt, opts)
       role = config.constants.SYSTEM_ROLE,
       content = prompt,
     }
-    system_prompt.id = make_id(system_prompt)
-    system_prompt.cycle = self.cycle
     system_prompt.opts = opts
+
+    _meta.cycle = self.cycle
+    _meta.id = make_id(system_prompt)
+    _meta.index = #self.messages + 1
+    system_prompt._meta = _meta
 
     table.insert(self.messages, index or opts.index or 1, system_prompt)
   end
@@ -725,7 +746,7 @@ end
 function Chat:toggle_system_prompt()
   local has_system_prompt = vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts.tag
+      return msg._meta and msg._meta.tag
     end, self.messages),
     "system_prompt_from_config"
   )
@@ -746,7 +767,7 @@ function Chat:remove_tagged_message(tag)
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.tag == tag then
+      if msg._meta and msg._meta.tag == tag then
         return false
       end
       return true
@@ -766,20 +787,30 @@ function Chat:add_message(data, opts)
 
   ---@type CodeCompanion.Chat.Message
   local message = {
-    id = 1,
-    _meta = {},
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
-    cycle = self.cycle,
-    tool_calls = data.tool_calls,
+    _meta = { id = 1, cycle = self.cycle },
   }
-  message.id = make_id(message)
+
+  -- Map tool_calls to tools.calls
+  if data.tool_calls then
+    message.tools = message.tools or {}
+    message.tools.calls = data.tool_calls
+  end
+
   if opts._meta then
     message._meta = vim.tbl_deep_extend("force", message._meta, opts._meta)
     opts._meta = nil
   end
+  if opts.context then
+    message.context = opts.context
+    opts.context = nil
+  end
+
   message.opts = opts
+  message._meta.id = make_id(message)
+  message._meta.index = #self.messages + 1
 
   if opts.index then
     table.insert(self.messages, opts.index, message)
@@ -1066,7 +1097,7 @@ end
 ---@param id string The uniqie ID linkin the context to the message
 ---@param opts? { bufnr: number, context_opts: table, path: string, tag: string, visible: boolean}
 function Chat:add_context(data, source, id, opts)
-  opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
+  opts = vim.tbl_extend("force", { visible = false }, opts or {})
 
   if not data.role then
     data.role = config.constants.USER_ROLE
@@ -1074,7 +1105,7 @@ function Chat:add_context(data, source, id, opts)
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { context_id = id, tag = opts.tag or source, visible = opts.visible })
+  self:add_message(data, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1173,7 +1204,7 @@ function Chat:check_context()
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.context_id and vim.tbl_contains(to_remove, msg.opts.context_id) then
+      if msg.context and msg.context.id and vim.tbl_contains(to_remove, msg.context.id) then
         return false
       end
       return true
@@ -1212,8 +1243,8 @@ function Chat:refresh_context()
   -- Collect the set of context IDs still referenced by messages
   local ids_in_messages = {}
   for _, msg in ipairs(self.messages or {}) do
-    if msg.opts and msg.opts.context_id then
-      ids_in_messages[msg.opts.context_id] = true
+    if msg.context and msg.context.id then
+      ids_in_messages[msg.context.id] = true
     end
   end
 
@@ -1350,8 +1381,8 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   log:debug("Tool output: %s", tool_call)
 
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
-  output.cycle = self.cycle
-  output.id = make_id({ role = output.role, content = output.content })
+  output._meta = { cycle = self.cycle }
+  output._meta.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
     visible = true,
   })

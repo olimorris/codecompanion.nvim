@@ -95,6 +95,15 @@ When conversing with an LLM, it can be useful to tweak model settings in between
 
 You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
+When using an ACP adapter (such as claude-code), you can also type `\` (backslash, by default) to get completions for ACP commands. These are agent-specific commands like `/compact` (compact chat history) that are dynamically discovered from the agent itself.
+
+> [!NOTE]
+> It typically takes 1-5 seconds after opening a chat buffer for ACP commands to become available. The agent needs to initialize and scan for both built-in and custom commands. If you define a new custom command mid-session, the same delay applies before it appears in the completion list.
+
+The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `strategies.chat.slash_commands.opts.acp.trigger` in your config.
+
+It's worth noting that not all commands available in ACP CLI tools are exposed via the SDK. Only a subset of built-in commands are supported, though this is constantly evolving as the underlying SDKs mature.
+
 ## Keymaps
 
 The plugin has a host of keymaps available in the chat buffer. Pressing `?` in the chat buffer will conveniently display all of them to you.
@@ -124,3 +133,17 @@ The keymaps available to the user in normal mode are:
 - `]]` to move to the next header
 - `{` to move to the previous chat
 - `}` to move to the next chat
+
+To disable a keymap, you can set it to `false` in your configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      keymaps = {
+        clear = false,
+      }
+    }
+  }
+})
+```

@@ -80,10 +80,11 @@ return {
         .iter(messages)
         :map(function(m)
           -- Ensure tool_calls are clean
-          if m.tool_calls then
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
             -- TODO: add tool_name?
-            m.tool_calls = vim
-              .iter(m.tool_calls)
+            tool_calls = vim
+              .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
                   id = tool_call.id,
@@ -95,7 +96,7 @@ return {
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
             m.images = m.images or {}
             if self.opts and self.opts.vision then
               table.insert(m.images, m.content)
@@ -106,7 +107,7 @@ return {
           return {
             role = m.role,
             content = m.content,
-            tool_calls = m.tool_calls,
+            tool_calls = tool_calls,
             images = m.images,
           }
         end)

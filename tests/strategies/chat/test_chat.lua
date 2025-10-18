@@ -50,7 +50,7 @@ T["Chat"]["buffer variables are handled"] = function()
     -- Extract the properties we need to test into simple data types
     _G.last_message_content = chat.messages[#chat.messages].content
     _G.last_message_visible = chat.messages[#chat.messages].opts.visible
-    _G.last_message_tag = chat.messages[#chat.messages].opts.tag
+    _G.last_message_tag = chat.messages[#chat.messages]._meta.tag
   ]])
 
   -- Retrieve the simple values from the child process
@@ -142,11 +142,21 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
   ]])
 
   h.eq({
-    mimetype = "image/png",
-    context_id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
-    tag = "image",
     visible = false,
   }, message.opts)
+
+  h.eq({
+    cycle = 1,
+    index = message._meta.index,
+    id = message._meta.id,
+    tag = "image",
+  }, message._meta)
+
+  h.eq({
+    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
+    mimetype = "image/png",
+    path = string.format("%s/tests/stubs/logo.png", vim.fn.getcwd()),
+  }, message.context)
 
   h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
 end

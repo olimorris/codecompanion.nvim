@@ -9,6 +9,15 @@ local M = {}
 local api = vim.api
 local fmt = string.format
 
+---Create a new ACP connection for the given chat
+---@param chat CodeCompanion.Chat The chat instance
+---@return boolean
+function M.create_acp_connection(chat)
+  local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+  local handler = ACPHandler.new(chat)
+  return handler:ensure_connection()
+end
+
 ---Hide chat if floating diff is being used
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
@@ -92,7 +101,11 @@ function M.add_image(Chat, image, opts)
   Chat:add_message({
     role = opts.role or config.constants.USER_ROLE,
     content = image.base64,
-  }, { context_id = id, mimetype = image.mimetype, tag = "image", visible = false })
+  }, {
+    context = { id = id, mimetype = image.mimetype, path = image.id or image.path },
+    _meta = { tag = "image" },
+    visible = false,
+  })
 
   Chat.context:add({
     bufnr = opts.bufnr or image.bufnr,
@@ -158,7 +171,7 @@ end
 function M.has_tag(tag, messages)
   return vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts and msg.opts.tag
+      return msg._meta and msg._meta.tag
     end, messages),
     tag
   )
@@ -171,7 +184,7 @@ end
 function M.has_context(context, messages)
   return vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts and msg.opts.context_id
+      return msg.context and msg.context.id
     end, messages),
     context
   )

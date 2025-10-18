@@ -236,7 +236,7 @@ Prompt the user if you need to see more than the symbolic outline.
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = description,
-  }, { context_id = id, visible = false })
+  }, { context = { id = id, path = selected.path }, visible = false })
 
   self.Chat.context:add({
     source = "slash_command",

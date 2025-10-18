@@ -6,10 +6,18 @@ local strategy = require("codecompanion.strategies")
 
 local api = vim.api
 
+local function get_acp_trigger()
+  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
+    return config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+  end
+  return "\\"
+end
+
 local trigger = {
   tools = "@",
   variables = "#",
   slash_commands = "/",
+  acp_commands = get_acp_trigger(),
 }
 
 local _vars_aug = nil
@@ -46,7 +54,10 @@ local M = {}
 -- Cache adapter types per buffer so we can conditionally enable completions
 local adapter_types = {}
 
+local aug = api.nvim_create_augroup("codecompanion.completion", { clear = true })
+
 api.nvim_create_autocmd("User", {
+  group = aug,
   pattern = "CodeCompanionChatAdapter",
   callback = function(args)
     local bufnr = args.data.bufnr
@@ -58,9 +69,12 @@ api.nvim_create_autocmd("User", {
   end,
 })
 
-api.nvim_create_autocmd("BufDelete", {
+api.nvim_create_autocmd("User", {
+  group = aug,
+  pattern = "CodeCompanionChatClosed",
   callback = function(args)
-    adapter_types[args.buf] = nil
+    local bufnr = args.data.bufnr
+    adapter_types[bufnr] = nil
   end,
 })
 
@@ -123,6 +137,59 @@ function M.slash_commands_execute(selected, chat)
   else
     SlashCommands:execute(selected, chat)
   end
+end
+
+---Return the ACP commands to be used for completion
+---@param bufnr? number Buffer number (defaults to current buffer)
+---@return table
+function M.acp_commands(bufnr)
+  bufnr = bufnr or api.nvim_get_current_buf()
+
+  -- Only show ACP commands if this buffer is using an ACP adapter
+  if adapter_types[bufnr] ~= "acp" then
+    return {}
+  end
+
+  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local commands = acp_commands.get_commands_for_buffer(bufnr)
+  local acp_trigger = get_acp_trigger()
+
+  return vim
+    .iter(commands)
+    :map(function(cmd)
+      local detail = cmd.description
+      if cmd.input and cmd.input ~= vim.NIL and type(cmd.input) == "table" and cmd.input.hint then
+        detail = detail .. " " .. cmd.input.hint
+      end
+
+      return {
+        label = acp_trigger .. cmd.name,
+        detail = detail,
+        command = cmd,
+        type = "acp_command",
+      }
+    end)
+    :totable()
+end
+
+---Execute selected ACP command (insert as text, no auto-submit)
+---@param selected table The selected item from the completion menu
+---@return string The text to insert
+function M.acp_commands_execute(selected)
+  -- Return the command text with backslash trigger (will be transformed to forward slash on send)
+  local text = get_acp_trigger() .. selected.command.name
+
+  -- Add a space if the command accepts arguments
+  if
+    selected.command.input
+    and selected.command.input ~= vim.NIL
+    and type(selected.command.input) == "table"
+    and selected.command.input.hint
+  then
+    text = text .. " "
+  end
+
+  return text
 end
 
 ---Return the tools to be used for completion

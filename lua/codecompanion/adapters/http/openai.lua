@@ -85,9 +85,10 @@ return {
           end
 
           -- Ensure tool_calls are clean
-          if m.tool_calls then
-            m.tool_calls = vim
-              .iter(m.tool_calls)
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
+            tool_calls = vim
+              .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
                   id = tool_call.id,
@@ -99,13 +100,13 @@ return {
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
             if self.opts and self.opts.vision then
               m.content = {
                 {
                   type = "image_url",
                   image_url = {
-                    url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                    url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
                   },
                 },
               }
@@ -118,8 +119,8 @@ return {
           return {
             role = m.role,
             content = m.content,
-            tool_calls = m.tool_calls,
-            tool_call_id = m.tool_call_id,
+            tool_calls = tool_calls,
+            tool_call_id = m.tools and m.tools.call_id or nil,
           }
         end)
         :totable()
@@ -302,7 +303,9 @@ return {
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
-          tool_call_id = tool_call.id,
+          tools = {
+            call_id = tool_call.id,
+          },
           content = output,
           opts = { visible = false },
         }

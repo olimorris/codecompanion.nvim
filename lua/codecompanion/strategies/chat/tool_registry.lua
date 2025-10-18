@@ -58,7 +58,7 @@ local function add_system_prompt(chat, tool, id)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, tag = "tool", context_id = id }
+      { visible = false, _meta = { tag = "tool" }, context = { id = id } }
     )
   end
 end
@@ -122,7 +122,7 @@ function ToolRegistry:add_group(group, tools_config)
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
-    }, { tag = "tool", visible = false, context_id = group_id })
+    }, { _meta = { tag = "tool" }, context = { id = group_id }, visible = false })
   end
 
   if collapse_tools then
@@ -152,7 +152,7 @@ function ToolRegistry:add_tool_system_prompt()
     self.chat:remove_tagged_message("system_prompt_from_config")
   end
 
-  self.chat:set_system_prompt(prompt, { index = index, visible = false, tag = "tool_system_prompt" })
+  self.chat:set_system_prompt(prompt, { index = index, visible = false, _meta = { tag = "tool_system_prompt" } })
 end
 
 ---Determine if the chat buffer has any tools in use
