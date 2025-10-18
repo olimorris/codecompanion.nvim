@@ -1,6 +1,21 @@
 local get_models = require("codecompanion.adapters.http.mistral.get_models")
 local openai = require("codecompanion.adapters.http.openai")
 
+---Resolves the options that a model has
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table
+local function resolve_model_opts(adapter)
+  local model = adapter.schema.model.default
+  local choices = adapter.schema.model.choices
+  if type(model) == "function" then
+    model = model(adapter)
+  end
+  if type(choices) == "function" then
+    choices = choices(adapter)
+  end
+  return choices[model]
+end
+
 ---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
 return {
   name = "mistral",
@@ -30,26 +45,19 @@ return {
   },
   handlers = {
     setup = function(self)
-      local model = self.schema.model.default
-      if type(model) == "function" then
-        model = model(self)
-      end
-      local model_opts = self.schema.model.choices
-      if type(model_opts) == "function" then
-        model_opts = model_opts(self)
-      end
+      local model_opts = resolve_model_opts(self)
 
       self.opts.vision = false
       self.opts.tools = false
 
-      if model_opts and model_opts[model] and model_opts[model].opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)
+      if model_opts and model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
 
-        if model_opts[model].opts.has_vision then
+        if model_opts.opts.has_vision then
           self.opts.vision = true
         end
 
-        if model_opts[model].opts.can_use_tools then
+        if model_opts.opts.can_use_tools then
           self.opts.tools = true
         end
       end
@@ -96,9 +104,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "mistral-small-latest",
-      -- default = function(self)
-      --   return get_models(self, { last = true })
-      -- end,
+      ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
       choices = function(self, opts)
         return get_models.choices(self, opts)
       end,

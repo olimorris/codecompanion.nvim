@@ -5,32 +5,34 @@ local utils = require("codecompanion.utils.adapters")
 
 local CONSTANTS = {
   TIMEOUT = 3000, -- 3 seconds
-  POLL_INTERVAL = 10,
 }
 
 ---Whether there are already some requests running.
 local running = false
 
-M = {}
+local M = {}
 
----@type table<string, table<string, { formatted_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
+---@class MistralModelInfo
+---@field formatted_name string?
+---@field opts {can_use_tools: boolean, has_vision: boolean}
+
+---@alias MistralModelCache table<string, MistralModelInfo>
+
+---@type MistralModelCache
 local _cached_models = {}
 
----@param url string
----@param opts? MistralGetModelsOpts
-local function get_cached_models(url, opts)
-  assert(_cached_models[url] ~= nil, "Model info is not available in the cache.")
-  local models = _cached_models[url]
-  if opts and opts.last then
-    return vim.tbl_keys(models)[1]
-  else
-    return models
-  end
+---@return MistralModelCache
+local function get_cached_models()
+  assert(_cached_models ~= nil, "Model info is not available in the cache.")
+  local models = _cached_models
+  return models
 end
 
----When given list of names that are alias for the same model, return the preferred name
----@params names? table  list names, should at least contain 1 entry
----@return names? string
+---When given a list of names that are aliases for the same model, returns the preferred name.
+---The preference order is: names ending with '-latest' (highest priority),
+---then names ending with four digits (e.g., '-2023'), and finally other names.
+---@param names table List of names, should at least contain 1 entry
+---@return string?
 local function preferred_model_name(names)
   local high_score = -1
   local preferred_name
@@ -39,9 +41,9 @@ local function preferred_model_name(names)
     if string.find(name, "-latest$") then
       score = 2
     elseif string.find(name, "-%d%d%d%d$") then
-      score = 0
-    else
       score = 1
+    else
+      score = 0
     end
     if score > high_score then
       high_score = score
@@ -51,14 +53,11 @@ local function preferred_model_name(names)
   return preferred_name
 end
 
--- Multiple id can refer to the same Model,
--- This function removes duplicates, only using preferred model name
--- @param models table as returned by response mistral api
--- @return table
+---Multiple id can refer to the same Model,
+---This function removes duplicates, only using preferred model name
+---@param models table[] Table as returned by Mistral API response
+---@return table[]
 local function dedup_models(models)
-  if models == nil then
-    log:error("Could not get the Mistral models from ")
-  end
   local preferred_names = {}
   for _, model in ipairs(models) do
     if model.id then
@@ -94,96 +93,96 @@ end
 ---Fetch model list and model info.
 ---Aborts if there's another fetch job running.
 ---Returns the number of models if the fetches are fired.
----@param adapter CodeCompanion.HTTPAdapter Ollama adapter with env var replaced.
----@param opts OllamaGetModelsOpts
-local function fetch_async(adapter, opts)
+---@param adapter CodeCompanion.HTTPAdapter Mistral adapter with env var replaced.
+local function fetch_async(adapter)
   assert(adapter ~= nil)
   if running then
     return
   end
 
-  local url = adapter.env_replaced.url
-  local models_endpoint = "/v1/models"
-
   running = true
-  _cached_models[url] = _cached_models[url] or {}
+
+  _cached_models = _cached_models or {} -- TODO: this has the side effect models are never removed
+
+  local models_endpoint = "/v1/models"
   local headers = {
     ["content-type"] = "application/json",
+    ["Authorization"] = "Bearer " .. adapter.env_replaced.api_key,
   }
-
-  local auth_header = "Bearer "
-  if adapter.env_replaced.authorization then
-    auth_header = adapter.env_replaced.authorization .. " "
-  end
-  if adapter.env_replaced.api_key then
-    headers["Authorization"] = auth_header .. adapter.env_replaced.api_key
-  end
-
+  local url = adapter.env_replaced.url
   pcall(function()
-    local job = Curl.get(url .. models_endpoint, {
+    Curl.get(url .. models_endpoint, {
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
       timeout = CONSTANTS.TIMEOUT,
-      callback = function(response)
+      -- Schedule_wrap is used otherwise you get: nvim_create_namespace must not be called in a fast event context.
+      -- This can happen wen you update vim ui in curl callback.
+      callback = vim.schedule_wrap(function(response)
         if response.status ~= 200 then
-          return log:error("Could not get Mistral models from " .. url .. models_endpoint .. ".\nError: %s", response)
+          running = false
+          return log:error(
+            "Could not get Mistral models from " .. url .. models_endpoint .. ". Error: %s",
+            response.body
+          )
         end
 
         local ok, json = pcall(vim.json.decode, response.body)
         if not ok then
-          return log:error("Could not parse the response from " .. url .. models_endpoint)
+          running = false
+          log:error("Could not parse the response from " .. url .. models_endpoint)
+          return {}
         end
 
         for _, model_obj in ipairs(dedup_models(json.data)) do
-
           -- Sometime models incorrect advertise capabilities.completion_chat.
           -- They informed me this is considered a bug, and are working on it.
           if model_obj.capabilities.completion_chat and model_obj.deprecation == vim.NIL then
-            _cached_models[url][model_obj.id] = {
-                formatted_name = model_obj.name,
-                opts = {
-                  has_vision = model_obj.capabilities.vision or false,
-                  can_use_tools = model_obj.capabilities.function_calling or false,
-                }
-              }
-
+            _cached_models[model_obj.id] = {
+              formatted_name = model_obj.name,
+              opts = {
+                has_vision = model_obj.capabilities.vision or false,
+                can_use_tools = model_obj.capabilities.function_calling or false,
+              },
+            }
           end
         end
         running = false
-        _cached_models[url] = _cached_models[url] or {}  -- TODO: this has the side effect models are never removed
-      end,
+      end),
     })
     if adapter.opts.cache_adapter == false then
       vim.wait(CONSTANTS.TIMEOUT, function()
-        local models = _cached_models[url]
+        local models = _cached_models
         return models ~= nil and not vim.tbl_isempty(models) and not running
       end)
     end
   end)
 end
 
+---@param self CodeCompanion.HTTPAdapter
+---@return MistralModelCache
 function M.choices(self, opts)
-  local adapter = require("codecompanion.adapters.http").resolve(self) --[[@as CodeCompanion.HTTPAdapter]]
-  opts = vim.tbl_deep_extend("force", { async = true }, opts or {})
+  local adapter = require("codecompanion.adapters.http").resolve(self)
+
   if not adapter then
     log:error("Could not resolve Mistral adapter in the `choices` function")
     return {}
   end
+  opts = opts or { async = true }
+
   utils.get_env_vars(adapter)
-  local url = adapter.env_replaced.url
-  local is_uninitialised = _cached_models[url] == nil
+  local is_uninitialised = _cached_models == nil or next(_cached_models)
 
-  local should_block = (self.opts.cache_adapter == false) or is_uninitialised or not opts.async
+  local should_block = (adapter.opts.cache_adapter == false) or is_uninitialised or not opts.async
 
-  fetch_async(adapter, { async = not should_block }) -- should_block means NO async
+  fetch_async(adapter)
 
   if should_block and running then
     vim.wait(CONSTANTS.TIMEOUT, function()
       return not running
     end)
   end
-  return get_cached_models(url, opts)
+  return get_cached_models()
 end
 
 return M
