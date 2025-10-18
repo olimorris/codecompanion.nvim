@@ -455,4 +455,159 @@ T["ACPHandler"]["permission request passes through when toolCallId unknown"] = f
   h.eq("unknown_tool_id", result.toolCallId)
 end
 
+T["ACPHandler"]["transforms ACP commands in messages"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    -- Setup mock connection with session
+    chat.acp_connection = {
+      session_id = "test-session-123"
+    }
+
+    -- Register available ACP commands
+    local commands = require("codecompanion.strategies.chat.acp.commands")
+    commands.register_commands("test-session-123", {
+      { name = "cost", description = "Show costs" },
+      { name = "context", description = "Manage context" },
+    })
+
+    -- Test transformation
+    local messages = {
+      { content = "\\cost" },
+      { content = "\\context --detailed" },
+      { content = "Regular text with \\backslash" },
+      { content = "\\cost at end" },
+    }
+
+    local transformed = handler:transform_acp_commands(messages)
+
+    return {
+      first = transformed[1].content,
+      second = transformed[2].content,
+      third = transformed[3].content,
+      fourth = transformed[4].content,
+    }
+  ]])
+
+  h.eq("/cost", result.first)
+  h.eq("/context --detailed", result.second)
+  h.eq("Regular text with \\backslash", result.third) -- Unknown command not transformed
+  h.eq("/cost at end", result.fourth)
+end
+
+T["ACPHandler"]["only transforms known ACP commands"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    chat.acp_connection = {
+      session_id = "test-session-456"
+    }
+
+    -- Register only 'cost' command
+    local commands = require("codecompanion.strategies.chat.acp.commands")
+    commands.register_commands("test-session-456", {
+      { name = "cost", description = "Show costs" },
+    })
+
+    local messages = {
+      { content = "\\cost is known" },
+      { content = "\\unknown is not" },
+    }
+
+    local transformed = handler:transform_acp_commands(messages)
+
+    return {
+      first = transformed[1].content,
+      second = transformed[2].content,
+    }
+  ]])
+
+  h.eq("/cost is known", result.first)
+  h.eq("\\unknown is not", result.second) -- Unknown command preserved
+end
+
+T["ACPHandler"]["handles no registered commands"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    chat.acp_connection = {
+      session_id = "test-session-789"
+    }
+
+    -- No commands registered for this session
+
+    local messages = {
+      { content = "\\cost should not transform" },
+    }
+
+    local transformed = handler:transform_acp_commands(messages)
+
+    return {
+      content = transformed[1].content,
+    }
+  ]])
+
+  h.eq("\\cost should not transform", result.content)
+end
+
+T["ACPHandler"]["handles no connection"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    -- No connection established
+
+    local messages = {
+      { content = "\\cost" },
+    }
+
+    local transformed = handler:transform_acp_commands(messages)
+
+    return {
+      content = transformed[1].content,
+    }
+  ]])
+
+  h.eq("\\cost", result.content)
+end
+
 return T

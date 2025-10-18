@@ -16,6 +16,13 @@
 
 ---@alias ACP.authMethods ACP.AuthMethod[]
 
+---@class ACP.AvailableCommand
+---@field name string The command name (e.g., "cost", "context")
+---@field description string The command description
+---@field input? { hint: string } Optional input hint for arguments
+
+---@alias ACP.availableCommands ACP.AvailableCommand[]
+
 ---@meta Tree-sitter
 
 ---@class vim.treesitter.LanguageTree

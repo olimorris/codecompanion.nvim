@@ -374,6 +374,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
           },
         },
+        opts = {
+          acp = {
+            enabled = true, -- Enable ACP command completion
+            trigger = "\\", -- Trigger character for ACP commands
+          },
+        },
       },
       keymaps = {
         options = {
