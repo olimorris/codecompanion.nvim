@@ -8,7 +8,7 @@ if vim.fn.has("nvim-0.11") == 0 then
 end
 
 local config = require("codecompanion.config")
-local util = require("codecompanion.utils")
+
 local api = vim.api
 
 api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
@@ -117,7 +117,7 @@ api.nvim_create_autocmd("BufEnter", {
       and not vim.tbl_contains(excluded_buftypes, vim.bo[bufnr].buftype)
     then
       _G.codecompanion_current_context = bufnr
-      util.fire("ContextChanged", { bufnr = bufnr })
+      require("codecompanion.utils").fire("ContextChanged", { bufnr = bufnr })
     end
   end,
 })

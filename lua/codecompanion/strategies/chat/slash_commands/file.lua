@@ -3,7 +3,7 @@ local Path = require("plenary.path")
 local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -198,7 +198,7 @@ function SlashCommand:output(selected, opts)
     return
   end
 
-  util.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))
+  utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))
 end
 
 return SlashCommand

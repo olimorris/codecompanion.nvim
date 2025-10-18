@@ -1,7 +1,7 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
 local transform = require("codecompanion.utils.tool_transformers")
-local utils = require("codecompanion.utils.adapters")
 
 local input_tokens = 0
 local output_tokens = 0
@@ -140,7 +140,7 @@ return {
         end
 
         -- 4. Remove disallowed keys
-        m = utils.filter_out_messages({
+        m = adapter_utils.filter_out_messages({
           message = m,
           allowed_words = {
             "content",
@@ -223,7 +223,7 @@ return {
       end, messages)
 
       -- 9. Merge consecutive messages with the same role
-      messages = utils.merge_messages(messages)
+      messages = adapter_utils.merge_messages(messages)
 
       -- 10. Ensure that any consecutive tool results are merged and text messages are included
       if has_tools then
@@ -340,7 +340,7 @@ return {
     tokens = function(self, data)
       if data then
         if self.opts.stream then
-          data = utils.clean_streamed_data(data)
+          data = adapter_utils.clean_streamed_data(data)
         else
           data = data.body
         end
@@ -377,7 +377,7 @@ return {
 
       if data and data ~= "" then
         if self.opts.stream then
-          data = utils.clean_streamed_data(data)
+          data = adapter_utils.clean_streamed_data(data)
         else
           data = data.body
         end

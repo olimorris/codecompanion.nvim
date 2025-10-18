@@ -9,7 +9,7 @@ https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitt
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -20,7 +20,7 @@ local CONSTANTS = {
 
 ---Return when no symbols query exists
 local function no_query(ft)
-  util.notify(
+  utils.notify(
     fmt("There are no Tree-sitter symbol queries for `%s` files yet. Please consider making a PR", ft),
     vim.log.levels.WARN
   )
@@ -28,7 +28,7 @@ end
 
 ---Return when no symbols have been found
 local function no_symbols()
-  util.notify("No symbols found in the given file", vim.log.levels.WARN)
+  utils.notify("No symbols found in the given file", vim.log.levels.WARN)
 end
 
 local providers = {
@@ -248,7 +248,7 @@ Prompt the user if you need to see more than the symbolic outline.
     return
   end
 
-  util.notify(fmt("Added the symbols for `%s` to the chat", vim.fn.fnamemodify(selected.relative_path, ":t")))
+  utils.notify(fmt("Added the symbols for `%s` to the chat", vim.fn.fnamemodify(selected.relative_path, ":t")))
 end
 
 return SlashCommand

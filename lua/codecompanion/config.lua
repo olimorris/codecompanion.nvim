@@ -1,5 +1,5 @@
 local providers = require("codecompanion.providers")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -561,7 +561,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
-        goto_file_action = ui.tabnew_reuse,
+        goto_file_action = ui_utils.tabnew_reuse,
 
         ---This is the default prompt which is sent with every request in the chat
         ---strategy. It is primarily based on the GitHub Copilot Chat's prompt

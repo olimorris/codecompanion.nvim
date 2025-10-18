@@ -20,14 +20,14 @@ local fmt = string.format
 
 ---@class CodeCompanion.Chat.TrackedFile
 ---@field type "buffer"|"file" Type of tracked resource
----@field filepath? string File path (for files)
+---@field path? string File path (for files)
 ---@field bufnr? number Buffer number (for buffers)
 ---@field edit_operations CodeCompanion.Chat.EditOperation[] Array of all edit operations
 ---@field first_edit_timestamp number Timestamp of first edit
 ---@field last_edit_timestamp number Timestamp of last edit
 
 ---@class CodeCompanion.Chat.EditTracker
----@field tracked_files table<string, CodeCompanion.Chat.TrackedFile> Map of filepath/bufnr -> tracked file info
+---@field tracked_files table<string, CodeCompanion.Chat.TrackedFile> Map of path/bufnr -> tracked file info
 ---@field enabled boolean Whether edit tracking is enabled
 ---@field edit_counter number Counter for generating unique edit IDs
 
@@ -42,26 +42,26 @@ function EditTracker.init(chat)
     return
   end
   chat.edit_tracker = {
-    tracked_files = {}, -- Map of filepath/bufnr -> tracked file info
+    tracked_files = {}, -- Map of path/bufnr -> tracked file info
     enabled = true,
     edit_counter = 0,
-    baseline_content = {}, -- Map of filepath/bufnr -> true original content
+    baseline_content = {}, -- Map of path/bufnr -> true original content
   }
   log:info("[Edit Tracker] Initialized edit tracking for chat %d", chat.id)
 end
 
 ---Generate a unique key for tracking files/buffers
----@param edit_info table Must contain either filepath or bufnr
+---@param edit_info table Must contain either path or bufnr
 ---@return string|nil Unique key for the file/buffer
 local function generate_key(edit_info)
-  if edit_info.filepath then
-    local p = Path:new(edit_info.filepath)
+  if edit_info.path then
+    local p = Path:new(edit_info.path)
     local expanded_path = p:expand()
     return "file:" .. expanded_path
   elseif edit_info.bufnr then
     return "buffer:" .. edit_info.bufnr
   else
-    return log:error("[Edit Tracker] Edit info must have either filepath or bufnr. Received: %s", edit_info)
+    return log:error("[Edit Tracker] Edit info must have either path or bufnr. Received: %s", edit_info)
   end
 end
 
@@ -112,7 +112,7 @@ function EditTracker.register_edit_operation(chat, edit_info)
     log:info("[Edit Tracker] First edit operation for: %s", key)
     tracked[key] = {
       type = edit_info.bufnr and "buffer" or "file",
-      filepath = edit_info.filepath,
+      path = edit_info.path,
       bufnr = edit_info.bufnr,
       edit_operations = {},
       first_edit_timestamp = current_timestamp,
@@ -224,19 +224,19 @@ end
 
 ---Get all edit operations for a specific file/buffer
 ---@param chat CodeCompanion.Chat
----@param filepath_or_bufnr string|number File path or buffer number
+---@param path_or_bufnr string|number File path or buffer number
 ---@return CodeCompanion.Chat.EditOperation[] operations
-function EditTracker.get_edit_operations_for_file(chat, filepath_or_bufnr)
+function EditTracker.get_edit_operations_for_file(chat, path_or_bufnr)
   if not chat.edit_tracker then
     return {}
   end
 
   local key
-  if type(filepath_or_bufnr) == "string" then
-    local p = Path:new(filepath_or_bufnr)
+  if type(path_or_bufnr) == "string" then
+    local p = Path:new(path_or_bufnr)
     key = "file:" .. p:expand()
   else
-    key = "buffer:" .. filepath_or_bufnr
+    key = "buffer:" .. path_or_bufnr
   end
 
   local tracked_file = chat.edit_tracker.tracked_files[key]
@@ -349,26 +349,26 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
   log:info("[Edit Tracker] Starting tool monitoring for: %s", tool_name)
   local target_files = {}
   local buffer_snapshots = {}
-  if tool_args and tool_args.filepath then
-    local filepath = helpers.validate_and_normalize_filepath(tool_args.filepath)
+  if tool_args and tool_args.path then
+    local path = helpers.validate_and_normalize_path(tool_args.path)
 
-    if filepath then
-      local bufnr = vim.fn.bufnr(filepath)
+    if path then
+      local bufnr = vim.fn.bufnr(path)
       if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
         local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-        buffer_snapshots[filepath] = {
+        buffer_snapshots[path] = {
           bufnr = bufnr,
           content = vim.deepcopy(content),
           lines_count = #content,
         }
-      elseif vim.uv.fs_stat(vim.fs.normalize(filepath)) then
-        local content = vim.fn.readfile(filepath)
-        target_files[filepath] = {
+      elseif vim.uv.fs_stat(vim.fs.normalize(path)) then
+        local content = vim.fn.readfile(path)
+        target_files[path] = {
           content = vim.deepcopy(content),
           lines_count = #content,
         }
       else
-        target_files[filepath] = {
+        target_files[path] = {
           content = {},
           lines_count = 0,
         }
@@ -377,10 +377,10 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
       -- Fallback: monitor all loaded buffers if no specific target
       for _, bufnr in ipairs(api.nvim_list_bufs()) do
         if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
-          filepath = api.nvim_buf_get_name(bufnr)
-          if filepath ~= "" and vim.uv.fs_stat(vim.fs.normalize(filepath)) then
+          path = api.nvim_buf_get_name(bufnr)
+          if path ~= "" and vim.uv.fs_stat(vim.fs.normalize(path)) then
             local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-            buffer_snapshots[filepath] = {
+            buffer_snapshots[path] = {
               bufnr = bufnr,
               content = vim.deepcopy(content),
               lines_count = #content,
@@ -434,7 +434,7 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
   }
 
   -- Check for buffer changes
-  for filepath, snapshot in pairs(monitor.buffer_snapshots) do
+  for path, snapshot in pairs(monitor.buffer_snapshots) do
     local current_success, current_content = pcall(function()
       if api.nvim_buf_is_valid(snapshot.bufnr) then
         return api.nvim_buf_get_lines(snapshot.bufnr, 0, -1, false)
@@ -447,12 +447,12 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
         -- Register this edit
         local edit_id = EditTracker.register_edit_operation(chat, {
           bufnr = snapshot.bufnr,
-          filepath = filepath,
+          path = path,
           tool_name = tool_name,
           original_content = snapshot.content,
           new_content = current_content,
           metadata = {
-            explanation = fmt("Auto-detected changes in %s", vim.fn.fnamemodify(filepath, ":t")),
+            explanation = fmt("Auto-detected changes in %s", vim.fn.fnamemodify(path, ":t")),
             auto_detected = true,
             detection_method = "buffer_monitoring",
             lines_changed = math.abs(#current_content - #snapshot.content),
@@ -470,7 +470,7 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
         if edit_id then
           detected_edits = detected_edits + 1
           table.insert(detection_results.buffer_changes, {
-            filepath = filepath,
+            path = path,
             edit_id = edit_id,
             lines_before = #snapshot.content,
             lines_after = #current_content,
@@ -482,7 +482,7 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
             edit_id = edit_id,
             tool_name = tool_name,
             auto_detected = true,
-            filepath = filepath,
+            path = path,
             timestamp = vim.loop.hrtime(),
           })
         end
@@ -490,17 +490,17 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
       end
     else
       table.insert(detection_results.errors, {
-        filepath = filepath,
+        path = path,
         error = "Failed to read current buffer content",
       })
     end
   end
 
   -- Check for target file changes (files not in buffers)
-  for filepath, snapshot in pairs(monitor.target_files or {}) do
+  for path, snapshot in pairs(monitor.target_files or {}) do
     local current_success, current_content = pcall(function()
-      if vim.uv.fs_stat(vim.fs.normalize(filepath)) then
-        return vim.fn.readfile(filepath)
+      if vim.uv.fs_stat(vim.fs.normalize(path)) then
+        return vim.fn.readfile(path)
       elseif snapshot.lines_count == 0 then
         -- File was expected to be created and doesn't exist yet
         return nil
@@ -517,12 +517,12 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
 
       -- Register this edit
       local edit_id = EditTracker.register_edit_operation(chat, {
-        filepath = filepath,
+        path = path,
         tool_name = tool_name,
         original_content = snapshot.content,
         new_content = current_content or {},
         metadata = {
-          explanation = fmt("Auto-detected %s in %s", change_type, vim.fn.fnamemodify(filepath, ":t")),
+          explanation = fmt("Auto-detected %s in %s", change_type, vim.fn.fnamemodify(path, ":t")),
           auto_detected = true,
           detection_method = "target_file_monitoring",
           lines_changed = current_content and math.abs(#current_content - #snapshot.content) or 0,
@@ -540,7 +540,7 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
       if edit_id then
         detected_edits = detected_edits + 1
         table.insert(detection_results.file_changes, {
-          filepath = filepath,
+          path = path,
           edit_id = edit_id,
           lines_before = #snapshot.content,
           lines_after = current_content and #current_content or 0,
@@ -552,13 +552,13 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
           edit_id = edit_id,
           tool_name = tool_name,
           auto_detected = true,
-          filepath = filepath,
+          path = path,
           timestamp = vim.loop.hrtime(),
         })
       end
     elseif not current_success then
       table.insert(detection_results.errors, {
-        filepath = filepath,
+        path = path,
         error = "Failed to read current file content",
       })
     end

@@ -65,7 +65,7 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
 local schema = require("codecompanion.schema")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
@@ -113,7 +113,7 @@ local function add_pins(chat)
       end
     end)
     if not exists then
-      util.fire("ChatPin", { bufnr = chat.bufnr, id = chat.id, pin_id = pin.id })
+      utils.fire("ChatPin", { bufnr = chat.bufnr, id = chat.id, pin_id = pin.id })
       require(pin.source)
         .new({ Chat = chat })
         :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })
@@ -423,12 +423,12 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
-  util.fire("ChatAdapter", {
+  utils.fire("ChatAdapter", {
     adapter = adapters.make_safe(self.adapter),
     bufnr = self.bufnr,
     id = self.id,
   })
-  util.fire(
+  utils.fire(
     "ChatModel",
     { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
   )
@@ -550,7 +550,7 @@ function Chat.new(args)
 
   self:dispatch("on_created")
 
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
+  utils.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
   end
@@ -608,7 +608,7 @@ end
 ---@param model? string
 function Chat:change_adapter(name, model)
   local function fire()
-    return util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
+    return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
   self.adapter = require("codecompanion.adapters").resolve(name)
@@ -753,10 +753,10 @@ function Chat:toggle_system_prompt()
 
   if has_system_prompt then
     self:remove_tagged_message("system_prompt_from_config")
-    util.notify("Removed system prompt")
+    utils.notify("Removed system prompt")
   else
     self:set_system_prompt()
-    util.notify("Added system prompt")
+    utils.notify("Added system prompt")
   end
 end
 
@@ -1000,7 +1000,7 @@ function Chat:submit(opts)
     self:_submit_acp(payload)
   end
 
-  util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id, type = self.adapter.type })
+  utils.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id, type = self.adapter.type })
 end
 
 ---Method to fire when all the tools are done
@@ -1088,7 +1088,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
   ready_chat_buffer(self)
 
   self:dispatch("on_completed", { status = self.status })
-  util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
@@ -1280,7 +1280,7 @@ end
 function Chat:stop()
   self.status = CONSTANTS.STATUS_CANCELLING
   self:dispatch("on_cancelled")
-  util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
     local tool_job = self.current_tool
@@ -1329,9 +1329,9 @@ function Chat:close()
     last_chat = nil
   end
 
-  util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
-  util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
-  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
+  utils.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
+  utils.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
 
   table.remove(
     _G.codecompanion_buffers,
@@ -1439,7 +1439,7 @@ function Chat:clear()
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
   self:set_system_prompt()
-  util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Display the chat buffer's settings and messages

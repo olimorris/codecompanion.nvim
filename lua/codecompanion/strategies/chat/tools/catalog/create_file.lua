@@ -189,21 +189,20 @@ return {
     ---@param stdout table The output from the command
     success = function(self, tools, cmd, stdout)
       local chat = tools.chat
-      local output = vim.iter(stdout):flatten():join("\n")
       local args = self.args
-      local filepath = args.filepath
+      local path = args.filepath
 
       local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
-      local file_ext = vim.fn.fnamemodify(filepath, ":e")
+      local file_ext = vim.fn.fnamemodify(path, ":e")
 
       local result_msg = fmt(
         [[Created file `%s`
 ```%s
 %s
 ```]],
-        filepath,
+        path,
         file_ext,
         args.content or ""
       )

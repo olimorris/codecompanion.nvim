@@ -1,8 +1,8 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
 local stats = require("codecompanion.adapters.http.copilot.stats")
 local token = require("codecompanion.adapters.http.copilot.token")
-local utils = require("codecompanion.utils.adapters")
 
 local _fetching_models = false
 local version = vim.version()
@@ -135,7 +135,7 @@ return {
     end,
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then

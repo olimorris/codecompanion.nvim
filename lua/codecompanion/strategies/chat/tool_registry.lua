@@ -12,7 +12,7 @@ Methods for handling interactions between the chat buffer and tools
 local ToolRegistry = {}
 
 local config = require("codecompanion.config")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.Chat.ToolsArgs
 ---@field chat CodeCompanion.Chat
@@ -91,7 +91,7 @@ function ToolRegistry:add(tool, tool_config, opts)
   add_system_prompt(self.chat, resolved_tool, id)
   add_schema(self, resolved_tool, id)
 
-  util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
+  utils.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
   self.in_use[tool] = true
 
   self:add_tool_system_prompt()

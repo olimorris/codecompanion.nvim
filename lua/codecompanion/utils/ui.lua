@@ -135,18 +135,18 @@ M.create_float = function(lines, opts)
   return bufnr, winnr
 end
 
----Build a floating window title with smart filepath handling
----@param opts { title?: string, title_prefix?: string, filepath?: string }
+---Build a floating window title with smart path handling
+---@param opts { title?: string, title_prefix?: string, path?: string }
 ---@return string title The formatted title
 function M.build_float_title(opts)
   opts = opts or {}
   local title = opts.title or opts.title_prefix or "CodeCompanion"
 
-  if opts.filepath then
+  if opts.path then
     local ok, relative_path = pcall(function()
-      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
+      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.path))
     end)
-    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
+    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.path
 
     title = " " .. (opts.title_prefix or " Diff") .. ": " .. path_to_use .. " "
   end

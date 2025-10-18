@@ -1,6 +1,6 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter.DeepSeek: CodeCompanion.HTTPAdapter
 return {
@@ -56,8 +56,8 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      messages = utils.merge_messages(messages)
-      messages = utils.merge_system_messages(messages)
+      messages = adapter_utils.merge_messages(messages)
+      messages = adapter_utils.merge_system_messages(messages)
 
       messages = vim
         .iter(messages)
@@ -97,7 +97,7 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok and json.choices and #json.choices > 0 then

@@ -1,5 +1,5 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
 return {
@@ -156,7 +156,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -180,7 +180,7 @@ return {
       end
 
       -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
       if not ok or not json.choices or #json.choices == 0 then

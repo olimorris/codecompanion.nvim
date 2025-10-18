@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 
 local api = vim.api
 
@@ -30,10 +30,10 @@ local function is_suitable_window(win_id)
 end
 
 ---Check if buffer exists for a file path
----@param filepath string
+---@param path string
 ---@return number|nil bufnr Buffer number if exists, nil otherwise
-local function get_existing_buffer(filepath)
-  local bufnr = vim.fn.bufnr(filepath)
+local function get_existing_buffer(path)
+  local bufnr = vim.fn.bufnr(path)
   return bufnr ~= -1 and bufnr or nil
 end
 
@@ -86,17 +86,17 @@ local function set_buffer_in_window(bufnr, winnr)
 end
 
 ---Create new buffer from file in window
----@param filepath string
+---@param path string
 ---@param winnr number
 ---@return number|nil bufnr
-local function create_buffer_in_window(filepath, winnr)
-  if not vim.uv.fs_stat(vim.fs.normalize(filepath)) then
-    log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
+local function create_buffer_in_window(path, winnr)
+  if not vim.uv.fs_stat(vim.fs.normalize(path)) then
+    log:debug("[catalog::helpers::diff::create] File not readable: %s", path)
     return nil
   end
 
   local ok = pcall(api.nvim_win_call, winnr, function()
-    vim.cmd.edit(vim.fn.fnameescape(filepath))
+    vim.cmd.edit(vim.fn.fnameescape(path))
     vim.schedule(function()
       pcall(api.nvim_set_current_win, winnr)
     end)
@@ -106,26 +106,26 @@ local function create_buffer_in_window(filepath, winnr)
     return api.nvim_win_get_buf(winnr)
   end
 
-  log:warn("[catalog::helpers::diff::create] Failed to create buffer for: %s", filepath)
+  log:warn("[catalog::helpers::diff::create] Failed to create buffer for: %s", path)
   return nil
 end
 
 ---Create new split window with buffer
----@param bufnr_or_filepath number|string
+---@param bufnr_or_path number|string
 ---@return number|nil bufnr
-local function create_split_window(bufnr_or_filepath)
+local function create_split_window(bufnr_or_path)
   vim.cmd("topleft vnew")
   local winnr = api.nvim_get_current_win()
 
-  if type(bufnr_or_filepath) == "string" then
-    local bufnr = create_buffer_in_window(bufnr_or_filepath, winnr)
+  if type(bufnr_or_path) == "string" then
+    local bufnr = create_buffer_in_window(bufnr_or_path, winnr)
     if not bufnr then
       pcall(vim.cmd, "close")
       return nil
     end
     return bufnr
   else
-    return set_buffer_in_window(bufnr_or_filepath, winnr)
+    return set_buffer_in_window(bufnr_or_path, winnr)
   end
 end
 
@@ -157,14 +157,14 @@ local function place_diff_winbar(winnr)
   end
 
   local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
-  ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+  ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
 end
 
 ---Create diff floating window using create_float
 ---@param bufnr number Buffer to display in the floating window
----@param filepath string|nil Optional filepath for window title
+---@param path string|nil Optional path for window title
 ---@return number? winnr Window number of the created floating window
-local function create_diff_floating_window(bufnr, filepath)
+local function create_diff_floating_window(bufnr, path)
   local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
   local inline_config = config.display.diff.provider_opts.inline or {}
@@ -173,7 +173,7 @@ local function create_diff_floating_window(bufnr, filepath)
   local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
   local content = {} -- Dummy content for create_float function
 
-  local _, winnr = ui.create_float(content, {
+  local _, winnr = ui_utils.create_float(content, {
     bufnr = bufnr,
     set_content = false, -- Don't overwrite existing buffer content
     window = { width = window_config.width, height = window_config.height },
@@ -181,9 +181,9 @@ local function create_diff_floating_window(bufnr, filepath)
     col = window_config.col,
     relative = window_config.relative,
     filetype = filetype,
-    title = ui.build_float_title({
+    title = ui_utils.build_float_title({
       title_prefix = " Diff",
-      filepath = filepath,
+      path = path,
     }),
     lock = false, -- Allow edits for diff
     ignore_keymaps = true,
@@ -200,47 +200,47 @@ end
 
 ---Create floating window only (no buffer creation)
 ---@param bufnr number Buffer number to display in the floating window
----@param filepath string|nil Optional filepath for window title
+---@param path string|nil Optional path for window title
 ---@return number|nil winnr Window number of the floating window
-local function create_floating_window_only(bufnr, filepath)
-  local display_filepath = filepath
-  if not display_filepath and bufnr and api.nvim_buf_is_valid(bufnr) then
+local function create_floating_window_only(bufnr, path)
+  local display_path = path
+  if not display_path and bufnr and api.nvim_buf_is_valid(bufnr) then
     local buf_name = api.nvim_buf_get_name(bufnr)
     if buf_name and buf_name ~= "" then
-      display_filepath = buf_name
+      display_path = buf_name
     end
   end
 
-  return create_diff_floating_window(bufnr, display_filepath)
+  return create_diff_floating_window(bufnr, display_path)
 end
 
 ---Open buffer or file and return buffer number and window
----@param bufnr_or_filepath number|string
+---@param bufnr_or_path number|string
 ---@return number|nil bufnr, number|nil winnr
-local function open_buffer_and_window(bufnr_or_filepath)
+local function open_buffer_and_window(bufnr_or_path)
   local inline_config = config.display.diff.provider_opts.inline
   local layout = inline_config.layout
-  local is_filepath = type(bufnr_or_filepath) == "string"
+  local is_path = type(bufnr_or_path) == "string"
   local bufnr
 
   -- First, get or create the buffer
-  if is_filepath then
-    local filepath = bufnr_or_filepath --[[@as string]]
-    local existing_bufnr = get_existing_buffer(filepath)
+  if is_path then
+    local path = bufnr_or_path --[[@as string]]
+    local existing_bufnr = get_existing_buffer(path)
     if existing_bufnr then
       bufnr = existing_bufnr
     else
-      if not vim.uv.fs_stat(vim.fs.normalize(filepath)) then
-        log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
+      if not vim.uv.fs_stat(vim.fs.normalize(path)) then
+        log:debug("[catalog::helpers::diff::create] File not readable: %s", path)
         return nil, nil
       end
-      bufnr = vim.fn.bufnr(filepath, true)
+      bufnr = vim.fn.bufnr(path, true)
       api.nvim_buf_call(bufnr, function()
-        vim.cmd("silent edit " .. vim.fn.fnameescape(filepath))
+        vim.cmd("silent edit " .. vim.fn.fnameescape(path))
       end)
     end
   else
-    bufnr = bufnr_or_filepath --[[@as number]]
+    bufnr = bufnr_or_path --[[@as number]]
   end
 
   if not api.nvim_buf_is_valid(bufnr) then
@@ -250,21 +250,21 @@ local function open_buffer_and_window(bufnr_or_filepath)
 
   -- Now handle window creation based on layout
   if layout == "float" then
-    local filepath = is_filepath and bufnr_or_filepath or nil --[[@as string]]
-    local winnr = create_floating_window_only(bufnr, filepath)
+    local path = is_path and bufnr_or_path or nil --[[@as string]]
+    local winnr = create_floating_window_only(bufnr, path)
     if winnr then
       return bufnr, winnr
     end
     return nil, nil
   end
 
-  if is_filepath then
-    local filepath = bufnr_or_filepath --[[@as string]]
-    local existing_bufnr = get_existing_buffer(filepath)
+  if is_path then
+    local path = bufnr_or_path --[[@as string]]
+    local existing_bufnr = get_existing_buffer(path)
 
     if existing_bufnr then
       -- Case 1: Buffer exists and is visible
-      local existing_win = ui.buf_get_win(existing_bufnr)
+      local existing_win = ui_utils.buf_get_win(existing_bufnr)
       if existing_win then
         return use_buffer_in_window(existing_bufnr, existing_win), existing_win
       end
@@ -278,14 +278,14 @@ local function open_buffer_and_window(bufnr_or_filepath)
       -- Case 3: Buffer doesn't exist
       local winnr = find_suitable_window()
       if winnr then
-        local result_bufnr = create_buffer_in_window(filepath, winnr)
+        local result_bufnr = create_buffer_in_window(path, winnr)
         return result_bufnr, winnr
       end
     end
 
-    return create_split_window(filepath), api.nvim_get_current_win() -- Fallback
+    return create_split_window(path), api.nvim_get_current_win() -- Fallback
   else
-    local existing_win = ui.buf_get_win(bufnr)
+    local existing_win = ui_utils.buf_get_win(bufnr)
 
     if existing_win then
       return use_buffer_in_window(bufnr, existing_win), existing_win
@@ -301,11 +301,11 @@ local function open_buffer_and_window(bufnr_or_filepath)
 end
 
 ---Create a diff for a buffer or file and set up keymaps
----@param bufnr_or_filepath number|string The buffer number or file path to create diff for
+---@param bufnr_or_path number|string The buffer number or file path to create diff for
 ---@param diff_id number|string Unique identifier for this diff
 ---@param opts? { original_content: string[], set_keymaps: boolean }
 ---@return table|nil diff The diff object, or nil if no diff was created
-function M.create(bufnr_or_filepath, diff_id, opts)
+function M.create(bufnr_or_path, diff_id, opts)
   opts = opts or {}
   if opts.set_keymaps == nil then
     opts.set_keymaps = true
@@ -324,7 +324,7 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     return nil
   end
 
-  local bufnr, winnr = open_buffer_and_window(bufnr_or_filepath)
+  local bufnr, winnr = open_buffer_and_window(bufnr_or_path)
   if not bufnr then
     log:warn("[catalog::helpers::diff::create] Failed to open buffer/file")
     return nil

@@ -1,6 +1,6 @@
 local diff_utils = require("codecompanion.providers.diff.utils")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -43,7 +43,7 @@ function InlineDiff.new(args)
   local current_content = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
   if self:are_contents_equal(self.contents, current_content) then
     log:trace("[providers::diff::inline::new] No changes detected")
-    util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+    utils.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
     return self
   end
 
@@ -64,7 +64,7 @@ function InlineDiff.new(args)
     end)
   end
 
-  util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+  utils.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 
   return self
 end
@@ -185,7 +185,7 @@ function InlineDiff:accept(opts)
 
   log:debug("[providers::diff::inline::accept] Called")
 
-  util.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
+  utils.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
   if opts.save then
     pcall(function()
       api.nvim_buf_call(self.bufnr, function()
@@ -208,7 +208,7 @@ function InlineDiff:reject(opts)
 
   log:debug("[providers::diff::inline::reject] Called")
 
-  util.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
+  utils.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
   if api.nvim_buf_is_valid(self.bufnr) then
     api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
   end
@@ -231,8 +231,7 @@ function InlineDiff:close_floating_window()
     log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
     pcall(api.nvim_win_close, self.winnr, true)
     self.winnr = nil
-    local ui = require("codecompanion.utils.ui")
-    ui.close_background_window()
+    require("codecompanion.utils.ui").close_background_window()
   end
 end
 
@@ -247,7 +246,7 @@ function InlineDiff:teardown()
   end)
   self:clear_highlights()
   self:close_floating_window()
-  util.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+  utils.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 end
 
 return InlineDiff

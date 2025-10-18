@@ -3,9 +3,9 @@ local Job = require("plenary.job")
 local M = {}
 
 ---Base64 encode a given file using the `base64` command.
----@param filepath string The path to the file to encode
+---@param path string The path to the file to encode
 ---@return string?, string? The output and error message
-function M.encode(filepath)
+function M.encode(path)
   if vim.fn.executable("base64") == 0 then
     return nil, "Could not find the `base64` command."
   end
@@ -13,11 +13,11 @@ function M.encode(filepath)
   local args
   local os = vim.loop.os_uname()
   if os and os.sysname == "Darwin" then
-    args = { "-i", filepath }
+    args = { "-i", path }
   elseif os and os.sysname == "Linux" then
-    args = { "-w", "0", filepath }
+    args = { "-w", "0", path }
   else
-    args = { filepath }
+    args = { path }
   end
 
   local job = Job:new({
@@ -56,9 +56,9 @@ function M.encode(filepath)
 end
 
 ---Get the mimetype from the given file
----@param filepath string The path to the file
+---@param path string The path to the file
 ---@return string
-function M.get_mimetype(filepath)
+function M.get_mimetype(path)
   local map = {
     gif = "image/gif",
     jpg = "image/jpeg",
@@ -67,7 +67,7 @@ function M.get_mimetype(filepath)
     webp = "image/webp",
   }
 
-  local extension = vim.fn.fnamemodify(filepath, ":e")
+  local extension = vim.fn.fnamemodify(path, ":e")
   extension = extension:lower()
 
   return map[extension]

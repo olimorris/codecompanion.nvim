@@ -6,8 +6,8 @@ local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
+local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -28,7 +28,7 @@ local CONSTANTS = {
 ---@param opts table Window options to apply
 ---@return nil
 local function apply_window_config(winnr, bufnr, opts)
-  ui.set_win_options(winnr, opts)
+  ui_utils.set_win_options(winnr, opts)
   api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
 end
 
@@ -208,7 +208,7 @@ function UI:open(opts)
   self.folds:setup(self.winnr)
 
   log:trace("Chat opened with ID %d", self.chat_id)
-  util.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
+  utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
 
   return self
 end
@@ -228,7 +228,7 @@ function UI:hide()
       vim.cmd("hide")
     else
       if not self.winnr then
-        self.winnr = ui.buf_get_win(self.chat_bufnr)
+        self.winnr = ui_utils.buf_get_win(self.chat_bufnr)
       end
       api.nvim_win_hide(self.winnr)
     end
@@ -236,7 +236,7 @@ function UI:hide()
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end
 
-  util.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
+  utils.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
 end
 
 ---Follow the cursor in the chat buffer
