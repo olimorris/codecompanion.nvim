@@ -140,7 +140,7 @@ return {
         end
 
         -- 4. Remove disallowed keys
-        m = utils.filter_out_messages({
+        m = adapter_utils.filter_out_messages({
           message = m,
           allowed_words = {
             "content",
