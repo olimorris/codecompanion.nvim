@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.27.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.27.0...v17.27.1) (2025-10-18)
+
+
+### Bug Fixes
+
+* **acp:** handle adapter returning vim.NIL instead of lua:nil ([#2266](https://github.com/olimorris/codecompanion.nvim/issues/2266)) ([5efcc8f](https://github.com/olimorris/codecompanion.nvim/commit/5efcc8f401061caf022bc54392b1ad968717220e))
+
 ## [17.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.26.0...v17.27.0) (2025-10-18)
 
 
