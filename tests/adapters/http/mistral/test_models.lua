@@ -2,8 +2,6 @@
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
-local expect = MiniTest.expect
-local eq = MiniTest.expect.equality
 
 local child = MiniTest.new_child_neovim()
 
@@ -56,7 +54,7 @@ T["mistral.models"]["choices() synchronous returns expected models"] = function(
     adapters_utils.get_env_vars = function(adapter) end
 
     local adapter = { opts = {} }
-    return get_models.choices(adapter, { async = false })
+    return get_models.choices(adapter)
   ]])
 
   -- This expected output is based on the logic in get_models.lua:
@@ -91,81 +89,6 @@ T["mistral.models"]["choices() synchronous returns expected models"] = function(
   }
 
   h.eq(result, expected)
-end
-
-T["mistral.models"]["choices() async populates cache and returns later"] = function()
-  local first, second = unpack(child.lua([[
-    local get_models = require("codecompanion.adapters.http.mistral.get_models")
-
-    -- Mock Curl.get to return stub data
-    local curl = require("plenary.curl")
-    local body = vim.fn.readfile("tests/adapters/http/stubs/mistral_models.json")
-    body = table.concat(body, "\n")
-
-    curl.get = function(url, opts)
-      if opts and type(opts.callback) == "function" then
-        opts.callback({ status = 200, body = body })
-      end
-      return { status = 200, body = body }
-    end
-
-    -- Mock resolve() to return test adapter
-    local http_adapters = require("codecompanion.adapters.http")
-    http_adapters.resolve = function(self)
-      return {
-        env_replaced = {
-          url = "https://api.mistral.ai",
-          api_key = "test-key",
-        },
-        opts = {},
-      }
-    end
-
-    -- Mock get_env_vars() to do nothing
-    local adapters_utils = require("codecompanion.utils.adapters")
-    adapters_utils.get_env_vars = function(adapter) end
-
-    local adapter = { opts = {} }
-
-    -- Start async fetch: should return nil initially (no cache yet)
-    local first = get_models.choices(adapter, { async = true })
-
-    -- Give scheduled callback a chance to run and fill cache
-    vim.wait(50, function() return false end)
-
-    -- Second call should return cached models
-    local second = get_models.choices(adapter, { async = true })
-
-    return { first, second }
-  ]]))
-
-  local expected = {
-    ["mistral-medium-2505"] = {
-      formatted_name = "mistral-medium-2505",
-      opts = {
-        has_vision = true,
-        can_use_tools = true,
-      },
-    },
-    ["mistral-large-latest"] = {
-      formatted_name = "mistral-large-latest",
-      opts = {
-        has_vision = true,
-        can_use_tools = true,
-      },
-    },
-    ["ministral-8b-latest"] = {
-      formatted_name = "ministral-8b-2410",
-      opts = {
-        has_vision = false,
-        can_use_tools = true,
-      },
-    },
-  }
-
-  -- Mistral blocks on first call when cache is uninitialized, even with async=true
-  h.eq(expected, first)
-  h.eq(expected, second)
 end
 
 return T
