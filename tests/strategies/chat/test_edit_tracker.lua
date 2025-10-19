@@ -238,7 +238,7 @@ T["register_edit_operation - detects duplicate edits"] = function()
 
   local result = child.lua_get("_G.test_result")
   h.expect_truthy(result.ids_equal) -- Should return same ID for duplicate
-  h.eq(result.operation_count, 1)   -- Should only have one operation
+  h.eq(result.operation_count, 1) -- Should only have one operation
 end
 
 T["update_edit_status - updates existing operation"] = function()
@@ -584,7 +584,7 @@ T["finish_tool_monitoring - cleans up monitoring state"] = function()
   local result = child.lua_get("_G.test_result")
   h.expect_truthy(result.monitoring_before)
   h.eq(result.monitoring_after, false) -- Should be cleaned up
-  h.eq(result.changes_count, 0)        -- No actual file changes in test
+  h.eq(result.changes_count, 0) -- No actual file changes in test
 end
 
 T["finish_tool_monitoring - handles non-existent monitoring"] = function()
@@ -693,7 +693,7 @@ T["start_tool_monitoring - handles directories without readfile error"] = functi
   ]])
 
   local result = child.lua_get("_G.test_result")
-  h.expect_truthy(result.success)        -- Should not throw error
+  h.expect_truthy(result.success) -- Should not throw error
   h.expect_truthy(result.monitor_exists) -- Monitor should be created
 end
 
@@ -794,9 +794,9 @@ T["start_tool_monitoring - processes files normally while skipping directories"]
   ]])
 
   local result = child.lua_get("_G.test_result")
-  h.expect_truthy(result.has_file)           -- File should be tracked
-  h.expect_truthy(result.file_has_content)   -- File should have content
-  h.expect_truthy(result.directory_success)  -- Directory handling should not crash
+  h.expect_truthy(result.has_file) -- File should be tracked
+  h.expect_truthy(result.file_has_content) -- File should have content
+  h.expect_truthy(result.directory_success) -- Directory handling should not crash
   h.expect_truthy(result.directory_no_files) -- Directory should not add files to tracking
 end
 
@@ -881,9 +881,9 @@ T["start_tool_monitoring - prevents vim readfile E17 error regression"] = functi
   ]])
 
   local result = child.lua_get("_G.test_result")
-  h.expect_truthy(result.no_error)        -- Should not have any errors
+  h.expect_truthy(result.no_error) -- Should not have any errors
   h.expect_truthy(result.monitor_created) -- Monitor should be created successfully
-  h.expect_truthy(result.no_e17_error)    -- Specifically no E17 directory error
+  h.expect_truthy(result.no_e17_error) -- Specifically no E17 directory error
 
   -- If there was an error, show it for debugging
   if result.error_msg ~= "" then

@@ -132,9 +132,9 @@ function EditTracker.register_edit_operation(chat, edit_info)
   for _, existing_op in ipairs(tracked[key].edit_operations) do
     local time_diff = math.abs(current_timestamp - existing_op.timestamp)
     if
-        time_diff < time_window
-        and existing_op.tool_name == edit_info.tool_name
-        and diff_utils.are_contents_equal(existing_op.original_content, edit_info.original_content)
+      time_diff < time_window
+      and existing_op.tool_name == edit_info.tool_name
+      and diff_utils.are_contents_equal(existing_op.original_content, edit_info.original_content)
     then
       return existing_op.id
     end
@@ -517,8 +517,8 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
 
     local file_was_created = snapshot.lines_count == 0 and current_success and current_content
     local file_was_modified = current_success
-        and current_content
-        and not EditTracker._content_equal(snapshot.content, current_content)
+      and current_content
+      and not EditTracker._content_equal(snapshot.content, current_content)
     if file_was_created or file_was_modified then
       local change_type = file_was_created and "created" or "modified"
 
