@@ -132,9 +132,9 @@ function EditTracker.register_edit_operation(chat, edit_info)
   for _, existing_op in ipairs(tracked[key].edit_operations) do
     local time_diff = math.abs(current_timestamp - existing_op.timestamp)
     if
-      time_diff < time_window
-      and existing_op.tool_name == edit_info.tool_name
-      and diff_utils.are_contents_equal(existing_op.original_content, edit_info.original_content)
+        time_diff < time_window
+        and existing_op.tool_name == edit_info.tool_name
+        and diff_utils.are_contents_equal(existing_op.original_content, edit_info.original_content)
     then
       return existing_op.id
     end
@@ -362,11 +362,16 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
           lines_count = #content,
         }
       elseif vim.uv.fs_stat(vim.fs.normalize(path)) then
-        local content = vim.fn.readfile(path)
-        target_files[path] = {
-          content = vim.deepcopy(content),
-          lines_count = #content,
-        }
+        local stat = vim.uv.fs_stat(vim.fs.normalize(path))
+        if stat and stat.type == "file" then
+          local content = vim.fn.readfile(path)
+          target_files[path] = {
+            content = vim.deepcopy(content),
+            lines_count = #content,
+          }
+        else
+          log:warn("[Edit Tracker] Path is not a file, skipping: %s", path)
+        end
       else
         target_files[path] = {
           content = {},
@@ -374,18 +379,20 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
         }
       end
     else
-      -- Fallback: monitor all loaded buffers if no specific target
-      for _, bufnr in ipairs(api.nvim_list_bufs()) do
-        if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
-          path = api.nvim_buf_get_name(bufnr)
-          if path ~= "" and vim.uv.fs_stat(vim.fs.normalize(path)) then
-            local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-            buffer_snapshots[path] = {
-              bufnr = bufnr,
-              content = vim.deepcopy(content),
-              lines_count = #content,
-            }
-          end
+      log:warn("[Edit Tracker] Invalid path provided, skipping: %s", tool_args.path)
+    end
+  else
+    -- Fallback: monitor all loaded buffers if no specific target
+    for _, bufnr in ipairs(api.nvim_list_bufs()) do
+      if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
+        local path = api.nvim_buf_get_name(bufnr)
+        if path ~= "" and vim.uv.fs_stat(vim.fs.normalize(path)) then
+          local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+          buffer_snapshots[path] = {
+            bufnr = bufnr,
+            content = vim.deepcopy(content),
+            lines_count = #content,
+          }
         end
       end
     end
@@ -510,8 +517,8 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
 
     local file_was_created = snapshot.lines_count == 0 and current_success and current_content
     local file_was_modified = current_success
-      and current_content
-      and not EditTracker._content_equal(snapshot.content, current_content)
+        and current_content
+        and not EditTracker._content_equal(snapshot.content, current_content)
     if file_was_created or file_was_modified then
       local change_type = file_was_created and "created" or "modified"
 
