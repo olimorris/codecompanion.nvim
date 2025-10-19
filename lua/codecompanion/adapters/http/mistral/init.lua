@@ -3,7 +3,7 @@ local openai = require("codecompanion.adapters.http.openai")
 
 ---Resolves the options that a model has
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table
+---@return MistralModelInfo | nil
 local function resolve_model_opts(adapter)
   local model = adapter.schema.model.default
   local choices = adapter.schema.model.choices
@@ -28,7 +28,6 @@ return {
     stream = true,
     tools = true,
     vision = true,
-    cache_adapter = true, -- Cache the resolved adapter to prevent multiple resolutions
   },
   features = {
     text = true,
@@ -44,6 +43,9 @@ return {
     ["Content-Type"] = "application/json",
   },
   handlers = {
+
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@return boolean
     setup = function(self)
       local model_opts = resolve_model_opts(self)
 
@@ -104,9 +106,9 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "mistral-small-latest",
-      ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
-      choices = function(self, opts)
-        return get_models.choices(self, opts)
+      ---@type fun(self: CodeCompanion.HTTPAdapter): table<string, MistralModelInfo>
+      choices = function(self)
+        return get_models.choices(self)
       end,
     },
     temperature = {

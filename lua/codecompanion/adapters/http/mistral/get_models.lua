@@ -16,22 +16,30 @@ local M = {}
 ---@field formatted_name string?
 ---@field opts {can_use_tools: boolean, has_vision: boolean}
 
----@alias MistralModelCache table<string, MistralModelInfo>
+---@class MistralApiCapabilities
+---@field completion_chat boolean
+---@field vision boolean
+---@field function_calling boolean
 
----@type MistralModelCache
+---@class MistralApiModel
+---@field id string
+---@field name string
+---@field aliases string[]
+---@field deprecation any?
+---@field capabilities MistralApiCapabilities
+
+---@type table<string, MistralModelInfo>
 local _cached_models = {}
 
----@return MistralModelCache
+---@return table<string, MistralModelInfo>
 local function get_cached_models()
-  assert(_cached_models ~= nil, "Model info is not available in the cache.")
-  local models = _cached_models
-  return models
+  return _cached_models
 end
 
 ---When given a list of names that are aliases for the same model, returns the preferred name.
 ---The preference order is: names ending with '-latest' (highest priority),
 ---then names ending with four digits (e.g., '-2023'), and finally other names.
----@param names table List of names, should at least contain 1 entry
+---@param names string[] List of names, should at least contain 1 entry
 ---@return string?
 local function preferred_model_name(names)
   local high_score = -1
@@ -55,16 +63,13 @@ end
 
 ---Multiple id can refer to the same Model,
 ---This function removes duplicates, only using preferred model name
----@param models table[] Table as returned by Mistral API response
----@return table[]
+---@param models MistralApiModel[] Table as returned by Mistral API response
+---@return MistralApiModel[]
 local function dedup_models(models)
   local preferred_names = {}
   for _, model in ipairs(models) do
     if model.id then
-      local aliases = {}
-      if model.aliases then
-        aliases = model.aliases
-      end
+      local aliases = model.aliases
       table.insert(aliases, model.id)
 
       if preferred_names[model.id] then
@@ -92,17 +97,19 @@ end
 
 ---Fetch model list and model info.
 ---Aborts if there's another fetch job running.
----Returns the number of models if the fetches are fired.
+---@return boolean cache was successful updated
 ---@param adapter CodeCompanion.HTTPAdapter Mistral adapter with env var replaced.
 local function fetch_async(adapter)
   assert(adapter ~= nil)
+
+  utils.get_env_vars(adapter)
   if running then
-    return
+    return false
   end
 
   running = true
 
-  _cached_models = _cached_models or {} -- TODO: this has the side effect models are never removed
+  _cached_models = _cached_models or {}
 
   local models_endpoint = "/v1/models"
   local headers = {
@@ -110,7 +117,7 @@ local function fetch_async(adapter)
     ["Authorization"] = "Bearer " .. adapter.env_replaced.api_key,
   }
   local url = adapter.env_replaced.url
-  pcall(function()
+  local ok, err = pcall(function()
     Curl.get(url .. models_endpoint, {
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
@@ -120,18 +127,19 @@ local function fetch_async(adapter)
       -- This can happen wen you update vim ui in curl callback.
       callback = vim.schedule_wrap(function(response)
         if response.status ~= 200 then
-          running = false
-          return log:error(
+          log:error(
             "Could not get Mistral models from " .. url .. models_endpoint .. ". Error: %s",
             response.body
           )
+          running = false
+          return false
         end
 
         local ok, json = pcall(vim.json.decode, response.body)
         if not ok then
-          running = false
           log:error("Could not parse the response from " .. url .. models_endpoint)
-          return {}
+          running = false
+          return false
         end
 
         for _, model_obj in ipairs(dedup_models(json.data)) do
@@ -150,39 +158,29 @@ local function fetch_async(adapter)
         running = false
       end),
     })
-    if adapter.opts.cache_adapter == false then
-      vim.wait(CONSTANTS.TIMEOUT, function()
-        local models = _cached_models
-        return models ~= nil and not vim.tbl_isempty(models) and not running
-      end)
-    end
   end)
+
+  if not ok then
+    log:error("Could not fetch fetch Mistral Copilot models: %s", err)
+    running = false
+    return false
+  end
+  return true
 end
 
 ---@param self CodeCompanion.HTTPAdapter
----@return MistralModelCache
-function M.choices(self, opts)
-  local adapter = require("codecompanion.adapters.http").resolve(self)
+---@return table<string, MistralModelInfo>
+function M.choices(self)
 
-  if not adapter then
-    log:error("Could not resolve Mistral adapter in the `choices` function")
-    return {}
+  local models = get_cached_models()
+  if models ~= nil and next(models) then
+    return models
   end
-  opts = opts or { async = true }
 
-  utils.get_env_vars(adapter)
-  local is_uninitialised = _cached_models == nil or next(_cached_models)
-
-  local should_block = (adapter.opts.cache_adapter == false) or is_uninitialised or not opts.async
-
-  fetch_async(adapter)
-
-  if should_block and running then
-    vim.wait(CONSTANTS.TIMEOUT, function()
-      return not running
-    end)
-  end
+  fetch_async(self)
+  vim.wait(CONSTANTS.TIMEOUT, function()
+    return not running
+  end)
   return get_cached_models()
 end
-
 return M
