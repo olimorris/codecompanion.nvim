@@ -127,10 +127,7 @@ local function fetch_async(adapter)
       -- This can happen wen you update vim ui in curl callback.
       callback = vim.schedule_wrap(function(response)
         if response.status ~= 200 then
-          log:error(
-            "Could not get Mistral models from " .. url .. models_endpoint .. ". Error: %s",
-            response.body
-          )
+          log:error("Could not get Mistral models from " .. url .. models_endpoint .. ". Error: %s", response.body)
           running = false
           return false
         end
@@ -171,7 +168,6 @@ end
 ---@param self CodeCompanion.HTTPAdapter
 ---@return table<string, MistralModelInfo>
 function M.choices(self)
-
   local models = get_cached_models()
   if models ~= nil and next(models) then
     return models
