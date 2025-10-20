@@ -1,4 +1,20 @@
+local get_models = require("codecompanion.adapters.http.mistral.get_models")
 local openai = require("codecompanion.adapters.http.openai")
+
+---Resolves the options that a model has
+---@param adapter CodeCompanion.HTTPAdapter
+---@return MistralModelInfo | nil
+local function resolve_model_opts(adapter)
+  local model = adapter.schema.model.default
+  local choices = adapter.schema.model.choices
+  if type(model) == "function" then
+    model = model(adapter)
+  end
+  if type(choices) == "function" then
+    choices = choices(adapter)
+  end
+  return choices[model]
+end
 
 ---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
 return {
@@ -10,6 +26,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
     vision = true,
   },
   features = {
@@ -26,17 +43,24 @@ return {
     ["Content-Type"] = "application/json",
   },
   handlers = {
-    setup = function(self)
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-      end
 
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
-      if model_opts and model_opts.opts then
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@return boolean
+    setup = function(self)
+      local model_opts = resolve_model_opts(self)
+
+      self.opts.vision = false
+      self.opts.tools = false
+
+      if model_opts and model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
-        if not model_opts.opts.has_vision then
-          self.opts.vision = false
+
+        if model_opts.opts.has_vision then
+          self.opts.vision = true
+        end
+
+        if model_opts.opts.can_use_tools then
+          self.opts.tools = true
         end
       end
 
@@ -53,12 +77,23 @@ return {
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    form_tools = function(self, tools)
+      return openai.handlers.form_tools(self, tools)
+    end,
+    chat_output = function(self, data, tools)
+      return openai.handlers.chat_output(self, data, tools)
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
     end,
+    tools = {
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
+      end,
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
+      end,
+    },
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
     end,
@@ -71,22 +106,10 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "mistral-small-latest",
-      choices = {
-        -- Premier models
-        "mistral-large-latest",
-        ["pixtral-large-latest"] = { opts = { has_vision = true } },
-        ["mistral-medium-latest"] = { opts = { has_vision = true } },
-        "mistral-saba-latest",
-        "codestral-latest",
-        "ministral-8b-latest",
-        "ministral-3b-latest",
-        -- Free models, latest
-        ["mistral-small-latest"] = { opts = { has_vision = true } },
-        ["pixtral-12b-2409"] = { opts = { has_vision = true } },
-        -- Free models, research
-        "open-mistral-nemo",
-        "open-codestral-mamba",
-      },
+      ---@type fun(self: CodeCompanion.HTTPAdapter): table<string, MistralModelInfo>
+      choices = function(self)
+        return get_models.choices(self)
+      end,
     },
     temperature = {
       order = 2,

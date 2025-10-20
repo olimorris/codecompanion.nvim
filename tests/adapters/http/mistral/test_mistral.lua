@@ -4,10 +4,50 @@ local adapter
 local new_set = MiniTest.new_set
 T = new_set()
 
+local mistral_models = {
+  ["mistral-medium-2505"] = {
+    formatted_name = "mistral-medium-2505",
+    opts = {
+      has_vision = true,
+      can_use_tools = true,
+    },
+  },
+  ["mistral-large-latest"] = {
+    formatted_name = "mistral-large-latest",
+    opts = {
+      has_vision = true,
+      can_use_tools = true,
+    },
+  },
+  ["ministral-8b-latest"] = {
+    formatted_name = "ministral-8b-2410",
+    opts = {
+      has_vision = false,
+      can_use_tools = true,
+    },
+  },
+}
+
+local _original_choices
+
 T["Mistral adapter"] = new_set({
   hooks = {
     pre_case = function()
       adapter = require("codecompanion.adapters").resolve("mistral")
+
+      local get_models = require("codecompanion.adapters.http.mistral.get_models")
+      _original_choices = get_models.choices
+      get_models.choices = function(adapter_arg, opts)
+        return mistral_models
+      end
+    end,
+
+    post_case = function()
+      if _original_choices then
+        local get_models = require("codecompanion.adapters.http.mistral.get_models")
+        get_models.choices = _original_choices
+        _original_choices = nil
+      end
     end,
   },
 })

@@ -303,8 +303,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Gemini            |                   | :white_check_mark: | Dependent on the model              |
 | GitHub Models     | All               | :x:                | Not supported yet                   |
 | Huggingface       | All               | :x:                | Not supported yet                   |
-| Mistral           | All               | :x:                | Not supported yet                   |
-| Novita            |                   | :white_check_mark:                | Dependent on the model  |
+| Mistral           |                   | :white_check_mark: | Dependent on the model              |
+| Novita            |                   | :white_check_mark: | Dependent on the model              |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | All               | :x:                | Not supported yet                   |
