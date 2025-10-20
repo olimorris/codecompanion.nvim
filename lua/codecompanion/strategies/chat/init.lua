@@ -1302,9 +1302,7 @@ function Chat:stop()
       end
     end)
 
-    if self.adapter.handlers and self.adapter.handlers.on_exit then
-      self.adapter.handlers.on_exit(self.adapter)
-    end
+    adapters.call_handler(self.adapter, "on_exit")
   end
 
   vim.schedule(function()
