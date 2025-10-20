@@ -38,16 +38,19 @@ local function get_handler(adapter, name)
     setup = "setup",
     on_exit = "on_exit",
     teardown = "teardown",
+
     -- request
     build_parameters = "form_parameters",
     build_messages = "form_messages",
     build_tools = "form_tools",
     build_body = "set_body",
     build_reasoning = "form_reasoning",
+
     -- response
     parse_chat = "chat_output",
     parse_inline = "inline_output",
     parse_tokens = "tokens",
+
     -- tools
     format_calls = "format_tool_calls",
     format_response = "output_response",
