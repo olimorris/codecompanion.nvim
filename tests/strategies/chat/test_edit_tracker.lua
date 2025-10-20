@@ -666,4 +666,229 @@ T["integration - complete edit workflow"] = function()
   h.expect_truthy(result)
 end
 
+-- Tests for directory handling fix (Vim:E17 prevention)
+T["start_tool_monitoring - handles directories without readfile error"] = function()
+  child.lua([[
+    edit_tracker.init(chat)
+
+    -- Create a temporary directory for testing
+    local test_dir = vim.fn.tempname()
+    vim.fn.mkdir(test_dir, "p")
+
+    -- This should not throw Vim:E17 error when passing a directory
+    local success = pcall(function()
+      edit_tracker.start_tool_monitoring("directory_test_tool", chat, { path = test_dir })
+    end)
+
+    -- Verify monitoring was set up successfully
+    local monitor_exists = chat._tool_monitors and chat._tool_monitors["directory_test_tool"] ~= nil
+
+    -- Clean up
+    vim.fn.delete(test_dir, "rf")
+
+    _G.test_result = {
+      success = success,
+      monitor_exists = monitor_exists
+    }
+  ]])
+
+  local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.success) -- Should not throw error
+  h.expect_truthy(result.monitor_exists) -- Monitor should be created
+end
+
+T["start_tool_monitoring - skips directories during file content reading"] = function()
+  child.lua([[
+    edit_tracker.init(chat)
+
+    -- Create test directory structure
+    local test_dir = vim.fn.tempname()
+    vim.fn.mkdir(test_dir, "p")
+
+    -- Capture any warning messages - fix the string formatting issue
+    local warnings = {}
+    local original_warn = require("codecompanion.utils.log").warn
+    require("codecompanion.utils.log").warn = function(self, fmt, ...)
+      if type(fmt) == "string" then
+        table.insert(warnings, string.format(fmt, ...))
+      else
+        table.insert(warnings, tostring(fmt))
+      end
+    end
+
+    -- Start monitoring with directory path (should log warning and skip)
+    edit_tracker.start_tool_monitoring("skip_dir_tool", chat, { path = test_dir })
+
+    -- Restore original warn function
+    require("codecompanion.utils.log").warn = original_warn
+
+    -- Check that monitoring was successful and warning was logged for directory
+    local monitor_exists = chat._tool_monitors and chat._tool_monitors["skip_dir_tool"] ~= nil
+    local has_directory_warning = false
+
+    for _, warning in ipairs(warnings) do
+      if warning:match("Path is not a file, skipping") then
+        has_directory_warning = true
+        break
+      end
+    end
+
+    -- Clean up
+    vim.fn.delete(test_dir, "rf")
+
+    _G.test_result = {
+      monitor_exists = monitor_exists,
+      has_directory_warning = has_directory_warning,
+      warning_count = #warnings,
+      warnings = warnings  -- Add for debugging
+    }
+  ]])
+
+  local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.monitor_exists)
+  h.expect_truthy(result.has_directory_warning)
+  h.expect_truthy(result.warning_count > 0)
+end
+
+T["start_tool_monitoring - processes files normally while skipping directories"] = function()
+  child.lua([[
+    edit_tracker.init(chat)
+
+    -- Create test file (this should work)
+    local test_dir = vim.fn.tempname()
+    vim.fn.mkdir(test_dir, "p")
+    local test_file = test_dir .. "/file.lua"
+    vim.fn.writefile({"-- File content"}, test_file)
+
+    -- Start monitoring with file path (should work)
+    edit_tracker.start_tool_monitoring("file_tool", chat, { path = test_file })
+
+    -- Get the monitor data
+    local monitor = chat._tool_monitors and chat._tool_monitors["file_tool"]
+    local target_files = monitor and monitor.target_files or {}
+
+    -- File should be tracked properly
+    local has_file = target_files[test_file] ~= nil
+    local file_has_content = target_files[test_file] and #target_files[test_file].content > 0
+
+    -- Now test directory (should be skipped but not crash)
+    local test_subdir = test_dir .. "/subdir"
+    vim.fn.mkdir(test_subdir, "p")
+
+    local success = pcall(function()
+      edit_tracker.start_tool_monitoring("dir_tool", chat, { path = test_subdir })
+    end)
+
+    local dir_monitor = chat._tool_monitors and chat._tool_monitors["dir_tool"]
+    local dir_files = dir_monitor and dir_monitor.target_files or {}
+
+    -- Clean up
+    vim.fn.delete(test_dir, "rf")
+
+    _G.test_result = {
+      has_file = has_file,
+      file_has_content = file_has_content,
+      directory_success = success,
+      directory_no_files = vim.tbl_count(dir_files) == 0
+    }
+  ]])
+
+  local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.has_file) -- File should be tracked
+  h.expect_truthy(result.file_has_content) -- File should have content
+  h.expect_truthy(result.directory_success) -- Directory handling should not crash
+  h.expect_truthy(result.directory_no_files) -- Directory should not add files to tracking
+end
+
+T["start_tool_monitoring - handles non-existent paths gracefully"] = function()
+  child.lua([[
+    edit_tracker.init(chat)
+
+    -- Use non-existent file path
+    local nonexistent_file = "/tmp/does_not_exist_12345.lua"
+
+    -- This should not crash
+    local success = pcall(function()
+      edit_tracker.start_tool_monitoring("nonexistent_tool", chat, { path = nonexistent_file })
+    end)
+
+    local monitor = chat._tool_monitors and chat._tool_monitors["nonexistent_tool"]
+    local target_files = monitor and monitor.target_files or {}
+
+    -- Non-existent files should be tracked with empty content
+    local has_nonexistent_file = target_files[nonexistent_file] ~= nil
+    local empty_content = target_files[nonexistent_file] and #target_files[nonexistent_file].content == 0
+
+    _G.test_result = {
+      success = success,
+      has_nonexistent_file = has_nonexistent_file,
+      empty_content = empty_content
+    }
+  ]])
+
+  local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.success)
+  h.expect_truthy(result.has_nonexistent_file)
+  h.expect_truthy(result.empty_content)
+end
+
+T["start_tool_monitoring - prevents vim readfile E17 error regression"] = function()
+  child.lua([[
+    edit_tracker.init(chat)
+
+    -- Create the exact scenario that caused the original bug:
+    -- A directory path being passed to readfile()
+    local test_dir = vim.fn.tempname()
+    vim.fn.mkdir(test_dir, "p")
+
+    -- This exact scenario was causing: "vim.schedule callback: Vim:E17: '.' is a directory"
+    local no_error = true
+    local error_msg = ""
+
+    -- Capture any errors during monitoring setup
+    local success, err = pcall(function()
+      edit_tracker.start_tool_monitoring("regression_test_tool", chat, { path = test_dir })
+    end)
+
+    if not success then
+      no_error = false
+      error_msg = tostring(err)
+    end
+
+    -- Check that monitoring was established without E17 error
+    local monitor_created = chat._tool_monitors and chat._tool_monitors["regression_test_tool"] ~= nil
+
+    -- Test with current directory as well (another common case)
+    local success2, err2 = pcall(function()
+      edit_tracker.start_tool_monitoring("regression_test_tool2", chat, { path = "." })
+    end)
+
+    if not success2 then
+      no_error = false
+      error_msg = error_msg .. " | " .. tostring(err2)
+    end
+
+    -- Clean up
+    vim.fn.delete(test_dir, "rf")
+
+    _G.test_result = {
+      no_error = no_error,
+      error_msg = error_msg,
+      monitor_created = monitor_created,
+      -- Check specifically that we don't get the E17 error message
+      no_e17_error = not error_msg:match("E17:.*is a directory")
+    }
+  ]])
+
+  local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.no_error) -- Should not have any errors
+  h.expect_truthy(result.monitor_created) -- Monitor should be created successfully
+  h.expect_truthy(result.no_e17_error) -- Specifically no E17 directory error
+
+  -- If there was an error, show it for debugging
+  if result.error_msg ~= "" then
+    print("Unexpected error:", result.error_msg)
+  end
+end
+
 return T

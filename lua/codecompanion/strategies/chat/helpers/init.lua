@@ -149,7 +149,9 @@ function M.validate_and_normalize_path(path)
     end
   end
 
-  return nil
+  -- For non-existent files, still return the normalized path
+  -- This allows tracking files that may be created during tool execution
+  return normalized_path
 end
 
 ---Helper function to update the chat settings and model if changed
