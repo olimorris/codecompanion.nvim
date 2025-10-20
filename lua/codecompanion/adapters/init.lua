@@ -81,18 +81,15 @@ function M.set_model(adapter)
 end
 
 ---Get a handler function from an adapter with backwards compatibility
----@param adapter CodeCompanion.ACPAdapter|CodeCompanion.HTTPAdapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@param handler_name string
----@return function|nil
+---@return nil
 function M.get_handler(adapter, handler_name)
-  if adapter_type(adapter) == "acp" then
-    return require("codecompanion.adapters.acp").get_handler(adapter, handler_name)
-  end
   return require("codecompanion.adapters.http").get_handler(adapter, handler_name)
 end
 
 ---Call a handler on an adapter with backwards compatibility
----@param adapter CodeCompanion.ACPAdapter|CodeCompanion.HTTPAdapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@param handler_name string
 ---@param ... any Additional arguments to pass to the handler
 ---@return any|nil

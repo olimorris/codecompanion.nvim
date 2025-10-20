@@ -110,19 +110,6 @@ function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
 end
 
----Call a handler with backwards compatibility (convenience method)
----@param adapter CodeCompanion.HTTPAdapter
----@param handler_name string
----@param ... any
----@return any|nil
-function Adapter.call_handler(adapter, handler_name, ...)
-  local handler = get_handler(adapter, handler_name)
-  if handler then
-    return handler(adapter, ...)
-  end
-  return nil
-end
-
 ---Get the default settings from the schema
 ---@return table
 function Adapter:make_from_schema()
