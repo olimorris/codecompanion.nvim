@@ -851,13 +851,13 @@ function Chat:_submit_http(payload)
 
   local function process_chunk(data)
     if adapter.features.tokens then
-      local tokens = adapter.handlers.tokens(adapter, data)
+      local tokens = adapters.call_handler(adapter, "parse_tokens", data)
       if tokens then
         self.ui.tokens = tokens
       end
     end
 
-    local result = adapter.handlers.chat_output(adapter, data, tools)
+    local result = adapters.call_handler(adapter, "parse_chat", data, tools)
     if result and result.status then
       self.status = result.status
       if self.status == CONSTANTS.STATUS_SUCCESS then
@@ -1049,9 +1049,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   local reasoning_content = nil
   if reasoning and not vim.tbl_isempty(reasoning) then
-    if self.adapter.handlers.form_reasoning then
-      reasoning_content = self.adapter.handlers.form_reasoning(self.adapter, reasoning)
-    end
+    reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
   end
 
   if content and content ~= "" then
@@ -1073,16 +1071,18 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   -- Process tools last
   if has_tools then
-    tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
-    self:add_message({
-      role = config.constants.LLM_ROLE,
-      reasoning = reasoning_content,
-      tool_calls = tools,
-      _meta = has_meta and meta or nil,
-    }, {
-      visible = false,
-    })
-    return self.tools:execute(self, tools)
+    tools = adapters.call_handler(self.adapter, "format_calls", tools)
+    if tools then
+      self:add_message({
+        role = config.constants.LLM_ROLE,
+        reasoning = reasoning_content,
+        tool_calls = tools,
+        _meta = has_meta and meta or nil,
+      }, {
+        visible = false,
+      })
+      return self.tools:execute(self, tools)
+    end
   end
 
   ready_chat_buffer(self)
@@ -1380,7 +1380,11 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
-  local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
+  local output = adapters.call_handler(self.adapter, "format_response", tool_call, for_llm)
+  if not output then
+    return log:error("Adapter does not support tool response formatting")
+  end
+
   output._meta = { cycle = self.cycle }
   output._meta.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {

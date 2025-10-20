@@ -2,6 +2,69 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local shared = require("codecompanion.adapters.shared")
 
+---Check if adapter uses the new handler format
+---@param adapter CodeCompanion.HTTPAdapter
+---@return boolean
+local function uses_new_handlers(adapter)
+  if not adapter.handlers then
+    return false
+  end
+  return adapter.handlers.lifecycle ~= nil or adapter.handlers.request ~= nil or adapter.handlers.response ~= nil
+end
+
+---Get handler function with backwards compatibility
+---@param adapter CodeCompanion.HTTPAdapter
+---@param name string Handler name
+---@return function|nil
+local function get_handler(adapter, name)
+  if not adapter.handlers then
+    return nil
+  end
+
+  -- New nested format - search all categories
+  if uses_new_handlers(adapter) then
+    local categories = { "lifecycle", "request", "response", "tools" }
+    for _, category in ipairs(categories) do
+      if adapter.handlers[category] and adapter.handlers[category][name] then
+        return adapter.handlers[category][name]
+      end
+    end
+    return nil
+  end
+
+  -- Old flat format - map to old names
+  local old_names = {
+    -- lifecycle
+    setup = "setup",
+    on_exit = "on_exit",
+    teardown = "teardown",
+    -- request
+    build_parameters = "form_parameters",
+    build_messages = "form_messages",
+    build_tools = "form_tools",
+    build_body = "set_body",
+    build_reasoning = "form_reasoning",
+    -- response
+    parse_chat = "chat_output",
+    parse_inline = "inline_output",
+    parse_tokens = "tokens",
+    -- tools
+    format_calls = "format_tool_calls",
+    format_response = "output_response",
+  }
+
+  local old_name = old_names[name] or name
+
+  -- Check tools namespace for backwards compat
+  if old_name:match("^format_tool") or old_name == "output_response" or old_name == "output_tool_call" then
+    if adapter.handlers.tools then
+      return adapter.handlers.tools[old_name]
+    end
+  end
+
+  return adapter.handlers[old_name]
+end
+
 ---@class CodeCompanion.HTTPAdapter
 ---@field name string The name of the adapter
 ---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
@@ -39,9 +102,25 @@ local shared = require("codecompanion.adapters.shared")
 ---@class CodeCompanion.HTTPAdapter
 local Adapter = {}
 
+Adapter.get_handler = get_handler
+Adapter.uses_new_handlers = uses_new_handlers
+
 ---@return CodeCompanion.HTTPAdapter
 function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
+end
+
+---Call a handler with backwards compatibility (convenience method)
+---@param adapter CodeCompanion.HTTPAdapter
+---@param handler_name string
+---@param ... any
+---@return any|nil
+function Adapter.call_handler(adapter, handler_name, ...)
+  local handler = get_handler(adapter, handler_name)
+  if handler then
+    return handler(adapter, ...)
+  end
+  return nil
 end
 
 ---Get the default settings from the schema
