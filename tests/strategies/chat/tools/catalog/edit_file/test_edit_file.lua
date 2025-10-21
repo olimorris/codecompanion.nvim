@@ -16,11 +16,11 @@ local T = new_set({
         -- Create test directory structure
         vim.fn.mkdir(_G.TEST_DIR_ABSOLUTE, 'p')
 
-        _G.TEST_TMPFILE = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, "edit_tool_exp_test.txt")
+        _G.TEST_TMPFILE = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, "edit_file_test.txt")
 
         h = require('tests.helpers')
 
-        -- Setup chat buffer (edit_tool_exp is already enabled in test config)
+        -- Setup chat buffer (edit_file is already enabled in test config)
         chat, tools = h.setup_chat_buffer()
       ]])
     end,
@@ -46,7 +46,7 @@ T["Basic Functionality"]["can edit a simple file"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function getName() {\\n  return \'John\';\\n}", "newText": "function getFullName() {\\n  return \'John Doe\';\\n}"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -74,7 +74,7 @@ T["Basic Functionality"]["can handle multiple sequential edits"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function getName() {\\n  return \'John\';\\n}", "newText": "function getFullName() {\\n  return \'John Doe\';\\n}"}, {"oldText": "function getAge() {\\n  return 25;\\n}", "newText": "function getAge() {\\n  return 30;\\n}"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -101,7 +101,7 @@ T["Basic Functionality"]["handles replaceAll option"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "console.log(\'debug\');", "newText": "logger.log(\'debug\');", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -130,7 +130,7 @@ T["Whitespace Handling"]["handles different indentation"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "  function test() {\\n    return true;\\n  }", "newText": "  function test() {\\n    return false;\\n  }"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -156,7 +156,7 @@ T["Whitespace Handling"]["normalizes whitespace differences"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const x = { a:1, b:2 };", "newText": "const x = { a:1, b:2, c:3 };"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -182,7 +182,7 @@ T["Language-Specific Tests"]["handles Python indentation"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "    if x > 0:\\n        return x * 2", "newText": "    if x > 0:\\n        return x * 3\\n    elif x < 0:\\n        return x * -1"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -214,7 +214,7 @@ T["Language-Specific Tests"]["handles JavaScript with special characters"] = fun
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const regex = /^[a-zA-Z0-9._%%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$/;", "newText": "const emailRegex = /^[a-zA-Z0-9._%%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$/;"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -238,7 +238,7 @@ T["Language-Specific Tests"]["handles C++ templates"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "    void add(T item) { items.push_back(item); }", "newText": "    void add(const T& item) { items.push_back(item); }"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -264,7 +264,7 @@ T["Edge Cases"]["handles empty file"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "", "newText": "// New file content"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -288,7 +288,7 @@ T["Edge Cases"]["handles single line file"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "Hello World", "newText": "Hello Universe"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -312,7 +312,7 @@ T["Edge Cases"]["handles file with unicode characters"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const message = \\"こんにちは世界\\";", "newText": "const message = \\"こんばんは世界\\";"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -340,7 +340,7 @@ T["Edge Cases"]["handles beginning of file edit"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "#!/usr/bin/env python3", "newText": "#!/usr/bin/env python3\\n# -*- coding: utf-8 -*-"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -364,7 +364,7 @@ T["Edge Cases"]["handles end of file edit"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "}", "newText": "}\\n\\nmain();"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -386,7 +386,7 @@ T["Error Handling"]["handles non-existent file"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = '{"filepath": "non_existent_file.txt", "edits": [{"oldText": "test", "newText": "new"}]}'
         },
       },
@@ -410,7 +410,7 @@ T["Error Handling"]["handles invalid JSON in edits"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": "invalid json"}', _G.TEST_TMPFILE)
         },
       },
@@ -434,7 +434,7 @@ T["Error Handling"]["handles text not found"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "non-existent text", "newText": "replacement"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -462,7 +462,7 @@ T["JSON Parsing"]["handles Python-like boolean syntax"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "test = True", "newText": "test = False", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -488,7 +488,7 @@ T["JSON Parsing"]["handles mixed quotes"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const name = \'John\';", "newText": "const name = \'Jane\';"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -516,7 +516,7 @@ T["Real LLM Scenarios"]["handles Claude-style function replacement"] = function(
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "async function fetchUserData(userId) {\\n  const response = await fetch(`/api/users/${userId}`);\\n  return response.json();\\n}", "newText": "async function fetchUserData(userId) {\\n  try {\\n    const response = await fetch(`/api/users/${userId}`);\\n    if (!response.ok) throw new Error(`HTTP ${response.status}`);\\n    return response.json();\\n  } catch (error) {\\n    console.error(\'Failed to fetch user:\', error);\\n    throw error;\\n  }\\n}"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -542,7 +542,7 @@ T["Real LLM Scenarios"]["handles GPT-style code improvement"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function calc(a, b) {", "newText": "function calculateDoubleSum(firstNumber, secondNumber) {"}, {"oldText": "  let x = a + b;", "newText": "  const sum = firstNumber + secondNumber;"}, {"oldText": "  let y = x * 2;", "newText": "  const doubleSum = sum * 2;"}, {"oldText": "  return y;", "newText": "  return doubleSum;"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -570,7 +570,7 @@ T["Real LLM Scenarios"]["handles Python class method addition"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "    def add_user(self, user_id, name):\\n        self.users[user_id] = name", "newText": "    def add_user(self, user_id, name):\\n        self.users[user_id] = name\\n    \\n    def remove_user(self, user_id):\\n        if user_id in self.users:\\n            del self.users[user_id]\\n            return True\\n        return False\\n    \\n    def get_user(self, user_id):\\n        return self.users.get(user_id)"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -597,7 +597,7 @@ T["Real LLM Scenarios"]["handles configuration object update"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const config = {\\n  apiUrl: \'https://api.example.com\',\\n  timeout: 5000,\\n  retries: 3\\n};", "newText": "const config = {\\n  apiUrl: \'https://api.example.com\',\\n  timeout: 5000,\\n  retries: 3,\\n  headers: {\\n    \'Content-Type\': \'application/json\',\\n    \'Accept\': \'application/json\'\\n  },\\n  cache: true,\\n  debug: process.env.NODE_ENV === \'development\'\\n};"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -625,7 +625,7 @@ T["Real LLM Scenarios"]["handles regex pattern with special characters"] = funct
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const emailPattern = /^[a-zA-Z0-9._%%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$/;", "newText": "const emailPattern = /^[a-zA-Z0-9._%%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$/;\\nconst phonePattern = /^\\\\+?[1-9]\\\\d{1,14}$/;"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -650,7 +650,7 @@ T["Real LLM Scenarios"]["handles multi-line string literal replacement"] = funct
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const query = `\\n  SELECT users.id, users.name\\n  FROM users\\n  WHERE users.active = 1\\n`;", "newText": "const query = `\\n  SELECT u.id, u.name, u.email, u.created_at\\n  FROM users u\\n  WHERE u.active = 1\\n  ORDER BY u.created_at DESC\\n`;"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -679,7 +679,7 @@ T["Strategy Testing"]["tests whitespace_normalized strategy"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function test() {\\n  return true;\\n}", "newText": "function test() {\\n  return false;\\n}"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -704,7 +704,7 @@ T["Strategy Testing"]["tests punctuation_normalized strategy"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "console.log(\\\"Hello, world!\\\");", "newText": "console.log(\\\"Hello, universe!\\\");"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -729,7 +729,7 @@ T["Strategy Testing"]["tests block_anchor strategy with method context"] = funct
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "return a + b;", "newText": "const result = a + b;\\n    return result;"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -756,7 +756,7 @@ T["Strategy Testing"]["tests trimmed_lines strategy"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "    function process() {\\n        console.log(\'processing\');    \\n    }", "newText": "    function process() {\\n        console.log(\'processing data\');\\n        console.log(\'done\');\\n    }"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -785,7 +785,7 @@ T["Complex LLM Patterns"]["handles JSON stringified edits"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": "[\\"{\\\\\\"oldText\\\\\\": \\\\\\"const x = 1;\\\\\\", \\\\\\"newText\\\\\\": \\\\\\"const x = 10;\\\\\\"}\\"]}', _G.TEST_TMPFILE)
         },
       },
@@ -819,7 +819,7 @@ T["Complex LLM Patterns"]["handles Python-like dictionary syntax"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "name = \'test\'", "newText": "name = \'production\'", "replaceAll": false}]}', _G.TEST_TMPFILE)
         },
       },
@@ -844,7 +844,7 @@ T["Complex LLM Patterns"]["handles mixed content with code and comments"] = func
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "// Add items\\nfor (let i = 0; i < items.length; i++) {\\n  total += items[i];\\n}", "newText": "// Add items using reduce\\ntotal = items.reduce((sum, item) => sum + item, total);"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -871,11 +871,11 @@ T["Direct Tool Verification"]["directly calls edit_file function"] = function()
     local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
     assert(ok == 0)
 
-    -- Load the edit_tool_exp module directly
-    local edit_tool_exp = require("codecompanion.strategies.chat.tools.catalog.edit_tool_exp")
+    -- Load the edit_file module directly
+    local edit_file = require("codecompanion.strategies.chat.tools.catalog.edit_file")
 
     -- Get the actual function from the tool definition
-    local tool_func = edit_tool_exp.cmds[1]
+    local tool_func = edit_file.cmds[1]
 
     -- Create mock objects
     local mock_self = { chat = { bufnr = 1 }, tool = { opts = {} } }
@@ -913,8 +913,8 @@ T["Direct Tool Verification"]["verifies strategy selection works"] = function()
     local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
     assert(ok == 0)
 
-    local edit_tool_exp = require("codecompanion.strategies.chat.tools.catalog.edit_tool_exp")
-    local tool_func = edit_tool_exp.cmds[1]
+    local edit_file = require("codecompanion.strategies.chat.tools.catalog.edit_file")
+    local tool_func = edit_file.cmds[1]
 
     local mock_self = { chat = { bufnr = 1 }, tool = { opts = {} } }
     local args = {
@@ -943,7 +943,7 @@ end
 T["Direct Tool Verification"]["tests actual strategy execution path"] = function()
   child.lua([[
     -- Test the strategy execution path directly
-    local strategies = require("codecompanion.strategies.chat.tools.catalog.helpers.edit_tool_exp_strategies")
+    local strategies = require("codecompanion.strategies.chat.tools.catalog.edit_file.strategies")
 
     local content = "hello world\nfoo bar\nhello universe"
     local old_text = "hello world"
@@ -990,7 +990,7 @@ T["Performance"]["handles medium-sized file efficiently"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function test50() { return 50; }", "newText": "function test50() { return 100; }"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1032,7 +1032,7 @@ T["Substring Replacement Tests"]["replaces all substring occurrences with replac
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "var ", "newText": "let ", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1058,7 +1058,7 @@ T["Substring Replacement Tests"]["replaces API namespace prefix"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "oldAPI.", "newText": "newAPI.", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1083,7 +1083,7 @@ T["Substring Replacement Tests"]["replaces keyword in middle of lines"] = functi
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "TODO:", "newText": "DONE:", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1108,7 +1108,7 @@ T["Substring Replacement Tests"]["does not use substring mode for multi-line pat
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function test() {\\n  return 1;\\n}", "newText": "function test() {\\n  return 10;\\n}", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1134,7 +1134,7 @@ T["Substring Replacement Tests"]["handles special characters in substring"] = fu
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "API_", "newText": "CONFIG_", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1159,7 +1159,7 @@ T["Substring Replacement Tests"]["substring mode only activates with replaceAll 
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "var x = 1;", "newText": "let x = 1;", "replaceAll": false}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1193,7 +1193,7 @@ T["Sequential Edits with Ambiguous Patterns"]["handles sequential edits where ea
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function initHelper() {\\n  return {};\\n}", "newText": ""}, {"oldText": "var data = initHelper();", "newText": "var data = {};"}, {"oldText": "var data = initHelper();", "newText": "var data = {};"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1233,7 +1233,7 @@ T["Sequential Edits with Ambiguous Patterns"]["handles Go-style sequential edits
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "func initAPIKeys() map[string]string {\\n\\treturn make(map[string]string)\\n}", "newText": ""}, {"oldText": "\\tapiKeys := initAPIKeys()", "newText": "\\tapiKeys := make(map[string]string)"}, {"oldText": "\\tapiKeys := initAPIKeys()", "newText": "\\tapiKeys := make(map[string]string)"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1275,7 +1275,7 @@ T["Comprehensive Real-World Tests"]["C language: substring replacements then com
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "printf(", "newText": "log_message(", "replaceAll": true}, {"oldText": "int process_data(int *data, int size) {\\n    if (data == NULL) {\\n        log_message(\\"Error: NULL pointer\\\\n\\");\\n        return -1;\\n    }\\n    if (size <= 0) {\\n        log_message(\\"Error: Invalid size\\\\n\\");\\n        return -1;\\n    }", "newText": "int process_data(int *data, int size) {\\n    if (data == NULL) {\\n        log_message(\\"Error: NULL pointer\\\\n\\");\\n        return ERR_NULL_POINTER;\\n    }\\n    if (size <= 0) {\\n        log_message(\\"Error: Invalid size: %%d\\\\n\\", size);\\n        return ERR_INVALID_SIZE;\\n    }"}, {"oldText": "    int result = 0;\\n    for (int i = 0; i < size; i++) {\\n        result += data[i];\\n        log_message(\\"Processing item %%d\\\\n\\", i);\\n    }", "newText": "    int result = 0;\\n    for (int i = 0; i < size; i++) {\\n        if (data[i] < 0) {\\n            log_message(\\"Warning: Negative value at index %%d\\\\n\\", i);\\n        }\\n        result += data[i];\\n        log_message(\\"Debug: Processing item %%d with value %%d\\\\n\\", i, data[i]);\\n    }"}]}', _G.TEST_TMPFILE)
         },
       },
@@ -1321,7 +1321,7 @@ T["Comprehensive Real-World Tests"]["Go language: block edits then block replace
     local tool = {
       {
         ["function"] = {
-          name = "edit_tool_exp",
+          name = "edit_file",
           arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "    if r.Method != \\"GET\\" {\\n        http.Error(w, \\"Method not allowed\\", 405)\\n        return\\n    }", "newText": "    if r.Method != \\"GET\\" {\\n        respondError(w, http.StatusMethodNotAllowed, \\"Method not allowed\\")\\n        return\\n    }"}, {"oldText": "HandleUser", "newText": "HandleUserRequest", "replaceAll": true}, {"oldText": "getUser", "newText": "fetchUserByID", "replaceAll": true}, {"oldText": "    userID := r.URL.Query().Get(\\"id\\")\\n    if userID == \\"\\" {\\n        http.Error(w, \\"Missing user ID\\", 400)\\n        return\\n    }\\n\\n    user := fetchUserByID(userID)\\n    json.NewEncoder(w).Encode(user)", "newText": "    userID := r.URL.Query().Get(\\"id\\")\\n    if userID == \\"\\" {\\n        respondError(w, http.StatusBadRequest, \\"Missing user ID\\")\\n        return\\n    }\\n\\n    user, err := fetchUserByID(userID)\\n    if err != nil {\\n        respondError(w, http.StatusInternalServerError, \\"Failed to fetch user\\")\\n        return\\n    }\\n\\n    respondJSON(w, http.StatusOK, user)", "replaceAll": false}, {"oldText": "func fetchUserByID(id string) map[string]string {\\n    return map[string]string{\\"id\\": id, \\"name\\": \\"John\\"}\\n}", "newText": "func fetchUserByID(id string) (map[string]string, error) {\\n    if id == \\"\\" {\\n        return nil, errors.New(\\"invalid user ID\\")\\n    }\\n    return map[string]string{\\"id\\": id, \\"name\\": \\"John\\"}, nil\\n}", "replaceAll": true}]}', _G.TEST_TMPFILE)
         },
       },

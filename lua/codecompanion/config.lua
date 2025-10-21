@@ -66,7 +66,7 @@ local defaults = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
             prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
-              "edit_tool_exp",
+              "edit_file",
               "cmd_runner",
               "create_file",
               "file_search",
@@ -84,7 +84,7 @@ local defaults = {
             description = "Tools related to creating, reading and editing files",
             prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
-              "edit_tool_exp",
+              "edit_file",
               "create_file",
               "file_search",
               "get_changed_files",
@@ -105,13 +105,13 @@ local defaults = {
             requires_approval = true,
           },
         },
-        ["edit_tool_exp"] = {
-          callback = "strategies.chat.tools.catalog.edit_tool_exp",
+        ["edit_file"] = {
+          callback = "strategies.chat.tools.catalog.edit_file",
           description = "Robustly edit files with multiple automatic fallback strategies",
           opts = {
             requires_approval = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
-              file = true, -- For editing files in the current working directory
+              file = false, -- For editing files in the current working directory
             },
             user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
