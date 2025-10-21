@@ -26,7 +26,7 @@ function M.omnifunc(findstart, base)
     }
 
     if config.strategies.chat.slash_commands.opts.acp.enabled then
-      local trigger = config.strategies.chat.slash_commands.acp.opts.trigger or "\\"
+      local trigger = config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
       local escaped = vim.pesc(trigger)
       table.insert(patterns, escaped .. "[%w_]*$") -- ACP commands
     end
