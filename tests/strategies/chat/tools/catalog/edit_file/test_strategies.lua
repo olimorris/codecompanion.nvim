@@ -492,14 +492,14 @@ end
 T["Performance Tests"] = new_set()
 
 T["Performance Tests"]["handles reasonable performance on medium files"] = function()
-  local medium_content = string.rep("function test" .. math.random() .. "() {\n  return true;\n}\n\n", 100)
+  local medium_content = string.rep("function test" .. math.random() .. "() {\n  return true;\n}\n\n", 1000)
   local old_text = "function test123() {\n  return true;\n}"
 
   local start_time = os.clock()
   local result = strategies.find_best_match(medium_content, old_text, false)
   local elapsed = os.clock() - start_time
 
-  h.eq(elapsed < 5.0, true, "Performance test failed - took too long: " .. elapsed .. "s")
+  h.eq(elapsed < 1.0, true, "Performance test failed - took too long: " .. elapsed .. "s")
   -- Note: result.success might be false if no match is found, which is okay for perf test
 end
 

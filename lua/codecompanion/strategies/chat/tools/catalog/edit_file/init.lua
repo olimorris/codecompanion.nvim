@@ -3,9 +3,9 @@ local Path = require("plenary.path")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.helpers.diff")
-local edit_tool_exp_strategies = require("codecompanion.strategies.chat.tools.catalog.edit_file.strategies")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local match_selector = require("codecompanion.strategies.chat.tools.catalog.edit_file.match_selector")
+local strategies = require("codecompanion.strategies.chat.tools.catalog.edit_file.strategies")
 local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local buffers = require("codecompanion.utils.buffers")
@@ -545,7 +545,7 @@ local function process_substring_edits_parallel(content, substring_edits)
 
   for i, edit in ipairs(substring_edits) do
     -- Find all matches in ORIGINAL content
-    local matches = edit_tool_exp_strategies.substring_exact_match(content, edit.oldText)
+    local matches = strategies.substring_exact_match(content, edit.oldText)
 
     if #matches == 0 then
       return nil, fmt("Substring edit %d: pattern '%s' not found in file", i, edit.oldText)
@@ -709,7 +709,7 @@ local function process_edits_sequentially(content, edits, options)
     end
 
     -- Find matches using edit tool exp strategies
-    local match_result = edit_tool_exp_strategies.find_best_match(current_content, edit.oldText, edit.replaceAll)
+    local match_result = strategies.find_best_match(current_content, edit.oldText, edit.replaceAll)
 
     if not match_result.success then
       return {
@@ -722,7 +722,7 @@ local function process_edits_sequentially(content, edits, options)
     end
 
     -- Select best match from candidates
-    local selection_result = edit_tool_exp_strategies.select_best_match(match_result.matches, edit.replaceAll)
+    local selection_result = strategies.select_best_match(match_result.matches, edit.replaceAll)
 
     if not selection_result.success then
       return {
@@ -737,12 +737,10 @@ local function process_edits_sequentially(content, edits, options)
 
     -- Apply the replacement if not dry run
     if not options.dry_run then
-      current_content =
-        edit_tool_exp_strategies.apply_replacement(current_content, selection_result.selected, edit.newText)
+      current_content = strategies.apply_replacement(current_content, selection_result.selected, edit.newText)
     else
       -- For dry run, simulate the change for diff generation
-      local temp_content =
-        edit_tool_exp_strategies.apply_replacement(current_content, selection_result.selected, edit.newText)
+      local temp_content = strategies.apply_replacement(current_content, selection_result.selected, edit.newText)
       current_content = temp_content
     end
 
