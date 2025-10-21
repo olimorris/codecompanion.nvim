@@ -68,6 +68,45 @@ local function get_handler(adapter, name)
   return adapter.handlers[old_name]
 end
 
+---@class CodeCompanion.HTTPAdapter.Handlers.Lifecycle
+---@field setup? fun(self: CodeCompanion.HTTPAdapter): boolean
+---@field on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): nil
+---@field teardown? fun(self: CodeCompanion.HTTPAdapter): nil
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Request
+---@field build_parameters? fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
+---@field build_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table
+---@field build_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table|nil
+---@field build_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
+---@field build_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Response
+---@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, data: string|table, tools?: table): { status: string, output: table }|nil
+---@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, data: string|table, context?: table): { status: string, output: string }|nil
+---@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Tools
+---@field format_calls? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
+---@field format_response? fun(self: CodeCompanion.HTTPAdapter, tool_call: table, output: string): table
+
+---@class CodeCompanion.HTTPAdapter.Handlers
+---@field lifecycle? CodeCompanion.HTTPAdapter.Handlers.Lifecycle
+---@field request? CodeCompanion.HTTPAdapter.Handlers.Request
+---@field response? CodeCompanion.HTTPAdapter.Handlers.Response
+---@field tools? CodeCompanion.HTTPAdapter.Handlers.Tools
+---@field resolve? fun(self: CodeCompanion.HTTPAdapter): nil (Deprecated: use lifecycle.setup)
+---@field setup? fun(self: CodeCompanion.HTTPAdapter): boolean (Deprecated: use lifecycle.setup)
+---@field set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil (Deprecated: use request.build_body)
+---@field form_parameters? fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table (Deprecated: use request.build_parameters)
+---@field form_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table (Deprecated: use request.build_messages)
+---@field form_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table } (Deprecated: use request.build_reasoning)
+---@field form_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table (Deprecated: use request.build_tools)
+---@field tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil (Deprecated: use response.parse_tokens)
+---@field chat_output? fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil (Deprecated: use response.parse_chat)
+---@field inline_output? fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil (Deprecated: use response.parse_inline)
+---@field on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil (Deprecated: use lifecycle.on_exit)
+---@field teardown? fun(self: CodeCompanion.HTTPAdapter): any (Deprecated: use lifecycle.teardown)
+
 ---@class CodeCompanion.HTTPAdapter
 ---@field name string The name of the adapter
 ---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
@@ -84,21 +123,7 @@ end
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field model? { name: string, formatted_name?: string, vendor?: string, opts: table } The model to use for the request
----@field handlers table Functions which link the output from the request to CodeCompanion
----@field handlers.resolve? fun(self: CodeCompanion.HTTPAdapter): nil When the adapter is resolved, call this method
----@field handlers.setup? fun(self: CodeCompanion.HTTPAdapter): boolean
----@field handlers.set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
----@field handlers.form_parameters fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
----@field handlers.form_messages fun(self: CodeCompanion.HTTPAdapter, messages: table): table
----@field handlers.form_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
----@field handlers.form_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field handlers.tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
----@field handlers.chat_output fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil
----@field handlers.inline_output fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil
----@field handlers.tools.format? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field handlers.tools.output_tool_call? fun(self: CodeCompanion.HTTPAdapter, tool_call: table, output: string): table
----@field handlers.on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
----@field handlers.teardown? fun(self: CodeCompanion.HTTPAdapter): any
+---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
