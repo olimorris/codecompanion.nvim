@@ -320,7 +320,7 @@ local function fetch(chat, adapter, url, opts)
     .new({
       adapter = adapter,
     })
-    :request(_, {
+    :request({ url = url }, {
       callback = function(err, data)
         if err then
           return log:error("Failed to fetch the URL, with error %s", err)
