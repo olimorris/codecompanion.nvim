@@ -7,10 +7,12 @@ return {
   roles = {
     llm = "assistant",
     user = "user",
+    tool = "tool",
   },
   opts = {
     stream = true,
     vision = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -47,15 +49,26 @@ return {
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
+    form_tools = function(self, params, messages)
+      return openai.handlers.form_tools(self, params, messages)
+    end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    chat_output = function(self, data, tools)
+      return openai.handlers.chat_output(self, data, tools)
     end,
+    tools = {
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
+      end,
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
+      end,
+    },
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
     end,
