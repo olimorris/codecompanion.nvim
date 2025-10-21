@@ -19,7 +19,7 @@ local fmt = string.format
 ---@param edits_string string The string containing edits in Python-like format
 ---@return string The converted JSON-like string
 local function parse_python_like_edits(edits_string)
-  log:debug("[Edit Tool Exp] Trying enhanced Python-like parser")
+  log:trace("[Edit Tool Exp] Trying enhanced Python-like parser")
 
   -- Step 1: Fix boolean values first (before quote conversion)
   local fixed = edits_string
@@ -102,7 +102,7 @@ local function fix_edits_if_needed(args)
     return nil, "edits must be an array or parseable string"
   end
 
-  log:debug("[Edit Tool Exp] Edits field is a string, attempting to parse as JSON")
+  log:trace("[Edit Tool Exp] Edits field is a string, attempting to parse as JSON")
 
   -- First, try standard JSON parsing
   local success, parsed_edits = pcall(vim.json.decode, args.edits)
@@ -113,12 +113,9 @@ local function fix_edits_if_needed(args)
   end
 
   -- If that failed, try minimal fixes for common LLM JSON issues
-  log:debug("[Edit Tool Exp] Standard JSON parsing failed, trying fixes")
+  log:trace("[Edit Tool Exp] Standard JSON parsing failed, trying fixes")
 
   local fixed_json = args.edits
-
-  -- Simple pattern-based fix for common LLM JSON issues
-  -- Fix the specific patterns we see in LLM output: {'key': 'value'} -> {"key": "value"}
 
   -- Fix keys first
   fixed_json = fixed_json:gsub("{'oldText':", '{"oldText":')
@@ -141,7 +138,7 @@ local function fix_edits_if_needed(args)
 
   if success and type(parsed_edits) == "table" then
     args.edits = parsed_edits
-    log:debug("[Edit Tool Exp] Successfully fixed and parsed edits JSON")
+    log:trace("[Edit Tool Exp] Successfully fixed and parsed edits JSON")
     return args, nil
   end
 
@@ -151,7 +148,7 @@ local function fix_edits_if_needed(args)
     success, parsed_edits = pcall(vim.json.decode, python_converted)
     if success and type(parsed_edits) == "table" then
       args.edits = parsed_edits
-      log:debug("[Edit Tool Exp] Successfully parsed Python-like syntax")
+      log:trace("[Edit Tool Exp] Successfully parsed Python-like syntax")
       return args, nil
     end
   end
@@ -533,8 +530,6 @@ local function separate_edits_by_type(edits)
     end
   end
 
-  log:debug("[Edit Tool Exp] Separated edits: %d substring, %d block/single", #substring_edits, #other_edits)
-
   return substring_edits, other_edits
 end
 
@@ -549,16 +544,12 @@ local function process_substring_edits_parallel(content, substring_edits)
   local all_replacements = {}
 
   for i, edit in ipairs(substring_edits) do
-    log:debug("[Edit Tool Exp] Finding matches for substring edit %d: '%s'", i, edit.oldText:sub(1, 50))
-
     -- Find all matches in ORIGINAL content
     local matches = edit_tool_exp_strategies.substring_exact_match(content, edit.oldText)
 
     if #matches == 0 then
       return nil, fmt("Substring edit %d: pattern '%s' not found in file", i, edit.oldText)
     end
-
-    log:debug("[Edit Tool Exp] Found %d matches for pattern '%s'", #matches, edit.oldText:sub(1, 50))
 
     -- Store all replacements with their positions
     for _, match in ipairs(matches) do
@@ -577,21 +568,12 @@ local function process_substring_edits_parallel(content, substring_edits)
     return a.start_pos > b.start_pos
   end)
 
-  log:debug("[Edit Tool Exp] Applying %d total replacements in parallel", #all_replacements)
-
   -- Apply all replacements from end to start
   local result_content = content
   for _, replacement in ipairs(all_replacements) do
     local before = result_content:sub(1, replacement.start_pos - 1)
     local after = result_content:sub(replacement.end_pos + 1)
     result_content = before .. replacement.new_text .. after
-
-    log:trace(
-      "[Edit Tool Exp] Applied replacement at pos %d: '%s' -> '%s'",
-      replacement.start_pos,
-      replacement.old_text:sub(1, 20),
-      replacement.new_text:sub(1, 20)
-    )
   end
 
   return result_content, nil
@@ -613,8 +595,6 @@ local function process_edits_sequentially(content, edits, options)
 
   -- Step 2: Process all substring replaceAll edits in parallel (if any)
   if #substring_edits > 0 then
-    log:debug("[Edit Tool Exp] Processing %d substring replaceAll edits in parallel", #substring_edits)
-
     local substring_edit_list = vim.tbl_map(function(item)
       return item.edit
     end, substring_edits)
@@ -643,10 +623,7 @@ local function process_edits_sequentially(content, edits, options)
       table.insert(strategies_used, "substring_exact_match_parallel")
     end
 
-    log:info(
-      "[Edit Tool Exp] Successfully applied %d substring edits in parallel (prevents overlaps)",
-      #substring_edits
-    )
+    log:debug("[Edit Tool Exp] Applied %d substring edits in parallel", #substring_edits)
   end
 
   -- Step 3: Process block/single edits sequentially
@@ -706,8 +683,6 @@ local function process_edits_sequentially(content, edits, options)
   end
 
   for i, edit in ipairs(edits) do
-    log:debug("[Edit Tool Exp] Processing edit %d/%d", i, #edits)
-
     -- Validate required fields
     if not edit.oldText and not (current_content == "" or options.mode == "overwrite") then
       return {
@@ -782,8 +757,6 @@ local function process_edits_sequentially(content, edits, options)
     })
 
     table.insert(strategies_used, match_result.strategy_used)
-
-    log:debug("[Edit Tool Exp] Edit %d completed using strategy: %s", i, match_result.strategy_used)
   end
 
   return {
@@ -810,8 +783,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     })
   end
 
-  log:debug("[Edit Tool Exp] Starting edit for file: %s", filepath)
-
   -- Read current file content
   local current_content, read_err, file_info = read_file_content(filepath)
   if not current_content then
@@ -826,7 +797,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     local ok, parsed = pcall(vim.json.decode, action.edits)
     if ok and type(parsed) == "table" then
       action.edits = parsed
-      log:debug("[Edit Tool Exp] Parsed stringified edits array")
     end
   end
 
@@ -878,7 +848,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:info("[Edit Tool Exp] Auto-mode enabled, applying changes immediately")
+    log:debug("[Edit Tool Exp] Auto-applying changes (YOLO mode)")
     local write_ok, write_err = write_file_content(filepath, dry_run_result.final_content, file_info)
     if not write_ok then
       return output_handler({
@@ -900,17 +870,12 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     original_content = original_lines,
   })
 
-  if should_diff then
-    log:debug("[Edit Tool Exp] Diff created for file: %s", filepath)
-  end
-
   local final_success = {
     status = "success",
     data = success_message,
   }
 
   if should_diff and opts.user_confirmation then
-    log:debug("[Edit Tool Exp] Setting up diff approval workflow")
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
@@ -923,8 +888,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
       local response
       if result.accepted then
-        log:debug("[Edit Tool Exp] User accepted changes")
-
         -- Apply the actual changes
         local final_result = process_edits_sequentially(current_content, action.edits, {
           dry_run = false,
@@ -942,7 +905,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
           response = { status = "error", data = "Failed to apply changes: " .. final_result.error }
         end
       else
-        log:debug("[Edit Tool Exp] User rejected changes")
         if result.timeout and should_diff and should_diff.reject then
           should_diff:reject()
         end
@@ -956,8 +918,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
       return output_handler(response)
     end, wait_opts)
   else
-    log:debug("[Edit Tool Exp] No user confirmation needed, applying changes")
-
     -- Apply changes immediately
     local final_result = process_edits_sequentially(current_content, action.edits, {
       dry_run = false,
@@ -987,12 +947,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   opts = opts or {}
   local diff_id = math.random(10000000)
 
-  log:debug("[Edit Tool Exp] Starting buffer edit for buffer: %d", bufnr)
-
   -- NOTE: Ensure the buffer is loaded before accessing its contents.
   -- This addresses an issue with snacks.nvim, which may leave buffers unloaded when opening multiple files.
   if not api.nvim_buf_is_loaded(bufnr) then
-    log:trace("[Edit Tool Exp] Buffer %d not loaded, loading now", bufnr)
     vim.fn.bufload(bufnr)
   end
 
@@ -1000,8 +957,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local current_content = table.concat(lines, "\n")
   local original_content = vim.deepcopy(lines)
-
-  log:debug("[Edit Tool Exp] Buffer content loaded: %d lines, %d bytes", #lines, #current_content)
 
   -- Track buffer metadata
   local file_info = {
@@ -1014,7 +969,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     local ok, parsed = pcall(vim.json.decode, action.edits)
     if ok and type(parsed) == "table" then
       action.edits = parsed
-      log:debug("[Edit Tool Exp] Parsed stringified edits array")
     end
   end
 
@@ -1038,16 +992,10 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local final_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
-  log:debug("[Edit Tool Exp] Buffer content updated with %d lines", #final_lines)
-
   -- Create diff
   local should_diff = diff.create(bufnr, diff_id, {
     original_content = original_content,
   })
-
-  if should_diff then
-    log:debug("[Edit Tool Exp] Buffer diff created with ID: %s", diff_id)
-  end
 
   -- Find scroll position
   local start_line = nil
@@ -1061,7 +1009,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Auto-save in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:info("[Edit Tool Exp] Auto-saving buffer %d", bufnr)
+    log:debug("[Edit Tool Exp] Auto-saving buffer (YOLO mode)")
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
@@ -1085,7 +1033,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   }
 
   if should_diff and opts.user_confirmation then
-    log:debug("[Edit Tool Exp] Setting up buffer diff approval")
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
@@ -1098,7 +1045,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
       local response
       if result.accepted then
-        log:debug("[Edit Tool Exp] User accepted buffer changes")
         pcall(function()
           api.nvim_buf_call(bufnr, function()
             vim.cmd("silent! w")
@@ -1106,7 +1052,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         end)
         response = success
       else
-        log:debug("[Edit Tool Exp] User rejected buffer changes")
         if result.timeout and should_diff and should_diff.reject then
           should_diff:reject()
         end
@@ -1135,8 +1080,6 @@ return {
     ---@param output_handler function Async callback for completion
     ---@return nil|table
     function(self, args, input, output_handler)
-      log:debug("[Edit Tool Exp] Execution started for: %s", args.filepath)
-
       -- Only check edits if we need to - zero overhead for good JSON
       if args.edits then
         local fixed_args, error_msg = fix_edits_if_needed(args)
@@ -1242,9 +1185,7 @@ return {
 
     ---@param tools CodeCompanion.Tools The tool object
     ---@return nil
-    on_exit = function(tools)
-      log:trace("[Edit Tool Exp] on_exit handler executed")
-    end,
+    on_exit = function(tools) end,
   },
   output = {
     ---@param self CodeCompanion.Tool.EditToolExp
