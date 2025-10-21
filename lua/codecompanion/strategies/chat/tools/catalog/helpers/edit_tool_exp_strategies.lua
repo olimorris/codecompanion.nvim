@@ -71,19 +71,15 @@ end
 ---@param new_text string The replacement text
 ---@return string The content with replacement applied
 local function apply_line_replacement(content_lines, match, new_text)
-  log:debug(
+  log:trace(
     "[Edit Tool Exp Strategies] Line replacement: lines %d-%d, strategy: %s",
     match.start_line,
     match.end_line,
     match.strategy or "unknown"
   )
-  log:debug("[DEBUG] Content has %d lines total", #content_lines)
-  log:debug("[DEBUG] Will replace lines %d to %d", match.start_line, match.end_line)
-  log:debug("[DEBUG] new_text: '%s'", new_text)
 
   local new_content_lines = {}
   local new_text_lines = vim.split(new_text, "\n", { plain = true })
-  log:debug("[DEBUG] new_text_lines count: %d", #new_text_lines)
 
   -- Handle boundary markers specially
   if match.strategy == "start_marker" then
@@ -106,57 +102,26 @@ local function apply_line_replacement(content_lines, match, new_text)
     -- Normal line replacement
     -- Copy lines before match
     local before_count = match.start_line - 1
-    log:debug("[DEBUG] Copying %d lines before match", before_count)
     for i = 1, before_count do
       table.insert(new_content_lines, content_lines[i])
     end
 
-    log:debug(
+    log:trace(
       "[Edit Tool Exp Strategies] Replacing %d lines with %d lines",
       match.end_line - match.start_line + 1,
       #new_text_lines
     )
 
-    local replaced_count = match.end_line - match.start_line + 1
-    log:debug("[DEBUG] Replacing %d lines (%d to %d)", replaced_count, match.start_line, match.end_line)
-    if replaced_count <= 5 then
-      for i = match.start_line, match.end_line do
-        log:debug("[DEBUG]   Line %d: %s", i, (content_lines[i] or "nil"):sub(1, 80))
-      end
-    else
-      log:debug("[DEBUG]   First line: %s", (content_lines[match.start_line] or "nil"):sub(1, 80))
-      log:debug("[DEBUG]   Last line: %s", (content_lines[match.end_line] or "nil"):sub(1, 80))
-    end
-
     -- Insert new content lines
-    log:debug("[DEBUG] Inserting %d new lines", #new_text_lines)
-    if #new_text_lines <= 3 and #new_text_lines > 0 then
-      for j, line in ipairs(new_text_lines) do
-        table.insert(new_content_lines, line)
-        log:debug("[DEBUG]   New line %d: %s", j, line:sub(1, 80))
-      end
-    else
-      for j, line in ipairs(new_text_lines) do
-        table.insert(new_content_lines, line)
-      end
-      if #new_text_lines > 0 then
-        log:debug("[DEBUG]   Sample: %s", new_text_lines[1]:sub(1, 80))
-      end
+    for j, line in ipairs(new_text_lines) do
+      table.insert(new_content_lines, line)
     end
 
     -- Copy lines after match
-    local after_count = #content_lines - match.end_line
-    log:debug("[DEBUG] Copying %d lines after match", after_count)
     for i = match.end_line + 1, #content_lines do
       table.insert(new_content_lines, content_lines[i])
     end
   end
-
-  log:debug(
-    "[Edit Tool Exp Strategies] Line replacement complete: %d -> %d total lines",
-    #content_lines,
-    #new_content_lines
-  )
 
   return table.concat(new_content_lines, "\n")
 end
@@ -173,27 +138,15 @@ function M.exact_match(content, old_text)
   -- Remove empty trailing line if present (handles "text\n" patterns)
   if #old_text_lines >= 2 and old_text_lines[#old_text_lines] == "" then
     old_text_lines = vim.list_slice(old_text_lines, 1, #old_text_lines - 1)
-    log:debug("[DEBUG] Removed trailing empty line from search pattern")
   end
 
   local matches = {}
 
-  log:debug("[DEBUG] Exact match searching for text of length %d", #old_text)
-  log:debug("[DEBUG] First 100 chars of old_text: %s", old_text:sub(1, 100))
-  log:debug("[DEBUG] Content length: %d", #content)
-  log:debug("[DEBUG] Content has %d lines, searching for %d lines", #content_lines, #old_text_lines)
-
   -- Handle single line vs multi-line differently for efficiency
   if #old_text_lines == 1 then
     -- Single line optimization
-    log:debug("[DEBUG] Single-line search for: '%s'", old_text_lines[1]:sub(1, 100))
-    local found_any = false
     for line_num, line in ipairs(content_lines) do
       if line == old_text_lines[1] then
-        log:debug("[DEBUG] Found single-line match at line %d", line_num)
-        log:debug("[DEBUG] Matched text: %s", line:sub(1, 100))
-        found_any = true
-
         table.insert(matches, {
           start_line = line_num,
           end_line = line_num,
@@ -203,27 +156,8 @@ function M.exact_match(content, old_text)
         })
       end
     end
-    if not found_any then
-      log:debug("[DEBUG] Single-line search failed - no exact matches found")
-    end
   else
     -- Multi-line search
-    log:debug("[DEBUG] Multi-line search - first line: '%s'", old_text_lines[1]:sub(1, 100))
-    log:debug("[DEBUG] Multi-line search - last line: '%s'", old_text_lines[#old_text_lines]:sub(1, 100))
-
-    local first_line_matches = {}
-    for line_num, line in ipairs(content_lines) do
-      if line == old_text_lines[1] then
-        table.insert(first_line_matches, line_num)
-      end
-    end
-
-    log:debug(
-      "[DEBUG] Found %d potential first-line matches at lines: %s",
-      #first_line_matches,
-      table.concat(first_line_matches, ", ")
-    )
-
     for start_line = 1, #content_lines - #old_text_lines + 1 do
       local match_found = true
       local first_mismatch_line = nil
@@ -239,10 +173,6 @@ function M.exact_match(content, old_text)
 
       if match_found then
         local end_line = start_line + #old_text_lines - 1
-        log:debug("[DEBUG] Found multi-line match at lines %d-%d", start_line, end_line)
-        log:debug("[DEBUG] First line of match: %s", content_lines[start_line]:sub(1, 100))
-        log:debug("[DEBUG] Last line of match: %s", content_lines[end_line]:sub(1, 100))
-
         table.insert(matches, {
           start_line = start_line,
           end_line = end_line,
@@ -250,41 +180,6 @@ function M.exact_match(content, old_text)
           confidence = 1.0,
           strategy = "exact_match",
         })
-      elseif content_lines[start_line] == old_text_lines[1] then
-        -- First line matches but block fails - log detailed mismatch
-        log:debug("[DEBUG] First line match at %d but block failed at search line %d", start_line, first_mismatch_line)
-        log:debug("[DEBUG] Expected: '%s'", old_text_lines[first_mismatch_line]:sub(1, 60))
-        log:debug("[DEBUG] Found:    '%s'", (content_lines[start_line + first_mismatch_line - 1] or "EOF"):sub(1, 60))
-
-        -- Show character-by-character difference
-        local expected = old_text_lines[first_mismatch_line]
-        local found = content_lines[start_line + first_mismatch_line - 1] or "EOF"
-        if expected ~= found then
-          log:debug("[DEBUG] Length diff: expected %d, found %d", #expected, #found)
-          for j = 1, math.max(#expected, #found) do
-            local e_char = expected:sub(j, j)
-            local f_char = found:sub(j, j)
-            if e_char ~= f_char then
-              log:debug(
-                "[DEBUG] First char diff at pos %d: expected '%s' (byte %d), found '%s' (byte %d)",
-                j,
-                e_char,
-                string.byte(e_char) or 0,
-                f_char,
-                string.byte(f_char) or 0
-              )
-              break
-            end
-          end
-        end
-      end
-    end
-
-    if #matches == 0 then
-      log:debug("[DEBUG] Multi-line exact match completely failed")
-      if #first_line_matches == 0 then
-        log:debug("[DEBUG] No first-line matches found at all")
-        log:debug("[DEBUG] No first-line matches - expected: '%s'", old_text_lines[1]:sub(1, 50))
       end
     end
   end
@@ -305,7 +200,6 @@ function M.trimmed_lines(content, old_text)
   -- Remove empty trailing line if present (handles "text\n" patterns)
   if #search_lines >= 2 and search_lines[#search_lines] == "" then
     search_lines = vim.list_slice(search_lines, 1, #search_lines - 1)
-    log:debug("[DEBUG] Removed trailing empty line from search pattern")
   end
 
   local matches = {}
@@ -402,12 +296,6 @@ function M.trimmed_lines(content, old_text)
         confidence = confidence + 0.7
       else
         match = false
-        if i <= 3 then -- Only log details for first few attempts to avoid spam
-          log:debug("[DEBUG] Trimmed lines failed at search line %d (content line %d)", j, i + j - 1)
-          log:debug("[DEBUG] Expected: '%s'", search_line:sub(1, 50))
-          log:debug("[DEBUG] Found:    '%s'", content_line:sub(1, 50))
-          log:debug("[DEBUG] Similarity: %.2f", similarity_score(content_line, search_line))
-        end
         break
       end
     end
@@ -430,17 +318,12 @@ function M.trimmed_lines(content, old_text)
 
       -- Early termination if we found enough good matches
       if #matches >= 10 then
-        log:debug("[Edit Tool Exp Strategies] Found %d matches, terminating early", #matches)
         break
       end
     end
   end
 
-  log:debug(
-    "[Edit Tool Exp Strategies] Enhanced trimmed lines found %d matches after %d iterations",
-    #matches,
-    iterations
-  )
+  log:debug("[Edit Tool Exp Strategies] Trimmed lines found %d matches", #matches)
   return matches
 end
 
@@ -486,7 +369,6 @@ function M.punctuation_normalized(content, old_text)
   -- Handle trailing newline normalization
   if #old_text_lines >= 2 and old_text_lines[#old_text_lines] == "" then
     old_text_lines = vim.list_slice(old_text_lines, 1, #old_text_lines - 1)
-    log:debug("[DEBUG] Punctuation normalized: removed trailing empty line")
   end
 
   ---Normalize punctuation: remove trailing punctuation, normalize spacing
@@ -573,7 +455,6 @@ function M.whitespace_normalized(content, old_text)
   -- Handle trailing newline normalization
   if #old_text_lines >= 2 and old_text_lines[#old_text_lines] == "" then
     old_text_lines = vim.list_slice(old_text_lines, 1, #old_text_lines - 1)
-    log:debug("[DEBUG] Whitespace normalized: removed trailing empty line")
   end
 
   ---Normalize whitespace: collapse multiple spaces to single space and trim
@@ -702,20 +583,16 @@ function M.substring_exact_match(content, old_text)
 
   -- Only use for simple substring patterns (no newlines)
   if old_text:find("\n") then
-    log:debug("[Substring Exact Match] Skipping: contains newlines")
     return matches
   end
 
   if old_text == "" then
-    log:debug("[Substring Exact Match] Skipping: empty pattern")
     return matches
   end
 
   local start = 1
   local max_matches = 1000
   local match_count = 0
-
-  log:debug("[Substring Exact Match] Searching for pattern: '%s'", old_text:sub(1, 50))
 
   while match_count < max_matches do
     local pos = content:find(old_text, start, true) -- plain text search
@@ -738,8 +615,6 @@ function M.substring_exact_match(content, old_text)
 
     match_count = match_count + 1
     start = pos + #old_text -- Jump ahead by match length
-
-    log:trace("[Substring Exact Match] Found match %d at position %d (line %d)", match_count, pos, line_num)
   end
 
   if match_count >= max_matches then
@@ -755,9 +630,6 @@ end
 ---@param old_text string The text block to find using anchor-based matching
 ---@return table[] Array of matches found using block anchor strategy
 function M.block_anchor(content, old_text)
-  log:debug("[Block Anchor Enhanced] === STARTING ===")
-  log:debug("[Block Anchor Enhanced] Content length: %d, Old text length: %d", #content, #old_text)
-
   -- Normalize empty lines for better LLM matching (applied before line splitting)
   local normalized_content = normalize_empty_lines(content)
   local normalized_old_text = normalize_empty_lines(old_text)
@@ -768,13 +640,11 @@ function M.block_anchor(content, old_text)
   -- Handle trailing newline normalization (like production tools)
   if #search_lines >= 2 and search_lines[#search_lines] == "" then
     search_lines = vim.list_slice(search_lines, 1, #search_lines - 1)
-    log:debug("[Block Anchor Enhanced] Removed trailing empty line from search pattern")
   end
 
   local matches = {}
 
   if #search_lines < 2 then
-    log:debug("[Block Anchor Enhanced] Need at least 2 lines for anchoring, got %d", #search_lines)
     return matches
   end
 
@@ -797,9 +667,6 @@ function M.block_anchor(content, old_text)
   local first_line, first_idx = get_meaningful_anchor(search_lines, false)
   local last_line, last_idx = get_meaningful_anchor(search_lines, true)
 
-  log:debug("[Block Anchor Enhanced] First anchor (line %d): '%s'", first_idx, first_line:sub(1, 50))
-  log:debug("[Block Anchor Enhanced] Last anchor (line %d): '%s'", last_idx, last_line:sub(1, 50))
-
   -- Pre-compute trimmed content lines for performance
   local trimmed_content_lines = {}
   for i, line in ipairs(content_lines) do
@@ -811,8 +678,6 @@ function M.block_anchor(content, old_text)
   -- Find anchor pairs with exact first/last line matches
   for i = 1, #content_lines do
     if trimmed_content_lines[i] == first_line then
-      log:debug("[Block Anchor Enhanced] Found first line match at line %d", i)
-
       -- Calculate expected end position based on anchor positions
       local expected_end = i + (last_idx - first_idx)
 
@@ -821,8 +686,6 @@ function M.block_anchor(content, old_text)
         -- Check if last line matches at expected position
         if expected_end <= #trimmed_content_lines and trimmed_content_lines[expected_end] == last_line then
           anchor_pairs_checked = anchor_pairs_checked + 1
-
-          log:debug("[Block Anchor Enhanced] Found matching last line at expected position %d", expected_end)
 
           -- Calculate fuzzy confidence for middle lines
           local middle_confidence = 0
@@ -836,14 +699,6 @@ function M.block_anchor(content, old_text)
 
               local line_similarity = calculate_line_similarity(content_line, search_line)
               middle_confidence = middle_confidence + line_similarity
-
-              log:debug(
-                "[Block Anchor Enhanced] Middle line %d similarity: %.2f ('%s' vs '%s')",
-                content_line_idx,
-                line_similarity,
-                content_line:sub(1, 30),
-                search_line:sub(1, 30)
-              )
             end
           else
             -- Only 2 meaningful lines total, perfect match
@@ -853,14 +708,6 @@ function M.block_anchor(content, old_text)
 
           local avg_middle_confidence = middle_confidence / middle_lines_count
           local total_confidence = (1.0 + avg_middle_confidence + 1.0) / 3 -- first + middle + last
-
-          log:debug(
-            "[Block Anchor Enhanced] Block at lines %d-%d: middle_conf=%.2f, total_conf=%.2f",
-            i,
-            expected_end,
-            avg_middle_confidence,
-            total_confidence
-          )
 
           -- Use confidence threshold
           if total_confidence >= 0.7 then
@@ -877,10 +724,6 @@ function M.block_anchor(content, old_text)
               confidence = total_confidence,
               strategy = "block_anchor_fuzzy_enhanced",
             })
-
-            log:debug("[Block Anchor Enhanced] Added match with confidence %.2f", total_confidence)
-          else
-            log:debug("[Block Anchor Enhanced] Rejected match due to low confidence: %.2f", total_confidence)
           end
 
           -- Safety check to prevent infinite processing
@@ -888,59 +731,19 @@ function M.block_anchor(content, old_text)
             log:warn("[Block Anchor Enhanced] Checked %d anchor pairs, terminating early", anchor_pairs_checked)
             break
           end
-        else
-          log:debug(
-            "[Block Anchor Enhanced] Last line mismatch at expected position %d: '%s' vs '%s'",
-            expected_end,
-            trimmed_content_lines[expected_end] and trimmed_content_lines[expected_end]:sub(1, 30) or "nil",
-            last_line:sub(1, 30)
-          )
-          if expected_end <= #trimmed_content_lines then
-            local found_line = trimmed_content_lines[expected_end]
-            log:debug(
-              "[Block Anchor Enhanced] Character comparison - expected len: %d, found len: %d",
-              #last_line,
-              #found_line
-            )
-            for k = 1, math.max(#last_line, #found_line) do
-              local e_char = last_line:sub(k, k)
-              local f_char = found_line:sub(k, k)
-              if e_char ~= f_char then
-                log:debug(
-                  "[Block Anchor Enhanced] First diff at pos %d: expected '%s' (byte %d), found '%s' (byte %d)",
-                  k,
-                  e_char,
-                  string.byte(e_char) or 0,
-                  f_char,
-                  string.byte(f_char) or 0
-                )
-                break
-              end
-            end
-          end
         end
-      else
-        log:debug(
-          "[Block Anchor Enhanced] Not enough lines remaining for full block (need %d, have %d)",
-          expected_end,
-          #content_lines
-        )
       end
     end
   end
 
-  log:debug(
-    "[Block Anchor Enhanced] === COMPLETED === Found %d matches after checking %d anchor pairs",
-    #matches,
-    anchor_pairs_checked
-  )
+  log:debug("[Edit Tool Exp Strategies] Block anchor found %d matches", #matches)
   return matches
 end
 
 ---Main strategy executor - tries strategies in order until confident match found
 ---@param content string The content to search within
 ---@param old_text string The text to find the best match for
----@param replace_all boolean Whether this is a replaceAll operation
+---@param replace_all? boolean Whether this is a replaceAll operation
 ---@return table Result containing success status, matches, and strategy information
 function M.find_best_match(content, old_text, replace_all)
   replace_all = replace_all or false
@@ -1021,7 +824,6 @@ function M.find_best_match(content, old_text, replace_all)
 
         if is_last_strategy then
           -- Last strategy and ambiguous - use best match as fallback
-          log:debug("[Edit Tool Exp Strategies] Last strategy with ambiguous matches, using best match as fallback")
           table.sort(good_matches, function(a, b)
             if math.abs(a.confidence - b.confidence) > 0.01 then
               return a.confidence > b.confidence
@@ -1037,7 +839,6 @@ function M.find_best_match(content, old_text, replace_all)
             fallback_used = true,
           }
         else
-          log:debug("[Edit Tool Exp Strategies] Strategy %s matches too ambiguous, trying next strategy", strategy.name)
           goto continue
         end
       end
@@ -1058,10 +859,6 @@ function M.find_best_match(content, old_text, replace_all)
 
   -- If we have ambiguous matches from any strategy, use them as last resort
   if best_ambiguous_result then
-    log:debug(
-      "[Edit Tool Exp Strategies] All strategies exhausted, using best ambiguous result from %s",
-      best_ambiguous_result.strategy_used
-    )
     table.sort(best_ambiguous_result.matches, function(a, b)
       if math.abs(a.confidence - b.confidence) > 0.01 then
         return a.confidence > b.confidence
@@ -1119,13 +916,6 @@ function M.select_best_match(matches, replace_all)
 
   -- Check if matches are too ambiguous - signal to try next strategy
   if math.abs(best_match.confidence - second_best.confidence) < 0.15 then
-    log:debug(
-      "[Select Best Match] Ambiguous: best=%.2f, second=%.2f (diff=%.2f)",
-      best_match.confidence,
-      second_best.confidence,
-      math.abs(best_match.confidence - second_best.confidence)
-    )
-
     return {
       success = false,
       error = "ambiguous_matches",
@@ -1150,21 +940,13 @@ end
 ---@param new_text string The replacement text
 ---@return string The content with replacements applied
 function M.apply_replacement(content, match, new_text)
-  log:debug("[Edit Tool Exp Strategies] Starting apply_replacement")
-  log:debug("[DEBUG] new_text length: %d, content: %s", #new_text, new_text:sub(1, 50))
-  log:debug("[DEBUG] match type: %s", type(match))
-
   local content_lines = vim.split(content, "\n", { plain = true })
 
   if type(match) == "table" and match[1] then
     -- Multiple matches (replace_all case)
-    log:debug("[DEBUG] Processing multiple matches: %d", #match)
-
     -- Check if these are substring matches (have start_pos/end_pos)
     local first_match = match[1]
     if first_match.strategy == "substring_exact_match" and first_match.start_pos then
-      log:debug("[DEBUG] Using substring replacement mode")
-
       -- Sort by position in reverse order (from end to start)
       local sorted_matches = {}
       for _, m in ipairs(match) do
@@ -1180,7 +962,6 @@ function M.apply_replacement(content, match, new_text)
         local before = current_content:sub(1, m.start_pos - 1)
         local after = current_content:sub(m.end_pos + 1)
         current_content = before .. new_text .. after
-        log:debug("[DEBUG] Replaced at pos %d-%d", m.start_pos, m.end_pos)
       end
 
       return current_content
@@ -1191,8 +972,6 @@ function M.apply_replacement(content, match, new_text)
     for _, m in ipairs(match) do
       if m.start_line and m.end_line then
         table.insert(line_matches, m)
-      else
-        log:warn("[DEBUG] Found match without line positions, skipping: %s", m.strategy or "unknown")
       end
     end
 
@@ -1210,13 +989,8 @@ function M.apply_replacement(content, match, new_text)
     return current_content
   else
     -- Single match
-    log:debug("[DEBUG] Processing single match")
-    log:debug("[DEBUG] match.start_line: %s, match.end_line: %s", tostring(match.start_line), tostring(match.end_line))
-    log:debug("[DEBUG] match.strategy: %s", tostring(match.strategy))
-
     -- Check if this is a substring match
     if match.strategy == "substring_exact_match" and match.start_pos then
-      log:debug("[DEBUG] Using substring replacement for single match")
       local before = content:sub(1, match.start_pos - 1)
       local after = content:sub(match.end_pos + 1)
       return before .. new_text .. after
@@ -1226,8 +1000,6 @@ function M.apply_replacement(content, match, new_text)
       -- Line-based match (from exact_match or other line-based strategies)
       return apply_line_replacement(content_lines, match, new_text)
     else
-      -- Fallback for strategies that might still use byte positions
-      log:warn("[DEBUG] Match without line positions, cannot apply replacement")
       return content
     end
   end
