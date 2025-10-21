@@ -4,7 +4,7 @@ local Path = require("plenary.path")
 local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.HTTPClient
 ---@field adapter CodeCompanion.HTTPAdapter
@@ -253,7 +253,7 @@ function Client:send_sync(payload, opts)
     },
   }
   if not opts.silent then
-    util.fire("RequestStarted", event_opts)
+    utils.fire("RequestStarted", event_opts)
   end
 
   local response, err = nil, nil
@@ -280,7 +280,7 @@ function Client:send_sync(payload, opts)
   end
 
   if not opts.silent then
-    util.fire("RequestFinished", event_opts)
+    utils.fire("RequestFinished", event_opts)
   end
 
   cleanup_file()
@@ -403,12 +403,12 @@ function Client:request(payload, actions, opts)
         end
 
         if not opts.silent then
-          util.fire("RequestFinished", opts)
+          utils.fire("RequestFinished", opts)
         end
         cleanup(opts.status)
         if self.user_args.event then
           if not opts.silent then
-            util.fire(self.user_args.event, opts)
+            utils.fire(self.user_args.event, opts)
           end
         end
       end)
@@ -417,7 +417,7 @@ function Client:request(payload, actions, opts)
       self.methods.schedule(function()
         actions.callback(err, nil)
         if not opts.silent then
-          util.fire("RequestFinished", opts)
+          utils.fire("RequestFinished", opts)
         end
       end)
     end,
@@ -437,7 +437,7 @@ function Client:request(payload, actions, opts)
       if not has_started_steaming then
         has_started_steaming = true
         if not opts.silent then
-          util.fire("RequestStreaming", opts)
+          utils.fire("RequestStreaming", opts)
         end
       end
       cb(nil, data, adapter)
@@ -462,7 +462,7 @@ function Client:request(payload, actions, opts)
   }
 
   if not opts.silent then
-    util.fire("RequestStarted", opts)
+    utils.fire("RequestStarted", opts)
   end
 
   if job and job.args then
@@ -470,7 +470,7 @@ function Client:request(payload, actions, opts)
   end
   if self.user_args.event then
     if not opts.silent then
-      util.fire(self.user_args.event, opts)
+      utils.fire(self.user_args.event, opts)
     end
   end
 

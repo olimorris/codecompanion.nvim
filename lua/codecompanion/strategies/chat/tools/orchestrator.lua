@@ -151,16 +151,22 @@ function Orchestrator:setup_handlers()
         return self.tool.output.prompt(self.tool, self.tools)
       end
     end,
-    rejected = function(cmd)
+    rejected = function(cmd, opts)
       if not self.tool then
         return
       end
 
+      opts = opts or {}
+
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.tool, self.tools, cmd)
+        self.tool.output.rejected(self.tool, self.tools, cmd, opts)
       else
+        local rejection = fmt("\nThe user rejected the execution of the %s tool", self.tool.name)
+        if opts.reason then
+          rejection = rejection .. fmt(': "%s"', opts.reason)
+        end
         -- If no handler is set then return a default message
-        send_response_to_chat(self, fmt("User rejected `%s`", self.tool.name))
+        send_response_to_chat(self, rejection)
       end
     end,
     error = function(cmd)
@@ -258,13 +264,19 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Approve", "2 Reject", "3 Cancel" })
-      if choice == 1 then
+      local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
+      if choice == 1 or choice == 2 then
         log:debug("Orchestrator:execute - Tool approved")
+        if choice == 1 then
+          vim.g.codecompanion_yolo_mode = true
+        end
         return self:execute(cmd, input)
-      elseif choice == 2 then
-        self.output.rejected(cmd)
-        return self:setup()
+      elseif choice == 3 then
+        log:debug("Orchestrator:execute - Tool rejected")
+        ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+          self.output.rejected(cmd, { reason = i })
+          return self:setup()
+        end)
       else
         log:debug("Orchestrator:execute - Tool cancelled")
         -- NOTE: Cancel current tool, then cancel all queued tools
@@ -277,6 +289,7 @@ function Orchestrator:setup(input)
       return self:execute(cmd, input)
     end
   else
+    log:debug("Orchestrator:execute - No tool approval required")
     return self:execute(cmd, input)
   end
 end
@@ -286,7 +299,6 @@ end
 function Orchestrator:cancel_pending_tools()
   while not self.queue:is_empty() do
     local pending_tool = self.queue:pop()
-    local previous_tool = self.tool
     self.tool = pending_tool
 
     -- Prepare handlers/output first

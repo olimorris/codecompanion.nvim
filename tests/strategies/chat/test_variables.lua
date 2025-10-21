@@ -107,7 +107,7 @@ T["Variables"][":parse"]["multiple buffer vars"] = function()
   h.eq(true, result)
 
   local buffer_messages = vim.tbl_filter(function(msg)
-    return msg.opts and msg.opts.tag == "variable"
+    return msg._meta and msg._meta.tag == "variable"
   end, chat.messages)
 
   h.eq(2, #buffer_messages)
@@ -124,7 +124,7 @@ T["Variables"][":parse"]["buffer vars with params"] = function()
   vars:parse(chat, chat.messages[#chat.messages])
 
   local buffer_messages = vim.tbl_filter(function(msg)
-    return msg.opts and msg.opts.tag == "variable"
+    return msg._meta and msg._meta.tag == "variable"
   end, chat.messages)
 
   h.eq(1, #buffer_messages)

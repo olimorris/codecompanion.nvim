@@ -1,8 +1,8 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
+local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -243,7 +243,7 @@ function Debug:render()
 
   local window_config = config.display.chat.child_window
 
-  ui.create_float(lines, {
+  ui_utils.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
     title = "Debug Chat",
@@ -327,7 +327,7 @@ function Debug:save()
     self.chat.messages = messages
   end
 
-  util.notify("Updated the settings and messages")
+  utils.notify("Updated the settings and messages")
 end
 
 ---Function to run when the debug chat is closed

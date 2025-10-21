@@ -63,7 +63,7 @@ function M.show()
   end
 
   local lines = {}
-  local ui = require("codecompanion.utils.ui")
+  local ui_utils = require("codecompanion.utils.ui")
 
   -- Progress bar for premium interactions
   -- @param percent number
@@ -147,7 +147,7 @@ function M.show()
     ignore_keymaps = false,
     style = "minimal",
   }
-  local _, winnr = ui.create_float(lines, float_opts)
+  local _, winnr = ui_utils.create_float(lines, float_opts)
 
   ---@param usage_percent number
   ---@return string

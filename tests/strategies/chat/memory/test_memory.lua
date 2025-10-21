@@ -216,8 +216,8 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
   local last_message = messages[#messages]
 
   h.eq(#messages, 2) -- System prompt + memory
-  h.eq(last_message.opts.tag, "memory")
-  h.eq(last_message.opts.context_id, "<memory>" .. tmp .. "</memory>")
+  h.eq(last_message._meta.tag, "memory")
+  h.eq(last_message.context.id, "<memory>" .. tmp .. "</memory>")
   h.eq(last_message.content, content .. "\n")
 end
 
@@ -244,11 +244,8 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
-          opts = {
-            tag = tag,
-            context_id = id,
-            meta = opts
-          }
+          context = { id = id },
+          _meta = { tag = tag },
         })
       end
     }
@@ -273,10 +270,18 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   local has_tmp1 = false
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
-    if msg.opts.meta.path == tmp1 then
-      has_tmp1 = true
-    elseif msg.opts.meta.path == tmp2 then
-      has_tmp2 = true
+    if msg.context and msg.context.id then
+      -- Extract the path from the context id format: <file>path</file>
+      local path = msg.context.id:match("<file>(.-)</file>")
+      if path then
+        -- Convert to absolute path for comparison
+        local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
+        if abs_path == tmp1 then
+          has_tmp1 = true
+        elseif abs_path == tmp2 then
+          has_tmp2 = true
+        end
+      end
     end
   end
 
@@ -308,11 +313,8 @@ T["add_context() prevents duplicate memory context from being added"] = function
       add_context = function(self, content, tag, id, opts)
         table.insert(self.messages, {
           content = content.content,
-          opts = {
-            tag = tag,
-            context_id = id,
-            meta = opts
-          }
+          context = { id = id },
+          _meta = { tag = tag },
         })
       end
     }

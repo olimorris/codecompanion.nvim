@@ -2,7 +2,7 @@
 ---https://github.com/echasnovski/mini.diff
 
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local ok, diff = pcall(require, "mini.diff")
 if not ok then
@@ -38,12 +38,12 @@ function MiniDiff.new(args)
     source = {
       name = "codecompanion",
       attach = function(bufnr)
-        util.fire("DiffAttached", { diff = "mini_diff", bufnr = bufnr, id = self.id })
+        utils.fire("DiffAttached", { diff = "mini_diff", bufnr = bufnr, id = self.id })
         diff.set_ref_text(bufnr, self.contents)
         diff.toggle_overlay(self.bufnr)
       end,
       detach = function(bufnr)
-        util.fire("DiffDetached", { diff = "mini_diff", bufnr = bufnr, id = self.id })
+        utils.fire("DiffDetached", { diff = "mini_diff", bufnr = bufnr, id = self.id })
         self:teardown()
       end,
     },
@@ -58,7 +58,7 @@ end
 ---Accept the diff
 ---@return nil
 function MiniDiff:accept()
-  util.fire("DiffAccepted", { diff = "mini_diff", bufnr = self.bufnr, id = self.id, accept = true })
+  utils.fire("DiffAccepted", { diff = "mini_diff", bufnr = self.bufnr, id = self.id, accept = true })
   vim.b[self.bufnr].minidiff_config = nil
   diff.disable(self.bufnr)
 end
@@ -66,7 +66,7 @@ end
 ---Reject the diff
 ---@return nil
 function MiniDiff:reject()
-  util.fire("DiffRejected", { diff = "mini_diff", bufnr = self.bufnr, id = self.id, accept = false })
+  utils.fire("DiffRejected", { diff = "mini_diff", bufnr = self.bufnr, id = self.id, accept = false })
   api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
 
   vim.b[self.bufnr].minidiff_config = nil

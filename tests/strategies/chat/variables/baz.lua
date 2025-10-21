@@ -18,14 +18,14 @@ function Baz:output()
     self.Chat:add_message({
       role = "user",
       content = "baz " .. self.params,
-    }, { tag = "variable", visible = false })
+    }, { _meta = { tag = "variable" }, visible = false })
     return
   end
 
   self.Chat:add_message({
     role = "user",
     content = "baz",
-  }, { tag = "variable", visible = false })
+  }, { _meta = { tag = "variable" }, visible = false })
 end
 
 return Baz

@@ -129,8 +129,8 @@ local choice = {
       local response
       local curl_ok, curl_payload = pcall(function()
         response = Curl.get(url, {
-          insecure = config.adapters.opts.allow_insecure,
-          proxy = config.adapters.opts.proxy,
+          insecure = config.adapters.http.opts.allow_insecure,
+          proxy = config.adapters.http.opts.proxy,
           output = loc,
         })
       end)

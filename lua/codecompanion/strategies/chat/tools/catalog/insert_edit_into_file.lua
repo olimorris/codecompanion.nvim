@@ -1,15 +1,14 @@
 local Path = require("plenary.path")
 
+local buf_utils = require("codecompanion.utils.buffers")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.helpers.diff")
 local helpers = require("codecompanion.strategies.chat.helpers")
-local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
-local wait = require("codecompanion.strategies.chat.helpers.wait")
-
-local buffers = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
+local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
+local ui_utils = require("codecompanion.utils.ui")
+local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local api = vim.api
 local fmt = string.format
@@ -30,6 +29,21 @@ The system uses fuzzy matching and confidence scoring so focus on providing enou
 
 REMEMBER: No *** Begin Patch / *** End Patch markers = FAILED EDIT!
 </editFileInstructions>]]
+
+---Options for waiting for user approval
+---@param chat CodeCompanion.Chat The chat instance
+---@return table The options for the wait.for_decision function
+local function wait_opts(chat)
+  local always_accept = config.strategies.inline.keymaps.always_accept.modes.n
+  local accept = config.strategies.inline.keymaps.accept_change.modes.n
+  local reject = config.strategies.inline.keymaps.reject_change.modes.n
+
+  return {
+    chat_bufnr = chat.bufnr,
+    notify = config.display.icons.warning .. " Waiting for diff approval ...",
+    sub_text = fmt("`%s` Always Accept | `%s` Accept | `%s` Reject", always_accept, accept, reject),
+  }
+end
 
 ---Resolve the patching algorithm module used to apply the edits to a file
 ---@param algorithm string|table|function The patch configuration, can be a module path, a table, or a function that returns a table
@@ -65,7 +79,7 @@ end
 ---@return nil
 local function edit_file(action, chat, output_handler, opts)
   opts = opts or {}
-  local filepath = helpers.validate_and_normalize_filepath(action.filepath)
+  local filepath = helpers.validate_and_normalize_path(action.filepath)
   if not filepath then
     return output_handler({
       status = "error",
@@ -154,14 +168,6 @@ local function edit_file(action, chat, output_handler, opts)
 
   if should_diff and opts.user_confirmation then
     log:debug("[Insert Edit Into File Tool] Setting up diff approval workflow for file")
-    local accept = config.strategies.inline.keymaps.accept_change.modes.n
-    local reject = config.strategies.inline.keymaps.reject_change.modes.n
-
-    local wait_opts = {
-      chat_bufnr = chat.bufnr,
-      notify = config.display.icons.warning .. " Waiting for decision ...",
-      sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
-    }
 
     -- Wait for the user to accept or reject the edit
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
@@ -183,7 +189,7 @@ local function edit_file(action, chat, output_handler, opts)
       -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
       codecompanion.restore(chat.bufnr)
       return output_handler(response)
-    end, wait_opts)
+    end, wait_opts(chat))
   else
     log:debug("[Insert Edit Into File Tool] No user confirmation needed for file, returning success")
     return output_handler(success)
@@ -271,7 +277,7 @@ local function edit_buffer(bufnr, chat, action, output_handler, opts)
   -- Scroll to the editing location
   if start_line then
     log:debug("[Insert Edit Into File Tool] Scrolling to line %d", start_line)
-    ui.scroll_to_line(bufnr, start_line)
+    ui_utils.scroll_to_line(bufnr, start_line)
   end
 
   -- Auto-save if enabled
@@ -289,14 +295,6 @@ local function edit_buffer(bufnr, chat, action, output_handler, opts)
 
   if should_diff and opts.user_confirmation then
     log:debug("[Insert Edit Into File Tool] Setting up diff approval workflow")
-    local accept = config.strategies.inline.keymaps.accept_change.modes.n
-    local reject = config.strategies.inline.keymaps.reject_change.modes.n
-
-    local wait_opts = {
-      chat_bufnr = chat.bufnr,
-      notify = config.display.icons.warning .. " Waiting for diff approval ...",
-      sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
-    }
 
     -- Wait for the user to accept or reject the edit
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
@@ -324,7 +322,7 @@ local function edit_buffer(bufnr, chat, action, output_handler, opts)
       -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
       codecompanion.restore(chat.bufnr)
       return output_handler(response)
-    end, wait_opts)
+    end, wait_opts(chat))
   else
     log:debug("[Insert Edit Into File Tool] No user confirmation needed for file, returning success")
     return output_handler(success)
@@ -344,7 +342,7 @@ return {
     function(self, args, input, output_handler)
       log:debug("[Insert Edit Into File Tool] Execution started for: %s", args.filepath)
 
-      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
         return edit_buffer(bufnr, self.chat, args, output_handler, self.tool.opts)
       else
@@ -394,7 +392,7 @@ return {
       local opts = config["insert_edit_into_file"].opts or {}
 
       local args = self.args
-      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
         if opts.requires_approval.buffer then
           return true

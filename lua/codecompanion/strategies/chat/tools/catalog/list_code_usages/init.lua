@@ -45,11 +45,11 @@ local function process_lsp_symbols_async(symbols, state, callback)
   end
 
   for _, symbol in ipairs(symbols) do
-    local filepath = symbol.file
+    local path = symbol.file
     local line = symbol.range.start.line + 1 -- Convert to 1-indexed
     local col = symbol.range.start.character
 
-    Utils.async_edit_file(filepath, function(edit_success)
+    Utils.async_edit_file(path, function(edit_success)
       if edit_success then
         Utils.async_set_cursor(line, col, function(cursor_success)
           if cursor_success then

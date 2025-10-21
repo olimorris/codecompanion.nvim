@@ -1,4 +1,5 @@
-local util = require("codecompanion.utils")
+local helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -79,7 +80,7 @@ return {
 - Neovim Version: %s]],
     vim.fn.getcwd(),
     vim.o.shell,
-    util.os(),
+    utils.os(),
     vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
   ),
   handlers = {
@@ -108,11 +109,14 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tool CodeCompanion.Tools
+    ---@param tools CodeCompanion.Tools
     ---@param cmd table
+    ---@param opts table
     ---@return nil
-    rejected = function(self, tool, cmd)
-      tool.chat:add_tool_output(self, fmt("The user rejected the execution of the command `%s`?", self.args.cmd))
+    rejected = function(self, tools, cmd, opts)
+      local message = fmt("The user rejected the execution of the `%s` command", self.args.cmd)
+      opts = vim.tbl_extend("force", { message = message }, opts or {})
+      helpers.rejected(self, tools, cmd, opts)
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner

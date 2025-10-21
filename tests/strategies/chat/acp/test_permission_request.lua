@@ -97,8 +97,8 @@ local function with_mocks(opts)
       end,
       build_float_title = function(opts)
         opts = opts or {}
-        if opts.filepath then
-          return (opts.title_prefix or "Test") .. ": " .. vim.fn.fnamemodify(opts.filepath, ":t")
+        if opts.path then
+          return (opts.title_prefix or "Test") .. ": " .. vim.fn.fnamemodify(opts.path, ":t")
         end
         return opts.title or opts.title_prefix or "Test"
       end

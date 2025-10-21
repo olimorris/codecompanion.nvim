@@ -29,6 +29,7 @@ T["Test tools in chat buffer"] = new_set({
     { "openai", "openai_tools" },
     { "copilot", "openai_tools" },
     { "gemini", "openai_tools" },
+
     -- Others
     { "anthropic", "anthropic_tools" },
     { "deepseek", "deepseek_tools" },
@@ -49,7 +50,6 @@ T["Test tools in chat buffer"] = new_set({
 ---@param file string
 T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file)
   local response = "tests/adapters/http/stubs/" .. file .. "_streaming.txt"
-  local output = "tests/adapters/http/stubs/output/" .. file .. ".txt"
 
   child.lua([[
     local ollama = require("codecompanion.adapters.http.ollama")
@@ -117,12 +117,15 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   ))
 
   local messages = child.lua([[
-    -- Make sure we replace the roles with the adapter ones. This breaks up the Anthropic test otherwise
+    -- Make sure we replace the roles with the adapter ones. This breaks the Anthropic test otherwise
     local messages = _G.chat.adapter:map_roles(vim.deepcopy(_G.chat.messages))
     return _G.chat.adapter.handlers.form_messages(_G.chat.adapter, messages)
   ]])
-  local reference = vim.json.decode(table.concat(vim.fn.readfile(output), "\n"))
 
+  --NOTE: Remember, we're comparing what the messages payload should look like
+  --just before it's sent to the LLM. Not, how it looks in the chat buffer
+  --This is our way of making sure we conform to the LLM's format
+  local reference = require("tests.adapters.http.stubs.output." .. file)
   h.eq(messages, reference)
 
   expect.reference_screenshot(

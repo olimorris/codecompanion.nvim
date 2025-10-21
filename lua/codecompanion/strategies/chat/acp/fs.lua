@@ -11,7 +11,7 @@ local M = {}
 ---@return boolean|nil,string|nil The outcome followed by error message on nil
 function M.write_text_file(path, content)
   -- Try to find an existing buffer for the path
-  local bufnr = buf_utils.get_bufnr_from_filepath(path)
+  local bufnr = buf_utils.get_bufnr_from_path(path)
   if bufnr then
     local ok, err = pcall(function()
       buf_utils.write(bufnr, content)

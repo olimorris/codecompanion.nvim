@@ -68,7 +68,7 @@ Code:
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = table.concat(formatted, "\n\n"),
-  }, { tag = "variable", visible = false })
+  }, { _meta = { tag = "variable" }, visible = false })
 end
 
 return Variable

@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local slash_commands = require("codecompanion.strategies.chat.slash_commands")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -36,7 +36,7 @@ local function replace_vars(workspace, group, str)
   replaced_vars["workspace_name"] = workspace.name
   replaced_vars["group_name"] = group.name
 
-  return util.replace_placeholders(str, replaced_vars)
+  return utils.replace_placeholders(str, replaced_vars)
 end
 
 ---Add the description of the group to the chat buffer
@@ -128,7 +128,7 @@ function SlashCommand:add_to_chat(group, item)
       path = path,
     }
     -- Replace variables from the user's custom declarations as well as the builtin ones
-    description = util.replace_placeholders(replace_vars(self.workspace, group, description), builtin)
+    description = utils.replace_placeholders(replace_vars(self.workspace, group, description), builtin)
   end
 
   -- Extract options if present
@@ -184,20 +184,20 @@ function SlashCommand:output(selected_group, opts)
   if self.workspace.system_prompt then
     self.Chat:set_system_prompt(
       replace_vars(self.workspace, group, self.workspace.system_prompt),
-      { visible = false, tag = self.workspace.name .. " // Workspace" }
+      { visible = false, _meta = { tag = self.workspace.name .. " // Workspace" } }
     )
   end
   if self.workspace.description then
     self.Chat:add_message(
       { role = config.constants.USER_ROLE, content = replace_vars(self.workspace, group, self.workspace.description) },
-      { visible = false, tag = self.workspace.name .. " // Workspace" }
+      { visible = false, _meta = { tag = self.workspace.name .. " // Workspace" } }
     )
   end
 
   if group.system_prompt then
     self.Chat:set_system_prompt(
       replace_vars(self.workspace, group, group.system_prompt),
-      { visible = false, tag = group.name .. " // Workspace Group" }
+      { visible = false, _meta = { tag = group.name .. " // Workspace Group" } }
     )
   end
 

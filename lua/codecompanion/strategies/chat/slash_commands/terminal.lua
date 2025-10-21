@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local CONSTANTS = {
   NAME = "Terminal Output",
@@ -26,7 +26,7 @@ local _terminal_data = {}
 function SlashCommand:execute()
   local bufnr = _G.codecompanion_last_terminal
   if not bufnr then
-    return util.notify("No recent terminal buffer found", vim.log.levels.WARN)
+    return utils.notify("No recent terminal buffer found", vim.log.levels.WARN)
   end
 
   local start_line = 0
@@ -59,7 +59,7 @@ function SlashCommand:execute()
       table.concat(content, "\n")
     ),
   }, { visible = false })
-  util.notify("Terminal output added to chat")
+  utils.notify("Terminal output added to chat")
 end
 
 return SlashCommand

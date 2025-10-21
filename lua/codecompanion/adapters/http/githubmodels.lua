@@ -1,7 +1,7 @@
 local Job = require("plenary.job")
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 ---@alias GhToken string|nil
 local _gh_token
@@ -103,7 +103,7 @@ return {
     end,
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then

@@ -2,8 +2,8 @@ local async = require("plenary.async")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local ts = require("codecompanion.utils.treesitter")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
+local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -21,7 +21,7 @@ M.options = {
     }
 
     if next(_cached_options) ~= nil then
-      return ui.create_float(_cached_options, float_opts)
+      return ui_utils.create_float(_cached_options, float_opts)
     end
 
     local lines = {}
@@ -186,7 +186,7 @@ M.options = {
     end
 
     _cached_options = lines
-    ui.create_float(lines, float_opts)
+    ui_utils.create_float(lines, float_opts)
   end,
 }
 
@@ -376,7 +376,7 @@ M.pin_context = {
     local id = line:gsub("^> %- ", "")
 
     if not chat.context:can_be_pinned(id) then
-      return util.notify("This context type cannot be pinned", vim.log.levels.WARN)
+      return utils.notify("This context type cannot be pinned", vim.log.levels.WARN)
     end
 
     local filename = id
@@ -415,7 +415,7 @@ M.toggle_watch = {
     local icons = config.display.chat.icons
     local id = line:gsub("^> %- ", "")
     if not chat.context:can_be_watched(id) then
-      return util.notify("This context type cannot be watched", vim.log.levels.WARN)
+      return utils.notify("This context type cannot be watched", vim.log.levels.WARN)
     end
 
     -- Find the context and toggle watch state
@@ -439,7 +439,7 @@ M.toggle_watch = {
             -- Buffer is invalid, can't watch it
             item.opts.watched = false
             new_line = string.format("> - %s", clean_id)
-            util.notify("Cannot watch invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
+            utils.notify("Cannot watch invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
           end
         else
           chat.watched_buffers:unwatch(item.bufnr)
@@ -516,7 +516,7 @@ M.change_adapter = {
   desc = "Change the adapter",
   callback = function(chat)
     if config.display.chat.show_settings then
-      return util.notify("Adapter can't be changed when `display.chat.show_settings = true`", vim.log.levels.WARN)
+      return utils.notify("Adapter can't be changed when `display.chat.show_settings = true`", vim.log.levels.WARN)
     end
 
     local function select_opts(prompt, conditional)
@@ -620,7 +620,7 @@ M.change_adapter = {
           end
 
           if current_model ~= selected_model then
-            util.fire("ChatModel", { bufnr = chat.bufnr, model = selected_model })
+            utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected_model })
           end
 
           chat:apply_model(selected_model)
@@ -653,7 +653,7 @@ M.change_adapter = {
           end
           local selected = chat.adapter.commands[selected_command]
           chat.adapter.commands.selected = selected
-          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+          utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
           chat:update_metadata()
         end)
       end
@@ -696,7 +696,7 @@ M.clear_memory = {
   callback = function(chat)
     chat:remove_tagged_message("memory")
     chat:refresh_context()
-    return util.notify("Cleared the memory", vim.log.levels.INFO)
+    return utils.notify("Cleared the memory", vim.log.levels.INFO)
   end,
 }
 
@@ -705,10 +705,10 @@ M.yolo_mode = {
   callback = function(chat)
     if vim.g.codecompanion_yolo_mode then
       vim.g.codecompanion_yolo_mode = nil
-      return util.notify("YOLO mode disabled", vim.log.levels.INFO)
+      return utils.notify("YOLO mode disabled", vim.log.levels.INFO)
     else
       vim.g.codecompanion_yolo_mode = true
-      return util.notify("YOLO mode enabled", vim.log.levels.INFO)
+      return utils.notify("YOLO mode enabled", vim.log.levels.INFO)
     end
   end,
 }
@@ -762,7 +762,7 @@ M.copilot_stats = {
   desc = "Show Copilot usage statistics",
   callback = function(chat)
     if not chat.adapter.show_copilot_stats then
-      return util.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
+      return utils.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
   end,

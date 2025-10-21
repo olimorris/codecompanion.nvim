@@ -99,22 +99,24 @@ T["DeepSeek adapter"]["form_messages"]["it can form messages with tools"] = func
     { role = "system", content = "System Prompt 3" },
     {
       role = "llm",
-      tool_calls = {
-        {
-          ["function"] = {
-            arguments = '{"location":"London, UK","units":"fahrenheit"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+            type = "function",
           },
-          id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
-          type = "function",
-        },
-        {
-          ["function"] = {
-            arguments = '{"location":"Paris, France","units":"fahrenheit"}',
-            name = "weather",
+          {
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+            type = "function",
           },
-          id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
-          type = "function",
         },
       },
     },

@@ -25,8 +25,8 @@ function LspHandler.filter_project_references(references)
   for _, reference in ipairs(references) do
     local uri = reference.uri
     if uri then
-      local filepath = Utils.uri_to_filepath(uri)
-      if Utils.is_in_project(filepath) then
+      local path = Utils.uri_to_path(uri)
+      if Utils.is_in_project(path) then
         table.insert(filtered_results, reference)
       end
     end

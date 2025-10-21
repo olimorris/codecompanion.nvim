@@ -65,6 +65,10 @@ end
 ---@return nil
 function Keymaps:set()
   for _, map in pairs(self.keymaps) do
+    if map == false then
+      goto continue
+    end
+
     local callback
     local rhs, action_opts = self:resolve(map.callback)
     if type(map.condition) == "function" and not map.condition() then

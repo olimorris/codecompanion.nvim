@@ -105,8 +105,8 @@ local T = new_set({
         }
 
         for _, file in ipairs(test_files) do
-          local filepath = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, file.path)
-          vim.fn.writefile(file.content, filepath)
+          local path = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, file.path)
+          vim.fn.writefile(file.content, path)
         end
 
         h = require('tests.helpers')

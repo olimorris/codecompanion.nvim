@@ -1,5 +1,6 @@
 local Path = require("plenary.path")
-local buf = require("codecompanion.utils.buffers")
+
+local buf_utils = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
 local scan = require("plenary.scandir")
 
@@ -54,7 +55,7 @@ function Default:buffers()
       return vim.fn.buflisted(bufnr) == 1 and api.nvim_buf_get_option(bufnr, "filetype") ~= "codecompanion"
     end)
     :map(function(bufnr)
-      return buf.get_info(bufnr)
+      return buf_utils.get_info(bufnr)
     end)
     :totable()
 

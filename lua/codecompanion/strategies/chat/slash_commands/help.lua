@@ -2,7 +2,7 @@ local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local ts = vim.treesitter
 
@@ -86,7 +86,7 @@ Note the path to the help file is `%s`.
       content,
       selected.path
     ),
-  }, { context_id = id, visible = false })
+  }, { context = { id = id }, visible = false })
 
   Chat.context:add({
     source = "slash_command",
@@ -94,7 +94,7 @@ Note the path to the help file is `%s`.
     id = id,
   })
 
-  return util.notify(string.format("Added the `%s` help to the chat", selected.tag))
+  return utils.notify(string.format("Added the `%s` help to the chat", selected.tag))
 end
 
 ---Output from the slash command in the chat buffer

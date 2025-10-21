@@ -1,7 +1,7 @@
 --|---------|---------|---------|---------|---------|---------|---------|---------|
 01|                                                                                
 02|     ┌──────────────────────────────── Diff─────────────────────────────────┐   
-03|     │    Keymaps: [Accept: gda] | [Reject: gdr] | [Always Accept: gdy]     │   
+03|     │    Keymaps: [Always Accept: gdy] | [Accept: gda] | [Reject: gdr]     │   
 04|     │    1 def calculate_area(radius):                                     │   
 05|     │          return 3.14 * radius * radius                               │   
 06|     │▌   2     import math                                                 │   

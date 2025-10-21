@@ -1,0 +1,38 @@
+{
+  "id": "resp_000acfefbab2c23d0168f126d570ec8195bab5847211c166e7",
+  "object": "response",
+  "created_at": 1760634581,
+  "status": "completed",
+  "model": "gpt-5-2025-08-07",
+  "output": [
+    {
+      "id": "rs_000acfefbab2c23d0168f126d62eb88195a3731f9e0d583eda",
+      "type": "reasoning",
+      "encrypted_content": "gAAAAABo8Sb",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "Some summary text"
+        },
+        {
+          "type": "summary_text",
+          "text": "More summary"
+        }
+      ]
+    },
+    {
+      "id": "msg_000acfefbab2c23d0168f126e09d088195a730e4f3c4a91f9a",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "{\"code\": \"print('Hello World')\",\"language\": \"lua\",\"placement\": \"add\"}"
+        }
+      ],
+      "role": "assistant"
+    }
+  ]
+}

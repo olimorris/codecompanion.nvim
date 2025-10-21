@@ -1,4 +1,5 @@
 local files = require("codecompanion.utils.files")
+local helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -188,21 +189,20 @@ return {
     ---@param stdout table The output from the command
     success = function(self, tools, cmd, stdout)
       local chat = tools.chat
-      local output = vim.iter(stdout):flatten():join("\n")
       local args = self.args
-      local filepath = args.filepath
+      local path = args.filepath
 
       local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
-      local file_ext = vim.fn.fnamemodify(filepath, ":e")
+      local file_ext = vim.fn.fnamemodify(path, ":e")
 
       local result_msg = fmt(
         [[Created file `%s`
 ```%s
 %s
 ```]],
-        filepath,
+        path,
         file_ext,
         args.content or ""
       )
@@ -228,10 +228,12 @@ return {
     ---@param self CodeCompanion.Tool.CreateFile
     ---@param tools CodeCompanion.Tools
     ---@param cmd table
+    ---@param opts table
     ---@return nil
-    rejected = function(self, tools, cmd)
-      local chat = tools.chat
-      chat:add_tool_output(self, "User rejected the creation of the file")
+    rejected = function(self, tools, cmd, opts)
+      local message = "The user rejected the creation of the file"
+      opts = vim.tbl_extend("force", { message = message }, opts or {})
+      helpers.rejected(self, tools, cmd, opts)
     end,
   },
 }

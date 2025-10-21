@@ -1,7 +1,7 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
 return {
@@ -57,7 +57,7 @@ return {
     end,
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok and json.prompt_eval_count ~= nil and json.eval_count ~= nil then
@@ -80,10 +80,11 @@ return {
         .iter(messages)
         :map(function(m)
           -- Ensure tool_calls are clean
-          if m.tool_calls then
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
             -- TODO: add tool_name?
-            m.tool_calls = vim
-              .iter(m.tool_calls)
+            tool_calls = vim
+              .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
                   id = tool_call.id,
@@ -95,7 +96,7 @@ return {
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
             m.images = m.images or {}
             if self.opts and self.opts.vision then
               table.insert(m.images, m.content)
@@ -106,7 +107,7 @@ return {
           return {
             role = m.role,
             content = m.content,
-            tool_calls = m.tool_calls,
+            tool_calls = tool_calls,
             images = m.images,
           }
         end)
@@ -123,7 +124,7 @@ return {
       end
 
       -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
       if not ok or not json.message then

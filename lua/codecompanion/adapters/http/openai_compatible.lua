@@ -5,10 +5,10 @@ to CodeCompanion via an adapter. Send any questions or queries to the discussion
 --]]
 
 local Curl = require("plenary.curl")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 local _cache_expires
 local _cache_file = vim.fn.tempname()
@@ -40,7 +40,7 @@ local function get_models(self, opts)
     return {}
   end
 
-  utils.get_env_vars(adapter)
+  adapter_utils.get_env_vars(adapter)
   local url = adapter.env_replaced.url
   local models_endpoint = adapter.env_replaced.models_endpoint
 
@@ -76,7 +76,7 @@ local function get_models(self, opts)
     table.insert(_cached_models, model.id)
   end
 
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
+  _cache_expires = adapter_utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
 
   return models(opts)
 end

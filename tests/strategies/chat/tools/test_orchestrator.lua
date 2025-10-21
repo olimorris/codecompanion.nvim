@@ -80,9 +80,9 @@ local function setup_with_tools_and_cancel_stub(n_tools)
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools = chat, tools
 
-    -- Stub confirm to always choose "3 Cancel"
+    -- Stub confirm to always choose "4 Cancel"
     local ui = require("codecompanion.utils.ui")
-    ui.confirm = function(_) return 3 end
+    ui.confirm = function(_) return 4 end
 
     -- Build tool calls
     local calls = {

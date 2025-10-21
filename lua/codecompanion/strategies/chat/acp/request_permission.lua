@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
+local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local api = vim.api
@@ -35,7 +35,7 @@ local M = {}
 local function build_choices(request)
   local prompt = string.format(
     "%s: %s ?",
-    util.capitalize(request.tool_call and request.tool_call.kind or "permission"),
+    utils.capitalize(request.tool_call and request.tool_call.kind or "permission"),
     request.tool_call and request.tool_call.title or "Agent requested permission"
   )
 
@@ -148,12 +148,12 @@ local function place_banner(winnr, normalized, kind_map)
   local ok = false
   if winnr and api.nvim_win_is_valid(winnr) then
     ok = pcall(function()
-      ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+      ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
     end)
   end
 
   if not ok then
-    util.notify(banner)
+    utils.notify(banner)
   end
 end
 
@@ -304,14 +304,26 @@ local function get_diff(tool_call)
   local absolute_path = tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path
   local path = absolute_path or vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path)
 
+  local old = tool_call.content[1].oldText
+  local new = tool_call.content[1].newText
+
+  if type(old) ~= "string" then
+    old = ""
+  end
+  if type(new) ~= "string" then
+    new = ""
+  end
+
   return {
     kind = tool_call.kind,
-    new = tool_call.content[1].newText,
-    old = tool_call.content[1].oldText,
+    old = old,
+    new = new,
     path = path,
     status = tool_call.status,
     title = tool_call.title,
-    tool_call_id = tool_call.toolCallId,
+    tools = {
+      call_id = tool_call.toolCallId,
+    },
   }
 end
 
@@ -334,15 +346,15 @@ local function show_diff(chat, request)
   local inline_config = config.display.diff.provider_opts.inline or {}
   local show_dim = inline_config.opts and inline_config.opts.show_dim
 
-  local bufnr, winnr = ui.create_float(new_lines, {
+  local bufnr, winnr = ui_utils.create_float(new_lines, {
     window = { width = window_config.width, height = window_config.height },
     row = window_config.row or "center",
     col = window_config.col or "center",
     relative = window_config.relative or "editor",
     filetype = vim.filetype.match({ filename = d.path }),
-    title = ui.build_float_title({
+    title = ui_utils.build_float_title({
       title_prefix = "Edit Requested",
-      filepath = d.path,
+      path = d.path,
     }),
     lock = true,
     ignore_keymaps = true,

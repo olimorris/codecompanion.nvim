@@ -12,14 +12,14 @@ end
 
 ---@param uri string|nil The file URI to convert
 ---@return string The local filesystem path, or empty string if uri is nil
-function Utils.uri_to_filepath(uri)
+function Utils.uri_to_path(uri)
   return uri and uri:gsub("file://", "") or ""
 end
 
----@param filepath string|nil The absolute filepath to convert
----@return string The relative path, filename only, or empty string if filepath is nil
-function Utils.make_relative_path(filepath)
-  if not filepath or filepath == "" then
+---@param path string|nil The absolute path to convert
+---@return string The relative path, filename only, or empty string if path is nil
+function Utils.make_relative_path(path)
+  if not path or path == "" then
     return ""
   end
 
@@ -27,28 +27,28 @@ function Utils.make_relative_path(filepath)
 
   -- Normalize paths to handle different separators
   local normalized_cwd = cwd:gsub("\\", "/")
-  local normalized_filepath = filepath:gsub("\\", "/")
+  local normalized_path = path:gsub("\\", "/")
 
   -- Ensure cwd ends with separator for proper matching
   if not normalized_cwd:match("/$") then
     normalized_cwd = normalized_cwd .. "/"
   end
 
-  -- Check if filepath starts with cwd
-  if normalized_filepath:find(normalized_cwd, 1, true) == 1 then
+  -- Check if path starts with cwd
+  if normalized_path:find(normalized_cwd, 1, true) == 1 then
     -- Return relative path
-    return normalized_filepath:sub(#normalized_cwd + 1)
+    return normalized_path:sub(#normalized_cwd + 1)
   else
     -- If not within cwd, return just the filename
-    return normalized_filepath:match("([^/]+)$") or normalized_filepath
+    return normalized_path:match("([^/]+)$") or normalized_path
   end
 end
 
----@param filepath string The absolute filepath to check
+---@param path string The absolute path to check
 ---@return boolean True if the file is within the project directory
-function Utils.is_in_project(filepath)
+function Utils.is_in_project(path)
   local project_root = vim.fn.getcwd()
-  return filepath:find(project_root, 1, true) == 1
+  return path:find(project_root, 1, true) == 1
 end
 
 ---@param bufnr number|nil The buffer number to validate
@@ -69,7 +69,7 @@ function Utils.safe_get_filetype(bufnr)
 end
 
 ---@param bufnr number The buffer number to get name from
----@return string The buffer name/filepath, or empty string if not available
+---@return string The buffer name/path, or empty string if not available
 function Utils.safe_get_buffer_name(bufnr)
   if not Utils.is_valid_buffer(bufnr) then
     return ""
@@ -93,11 +93,11 @@ function Utils.safe_get_lines(bufnr, start_row, end_row, strict_indexing)
   return success and lines or {}
 end
 
----@param filepath string The path to the file to open
+---@param path string The path to the file to open
 ---@param callback function Callback function called with success boolean
-function Utils.async_edit_file(filepath, callback)
+function Utils.async_edit_file(path, callback)
   vim.schedule(function()
-    local success, _ = pcall(vim.cmd, "edit " .. vim.fn.fnameescape(filepath))
+    local success, _ = pcall(vim.cmd, "edit " .. vim.fn.fnameescape(path))
     callback(success)
   end)
 end

@@ -78,7 +78,7 @@ end
 ---@param ignored_roles? table Roles that should not be merged even if consecutive
 ---@return table
 function M.merge_messages(messages, allowed_keys, ignored_roles)
-  allowed_keys = allowed_keys or { "tool_calls", "tool_call_id" }
+  allowed_keys = allowed_keys or { "tools" }
   ignored_roles = ignored_roles or { "tool" }
 
   local no_merge = {}

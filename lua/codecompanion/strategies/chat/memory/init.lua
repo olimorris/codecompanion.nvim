@@ -90,9 +90,9 @@ function Memory:extract()
       local matches = vim.fn.glob(path, false, true) or {}
       for _, m in ipairs(matches) do
         local p = vim.fs.normalize(m)
-        local filepath = Path:new(p)
-        if filepath:exists() then
-          if filepath:is_dir() then
+        local path = Path:new(p)
+        if path:exists() then
+          if path:is_dir() then
             walk_dir(p, file_parser)
           else
             add_file(p, file_parser)
@@ -103,10 +103,10 @@ function Memory:extract()
     end
 
     local normalized = vim.fs.normalize(path)
-    local filepath = Path:new(normalized)
+    local path = Path:new(normalized)
 
-    if filepath:exists() then
-      if filepath:is_dir() then
+    if path:exists() then
+      if path:is_dir() then
         walk_dir(normalized, file_parser)
       else
         add_file(normalized, file_parser)

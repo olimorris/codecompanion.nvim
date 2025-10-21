@@ -1,7 +1,7 @@
 local Curl = require("plenary.curl")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
 
 local CONSTANTS = {
   TIMEOUT = 3000, -- 3 seconds
@@ -124,7 +124,7 @@ function M.choices(self, opts)
     log:error("Could not resolve Ollama adapter in the `choices` function")
     return {}
   end
-  utils.get_env_vars(adapter)
+  adapter_utils.get_env_vars(adapter)
   local url = adapter.env_replaced.url
   local is_uninitialised = _cached_models[url] == nil
 

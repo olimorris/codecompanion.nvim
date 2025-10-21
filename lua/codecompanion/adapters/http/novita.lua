@@ -1,8 +1,8 @@
 local Curl = require("plenary.curl")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 local _cache_expires
 local _cache_file = vim.fn.tempname()
@@ -51,7 +51,7 @@ local function get_models(self, opts)
   end
 
   _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
+  _cache_expires = adapter_utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
 
   return models
 end

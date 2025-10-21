@@ -50,7 +50,7 @@ T["Chat"]["buffer variables are handled"] = function()
     -- Extract the properties we need to test into simple data types
     _G.last_message_content = chat.messages[#chat.messages].content
     _G.last_message_visible = chat.messages[#chat.messages].opts.visible
-    _G.last_message_tag = chat.messages[#chat.messages].opts.tag
+    _G.last_message_tag = chat.messages[#chat.messages]._meta.tag
   ]])
 
   -- Retrieve the simple values from the child process
@@ -142,11 +142,21 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
   ]])
 
   h.eq({
-    mimetype = "image/png",
-    context_id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
-    tag = "image",
     visible = false,
   }, message.opts)
+
+  h.eq({
+    cycle = 1,
+    index = message._meta.index,
+    id = message._meta.id,
+    tag = "image",
+  }, message._meta)
+
+  h.eq({
+    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
+    mimetype = "image/png",
+    path = string.format("%s/tests/stubs/logo.png", vim.fn.getcwd()),
+  }, message.context)
 
   h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
 end
@@ -198,6 +208,76 @@ T["Chat"]["can load default tools"] = function()
       end)
       :totable()
   )
+end
+
+T["Chat"]["ftplugin window options override plugin defaults"] = function()
+  -- This test verifies that user's after/ftplugin/codecompanion.lua can override
+  -- the plugin's default window options. This ensures setting filetype
+  -- after window options is working correctly.
+  local child_test = MiniTest.new_child_neovim()
+  h.child_start(child_test)
+
+  child_test.lua([[
+    -- Create a temporary directory for our test ftplugin
+    local temp_dir = vim.fn.tempname()
+    vim.fn.mkdir(temp_dir .. "/after/ftplugin", "p")
+
+    -- Write a test ftplugin that sets custom window options
+    -- These intentionally differ from plugin defaults to verify override behavior
+    local ftplugin_lines = {
+      "vim.wo.wrap = false",
+      "vim.wo.number = true",
+      "vim.wo.relativenumber = true",
+    }
+    local ftplugin_path = temp_dir .. "/after/ftplugin/codecompanion.lua"
+    vim.fn.writefile(ftplugin_lines, ftplugin_path)
+
+    -- Store paths for cleanup
+    _G.test_temp_dir = temp_dir
+    _G.test_ftplugin_path = ftplugin_path
+
+    -- Setup codecompanion
+    codecompanion = require("codecompanion")
+    codecompanion.setup()
+
+    -- Open a new chat
+    codecompanion.chat()
+
+    -- Manually source the ftplugin file to simulate user's after/ftplugin
+    -- This is needed because Neovim won't automatically re-source ftplugin
+    -- files for filetypes that have already been seen in the test environment
+    vim.cmd("source " .. vim.fn.fnameescape(ftplugin_path))
+
+    -- Get the current window options
+    local winnr = vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_win_get_buf(winnr)
+    _G.test_wrap = vim.wo[winnr].wrap
+    _G.test_number = vim.wo[winnr].number
+    _G.test_relativenumber = vim.wo[winnr].relativenumber
+    _G.test_filetype = vim.bo[bufnr].filetype
+  ]])
+
+  -- Retrieve the window option values
+  local wrap = child_test.lua_get([[_G.test_wrap]])
+  local number = child_test.lua_get([[_G.test_number]])
+  local relativenumber = child_test.lua_get([[_G.test_relativenumber]])
+  local filetype = child_test.lua_get([[_G.test_filetype]])
+
+  -- Verify filetype is set correctly
+  h.eq("codecompanion", filetype)
+
+  -- Assert that ftplugin settings override plugin defaults
+  -- Plugin defaults: wrap=true, number=not set, relativenumber=not set
+  -- User ftplugin sets: wrap=false, number=true, relativenumber=true
+  h.eq(false, wrap)
+  h.eq(true, number)
+  h.eq(true, relativenumber)
+
+  child_test.lua([[
+    vim.fn.delete(_G.test_temp_dir, "rf")
+  ]])
+
+  child_test.stop()
 end
 
 return T

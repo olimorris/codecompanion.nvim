@@ -1,5 +1,5 @@
 local providers = require("codecompanion.providers")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -387,6 +387,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
           },
         },
+        opts = {
+          acp = {
+            enabled = true, -- Enable ACP command completion
+            trigger = "\\", -- Trigger character for ACP commands
+          },
+        },
       },
       keymaps = {
         options = {
@@ -568,7 +574,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
-        goto_file_action = ui.tabnew_reuse,
+        goto_file_action = ui_utils.tabnew_reuse,
 
         ---This is the default prompt which is sent with every request in the chat
         ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
@@ -1459,6 +1465,17 @@ local M = {
   config = vim.deepcopy(defaults),
 }
 
+---@param keymaps table<string, table|boolean>
+local function remove_disabled_keymaps(keymaps)
+  local enabled = {}
+  for name, keymap in pairs(keymaps) do
+    if keymap ~= false then
+      enabled[name] = keymap
+    end
+  end
+  return enabled
+end
+
 ---@param args? table
 M.setup = function(args)
   args = args or {}
@@ -1472,6 +1489,9 @@ M.setup = function(args)
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
+
+  M.config.strategies.chat.keymaps = remove_disabled_keymaps(M.config.strategies.chat.keymaps)
+  M.config.strategies.inline.keymaps = remove_disabled_keymaps(M.config.strategies.inline.keymaps)
 
   -- TODO: Add a deprecation warning at some point
   if M.config.opts and M.config.opts.system_prompt then

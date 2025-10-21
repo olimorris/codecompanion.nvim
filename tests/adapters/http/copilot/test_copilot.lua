@@ -4,10 +4,192 @@ local adapter
 local new_set = MiniTest.new_set
 T = new_set()
 
+local copilot_models = {
+  ["claude-3.5-sonnet"] = {
+    endpoint = "completions",
+    formatted_name = "Claude Sonnet 3.5",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Anthropic",
+  },
+  ["claude-3.7-sonnet"] = {
+    endpoint = "completions",
+    formatted_name = "Claude Sonnet 3.7",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Anthropic",
+  },
+  ["claude-3.7-sonnet-thought"] = {
+    endpoint = "completions",
+    formatted_name = "Claude Sonnet 3.7 Thinking",
+    opts = {
+      can_stream = true,
+      has_vision = true,
+    },
+    vendor = "Anthropic",
+  },
+  ["claude-sonnet-4"] = {
+    endpoint = "completions",
+    formatted_name = "Claude Sonnet 4",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Anthropic",
+  },
+  ["claude-sonnet-4.5"] = {
+    endpoint = "completions",
+    formatted_name = "Claude Sonnet 4.5 (Preview)",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Anthropic",
+  },
+  ["gemini-2.0-flash-001"] = {
+    endpoint = "completions",
+    formatted_name = "Gemini 2.0 Flash",
+    opts = {
+      can_stream = true,
+      has_vision = true,
+    },
+    vendor = "Google",
+  },
+  ["gemini-2.5-pro"] = {
+    endpoint = "completions",
+    formatted_name = "Gemini 2.5 Pro",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Google",
+  },
+  ["gpt-4.1"] = {
+    endpoint = "completions",
+    formatted_name = "GPT-4.1",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Azure OpenAI",
+  },
+  ["gpt-4o"] = {
+    endpoint = "completions",
+    formatted_name = "GPT-4o",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Azure OpenAI",
+  },
+  ["gpt-5"] = {
+    endpoint = "completions",
+    formatted_name = "GPT-5",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Azure OpenAI",
+  },
+  ["gpt-5-codex"] = {
+    endpoint = "responses",
+    formatted_name = "GPT-5-Codex (Preview)",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "OpenAI",
+  },
+  ["gpt-5-mini"] = {
+    endpoint = "completions",
+    formatted_name = "GPT-5 mini",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Azure OpenAI",
+  },
+  ["grok-code-fast-1"] = {
+    endpoint = "completions",
+    formatted_name = "Grok Code Fast 1 (Preview)",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+    },
+    vendor = "xAI",
+  },
+  ["o3-mini"] = {
+    endpoint = "completions",
+    formatted_name = "o3-mini",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+    },
+    vendor = "Azure OpenAI",
+  },
+  ["o4-mini"] = {
+    endpoint = "completions",
+    formatted_name = "o4-mini (Preview)",
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+    vendor = "Azure OpenAI",
+  },
+}
+
+local _original_choices
+local _original_token_fetch
+
 T["Copilot adapter"] = new_set({
   hooks = {
     pre_case = function()
+      local token = require("codecompanion.adapters.http.copilot.token")
+      _original_token_fetch = token.fetch
+      token.fetch = function()
+        return {
+          copilot_token = "test_token_12345",
+          endpoints = {
+            api = "https://api.githubcopilot.com",
+          },
+        }
+      end
+
       adapter = require("codecompanion.adapters").resolve("copilot")
+
+      local get_models = require("codecompanion.adapters.http.copilot.get_models")
+      _original_choices = get_models.choices
+      get_models.choices = function(adapter_arg, opts, provided_token)
+        return copilot_models
+      end
+    end,
+
+    post_case = function()
+      if _original_choices then
+        local get_models = require("codecompanion.adapters.http.copilot.get_models")
+        get_models.choices = _original_choices
+        _original_choices = nil
+      end
+      if _original_token_fetch then
+        local token = require("codecompanion.adapters.http.copilot.token")
+        token.fetch = _original_token_fetch
+        _original_token_fetch = nil
+      end
     end,
   },
 })

@@ -48,7 +48,6 @@ M.always_accept = {
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
     end
     vim.g.codecompanion_yolo_mode = true
-    utils.notify("YOLO mode enabled - future edits will be automatically accepted")
     log:trace("[Inline] YOLO mode enabled")
   end,
 }

@@ -56,7 +56,6 @@ T["Tools"]["user approval"]["prompts a user when tool requires approval"] = func
   -- Check that UI was called with expected values
   h.eq(true, child.lua_get([[_G.ui_called]]))
   h.eq("Run the func_approval tool?", child.lua_get([[_G.ui_prompt]]))
-  h.eq({ "1 Approve", "2 Reject", "3 Cancel" }, child.lua_get([[_G.ui_choices]]))
 
   -- Check that tool executed after approval
   h.eq("Test Data", child.lua_get([[_G._test_func]]))
@@ -121,9 +120,14 @@ T["Tools"]["user approval"]["approval can be rejected"] = function()
     local original_select = vim.ui.select
     _G.ui_called = true
 
+    -- Monkey patch the async function
+    ui_utils.input = function(prompt, callback)
+      return callback("Rejected")
+    end
+
     ui_utils.confirm = function(prompt, choices, opts)
       _G.ui_called = true
-      return 2 -- Simulate user selecting "Yes"
+      return 3 -- Simulate user pressing "Reject"
     end
     local tool_calls = {
       {
