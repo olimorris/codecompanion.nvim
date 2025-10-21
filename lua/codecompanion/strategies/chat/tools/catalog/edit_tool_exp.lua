@@ -774,7 +774,7 @@ end
 ---@param opts table|nil
 local function edit_file(action, chat_bufnr, output_handler, opts)
   opts = opts or {}
-  local filepath = helpers.validate_and_normalize_filepath(action.filepath)
+  local filepath = helpers.validate_and_normalize_path(action.filepath)
 
   if not filepath then
     return output_handler({
@@ -1093,7 +1093,7 @@ return {
       end
 
       -- Check if file is currently open in buffer
-      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      local bufnr = buffers.get_bufnr_from_path(args.filepath)
       if bufnr then
         return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
       else
@@ -1169,7 +1169,7 @@ return {
       local opts = config["edit_tool_exp"] and config["edit_tool_exp"].opts or {}
 
       local args = self.args
-      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      local bufnr = buffers.get_bufnr_from_path(args.filepath)
       if bufnr then
         if opts.requires_approval and opts.requires_approval.buffer then
           return true
