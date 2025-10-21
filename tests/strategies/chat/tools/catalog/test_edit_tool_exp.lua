@@ -20,18 +20,8 @@ local T = new_set({
 
         h = require('tests.helpers')
 
-        -- Setup with edit_tool_exp enabled
-        local cfg = {
-          strategies = {
-            chat = {
-              tools = {
-                edit_tool_exp = { enabled = true }
-              }
-            }
-          }
-        }
-
-        chat, tools = h.setup_chat_buffer(cfg)
+        -- Setup chat buffer (edit_tool_exp is already enabled in test config)
+        chat, tools = h.setup_chat_buffer()
       ]])
     end,
     post_case = function()
@@ -407,7 +397,7 @@ T["Error Handling"]["handles non-existent file"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.expect_contains("Invalid or non-existent filepath", output, "Should handle non-existent file error")
+  h.expect_contains("File does not exist or is not a file", output, "Should handle non-existent file error")
 end
 
 T["Error Handling"]["handles invalid JSON in edits"] = function()
