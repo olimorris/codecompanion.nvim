@@ -89,7 +89,7 @@ return {
         "mistral-large-latest",
         ["pixtral-large-latest"] = { opts = { has_vision = true } },
         ["mistral-medium-latest"] = { opts = { has_vision = true } },
-        "mistral-saba-latest",
+        ["mistral-saba-latest"] = { opts = { has_function_calling = true }},
         "codestral-latest",
         "ministral-8b-latest",
         "ministral-3b-latest",
