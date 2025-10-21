@@ -98,8 +98,8 @@ return {
             patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
           },
         },
-        ["edit_tool_exp"] = {
-          callback = "strategies.chat.tools.catalog.edit_tool_exp",
+        ["edit_file"] = {
+          callback = "strategies.chat.tools.catalog.edit_file",
           description = "Robustly edit files with multiple automatic fallback strategies",
           opts = {
             requires_approval = {

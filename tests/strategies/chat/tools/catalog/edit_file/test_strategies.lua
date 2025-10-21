@@ -1,6 +1,6 @@
-local edit_tool_exp_strategies = require("codecompanion.strategies.chat.tools.catalog.helpers.edit_tool_exp_strategies")
 local h = require("tests.helpers")
 local log = require("codecompanion.utils.log")
+local strategies = require("codecompanion.strategies.chat.tools.catalog.edit_file.strategies")
 
 -- Silence noisy warnings during tests; restore after suite runs
 local _saved_log = {
@@ -51,11 +51,11 @@ local T = new_set({
 -- Comprehensive find_best_match tests
 T["Comprehensive find_best_match Tests"] = new_set()
 
-local cases = require("tests.strategies.chat.tools.catalog.helpers.edit_tool_cases")
+local cases = require("tests.strategies.chat.tools.catalog.edit_file.edit_tool_cases")
 -- Run all test cases
 for i, test_case in ipairs(cases.test_cases) do
   T["Comprehensive find_best_match Tests"][string.format("Test %d: %s", i, test_case.name)] = function()
-    local result = cases.run_test_case(test_case, edit_tool_exp_strategies, track_strategy_result)
+    local result = cases.run_test_case(test_case, strategies, track_strategy_result)
     h.eq(
       result.success,
       true,
@@ -86,18 +86,18 @@ T["Empty content validation"] = function()
   local old_text = "\treturn reversed\n}\n\nfunc main() {"
 
   -- Test each strategy with EMPTY content
-  local strategies = {
-    { name = "exact_match", func = edit_tool_exp_strategies.exact_match },
-    { name = "whitespace_normalized", func = edit_tool_exp_strategies.whitespace_normalized },
-    { name = "punctuation_normalized", func = edit_tool_exp_strategies.punctuation_normalized },
-    { name = "position_markers", func = edit_tool_exp_strategies.position_markers },
-    { name = "trimmed_lines", func = edit_tool_exp_strategies.trimmed_lines },
-    { name = "block_anchor", func = edit_tool_exp_strategies.block_anchor },
+  local replace_strategies = {
+    { name = "exact_match", func = strategies.exact_match },
+    { name = "whitespace_normalized", func = strategies.whitespace_normalized },
+    { name = "punctuation_normalized", func = strategies.punctuation_normalized },
+    { name = "position_markers", func = strategies.position_markers },
+    { name = "trimmed_lines", func = strategies.trimmed_lines },
+    { name = "block_anchor", func = strategies.block_anchor },
   }
 
   local all_failed = true
 
-  for _, strategy in ipairs(strategies) do
+  for _, strategy in ipairs(replace_strategies) do
     local matches = strategy.func(empty_content, old_text)
     local success = #matches > 0
 
@@ -109,7 +109,7 @@ T["Empty content validation"] = function()
   end
 
   -- Test with find_best_match
-  local result = edit_tool_exp_strategies.find_best_match(empty_content, old_text)
+  local result = strategies.find_best_match(empty_content, old_text)
 
   -- All strategies MUST fail with empty content
   h.eq(all_failed, true, "All strategies should fail with empty content")
@@ -125,13 +125,13 @@ T["Substring match with multiple occurrences per line"] = function()
   local old_text = "TODO"
   local new_text = "DONE"
 
-  local matches = edit_tool_exp_strategies.substring_exact_match(content, old_text)
+  local matches = strategies.substring_exact_match(content, old_text)
 
   h.expect_truthy(#matches >= 5, "Should find at least 5 'TODO' (3 in line 1, 2 in line 2)")
 
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, true)
-  local selection = edit_tool_exp_strategies.select_best_match(result.matches, true)
-  local replaced = edit_tool_exp_strategies.apply_replacement(content, selection.selected, new_text)
+  local result = strategies.find_best_match(content, old_text, true)
+  local selection = strategies.select_best_match(result.matches, true)
+  local replaced = strategies.apply_replacement(content, selection.selected, new_text)
 
   -- Verify all TODOs were replaced
   h.expect_truthy(not replaced:find("TODO"), "Should not contain 'TODO' anymore")
@@ -144,28 +144,28 @@ end
 T["Substring match edge cases"] = function()
   -- Test 1: Pattern at start of file
   local content1 = "text at start\nmore content\ntext again"
-  local matches1 = edit_tool_exp_strategies.substring_exact_match(content1, "text")
+  local matches1 = strategies.substring_exact_match(content1, "text")
   h.eq(#matches1, 2, "Should find pattern at start")
   h.eq(matches1[1].start_pos, 1, "First match should be at position 1")
 
   -- Test 2: Pattern at end of file
   local content2 = "content here\nmore stuff\nend with text"
-  local matches2 = edit_tool_exp_strategies.substring_exact_match(content2, "text")
+  local matches2 = strategies.substring_exact_match(content2, "text")
   h.eq(#matches2, 1, "Should find pattern at end")
   h.eq(matches2[1].end_pos, #content2, "Match should end at file end")
 
   -- Test 3: Pattern with special characters (but not regex)
   local content3 = "price = $100\ncost = $200\n$50 discount"
-  local matches3 = edit_tool_exp_strategies.substring_exact_match(content3, "$")
+  local matches3 = strategies.substring_exact_match(content3, "$")
   h.eq(#matches3, 3, "Should find special chars (plain text, not regex)")
 
   -- Test 4: Single character pattern
   local content4 = "x + y = z"
-  local matches4 = edit_tool_exp_strategies.substring_exact_match(content4, "x")
+  local matches4 = strategies.substring_exact_match(content4, "x")
   h.eq(#matches4, 1, "Should find single character")
 
   -- Test 5: Empty file
-  local matches5 = edit_tool_exp_strategies.substring_exact_match("", "text")
+  local matches5 = strategies.substring_exact_match("", "text")
   h.eq(#matches5, 0, "Empty file should have no matches")
 
   track_strategy_result("substring_exact_match", true)
@@ -178,7 +178,7 @@ T["Substring match rejects patterns with newlines"] = function()
 
   -- Pattern with newline should return empty
   local old_text = "function test() {\n  return true;"
-  local matches = edit_tool_exp_strategies.substring_exact_match(content, old_text)
+  local matches = strategies.substring_exact_match(content, old_text)
 
   h.eq(#matches, 0, "Should not match patterns with newlines")
 
@@ -188,7 +188,7 @@ end
 T["Substring match respects 1000 match limit"] = function()
   -- Create content with >1000 occurrences
   local content = string.rep("x ", 1500) -- 1500 occurrences
-  local matches = edit_tool_exp_strategies.substring_exact_match(content, "x")
+  local matches = strategies.substring_exact_match(content, "x")
   h.eq(#matches, 1000, "Should hit the 1000 match limit")
   track_strategy_result("substring_exact_match", true)
 end
@@ -199,13 +199,13 @@ print(名前)
 user.名前 = value
 ]]
 
-  local matches = edit_tool_exp_strategies.substring_exact_match(content, "名前")
+  local matches = strategies.substring_exact_match(content, "名前")
   h.eq(#matches, 3, "Should find 3 occurrences of UTF-8 pattern")
   h.eq(#matches, 3, "Should find all UTF-8 matches")
   -- Test replacement
-  local result = edit_tool_exp_strategies.find_best_match(content, "名前", true)
-  local selection = edit_tool_exp_strategies.select_best_match(result.matches, true)
-  local replaced = edit_tool_exp_strategies.apply_replacement(content, selection.selected, "name")
+  local result = strategies.find_best_match(content, "名前", true)
+  local selection = strategies.select_best_match(result.matches, true)
+  local replaced = strategies.apply_replacement(content, selection.selected, "name")
   h.expect_truthy(replaced:find('name = "田中"'), "Should replace UTF-8 pattern")
   h.expect_truthy(not replaced:find("名前"), "Should not contain original UTF-8")
   track_strategy_result("substring_exact_match", true)
@@ -243,14 +243,14 @@ var apiEndpoint = "https://api.example.com";
 ]]
 
   local edit = { oldText = "var ", newText = "let ", replaceAll = true }
-  local result = edit_tool_exp_strategies.find_best_match(js_content, edit.oldText, edit.replaceAll)
+  local result = strategies.find_best_match(js_content, edit.oldText, edit.replaceAll)
 
   h.eq(result.success, true, "Should find matches")
   h.eq(result.strategy_used, "substring_exact_match")
   h.expect_truthy(#result.matches >= 6, "Should find at least 6 var declarations")
 
-  local selection = edit_tool_exp_strategies.select_best_match(result.matches, edit.replaceAll)
-  local replaced = edit_tool_exp_strategies.apply_replacement(js_content, selection.selected, edit.newText)
+  local selection = strategies.select_best_match(result.matches, edit.replaceAll)
+  local replaced = strategies.apply_replacement(js_content, selection.selected, edit.newText)
 
   -- Verify all vars replaced
   h.expect_truthy(not replaced:find("var "), "Should not contain 'var ' anymore")
@@ -273,18 +273,17 @@ price = 200
 
   -- First edit: 100 → 100_new
   local edit1 = { oldText = "100", newText = "100_new", replaceAll = true }
-  local result1 = edit_tool_exp_strategies.find_best_match(content, edit1.oldText, edit1.replaceAll)
-  local selection1 = edit_tool_exp_strategies.select_best_match(result1.matches, edit1.replaceAll)
-  local content_after_1 = edit_tool_exp_strategies.apply_replacement(content, selection1.selected, edit1.newText)
+  local result1 = strategies.find_best_match(content, edit1.oldText, edit1.replaceAll)
+  local selection1 = strategies.select_best_match(result1.matches, edit1.replaceAll)
+  local content_after_1 = strategies.apply_replacement(content, selection1.selected, edit1.newText)
 
   -- Second edit: new → OLD (will match the 'new' we just added!)
   local edit2 = { oldText = "new", newText = "OLD", replaceAll = true }
-  local result2 = edit_tool_exp_strategies.find_best_match(content_after_1, edit2.oldText, edit2.replaceAll)
+  local result2 = strategies.find_best_match(content_after_1, edit2.oldText, edit2.replaceAll)
 
   if result2.success then
-    local selection2 = edit_tool_exp_strategies.select_best_match(result2.matches, edit2.replaceAll)
-    local content_after_2 =
-      edit_tool_exp_strategies.apply_replacement(content_after_1, selection2.selected, edit2.newText)
+    local selection2 = strategies.select_best_match(result2.matches, edit2.replaceAll)
+    local content_after_2 = strategies.apply_replacement(content_after_1, selection2.selected, edit2.newText)
     -- This is expected behavior - the new text from edit 1 becomes a target for edit 2
     h.expect_truthy(content_after_2:find("100_OLD") ~= nil, "Should have '100_OLD' after both edits")
   end
@@ -303,7 +302,7 @@ T["Individual Strategy Tests"]["exact_match strategy"] = function()
   return "hello";
 }]]
 
-  local matches = edit_tool_exp_strategies.exact_match(content, old_text)
+  local matches = strategies.exact_match(content, old_text)
   h.eq(#matches > 0, true)
   h.eq(matches[1].confidence >= 1.0, true)
 end
@@ -316,7 +315,7 @@ T["Individual Strategy Tests"]["trimmed_lines strategy"] = function()
   return "hello";
 }]]
 
-  local matches = edit_tool_exp_strategies.trimmed_lines(content, old_text)
+  local matches = strategies.trimmed_lines(content, old_text)
   h.eq(#matches > 0, true)
 end
 
@@ -324,7 +323,7 @@ T["Individual Strategy Tests"]["whitespace_normalized strategy"] = function()
   local content = "hello   world"
   local old_text = "hello world"
 
-  local matches = edit_tool_exp_strategies.whitespace_normalized(content, old_text)
+  local matches = strategies.whitespace_normalized(content, old_text)
   h.eq(#matches > 0, true)
 end
 
@@ -332,7 +331,7 @@ T["Individual Strategy Tests"]["punctuation_normalized strategy"] = function()
   local content = "const x = { a: 1, b: 2 };"
   local old_text = "const x = { a: 1, b: 2 }"
 
-  local matches = edit_tool_exp_strategies.punctuation_normalized(content, old_text)
+  local matches = strategies.punctuation_normalized(content, old_text)
   h.eq(#matches > 0, true)
 end
 
@@ -347,7 +346,7 @@ function test() {
   return true;
 }]]
 
-  local matches = edit_tool_exp_strategies.position_markers(content, old_text)
+  local matches = strategies.position_markers(content, old_text)
   h.eq(#matches >= 0, true) -- May or may not find matches depending on markers
 end
 
@@ -360,7 +359,7 @@ T["Individual Strategy Tests"]["block_anchor strategy"] = function()
   local old_text = [[  let a = 1;
   let b = 2;]]
 
-  local matches = edit_tool_exp_strategies.block_anchor(content, old_text)
+  local matches = strategies.block_anchor(content, old_text)
   h.eq(#matches >= 0, true)
 end
 
@@ -372,7 +371,7 @@ T["Edge Cases and Error Handling"]["handles very large content"] = function()
   local large_content = string.rep("line\n", 10000)
   local old_text = "line\nline\nline"
 
-  local result = edit_tool_exp_strategies.find_best_match(large_content, old_text, false)
+  local result = strategies.find_best_match(large_content, old_text, false)
   h.eq(result.success, true)
   -- Should use fallback when all strategies find ambiguous matches
   h.eq(type(result.matches), "table")
@@ -385,7 +384,7 @@ T["Edge Cases and Error Handling"]["handles empty file append"] = function()
   local old_text = ""
 
   -- This should succeed via position_markers strategy
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, false)
+  local result = strategies.find_best_match(content, old_text, false)
   -- Empty searches may or may not succeed depending on strategy, just check it doesn't crash
   h.eq(type(result), "table")
 end
@@ -394,7 +393,7 @@ T["Edge Cases and Error Handling"]["handles content with unicode characters"] = 
   local content = 'function test() {\n  return "こんにちは世界";\n}'
   local old_text = 'function test() {\n  return "こんにちは世界";\n}'
 
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, false)
+  local result = strategies.find_best_match(content, old_text, false)
   h.eq(result.success, true)
 end
 
@@ -402,7 +401,7 @@ T["Edge Cases and Error Handling"]["handles content with special regex character
   local content = "const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/"
   local old_text = "const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/"
 
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, false)
+  local result = strategies.find_best_match(content, old_text, false)
   h.eq(result.success, true)
 end
 
@@ -410,7 +409,7 @@ T["Edge Cases and Error Handling"]["handles mixed line endings"] = function()
   local content = "line1\r\nline2\nline3\r\nline4"
   local old_text = "line2\nline3"
 
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, false)
+  local result = strategies.find_best_match(content, old_text, false)
   h.eq(result.success, true)
 end
 
@@ -428,7 +427,7 @@ T["Apply Replacement Tests"]["applies single replacement correctly"] = function(
   }
   local new_text = "Hello Universe"
 
-  local result = edit_tool_exp_strategies.apply_replacement(content, match, new_text)
+  local result = strategies.apply_replacement(content, match, new_text)
   h.eq(result, "Hello Universe")
 end
 
@@ -452,7 +451,7 @@ T["Apply Replacement Tests"]["applies multiple replacements correctly"] = functi
   }
   local new_text = "newline"
 
-  local result = edit_tool_exp_strategies.apply_replacement(content, matches, new_text)
+  local result = strategies.apply_replacement(content, matches, new_text)
   h.eq(result, "line1\nnewline\nline3\nnewline\nline4")
 end
 
@@ -466,7 +465,7 @@ T["Select Best Match Tests"]["selects highest confidence match"] = function()
     { confidence = 0.6, matched_text = "match3", start_line = 30 },
   }
 
-  local result = edit_tool_exp_strategies.select_best_match(matches, false)
+  local result = strategies.select_best_match(matches, false)
   h.eq(result.success, true)
   h.eq(result.selected.confidence, 0.9)
 end
@@ -477,14 +476,14 @@ T["Select Best Match Tests"]["returns all matches when replace_all is true"] = f
     { confidence = 0.9, matched_text = "match2" },
   }
 
-  local result = edit_tool_exp_strategies.select_best_match(matches, true)
+  local result = strategies.select_best_match(matches, true)
   h.eq(result.success, true)
   h.eq(type(result.selected), "table")
   h.eq(#result.selected, 2)
 end
 
 T["Select Best Match Tests"]["handles empty matches"] = function()
-  local result = edit_tool_exp_strategies.select_best_match({}, false)
+  local result = strategies.select_best_match({}, false)
   h.eq(result.success, false)
   h.eq(type(result.error), "string")
 end
@@ -497,7 +496,7 @@ T["Performance Tests"]["handles reasonable performance on medium files"] = funct
   local old_text = "function test123() {\n  return true;\n}"
 
   local start_time = os.clock()
-  local result = edit_tool_exp_strategies.find_best_match(medium_content, old_text, false)
+  local result = strategies.find_best_match(medium_content, old_text, false)
   local elapsed = os.clock() - start_time
 
   h.eq(elapsed < 5.0, true, "Performance test failed - took too long: " .. elapsed .. "s")
@@ -513,7 +512,7 @@ T["Skip-and-Continue Tests"]["signals should_try_next for ambiguous matches"] = 
     { confidence = 0.84, matched_text = "match2", start_line = 20 },
   }
 
-  local result = edit_tool_exp_strategies.select_best_match(matches, false)
+  local result = strategies.select_best_match(matches, false)
   h.eq(result.success, false)
   h.eq(result.should_try_next, true)
   h.eq(result.error, "ambiguous_matches")
@@ -525,7 +524,7 @@ T["Skip-and-Continue Tests"]["does not signal should_try_next for clear winner"]
     { confidence = 0.70, matched_text = "match2", start_line = 20 },
   }
 
-  local result = edit_tool_exp_strategies.select_best_match(matches, false)
+  local result = strategies.select_best_match(matches, false)
   h.eq(result.success, true)
   h.eq(result.should_try_next, nil)
   h.eq(result.selected.confidence, 0.95)
@@ -537,7 +536,7 @@ T["Skip-and-Continue Tests"]["checks confidence difference threshold"] = functio
     { confidence = 0.85, matched_text = "match1", start_line = 10 },
     { confidence = 0.70, matched_text = "match2", start_line = 20 },
   }
-  local result1 = edit_tool_exp_strategies.select_best_match(matches1, false)
+  local result1 = strategies.select_best_match(matches1, false)
   h.eq(result1.success, true) -- 0.15 difference is clear winner
 
   -- Just below threshold (0.14)
@@ -545,7 +544,7 @@ T["Skip-and-Continue Tests"]["checks confidence difference threshold"] = functio
     { confidence = 0.85, matched_text = "match1", start_line = 10 },
     { confidence = 0.71, matched_text = "match2", start_line = 20 },
   }
-  local result2 = edit_tool_exp_strategies.select_best_match(matches2, false)
+  local result2 = strategies.select_best_match(matches2, false)
   h.eq(result2.should_try_next, true) -- 0.14 difference is ambiguous
 end
 
@@ -555,7 +554,7 @@ T["Skip-and-Continue Tests"]["replaceAll bypasses ambiguity check"] = function()
     { confidence = 0.84, matched_text = "match2", start_line = 20 },
   }
 
-  local result = edit_tool_exp_strategies.select_best_match(matches, true)
+  local result = strategies.select_best_match(matches, true)
   h.eq(result.success, true)
   h.eq(result.should_try_next, nil)
   h.eq(type(result.selected), "table")
@@ -570,7 +569,7 @@ T["Integration Tests - New Features"]["substring strategy activates for replaceA
 var y = 2;
 let z = 3;]]
 
-  local result = edit_tool_exp_strategies.find_best_match(content, "var ", true)
+  local result = strategies.find_best_match(content, "var ", true)
   h.eq(result.success, true)
   h.eq(result.strategy_used, "substring_exact_match")
   h.eq(#result.matches, 2)
@@ -581,7 +580,7 @@ T["Integration Tests - New Features"]["substring strategy skipped when replaceAl
 var y = 2;]]
 
   -- substring_exact_match should be skipped, exact_match should be used
-  local result = edit_tool_exp_strategies.find_best_match(content, "var x = 1;", false)
+  local result = strategies.find_best_match(content, "var x = 1;", false)
   h.eq(result.success, true)
   -- Should use exact_match or another strategy, not substring_exact_match
   h.eq(result.strategy_used ~= "substring_exact_match", true)
@@ -599,7 +598,7 @@ function test() {
   return 1;
 }]]
 
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, true)
+  local result = strategies.find_best_match(content, old_text, true)
   h.eq(result.success, true)
   -- Should not use substring_exact_match (has newlines)
   h.eq(result.strategy_used ~= "substring_exact_match", true)
@@ -624,7 +623,7 @@ function test() {
   local old_text = "function test() {"
 
   -- This should try multiple strategies due to ambiguity
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, false)
+  local result = strategies.find_best_match(content, old_text, false)
   -- Result could be success or failure depending on strategies' ability to disambiguate
   -- The key is that it tried multiple strategies
   h.eq(type(result), "table")
@@ -636,7 +635,7 @@ T["Integration Tests - New Features"]["substring match with special characters"]
 const API_URL = "url";
 const OTHER = "val";]]
 
-  local result = edit_tool_exp_strategies.find_best_match(content, "API_", true)
+  local result = strategies.find_best_match(content, "API_", true)
   h.eq(result.success, true)
   h.eq(result.strategy_used, "substring_exact_match")
   h.eq(#result.matches, 2)
@@ -648,7 +647,7 @@ T["Strategy Exhaustion Tests"]["tracks which strategy was used for successful ma
   local content = "function test() { return true; }"
   local old_text = "function test() { return true; }"
 
-  local result = edit_tool_exp_strategies.find_best_match(content, old_text, false)
+  local result = strategies.find_best_match(content, old_text, false)
 
   h.eq(result.success, true)
   h.eq(type(result.strategy_used), "string")
