@@ -6,6 +6,7 @@ local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
+local uv = vim.uv
 
 ---Add a response to the chat buffer regarding a tool's execution
 ---@param exec CodeCompanion.Tools.Orchestrator
@@ -320,8 +321,8 @@ end
 ---@return nil
 function Orchestrator:execute(cmd, input)
   utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
-  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-  self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
+  -- Record tool start time for change attribution
+  self.tool_start_time = vim.uv.hrtime()
   return Runner.new(self, cmd, 1):setup(input)
 end
 
@@ -334,10 +335,11 @@ function Orchestrator:error(action, error)
   self.tools.status = self.tools.constants.STATUS_ERROR
   table.insert(self.tools.stderr, error)
 
-  -- Finish tool monitoring with error status
-  if self.tool and self.tool.name then
-    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
+  -- Tag changes made during this tool's execution (even on error)
+  if self.tools.chat.fs_monitor and self.tool_start_time then
+    local tool_end_time = uv.hrtime()
+    self.tools.chat.fs_monitor:tag_changes_in_range(self.tool_start_time, tool_end_time, self.tool.name, self.tool.args)
+    log:debug("[Orchestrator] Tagged changes for tool: %s (error case)", self.tool.name)
   end
 
   local ok, err = pcall(function()
@@ -360,10 +362,17 @@ end
 function Orchestrator:success(action, output)
   log:debug("Orchestrator:success")
   self.tools.status = self.tools.constants.STATUS_SUCCESS
-  -- Direct call to finish tool monitoring
-  if self.tool and self.tool.name then
-    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
+
+  -- Tag changes made during this tool's execution
+  if self.tools.chat.fs_monitor and self.tool_start_time then
+    local tool_end_time = uv.hrtime()
+    self.tools.chat.fs_monitor:tag_changes_in_range(
+      self.tool_start_time,
+      tool_end_time,
+      self.tool.name,
+      self.tool.args -- Pass args for path validation
+    )
+    log:debug("[Orchestrator] Tagged changes for tool: %s", self.tool.name)
   end
   if output then
     table.insert(self.tools.stdout, output)
