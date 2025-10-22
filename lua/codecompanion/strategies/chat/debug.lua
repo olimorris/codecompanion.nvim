@@ -118,7 +118,7 @@ function Debug:render()
   end
 
   -- Add settings
-  if not config.display.chat.show_settings then
+  if not config.display.chat.show_settings and adapter.type ~= "acp" then
     table.insert(lines, "")
     local keys = {}
 
