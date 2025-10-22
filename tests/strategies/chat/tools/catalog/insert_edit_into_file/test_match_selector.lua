@@ -1,5 +1,5 @@
 local h = require("tests.helpers")
-local match_selector = require("codecompanion.strategies.chat.tools.catalog.edit_file.match_selector")
+local match_selector = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.match_selector")
 
 local new_set = MiniTest.new_set
 

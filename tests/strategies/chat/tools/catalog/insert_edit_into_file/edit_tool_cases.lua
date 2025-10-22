@@ -507,8 +507,8 @@ const settings = {
   },
 }
 
-M.run_test_case = function(test_case, edit_file_strategies, track_strategy_result)
-  local result = edit_file_strategies.find_best_match(test_case.content, test_case.old_text, false)
+M.run_test_case = function(test_case, insert_edit_into_file_strategies, track_strategy_result)
+  local result = insert_edit_into_file_strategies.find_best_match(test_case.content, test_case.old_text, false)
   if result.success then
     track_strategy_result(result.strategy_used, true)
   else

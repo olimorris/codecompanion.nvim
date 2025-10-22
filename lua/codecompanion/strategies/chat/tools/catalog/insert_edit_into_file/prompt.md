@@ -1,4 +1,4 @@
-The edit_file tool performs deterministic file edits using text-based matching. It supports exact, block, or substring replacements with optional context matching for safety.
+The insert_edit_into_file tool performs deterministic file edits using text-based matching. It supports exact, block, or substring replacements with optional context matching for safety.
 Use edit_tool_exp for safe, reliable file editing with advanced matching strategies.
 
 # Quick Reference
@@ -59,7 +59,7 @@ The tool uses different strategies based on your parameters:
 # Performance Notes
 
 - Substring replacement with `replaceAll: true` is limited to 1000 replacements per edit
-- For large-scale refactoring, consider breaking into multiple edit_file calls
+- For large-scale refactoring, consider breaking into multiple insert_edit_into_file calls
 - Sequential edits in one call are more efficient than multiple separate calls
 
 # Parameters
@@ -197,7 +197,7 @@ Use `overwrite` mode to replace all file contents completely.
 - ❌ Never use empty `{"oldText": "", "newText": ""}` to read or inspect files - this is invalid and does nothing.
 
 **⚠️ WARNING: Avoid overlapping patterns when batching substring edits:**
-**NEVER make multiple edit_file calls that modify the same variables/text especially when doing replaceAll with substring matching.**
+**NEVER make multiple insert_edit_into_file calls that modify the same variables/text especially when doing replaceAll with substring matching.**
 ```json
 // ❌ BAD - "util" matches inside "cc_diff_utils"
 [

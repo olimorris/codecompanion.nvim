@@ -65,13 +65,12 @@ local defaults = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
             prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
-              "edit_file",
               "cmd_runner",
               "create_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              -- "insert_edit_into_file",
+              "insert_edit_into_file",
               "list_code_usages",
               "read_file",
             },
@@ -83,12 +82,11 @@ local defaults = {
             description = "Tools related to creating, reading and editing files",
             prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
-              "edit_file",
               "create_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              -- "insert_edit_into_file",
+              "insert_edit_into_file",
               "read_file",
             },
             opts = {
@@ -104,9 +102,9 @@ local defaults = {
             requires_approval = true,
           },
         },
-        ["edit_file"] = {
-          callback = "strategies.chat.tools.catalog.edit_file",
-          description = "Robustly edit files with multiple automatic fallback strategies",
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          description = "Robustly edit existing files with multiple automatic fallback strategies",
           opts = {
             requires_approval = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
@@ -153,18 +151,6 @@ local defaults = {
           opts = {
             max_results = 100,
             respect_gitignore = true,
-          },
-        },
-        ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
-          opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
-            requires_approval = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = true, -- For editing files in the current working directory
-            },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
         },
         ["next_edit_suggestion"] = {
