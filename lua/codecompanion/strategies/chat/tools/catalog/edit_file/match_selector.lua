@@ -1,3 +1,33 @@
+--[[
+Error handling and diagnostics for edit operations
+
+This module provides helpful error messages, conflict detection, and similarity-based
+suggestions when edits fail. It helps LLMs understand what went wrong and how to fix it.
+
+## Key Functions:
+
+1. **format_helpful_error**:
+   - Generates context-aware error messages with actionable suggestions
+   - Handles missing fields (oldText, newText)
+   - Provides examples of correct usage
+   - Points to specific line/edit that failed
+
+2. **detect_edit_conflicts**:
+   - Finds overlapping edits (same region modified by multiple edits)
+   - Prevents conflicting changes that would corrupt the file
+   - Reports which edits conflict with each other
+
+3. **find_similar_text**:
+   - Searches for text similar to failed oldText
+   - Uses simple similarity scoring (character-based)
+   - Shows top matches with line numbers and confidence
+   - Helps diagnose typos or formatting issues
+
+4. **calculate_similarity**:
+   - Computes similarity score between two strings (0.0 to 1.0)
+   - Used for finding near-matches when exact match fails
+--]]
+
 local M = {}
 local fmt = string.format
 
