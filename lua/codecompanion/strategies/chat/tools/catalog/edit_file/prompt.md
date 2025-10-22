@@ -69,7 +69,7 @@ The tool uses different strategies based on your parameters:
   - **oldText** (required): Exact text to find from file (preserve indentation exactly)
   - **newText** (required): Replacement text (empty string for deletion)
   - **replaceAll** (optional): true = replace all occurrences, false (default) = single/best match
-- **dryRun** (optional): Preview without applying (default: false)
+- **dryRun** (optional): **DO NOT USE.**  Keep this `false` (default) or omit it entirely. Only set to `true` if the user explicitly says "make dryRun true".
 - **mode** (optional): "append" (default) or "overwrite"
 - **explanation** (optional): Description of changes
 
@@ -165,7 +165,6 @@ Edits are applied in order. Each edit sees the result of previous edits.
 
 ## 7. Initialize Empty File Contents
 Use empty `oldText` to set initial contents for a new or empty file.
-
 ```json
 {
   "filepath": "new_file.txt",
@@ -195,13 +194,18 @@ Use `overwrite` mode to replace all file contents completely.
 - ✓ Include enough context (function names, unique variables) for unique matching
 - ❌ Never include line numbers (e.g., "117: function test()")
 - ❌ Never include editor artifacts (→, │, gutter symbols)
+- ❌ Never use empty `{"oldText": "", "newText": ""}` to read or inspect files - this is invalid and does nothing.
 
 **⚠️ WARNING: Avoid overlapping patterns when batching substring edits:**
+**NEVER make multiple edit_file calls that modify the same variables/text especially when doing replaceAll with substring matching.**
 ```json
 // ❌ BAD - "util" matches inside "cc_diff_utils"
 [
-  {"oldText": "diff_utils", "newText": "cc_diff_utils", "replaceAll": true},
-  {"oldText": "util", "newText": "cc_util", "replaceAll": true}
+// First call renames variables
+{"oldText": "local diff_utils", "newText": "local cc_diff_utils"}
+// Second call tries to rename again - but "diff_utils" is now "cc_diff_utils"!
+{"oldText": "diff_utils", "newText": "cc_diff_utils", "replaceAll": true}
+// Result: "cc_cc_diff_utils" (double prefix!)
 ]
 
 // ✓ GOOD - Use specific delimiters or context
@@ -216,12 +220,11 @@ Use `overwrite` mode to replace all file contents completely.
 - Edits are applied sequentially (each sees the result of previous edits)
 - Use `replaceAll: true` when you want to change all occurrences
 - For ambiguous matches, add more surrounding context to `oldText`
-- When unsure about current file content, use `read_file` first
-- Test with `dryRun: true` for complex multi-edit operations
+- When unsure about current file content, If available, use `read_file` first
 
 # Troubleshooting
 
-**"No confident matches found"** - `oldText` doesn't match file. Use `read_file` to verify exact content including whitespace.
+**"No confident matches found"** - `oldText` doesn't match file. If you have access to `read_file` tool, use it to verify exact content including whitespace.
 
 **"Ambiguous matches"** - Add more unique context to `oldText`, or use `replaceAll: true` to change all occurrences.
 
