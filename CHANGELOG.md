@@ -1,5 +1,19 @@
 # Changelog
 
+## [17.28.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.27.1...v17.28.0) (2025-10-22)
+
+
+### Features
+
+* **acp:** add codex support ([#2236](https://github.com/olimorris/codecompanion.nvim/issues/2236)) ([2f7a088](https://github.com/olimorris/codecompanion.nvim/commit/2f7a08813914e07c7f1928128314aa1b27c40770))
+
+
+### Bug Fixes
+
+* **acp:** claude code command shouldn't need npx ([#2288](https://github.com/olimorris/codecompanion.nvim/issues/2288)) ([5734709](https://github.com/olimorris/codecompanion.nvim/commit/5734709a37ee6436597912893fb326a1891a9288)), closes [#2286](https://github.com/olimorris/codecompanion.nvim/issues/2286)
+* **acp:** close all open connections on exit ([#2292](https://github.com/olimorris/codecompanion.nvim/issues/2292)) ([73ecd3a](https://github.com/olimorris/codecompanion.nvim/commit/73ecd3a67cba61744ea8e3194ef464054025573c)), closes [#2286](https://github.com/olimorris/codecompanion.nvim/issues/2286)
+* **chat:** debug window error with ACP adapters ([#2291](https://github.com/olimorris/codecompanion.nvim/issues/2291)) ([43586ed](https://github.com/olimorris/codecompanion.nvim/commit/43586ed845489f052469bdbc2bbdc3b7f13587b6))
+
 ## [17.27.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.27.0...v17.27.1) (2025-10-22)
 
 
