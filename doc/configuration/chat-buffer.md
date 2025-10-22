@@ -607,7 +607,6 @@ require("codecompanion").setup({
     },
   },
 })
-
 ```
 
 ### Additional UI Options
