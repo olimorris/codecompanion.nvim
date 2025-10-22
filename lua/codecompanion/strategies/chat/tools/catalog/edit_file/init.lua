@@ -30,7 +30,7 @@ local PROMPT = load_prompt()
 ---@param edits_string string The string containing edits in Python-like format
 ---@return string The converted JSON-like string
 local function parse_python_like_edits(edits_string)
-  log:trace("[Edit Tool Exp] Trying enhanced Python-like parser")
+  log:trace("[Edit File Tool] Trying enhanced Python-like parser")
 
   -- Step 1: Fix boolean values first (before quote conversion)
   local fixed = edits_string
@@ -113,7 +113,7 @@ local function fix_edits_if_needed(args)
     return nil, "edits must be an array or parseable string"
   end
 
-  log:trace("[Edit Tool Exp] Edits field is a string, attempting to parse as JSON")
+  log:trace("[Edit File Tool] Edits field is a string, attempting to parse as JSON")
 
   -- First, try standard JSON parsing
   local success, parsed_edits = pcall(vim.json.decode, args.edits)
@@ -124,7 +124,7 @@ local function fix_edits_if_needed(args)
   end
 
   -- If that failed, try minimal fixes for common LLM JSON issues
-  log:trace("[Edit Tool Exp] Standard JSON parsing failed, trying fixes")
+  log:trace("[Edit File Tool] Standard JSON parsing failed, trying fixes")
 
   local fixed_json = args.edits
 
@@ -149,7 +149,7 @@ local function fix_edits_if_needed(args)
 
   if success and type(parsed_edits) == "table" then
     args.edits = parsed_edits
-    log:trace("[Edit Tool Exp] Successfully fixed and parsed edits JSON")
+    log:trace("[Edit File Tool] Successfully fixed and parsed edits JSON")
     return args, nil
   end
 
@@ -159,7 +159,7 @@ local function fix_edits_if_needed(args)
     success, parsed_edits = pcall(vim.json.decode, python_converted)
     if success and type(parsed_edits) == "table" then
       args.edits = parsed_edits
-      log:trace("[Edit Tool Exp] Successfully parsed Python-like syntax")
+      log:trace("[Edit File Tool] Successfully parsed Python-like syntax")
       return args, nil
     end
   end
@@ -333,7 +333,7 @@ local function process_edits_sequentially(content, edits, options)
       table.insert(strategies_used, "substring_exact_match_parallel")
     end
 
-    log:debug("[Edit Tool Exp] Applied %d substring edits in parallel", #substring_edits)
+    log:debug("[Edit File Tool] Applied %d substring edits in parallel", #substring_edits)
   end
 
   -- Step 3: Process block/single edits sequentially
@@ -556,7 +556,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Edit Tool Exp] Auto-applying changes (YOLO mode)")
+    log:debug("[Edit File Tool] Auto-applying changes (YOLO mode)")
     local write_ok, write_err = write_file_content(filepath, dry_run_result.final_content, file_info)
     if not write_ok then
       return output_handler({
@@ -717,7 +717,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Auto-save in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Edit Tool Exp] Auto-saving buffer (YOLO mode)")
+    log:debug("[Edit File Tool] Auto-saving buffer (YOLO mode)")
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
@@ -777,9 +777,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   end
 end
 
----@class CodeCompanion.Tool.EditToolExp: CodeCompanion.Tools.Tool
+---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
 return {
-  name = "edit_tool_exp",
+  name = "edit_file",
   cmds = {
     ---Execute the experimental edit tool commands
     ---@param self CodeCompanion.Tools
@@ -812,7 +812,7 @@ return {
   schema = {
     type = "function",
     ["function"] = {
-      name = "edit_tool_exp",
+      name = "edit_file",
       description = PROMPT,
       parameters = {
         type = "object",
@@ -868,12 +868,12 @@ return {
   },
   handlers = {
     ---The handler to determine whether to prompt the user for approval
-    ---@param self CodeCompanion.Tool.EditToolExp
+    ---@param self CodeCompanion.Tool.EditFile
     ---@param tools CodeCompanion.Tools
     ---@param config table The tool configuration
     ---@return boolean
     prompt_condition = function(self, tools, config)
-      local opts = config["edit_tool_exp"] and config["edit_tool_exp"].opts or {}
+      local opts = config["edit_file"] and config["edit_file"].opts or {}
 
       local args = self.args
       local bufnr = buffers.get_bufnr_from_path(args.filepath)
@@ -895,7 +895,7 @@ return {
     on_exit = function(tools) end,
   },
   output = {
-    ---@param self CodeCompanion.Tool.EditToolExp
+    ---@param self CodeCompanion.Tool.EditFile
     ---@param tools CodeCompanion.Tools
     ---@return nil|string
     prompt = function(self, tools)
@@ -905,7 +905,7 @@ return {
       return fmt("Apply %d edit(s) to %s?", edit_count, filepath)
     end,
 
-    ---@param self CodeCompanion.Tool.EditToolExp
+    ---@param self CodeCompanion.Tool.EditFile
     ---@param tool CodeCompanion.Tools
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
@@ -915,7 +915,7 @@ return {
       chat:add_tool_output(self, llm_output)
     end,
 
-    ---@param self CodeCompanion.Tool.EditToolExp
+    ---@param self CodeCompanion.Tool.EditFile
     ---@param tool CodeCompanion.Tools
     ---@param cmd table
     ---@param stderr table The error output from the command
