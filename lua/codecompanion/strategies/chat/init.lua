@@ -16,6 +16,9 @@
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
+---@field fs_monitor? CodeCompanion.FSMonitor File system monitor instance for tracking file changes
+---@field fs_monitor_watch_id? string Active watch ID for workspace monitoring
+---@field fs_changes? CodeCompanion.FSMonitor.Change[] Accumulated file changes detected by fs_monitor
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
@@ -1238,6 +1241,19 @@ function Chat:done(output, reasoning, tools, meta, opts)
       })
       return self.tools:execute(self, tools)
     end
+  end
+
+  -- Stop FS monitoring if active
+  if self.fs_monitor and self.fs_monitor_watch_id then
+    log:info("[Chat] Stopping FS monitoring on chat done")
+
+    self.fs_monitor:stop_monitoring_async(self.fs_monitor_watch_id, function(changes)
+      self.fs_changes = self.fs_changes or {}
+      vim.list_extend(self.fs_changes, changes)
+      log:info("[Chat] FS monitoring stopped, total changes: %d", #changes)
+    end)
+
+    self.fs_monitor_watch_id = nil
   end
 
   ready_chat_buffer(self)

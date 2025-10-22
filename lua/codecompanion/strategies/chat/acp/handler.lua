@@ -8,6 +8,7 @@ local log = require("codecompanion.utils.log")
 ---@field output table Standard output message from the Agent
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
+---@field tool_watches table<string, string> Map of tool call ID to FS monitor watch ID
 local ACPHandler = {}
 
 local ACPHandlerUI = {} -- Cache of tool call UI states by chat buffer
@@ -20,6 +21,7 @@ function ACPHandler.new(chat)
     output = {},
     reasoning = {},
     tools = {},
+    tool_watches = {}, -- Track FS monitor watch IDs by tool call ID
   }, { __index = ACPHandler })
 
   ACPHandlerUI[chat.bufnr] = {}
@@ -252,15 +254,118 @@ function ACPHandler:process_tool_call(tool_call)
   ACPHandlerUI[self.chat.bufnr][id] = { line_number = line_number }
 end
 
+---Extract all file paths from a tool call (locations, content, title)
+---@param tool_call table
+---@return string[] paths Array of file paths found
+local function extract_paths_from_tool_call(tool_call)
+  local paths = {}
+  local seen = {}
+
+  -- 1. Check locations array (most reliable)
+  if tool_call.locations and type(tool_call.locations) == "table" then
+    for _, location in ipairs(tool_call.locations) do
+      if location.path and type(location.path) == "string" and not seen[location.path] then
+        table.insert(paths, location.path)
+        seen[location.path] = true
+      end
+    end
+  end
+
+  -- 2. Check content array (for diffs, edits, etc.)
+  if tool_call.content and type(tool_call.content) == "table" then
+    for _, content_item in ipairs(tool_call.content) do
+      if content_item.path and type(content_item.path) == "string" and not seen[content_item.path] then
+        table.insert(paths, content_item.path)
+        seen[content_item.path] = true
+      end
+    end
+  end
+
+  -- 3. Try to extract from title (fallback for non-standard agents)
+  if tool_call.title and type(tool_call.title) == "string" then
+    -- Match patterns like "Edit `/path/to/file.txt`" or "Edit /path/to/file.txt"
+    for path in tool_call.title:gmatch("`([^`]+)`") do
+      if not seen[path] and vim.fn.filereadable(vim.fn.expand(path)) == 1 then
+        table.insert(paths, path)
+        seen[path] = true
+      end
+    end
+    -- Try without backticks as well
+    for path in tool_call.title:gmatch("%s(/[^%s]+)") do
+      if not seen[path] and vim.fn.filereadable(vim.fn.expand(path)) == 1 then
+        table.insert(paths, path)
+        seen[path] = true
+      end
+    end
+  end
+
+  return paths
+end
+
 ---Handle tool call notifications
 ---@param tool_call table
 function ACPHandler:handle_tool_call(tool_call)
+  -- Start global workspace monitoring if not already running
+  if tool_call.toolCallId and tool_call.sessionUpdate == "tool_call" then
+    if not self.chat.fs_monitor then
+      local FSMonitor = require("codecompanion.strategies.chat.fs_monitor")
+      self.chat.fs_monitor = FSMonitor.new(self.chat)
+    end
+
+    -- Start global workspace monitoring once
+    if not self.chat.fs_monitor_watch_id then
+      local cwd = vim.fn.getcwd()
+      self.chat.fs_monitor_watch_id = self.chat.fs_monitor:start_monitoring("acp_workspace", cwd, {
+        prepopulate = true,
+        recursive = true,
+      })
+    end
+
+    -- Initialize tool timing tracking
+    if not self.tool_timings then
+      self.tool_timings = {}
+    end
+
+    -- Record tool start time and extract paths for attribution
+    local tool_name = tool_call.name or tool_call.kind or "acp_tool"
+    local paths = extract_paths_from_tool_call(tool_call)
+
+    self.tool_timings[tool_call.toolCallId] = {
+      start_time = vim.uv.hrtime(),
+      tool_name = tool_name,
+      paths = paths,
+    }
+  end
+
   return self:process_tool_call(tool_call)
 end
 
 ---Handle tool call updates and their respective status
 ---@param tool_call table
 function ACPHandler:handle_tool_update(tool_call)
+  -- Tag changes when tool completes
+  if tool_call.status == "completed" or tool_call.status == "error" or tool_call.status == "rejected" then
+    if self.tool_timings and tool_call.toolCallId then
+      local timing = self.tool_timings[tool_call.toolCallId]
+
+      if timing and self.chat.fs_monitor then
+        local tool_end_time = vim.uv.hrtime()
+
+        -- Create tool_args format for path validation
+        local tool_args = {}
+        if timing.paths and #timing.paths > 0 then
+          -- Use first path as primary filepath for validation
+          tool_args.filepath = timing.paths[1]
+        end
+
+        -- Tag changes made during this tool's execution
+        self.chat.fs_monitor:tag_changes_in_range(timing.start_time, tool_end_time, timing.tool_name, tool_args)
+
+        self.tool_timings[tool_call.toolCallId] = nil
+      end
+    end
+  end
+
   return self:process_tool_call(tool_call)
 end
 
