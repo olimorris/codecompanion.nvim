@@ -1,5 +1,5 @@
 --[[
-Main orchestration for the edit_file tool
+Main orchestration for the insert_edit_into_file tool
 
 This tool enables LLMs to make deterministic file edits through function calling.
 It supports various edit operations: standard replacements, replace-all, substring matching,
@@ -7,7 +7,7 @@ file boundaries (start/end), and complete file overwrites.
 
 ## Architecture Overview:
 
-1. **Entry Point (edit_file / edit_buffer)**:
+1. **Entry Point (insert_edit_into_file / edit_buffer)**:
    - Separates edits into substring vs block/line types
    - Applies changes only if all edits succeed (atomic operation)
 
@@ -48,8 +48,8 @@ local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.helpers.diff")
 local helpers = require("codecompanion.strategies.chat.helpers")
-local match_selector = require("codecompanion.strategies.chat.tools.catalog.edit_file.match_selector")
-local strategies = require("codecompanion.strategies.chat.tools.catalog.edit_file.strategies")
+local match_selector = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.match_selector")
+local strategies = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.strategies")
 local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local buffers = require("codecompanion.utils.buffers")
@@ -74,7 +74,7 @@ local PROMPT = load_prompt()
 ---@param edits_string string The string containing edits in Python-like format
 ---@return string The converted JSON-like string
 local function parse_python_like_edits(edits_string)
-  log:trace("[Edit File Tool] Trying enhanced Python-like parser")
+  log:trace("[Insert_edit_into_file Tool] Trying enhanced Python-like parser")
 
   -- Step 1: Fix boolean values first (before quote conversion)
   local fixed = edits_string
@@ -157,7 +157,7 @@ local function fix_edits_if_needed(args)
     return nil, "edits must be an array or parseable string"
   end
 
-  log:trace("[Edit File Tool] Edits field is a string, attempting to parse as JSON")
+  log:trace("[Insert_edit_into_file Tool] Edits field is a string, attempting to parse as JSON")
 
   -- First, try standard JSON parsing
   local success, parsed_edits = pcall(vim.json.decode, args.edits)
@@ -168,7 +168,7 @@ local function fix_edits_if_needed(args)
   end
 
   -- If that failed, try minimal fixes for common LLM JSON issues
-  log:trace("[Edit File Tool] Standard JSON parsing failed, trying fixes")
+  log:trace("[Insert_edit_into_file Tool] Standard JSON parsing failed, trying fixes")
 
   local fixed_json = args.edits
 
@@ -193,7 +193,7 @@ local function fix_edits_if_needed(args)
 
   if success and type(parsed_edits) == "table" then
     args.edits = parsed_edits
-    log:trace("[Edit File Tool] Successfully fixed and parsed edits JSON")
+    log:trace("[Insert_edit_into_file Tool] Successfully fixed and parsed edits JSON")
     return args, nil
   end
 
@@ -203,7 +203,7 @@ local function fix_edits_if_needed(args)
     success, parsed_edits = pcall(vim.json.decode, python_converted)
     if success and type(parsed_edits) == "table" then
       args.edits = parsed_edits
-      log:trace("[Edit File Tool] Successfully parsed Python-like syntax")
+      log:trace("[Insert_edit_into_file Tool] Successfully parsed Python-like syntax")
       return args, nil
     end
   end
@@ -377,7 +377,7 @@ local function process_edits_sequentially(content, edits, options)
       table.insert(strategies_used, "substring_exact_match_parallel")
     end
 
-    log:debug("[Edit File Tool] Applied %d substring edits in parallel", #substring_edits)
+    log:debug("[Insert_edit_into_file Tool] Applied %d substring edits in parallel", #substring_edits)
   end
 
   -- Step 3: Process block/single edits sequentially
@@ -524,7 +524,7 @@ end
 ---@param chat_bufnr number
 ---@param output_handler function
 ---@param opts table|nil
-local function edit_file(action, chat_bufnr, output_handler, opts)
+local function insert_edit_into_file(action, chat_bufnr, output_handler, opts)
   opts = opts or {}
   local filepath = helpers.validate_and_normalize_path(action.filepath)
 
@@ -600,7 +600,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Edit File Tool] Auto-applying changes (YOLO mode)")
+    log:debug("[Insert_edit_into_file Tool] Auto-applying changes (YOLO mode)")
     local write_ok, write_err = write_file_content(filepath, dry_run_result.final_content, file_info)
     if not write_ok then
       return output_handler({
@@ -761,7 +761,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Auto-save in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Edit File Tool] Auto-saving buffer (YOLO mode)")
+    log:debug("[Insert_edit_into_file Tool] Auto-saving buffer (YOLO mode)")
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
@@ -823,7 +823,7 @@ end
 
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
 return {
-  name = "edit_file",
+  name = "insert_edit_into_file",
   cmds = {
     ---Execute the experimental edit tool commands
     ---@param self CodeCompanion.Tools
@@ -849,14 +849,14 @@ return {
       if bufnr then
         return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
       else
-        return edit_file(args, self.chat.bufnr, output_handler, self.tool.opts)
+        return insert_edit_into_file(args, self.chat.bufnr, output_handler, self.tool.opts)
       end
     end,
   },
   schema = {
     type = "function",
     ["function"] = {
-      name = "edit_file",
+      name = "insert_edit_into_file",
       description = PROMPT,
       parameters = {
         type = "object",
@@ -917,7 +917,7 @@ return {
     ---@param config table The tool configuration
     ---@return boolean
     prompt_condition = function(self, tools, config)
-      local opts = config["edit_file"] and config["edit_file"].opts or {}
+      local opts = config["insert_edit_into_file"] and config["insert_edit_into_file"].opts or {}
 
       local args = self.args
       local bufnr = buffers.get_bufnr_from_path(args.filepath)

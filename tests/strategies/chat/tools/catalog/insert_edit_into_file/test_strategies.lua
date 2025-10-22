@@ -1,6 +1,6 @@
 local h = require("tests.helpers")
 local log = require("codecompanion.utils.log")
-local strategies = require("codecompanion.strategies.chat.tools.catalog.edit_file.strategies")
+local strategies = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.strategies")
 
 -- Silence noisy warnings during tests; restore after suite runs
 local _saved_log = {
@@ -51,7 +51,7 @@ local T = new_set({
 -- Comprehensive find_best_match tests
 T["Comprehensive find_best_match Tests"] = new_set()
 
-local cases = require("tests.strategies.chat.tools.catalog.edit_file.edit_tool_cases")
+local cases = require("tests.strategies.chat.tools.catalog.insert_edit_into_file.edit_tool_cases")
 -- Run all test cases
 for i, test_case in ipairs(cases.test_cases) do
   T["Comprehensive find_best_match Tests"][string.format("Test %d: %s", i, test_case.name)] = function()
