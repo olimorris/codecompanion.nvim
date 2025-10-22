@@ -280,6 +280,25 @@ function Tools:execute(chat, tools)
   local id = math.random(10000000)
   self.chat = chat
 
+  -- Start global workspace monitoring
+  if not chat.fs_monitor then
+    local FSMonitor = require("codecompanion.strategies.chat.fs_monitor")
+    chat.fs_monitor = FSMonitor.new(chat)
+  end
+
+  if not chat.fs_monitor_watch_id then
+    local cwd = vim.fn.getcwd()
+    chat.fs_monitor_watch_id = chat.fs_monitor:start_monitoring(
+      "workspace", -- Generic name, not tool-specific
+      cwd,
+      {
+        prepopulate = true,
+        recursive = true, -- Watch entire workspace
+      }
+    )
+    log:info("[Tools] Started workspace monitoring for chat %d", chat.id)
+  end
+
   -- Start edit tracking for all tools
   self:_start_edit_tracking(tools)
 
