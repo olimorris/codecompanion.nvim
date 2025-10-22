@@ -107,8 +107,8 @@ local function fetch_async(adapter, provided_token)
             for _, endpoint in ipairs(model.supported_endpoints) do
               if endpoint == "/responses" then
                 internal_endtype = "responses"
-              else
-                -- Ensure that by default we don't use any other endpoint
+              elseif endpoint == "/completions" then
+                log:debug("Copilot Adapter: Skipping unsupported endpoint '%s' for model '%s'", endpoint, model.id)
                 goto continue
               end
             end
