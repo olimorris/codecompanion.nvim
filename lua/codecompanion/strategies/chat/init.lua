@@ -867,10 +867,12 @@ function Chat:_submit_http(payload)
         end
         if result.output.reasoning then
           table.insert(reasoning, result.output.reasoning)
-          self:add_buf_message({
-            role = config.constants.LLM_ROLE,
-            content = result.output.reasoning.content,
-          }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+          if config.display.chat.show_reasoning then
+            self:add_buf_message({
+              role = config.constants.LLM_ROLE,
+              content = result.output.reasoning.content,
+            }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+          end
         end
         if result.output.meta then
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
