@@ -99,9 +99,9 @@ T["cmds"][":CodeCompanionChat Toggle does not recurse when no chat exists"] = fu
       return res
     end
 
-    -- Directly reproduce the old recursion trigger in a controlled way
+    -- Test with the new subcommand format
     local ok, err = pcall(function()
-      CC.chat({ fargs = { 'toggle' } })
+      CC.chat({ subcommand = 'toggle' })
     end)
     if not ok then
       _G.toggle_err = err
@@ -115,27 +115,21 @@ T["cmds"][":CodeCompanionChat Toggle does not recurse when no chat exists"] = fu
   -- No recursion error should have occurred
   h.eq(vim.NIL, child.lua_get("_G.toggle_err"))
 
-  -- Toggle should be called once by chat(), regardless of how commands are wired
+  -- Toggle should be called once by chat()
   h.eq(1, child.lua_get("_G.calls.toggle"))
 
-  -- There should be at least one chat() call
-  h.expect_truthy(child.lua_get("_G.calls.chat >= 1"))
+  -- Chat should be called once (by the test)
+  h.eq(1, child.lua_get("_G.calls.chat"))
 
-  -- Any chat() call after the first must NOT forward fargs (sanitized)
+  -- The chat() call should have subcommand set
   h.eq(
-    0,
+    "toggle",
     child.lua_get([[
-    (function()
-      local n = 0
-      for i = 2, #_G.chat_args do
-        if _G.chat_args[i] and _G.chat_args[i].fargs ~= nil then n = n + 1 end
-      end
-      return n
-    end)()
-  ]])
+      _G.chat_args[1] and _G.chat_args[1].subcommand or vim.NIL
+    ]])
   )
 
-  -- A chat instance should exist (don’t assert UI visibility to avoid flakiness)
+  -- A chat instance should exist (don't assert UI visibility to avoid flakiness)
   h.expect_truthy(child.lua_get("require('codecompanion').last_chat() ~= nil"))
 end
 
@@ -161,7 +155,7 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     vim.bo[buf].filetype = 'codecompanion'
     vim.cmd('doautocmd FileType codecompanion')
     vim.cmd('doautocmd BufEnter ' .. tostring(buf))
-    
+
     -- wait for some time so that the `vim.schedule`ed :syntax commands are executed
     vim.wait(10)
 

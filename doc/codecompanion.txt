@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 21
+*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -595,10 +595,10 @@ The plugin has four core commands:
 However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
-- `CodeCompanion <adapter> <prompt>` - Prompt the inline assistant with a specific adapter
+- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
+- `CodeCompanionChat adapter=<adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
@@ -3907,8 +3907,8 @@ ADAPTERS ~
 
 You can specify a different adapter to that in the configuration
 (`strategies.inline.adapter`) when sending an inline prompt. Simply include the
-adapter name within `<>`. For example `:<','>CodeCompanion <deepseek> can you
-refactor this?`. This approach can also be combined with variables.
+adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can
+you refactor this?`. This approach can also be combined with variables.
 
 
 CLASSIFICATION ~

@@ -233,7 +233,7 @@ end
 ---@param prompt string
 ---@return string The cleaned prompt
 function Inline:parse_special_syntax(prompt)
-  local adapter_pattern = "<([%w_]+)>"
+  local adapter_pattern = "adapter=([%w_]+)"
   local adapter_match = prompt:match(adapter_pattern)
   --TODO: change this as soon as `config.adapters` is removed in V18.0.0
   local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http, config.adapters)

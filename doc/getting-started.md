@@ -206,10 +206,10 @@ The plugin has four core commands:
 However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
-- `CodeCompanion <adapter> <prompt>` - Prompt the inline assistant with a specific adapter
+- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item from the [prompt library](configuration/prompt-library)
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
+- `CodeCompanionChat adapter=<adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
