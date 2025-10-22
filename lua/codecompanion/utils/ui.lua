@@ -1,3 +1,4 @@
+local async = require("plenary.async")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -134,18 +135,18 @@ M.create_float = function(lines, opts)
   return bufnr, winnr
 end
 
----Build a floating window title with smart filepath handling
----@param opts { title?: string, title_prefix?: string, filepath?: string }
+---Build a floating window title with smart path handling
+---@param opts { title?: string, title_prefix?: string, path?: string }
 ---@return string title The formatted title
 function M.build_float_title(opts)
   opts = opts or {}
   local title = opts.title or opts.title_prefix or "CodeCompanion"
 
-  if opts.filepath then
+  if opts.path then
     local ok, relative_path = pcall(function()
-      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
+      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.path))
     end)
-    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
+    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.path
 
     title = " " .. (opts.title_prefix or " Diff") .. ": " .. path_to_use .. " "
   end
@@ -517,5 +518,28 @@ function M.confirm(prompt, choices, opts)
   local formatted_choices = table.concat(choices, "\n")
   return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
 end
+
+---Wait for user input via vim.ui.input, wrapped in plenary.async
+---@param opts table Options for vim.ui.input
+---@param callback fun(input: string|nil)
+---@return nil
+M.input = async.wrap(function(opts, callback)
+  --Ref: https://github.com/CopilotC-Nvim/CopilotChat.nvim/blob/7a8e238e36ea9e1df9d6309434a37bcdc15a9fae/lua/CopilotChat/utils.lua#L148
+  local fn = function()
+    vim.ui.input(opts, function(input)
+      if input == nil or input == "" then
+        callback(nil)
+        return
+      end
+      callback(input)
+    end)
+  end
+
+  if vim.in_fast_event() then
+    vim.schedule(fn)
+  else
+    fn()
+  end
+end, 2)
 
 return M

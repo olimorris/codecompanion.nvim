@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -84,7 +84,7 @@ function M.show_waiting_indicator(bufnr, opts)
   local notify = opts.notify or "Waiting for user decision ..."
   local sub_text = opts.sub_text
 
-  return ui.show_buffer_notification(bufnr, {
+  return ui_utils.show_buffer_notification(bufnr, {
     namespace = "codecompanion_waiting_" .. tostring(bufnr),
     footer = true,
     text = notify,
@@ -98,7 +98,7 @@ end
 ---@param bufnr number The buffer number to clear the indicator from
 ---@return nil
 function M.clear_waiting_indicator(bufnr)
-  ui.clear_notification(bufnr, { namespace = "codecompanion_waiting_" .. tostring(bufnr) })
+  ui_utils.clear_notification(bufnr, { namespace = "codecompanion_waiting_" .. tostring(bufnr) })
 end
 
 return M

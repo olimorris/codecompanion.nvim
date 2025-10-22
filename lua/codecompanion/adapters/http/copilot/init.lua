@@ -1,8 +1,8 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
 local stats = require("codecompanion.adapters.http.copilot.stats")
 local token = require("codecompanion.adapters.http.copilot.token")
-local utils = require("codecompanion.utils.adapters")
 
 local _fetching_models = false
 local version = vim.version()
@@ -29,8 +29,44 @@ local function handlers(adapter)
   local model_opts = resolve_model_opts(adapter)
   if model_opts.endpoint == "responses" then
     adapter.url = "https://api.githubcopilot.com/responses"
-    return require("codecompanion.adapters.http.openai_responses").handlers
+
+    local responses = require("codecompanion.adapters.http.openai_responses")
+
+    -- Backwards compatibility for handlers
+    responses.handlers.setup = function(self)
+      return responses.handlers.lifecycle.setup(self)
+    end
+    responses.handlers.on_exit = function(self, data)
+      return responses.handlers.lifecycle.on_exit(self, data)
+    end
+    responses.handlers.form_parameters = function(self, params, messages)
+      return responses.handlers.request.build_parameters(self, params, messages)
+    end
+    responses.handlers.form_messages = function(self, messages)
+      return responses.handlers.request.build_messages(self, messages)
+    end
+    responses.handlers.form_tools = function(self, tools)
+      return responses.handlers.request.build_tools(self, tools)
+    end
+    responses.handlers.chat_output = function(self, data, tools)
+      return responses.handlers.response.parse_chat(self, data, tools)
+    end
+    responses.handlers.inline_output = function(self, data, context)
+      return responses.handlers.response.parse_inline(self, data, context)
+    end
+    responses.handlers.tokens = function(self, data)
+      return responses.handlers.response.parse_tokens(self, data)
+    end
+    responses.handlers.tools.format_tool_calls = function(self, tools)
+      return responses.handlers.tools.format_calls(self, tools)
+    end
+    responses.handlers.tools.output_response = function(self, tool_call, output)
+      return responses.handlers.tools.format_response(self, tool_call, output)
+    end
+
+    return responses.handlers
   end
+
   adapter.url = "https://api.githubcopilot.com/chat/completions"
   return require("codecompanion.adapters.http.openai").handlers
 end
@@ -114,7 +150,7 @@ return {
     end,
     form_messages = function(self, messages)
       for _, m in ipairs(messages) do
-        if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+        if m._meta and m._meta.tag == "image" and (m.context and m.context.mimetype) then
           self.headers["X-Initiator"] = "user"
           self.headers["Copilot-Vision-Request"] = "true"
           break
@@ -135,7 +171,7 @@ return {
     end,
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -200,7 +236,7 @@ return {
         if type(model) == "function" then
           model = model()
         end
-        return not vim.startswith(model, "o1") and not model:find("codex")
+        return not vim.startswith(model, "o1") and not model:find("codex") and not vim.startswith(model, "gpt-5")
       end,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },

@@ -17,7 +17,7 @@ function Foo:output()
   self.Chat:add_message({
     role = "user",
     content = "foo",
-  }, { tag = "variable", visible = false })
+  }, { _meta = { tag = "variable" }, visible = false })
 end
 
 return Foo

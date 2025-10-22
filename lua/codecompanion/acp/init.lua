@@ -474,7 +474,10 @@ function Connection:handle_incoming_request_or_notification(notification)
   local DISPATCH = self._dispatch
     or {
       [self.METHODS.SESSION_UPDATE] = function(s, m)
-        if s._active_prompt then
+        -- Handle available_commands_update at the connection level
+        if m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
+          s:handle_available_commands_update(m.params.update.availableCommands)
+        elseif s._active_prompt then
           s._active_prompt:handle_session_update(m.params.update)
         end
       end,
@@ -589,6 +592,22 @@ function Connection:handle_fs_write_file_request(id, params)
   else
     self:send_error(id, ("fs/write_text_file failed: %s"):format(err or "unknown"))
   end
+end
+
+---Handle available_commands_update notification
+---@param commands ACP.availableCommands
+---@return nil
+function Connection:handle_available_commands_update(commands)
+  if not self.session_id then
+    return log:debug("[acp::handle_available_commands_update] No session ID; ignoring commands update")
+  end
+
+  if type(commands) ~= "table" then
+    return log:error("[acp::handle_available_commands_update] Invalid commands format")
+  end
+
+  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  acp_commands.register_commands(self.session_id, commands)
 end
 
 ---Handle process exit

@@ -1,0 +1,42 @@
+return {
+  messages = {
+    {
+      content = "default system prompt",
+      role = "system",
+    },
+    {
+      content = "What's the weather like in London and Paris?",
+      role = "user",
+    },
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          ["function"] = {
+            arguments = "",
+            name = "weather_with_default",
+          },
+          id = "call_2025-03-31T18:36:18.58469Z_1",
+        },
+        {
+          ["function"] = {
+            arguments = {
+              location = "Paris, FR",
+              units = "fahrenheit",
+            },
+            name = "weather_with_default",
+          },
+          id = "call_2025-03-31T18:36:19.500816Z_1",
+        },
+      },
+    },
+    {
+      content = "Ran the weather tool The weather in London, UK is 15° celsius",
+      role = "tool",
+    },
+    {
+      content = "Ran the weather tool The weather in Paris, FR is 15° fahrenheit",
+      role = "tool",
+    },
+  },
+}

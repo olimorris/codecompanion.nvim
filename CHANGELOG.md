@@ -1,5 +1,33 @@
 # Changelog
 
+## [17.27.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.27.0...v17.27.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* **acp:** handle adapter returning vim.NIL instead of lua:nil ([#2266](https://github.com/olimorris/codecompanion.nvim/issues/2266)) ([5efcc8f](https://github.com/olimorris/codecompanion.nvim/commit/5efcc8f401061caf022bc54392b1ad968717220e))
+* **adapters:** copilot now supporting completions endpoint ([#2284](https://github.com/olimorris/codecompanion.nvim/issues/2284)) ([9741526](https://github.com/olimorris/codecompanion.nvim/commit/9741526b5efa8f1f313c8d41bbd7f1862c7d75d5))
+* **chat:** omnifunc completion ([#2275](https://github.com/olimorris/codecompanion.nvim/issues/2275)) ([b1937ad](https://github.com/olimorris/codecompanion.nvim/commit/b1937ad400305860558c0adf6bd10ae7892fff26)), closes [#2270](https://github.com/olimorris/codecompanion.nvim/issues/2270)
+* **chat:** prevent readfile error on directories when using edit_tracker ([#2269](https://github.com/olimorris/codecompanion.nvim/issues/2269)) ([9d49b75](https://github.com/olimorris/codecompanion.nvim/commit/9d49b758de4a3f2c4c2e8a0561e6d126e47dad85))
+
+## [17.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.26.0...v17.27.0) (2025-10-18)
+
+
+### Features
+
+* **acp:** add support for slash commands ([#2260](https://github.com/olimorris/codecompanion.nvim/issues/2260)) ([b47e2aa](https://github.com/olimorris/codecompanion.nvim/commit/b47e2aa0873a5ea9ec96685a6e462599d8b823a4))
+* **adapters:** add verbosity param to OpenAI Responses ([#2243](https://github.com/olimorris/codecompanion.nvim/issues/2243)) ([94f9120](https://github.com/olimorris/codecompanion.nvim/commit/94f9120387aa80832c4f164f60a6804a27b9479c))
+* **keymaps:** use `false` for disabling keymaps ([#2264](https://github.com/olimorris/codecompanion.nvim/issues/2264)) ([982f80f](https://github.com/olimorris/codecompanion.nvim/commit/982f80fa44117ebe5b19218bade76536d94119d4))
+* **tools:** can send rejection message and always approve/accept ([#2249](https://github.com/olimorris/codecompanion.nvim/issues/2249)) ([3e8ab76](https://github.com/olimorris/codecompanion.nvim/commit/3e8ab76992ccc918699e6779f2a889201b611b89))
+
+
+### Bug Fixes
+
+* **adapters:** inline output for `openai_responses` adapter ([#2256](https://github.com/olimorris/codecompanion.nvim/issues/2256)) ([4437cb0](https://github.com/olimorris/codecompanion.nvim/commit/4437cb033ea2245981a9c55c268dd1fd5b710c61)), closes [#2252](https://github.com/olimorris/codecompanion.nvim/issues/2252)
+* **chat:** `after/ftplugin/codecompanion.lua` settings now work ([#2251](https://github.com/olimorris/codecompanion.nvim/issues/2251)) ([87a2f78](https://github.com/olimorris/codecompanion.nvim/commit/87a2f78767a03707fa85f108d374a320ff000f02))
+* **diff:** fire detach when inline diff completes ([#2237](https://github.com/olimorris/codecompanion.nvim/issues/2237)) ([a189018](https://github.com/olimorris/codecompanion.nvim/commit/a189018721a692dabdefbf1e0f58971c6204a7d7))
+* **slash_cmds:** fetching an image from a URL ([#2245](https://github.com/olimorris/codecompanion.nvim/issues/2245)) ([e16ebf5](https://github.com/olimorris/codecompanion.nvim/commit/e16ebf57e3cb09d5ee5e8c3c2acee84e6dc650b8)), closes [#2244](https://github.com/olimorris/codecompanion.nvim/issues/2244)
+
 ## [17.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.25.0...v17.26.0) (2025-10-10)
 
 

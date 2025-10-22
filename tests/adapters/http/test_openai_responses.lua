@@ -35,7 +35,7 @@ T["Responses"]["can form reasoning output"] = function()
     encrypted_content = "somefakebase64encoding",
   }
 
-  h.eq(expected, adapter.handlers.form_reasoning(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_reasoning(adapter, input))
 end
 
 T["Responses"]["can output tool calls"] = function()
@@ -56,14 +56,16 @@ T["Responses"]["can output tool calls"] = function()
       visible = false,
     },
     role = "tool",
-    tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-    tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
+    tools = {
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+    },
+  }, adapter.handlers.tools.format_response(adapter, tool_call, output))
 end
 
-T["Responses"]["form_messages"] = new_set()
+T["Responses"]["build_messages"] = new_set()
 
-T["Responses"]["form_messages"]["messages only"] = function()
+T["Responses"]["build_messages"]["messages only"] = function()
   local messages = {
     {
       content = "You are a helpful assistant.",
@@ -87,10 +89,10 @@ T["Responses"]["form_messages"]["messages only"] = function()
         content = messages[3].content,
       },
     },
-  }, adapter.handlers.form_messages(adapter, messages))
+  }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["images"] = function()
+T["Responses"]["build_messages"]["images"] = function()
   local messages = {
     {
       _meta = { sent = true },
@@ -106,10 +108,14 @@ T["Responses"]["form_messages"]["images"] = function()
       content = "somefakebase64encoding",
       role = "user",
       opts = {
-        mimetype = "image/jpg",
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
-        tag = "image",
         visible = false,
+      },
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        mimetype = "image/jpg",
+      },
+      _meta = {
+        tag = "image",
       },
     },
     {
@@ -144,10 +150,10 @@ T["Responses"]["form_messages"]["images"] = function()
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, messages))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["format available tools to call"] = function()
+T["Responses"]["build_messages"]["format available tools to call"] = function()
   local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
   local tools = { weather = { weather } }
 
@@ -176,30 +182,32 @@ T["Responses"]["form_messages"]["format available tools to call"] = function()
 
   -- We need to adjust the tools format slightly with Responses
   -- https://platform.openai.com/docs/api-reference/responses
-  h.eq({ tools = { expected } }, adapter.handlers.form_tools(adapter, tools))
+  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools))
 end
 
-T["Responses"]["form_messages"]["format tool calls"] = function()
+T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 0,
-          id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
-          call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "London", "units": "celsius"}',
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+            call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
           },
-        },
-        {
-          _index = 1,
-          id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
-          call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "Paris", "units": "celsius"}',
+          {
+            _index = 1,
+            id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+            call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "Paris", "units": "celsius"}',
+            },
           },
         },
       },
@@ -223,22 +231,26 @@ T["Responses"]["form_messages"]["format tool calls"] = function()
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["format tool output"] = function()
+T["Responses"]["build_messages"]["format tool output"] = function()
   local messages = {
     {
       role = "tool",
       content = "The weather in London is 15 degrees",
-      tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-      tool_id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      tools = {
+        call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      },
     },
     {
       role = "tool",
       content = "The weather in Paris is 15 degrees",
-      tool_call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-      tool_id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      tools = {
+        call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+        id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      },
     },
   }
 
@@ -255,17 +267,17 @@ T["Responses"]["form_messages"]["format tool output"] = function()
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["can handle reasoning"] = function()
+T["Responses"]["build_messages"]["can handle reasoning"] = function()
   local messages = {
     {
       _meta = {
         sent = true,
+        cycle = 1,
       },
       content = "Can you tell me what the the weather tool is for London and Paris?",
-      cycle = 1,
       id = 449094129,
       opts = {
         visible = true,
@@ -273,8 +285,7 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
       role = "user",
     },
     {
-      _meta = {},
-      cycle = 1,
+      _meta = { cycle = 1 },
       id = 486936684,
       opts = {
         visible = false,
@@ -285,55 +296,63 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
         content = "I need to workout the weather",
       },
       role = "llm",
-      tool_calls = {
-        {
-          call_id = "call_balVirseGsQYwrVoigfUfF5G",
-          ["function"] = {
-            arguments = '{"location":"London, United Kingdom","units":"celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            call_id = "call_balVirseGsQYwrVoigfUfF5G",
+            ["function"] = {
+              arguments = '{"location":"London, United Kingdom","units":"celsius"}',
+              name = "weather",
+            },
+            id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+            type = "function",
           },
-          id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
-          type = "function",
-        },
-        {
-          call_id = "call_zktz1zuc65awPKojbwCKMLOD",
-          ["function"] = {
-            arguments = '{"location":"Paris, France","units":"celsius"}',
-            name = "weather",
+          {
+            call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"celsius"}',
+              name = "weather",
+            },
+            id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+            type = "function",
           },
-          id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
-          type = "function",
         },
       },
     },
     {
       content = "Ran the weather tool The weather in London, United Kingdom is 15° celsius",
-      cycle = 1,
+      _meta = { cycle = 1 },
       id = 1997051449,
       opts = {
         visible = true,
       },
       role = "tool",
-      tool_call_id = "call_balVirseGsQYwrVoigfUfF5G",
-      tool_id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+      tools = {
+        call_id = "call_balVirseGsQYwrVoigfUfF5G",
+        id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+      },
     },
     {
       content = "Ran the weather tool The weather in Paris, France is 15° celsius",
-      cycle = 1,
+      _meta = {
+        cycle = 1,
+      },
       id = 210818266,
       opts = {
         visible = true,
       },
       role = "tool",
-      tool_call_id = "call_zktz1zuc65awPKojbwCKMLOD",
-      tool_id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+      tools = {
+        call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+        id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+      },
     },
     {
       _meta = {
         response_id = "resp_123",
+        cycle = 1,
       },
       content = "- London: 15°C\n- Paris: 15°C\n\nNeed anything else, like Fahrenheit or a weekly forecast?",
-      cycle = 1,
       id = 933614700,
       opts = {
         visible = true,
@@ -342,7 +361,7 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     },
   }
 
-  local result = adapter.handlers.form_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, messages)
 
   h.eq({
     summary = { {
@@ -373,7 +392,7 @@ T["Responses"]["No Streaming"]["chat_output"] = function()
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Dynamic, expressive", adapter.handlers.chat_output(adapter, json).output.content)
+  h.eq("Dynamic, expressive", adapter.handlers.response.parse_chat(adapter, json).output.content)
 end
 
 T["Responses"]["No Streaming"]["can process tools"] = function()
@@ -384,7 +403,7 @@ T["Responses"]["No Streaming"]["can process tools"] = function()
 
   -- Match the format of the actual request
   local json = { body = data }
-  adapter.handlers.chat_output(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, json, tools)
 
   local tool_output = {
     {
@@ -412,13 +431,16 @@ T["Responses"]["No Streaming"]["can process tools"] = function()
 end
 
 T["Responses"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_inline.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Dynamic, expressive", adapter.handlers.inline_output(adapter, json).output)
+  h.eq(
+    '{"code": "print(\'Hello World\')","language": "lua","placement": "add"}',
+    adapter.handlers.response.parse_inline(adapter, json).output
+  )
 end
 
 T["Responses"]["No Streaming"]["can process reasoning output"] = function()
@@ -430,14 +452,14 @@ T["Responses"]["No Streaming"]["can process reasoning output"] = function()
 
   h.expect_contains(
     "**Choosing descriptive terms**",
-    adapter.handlers.chat_output(adapter, json).output.reasoning.content
+    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.content
   )
 
   h.eq(
     "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
-    adapter.handlers.chat_output(adapter, json).output.reasoning.id
+    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.id
   )
-  h.eq("gAAAAABo6", adapter.handlers.chat_output(adapter, json).output.reasoning.encrypted_content)
+  h.eq("gAAAAABo6", adapter.handlers.response.parse_chat(adapter, json).output.reasoning.encrypted_content)
 end
 
 T["Responses"]["Streaming"] = new_set()
@@ -446,7 +468,7 @@ T["Responses"]["Streaming"]["can output streamed data into the chat buffer"] = f
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
     if chat_output and chat_output.output.content then
       output = output .. chat_output.output.content
     end
@@ -459,7 +481,7 @@ T["Responses"]["Streaming"]["can process reasoning output"] = function()
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
     if chat_output and chat_output.output and chat_output.output.reasoning and chat_output.output.reasoning.content then
       output = output .. chat_output.output.reasoning.content
     end
@@ -473,7 +495,7 @@ T["Responses"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.chat_output(adapter, line, tools)
+    adapter.handlers.response.parse_chat(adapter, line, tools)
   end
 
   local expected = {

@@ -19,7 +19,7 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = "Basic Slash Command",
-  }, { context_id = id, visible = false })
+  }, { context = { id = opts.id }, visible = false })
 end
 
 return SlashCommand

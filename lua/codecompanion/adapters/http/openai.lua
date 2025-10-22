@@ -1,5 +1,5 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
 return {
@@ -85,9 +85,10 @@ return {
           end
 
           -- Ensure tool_calls are clean
-          if m.tool_calls then
-            m.tool_calls = vim
-              .iter(m.tool_calls)
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
+            tool_calls = vim
+              .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
                   id = tool_call.id,
@@ -99,13 +100,13 @@ return {
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
             if self.opts and self.opts.vision then
               m.content = {
                 {
                   type = "image_url",
                   image_url = {
-                    url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                    url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
                   },
                 },
               }
@@ -118,8 +119,8 @@ return {
           return {
             role = m.role,
             content = m.content,
-            tool_calls = m.tool_calls,
-            tool_call_id = m.tool_call_id,
+            tool_calls = tool_calls,
+            tool_call_id = m.tools and m.tools.call_id or nil,
           }
         end)
         :totable()
@@ -155,7 +156,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -179,7 +180,7 @@ return {
       end
 
       -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
       if not ok or not json.choices or #json.choices == 0 then
@@ -302,7 +303,9 @@ return {
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
-          tool_call_id = tool_call.id,
+          tools = {
+            call_id = tool_call.id,
+          },
           content = output,
           opts = { visible = false },
         }

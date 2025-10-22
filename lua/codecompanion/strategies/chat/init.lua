@@ -65,7 +65,7 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
 local schema = require("codecompanion.schema")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
@@ -108,12 +108,12 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg.opts and msg.opts.context_id == pin.id and msg.cycle == chat.cycle then
+      if (msg.context and msg.context.id == pin.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
         exists = true
       end
     end)
     if not exists then
-      util.fire("ChatPin", { bufnr = chat.bufnr, id = chat.id, pin_id = pin.id })
+      utils.fire("ChatPin", { bufnr = chat.bufnr, id = chat.id, pin_id = pin.id })
       require(pin.source)
         .new({ Chat = chat })
         :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })
@@ -144,7 +144,7 @@ end
 ---@return table|nil
 local function find_tool_call(id, messages)
   for _, msg in ipairs(messages) do
-    if msg.tool_call_id and msg.tool_call_id == id then
+    if msg.tools and msg.tools.call_id and msg.tools.call_id == id then
       return msg
     end
   end
@@ -360,7 +360,6 @@ function Chat.new(args)
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
-      api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
 
       -- Safely attach treesitter
       vim.schedule(function()
@@ -424,18 +423,24 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
-  util.fire("ChatAdapter", {
+  utils.fire("ChatAdapter", {
     adapter = adapters.make_safe(self.adapter),
     bufnr = self.bufnr,
     id = self.id,
   })
-  util.fire(
+  utils.fire(
     "ChatModel",
     { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
   )
 
   if self.adapter.type == "http" then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
+  elseif self.adapter.type == "acp" then
+    -- Initialize ACP connection early to receive available_commands_update
+    -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
+    vim.schedule(function()
+      helpers.create_acp_connection(self)
+    end)
   end
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
@@ -545,7 +550,7 @@ function Chat.new(args)
 
   self:dispatch("on_created")
 
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
+  utils.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
   end
@@ -603,11 +608,17 @@ end
 ---@param model? string
 function Chat:change_adapter(name, model)
   local function fire()
-    return util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
+    return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
   self.adapter = require("codecompanion.adapters").resolve(name)
   self.ui.adapter = self.adapter
+
+  if self.adapter.type == "acp" then
+    vim.schedule(function()
+      helpers.create_acp_connection(self)
+    end)
+  end
 
   if model then
     self:apply_model(model)
@@ -673,7 +684,7 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@params prompt? string
----@params opts? table
+---@params opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
@@ -681,11 +692,17 @@ function Chat:set_system_prompt(prompt, opts)
   end
 
   prompt = prompt or config.strategies.chat.opts.system_prompt
-  opts = opts or { visible = false, tag = "system_prompt_from_config" }
+  opts = opts or { visible = false }
+
+  local _meta = { tag = "system_prompt_from_config" }
+  if opts._meta then
+    _meta = opts._meta
+    opts._meta = nil
+  end
 
   -- If the system prompt already exists, update it
-  if helpers.has_tag(opts.tag, self.messages) then
-    self:remove_tagged_message(opts.tag)
+  if helpers.has_tag(_meta.tag, self.messages) then
+    self:remove_tagged_message(_meta.tag)
   end
 
   -- Workout in the message stack the last system prompt is
@@ -711,9 +728,12 @@ function Chat:set_system_prompt(prompt, opts)
       role = config.constants.SYSTEM_ROLE,
       content = prompt,
     }
-    system_prompt.id = make_id(system_prompt)
-    system_prompt.cycle = self.cycle
     system_prompt.opts = opts
+
+    _meta.cycle = self.cycle
+    _meta.id = make_id(system_prompt)
+    _meta.index = #self.messages + 1
+    system_prompt._meta = _meta
 
     table.insert(self.messages, index or opts.index or 1, system_prompt)
   end
@@ -726,17 +746,17 @@ end
 function Chat:toggle_system_prompt()
   local has_system_prompt = vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts.tag
+      return msg._meta and msg._meta.tag
     end, self.messages),
     "system_prompt_from_config"
   )
 
   if has_system_prompt then
     self:remove_tagged_message("system_prompt_from_config")
-    util.notify("Removed system prompt")
+    utils.notify("Removed system prompt")
   else
     self:set_system_prompt()
-    util.notify("Added system prompt")
+    utils.notify("Added system prompt")
   end
 end
 
@@ -747,7 +767,7 @@ function Chat:remove_tagged_message(tag)
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.tag == tag then
+      if msg._meta and msg._meta.tag == tag then
         return false
       end
       return true
@@ -767,20 +787,30 @@ function Chat:add_message(data, opts)
 
   ---@type CodeCompanion.Chat.Message
   local message = {
-    id = 1,
-    _meta = {},
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
-    cycle = self.cycle,
-    tool_calls = data.tool_calls,
+    _meta = { id = 1, cycle = self.cycle },
   }
-  message.id = make_id(message)
+
+  -- Map tool_calls to tools.calls
+  if data.tool_calls then
+    message.tools = message.tools or {}
+    message.tools.calls = data.tool_calls
+  end
+
   if opts._meta then
     message._meta = vim.tbl_deep_extend("force", message._meta, opts._meta)
     opts._meta = nil
   end
+  if opts.context then
+    message.context = opts.context
+    opts.context = nil
+  end
+
   message.opts = opts
+  message._meta.id = make_id(message)
+  message._meta.index = #self.messages + 1
 
   if opts.index then
     table.insert(self.messages, opts.index, message)
@@ -821,13 +851,13 @@ function Chat:_submit_http(payload)
 
   local function process_chunk(data)
     if adapter.features.tokens then
-      local tokens = adapter.handlers.tokens(adapter, data)
+      local tokens = adapters.call_handler(adapter, "parse_tokens", data)
       if tokens then
         self.ui.tokens = tokens
       end
     end
 
-    local result = adapter.handlers.chat_output(adapter, data, tools)
+    local result = adapters.call_handler(adapter, "parse_chat", data, tools)
     if result and result.status then
       self.status = result.status
       if self.status == CONSTANTS.STATUS_SUCCESS then
@@ -837,10 +867,12 @@ function Chat:_submit_http(payload)
         end
         if result.output.reasoning then
           table.insert(reasoning, result.output.reasoning)
-          self:add_buf_message({
-            role = config.constants.LLM_ROLE,
-            content = result.output.reasoning.content,
-          }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+          if config.display.chat.show_reasoning then
+            self:add_buf_message({
+              role = config.constants.LLM_ROLE,
+              content = result.output.reasoning.content,
+            }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+          end
         end
         if result.output.meta then
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
@@ -970,7 +1002,7 @@ function Chat:submit(opts)
     self:_submit_acp(payload)
   end
 
-  util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id, type = self.adapter.type })
+  utils.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id, type = self.adapter.type })
 end
 
 ---Method to fire when all the tools are done
@@ -1019,9 +1051,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   local reasoning_content = nil
   if reasoning and not vim.tbl_isempty(reasoning) then
-    if self.adapter.handlers.form_reasoning then
-      reasoning_content = self.adapter.handlers.form_reasoning(self.adapter, reasoning)
-    end
+    reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
   end
 
   if content and content ~= "" then
@@ -1043,22 +1073,24 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   -- Process tools last
   if has_tools then
-    tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
-    self:add_message({
-      role = config.constants.LLM_ROLE,
-      reasoning = reasoning_content,
-      tool_calls = tools,
-      _meta = has_meta and meta or nil,
-    }, {
-      visible = false,
-    })
-    return self.tools:execute(self, tools)
+    tools = adapters.call_handler(self.adapter, "format_calls", tools)
+    if tools then
+      self:add_message({
+        role = config.constants.LLM_ROLE,
+        reasoning = reasoning_content,
+        tool_calls = tools,
+        _meta = has_meta and meta or nil,
+      }, {
+        visible = false,
+      })
+      return self.tools:execute(self, tools)
+    end
   end
 
   ready_chat_buffer(self)
 
   self:dispatch("on_completed", { status = self.status })
-  util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
@@ -1067,7 +1099,7 @@ end
 ---@param id string The uniqie ID linkin the context to the message
 ---@param opts? { bufnr: number, context_opts: table, path: string, tag: string, visible: boolean}
 function Chat:add_context(data, source, id, opts)
-  opts = vim.tbl_extend("force", { context_id = id, visible = false }, opts or {})
+  opts = vim.tbl_extend("force", { visible = false }, opts or {})
 
   if not data.role then
     data.role = config.constants.USER_ROLE
@@ -1075,7 +1107,7 @@ function Chat:add_context(data, source, id, opts)
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { context_id = id, tag = opts.tag or source, visible = opts.visible })
+  self:add_message(data, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1174,7 +1206,7 @@ function Chat:check_context()
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.context_id and vim.tbl_contains(to_remove, msg.opts.context_id) then
+      if msg.context and msg.context.id and vim.tbl_contains(to_remove, msg.context.id) then
         return false
       end
       return true
@@ -1213,8 +1245,8 @@ function Chat:refresh_context()
   -- Collect the set of context IDs still referenced by messages
   local ids_in_messages = {}
   for _, msg in ipairs(self.messages or {}) do
-    if msg.opts and msg.opts.context_id then
-      ids_in_messages[msg.opts.context_id] = true
+    if msg.context and msg.context.id then
+      ids_in_messages[msg.context.id] = true
     end
   end
 
@@ -1250,7 +1282,7 @@ end
 function Chat:stop()
   self.status = CONSTANTS.STATUS_CANCELLING
   self:dispatch("on_cancelled")
-  util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
     local tool_job = self.current_tool
@@ -1272,9 +1304,7 @@ function Chat:stop()
       end
     end)
 
-    if self.adapter.handlers and self.adapter.handlers.on_exit then
-      self.adapter.handlers.on_exit(self.adapter)
-    end
+    adapters.call_handler(self.adapter, "on_exit")
   end
 
   vim.schedule(function()
@@ -1299,9 +1329,9 @@ function Chat:close()
     last_chat = nil
   end
 
-  util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
-  util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
-  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
+  utils.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
+  utils.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
 
   table.remove(
     _G.codecompanion_buffers,
@@ -1350,9 +1380,13 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
-  local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
-  output.cycle = self.cycle
-  output.id = make_id({ role = output.role, content = output.content })
+  local output = adapters.call_handler(self.adapter, "format_response", tool_call, for_llm)
+  if not output then
+    return log:error("Adapter does not support tool response formatting")
+  end
+
+  output._meta = { cycle = self.cycle }
+  output._meta.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
     visible = true,
   })
@@ -1409,7 +1443,7 @@ function Chat:clear()
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
   self:set_system_prompt()
-  util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
+  utils.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Display the chat buffer's settings and messages

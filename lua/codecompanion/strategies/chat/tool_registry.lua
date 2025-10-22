@@ -12,7 +12,7 @@ Methods for handling interactions between the chat buffer and tools
 local ToolRegistry = {}
 
 local config = require("codecompanion.config")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.Chat.ToolsArgs
 ---@field chat CodeCompanion.Chat
@@ -58,7 +58,7 @@ local function add_system_prompt(chat, tool, id)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, tag = "tool", context_id = id }
+      { visible = false, _meta = { tag = "tool" }, context = { id = id } }
     )
   end
 end
@@ -91,7 +91,7 @@ function ToolRegistry:add(tool, tool_config, opts)
   add_system_prompt(self.chat, resolved_tool, id)
   add_schema(self, resolved_tool, id)
 
-  util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
+  utils.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
   self.in_use[tool] = true
 
   self:add_tool_system_prompt()
@@ -122,7 +122,7 @@ function ToolRegistry:add_group(group, tools_config)
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
-    }, { tag = "tool", visible = false, context_id = group_id })
+    }, { _meta = { tag = "tool" }, context = { id = group_id }, visible = false })
   end
 
   if collapse_tools then
@@ -152,7 +152,7 @@ function ToolRegistry:add_tool_system_prompt()
     self.chat:remove_tagged_message("system_prompt_from_config")
   end
 
-  self.chat:set_system_prompt(prompt, { index = index, visible = false, tag = "tool_system_prompt" })
+  self.chat:set_system_prompt(prompt, { index = index, visible = false, _meta = { tag = "tool_system_prompt" } })
 end
 
 ---Determine if the chat buffer has any tools in use

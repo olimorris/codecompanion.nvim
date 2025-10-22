@@ -108,15 +108,17 @@ To change the default model on an adapter you can modify the `schema.model.defau
 ```lua
 require("codecompanion").setup({
   adapters = {
-    openai = function()
-      return require("codecompanion.adapters").extend("openai", {
-        schema = {
-          model = {
-            default = "gpt-4.1",
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
+          schema = {
+            model = {
+              default = "gpt-4.1",
+            },
           },
-        },
-      })
-    end,
+        })
+      end,
+    },
   },
 }),
 ```
@@ -227,8 +229,8 @@ Custom adapters can be added to the plugin as follows:
 
 ```lua
 require("codecompanion").setup({
-  http = {
-    adapters = {
+  adapters = {
+    http = {
       my_custom_adapter = function()
         return {} -- My adapter logic
       end,
@@ -244,9 +246,11 @@ A proxy can be configured by utilising the `adapters.opts` table in the config:
 ```lua
 require("codecompanion").setup({
   adapters = {
-    opts = {
-      allow_insecure = true,
-      proxy = "socks5://127.0.0.1:9999",
+    http = {
+      opts = {
+        allow_insecure = true,
+        proxy = "socks5://127.0.0.1:9999",
+      },
     },
   },
 }),
@@ -259,6 +263,7 @@ Thanks to the community for building the following adapters:
 - [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
 - [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
 - [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
+- [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
 
 The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
 
@@ -292,10 +297,12 @@ When switching between adapters, the plugin typically displays all available mod
 ```lua
 require("codecompanion").setup({
   adapters = {
-    opts = {
-      show_model_choices = false,
+    http = {
+      -- Define your custom adapters here
+      opts = {
+        show_model_choices = false,
+      },
     },
-    -- Define your custom adapters here
   },
 })
 ```
@@ -324,13 +331,15 @@ and it can be configured as with any other adapter:
 ```lua
 require("codecompanion").setup({
   adapters = {
-    openai_responses = function()
-      return require("codecompanion.adapters").extend("openai_responses", {
-        env = {
-          api_key = "OPENAI_API_KEY",
-        },
-      })
-    end,
+    http = {
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          env = {
+            api_key = "OPENAI_API_KEY",
+          },
+        })
+      end,
+    },
   },
 },
 ```
@@ -394,21 +403,23 @@ To use Ollama remotely, change the URL in the env table, set an API key and pass
 ```lua
 require("codecompanion").setup({
   adapters = {
-    ollama = function()
-      return require("codecompanion.adapters").extend("ollama", {
-        env = {
-          url = "https://my_ollama_url",
-          api_key = "OLLAMA_API_KEY",
-        },
-        headers = {
-          ["Content-Type"] = "application/json",
-          ["Authorization"] = "Bearer ${api_key}",
-        },
-        parameters = {
-          sync = true,
-        },
-      })
-    end,
+    http = {
+      ollama = function()
+        return require("codecompanion.adapters").extend("ollama", {
+          env = {
+            url = "https://my_ollama_url",
+            api_key = "OLLAMA_API_KEY",
+          },
+          headers = {
+            ["Content-Type"] = "application/json",
+            ["Authorization"] = "Bearer ${api_key}",
+          },
+          parameters = {
+            sync = true,
+          },
+        })
+      end,
+    },
   },
 })
 ```
@@ -420,19 +431,21 @@ Below is an example of how you can leverage the `azure_openai` adapter within th
 ```lua
 require("codecompanion").setup({
   adapters = {
-    azure_openai = function()
-      return require("codecompanion.adapters").extend("azure_openai", {
-        env = {
-          api_key = "YOUR_AZURE_OPENAI_API_KEY",
-          endpoint = "YOUR_AZURE_OPENAI_ENDPOINT",
-        },
-        schema = {
-          model = {
-            default = "YOUR_DEPLOYMENT_NAME",
+    http = {
+      azure_openai = function()
+        return require("codecompanion.adapters").extend("azure_openai", {
+          env = {
+            api_key = "YOUR_AZURE_OPENAI_API_KEY",
+            endpoint = "YOUR_AZURE_OPENAI_ENDPOINT",
           },
-        },
-      })
-    end,
+          schema = {
+            model = {
+              default = "YOUR_DEPLOYMENT_NAME",
+            },
+          },
+        })
+      end,
+    },
   },
   strategies = {
     chat = {

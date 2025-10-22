@@ -17,10 +17,7 @@ return {
   },
   commands = {
     default = {
-      "npx",
-      "--silent",
-      "--yes",
-      "@zed-industries/claude-code-acp",
+      "claude-code-acp",
     },
   },
   defaults = {

@@ -19,8 +19,8 @@ local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
+local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -81,7 +81,7 @@ function Tools:_handle_tool_error(tool, error_message)
   end
 
   self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
-  return util.fire("ToolsFinished", { bufnr = self.bufnr })
+  return utils.fire("ToolsFinished", { bufnr = self.bufnr })
 end
 
 ---Resolve and prepare a tool for execution
@@ -127,7 +127,7 @@ function Tools:_resolve_and_prepare_tool(tool)
           string.format('You made an error in calling the %s tool: "%s"', name, err),
           ""
         )
-        return util.fire("ToolsFinished", { bufnr = self.bufnr })
+        return utils.fire("ToolsFinished", { bufnr = self.bufnr })
       end)
 
       if not json_ok then
@@ -145,7 +145,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   -- Handle environment variables
   if prepared_tool.env then
     local env = type(prepared_tool.env) == "function" and prepared_tool.env(vim.deepcopy(prepared_tool)) or {}
-    util.replace_placeholders(prepared_tool.cmds, env)
+    utils.replace_placeholders(prepared_tool.cmds, env)
   end
 
   return prepared_tool, nil, false
@@ -217,7 +217,7 @@ function Tools:set_autocmds()
         log:info("[Tool System] Initiated")
         if show_tools_processing then
           local namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr)
-          ui.show_buffer_notification(self.bufnr, {
+          ui_utils.show_buffer_notification(self.bufnr, {
             namespace = namespace,
             text = CONSTANTS.PROCESSING_MSG,
             main_hl = "CodeCompanionChatInfo",
@@ -285,7 +285,7 @@ function Tools:execute(chat, tools)
     end
 
     self:set_autocmds()
-    util.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
+    utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
     orchestrator:setup()
   end
 
@@ -298,7 +298,7 @@ function Tools:execute(chat, tools)
     log:error("chat::tools::init::execute - Execution error %s", err)
     self.status = CONSTANTS.STATUS_ERROR
     vim.schedule(function()
-      util.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
+      utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
     end)
   end
 end
@@ -379,7 +379,7 @@ end
 function Tools:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      local replacement = util.replace_placeholders(self.tools_config.opts.tool_replacement_message, { tool = tool })
+      local replacement = utils.replace_placeholders(self.tools_config.opts.tool_replacement_message, { tool = tool })
       message = vim.trim(regex.replace(message, self:_pattern(tool), replacement))
     end
   end
@@ -390,7 +390,7 @@ function Tools:replace(message)
     local tools = table.concat(group_config.tools, ", ")
 
     if group_config.prompt then
-      replacement = util.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
+      replacement = utils.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
     end
 
     message = vim.trim(regex.replace(message, self:_pattern(group), replacement or tools))
@@ -406,7 +406,7 @@ function Tools:reset(opts)
   opts = opts or {}
 
   if show_tools_processing then
-    ui.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
+    ui_utils.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
   end
 
   api.nvim_clear_autocmds({ group = self.aug })

@@ -3,7 +3,7 @@ local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -45,13 +45,13 @@ local function get_qflist_entries()
 end
 
 ---Extract symbols from a file using TreeSitter
----@param filepath string Path to the file
+---@param path string Path to the file
 ---@return table[]|nil symbols Array of symbols with start_line, end_line, name, kind
 ---@return string|nil content File content if successful
-local function extract_file_symbols(filepath)
+local function extract_file_symbols(path)
   -- Only include function/method/class symbols for quickfix
   local target_kinds = { "Function", "Method", "Class" }
-  return helpers.extract_file_symbols(filepath, target_kinds)
+  return helpers.extract_file_symbols(path, target_kinds)
 end
 
 ---Find which symbol contains a diagnostic line
@@ -106,13 +106,13 @@ local function group_by_proximity(diagnostics)
 end
 
 ---Group diagnostics by symbol they belong to
----@param filepath string Path to the file
+---@param path string Path to the file
 ---@param diagnostics table[] Array of diagnostic entries
 ---@param file_content? string Optional file content to avoid re-reading
 ---@return table[] diagnostic_groups Array of groups with diagnostics and symbol info
 ---@return string|nil content File content if available
-local function group_diagnostics_by_symbol(filepath, diagnostics, file_content)
-  local symbols, content = extract_file_symbols(filepath)
+local function group_diagnostics_by_symbol(path, diagnostics, file_content)
+  local symbols, content = extract_file_symbols(path)
   -- Use provided file_content if available to avoid re-reading
   if not content and file_content then
     content = file_content
@@ -260,20 +260,20 @@ local function group_entries_by_file(entries)
 end
 
 ---Process a single file and generate description for chat
----@param filepath string Path to the file
+---@param path string Path to the file
 ---@param file_data table File data with diagnostics
 ---@return string|nil description Formatted description for chat or nil if failed
 ---@return string id Context ID for the file
-local function process_single_file(filepath, file_data)
-  local relative_path = vim.fn.fnamemodify(filepath, ":.")
-  local ft = vim.filetype.match({ filename = filepath })
+local function process_single_file(path, file_data)
+  local relative_path = vim.fn.fnamemodify(path, ":.")
+  local ft = vim.filetype.match({ filename = path })
   local id = "<quickfix>" .. relative_path .. "</quickfix>"
   -- Read file once
   local ok, file_content = pcall(function()
-    return Path.new(filepath):read()
+    return Path.new(path):read()
   end)
   if not ok then
-    log:warn("Could not read file: %s", filepath)
+    log:warn("Could not read file: %s", path)
     return nil, id
   end
   local content, description
@@ -302,7 +302,7 @@ local function process_single_file(filepath, file_data)
       )
     else
       -- Large file: use smart grouping and context extraction
-      local diagnostic_groups, _ = group_diagnostics_by_symbol(filepath, file_data.diagnostics, file_content)
+      local diagnostic_groups, _ = group_diagnostics_by_symbol(path, file_data.diagnostics, file_content)
       -- Generate diagnostic summary with groups
       local diagnostic_summary = {}
       for group_idx, group_info in ipairs(diagnostic_groups) do
@@ -372,23 +372,23 @@ function SlashCommand:output_entries(entries)
   local files = group_entries_by_file(entries)
 
   -- Output each file
-  for filepath, file_data in pairs(files) do
-    local description, id = process_single_file(filepath, file_data)
+  for path, file_data in pairs(files) do
+    local description, id = process_single_file(path, file_data)
     if description then
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = description,
-      }, { context_id = id, visible = false })
+      }, { context = { id = id }, visible = false })
 
       self.Chat.context:add({
         id = id,
-        path = filepath,
+        path = path,
         source = "codecompanion.strategies.chat.slash_commands.qflist",
       })
     end
   end
 
-  util.notify(fmt("Added %d file(s) from quickfix list to chat", vim.tbl_count(files)))
+  utils.notify(fmt("Added %d file(s) from quickfix list to chat", vim.tbl_count(files)))
 end
 
 return SlashCommand
