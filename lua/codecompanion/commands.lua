@@ -80,6 +80,16 @@ return {
       -- Reference:
       -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
       complete = function(arg_lead, cmdline, cursor_pos)
+        local param_key = arg_lead:match("^(%w+)=$")
+        if param_key == "adapter" then
+          return vim
+            .iter(adapters)
+            :map(function(adapter)
+              return adapter
+            end)
+            :totable()
+        end
+
         local args = vim.split(cmdline, "%s+")
         local current_arg_index = #args
 
@@ -93,9 +103,9 @@ return {
         -- Always provide completions for adapters, prompt library, and variables
         local completions = {}
 
-        -- Add adapters (with angle bracket syntax)
+        -- Add adapters
         for _, adapter in ipairs(adapters) do
-          table.insert(completions, "<" .. adapter .. ">")
+          table.insert(completions, "adapter=" .. adapter)
         end
 
         -- Add prompt library items
