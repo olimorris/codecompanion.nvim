@@ -2,6 +2,7 @@ local Curl = require("plenary.curl")
 local Path = require("plenary.path")
 
 local adapter_utils = require("codecompanion.utils.adapters")
+local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
@@ -174,13 +175,10 @@ function Client:send_sync(payload, opts)
   -- end
 
   local adapter = vim.deepcopy(self.adapter)
-  local handlers = adapter.handlers
 
-  if handlers and handlers.setup then
-    local ok = handlers.setup(adapter)
-    if not ok then
-      return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
-    end
+  local ok = adapters.call_handler(adapter, "setup")
+  if ok == false then
+    return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
   end
 
   adapter = adapter_utils.get_env_vars(adapter)
@@ -188,17 +186,16 @@ function Client:send_sync(payload, opts)
   local body = self.methods.encode(
     vim.tbl_extend(
       "keep",
-      handlers.form_parameters
-          and handlers.form_parameters(
-            adapter,
-            adapter_utils.set_env_vars(adapter, adapter.parameters),
-            payload.messages
-          )
-        or {},
-      handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
-      handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
+      adapters.call_handler(
+        adapter,
+        "build_parameters",
+        adapter_utils.set_env_vars(adapter, adapter.parameters),
+        payload.messages
+      ) or {},
+      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
       adapter.body and adapter.body or {},
-      handlers.set_body and handlers.set_body(adapter, payload) or {}
+      adapters.call_handler(adapter, "build_body", payload) or {}
     )
   )
 
@@ -268,16 +265,8 @@ function Client:send_sync(payload, opts)
     end
   end
 
-  if handlers and handlers.on_exit then
-    pcall(function()
-      handlers.on_exit(adapter, response or (err and err.stderr))
-    end)
-  end
-  if handlers and handlers.teardown then
-    pcall(function()
-      handlers.teardown(adapter)
-    end)
-  end
+  adapters.call_handler(adapter, "on_exit", response or (err and err.stderr))
+  adapters.call_handler(adapter, "teardown")
 
   if not opts.silent then
     utils.fire("RequestFinished", event_opts)
@@ -313,13 +302,9 @@ function Client:request(payload, actions, opts)
   -- Make a copy of the adapter to ensure that we replace variables in every request
   local adapter = vim.deepcopy(self.adapter)
 
-  local handlers = adapter.handlers
-
-  if handlers and handlers.setup then
-    local ok = handlers.setup(adapter)
-    if not ok then
-      return log:error("Failed to setup adapter")
-    end
+  local ok = adapters.call_handler(adapter, "setup")
+  if ok == false then
+    return log:error("Failed to setup adapter")
   end
 
   adapter = adapter_utils.get_env_vars(adapter)
@@ -327,17 +312,16 @@ function Client:request(payload, actions, opts)
   local body = self.methods.encode(
     vim.tbl_extend(
       "keep",
-      handlers.form_parameters
-          and handlers.form_parameters(
-            adapter,
-            adapter_utils.set_env_vars(adapter, adapter.parameters),
-            payload.messages
-          )
-        or {},
-      handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
-      handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
+      adapters.call_handler(
+        adapter,
+        "build_parameters",
+        adapter_utils.set_env_vars(adapter, adapter.parameters),
+        payload.messages
+      ) or {},
+      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
       adapter.body and adapter.body or {},
-      handlers.set_body and handlers.set_body(adapter, payload) or {}
+      adapters.call_handler(adapter, "build_body", payload) or {}
     )
   )
 
@@ -386,12 +370,10 @@ function Client:request(payload, actions, opts)
           log:debug("Output data:\n%s", data)
           cb(nil, data, adapter)
         end
-        if handlers and handlers.on_exit then
-          handlers.on_exit(adapter, data)
-        end
-        if handlers and handlers.teardown then
-          handlers.teardown(adapter)
-        end
+
+        adapters.call_handler(adapter, "on_exit", data)
+        adapters.call_handler(adapter, "teardown")
+
         if actions.done and type(actions.done) == "function" then
           actions.done()
         end

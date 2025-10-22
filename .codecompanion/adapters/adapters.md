@@ -2,13 +2,156 @@
 
 In CodeCompanion, adapters are used to connect to LLMs or Agents. HTTP adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. HTTP adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `lua/codecompanion/adapters` directory.
 
+## Handler Structure
+
+Adapters use a nested handler structure that organizes functions by their purpose:
+
+```lua
+handlers = {
+  -- Lifecycle hooks (side effects)
+  lifecycle = {
+    ---Called when adapter is resolved
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@return boolean success
+    setup = function(self) end,
+
+    ---Called after request completes
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table
+    ---@return nil
+    on_exit = function(self, data) end,
+
+    ---Called during adapter cleanup
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@return nil
+    teardown = function(self) end,
+  },
+
+  -- Request builders (pure transforms)
+  request = {
+    ---Build request parameters
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param params table
+    ---@param messages table
+    ---@return table
+    build_parameters = function(self, params, messages) end,
+
+    ---Build message format for LLM
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param messages table
+    ---@return table
+    build_messages = function(self, messages) end,
+
+    ---Build tools schema
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param tools table
+    ---@return table|nil
+    build_tools = function(self, tools) end,
+
+    ---Build reasoning parameters (for models that support it)
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param messages table
+    ---@return nil|{ content: string, _data: table }
+    build_reasoning = function(self, messages) end,
+
+    ---Set additional body parameters
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table
+    ---@return table|nil
+    build_body = function(self, data) end,
+  },
+
+  -- Response parsers (pure transforms)
+  response = {
+    ---Parse chat response
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data string|table
+    ---@param tools? table
+    ---@return { status: string, output: table }|nil
+    parse_chat = function(self, data, tools) end,
+
+    ---Parse inline response
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data string|table
+    ---@param context? table
+    ---@return { status: string, output: string }|nil
+    parse_inline = function(self, data, context) end,
+
+    ---Extract token count
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table
+    ---@return number|nil
+    parse_tokens = function(self, data) end,
+  },
+
+  -- Tool handlers (grouped functionality)
+  tools = {
+    ---Format tool calls for inclusion in request
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param tools table
+    ---@return table
+    format_calls = function(self, tools) end,
+
+    ---Format tool response for LLM
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param tool_call table
+    ---@param output string
+    ---@return table
+    format_response = function(self, tool_call, output) end,
+  },
+}
+```
+
+This structure provides clear separation of concerns:
+- **lifecycle**: Side effects and initialization (setup, teardown, cleanup)
+- **request**: Pure transformations for building requests (parameters, messages, tools)
+- **response**: Pure transformations for parsing responses (chat, inline, tokens)
+- **tools**: Tool-specific operations (formatting calls and responses)
+
+### Calling Handlers
+
+Throughout CodeCompanion, handlers are called using the `adapters.call_handler()` function, which provides backwards compatibility:
+
+```lua
+local adapters = require("codecompanion.adapters")
+
+-- Call a handler
+local result = adapters.call_handler(adapter, "parse_chat", data, tools)
+local tokens = adapters.call_handler(adapter, "parse_tokens", data)
+
+-- Handler automatically receives adapter as first argument
+local setup_ok = adapters.call_handler(adapter, "setup")
+```
+
+## Backwards Compatibility
+
+For backwards compatibility, CodeCompanion continues to support the old flat handler structure:
+
+```lua
+-- Old format (still supported)
+handlers = {
+  setup = function(self) end,
+  form_parameters = function(self, params, messages) end,
+  form_messages = function(self, messages) end,
+  chat_output = function(self, data, tools) end,
+  tools = {
+    format_tool_calls = function(self, tools) end,
+    output_response = function(self, tool_call, output) end,
+  }
+}
+```
+
+When calling handlers with the new names (e.g., `build_messages`), they automatically map to old names (e.g., `form_messages`) if the adapter uses the old format. The format is detected by checking for the presence of `lifecycle`, `request`, or `response` categories.
+
+**Note**: The `tools` namespace has always existed in both old and new formats, so it cannot be used alone to detect the new format.
+
 ## Relevant Files
 
 ### adapters/init.lua
 
 @./lua/codecompanion/adapters/init.lua
 
-Currently CodeCompanion supports http and ACP adapters.
+Currently CodeCompanion supports http and ACP adapters. This file provides the factory methods for resolving adapters and includes `call_handler()` for backwards-compatible handler invocation.
 
 ### adapters/shared.lua
 
@@ -26,14 +169,11 @@ This is the logic for the HTTP adapters. Various logic sits within this file whi
 
 @./lua/codecompanion/adapters/http/openai.lua
 
-Sharing an example HTTP adapter for OpenAI.
+Sharing an example HTTP adapter for OpenAI. Note: This adapter currently uses the old flat format but will be migrated to the new nested format in a future update.
 
 ## HTTP Client
 
 @./lua/codecompanion/http.lua
 @.codecompanion/adapters/plenary_curl.md
 
-The http.lua module implements a provider-agnostic HTTP client for CodeCompanion that centralizes request construction, streaming, scheduling, and testability. It exposes three APIs: request (legacy, callback-based), send (async, handle-based), and send_sync (blocking). The client is built around a set of static methods (post, get, encode, schedule, schedule_wrap) that default to plenary.curl and vim scheduling primitives but can be overridden, making it straightforward to stub in tests. Each request starts by deep-copying the adapter, running optional setup hooks, expanding environment variables into URL/headers/raw flags, and encoding a JSON body that’s written to a temporary file. It then dispatches to GET or POST with a “raw” curl option list, optional streaming flags, and a single final callback that plenary.curl guarantees will run once when the request completes.
-
-For the legacy request API, the final curl callback is wrapped in a scheduled function that: forwards the response to the caller (non-streaming success only), runs adapter on_exit/teardown hooks, invokes actions.done, derives success/error state (emitting an error callback for HTTP status >= 400), fires RequestFinished events, and removes the temp body file (subject to log level and status). When stream=true, a stream handler (schedule_wrap) delivers chunks incrementally and fires a RequestStreaming event on first chunk; the final callback is still invoked once for cleanup and events, but chunk data is not forwarded again as a “final” success. The newer send API delegates to request under the hood and returns a lightweight handle with cancel() and status(); it defers on_done by one tick so an error arriving after “finish” can suppress a success notification. The send_sync API performs the same preparation work in-process and immediately returns either a response or an error for non-streaming use-cases. Across all paths, the client consistently routes work through the overridable schedule/schedule_wrap to keep behavior deterministic and easily testable, and it emits RequestStarted/RequestFinished (and optional custom) events so the rest of the plugin can react.
-
+The http.lua module implements a provider-agnostic HTTP client for CodeCompanion that centralizes request construction, streaming, scheduling, and testability. It uses `adapters.call_handler()` to invoke adapter handlers in a backwards-compatible way, working seamlessly with both old and new handler formats.
