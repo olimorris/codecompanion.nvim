@@ -396,6 +396,31 @@ require("codecompanion").setup({
 })
 ```
 
+## Setup: Codex
+
+To use OpenAI's [Codex](https://openai.com/codex/), install an ACP-compatible adapter like [this](https://github.com/zed-industries/codex-acp) one from [Zed](https://zed.dev).
+
+By default, the adapter will look for an `OPENAI_API_KEY` in your shell, however you can also authenticate via ChatGPT. This can be customized in the plugin configuration:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      codex = function()
+        return require("codecompanion.adapters").extend("codex", {
+          defaults = {
+            auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+          },
+          env = {
+            OPENAI_API_KEY = "my-api-key",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
 ## Setup: Using Ollama Remotely
 
 To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:

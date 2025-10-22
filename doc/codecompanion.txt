@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 22
+*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1108,6 +1108,36 @@ AN API KEY
             return require("codecompanion.adapters").extend("claude_code", {
               env = {
                 ANTHROPIC_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: CODEX ~
+
+To use OpenAI’s Codex <https://openai.com/codex/>, install an ACP-compatible
+adapter like this <https://github.com/zed-industries/codex-acp> one from Zed
+<https://zed.dev>.
+
+By default, the adapter will look for an `OPENAI_API_KEY` in your shell,
+however you can also authenticate via ChatGPT. This can be customized in the
+plugin configuration:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          codex = function()
+            return require("codecompanion.adapters").extend("codex", {
+              defaults = {
+                auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+              },
+              env = {
+                OPENAI_API_KEY = "my-api-key",
               },
             })
           end,
