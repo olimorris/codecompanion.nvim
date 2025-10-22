@@ -1,3 +1,53 @@
+--[[
+Matching strategies for finding and replacing text
+
+## Matching Strategy Chain:
+For each strategy:
+1. Find all matches above the confidence threshold
+2. If matches are unambiguous (clear winner) → return success
+3. If matches are too similar (confidence diff < 0.15) → try next strategy
+4. If all strategies tried → use best ambiguous match as fallback
+
+This adaptive approach prevents false positives while ensuring edits eventually succeed.
+
+1. **exact_match** (confidence: 1.0)
+   - Line-by-line exact string matching
+   - Handles trailing newline normalization
+   - Fast path for perfect matches
+
+2. **substring_exact_match** (confidence: 1.0, only with replaceAll)
+   - Plain-text substring search (no regex)
+   - Only activates when: replaceAll=true AND oldText has NO \n
+   - Finds all occurrences in file (max 1000)
+   - Perfect for token/keyword replacement (var→let, API renames)
+
+3. **whitespace_normalized** (confidence: 0.95)
+   - Handles spacing and indentation differences
+   - Removes extra whitespace for comparison
+
+4. **punctuation_normalized** (confidence: 0.93)
+   - Tolerates punctuation variations
+   - Normalizes common punctuation differences
+
+5. **position_markers** (confidence: 1.0)
+   - Special markers: "^" or "<<START>>" (file start)
+   - Special markers: "$" or "<<END>>" (file end)
+
+6. **trimmed_lines** (confidence: 0.8)
+   - Line-by-line with indentation flexibility
+   - Removes common indentation for comparison
+
+7. **block_anchor** (confidence: 0.6) -- This is last resort
+   - Uses first/last lines as anchor context
+   - Finds blocks by their boundaries
+
+## Key Functions:
+
+- **find_best_match**: Tries all strategies, returns best matches
+- **select_best_match**: Picks single match or handles ambiguity
+- **apply_replacement**: Applies text replacement (line-based or position-based)
+--]]
+
 local log = require("codecompanion.utils.log")
 
 local M = {}
@@ -745,8 +795,8 @@ end
 function M.find_best_match(content, old_text, replace_all)
   replace_all = replace_all or false
   -- Early validation to prevent processing huge inputs
-  if #content > 1000000 then -- 1MB limit
-    log:warn("[Edit File Strategies] Content too large (%d bytes), aborting", #content)
+  if #content > 2000000 then -- 2MB limit
+    log:warn("[Edit Tool Exp Strategies] Content too large (%d bytes), aborting", #content)
     return {
       success = false,
       error = "File too large for edit tool exp matching strategies",

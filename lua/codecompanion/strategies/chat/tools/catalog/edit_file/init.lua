@@ -1,3 +1,47 @@
+--[[
+Main orchestration for the edit_file tool
+
+This tool enables LLMs to make deterministic file edits through function calling.
+It supports various edit operations: standard replacements, replace-all, substring matching,
+file boundaries (start/end), and complete file overwrites.
+
+## Architecture Overview:
+
+1. **Entry Point (edit_file / edit_buffer)**:
+   - Separates edits into substring vs block/line types
+   - Applies changes only if all edits succeed (atomic operation)
+
+2. **Edit Processing (process_edits_sequentially)**:
+   - Handles substring edits in parallel (replaceAll with no newlines)
+   - Processes block/line edits sequentially
+   - Each edit sees the result of previous edits
+   - Detects conflicting edits
+
+3. **Matching (strategies module)**:
+   - Tries multiple matching strategies with fallback
+   - Exact match → Whitespace normalized → Block anchor
+   - For replaceAll + no newlines: uses efficient substring matching
+   - Returns confidence scores for match selection
+
+4. **Error Handling (match_selector module)**:
+   - Generates helpful error messages with context
+   - Suggests fixes for common mistakes
+   - Shows similar matches when exact match fails
+
+## Key Features:
+- Atomic operations: all edits succeed or none are applied
+- Smart matching with multiple fallback strategies
+- Substring mode for efficient token/keyword replacement (max 1000)
+- Handles whitespace differences and indentation variations
+- Size limits: 2MB file, 50KB search text
+
+## Special Cases:
+- Empty files: oldText="" for initial content
+- File boundaries: oldText="^" (start) or "$" (end)
+- Deletions: newText=""
+- Complete replacement: mode="overwrite"
+--]]
+
 local Path = require("plenary.path")
 
 local codecompanion = require("codecompanion")
@@ -509,10 +553,10 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- Early size validation to prevent freezes
-  if #current_content > 1000000 then -- 1MB limit
+  if #current_content > 2000000 then -- 2MB limit
     return output_handler({
       status = "error",
-      data = fmt("Error: File too large (%d bytes). Maximum supported size is 1MB.", #current_content),
+      data = fmt("Error: File too large (%d bytes). Maximum supported size is 2MB.", #current_content),
     })
   end
 
