@@ -102,13 +102,14 @@ local function fetch_async(adapter, provided_token)
         local models = {}
         for _, model in ipairs(json.data) do
           -- Copilot models can use the "completions" or "responses" endpoint
-          local internal_endtype = "completions"
+          local internal_endpoint = "completions"
           if model.supported_endpoints then
             for _, endpoint in ipairs(model.supported_endpoints) do
               if endpoint == "/responses" then
-                internal_endtype = "responses"
-              else
-                -- Ensure that by default we don't use any other endpoint
+                internal_endpoint = "responses"
+                break
+              elseif endpoint ~= "/chat/completions" then
+                log:debug("Copilot Adapter: Skipping unsupported endpoint '%s' for model '%s'", endpoint, model.id)
                 goto continue
               end
             end
@@ -128,7 +129,7 @@ local function fetch_async(adapter, provided_token)
             end
 
             models[model.id] = {
-              endpoint = internal_endtype,
+              endpoint = internal_endpoint,
               vendor = model.vendor,
               formatted_name = model.name,
               opts = choice_opts,
