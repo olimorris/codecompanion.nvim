@@ -1,5 +1,15 @@
 # Changelog
 
+## [17.27.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.27.0...v17.27.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* **acp:** handle adapter returning vim.NIL instead of lua:nil ([#2266](https://github.com/olimorris/codecompanion.nvim/issues/2266)) ([5efcc8f](https://github.com/olimorris/codecompanion.nvim/commit/5efcc8f401061caf022bc54392b1ad968717220e))
+* **adapters:** copilot now supporting completions endpoint ([#2284](https://github.com/olimorris/codecompanion.nvim/issues/2284)) ([9741526](https://github.com/olimorris/codecompanion.nvim/commit/9741526b5efa8f1f313c8d41bbd7f1862c7d75d5))
+* **chat:** omnifunc completion ([#2275](https://github.com/olimorris/codecompanion.nvim/issues/2275)) ([b1937ad](https://github.com/olimorris/codecompanion.nvim/commit/b1937ad400305860558c0adf6bd10ae7892fff26)), closes [#2270](https://github.com/olimorris/codecompanion.nvim/issues/2270)
+* **chat:** prevent readfile error on directories when using edit_tracker ([#2269](https://github.com/olimorris/codecompanion.nvim/issues/2269)) ([9d49b75](https://github.com/olimorris/codecompanion.nvim/commit/9d49b758de4a3f2c4c2e8a0561e6d126e47dad85))
+
 ## [17.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.26.0...v17.27.0) (2025-10-18)
 
 
