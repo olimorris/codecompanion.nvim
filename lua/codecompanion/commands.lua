@@ -42,11 +42,6 @@ for key, _ in pairs(config.strategies.inline.variables) do
   end
 end
 
-local chat_subcommands = vim.deepcopy(adapters)
-table.insert(chat_subcommands, "Toggle")
-table.insert(chat_subcommands, "Add")
-table.insert(chat_subcommands, "RefreshCache")
-
 ---@type CodeCompanion.Command[]
 return {
   {
@@ -128,6 +123,30 @@ return {
   {
     cmd = "CodeCompanionChat",
     callback = function(opts)
+      local params = {}
+      local prompt = {}
+      local subcommand = nil
+
+      for _, arg in ipairs(opts.fargs) do
+        local key, value = arg:match("^(%w+)=(.+)$")
+        if key and value then
+          params[key] = value
+        elseif arg:lower() == "toggle" or arg:lower() == "add" or arg:lower() == "refreshcache" then
+          subcommand = arg:lower()
+        else
+          -- Anything else is a prompt
+          table.insert(prompt, arg)
+        end
+      end
+
+      opts.params = params
+      opts.subcommand = subcommand
+
+      if #prompt > 0 then
+        opts.user_prompt = table.concat(prompt, " ")
+        opts.args = opts.user_prompt
+      end
+
       codecompanion.chat(opts)
     end,
     opts = {
@@ -138,13 +157,25 @@ return {
       -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
       complete = function(arg_lead, cmdline, _)
         if cmdline:match("^['<,'>]*CodeCompanionChat[!]*%s+%w*$") then
+          local completions = {}
+
+          for _, adapter in ipairs(adapters) do
+            table.insert(completions, "adapter=" .. adapter)
+          end
+
+          table.insert(completions, "Toggle")
+          table.insert(completions, "Add")
+          table.insert(completions, "RefreshCache")
+
           return vim
-            .iter(chat_subcommands)
+            .iter(completions)
             :filter(function(key)
               return key:find(arg_lead) ~= nil
             end)
             :totable()
         end
+
+        return {}
       end,
     },
   },
