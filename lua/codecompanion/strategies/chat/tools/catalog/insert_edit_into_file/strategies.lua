@@ -122,7 +122,7 @@ end
 ---@return string The content with replacement applied
 local function apply_line_replacement(content_lines, match, new_text)
   log:trace(
-    "Inser_edit_into_file Strategies] Line replacement: lines %d-%d, strategy: %s",
+    "Insert_edit_into_file Strategies] Line replacement: lines %d-%d, strategy: %s",
     match.start_line,
     match.end_line,
     match.strategy or "unknown"
@@ -157,7 +157,7 @@ local function apply_line_replacement(content_lines, match, new_text)
     end
 
     log:trace(
-      "Inser_edit_into_file Strategies] Replacing %d lines with %d lines",
+      "Insert_edit_into_file Strategies] Replacing %d lines with %d lines",
       match.end_line - match.start_line + 1,
       #new_text_lines
     )
@@ -234,7 +234,7 @@ function M.exact_match(content, old_text)
     end
   end
 
-  log:debug("Inser_edit_into_file Strategies] Exact match found %d matches", #matches)
+  log:debug("Insert_edit_into_file Strategies] Exact match found %d matches", #matches)
   return matches
 end
 
@@ -265,7 +265,7 @@ function M.trimmed_lines(content, old_text)
 
   if #content_lines > max_content_lines then
     log:warn(
-      "Inser_edit_into_file Strategies] File too large (%d lines), trimming to %d",
+      "Insert_edit_into_file Strategies] File too large (%d lines), trimming to %d",
       #content_lines,
       max_content_lines
     )
@@ -274,7 +274,7 @@ function M.trimmed_lines(content, old_text)
 
   if #search_lines > max_search_lines then
     log:warn(
-      "Inser_edit_into_file Strategies] Search text too large (%d lines), aborting trimmed_lines strategy",
+      "Insert_edit_into_file Strategies] Search text too large (%d lines), aborting trimmed_lines strategy",
       #search_lines
     )
     return matches
@@ -326,7 +326,7 @@ function M.trimmed_lines(content, old_text)
   for i = 1, #content_lines - #search_lines + 1 do
     iterations = iterations + 1
     if iterations > max_iterations then
-      log:warn("Inser_edit_into_file Strategies] Too many iterations (%d), terminating search early", iterations)
+      log:warn("Insert_edit_into_file Strategies] Too many iterations (%d), terminating search early", iterations)
       break
     end
 
@@ -377,7 +377,7 @@ function M.trimmed_lines(content, old_text)
     end
   end
 
-  log:debug("Inser_edit_into_file Strategies] Trimmed lines found %d matches", #matches)
+  log:debug("Insert_edit_into_file Strategies] Trimmed lines found %d matches", #matches)
   return matches
 end
 
@@ -407,7 +407,7 @@ function M.position_markers(content, old_text)
     })
   end
 
-  log:debug("Inser_edit_into_file Strategies] Position markers found %d matches", #matches)
+  log:debug("Insert_edit_into_file Strategies] Position markers found %d matches", #matches)
   return matches
 end
 
@@ -493,7 +493,7 @@ function M.punctuation_normalized(content, old_text)
     end
   end
 
-  log:debug("Inser_edit_into_file Strategies] Punctuation normalized found %d matches", #matches)
+  log:debug("Insert_edit_into_file Strategies] Punctuation normalized found %d matches", #matches)
   return matches
 end
 
@@ -563,7 +563,7 @@ function M.whitespace_normalized(content, old_text)
     end
   end
 
-  log:debug("Inser_edit_into_file Strategies] Whitespace normalized found %d matches", #matches)
+  log:debug("Insert_edit_into_file Strategies] Whitespace normalized found %d matches", #matches)
   return matches
 end
 
@@ -790,7 +790,7 @@ function M.block_anchor(content, old_text)
     end
   end
 
-  log:debug("Inser_edit_into_file Strategies] Block anchor found %d matches", #matches)
+  log:debug("Insert_edit_into_file Strategies] Block anchor found %d matches", #matches)
   return matches
 end
 
@@ -812,7 +812,7 @@ function M.find_best_match(content, old_text, replace_all)
   end
 
   if #old_text > 50000 then -- 50KB limit for search text
-    log:warn("Inser_edit_into_file Strategies] Search text too large (%d bytes), aborting", #old_text)
+    log:warn("Insert_edit_into_file Strategies] Search text too large (%d bytes), aborting", #old_text)
     return {
       success = false,
       error = "Search text too large for edit tool exp matching strategies",
@@ -836,21 +836,21 @@ function M.find_best_match(content, old_text, replace_all)
   for i, strategy in ipairs(all_strategies) do
     -- Skip substring_exact_match if not replaceAll
     if strategy.only_replace_all and not replace_all then
-      log:debug("Inser_edit_into_file Strategies] Skipping %s (only for replaceAll)", strategy.name)
+      log:debug("Insert_edit_into_file Strategies] Skipping %s (only for replaceAll)", strategy.name)
       goto continue
     end
 
-    log:debug("Inser_edit_into_file Strategies] Trying strategy: %s", strategy.name)
+    log:debug("Insert_edit_into_file Strategies] Trying strategy: %s", strategy.name)
 
     -- Add timeout protection for each strategy
     local start_time = vim.loop.hrtime()
     local matches = strategy.func(content, old_text)
     local elapsed_ms = (vim.loop.hrtime() - start_time) / 1000000
 
-    log:debug("Inser_edit_into_file Strategies] Strategy %s took %.2fms", strategy.name, elapsed_ms)
+    log:debug("Insert_edit_into_file Strategies] Strategy %s took %.2fms", strategy.name, elapsed_ms)
 
     if elapsed_ms > 5000 then -- 5 second warning
-      log:warn("Inser_edit_into_file Strategies] Strategy %s took unusually long: %.2fms", strategy.name, elapsed_ms)
+      log:warn("Insert_edit_into_file Strategies] Strategy %s took unusually long: %.2fms", strategy.name, elapsed_ms)
     end
 
     -- Filter by confidence threshold
@@ -859,7 +859,7 @@ function M.find_best_match(content, old_text, replace_all)
     end, matches)
 
     if #good_matches > 0 then
-      log:debug("Inser_edit_into_file Strategies] Strategy %s found %d matches", strategy.name, #good_matches)
+      log:debug("Insert_edit_into_file Strategies] Strategy %s found %d matches", strategy.name, #good_matches)
 
       -- Check if this is the last strategy
       local is_last_strategy = (i == #all_strategies)
@@ -898,7 +898,7 @@ function M.find_best_match(content, old_text, replace_all)
       end
 
       if selection_result.success then
-        log:debug("Inser_edit_into_file Strategies] Strategy %s succeeded with confident match", strategy.name)
+        log:debug("Insert_edit_into_file Strategies] Strategy %s succeeded with confident match", strategy.name)
         return {
           success = true,
           matches = good_matches,
@@ -929,7 +929,7 @@ function M.find_best_match(content, old_text, replace_all)
     }
   end
 
-  log:debug("Inser_edit_into_file Strategies] All strategies failed")
+  log:debug("Insert_edit_into_file Strategies] All strategies failed")
   return {
     success = false,
     error = "No confident matches found with any strategy",
