@@ -28,6 +28,7 @@ local TIMEOUTS = {
   RESPONSE_POLL = 10, -- 10ms
 }
 
+local api = vim.api
 local uv = vim.uv
 
 --=============================================================================
@@ -136,6 +137,16 @@ function Connection:connect_and_initialize()
 
     self._initialized = true
     log:debug("[acp::connect_and_initialize] ACP connection initialized")
+
+    -- Ensure that we ALWAYS disconnect when exiting Neovim
+    api.nvim_create_autocmd("VimLeavePre", {
+      group = vim.api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
+      callback = function()
+        pcall(function()
+          return self:disconnect()
+        end)
+      end,
+    })
   end
 
   -- Allow adapters to handle authentication themselves
