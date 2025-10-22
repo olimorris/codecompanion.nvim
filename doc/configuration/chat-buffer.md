@@ -574,7 +574,7 @@ require("codecompanion").setup({
 })
 ```
 
-### Folding
+### Context
 
 It's not uncommon for users to share many items, as context, with an LLM. This can impact the chat buffer's UI significantly, leaving a large space between the LLM's last response and the user's input. To minimize this impact, the context can be folded:
 
@@ -591,7 +591,9 @@ require("codecompanion").setup({
 })
 ```
 
-Reasoning content is also folded by default:
+### Reasoning
+
+An adapter's reasoning is streamed into the chat buffer by default, under a `h3` heading. By default, this output will be folded once streaming has been completed. You can turn off folding and hide reasoning output altogether:
 
 ```lua
 require("codecompanion").setup({
@@ -600,7 +602,8 @@ require("codecompanion").setup({
       icons = {
         chat_fold = " ",
       },
-      fold_reasoning = true,
+      fold_reasoning = false,
+      show_reasoning = false,
     },
   },
 })
