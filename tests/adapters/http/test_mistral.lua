@@ -200,30 +200,6 @@ T["Mistral adapter"]["Streaming"]["can output streamed data into a format for th
   )
 end
 
--- T["Mistral adapter"]["Streaming"]["can handle reasoning content when streaming"] = function()
---   local output = {
---     content = "",
---     reasoning = {
---       content = "",
---     },
---   }
---
---   local lines = vim.fn.readfile("tests/adapters/http/stubs/mistral_streaming.txt")
---   for _, line in ipairs(lines) do
---     local chat_output = adapter.handlers.chat_output(adapter, line)
---     if chat_output then
---       if chat_output.output.reasoning and chat_output.output.reasoning.content then
---         output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
---       end
---       if chat_output.output.content then
---         output.content = output.content .. chat_output.output.content
---       end
---     end
---   end
---
---   h.expect_starts_with("Okay, the user wants me to explain Ruby in two words. ", output.reasoning.content)
--- end
-
 T["Mistral adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/mistral_tools_streaming.txt")
