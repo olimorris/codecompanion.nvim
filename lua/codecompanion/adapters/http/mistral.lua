@@ -58,36 +58,7 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      messages = adapter_utils.merge_messages(messages)
-      messages = adapter_utils.merge_system_messages(messages)
-
-      messages = vim
-        .iter(messages)
-        :map(function(msg)
-          -- Ensure that all messages have a content field
-          local content = msg.content
-          if content and type(content) == "table" then
-            msg.content = table.concat(content, "\n")
-          elseif not content then
-            msg.content = ""
-          end
-
-          -- Process tools
-          if msg.tools then
-            if msg.tools.calls then
-              msg.tool_calls = msg.tools.calls
-            end
-            if msg.tools.call_id then
-              msg.tool_call_id = msg.tools.call_id
-            end
-            msg.tools = nil
-          end
-
-          return msg
-        end)
-        :totable()
-
-      return { messages = messages }
+      return openai.handlers.form_messages(self, messages)
     end,
     chat_output = function(self, data, tools)
       if not data or data == "" then

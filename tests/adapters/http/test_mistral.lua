@@ -23,79 +23,10 @@ T["Mistral adapter"]["form_messages"]["it can form messages to be sent to the AP
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["Mistral adapter"]["form_messages"]["merges consecutive messages with the same role"] = function()
-  local input = {
-    { role = "user", content = "A" },
-    { role = "user", content = "B" },
-    { role = "assistant", content = "C" },
-    { role = "assistant", content = "D" },
-    { role = "user", content = "E" },
-  }
-
-  local expected = {
-    messages = {
-      { role = "user", content = "A\n\nB" },
-      { role = "assistant", content = "C\n\nD" },
-      { role = "user", content = "E" },
-    },
-  }
-
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
-end
-
-T["Mistral adapter"]["form_messages"]["merges system messages together at the start of the message chain"] = function()
-  local input = {
-    { role = "system", content = "System Prompt 1" },
-    { role = "user", content = "User1" },
-    { role = "system", content = "System Prompt 2" },
-    { role = "system", content = "System Prompt 3" },
-  }
-
-  local expected = {
-    messages = {
-      {
-        content = "System Prompt 1 System Prompt 2\n\nSystem Prompt 3",
-        role = "system",
-      },
-      {
-        content = "User1",
-        role = "user",
-      },
-    },
-  }
-
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
-end
-
-T["Mistral adapter"]["form_messages"]["ensures message content is a string and not a list"] = function()
-  -- Ref: https://github.com/BerriAI/litellm/issues/6642
-  local input = {
-    { role = "user", content = "Describe Ruby in two words" },
-    { role = "assistant", content = { "Elegant, Simple." } },
-  }
-
-  local expected = {
-    messages = {
-      {
-        content = "Describe Ruby in two words",
-        role = "user",
-      },
-      {
-        content = "Elegant, Simple.",
-        role = "assistant",
-      },
-    },
-  }
-
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
-end
-
 T["Mistral adapter"]["form_messages"]["it can form messages with tools"] = function()
   local input = {
     { role = "system", content = "System Prompt 1" },
     { role = "user", content = "User1" },
-    { role = "system", content = "System Prompt 2" },
-    { role = "system", content = "System Prompt 3" },
     {
       role = "llm",
       tools = {
@@ -124,7 +55,7 @@ T["Mistral adapter"]["form_messages"]["it can form messages with tools"] = funct
   local expected = {
     messages = {
       {
-        content = "System Prompt 1 System Prompt 2\n\nSystem Prompt 3",
+        content = "System Prompt 1",
         role = "system",
       },
       {
@@ -132,7 +63,6 @@ T["Mistral adapter"]["form_messages"]["it can form messages with tools"] = funct
         role = "user",
       },
       {
-        content = "",
         role = "llm",
         tool_calls = {
           {
