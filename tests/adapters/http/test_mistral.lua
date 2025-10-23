@@ -195,7 +195,7 @@ T["Mistral adapter"]["Streaming"]["can output streamed data into a format for th
     end
   end
   h.eq(
-    "**Concise** and **expressive**.",
+    "Dynamic Language",
     output
   )
 end
