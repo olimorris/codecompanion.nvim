@@ -1,3 +1,5 @@
+local adapter_utils = require("codecompanion.utils.adapters")
+local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
 ---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
@@ -56,7 +58,36 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      messages = adapter_utils.merge_messages(messages)
+      messages = adapter_utils.merge_system_messages(messages)
+
+      messages = vim
+        .iter(messages)
+        :map(function(msg)
+          -- Ensure that all messages have a content field
+          local content = msg.content
+          if content and type(content) == "table" then
+            msg.content = table.concat(content, "\n")
+          elseif not content then
+            msg.content = ""
+          end
+
+          -- Process tools
+          if msg.tools then
+            if msg.tools.calls then
+              msg.tool_calls = msg.tools.calls
+            end
+            if msg.tools.call_id then
+              msg.tool_call_id = msg.tools.call_id
+            end
+            msg.tools = nil
+          end
+
+          return msg
+        end)
+        :totable()
+
+      return { messages = messages }
     end,
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
