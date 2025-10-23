@@ -194,10 +194,7 @@ T["Mistral adapter"]["Streaming"]["can output streamed data into a format for th
       output = output .. chat_output.output.content
     end
   end
-  h.eq(
-    "Dynamic Language",
-    output
-  )
+  h.eq("Dynamic Language", output)
 end
 
 T["Mistral adapter"]["Streaming"]["can process tools"] = function()
@@ -262,16 +259,17 @@ T["Mistral adapter"]["No Streaming"]["can process tools"] = function()
     {
       ["function"] = {
         arguments = '{"units": "celsius", "location": "London, UK"}',
-        name = "weather"
+        name = "weather",
       },
-      id = "ARMRcKTps"
-    }, {
+      id = "ARMRcKTps",
+    },
+    {
       ["function"] = {
         arguments = '{"units": "celsius", "location": "Paris, France"}',
-        name = "weather"
+        name = "weather",
       },
-      id = "6HQYyBgbW"
-    }
+      id = "6HQYyBgbW",
+    },
   }
 
   h.eq(tool_output, tools)
