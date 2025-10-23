@@ -80,9 +80,6 @@ return {
 
           if delta and delta.tool_calls and #delta.tool_calls > 0 then
             for i, tool in ipairs(delta.tool_calls) do
-              local tool_index = tool.index and tonumber(tool.index) or i
-
-              -- Some endpoints like Gemini do not set this (why?!)
               local id = tool.id
               if not id or id == "" then
                 id = string.format("call_%s_%s", json.created, i)
@@ -91,7 +88,7 @@ return {
               if self.opts.stream then
                 local found = false
                 for _, existing_tool in ipairs(tools) do
-                  if existing_tool._index == tool_index then
+                  if existing_tool.id == id then
                     -- Append to arguments if this is a continuation of a stream
                     if tool["function"] and tool["function"]["arguments"] then
                       existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
