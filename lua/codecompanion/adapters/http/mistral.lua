@@ -90,7 +90,87 @@ return {
       return { messages = messages }
     end,
     chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
+      if not data or data == "" then
+        return nil
+      end
+
+      -- Handle both streamed data and structured response
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
+      local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+      if not ok or not json.choices or #json.choices == 0 then
+        return nil
+      end
+
+      -- Process tool calls from all choices
+      if self.opts.tools and tools then
+        for _, choice in ipairs(json.choices) do
+          local delta = self.opts.stream and choice.delta or choice.message
+
+          if delta and delta.tool_calls and #delta.tool_calls > 0 then
+            for i, tool in ipairs(delta.tool_calls) do
+              local tool_index = tool.index and tonumber(tool.index) or i
+
+              -- Some endpoints like Gemini do not set this (why?!)
+              local id = tool.id
+              if not id or id == "" then
+                id = string.format("call_%s_%s", json.created, i)
+              end
+
+              if self.opts.stream then
+                local found = false
+                for _, existing_tool in ipairs(tools) do
+                  if existing_tool._index == tool_index then
+                    -- Append to arguments if this is a continuation of a stream
+                    if tool["function"] and tool["function"]["arguments"] then
+                      existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
+                        .. tool["function"]["arguments"]
+                    end
+                    found = true
+                    break
+                  end
+                end
+
+                if not found then
+                  table.insert(tools, {
+                    id = id,
+                    type = tool.type,
+                    ["function"] = {
+                      name = tool["function"]["name"],
+                      arguments = tool["function"]["arguments"] or "",
+                    },
+                  })
+                end
+              else
+                table.insert(tools, {
+                  id = id,
+                  type = tool.type,
+                  ["function"] = {
+                    name = tool["function"]["name"],
+                    arguments = tool["function"]["arguments"],
+                  },
+                })
+              end
+            end
+          end
+        end
+      end
+
+      -- Process message content from the first choice
+      local choice = json.choices[1]
+      local delta = self.opts.stream and choice.delta or choice.message
+
+      if not delta then
+        return nil
+      end
+
+      return {
+        status = "success",
+        output = {
+          role = delta.role,
+          content = delta.content,
+        },
+      }
     end,
     tools = {
       format_tool_calls = function(self, tools)

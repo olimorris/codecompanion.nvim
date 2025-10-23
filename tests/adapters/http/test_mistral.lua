@@ -233,7 +233,6 @@ T["Mistral adapter"]["Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _index = 0,
       ["function"] = {
         arguments = '{"location": "Paris, France", "units": "celsius"}',
         name = "weather",
@@ -241,7 +240,6 @@ T["Mistral adapter"]["Streaming"]["can process tools"] = function()
       id = "3sKXImamX",
     },
     {
-      _index = 1,
       ["function"] = {
         arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
         name = "weather",
@@ -286,14 +284,12 @@ T["Mistral adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _index = 1,
       ["function"] = {
         arguments = '{"units": "celsius", "location": "London, UK"}',
         name = "weather"
       },
       id = "ARMRcKTps"
     }, {
-      _index = 2,
       ["function"] = {
         arguments = '{"units": "celsius", "location": "Paris, France"}',
         name = "weather"
