@@ -12,7 +12,7 @@ return {
     tool = "tool",
   },
   opts = {
-    stream = true,
+    stream = false,
     vision = true,
     tools = true,
   },

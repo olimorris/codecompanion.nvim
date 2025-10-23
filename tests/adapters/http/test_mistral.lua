@@ -174,8 +174,17 @@ T["Mistral adapter"]["form_messages"]["it can form tools to be sent to the API"]
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
-T["Mistral adapter"]["Streaming"] = new_set()
-
+T["Mistral adapter"]["Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("mistral", {
+        opts = {
+          stream = true,
+        },
+      })
+    end,
+  },
+})
 T["Mistral adapter"]["Streaming"]["can output streamed data into a format for the chat buffer"] = function()
   local lines = vim.fn.readfile("tests/adapters/http/stubs/mistral_streaming.txt")
   local output = ""
@@ -226,20 +235,18 @@ T["Mistral adapter"]["Streaming"]["can process tools"] = function()
     {
       _index = 0,
       ["function"] = {
-        arguments = '{"location": "London", "units": "celsius"}',
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
         name = "weather",
       },
-      id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
-      type = "function",
+      id = "3sKXImamX",
     },
     {
       _index = 1,
       ["function"] = {
-        arguments = '{"location": "Paris", "units": "celsius"}',
+        arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
         name = "weather",
       },
-      id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
-      type = "function",
+      id = "22sZzWH6p",
     },
   }
 
@@ -279,23 +286,20 @@ T["Mistral adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _index = 0,
-      ["function"] = {
-        arguments = '{"location": "London", "units": "celsius"}',
-        name = "weather",
-      },
-      id = "call_0_74655864-c1ab-455f-88c5-921aa7b6281c",
-      type = "function",
-    },
-    {
       _index = 1,
       ["function"] = {
-        arguments = '{"location": "Paris", "units": "celsius"}',
-        name = "weather",
+        arguments = '{"units": "celsius", "location": "London, UK"}',
+        name = "weather"
       },
-      id = "call_1_759f62c3-f8dc-475f-9558-8211fc0a133c",
-      type = "function",
-    },
+      id = "ARMRcKTps"
+    }, {
+      _index = 2,
+      ["function"] = {
+        arguments = '{"units": "celsius", "location": "Paris, France"}',
+        name = "weather"
+      },
+      id = "6HQYyBgbW"
+    }
   }
 
   h.eq(tool_output, tools)
