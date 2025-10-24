@@ -310,29 +310,6 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | xAI               | All               | :x:                | Not supported yet                   |
 
 
-### Mistral compatibility
+> [!IMPORTANT]
+> When using Mistral, you will need to set `strategies.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.
 
-When using Mistral models, make sure you enable the `auto_submit_error` tools option (`auto_submit_success` is on by default). Otherwise the tools may not work as expected and you may see the following error :
-
-```
-Error: {"object":"error","message":"Unexpected role 'user' after role 'tool'","type":"invalid_request_message_order","param":null,"
-code":"3230"}
-```
-
-Use the following configuration: 
-
-```lua
-{
-  strategies = {
-    chat = {
-      adapter = "mistral", 
-      tools = {
-        opts = {
-          -- this is needed for mistral to work peroperly
-          auto_submit_errors = true, -- Send any errors to the LLM 
-        },
-      }
-    },
-  }
-}
-```
