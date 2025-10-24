@@ -308,3 +308,31 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | All               | :x:                | Not supported yet                   |
+
+
+### Mistral compatibility
+
+When using Mistral models, make sure you enable the `auto_submit_error` tools option (`auto_submit_success` is on by default). Otherwise the tools may not work as expected and you may see the following error :
+
+```
+Error: {"object":"error","message":"Unexpected role 'user' after role 'tool'","type":"invalid_request_message_order","param":null,"
+code":"3230"}
+```
+
+Use the following configuration: 
+
+```lua
+{
+  strategies = {
+    chat = {
+      adapter = "mistral", 
+      tools = {
+        opts = {
+          -- this is needed for mistral to work peroperly
+          auto_submit_errors = true, -- Send any errors to the LLM 
+        },
+      }
+    },
+  }
+}
+```
