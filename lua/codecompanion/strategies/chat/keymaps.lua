@@ -10,11 +10,10 @@ local api = vim.api
 local CONSTANTS = {
   icons = {
     -- TODO: Make the default overwritable.
-    -- TODO: Are there better looking icons for this?
-    tools = "🛠",
-    vision = "👁",
-    stream = "⇶",
-    reason = "💭",
+    tools  = " ", -- nf-cod-tools
+    vision = "󰡼 ", -- nf-md-image_plus
+    stream = " ", -- nf-fa-arrow_right_arrow_left
+    reason = "󰟷 ", -- nf-md-thought_bubble_outline
   },
 }
 
