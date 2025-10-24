@@ -42,6 +42,9 @@ return {
         if not model_opts.opts.has_vision then
           self.opts.vision = false
         end
+        if model_opts.opts.has_function_calling ~= nil and not model_opts.opts.has_function_calling then
+          self.opts.tools = false
+        end
       end
 
       return true
