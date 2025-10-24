@@ -524,7 +524,7 @@ end
 ---@param chat_bufnr number
 ---@param output_handler function
 ---@param opts table|nil
-local function insert_edit_into_file(action, chat_bufnr, output_handler, opts)
+local function edit_file(action, chat_bufnr, output_handler, opts)
   opts = opts or {}
   local filepath = helpers.validate_and_normalize_path(action.filepath)
 
@@ -849,7 +849,7 @@ return {
       if bufnr then
         return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
       else
-        return insert_edit_into_file(args, self.chat.bufnr, output_handler, self.tool.opts)
+        return edit_file(args, self.chat.bufnr, output_handler, self.tool.opts)
       end
     end,
   },
