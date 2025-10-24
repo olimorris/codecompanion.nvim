@@ -25,27 +25,26 @@ The best way to contribute to CodeCompanion is to use CodeCompanion to help you 
 
 They're located [here](https://codecompanion.olimorris.dev) and are regularly updated.
 
-### Use Workspaces
+### Use Memory
 
-CodeCompanion makes use of [workspaces](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html#workspace), which allow groups of files and context, to be shared with an LLM more easily:
+When working inside the CodeCompanion repository, you have access to the built-in [memory](https://codecompanion.olimorris.dev/usage/chat-buffer/memory#whilst-in-the-chat-buffer) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
 
-<img src="https://github.com/user-attachments/assets/a04e9b2d-bfc6-4f03-84fe-77c0f5cb92f2">
+You can load memory into the chat via the Action Palette:
 
-This allows the LLM to understand exactly what CodeCompanion does and how it functions. Multiple workspaces can be loaded into a chat buffer as well.
+<img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c">
 
-### Use VectorCode
+Or, via the `/memory` slash command. Currently, the memory files that have been added are:
 
-[VectorCode](https://github.com/Davidyz/VectorCode/tree/main) is a repository indexing tool and makes it very easy to intelligently share relevant parts of a codebase with an LLM. Follow the installation instructions [here](https://codecompanion.olimorris.dev/extensions/vectorcode.html#installation) including how to add it as a CodeCompanion extension.
-
-Once installed, you can begin to index the CodeCompanion repository that you've cloned. Simply run `vectorcode vectorise -r` and you should see output similar to:
-
-![Image](https://github.com/user-attachments/assets/9fb7ef65-3a3f-4e56-9d75-f4e2e1f71aea)
-
-You can then proceed to using VectorCode as per the [usage](https://codecompanion.olimorris.dev/extensions/vectorcode.html#usage) instructions in the chat buffer.
+- ACP
+- Adapters
+- Chat
+- Tests
+- Tools
+- UI
 
 ### Refer to the Tests
 
-CodeCompanion has [c. 200 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
+CodeCompanion has [c. 500 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
 
 ## Project Structure
 

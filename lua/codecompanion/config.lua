@@ -37,6 +37,7 @@ local defaults = {
     },
     acp = {
       claude_code = "claude_code",
+      codex = "codex",
       gemini_cli = "gemini_cli",
       opts = {
         show_defaults = true, -- Show default adapters
@@ -1351,7 +1352,9 @@ You must create or modify a workspace file through a series of prompts over mult
 
       show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       fold_context = false, -- Fold context in the chat buffer?
-      fold_reasoning = true, -- Fold the reasoning content from the LLM in the chat buffer?
+
+      show_reasoning = true, -- Show reasoning content in the chat buffer?
+      fold_reasoning = true, -- Fold the reasoning content in the chat buffer?
 
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?

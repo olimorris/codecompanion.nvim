@@ -320,8 +320,12 @@ end
 ---@return nil
 function Orchestrator:execute(cmd, input)
   utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
-  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-  self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
+
+  pcall(function()
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
+  end)
+
   return Runner.new(self, cmd, 1):setup(input)
 end
 
@@ -334,10 +338,12 @@ function Orchestrator:error(action, error)
   self.tools.status = self.tools.constants.STATUS_ERROR
   table.insert(self.tools.stderr, error)
 
-  -- Finish tool monitoring with error status
   if self.tool and self.tool.name then
-    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
+    -- Wrap this in error handling to avoid breaking the tool execution
+    pcall(function()
+      local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
+    end)
   end
 
   local ok, err = pcall(function()
@@ -360,11 +366,14 @@ end
 function Orchestrator:success(action, output)
   log:debug("Orchestrator:success")
   self.tools.status = self.tools.constants.STATUS_SUCCESS
-  -- Direct call to finish tool monitoring
+
   if self.tool and self.tool.name then
-    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
+    pcall(function()
+      local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
+    end)
   end
+
   if output then
     table.insert(self.tools.stdout, output)
   end

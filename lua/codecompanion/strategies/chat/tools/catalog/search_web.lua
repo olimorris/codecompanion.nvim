@@ -42,7 +42,7 @@ return {
         .new({
           adapter = adapter,
         })
-        :request(_, {
+        :request({ query = query, domains = args.domains }, {
           callback = function(err, data)
             local error_message = [[Error searching for `%s`]]
             local error_message_expanded = error_message .. "\n%s"
