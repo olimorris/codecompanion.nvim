@@ -69,7 +69,6 @@ The tool uses different strategies based on your parameters:
   - **oldText** (required): Exact text to find from file (preserve indentation exactly)
   - **newText** (required): Replacement text (empty string for deletion)
   - **replaceAll** (optional): true = replace all occurrences, false (default) = single/best match
-- **dryRun** (optional): **DO NOT USE.**  Keep this `false` (default) or omit it entirely. Only set to `true` if the user explicitly says "make dryRun true".
 - **mode** (optional): "append" (default) or "overwrite"
 - **explanation** (optional): Description of changes
 
