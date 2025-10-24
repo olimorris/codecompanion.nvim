@@ -41,8 +41,7 @@ local function get_models(self, opts)
   end
 
   adapter_utils.get_env_vars(adapter)
-  local url = adapter.env_replaced.url
-  local models_endpoint = adapter.env_replaced.models_endpoint
+  local url = adapter.env_replaced.url .. adapter.env_replaced.models_endpoint
 
   local headers = {
     ["content-type"] = "application/json",
@@ -54,7 +53,7 @@ local function get_models(self, opts)
   local ok, response, json
 
   ok, response = pcall(function()
-    return Curl.get(url .. models_endpoint, {
+    return Curl.get(url, {
       sync = true,
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
@@ -62,13 +61,13 @@ local function get_models(self, opts)
     })
   end)
   if not ok then
-    log:error("Could not get the OpenAI compatible models from " .. url .. "/v1/models.\nError: %s", response)
+    log:error("Could not get the OpenAI compatible models from " .. url .. ".\nError: %s", response)
     return {}
   end
 
   ok, json = pcall(vim.json.decode, response.body)
   if not ok then
-    log:error("Could not parse the response from " .. url .. "/v1/models")
+    log:error("Could not parse the response from " .. url)
     return {}
   end
 
