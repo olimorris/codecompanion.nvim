@@ -85,7 +85,7 @@ T["Format Helpful Error Tests"]["limits matches display to 5"] = function()
 
   h.expect_contains("... and 3 more matches", error_msg)
   -- Should not show match 6, 7, 8
-  h.not_eq(error_msg:find("match 6"), nil or false, "Should not show match 6 and beyond")
+  h.eq(error_msg:find("match 6"), nil, "Should not show match 6 and beyond")
 end
 
 T["Format Helpful Error Tests"]["handles no confident matches error"] = function()
@@ -360,7 +360,7 @@ T["Error Building Pattern Tests"]["handles conditional sections correctly"] = fu
   -- Test without matches to ensure conditional section is not added
   failed_result.matches = nil
   local error_msg2 = match_selector.format_helpful_error(failed_result, original_edits)
-  h.not_eq(error_msg2:find("Found .* similar matches:"), "Should not show matches section when no matches")
+  h.eq(error_msg2:find("Found .* similar matches:"), nil, "Should not show matches section when no matches")
 end
 
 return T
