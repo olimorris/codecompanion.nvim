@@ -1,11 +1,15 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local openai = require("codecompanion.adapters.http.openai")
 
----@param message string
----@return string
+local CONSTANTS = { thinking_start = "<thought>", thinking_end = "</thought>" }
+
+---@param message string?
+---@return string?
 local function strip_thinking_tags(message)
-  local result = message:gsub("^<thought>", ""):gsub("^</thought>", "")
-  return result
+  if message then
+    local result = message:gsub("^" .. CONSTANTS.thinking_start, ""):gsub("^" .. CONSTANTS.thinking_end, "")
+    return result
+  end
 end
 
 ---@class CodeCompanion.HTTPAdapter.Gemini : CodeCompanion.HTTPAdapter
@@ -119,13 +123,33 @@ return {
       end
 
       local extra_content = openai_output.extra_content
-      if extra_content then
+      local has_thinking = extra_content and extra_content.google and extra_content.google.thought
+
+      if not has_thinking then
+        -- this delta is either the actual answer after a reasoning sequence, or with reasoning off.
+        -- in the former case, the sequence might start with a `</thought>` tag. strip it.
+        return {
+          status = openai_output.status,
+          output = { content = strip_thinking_tags(openai_output.output.content), role = openai_output.output.role },
+        }
+      end
+
+      if self.opts.stream then
+        -- the `content` field actually contains the reasoning summary.
+        -- put it in the `reasoning` field and erase `content` so that it's not mistaken as the response
         local reasoning = strip_thinking_tags(openai_output.output.content)
         openai_output.output.reasoning = { content = reasoning }
         openai_output.output.content = nil
         openai_output.extra_content = nil -- maybe not needed?
-      elseif openai_output.output.content then
-        openai_output.output.content = strip_thinking_tags(openai_output.output.content)
+      else
+        -- when not streaming, the reasoning summary and final answer are sent in one big chunk,
+        -- with the reasoning wrapped in the `<thought>` tags.
+        openai_output.output.reasoning = {
+          content = openai_output.output.content:match(
+            string.format("^%s(.*)%s", CONSTANTS.thinking_start, CONSTANTS.thinking_end)
+          ),
+        }
+        openai_output.output.content = openai_output.output.content:gsub(".*" .. CONSTANTS.thinking_end, "")
       end
 
       return openai_output
