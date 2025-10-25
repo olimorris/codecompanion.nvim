@@ -1,0 +1,25 @@
+{
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "content": "<thought>This is a dummy thinking summary</thought>Elegant, dynamic.\\n\\nNext question?\\n",
+                "role": "assistant",
+                "extra_content": {
+                    "google": {
+                        "thought": true
+                    }
+                }
+            }
+        }
+    ],
+    "created": 1743460357,
+    "model": "gemini-2.5-flash",
+    "object": "chat.completion",
+    "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 419,
+        "total_tokens": 428
+    }
+}

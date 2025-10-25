@@ -1,0 +1,6 @@
+data: {"choices":[{"delta":{"content":"<thought>This is a dummy reasoning segment","role":"assistant", "extra_content":{"google":{"thought":true}}},"index":0}],"created":1743460108,"model":"gemini-2.5-flash","object":"chat.completion.chunk","usage":{"completion_tokens":0,"prompt_tokens":425,"total_tokens":425}}
+data: {"choices":[{"delta":{"content":"</thought>Elegant","role":"assistant"},"index":0}],"created":1743460109,"model":"gemini-2.5-flash","object":"chat.completion.chunk","usage":{"completion_tokens":0,"prompt_tokens":425,"total_tokens":425}}
+Tokens: 425
+data: {"choices":[{"delta":{"content":", dynamic.\n\nNext question?\n","role":"assistant"},"finish_reason":"stop","index":0}],"created":1743460109,"model":"gemini-2.5-flash","object":"chat.completion.chunk","usage":{"completion_tokens":9,"prompt_tokens":419,"total_tokens":428}}
+Tokens: 428
+data: [DONE]
