@@ -1,5 +1,19 @@
 # Changelog
 
+## [17.29.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.28.0...v17.29.0) (2025-10-25)
+
+
+### Features
+
+* **adapters:** add tool support to Mistral ([#2278](https://github.com/olimorris/codecompanion.nvim/issues/2278)) ([2a2b294](https://github.com/olimorris/codecompanion.nvim/commit/2a2b29410ddb4c2a5f72a2629c2180130ed9d4bb))
+* **ui:** snacks picker shows previews in action palette ([#2295](https://github.com/olimorris/codecompanion.nvim/issues/2295)) ([41305ff](https://github.com/olimorris/codecompanion.nvim/commit/41305ffa613f3d210ef5418da2ea42d9af29e181))
+
+
+### Bug Fixes
+
+* **acp:** race condition during initialization ([#2300](https://github.com/olimorris/codecompanion.nvim/issues/2300)) ([bcd4f84](https://github.com/olimorris/codecompanion.nvim/commit/bcd4f84598342c08564740417ef6b2d7ce0b77bf))
+* **snacks:** fix nested picking and add preview. ([41305ff](https://github.com/olimorris/codecompanion.nvim/commit/41305ffa613f3d210ef5418da2ea42d9af29e181))
+
 ## [17.28.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.27.1...v17.28.0) (2025-10-22)
 
 
