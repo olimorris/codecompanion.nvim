@@ -12,13 +12,14 @@ local fmt = string.format
 local ListCodeUsagesTool = {}
 
 local CONSTANTS = {
+  --- @type table<string, vim.lsp.protocol.Method>
   LSP_METHODS = {
-    definition = vim.lsp.protocol.Methods.textDocument_definition,
-    references = vim.lsp.protocol.Methods.textDocument_references,
-    implementations = vim.lsp.protocol.Methods.textDocument_implementation,
-    declaration = vim.lsp.protocol.Methods.textDocument_declaration,
-    type_definition = vim.lsp.protocol.Methods.textDocument_typeDefinition,
-    documentation = vim.lsp.protocol.Methods.textDocument_hover,
+    definition = "textDocument/definition",
+    references = "textDocument/references",
+    implementations = "textDocument/implementation",
+    declaration = "textDocument/declaration",
+    type_definition = "textDocument/typeDefinition",
+    documentation = "textDocument/hover",
   },
 }
 
