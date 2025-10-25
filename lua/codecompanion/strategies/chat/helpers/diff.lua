@@ -221,7 +221,7 @@ end
 ---@return number|nil bufnr, number|nil winnr
 local function open_buffer_and_window(bufnr_or_path)
   local provider = config.display.diff.provider
-  local provider_config = config.display.diff.provider_opts[provider]
+  local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
   local is_path = type(bufnr_or_path) == "string"
   local bufnr
