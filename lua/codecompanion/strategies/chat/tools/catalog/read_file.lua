@@ -183,7 +183,10 @@ return {
     success = function(self, tools, cmd, stdout)
       local chat = tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output, fmt("Read file `%s`", self.args.filepath))
+      local start_line = self.args.start_line_number_base_zero
+      local end_line = self.args.end_line_number_base_zero
+      local range_text = end_line == -1 and fmt("(%d - end)", start_line) or fmt("(%d - %d)", start_line, end_line)
+      chat:add_tool_output(self, llm_output, fmt("Read file `%s` %s", self.args.filepath, range_text))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
