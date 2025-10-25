@@ -246,7 +246,7 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    thinkingBudget = {
+    thinking_budget = {
       -- https://ai.google.dev/gemini-api/docs/thinking#set-budget
       order = 5,
       mapping = "parameters.extra_body.google.thinking_config",
