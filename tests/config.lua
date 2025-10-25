@@ -98,6 +98,17 @@ return {
             patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
           },
         },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          description = "Robustly edit files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = {
+              buffer = false,
+              file = false,
+            },
+            user_confirmation = false,
+          },
+        },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
