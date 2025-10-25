@@ -168,7 +168,11 @@ return {
       end,
     },
     inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
+      local inline_output = openai.handlers.inline_output(self, data, context)
+      if inline_output then
+        return { status = inline_output.status, output = inline_output.output:gsub("^<thought>.*</thought>", "") }
+      end
+      return nil
     end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
