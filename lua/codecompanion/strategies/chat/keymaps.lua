@@ -618,11 +618,6 @@ M.change_adapter = {
           if not selected_model then
             return
           end
-
-          if current_model ~= selected_model then
-            utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected_model })
-          end
-
           chat:apply_model(selected_model)
         end)
       end

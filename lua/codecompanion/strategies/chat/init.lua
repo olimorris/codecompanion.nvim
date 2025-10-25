@@ -399,14 +399,6 @@ function Chat.new(args)
     self.yaml_parser = yaml_parser
   end
 
-  self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
-  self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
-  self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
-  self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
-  self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
-  self.variables = require("codecompanion.strategies.chat.variables").new()
-  self.watched_buffers = require("codecompanion.strategies.chat.watchers").new()
-
   table.insert(_G.codecompanion_buffers, self.bufnr)
   chatmap[self.bufnr] = {
     name = "Chat " .. vim.tbl_count(chatmap) + 1,
@@ -428,10 +420,12 @@ function Chat.new(args)
     bufnr = self.bufnr,
     id = self.id,
   })
-  utils.fire(
-    "ChatModel",
-    { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
-  )
+  utils.fire("ChatModel", {
+    adapter = adapters.make_safe(self.adapter),
+    bufnr = self.bufnr,
+    id = self.id,
+    model = self.adapter.schema and self.adapter.schema.model.default,
+  })
 
   if self.adapter.type == "http" then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
@@ -442,6 +436,19 @@ function Chat.new(args)
       helpers.create_acp_connection(self)
     end)
   end
+
+  -- Initialize components
+  self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
+  self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
+  self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
+  self.tools = require("codecompanion.strategies.chat.tools").new({
+    adapter = self.adapter,
+    bufnr = self.bufnr,
+    messages = self.messages,
+  })
+  self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
+  self.variables = require("codecompanion.strategies.chat.variables").new()
+  self.watched_buffers = require("codecompanion.strategies.chat.watchers").new()
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -642,6 +649,9 @@ function Chat:apply_model(model)
   self.settings.model = model
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
+
+  utils.fire("ChatModel", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter), model = model })
+
   self:set_system_prompt()
   self:update_metadata()
   self:apply_settings()

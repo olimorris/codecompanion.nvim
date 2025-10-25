@@ -78,23 +78,35 @@ end
 ---@param opts? table Optional parameters
 ---@return nil
 function ToolRegistry:add(tool, tool_config, opts)
-  opts = opts or {
-    visible = true,
-  }
-  local resolved_tool = self.chat.tools.resolve(tool_config)
-  if not resolved_tool or self.in_use[tool] then
-    return
-  end
+  opts = opts or { visible = true }
 
   local id = "<tool>" .. tool .. "</tool>"
-  add_context(self.chat, id, opts)
-  add_system_prompt(self.chat, resolved_tool, id)
-  add_schema(self, resolved_tool, id)
+
+  local is_adapter_tool = tool_config and tool_config._adapter_tool == true
+  if is_adapter_tool then
+    add_context(self.chat, id, opts)
+    self.schemas[id] = {
+      type = "function",
+      ["function"] = {
+        name = tool,
+        description = tool_config.description or "",
+      },
+      _adapter_tool = true,
+    }
+  else
+    local resolved_tool = self.chat.tools.resolve(tool_config)
+    if not resolved_tool or self.in_use[tool] then
+      return
+    end
+
+    add_context(self.chat, id, opts)
+    add_system_prompt(self.chat, resolved_tool, id)
+    add_schema(self, resolved_tool, id)
+    self:add_tool_system_prompt()
+  end
 
   utils.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
   self.in_use[tool] = true
-
-  self:add_tool_system_prompt()
 
   return self
 end

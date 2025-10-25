@@ -71,8 +71,9 @@ end
 
 ---Filter tools configuration to only include enabled tools
 ---@param tools_config table The tools configuration
+---@param adapter CodeCompanion.HTTPAdapter The adapter
 ---@return table The filtered tools configuration
-function ToolFilter.filter_enabled_tools(tools_config)
+function ToolFilter.filter_enabled_tools(tools_config, adapter)
   local enabled_tools = get_enabled_tools(tools_config)
   local filtered_config = vim.deepcopy(tools_config)
 
@@ -81,6 +82,22 @@ function ToolFilter.filter_enabled_tools(tools_config)
     if not is_enabled then
       filtered_config[tool_name] = nil
       log:trace("[Tool Filter] Filtered out disabled tool: %s", tool_name)
+    end
+  end
+
+  if adapter and adapter.available_tools then
+    for tool_name, tool_config in pairs(adapter.available_tools) do
+      local should_show = true
+      if tool_config.condition and type(tool_config.condition) == "function" then
+        should_show = tool_config.condition(adapter)
+      end
+
+      if should_show then
+        -- An adapter's tool will take precedence over built-in tools
+        filtered_config[tool_name] = vim.tbl_extend("force", tool_config, {
+          _adapter_tool = true,
+        })
+      end
     end
   end
 

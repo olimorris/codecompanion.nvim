@@ -46,6 +46,17 @@ return {
   parameters = {
     store = false,
   },
+  available_tools = {
+    ["web_search"] = {
+      description = "Allow models to search the web for the latest information before generating a response.",
+      condition = function(adapter)
+        return true
+      end,
+      callback = function()
+        return true
+      end,
+    },
+  },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
@@ -236,8 +247,13 @@ return {
 
         local transformed = {}
         for _, tool in pairs(tools) do
-          for _, schema in pairs(tool) do
-            table.insert(transformed, tool_utils.transform_schema_if_needed(schema))
+          if tool._adapter_tool then
+            -- Call the tool's
+            -- Add it to the parameters
+          else
+            for _, schema in pairs(tool) do
+              table.insert(transformed, tool_utils.transform_schema_if_needed(schema))
+            end
           end
         end
 

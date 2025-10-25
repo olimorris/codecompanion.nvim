@@ -41,7 +41,6 @@ local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = t
 ---@param bufnr? integer
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   vim.bo[bufnr or 0].syntax = "ON"
-  -- assert(not vim.tbl_isempty(config.strategies.chat.variables), vim.inspect(config.strategies.chat.variables))
   vim.iter(config.strategies.chat.variables):each(function(name)
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')

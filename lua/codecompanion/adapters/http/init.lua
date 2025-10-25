@@ -111,6 +111,7 @@ end
 ---@field name string The name of the adapter
 ---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
+---@field available_tools? table The tools that are available for the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
@@ -345,13 +346,15 @@ function Adapter.resolved(adapter)
   return false
 end
 
----Make an adapter safe for serialization
+---Make an adapter safe for serialization and prevent any recursive issues.
+---Adapters have become complex, making API calls to get models etc.
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return table
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
     model = adapter.model,
+    available_tools = adapter.available_tools,
     formatted_name = adapter.formatted_name,
     features = adapter.features,
     url = adapter.url,
