@@ -51,20 +51,41 @@ end
 
 local M = {}
 
--- Cache adapter types per buffer so we can conditionally enable completions
-local adapter_types = {}
+-- Cache adapter info per buffer (type + evaluated tools)
+local adapter_cache = {}
 
 local aug = api.nvim_create_augroup("codecompanion.completion", { clear = true })
 
 api.nvim_create_autocmd("User", {
   group = aug,
-  pattern = "CodeCompanionChatAdapter",
+  pattern = "CodeCompanionChatModel",
   callback = function(args)
     local bufnr = args.data.bufnr
     if args.data.adapter then
-      adapter_types[bufnr] = args.data.adapter.type
+      local evaluated_tools = {}
+
+      -- Evaluate the available tools from the adapter
+      if args.data.adapter.available_tools then
+        for tool_name, tool_config in pairs(args.data.adapter.available_tools) do
+          local should_show = true
+          if tool_config.condition and type(tool_config.condition) == "function" then
+            should_show = tool_config.condition(args.data.adapter, args.data.model)
+          end
+
+          if should_show then
+            evaluated_tools[tool_name] = tool_config
+          end
+        end
+      end
+
+      adapter_cache[bufnr] = {
+        type = args.data.adapter.type,
+        name = args.data.adapter.formatted_name,
+        model = args.data.adapter.model,
+        available_tools = evaluated_tools,
+      }
     else
-      adapter_types[bufnr] = nil
+      adapter_cache[bufnr] = nil
     end
   end,
 })
@@ -74,7 +95,7 @@ api.nvim_create_autocmd("User", {
   pattern = "CodeCompanionChatClosed",
   callback = function(args)
     local bufnr = args.data.bufnr
-    adapter_types[bufnr] = nil
+    adapter_cache[bufnr] = nil
   end,
 })
 
@@ -146,7 +167,8 @@ function M.acp_commands(bufnr)
   bufnr = bufnr or api.nvim_get_current_buf()
 
   -- Only show ACP commands if this buffer is using an ACP adapter
-  if adapter_types[bufnr] ~= "acp" then
+  local adapter_info = adapter_cache[bufnr]
+  if not adapter_info or adapter_info.type ~= "acp" then
     return {}
   end
 
@@ -195,9 +217,11 @@ end
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
-  -- Tools are not available to ACP adapters
   local bufnr = api.nvim_get_current_buf()
-  if adapter_types[bufnr] == "acp" then
+  local adapter_info = adapter_cache[bufnr]
+
+  -- Only show tools for HTTP adapters
+  if not adapter_info or adapter_info.type == "acp" then
     return {}
   end
 
@@ -221,7 +245,7 @@ function M.tools()
     end)
     :totable()
 
-  -- Add tools
+  -- Add config tools
   vim
     .iter(tools)
     :filter(function(label, value)
@@ -236,6 +260,21 @@ function M.tools()
         detail = v.description,
       })
     end)
+
+  -- Add adapter tools
+  if adapter_info.available_tools and not vim.tbl_isempty(adapter_info.available_tools) then
+    for tool_name, tool_config in pairs(adapter_info.available_tools) do
+      vim.cmd.syntax('match CodeCompanionChatTool "@{' .. tool_name .. '}"')
+
+      table.insert(items, {
+        label = trigger.tools .. tool_name,
+        name = tool_name,
+        type = "tool",
+        detail = string.format("**%s**: %s", adapter_info.name, tool_config.description),
+        _adapter_tool = true,
+      })
+    end
+  end
 
   return items
 end
