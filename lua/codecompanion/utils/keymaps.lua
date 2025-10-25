@@ -75,7 +75,7 @@ function Keymaps:set()
       goto continue
     end
 
-    local default_opts = { desc = map.description or action_opts.desc, buffer = self.bufnr }
+    local default_opts = { desc = map.description or action_opts.desc, buffer = self.bufnr, nowait = true }
     local opts = vim.tbl_deep_extend("force", default_opts, map.opts or {})
 
     if type(rhs) == "function" then
