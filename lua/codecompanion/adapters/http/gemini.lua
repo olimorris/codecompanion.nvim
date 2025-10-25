@@ -1,5 +1,16 @@
 local openai = require("codecompanion.adapters.http.openai")
 
+local CONSTANTS = { thinking_start = "<thought>", thinking_end = "</thought>" }
+
+---@param message string?
+---@return string?
+local function strip_thinking_tags(message)
+  if message then
+    local result = message:gsub("^" .. CONSTANTS.thinking_start, ""):gsub("^" .. CONSTANTS.thinking_end, "")
+    return result
+  end
+end
+
 ---@class CodeCompanion.HTTPAdapter.Gemini : CodeCompanion.HTTPAdapter
 return {
   name = "gemini",
@@ -51,7 +62,14 @@ return {
       return openai.handlers.tokens(self, data)
     end,
     form_parameters = function(self, params, messages)
-      return openai.handlers.form_parameters(self, params, messages)
+      local processed_params = openai.handlers.form_parameters(self, params, messages)
+      -- https://ai.google.dev/gemini-api/docs/openai#thinking
+      processed_params.extra_body =
+        vim.tbl_deep_extend("force", processed_params.extra_body or {}, { google = { thinking_config = {} } })
+      local thinking_config = processed_params.extra_body.google.thinking_config
+      thinking_config.include_thoughts = thinking_config.thinkingBudget ~= 0
+
+      return processed_params
     end,
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
@@ -60,8 +78,71 @@ return {
       return openai.handlers.form_messages(self, messages)
     end,
     chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
+      local openai_output = openai.handlers.chat_output(self, data, tools)
+      if openai_output == nil then
+        return
+      end
+
+      local extra_content = openai_output.extra_content
+      local has_thinking = extra_content and extra_content.google and extra_content.google.thought
+
+      if not has_thinking then
+        -- this delta is either the actual answer after a reasoning sequence, or with reasoning off.
+        -- in the former case, the sequence might start with a `</thought>` tag. strip it.
+        return {
+          status = openai_output.status,
+          output = { content = strip_thinking_tags(openai_output.output.content), role = openai_output.output.role },
+        }
+      end
+
+      if self.opts.stream then
+        -- the `content` field actually contains the reasoning summary.
+        -- put it in the `reasoning` field and erase `content` so that it's not mistaken as the response
+        local reasoning = strip_thinking_tags(openai_output.output.content)
+        openai_output.output.reasoning = { content = reasoning }
+        openai_output.output.content = nil
+        openai_output.extra_content = nil -- maybe not needed?
+      else
+        -- when not streaming, the reasoning summary and final answer are sent in one big chunk,
+        -- with the reasoning wrapped in the `<thought>` tags.
+        openai_output.output.reasoning = {
+          content = openai_output.output.content:match(
+            string.format("^%s(.*)%s", CONSTANTS.thinking_start, CONSTANTS.thinking_end)
+          ),
+        }
+        openai_output.output.content = openai_output.output.content:gsub(".*" .. CONSTANTS.thinking_end, "")
+      end
+
+      return openai_output
     end,
+    ---@param self CodeCompanion.HTTPAdapter.Gemini
+    ---@param data table The reasoning output from the LLM
+    ---@return nil|{ content: string, _data: table }
+    form_reasoning = function(self, data)
+      if data == nil or not vim.iter(data):any(function(item)
+        return item ~= nil
+      end) then
+        return
+      end
+
+      local content = vim
+        .iter(data)
+        :map(function(item)
+          local val = item.content or item
+          if type(val) == "string" then
+            return val
+          end
+        end)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      return {
+        content = content,
+      }
+    end,
+
     tools = {
       format_tool_calls = function(self, tools)
         return openai.handlers.tools.format_tool_calls(self, tools)
@@ -71,7 +152,11 @@ return {
       end,
     },
     inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
+      local inline_output = openai.handlers.inline_output(self, data, context)
+      if inline_output then
+        return { status = inline_output.status, output = inline_output.output:gsub("^<thought>.*</thought>", "") }
+      end
+      return nil
     end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
@@ -86,11 +171,20 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-2.5-flash",
       choices = {
-        ["gemini-2.5-pro"] = { formatted_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
-        ["gemini-2.5-flash"] = { formatted_name = "Gemini 2.5 Flash", opts = { can_reason = true, has_vision = true } },
+        ["gemini-2.5-pro"] = {
+          formatted_name = "Gemini 2.5 Pro",
+          opts = { can_reason = true, has_vision = true },
+          thinkingBudget = { low = 128, high = 32768 },
+        },
+        ["gemini-2.5-flash"] = {
+          formatted_name = "Gemini 2.5 Flash",
+          opts = { can_reason = true, has_vision = true },
+          thinkingBudget = { low = 0, high = 24576 },
+        },
         ["gemini-2.5-flash-preview-05-20"] = {
           formatted_name = "Gemini 2.5 Flash Preview",
           opts = { can_reason = true, has_vision = true },
+          thinkingBudget = { low = 0, high = 24576 },
         },
         ["gemini-2.0-flash"] = { formatted_name = "Gemini 2.0 Flash", opts = { has_vision = true } },
         ["gemini-2.0-flash-lite"] = { formatted_name = "Gemini 2.0 Flash Lite", opts = { has_vision = true } },
@@ -135,10 +229,11 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    reasoning_effort = {
+    thinking_budget = {
+      -- https://ai.google.dev/gemini-api/docs/thinking#set-budget
       order = 5,
-      mapping = "parameters",
-      type = "string",
+      mapping = "parameters.extra_body.google.thinking_config",
+      type = "integer",
       optional = true,
       ---@param self CodeCompanion.HTTPAdapter
       condition = function(self)
@@ -151,14 +246,9 @@ return {
         end
         return false
       end,
-      default = "medium",
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
-      choices = {
-        "high",
-        "medium",
-        "low",
-        "none",
-      },
+      default = -1, -- dynamic reasoning
+      -- TODO: validate requires having `self` in the params.
+      desc = "The thinkingBudget parameter guides the model on the number of thinking tokens to use when generating a response.",
     },
   },
 }
