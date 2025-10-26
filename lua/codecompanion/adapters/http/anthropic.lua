@@ -37,6 +37,33 @@ return {
   },
   temp = {},
   available_tools = {
+    ["code_execution"] = {
+      description = "The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "code-execution-2025-08-25"
+
+        table.insert(tools, {
+          type = "code_execution_20250825",
+          name = "code_execution",
+        })
+      end,
+    },
+    ["web_fetch"] = {
+      description = "The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "web-fetch-2025-09-10"
+
+        table.insert(tools, {
+          type = "web_fetch_20250910",
+          name = "web_fetch",
+          max_uses = 5,
+        })
+      end,
+    },
     ["web_search"] = {
       description = "The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff",
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
