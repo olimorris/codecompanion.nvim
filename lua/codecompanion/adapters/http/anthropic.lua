@@ -36,6 +36,20 @@ return {
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
   temp = {},
+  available_tools = {
+    ["web_search"] = {
+      description = "The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        table.insert(tools, {
+          type = "web_search_20250305",
+          name = "web_search",
+          max_uses = 5,
+        })
+      end,
+    },
+  },
   handlers = {
     ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
@@ -326,7 +340,13 @@ return {
       local transformed = {}
       for _, tool in pairs(tools) do
         for _, schema in pairs(tool) do
-          table.insert(transformed, transform.to_anthropic(schema))
+          if schema._meta and schema._meta.adapter_tool then
+            if self.available_tools[schema.name] then
+              self.available_tools[schema.name].callback(self, transformed)
+            end
+          else
+            table.insert(transformed, transform.to_anthropic(schema))
+          end
         end
       end
 
