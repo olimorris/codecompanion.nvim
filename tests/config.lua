@@ -109,8 +109,8 @@ return {
             adapter = "jina",
           },
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Searches the web for a given query",
           opts = {
             adapter = "tavily",

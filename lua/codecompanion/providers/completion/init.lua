@@ -264,8 +264,6 @@ function M.tools()
   -- Add adapter tools
   if adapter_info.available_tools and not vim.tbl_isempty(adapter_info.available_tools) then
     for tool_name, tool_config in pairs(adapter_info.available_tools) do
-      vim.cmd.syntax('match CodeCompanionChatTool "@{' .. tool_name .. '}"')
-
       table.insert(items, {
         label = trigger.tools .. tool_name,
         name = tool_name,

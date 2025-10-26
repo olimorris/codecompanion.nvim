@@ -163,8 +163,8 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily

@@ -183,16 +183,16 @@ Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
-### search_web
+### web_search
 
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
 
 ```md
-Use @{search_web} to find the latest version of Neovim?
+Use @{web_search} to find the latest version of Neovim?
 ```
 
 ```md
-Use @{search_web} to search neovim.io and explain how I can configure a new language server
+Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
 
