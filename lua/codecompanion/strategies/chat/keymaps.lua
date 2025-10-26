@@ -582,8 +582,7 @@ M.change_adapter = {
           local stream = adapter.opts.stream and CONSTANTS.icons.stream or ""
           local reason = adapter.opts.reason and CONSTANTS.icons.reason or ""
 
-          -- TODO if you would calculate the longest adapter name. You could pick better value then 20
-          return string.format("%-2s%-20s %2s%2s%2s%2s", select, item, tools, vision, stream, reason)
+          return string.format("%-2s%-30s %2s%2s%2s%2s", select, item, tools, vision, stream, reason)
         end,
       }
     end
@@ -662,8 +661,7 @@ M.change_adapter = {
                 reason = model.opts.can_reason and CONSTANTS.icons.reason or ""
               end
 
-              -- TODO if you would calculate the longest model name. You could pick better value then 20
-              return string.format("%-2s%-20s %2s%2s%2s%2s", select, item, tools, vision, stream, reason)
+              return string.format("%-2s%-30s %2s%2s%2s%2s", select, item, tools, vision, stream, reason)
             end,
           }
         end
