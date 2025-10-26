@@ -195,6 +195,15 @@ function M.resolve_nested_value(tbl, path)
     end
   end
   return resolved
+---Convert a word to singular or plural form based on count
+---@param count number The count to determine singular or plural
+---@param word string The base word (singular form)
+---@return string The word with "s" appended if count ~= 1, or the original word if inputs are invalid
+function M.pluralize(count, word)
+  if type(count) ~= "number" or type(word) ~= "string" then
+    return word or "item"
+  end
+  return count == 1 and word or word .. "s"
 end
 
 return M

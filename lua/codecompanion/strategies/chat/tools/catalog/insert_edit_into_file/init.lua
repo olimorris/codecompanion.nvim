@@ -55,6 +55,7 @@ local wait = require("codecompanion.strategies.chat.helpers.wait")
 local buffers = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
@@ -584,19 +585,18 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     ", "
   )
 
-  local success_message = fmt(
-    "Successfully processed %d edit(s) using strategies: %s\n\nChanges will be shown in diff view.",
-    #action.edits,
-    strategies_summary
-  )
-
-  -- Handle dry run mode
   if action.dryRun then
+    local ok, edit_word = pcall(utils.pluralize, #action.edits, "edit")
+    if not ok then
+      edit_word = "edit(s)"
+    end
     return output_handler({
       status = "success",
       data = fmt(
-        "DRY RUN - %s\nFile: %s\n\nTo apply these changes, set 'dryRun': false",
-        success_message,
+        "DRY RUN - Successfully processed %d %s using strategies: %s\nFile: %s\n\nTo apply these changes, set 'dryRun': false",
+        #action.edits,
+        edit_word,
+        strategies_summary,
         action.filepath
       ),
     })
@@ -615,7 +615,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
     return output_handler({
       status = "success",
-      data = fmt("Applied %d edit(s) to %s", #action.edits, action.filepath),
+      data = fmt("Edited %s file", action.filepath),
     })
   end
 
@@ -628,7 +628,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   local final_success = {
     status = "success",
-    data = fmt("%s\nFile: %s", success_message, action.filepath),
+    data = fmt("Edited %s file", action.filepath),
   }
 
   if should_diff and opts.user_confirmation then
@@ -768,15 +768,18 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     ", "
   )
 
-  local success_message =
-    fmt("Successfully processed %d edit(s) using strategies: %s", #action.edits, strategies_summary)
-
   if action.dryRun then
+    local ok, edit_word = pcall(utils.pluralize, #action.edits, "edit")
+    if not ok then
+      edit_word = "edit(s)"
+    end
     return output_handler({
       status = "success",
       data = fmt(
-        "DRY RUN - %s\nBuffer: %s\n\nTo apply these changes, set 'dryRun': false",
-        success_message,
+        "DRY RUN - Successfully processed %d %s using strategies: %s\nBuffer: %s\n\nTo apply these changes, set 'dryRun': false",
+        #action.edits,
+        edit_word,
+        strategies_summary,
         display_name
       ),
     })
@@ -810,7 +813,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local success = {
     status = "success",
-    data = fmt("Applied %d edit(s) to %s\n%s", #action.edits, display_name, action.explanation or ""),
+    data = fmt("Edited %s buffer%s", display_name, action.explanation ~= "" and "\n" .. action.explanation or ""),
   }
 
   if should_diff and opts.user_confirmation then
