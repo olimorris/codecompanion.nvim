@@ -128,6 +128,19 @@ end
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
+---@class CodeCompanion.HTTPAdapter.Safe
+---@field name string The name of the adapter
+---@field model string The current model name
+---@field available_tools? table The tools that are available for the adapter
+---@field formatted_name string The formatted name of the adapter
+---@field features table The features that the adapter supports
+---@field url string The URL of the generative AI service to connect to
+---@field headers table The headers to pass to the request
+---@field parameters table The parameters to pass to the request
+---@field opts? table Additional options for the adapter
+---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
+---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+
 ---@class CodeCompanion.HTTPAdapter
 local Adapter = {}
 
@@ -349,7 +362,7 @@ end
 ---Make an adapter safe for serialization and prevent any recursive issues.
 ---Adapters have become complex, making API calls to get models etc.
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table
+---@return CodeCompanion.HTTPAdapter.Safe
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
@@ -359,7 +372,7 @@ function Adapter.make_safe(adapter)
     features = adapter.features,
     url = adapter.url,
     headers = adapter.headers,
-    params = adapter.parameters,
+    parameters = adapter.parameters,
     opts = adapter.opts,
     handlers = adapter.handlers,
     schema = vim

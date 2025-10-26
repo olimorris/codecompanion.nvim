@@ -85,14 +85,15 @@ function ToolRegistry:add(tool, tool_config, opts)
   local is_adapter_tool = tool_config and tool_config._adapter_tool == true
   if is_adapter_tool then
     add_context(self.chat, id, opts)
-    self.schemas[id] = {
-      type = "function",
-      ["function"] = {
+    add_schema(self, {
+      schema = {
         name = tool,
         description = tool_config.description or "",
+        _meta = {
+          adapter_tool = true,
+        },
       },
-      _adapter_tool = true,
-    }
+    }, id)
   else
     local resolved_tool = self.chat.tools.resolve(tool_config)
     if not resolved_tool or self.in_use[tool] then
