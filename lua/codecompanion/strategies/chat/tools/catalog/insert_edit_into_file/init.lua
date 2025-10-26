@@ -212,19 +212,19 @@ local function fix_edits_if_needed(args)
   return nil, fmt("Could not parse edits as JSON. Original: %s", args.edits:sub(1, 200))
 end
 
-  -- Read file content safely
-  ---@param path string
-  ---@return string|nil, string|nil, table|nil The content, error, and file info
-  local function read_file_content(path)
-    local p = Path:new(path)
-    if not p:exists() or not p:is_file() then
-      return nil, fmt("File does not exist or is not a file: %s", path)
-    end
+-- Read file content safely
+---@param path string
+---@return string|nil, string|nil, table|nil The content, error, and file info
+local function read_file_content(path)
+  local p = Path:new(path)
+  if not p:exists() or not p:is_file() then
+    return nil, fmt("File does not exist or is not a file: %s", path)
+  end
 
-    local content = p:read()
-    if not content then
-      return nil, fmt("Could not read file content: %s", path)
-    end
+  local content = p:read()
+  if not content then
+    return nil, fmt("Could not read file content: %s", path)
+  end
 
   -- Track file metadata for proper handling
   local file_info = {
@@ -235,38 +235,38 @@ end
   return content, nil, file_info
 end
 
-  -- Write file content
-  ---@param path string
-  ---@param content string
-  ---@param file_info table|nil
-  ---@return boolean, string|nil Success status and error message
-  local function write_file_content(path, content, file_info)
-    file_info = file_info or {}
+-- Write file content
+---@param path string
+---@param content string
+---@param file_info table|nil
+---@return boolean, string|nil Success status and error message
+local function write_file_content(path, content, file_info)
+  file_info = file_info or {}
 
-    -- Preserve original newline behavior
-    if file_info.has_trailing_newline == false and content:match("\n$") then
-      content = content:gsub("\n$", "")
-    elseif file_info.has_trailing_newline == true and not content:match("\n$") then
-      content = content .. "\n"
-    end
-
-    local p = Path:new(path)
-    local ok, err = pcall(function()
-      p:write(content, "w")
-    end)
-
-    if not ok then
-      return false, fmt("Failed to write file: %s", err)
-    end
-
-    -- Refresh buffer if file is open
-    local bufnr = vim.fn.bufnr(p.filename)
-    if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
-      api.nvim_command("checktime " .. bufnr)
-    end
-
-    return true, nil
+  -- Preserve original newline behavior
+  if file_info.has_trailing_newline == false and content:match("\n$") then
+    content = content:gsub("\n$", "")
+  elseif file_info.has_trailing_newline == true and not content:match("\n$") then
+    content = content .. "\n"
   end
+
+  local p = Path:new(path)
+  local ok, err = pcall(function()
+    p:write(content, "w")
+  end)
+
+  if not ok then
+    return false, fmt("Failed to write file: %s", err)
+  end
+
+  -- Refresh buffer if file is open
+  local bufnr = vim.fn.bufnr(p.filename)
+  if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
+    api.nvim_command("checktime " .. bufnr)
+  end
+
+  return true, nil
+end
 
 ---Separate edits into substring replaceAll and other types
 ---@param edits table[] Array of all edit operations
@@ -519,24 +519,24 @@ local function process_edits_sequentially(content, edits, options)
   }
 end
 
-  -- Main edit function for files
-  ---@param action table
-  ---@param chat_bufnr number
-  ---@param output_handler function
-  ---@param opts table|nil
-  local function edit_file(action, chat_bufnr, output_handler, opts)
-    opts = opts or {}
-    local path = helpers.validate_and_normalize_path(action.filepath)
+-- Main edit function for files
+---@param action table
+---@param chat_bufnr number
+---@param output_handler function
+---@param opts table|nil
+local function edit_file(action, chat_bufnr, output_handler, opts)
+  opts = opts or {}
+  local path = helpers.validate_and_normalize_path(action.filepath)
 
-    if not path then
-      return output_handler({
-        status = "error",
-        data = fmt("Error: Invalid or non-existent filepath `%s`", action.filepath),
-      })
-    end
+  if not path then
+    return output_handler({
+      status = "error",
+      data = fmt("Error: Invalid or non-existent filepath `%s`", action.filepath),
+    })
+  end
 
-    -- Read current file content
-    local current_content, read_err, file_info = read_file_content(path)
+  -- Read current file content
+  local current_content, read_err, file_info = read_file_content(path)
   if not current_content then
     return output_handler({
       status = "error",
@@ -560,13 +560,13 @@ end
     })
   end
 
-    -- Process edits with dry run first
-    local dry_run_result = process_edits_sequentially(current_content, action.edits, {
-      dry_run = true,
-      path = path,
-      file_info = file_info,
-      mode = action.mode,
-    })
+  -- Process edits with dry run first
+  local dry_run_result = process_edits_sequentially(current_content, action.edits, {
+    dry_run = true,
+    path = path,
+    file_info = file_info,
+    mode = action.mode,
+  })
 
   if not dry_run_result.success then
     local error_message = match_selector.format_helpful_error(dry_run_result, action.edits)
@@ -602,29 +602,29 @@ end
     })
   end
 
-    -- Auto-apply in YOLO mode
-    if vim.g.codecompanion_yolo_mode then
-      log:debug("[Insert_edit_into_file Tool] Auto-applying changes (YOLO mode)")
-      local write_ok, write_err = write_file_content(path, dry_run_result.final_content, file_info)
-      if not write_ok then
-        return output_handler({
-          status = "error",
-          data = fmt("Error writing to %s: %s", action.filepath, write_err),
-        })
-      end
-
+  -- Auto-apply in YOLO mode
+  if vim.g.codecompanion_yolo_mode then
+    log:debug("[Insert_edit_into_file Tool] Auto-applying changes (YOLO mode)")
+    local write_ok, write_err = write_file_content(path, dry_run_result.final_content, file_info)
+    if not write_ok then
       return output_handler({
-        status = "success",
-        data = fmt("Applied %d edit(s) to %s", #action.edits, action.filepath),
+        status = "error",
+        data = fmt("Error writing to %s: %s", action.filepath, write_err),
       })
     end
 
-    -- Create diff for user approval
-    local diff_id = math.random(10000000)
-    local original_lines = vim.split(current_content, "\n", { plain = true })
-    local should_diff = diff.create(path, diff_id, {
-      original_content = original_lines,
+    return output_handler({
+      status = "success",
+      data = fmt("Applied %d edit(s) to %s", #action.edits, action.filepath),
     })
+  end
+
+  -- Create diff for user approval
+  local diff_id = math.random(10000000)
+  local original_lines = vim.split(current_content, "\n", { plain = true })
+  local should_diff = diff.create(path, diff_id, {
+    original_content = original_lines,
+  })
 
   local final_success = {
     status = "success",
@@ -641,70 +641,70 @@ end
       sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
     }
 
-      return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
-        local response
-        if result.accepted then
-          -- Apply the actual changes
-          local final_result = process_edits_sequentially(current_content, action.edits, {
-            dry_run = false,
-            file_info = file_info,
-            mode = action.mode,
-          })
-          if final_result.success then
-            local write_ok, write_err = write_file_content(path, final_result.final_content, file_info)
-            if write_ok then
-              response = final_success
-            else
-              response = {
-                status = "error",
-                data = fmt("Error writing to %s: %s", action.filepath, write_err),
-              }
-            end
+    return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
+      local response
+      if result.accepted then
+        -- Apply the actual changes
+        local final_result = process_edits_sequentially(current_content, action.edits, {
+          dry_run = false,
+          file_info = file_info,
+          mode = action.mode,
+        })
+        if final_result.success then
+          local write_ok, write_err = write_file_content(path, final_result.final_content, file_info)
+          if write_ok then
+            response = final_success
           else
             response = {
               status = "error",
-              data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+              data = fmt("Error writing to %s: %s", action.filepath, write_err),
             }
           end
         else
-          if result.timeout and should_diff and should_diff.reject then
-            should_diff:reject()
-          end
           response = {
             status = "error",
-            data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
-              .. fmt(" for %s", action.filepath),
+            data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
           }
         end
-
-        codecompanion.restore(chat_bufnr)
-        return output_handler(response)
-      end, wait_opts)
-    else
-      -- Apply changes immediately
-      local final_result = process_edits_sequentially(current_content, action.edits, {
-        dry_run = false,
-        file_info = file_info,
-        mode = action.mode,
-      })
-      if final_result.success then
-        local write_ok, write_err = write_file_content(path, final_result.final_content, file_info)
-        if write_ok then
-          return output_handler(final_success)
-        else
-          return output_handler({
-            status = "error",
-            data = fmt("Error writing to %s: %s", action.filepath, write_err),
-          })
+      else
+        if result.timeout and should_diff and should_diff.reject then
+          should_diff:reject()
         end
+        response = {
+          status = "error",
+          data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
+            .. fmt(" for %s", action.filepath),
+        }
+      end
+
+      codecompanion.restore(chat_bufnr)
+      return output_handler(response)
+    end, wait_opts)
+  else
+    -- Apply changes immediately
+    local final_result = process_edits_sequentially(current_content, action.edits, {
+      dry_run = false,
+      file_info = file_info,
+      mode = action.mode,
+    })
+    if final_result.success then
+      local write_ok, write_err = write_file_content(path, final_result.final_content, file_info)
+      if write_ok then
+        return output_handler(final_success)
       else
         return output_handler({
           status = "error",
-          data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+          data = fmt("Error writing to %s: %s", action.filepath, write_err),
         })
       end
+    else
+      return output_handler({
+        status = "error",
+        data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+      })
     end
   end
+end
 
 -- Main edit function for buffers
 ---@param bufnr number
