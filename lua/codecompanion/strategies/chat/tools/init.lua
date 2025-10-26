@@ -189,18 +189,20 @@ function Tools.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, args.adapter), -- Filter here tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
+    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = args.adapter }),
+    tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
 
-  -- Listen for any adapter and model changes on the chat buffer to update the available tools
+  -- Listen for any adapter and model changes on the chat buffer and update the available tools
   api.nvim_create_autocmd("User", {
-    group = self.aug,
+    group = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ".list:" .. args.bufnr, { clear = true }),
     pattern = "CodeCompanionChatModel",
-    callback = function(args)
-      if args.data.bufnr ~= self.bufnr then
+    callback = function(autocmd_args)
+      if autocmd_args.data.bufnr ~= self.bufnr then
         return
       end
-      self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, args.data.adapter)
+      self.tools_config =
+        ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = autocmd_args.data.adapter })
     end,
   })
 
@@ -208,9 +210,11 @@ function Tools.new(args)
 end
 
 ---Refresh the tools configuration to pick up any dynamically added tools
+---@param opts? table Options for refreshing the tools
 ---@return CodeCompanion.Tools
-function Tools:refresh()
-  self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, self.adapter)
+function Tools:refresh(opts)
+  opts = opts or {}
+  self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, opts)
   return self
 end
 

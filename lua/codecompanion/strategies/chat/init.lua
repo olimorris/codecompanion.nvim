@@ -947,7 +947,9 @@ function Chat:submit(opts)
   end
 
   -- Refresh tools before submitting to pick up any dynamically added tools
-  self.tools:refresh()
+  if self.adapter.type == "http" then
+    self.tools:refresh({ adapter = self.adapter })
+  end
 
   if opts.auto_submit then
     self.watched_buffers:check_for_changes(self)

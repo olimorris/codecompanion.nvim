@@ -226,7 +226,7 @@ function M.tools()
   end
 
   -- Get filtered tools configuration (this uses the cache!)
-  local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
+  local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
 
   -- Add groups
   local items = vim
@@ -252,27 +252,19 @@ function M.tools()
       return label ~= "opts" and label ~= "groups" and value.visible ~= false
     end)
     :each(function(label, v)
+      local description = v.description
+      if v._adapter_tool then
+        description = string.format("**%s** %s", adapter_info.name, description)
+      end
+
       table.insert(items, {
         label = trigger.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,
-        detail = v.description,
+        detail = description,
       })
     end)
-
-  -- Add adapter tools
-  if adapter_info.available_tools and not vim.tbl_isempty(adapter_info.available_tools) then
-    for tool_name, tool_config in pairs(adapter_info.available_tools) do
-      table.insert(items, {
-        label = trigger.tools .. tool_name,
-        name = tool_name,
-        type = "tool",
-        detail = string.format("**%s**: %s", adapter_info.name, tool_config.description),
-        _adapter_tool = true,
-      })
-    end
-  end
 
   return items
 end
