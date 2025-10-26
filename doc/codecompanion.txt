@@ -3592,7 +3592,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Huggingface    All                          Not supported yet
 
-  Mistral        All                          Not supported yet
+  Mistral                                     Dependent on the model
 
   Novita                                      Dependent on the model
 
@@ -3603,6 +3603,11 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   xAI            All                          Not supported yet
   ------------------------------------------------------------------------
+
+  [!IMPORTANT] When using Mistral, you will need to set
+  `strategies.chat.tools.opts.auto_submit_errors` to `true`. See #2278
+  <https://github.com/olimorris/codecompanion.nvim/pull/2278> for more
+  information.
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
 

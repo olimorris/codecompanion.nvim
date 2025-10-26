@@ -487,7 +487,7 @@ function Connection:handle_incoming_request_or_notification(notification)
       [self.METHODS.SESSION_UPDATE] = function(s, m)
         -- Handle available_commands_update at the connection level
         if m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
-          s:handle_available_commands_update(m.params.update.availableCommands)
+          s:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
         elseif s._active_prompt then
           s._active_prompt:handle_session_update(m.params.update)
         end
@@ -606,11 +606,12 @@ function Connection:handle_fs_write_file_request(id, params)
 end
 
 ---Handle available_commands_update notification
+---@param session_id string
 ---@param commands ACP.availableCommands
 ---@return nil
-function Connection:handle_available_commands_update(commands)
-  if not self.session_id then
-    return log:debug("[acp::handle_available_commands_update] No session ID; ignoring commands update")
+function Connection:handle_available_commands_update(session_id, commands)
+  if not session_id then
+    return log:debug("[acp::handle_available_commands_update] No session ID in notification; ignoring commands update")
   end
 
   if type(commands) ~= "table" then
@@ -618,7 +619,7 @@ function Connection:handle_available_commands_update(commands)
   end
 
   local acp_commands = require("codecompanion.strategies.chat.acp.commands")
-  acp_commands.register_commands(self.session_id, commands)
+  acp_commands.register_commands(session_id, commands)
 end
 
 ---Handle process exit

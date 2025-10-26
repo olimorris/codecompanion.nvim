@@ -5,9 +5,10 @@ local log = require("codecompanion.utils.log")
 local LspHandler = {}
 
 local CONSTANTS = {
+  --- @type table<string, vim.lsp.protocol.Method>
   LSP_METHODS = {
-    references = vim.lsp.protocol.Methods.textDocument_references,
-    documentation = vim.lsp.protocol.Methods.textDocument_hover,
+    references = "textDocument/references",
+    documentation = "textDocument/hover",
   },
 }
 
