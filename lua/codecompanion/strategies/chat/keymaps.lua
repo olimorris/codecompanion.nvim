@@ -9,11 +9,10 @@ local api = vim.api
 
 local CONSTANTS = {
   icons = {
-    -- TODO: Make the default overwritable.
-    tools  = " ", -- nf-cod-tools
-    vision = "󰡼 ", -- nf-md-image_plus
-    stream = " ", -- nf-fa-arrow_right_arrow_left
-    reason = "󰟷 ", -- nf-md-thought_bubble_outline
+    tools = config.display.chat.icons.can_use_tools or " ", -- nf-cod-tools
+    vision = config.display.chat.icons.has_vision or "󰡼 ", -- nf-md-image_plus
+    stream = config.display.chat.icons.can_stream or " ", -- nf-fa-arrow_right_arrow_left
+    reason = config.display.chat.icons.can_reason or "󰟷 ", -- nf-md-thought_bubble_outline
   },
 }
 
