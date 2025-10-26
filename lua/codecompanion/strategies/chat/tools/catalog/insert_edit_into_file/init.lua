@@ -594,7 +594,11 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   if action.dryRun then
     return output_handler({
       status = "success",
-      data = "DRY RUN - " .. success_message .. "\n\nTo apply these changes, set 'dryRun': false",
+      data = fmt(
+        "DRY RUN - %s\nFile: %s\n\nTo apply these changes, set 'dryRun': false",
+        success_message,
+        action.filepath
+      ),
     })
   end
 
@@ -605,7 +609,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     if not write_ok then
       return output_handler({
         status = "error",
-        data = write_err,
+        data = fmt("Error writing to %s: %s", action.filepath, write_err),
       })
     end
 
@@ -624,7 +628,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   local final_success = {
     status = "success",
-    data = success_message,
+    data = fmt("%s\nFile: %s", success_message, action.filepath),
   }
 
   if should_diff and opts.user_confirmation then
@@ -651,10 +655,16 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
           if write_ok then
             response = final_success
           else
-            response = { status = "error", data = write_err }
+            response = {
+              status = "error",
+              data = fmt("Error writing to %s: %s", action.filepath, write_err),
+            }
           end
         else
-          response = { status = "error", data = "Failed to apply changes: " .. final_result.error }
+          response = {
+            status = "error",
+            data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+          }
         end
       else
         if result.timeout and should_diff and should_diff.reject then
@@ -662,7 +672,8 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
         end
         response = {
           status = "error",
-          data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
+          data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
+            .. fmt(" for %s", action.filepath),
         }
       end
 
@@ -681,10 +692,16 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
       if write_ok then
         return output_handler(final_success)
       else
-        return output_handler({ status = "error", data = write_err })
+        return output_handler({
+          status = "error",
+          data = fmt("Error writing to %s: %s", action.filepath, write_err),
+        })
       end
     else
-      return output_handler({ status = "error", data = "Failed to apply changes: " .. final_result.error })
+      return output_handler({
+        status = "error",
+        data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+      })
     end
   end
 end
@@ -732,11 +749,36 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     mode = action.mode,
   })
 
+  local buffer_name = api.nvim_buf_get_name(bufnr)
+  local display_name = buffer_name ~= "" and vim.fn.fnamemodify(buffer_name, ":.") or fmt("buffer %d", bufnr)
+
   if not dry_run_result.success then
     local error_message = match_selector.format_helpful_error(dry_run_result, action.edits)
     return output_handler({
       status = "error",
-      data = error_message,
+      data = fmt("Error processing edits for %s:\n%s", display_name, error_message),
+    })
+  end
+
+  -- Generate summary
+  local strategies_summary = table.concat(
+    vim.tbl_map(function(strategy)
+      return strategy:gsub("_", " ")
+    end, dry_run_result.strategies_used),
+    ", "
+  )
+
+  local success_message =
+    fmt("Successfully processed %d edit(s) using strategies: %s", #action.edits, strategies_summary)
+
+  if action.dryRun then
+    return output_handler({
+      status = "success",
+      data = fmt(
+        "DRY RUN - %s\nBuffer: %s\n\nTo apply these changes, set 'dryRun': false",
+        success_message,
+        display_name
+      ),
     })
   end
 
@@ -744,7 +786,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local final_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
-  -- Create diff
   local should_diff = diff.create(bufnr, diff_id, {
     original_content = original_content,
   })
@@ -767,21 +808,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     end)
   end
 
-  local strategies_summary = table.concat(
-    vim.tbl_map(function(strategy)
-      return strategy:gsub("_", " ")
-    end, dry_run_result.strategies_used),
-    ", "
-  )
-
   local success = {
     status = "success",
-    data = fmt(
-      "Applied %d edit(s) to buffer using strategies: %s\n%s",
-      #action.edits,
-      strategies_summary,
-      action.explanation or ""
-    ),
+    data = fmt("Applied %d edit(s) to %s\n%s", #action.edits, display_name, action.explanation or ""),
   }
 
   if should_diff and opts.user_confirmation then
@@ -809,7 +838,8 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         end
         response = {
           status = "error",
-          data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
+          data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
+            .. fmt(" for %s", display_name),
         }
       end
 
@@ -890,8 +920,8 @@ return {
           },
           dryRun = {
             type = "boolean",
-            default = true,
-            description = "Preview changes without applying them. Recommended to start with true to see what will be changed.",
+            default = false,
+            description = "When true, validates edits and shows what would be changed without applying them. Only use when explicitly requested.",
           },
           mode = {
             type = "string",
