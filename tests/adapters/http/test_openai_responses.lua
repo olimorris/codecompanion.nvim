@@ -153,38 +153,6 @@ T["Responses"]["build_messages"]["images"] = function()
   h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["build_messages"]["format available tools to call"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
-  local tools = { weather = { weather } }
-
-  local expected = {
-    ["type"] = "function",
-    ["name"] = "weather",
-    ["description"] = "Retrieves current weather for the given location.",
-    ["parameters"] = {
-      ["type"] = "object",
-      ["properties"] = {
-        ["location"] = {
-          ["type"] = "string",
-          ["description"] = "City and country e.g. Bogotá, Colombia",
-        },
-        ["units"] = {
-          ["type"] = "string",
-          ["enum"] = { "celsius", "fahrenheit" },
-          ["description"] = "Units the temperature will be returned in.",
-        },
-      },
-      ["required"] = { "location", "units" },
-      ["additionalProperties"] = false,
-    },
-    ["strict"] = true,
-  }
-
-  -- We need to adjust the tools format slightly with Responses
-  -- https://platform.openai.com/docs/api-reference/responses
-  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools))
-end
-
 T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {
@@ -371,6 +339,56 @@ T["Responses"]["build_messages"]["can handle reasoning"] = function()
     encrypted_content = "somefakebase64encoding",
     type = "reasoning",
   }, result.input[2])
+end
+
+T["Responses"]["build_tools"] = new_set()
+
+T["Responses"]["build_tools"]["format available tools to call"] = function()
+  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local tools = { weather = { weather } }
+
+  local expected = {
+    ["type"] = "function",
+    ["name"] = "weather",
+    ["description"] = "Retrieves current weather for the given location.",
+    ["parameters"] = {
+      ["type"] = "object",
+      ["properties"] = {
+        ["location"] = {
+          ["type"] = "string",
+          ["description"] = "City and country e.g. Bogotá, Colombia",
+        },
+        ["units"] = {
+          ["type"] = "string",
+          ["enum"] = { "celsius", "fahrenheit" },
+          ["description"] = "Units the temperature will be returned in.",
+        },
+      },
+      ["required"] = { "location", "units" },
+      ["additionalProperties"] = false,
+    },
+    ["strict"] = true,
+  }
+
+  -- We need to adjust the tools format slightly with Responses
+  -- https://platform.openai.com/docs/api-reference/responses
+  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools))
+end
+
+T["Responses"]["build_tools"]["can format for an adapter's remote tools"] = function()
+  local tools = {
+    {
+      ["<tool>web_search</tool>"] = {
+        _meta = {
+          adapter_tool = true,
+        },
+        description = "Allow models to search the web for the latest information before generating a response.",
+        name = "web_search",
+      },
+    },
+  }
+
+  h.eq({ tools = { { type = "web_search" } } }, adapter.handlers.request.build_tools(adapter, tools))
 end
 
 T["Responses"]["No Streaming"] = new_set({
