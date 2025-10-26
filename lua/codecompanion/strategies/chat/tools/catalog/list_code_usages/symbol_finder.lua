@@ -20,7 +20,7 @@ local CONSTANTS = {
 ---@param callback function Callback function called with array of found symbols
 function SymbolFinder.find_with_lsp_async(symbolName, paths, callback)
   local clients = vim.lsp.get_clients({
-    method = vim.lsp.protocol.Methods.workspace_symbol,
+    method = "workspace/symbol",
   })
 
   if #clients == 0 then
@@ -35,7 +35,7 @@ function SymbolFinder.find_with_lsp_async(symbolName, paths, callback)
   for _, client in ipairs(clients) do
     local params = { query = symbolName }
 
-    client:request(vim.lsp.protocol.Methods.workspace_symbol, params, function(err, result, _, _)
+    client:request("workspace/symbol", params, function(err, result, _, _)
       if result then
         for _, symbol in ipairs(result) do
           if symbol.name == symbolName then
