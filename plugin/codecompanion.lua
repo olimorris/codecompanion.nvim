@@ -41,21 +41,14 @@ local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = t
 ---@param bufnr? integer
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   vim.bo[bufnr or 0].syntax = "ON"
+
+  -- Because tools can be created by an adapter
+  vim.cmd.syntax('match CodeCompanionChatTool "@{[^}]*}"')
+
   vim.iter(config.strategies.chat.variables):each(function(name)
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
-  end)
-  vim
-    .iter(config.strategies.chat.tools)
-    :filter(function(name)
-      return name ~= "groups" and name ~= "opts"
-    end)
-    :each(function(name, _)
-      vim.cmd.syntax('match CodeCompanionChatTool "@{' .. name .. '}"')
-    end)
-  vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
-    vim.cmd.syntax('match CodeCompanionChatToolGroup "@{' .. name .. '}"')
   end)
 end)
 
