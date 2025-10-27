@@ -68,7 +68,7 @@ return {
       processed_params.extra_body =
         vim.tbl_deep_extend("force", processed_params.extra_body or {}, { google = { thinking_config = {} } })
       local thinking_config = processed_params.extra_body.google.thinking_config
-      thinking_config.include_thoughts = thinking_config.thinkingBudget ~= 0
+      thinking_config.include_thoughts = thinking_config.thinking_budget ~= 0
 
       return processed_params
     end,
@@ -219,17 +219,17 @@ return {
         ["gemini-2.5-pro"] = {
           formatted_name = "Gemini 2.5 Pro",
           opts = { can_reason = true, has_vision = true },
-          thinkingBudget = { low = 128, high = 32768 },
+          thinking_budget = { low = 128, high = 32768 },
         },
         ["gemini-2.5-flash"] = {
           formatted_name = "Gemini 2.5 Flash",
           opts = { can_reason = true, has_vision = true },
-          thinkingBudget = { low = 0, high = 24576 },
+          thinking_budget = { low = 0, high = 24576 },
         },
         ["gemini-2.5-flash-preview-05-20"] = {
           formatted_name = "Gemini 2.5 Flash Preview",
           opts = { can_reason = true, has_vision = true },
-          thinkingBudget = { low = 0, high = 24576 },
+          thinking_budget = { low = 0, high = 24576 },
         },
         ["gemini-2.0-flash"] = { formatted_name = "Gemini 2.0 Flash", opts = { has_vision = true } },
         ["gemini-2.0-flash-lite"] = { formatted_name = "Gemini 2.0 Flash Lite", opts = { has_vision = true } },
@@ -291,7 +291,8 @@ return {
         end
         return false
       end,
-      default = -1, -- dynamic reasoning
+      -- for models that supports reasoning, this'll be 'dynamic thinking'
+      default = nil,
       -- TODO: validate requires having `self` in the params.
       desc = "The thinkingBudget parameter guides the model on the number of thinking tokens to use when generating a response.",
     },
