@@ -193,7 +193,7 @@ end
 ---Function to call when the user has provided a response
 ---@param request table
 ---@param diff table
----@param opts { bufnr: number, mapped_lhs: string[], winnr: number, should_close_win: boolean }
+---@param opts { bufnr: number, mapped_lhs: string[], winnr: number, keep_win_open: boolean }
 ---@return fun(accepted: boolean, timed_out: boolean, kind: string|nil)
 local function on_user_response(request, diff, opts)
   local done = false
@@ -224,7 +224,7 @@ local function on_user_response(request, diff, opts)
         vim.wo[opts.winnr].winbar = ""
       end)
 
-      if opts.should_close_win then
+      if not opts.keep_win_open then
         pcall(api.nvim_win_close, opts.winnr, true)
       else
         -- Prevents the window from closing when we delete the temp buffer
@@ -388,7 +388,7 @@ local function show_diff(chat, request)
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
   local is_floating = provider == "inline" and layout == "float"
-  local should_close_win = not (provider == "inline" and layout == "buffer")
+  local keep_win_open = provider == "inline" and layout == "buffer"
 
   local diff = diff_module.new({
     bufnr = bufnr,
@@ -409,7 +409,7 @@ local function show_diff(chat, request)
     bufnr = bufnr,
     mapped_lhs = mapped_lhs,
     winnr = winnr,
-    should_close_win = should_close_win,
+    keep_win_open = keep_win_open,
   })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
