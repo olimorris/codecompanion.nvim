@@ -52,4 +52,24 @@ M.always_accept = {
   end,
 }
 
+M.next_hunk = {
+  desc = "Jump to next hunk",
+  callback = function(inline)
+    if inline.diff then
+      log:trace("[Inline] Jumping to next hunk for id=%s", tostring(inline.id))
+      inline.diff:jump_to_next_hunk()
+    end
+  end,
+}
+
+M.prev_hunk = {
+  desc = "Jump to previous hunk",
+  callback = function(inline)
+    if inline.diff then
+      log:trace("[Inline] Jumping to previous hunk for id=%s", tostring(inline.id))
+      inline.diff:jump_to_prev_hunk()
+    end
+  end,
+}
+
 return M
