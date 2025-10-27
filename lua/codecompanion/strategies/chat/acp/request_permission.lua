@@ -353,7 +353,7 @@ local function show_diff(chat, request)
   local old_lines = vim.split(d.old or "", "\n", { plain = true })
   local new_lines = vim.split(d.new or "", "\n", { plain = true })
 
-  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
+  require("codecompanion.strategies.chat.helpers").hide_chat_for_floating_diff(chat)
 
   -- Create a buffer with the new content
   local bufnr = api.nvim_create_buf(false, true)
@@ -420,6 +420,10 @@ local function show_diff(chat, request)
     else
       finish(false, result.timeout == true, nil)
     end
+    vim.schedule(function()
+      local codecompanion = require("codecompanion")
+      codecompanion.restore(chat.bufnr)
+    end)
   end, {
     chat_bufnr = chat.bufnr,
     notify = config.display.icons.warning .. " Waiting for decision ...",
