@@ -94,10 +94,13 @@ end
 ---@param line_offset? number
 ---@param opts? {show_removed: boolean, full_width_removed: boolean, status: string}
 ---@return number[] extmark_ids
+---@return number[] hunk_start_lines Array of first line numbers for each hunk (1-indexed)
+---@return number hunk_count Total number of hunks
 function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
   line_offset = line_offset or 0
   opts = opts or { show_removed = true, full_width_removed = true, status = "pending" }
   local extmark_ids = {}
+  local hunk_start_lines = {}
 
   -- Get sign configuration from config (lazy load to avoid circular dependency)
   local config = require("codecompanion.config")
@@ -112,6 +115,10 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
     }
 
   for _, hunk in ipairs(hunks) do
+    -- Store the first line of this hunk for navigation (1-indexed)
+    local hunk_first_line = hunk.updated_start + line_offset
+    table.insert(hunk_start_lines, hunk_first_line)
+
     -- Handle removed lines FIRST (virtual text above the change location)
     if opts.show_removed and #hunk.removed_lines > 0 then
       local attach_line = math.max(0, hunk.updated_start - 1 + line_offset)
@@ -173,8 +180,12 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
     end
   end
 
-  log:trace("[providers::diff::utils::apply_hunk_highlights] Applied %d total extmarks", #extmark_ids)
-  return extmark_ids
+  log:trace(
+    "[providers::diff::utils::apply_hunk_highlights] Applied %d total extmarks for %d hunks",
+    #extmark_ids,
+    #hunk_start_lines
+  )
+  return extmark_ids, hunk_start_lines, #hunk_start_lines
 end
 
 ---Get appropriate sign highlight color for a change type
@@ -213,6 +224,46 @@ function M.are_contents_equal(content1, content2)
     end
   end
   return true
+end
+
+---Jump to the next hunk in the buffer
+---@param hunk_start_lines number[] Array of hunk start lines (1-indexed)
+---@param current_line number Current cursor line (1-indexed)
+---@return number|nil next_line Line number of next hunk, or nil if none
+function M.jump_to_next_hunk(hunk_start_lines, current_line)
+  if #hunk_start_lines == 0 then
+    return nil
+  end
+
+  -- Find first hunk after current line
+  for _, line in ipairs(hunk_start_lines) do
+    if line > current_line then
+      return line
+    end
+  end
+
+  -- Wrap around to first hunk
+  return hunk_start_lines[1]
+end
+
+---Jump to the previous hunk in the buffer
+---@param hunk_start_lines number[] Array of hunk start lines (1-indexed)
+---@param current_line number Current cursor line (1-indexed)
+---@return number|nil prev_line Line number of previous hunk, or nil if none
+function M.jump_to_prev_hunk(hunk_start_lines, current_line)
+  if #hunk_start_lines == 0 then
+    return nil
+  end
+
+  -- Find last hunk before current line
+  for i = #hunk_start_lines, 1, -1 do
+    if hunk_start_lines[i] < current_line then
+      return hunk_start_lines[i]
+    end
+  end
+
+  -- Wrap around to last hunk
+  return hunk_start_lines[#hunk_start_lines]
 end
 
 return M

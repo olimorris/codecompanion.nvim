@@ -16,6 +16,8 @@ local api = vim.api
 ---@field show_hints boolean
 
 ---@class CodeCompanion.Diff.Inline
+---@field hunk_start_lines number[] Array of hunk start lines (1-indexed)
+---@field hunk_count number Total number of hunks
 local InlineDiff = {}
 
 ---@class CodeCompanion.Diff.InlineArgs
@@ -42,6 +44,8 @@ function InlineDiff.new(args)
     ),
     extmark_ids = {},
     has_changes = false,
+    hunk_start_lines = {},
+    hunk_count = 0,
   }, { __index = InlineDiff })
   ---@cast self CodeCompanion.Diff.Inline
 
@@ -90,6 +94,8 @@ end
 ---@param line_offset? number Line offset
 ---@param opts? table Options: {show_removed: boolean, full_width_removed: boolean, status?: string}
 ---@return number[] extmark_ids
+---@return number[] hunk_start_lines Array of hunk start lines (1-indexed)
+---@return number hunk_count Total number of hunks
 function InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
   opts = opts or { show_removed = true, full_width_removed = true, status = "pending" }
   return diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
@@ -156,15 +162,18 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     end
   end
 
-  local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
+  local extmark_ids, hunk_start_lines, hunk_count = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
     show_removed = inline_config.opts.show_removed ~= false,
     full_width_removed = inline_config.opts.full_width_removed ~= false,
     is_floating = self.is_floating,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)
+  self.hunk_start_lines = hunk_start_lines
+  self.hunk_count = hunk_count
   log:trace(
-    "[providers::diff::inline::apply_diff_highlights] Applied %d extmarks for diff visualization",
-    #self.extmark_ids
+    "[providers::diff::inline::apply_diff_highlights] Applied %d extmarks for %d hunks",
+    #self.extmark_ids,
+    self.hunk_count
   )
 
   return first_diff_line
@@ -177,6 +186,8 @@ function InlineDiff:clear_highlights()
     api.nvim_buf_clear_namespace(self.bufnr, self.ns_id, 0, -1)
   end
   self.extmark_ids = {}
+  self.hunk_start_lines = {}
+  self.hunk_count = 0
 end
 
 ---Accepts the diff changes and clears highlights
@@ -253,6 +264,40 @@ function InlineDiff:teardown()
   self:clear_highlights()
   self:close_floating_window()
   utils.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+end
+
+---Jump to the next hunk in the buffer
+---@return nil
+function InlineDiff:jump_to_next_hunk()
+  if self.hunk_count == 0 then
+    log:debug("[providers::diff::inline::jump_to_next_hunk] No hunks to navigate")
+    return
+  end
+
+  local current_line = api.nvim_win_get_cursor(0)[1]
+  local next_line = diff_utils.jump_to_next_hunk(self.hunk_start_lines, current_line)
+
+  if next_line then
+    api.nvim_win_set_cursor(0, { next_line, 0 })
+    log:trace("[providers::diff::inline::jump_to_next_hunk] Jumped to line %d", next_line)
+  end
+end
+
+---Jump to the previous hunk in the buffer
+---@return nil
+function InlineDiff:jump_to_prev_hunk()
+  if self.hunk_count == 0 then
+    log:debug("[providers::diff::inline::jump_to_prev_hunk] No hunks to navigate")
+    return
+  end
+
+  local current_line = api.nvim_win_get_cursor(0)[1]
+  local prev_line = diff_utils.jump_to_prev_hunk(self.hunk_start_lines, current_line)
+
+  if prev_line then
+    api.nvim_win_set_cursor(0, { prev_line, 0 })
+    log:trace("[providers::diff::inline::jump_to_prev_hunk] Jumped to line %d", prev_line)
+  end
 end
 
 return InlineDiff
