@@ -12,7 +12,7 @@ Use edit_tool_exp for safe, reliable file editing with advanced matching strateg
       "newText": "function getFullName() {\n  return this.firstName + ' ' + this.lastName;\n}"
     }
   ],
-  "explanation": "Rename function and update return value"
+  "explanation": "Renamed function from getName to getFullName and updated return value to concatenate first and last names"
 }
 ```
 
@@ -70,7 +70,7 @@ The tool uses different strategies based on your parameters:
   - **newText** (required): Replacement text (empty string for deletion)
   - **replaceAll** (optional): true = replace all occurrences, false (default) = single/best match
 - **mode** (optional): "append" (default) or "overwrite"
-- **explanation** (optional): Description of changes
+- **explanation** (strongly recommended): Brief, clear description of what the edits accomplish and why. While optional, providing an explanation helps with:
 
 # Edit Operations
 
@@ -85,7 +85,8 @@ Replace a specific code block. Include enough context to make it unique.
       "oldText": "const PORT = 3000;\nconst DEBUG = false;",
       "newText": "const PORT = 8080;\nconst DEBUG = true;"
     }
-  ]
+  ],
+  "explanation": "Updated port to 8080 and enabled debug mode for development"
 }
 ```
 
@@ -98,7 +99,8 @@ Edits are applied in order. Each edit sees the result of previous edits.
   "edits": [
     {"oldText": "function init() {", "newText": "async function init() {"},
     {"oldText": "const data = fetch()", "newText": "const data = await fetch()"}
-  ]
+  ],
+  "explanation": "Converted init function to async/await pattern for better error handling"
 }
 ```
 
@@ -216,6 +218,7 @@ Use `overwrite` mode to replace all file contents completely.
 
 # Best Practices
 
+- **Always provide an `explanation` field** - Even simple changes benefit from brief context (e.g., "Fix typo in variable name", "Update API endpoint to v2")
 - Edits are applied sequentially (each sees the result of previous edits)
 - Use `replaceAll: true` when you want to change all occurrences
 - For ambiguous matches, add more surrounding context to `oldText`
