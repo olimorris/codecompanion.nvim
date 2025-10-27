@@ -62,6 +62,8 @@ api.nvim_create_autocmd("User", {
   callback = function(args)
     local bufnr = args.data.bufnr
     if args.data.adapter then
+      ToolFilter.refresh_cache()
+
       local evaluated_tools = {}
 
       -- Evaluate the available tools from the adapter

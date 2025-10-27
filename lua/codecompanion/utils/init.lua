@@ -181,4 +181,20 @@ function M.callbacks_extend(callbacks, event, fn)
   return callbacks
 end
 
+---Resolve a nested table value using a dot-separated path string
+---@param tbl table The table to traverse
+---@param path string The dot-separated path (e.g. "strategies.chat.tools.memory")
+---@return any|nil The resolved value, or nil if the path doesn't exist
+function M.resolve_nested_value(tbl, path)
+  local parts = vim.split(path, ".", { plain = true })
+  local resolved = tbl
+  for _, part in ipairs(parts) do
+    resolved = resolved[part]
+    if not resolved then
+      return nil
+    end
+  end
+  return resolved
+end
+
 return M

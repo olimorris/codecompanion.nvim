@@ -32,8 +32,11 @@ end
 
 ---Get enabled tools from the cache or compute them
 ---@param tools_config table The tools configuration
+---@param opts? { adapter: CodeCompanion.HTTPAdapter }
 ---@return table<string, boolean> Map of tool names to enabled status
-local function get_enabled_tools(tools_config)
+local function get_enabled_tools(tools_config, opts)
+  opts = opts or {}
+
   local current_hash = hash.hash(tools_config)
   if is_cache_valid(current_hash) and next(_tool_cache) then
     log:trace("[Tool Filter] Using cached enabled tools")
@@ -52,7 +55,7 @@ local function get_enabled_tools(tools_config)
 
       if tool_config.enabled ~= nil then
         if type(tool_config.enabled) == "function" then
-          local ok, result = pcall(tool_config.enabled)
+          local ok, result = pcall(tool_config.enabled, opts)
           if ok then
             is_enabled = result
           else
@@ -77,7 +80,7 @@ end
 ---@param opts? { adapter: CodeCompanion.HTTPAdapter }
 ---@return table The filtered tools configuration
 function ToolFilter.filter_enabled_tools(tools_config, opts)
-  local enabled_tools = get_enabled_tools(tools_config)
+  local enabled_tools = get_enabled_tools(tools_config, opts)
   local filtered_config = vim.deepcopy(tools_config)
 
   -- Remove disabled tools
@@ -91,14 +94,19 @@ function ToolFilter.filter_enabled_tools(tools_config, opts)
   if opts and opts.adapter and opts.adapter.available_tools then
     for tool_name, tool_config in pairs(opts.adapter.available_tools) do
       local should_show = true
-      if tool_config.condition and type(tool_config.condition) == "function" then
-        should_show = tool_config.condition(opts.adapter)
+      if tool_config.enabled then
+        if type(tool_config.enabled) == "function" then
+          should_show = tool_config.enabled(opts.adapter)
+        else
+          should_show = tool_config.enabled
+        end
       end
 
       -- An adapter's tool will take precedence over built-in tools
       if should_show then
         filtered_config[tool_name] = vim.tbl_extend("force", tool_config, {
           _adapter_tool = true,
+          _has_native_tool = tool_config.opts and tool_config.opts.native_tool and true or false,
         })
       end
     end

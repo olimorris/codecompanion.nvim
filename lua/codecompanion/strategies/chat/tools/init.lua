@@ -94,6 +94,10 @@ function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
+  if tool_config and tool_config._adapter_tool == true and tool_config._has_native_tool then
+    tool_config = utils.resolve_nested_value(config, tool_config.opts.native_tool)
+  end
+
   if not tool_config then
     return nil, string.format("Couldn't find the tool `%s`", name), false
   end
@@ -103,6 +107,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   end)
 
   if not ok or not resolved_tool then
+    log:debug("Tool resolution failed for `%s`: %s", name, resolved_tool)
     return nil, string.format("Couldn't resolve the tool `%s`", name), false
   end
 
