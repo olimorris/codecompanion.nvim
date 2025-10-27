@@ -351,17 +351,13 @@ local function show_diff(chat, request)
     window = { width = window_config.width, height = window_config.height },
     row = window_config.row or "center",
     col = window_config.col or "center",
-    relative = window_config.relative or "editor",
-    filetype = vim.filetype.match({ filename = d.path }),
-    title = ui_utils.build_float_title({
-      title_prefix = "Edit Requested",
-      path = d.path,
-    }),
-    lock = true,
-    ignore_keymaps = true,
-    opts = window_config.opts,
-    show_dim = show_dim,
-  })
+  -- Open buffer and window with correct provider handling
+  local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+  local bufnr, winnr = diff_helper.open_buffer_and_window(bufnr)
+  if not bufnr or not winnr then
+    log:error("[chat::acp::request_permission] Failed to open buffer and window")
+    return request.respond(nil, true)
+  end
 
   -- Build present kinds and normalize keymaps from config, then setup winbar
   local kind_map = build_kind_map(request.options)
@@ -369,15 +365,22 @@ local function show_diff(chat, request)
   place_banner(winnr, normalized, kind_map)
 
   local diff_id = math.random(10000000)
-  -- Force users to use the inline diff
-  -- TODO: Possibly allow mini.diff in this scenario?
-  local InlineDiff = require("codecompanion.providers.diff.inline")
-  local diff = InlineDiff.new({
+  local provider = config.display.diff.provider
+  local ok, diff_module = pcall(require, "codecompanion.providers.diff." .. provider)
+  if not ok then
+    log:error("[chat::acp::request_permission] Failed to load provider '%s'", provider)
+    return request.respond(nil, true)
+  end
+
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local layout = provider_config.layout
+  local is_floating = (provider == "inline" or provider == "mini_diff") and layout == "float"
+  local diff = diff_module.new({
     bufnr = bufnr,
     contents = old_lines,
     id = diff_id,
     winnr = winnr,
-    is_floating = true, -- so we don't show inline keymap hints
+    is_floating = is_floating,
   })
   if not diff then
     log:debug("[chat::acp::interactions] Failed to create diff; auto-canceling permission")

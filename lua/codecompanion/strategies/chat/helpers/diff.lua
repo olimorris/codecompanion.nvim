@@ -219,7 +219,7 @@ end
 ---Open buffer or file and return buffer number and window
 ---@param bufnr_or_path number|string
 ---@return number|nil bufnr, number|nil winnr
-local function open_buffer_and_window(bufnr_or_path)
+function M.open_buffer_and_window(bufnr_or_path)
   local provider = config.display.diff.provider
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
@@ -327,7 +327,7 @@ function M.create(bufnr_or_path, diff_id, opts)
     return nil
   end
 
-  local bufnr, winnr = open_buffer_and_window(bufnr_or_path)
+  local bufnr, winnr = M.open_buffer_and_window(bufnr_or_path)
   if not bufnr then
     log:warn("[catalog::helpers::diff::create] Failed to open buffer/file")
     return nil
