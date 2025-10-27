@@ -367,7 +367,7 @@ local function show_diff(chat, request)
   -- Open buffer and window with correct provider handling
   local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
   local _, winnr = diff_helper.open_buffer_and_window(bufnr)
-  if not bufnr or not winnr then
+  if not winnr then
     log:error("[chat::acp::request_permission] Failed to open buffer and window")
     return request.respond(nil, true)
   end
@@ -393,7 +393,7 @@ local function show_diff(chat, request)
   local diff = diff_module.new({
     bufnr = bufnr,
     contents = old_lines,
-    filetype = vim.filetype.match({ filename = d.path }) or "",
+    filetype = ft or "",
     id = diff_id,
     winnr = winnr,
     is_floating = is_floating,
