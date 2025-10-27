@@ -193,7 +193,7 @@ end
 ---Function to call when the user has provided a response
 ---@param request table
 ---@param diff table
----@param opts { bufnr: number, mapped_lhs: string[], winnr: number }
+---@param opts { bufnr: number, mapped_lhs: string[], winnr: number, should_close_win: boolean }
 ---@return fun(accepted: boolean, timed_out: boolean, kind: string|nil)
 local function on_user_response(request, diff, opts)
   local done = false
@@ -217,13 +217,25 @@ local function on_user_response(request, diff, opts)
     end
   end
 
-  -- Close floating window and delete buffer
-  local function close_float()
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if api.nvim_win_is_valid(win) and api.nvim_win_get_buf(win) == opts.bufnr then
-        pcall(api.nvim_win_close, win, true)
+  -- Cleanup: clear winbar, close window, and delete temp buffer
+  local function cleanup()
+    if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
+      pcall(function()
+        vim.wo[opts.winnr].winbar = ""
+      end)
+
+      if opts.should_close_win then
+        pcall(api.nvim_win_close, opts.winnr, true)
+      else
+        -- Prevents the window from closing when we delete the temp buffer
+        pcall(function()
+          api.nvim_win_call(opts.winnr, function()
+            vim.cmd("buffer #")
+          end)
+        end)
       end
     end
+
     if api.nvim_buf_is_valid(opts.bufnr) then
       pcall(api.nvim_buf_delete, opts.bufnr, { force = true })
     end
@@ -253,7 +265,7 @@ local function on_user_response(request, diff, opts)
         end)
       end
       cleanup_mappings(opts.bufnr, opts.mapped_lhs)
-      close_float()
+      cleanup()
       return request.respond(nil, true)
     end
 
@@ -272,7 +284,7 @@ local function on_user_response(request, diff, opts)
     end
 
     cleanup_mappings(opts.bufnr, opts.mapped_lhs)
-    close_float()
+    cleanup()
     request.respond(option_id, false)
   end
 end
@@ -343,14 +355,15 @@ local function show_diff(chat, request)
 
   local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
-  local provider = config.display.diff.provider
-  local provider_config = config.display.diff.provider_opts[provider] or {}
-  local show_dim = provider_config.opts and provider_config.opts.show_dim
+  -- Create a buffer with the new content
+  local bufnr = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
 
-  local bufnr, winnr = ui_utils.create_float(new_lines, {
-    window = { width = window_config.width, height = window_config.height },
-    row = window_config.row or "center",
-    col = window_config.col or "center",
+  local ft = vim.filetype.match({ filename = d.path })
+  if ft then
+    api.nvim_set_option_value("filetype", ft, { buf = bufnr })
+  end
+
   -- Open buffer and window with correct provider handling
   local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
   local bufnr, winnr = diff_helper.open_buffer_and_window(bufnr)
@@ -374,10 +387,13 @@ local function show_diff(chat, request)
 
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
-  local is_floating = (provider == "inline" or provider == "mini_diff") and layout == "float"
+  local is_floating = provider == "inline" and layout == "float"
+  local should_close_win = not (provider == "inline" and layout == "buffer")
+
   local diff = diff_module.new({
     bufnr = bufnr,
     contents = old_lines,
+    filetype = vim.filetype.match({ filename = d.path }) or "",
     id = diff_id,
     winnr = winnr,
     is_floating = is_floating,
@@ -392,6 +408,7 @@ local function show_diff(chat, request)
     bufnr = bufnr,
     mapped_lhs = mapped_lhs,
     winnr = winnr,
+    should_close_win = should_close_win,
   })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
