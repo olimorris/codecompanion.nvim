@@ -155,6 +155,16 @@ local defaults = {
             user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
         },
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          enabled = function(opts)
+            if opts and opts.adapter then
+              return opts.adapter.name == "anthropic"
+            end
+            return false
+          end,
+          description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+        },
         ["next_edit_suggestion"] = {
           callback = "strategies.chat.tools.catalog.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",

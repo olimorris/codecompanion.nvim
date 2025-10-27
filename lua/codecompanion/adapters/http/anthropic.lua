@@ -50,6 +50,36 @@ return {
         })
       end,
     },
+    ["memory"] = {
+      description = "Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "")
+          .. "context-management-2025-06-27"
+
+        table.insert(tools, {
+          type = "memory_20250818",
+          name = "memory",
+        })
+
+        -- Also add a link to the claude memory tool
+        local memory_tool = require("codecompanion.strategies.chat.tools.catalog.memory")
+        table.insert(tools, {
+          name = "claude_memory",
+          description = memory_tool.description,
+          input_schema = {
+            properties = memory_tool.schema["function"].parameters.properties,
+            required = memory_tool.schema["function"].parameters.required,
+            type = "object",
+          },
+        })
+      end,
+      opts = {
+        -- Allow a hybrid tool -> One that uses both the Anthropic native tool and the local Claude memory tool
+        native_tool = "strategies.chat.tools.memory",
+      },
+    },
     ["web_fetch"] = {
       description = "The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.",
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
