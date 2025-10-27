@@ -429,6 +429,129 @@ T["InlineDiff"]["integration - multiple diffs on same buffer"] = function()
   diff2:teardown()
 end
 
+T["InlineDiff"]["navigation - tracks hunk positions"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = {
+    "line 1",
+    "old line 2",
+    "line 3",
+    "old line 4",
+    "line 5",
+  }
+  local modified_contents = {
+    "line 1",
+    "new line 2",
+    "line 3",
+    "new line 4",
+    "line 5",
+  }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, modified_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "nav_test",
+  })
+
+  h.eq(diff.hunk_count, 2)
+  h.eq(type(diff.hunk_start_lines), "table")
+  h.eq(#diff.hunk_start_lines, 2)
+
+  diff:teardown()
+end
+
+T["InlineDiff"]["navigation - jump_to_next_hunk works"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = {
+    "line 1",
+    "old line 2",
+    "line 3",
+    "line 4",
+    "old line 5",
+    "line 6",
+  }
+  local modified_contents = {
+    "line 1",
+    "new line 2",
+    "line 3",
+    "line 4",
+    "new line 5",
+    "line 6",
+  }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, modified_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "nav_next_test",
+  })
+
+  h.eq(diff.hunk_count, 2)
+
+  -- Start at line 1, should jump to first hunk
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  diff:jump_to_next_hunk()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(cursor[1], diff.hunk_start_lines[1])
+
+  -- Jump again, should go to second hunk
+  diff:jump_to_next_hunk()
+  cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(cursor[1], diff.hunk_start_lines[2])
+
+  -- Jump again, should wrap to first hunk
+  diff:jump_to_next_hunk()
+  cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(cursor[1], diff.hunk_start_lines[1])
+
+  diff:teardown()
+end
+
+T["InlineDiff"]["navigation - jump_to_prev_hunk works"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = {
+    "line 1",
+    "old line 2",
+    "line 3",
+    "old line 4",
+    "line 5",
+  }
+  local modified_contents = {
+    "line 1",
+    "new line 2",
+    "line 3",
+    "new line 4",
+    "line 5",
+  }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, modified_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "nav_prev_test",
+  })
+
+  h.eq(diff.hunk_count, 2)
+
+  -- Start at last line, should jump to last hunk
+  vim.api.nvim_win_set_cursor(0, { 5, 0 })
+  diff:jump_to_prev_hunk()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(cursor[1], diff.hunk_start_lines[2])
+
+  -- Jump again, should go to first hunk
+  diff:jump_to_prev_hunk()
+  cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(cursor[1], diff.hunk_start_lines[1])
+
+  -- Jump again, should wrap to last hunk
+  diff:jump_to_prev_hunk()
+  cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(cursor[1], diff.hunk_start_lines[2])
+
+  diff:teardown()
+end
+
 T["InlineDiff"]["integration - edge case with empty file"] = function()
   local bufnr = vim.api.nvim_get_current_buf()
   local original_contents = { "" } -- Neovim empty buffers have one empty line
