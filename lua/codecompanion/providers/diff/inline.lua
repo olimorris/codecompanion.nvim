@@ -13,6 +13,9 @@ local api = vim.api
 ---@field has_changes boolean
 ---@field winnr number|nil
 ---@field is_floating boolean
+---@field show_hints boolean Whether to show keymap hints
+
+---@class CodeCompanion.Diff.Inline
 local InlineDiff = {}
 
 ---@class CodeCompanion.Diff.InlineArgs
@@ -21,6 +24,7 @@ local InlineDiff = {}
 ---@field id number|string Unique identifier for this diff
 ---@field winnr? number Window number (optional)
 ---@field is_floating boolean|nil Whether this diff is in a floating window
+---@field show_hints? boolean Whether to show keymap hints (default: true)
 
 ---Creates a new InlineDiff instance and applies diff highlights
 ---@param args CodeCompanion.Diff.InlineArgs
@@ -32,6 +36,7 @@ function InlineDiff.new(args)
     id = args.id,
     winnr = args.winnr,
     is_floating = args.is_floating or false,
+    show_hints = args.show_hints == nil and true or args.show_hints,
     ns_id = api.nvim_create_namespace(
       "codecompanion_inline_diff_" .. (args.id ~= nil and args.id or math.random(1, 100000))
     ),
@@ -125,7 +130,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     ---@diagnostic disable-next-line: undefined-field
     local is_testing = _G.MiniTest ~= nil
     -- Don't show hints for floating windows since they use winbar instead
-    if show_keymap_hints and not is_testing and not self.is_floating then
+    if show_keymap_hints and not is_testing and not self.is_floating and self.show_hints then
       local attach_line = math.max(0, first_hunk.updated_start - 2)
       if first_diff_line == 1 then
         attach_line = attach_line + 1

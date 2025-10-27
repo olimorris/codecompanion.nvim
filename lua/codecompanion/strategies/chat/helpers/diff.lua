@@ -338,7 +338,6 @@ function M.create(bufnr_or_path, diff_id, opts)
     return nil
   end
 
-  local provider = config.display.diff.provider
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
 
