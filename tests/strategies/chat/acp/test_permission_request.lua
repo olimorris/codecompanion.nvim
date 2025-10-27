@@ -29,6 +29,8 @@ T = new_set({
         package.loaded["codecompanion.strategies.chat.acp.request_permission"] = nil
         package.loaded["codecompanion.providers.diff.inline"] = nil
         package.loaded["codecompanion.strategies.chat.helpers.wait"] = nil
+        package.loaded["codecompanion.strategies.chat.helpers.diff"] = nil
+        package.loaded["codecompanion.strategies.chat.helpers"] = nil
         package.loaded["codecompanion.utils.ui"] = nil
       ]])
     end,
@@ -55,6 +57,28 @@ local function with_mocks(opts)
           reject = function(_) _G.__CAPT.reject_called = true end,
         }
       end
+    }
+
+    -- Mock diff helper
+    package.loaded["codecompanion.strategies.chat.helpers.diff"] = {
+      open_buffer_and_window = function(bufnr)
+        -- Return the buffer and create a window for it
+        local winnr = vim.fn.bufwinid(bufnr)
+        if winnr == -1 then
+          winnr = vim.api.nvim_open_win(bufnr, true, {
+            relative = "editor",
+            width = 60, height = 12,
+            row = 1, col = 1,
+            style = "minimal", border = "single",
+          })
+        end
+        return bufnr, winnr
+      end
+    }
+
+    -- Mock helpers
+    package.loaded["codecompanion.strategies.chat.helpers"] = {
+      hide_chat_for_floating_diff = function(_chat) end
     }
 
     -- Mock UI float creator: create real scratch buffer + floating window
