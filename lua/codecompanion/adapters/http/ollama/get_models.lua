@@ -13,7 +13,7 @@ local running = false
 
 M = {}
 
----@type table<string, table<string, { formatted_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
+---@type table<string, table<string, { formatted_name: string?, opts: {can_reason: boolean, has_vision: boolean, can_use_tools: boolean} }>>
 local _cached_models = {}
 
 ---@alias OllamaGetModelsOpts {last?: boolean, async?: boolean}
@@ -91,6 +91,8 @@ local function fetch_async(adapter, opts)
                     vim.list_contains(model_info_json.capabilities or {}, "thinking")
                   _cached_models[url][model_obj.name].opts.has_vision =
                     vim.list_contains(model_info_json.capabilities or {}, "vision")
+                  _cached_models[url][model_obj.name].opts.can_use_tools =
+                    vim.list_contains(model_info_json.capabilities or {}, "tools")
                 end
               end
               jobs[model_obj.name] = nil

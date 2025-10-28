@@ -44,6 +44,10 @@ return {
         if not model_opts[model].opts.has_vision then
           self.opts.vision = false
         end
+
+        if not model_opts[model].opts.can_use_tools then
+          self.opts.tools = false
+        end
       end
 
       self.parameters.stream = true
