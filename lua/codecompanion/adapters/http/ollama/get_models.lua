@@ -130,7 +130,7 @@ function M.choices(self, opts)
   local url = adapter.env_replaced.url
   local is_uninitialised = _cached_models[url] == nil
 
-  local should_block = (self.opts.cache_adapter == false) or is_uninitialised or not opts.async
+  local should_block = (adapter.opts.cache_adapter == false) or is_uninitialised or not opts.async
 
   fetch_async(adapter, { async = not should_block }) -- should_block means NO async
 
