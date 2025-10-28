@@ -237,7 +237,12 @@ return {
         local transformed = {}
         for _, tool in pairs(tools) do
           for _, schema in pairs(tool) do
-            table.insert(transformed, tool_utils.transform_schema_if_needed(schema))
+            table.insert(
+              transformed,
+              tool_utils.transform_schema_if_needed(schema, {
+                strict_mode = true,
+              })
+            )
           end
         end
 

@@ -20,6 +20,30 @@ M.to_anthropic = function(schema)
   }
 end
 
+---Enforce that the schema follows OpenAI's strictness rules
+---@param schema table
+---@return table
+M.enforce_strictness = function(schema)
+  schema["function"].parameters.strict = true
+
+  local properties = {}
+  for k, v in pairs(schema["function"].parameters.properties) do
+    table.insert(properties, k)
+
+    if type(v.type) == "string" then
+      v.type = { v.type, "null" }
+    elseif type(v.type) == "table" then
+      table.insert(v.type, "null")
+      table.sort(v.type)
+    end
+  end
+
+  table.sort(properties)
+  schema["function"].parameters.required = properties
+
+  return schema
+end
+
 ---Check if the schema is in the old OpenAI format
 ---@param schema table
 ---@return boolean
@@ -30,8 +54,16 @@ end
 ---Convert the original OpenAI schema to the new OpenAI schema
 ---REF: https://platform.openai.com/docs/guides/function-calling#defining-functions
 ---@param schema table
+---@param opts? {strict_mode: boolean}
 ---@return table
-M.to_new_openai = function(schema)
+M.to_new_openai = function(schema, opts)
+  -- The user must explicitly set strict_mode to true
+  opts = vim.tbl_extend("force", { strict_mode = false }, opts or {})
+
+  if opts.strict_mode and not schema["function"].parameters.strict then
+    schema = M.enforce_strictness(schema)
+  end
+
   local function_def = schema["function"]
 
   return {
@@ -50,10 +82,11 @@ end
 
 ---Transform the schema if it's in the old OpenAI format
 ---@param schema table
+---@param opts? {strict_mode: boolean}
 ---@return table
-M.transform_schema_if_needed = function(schema)
+M.transform_schema_if_needed = function(schema, opts)
   if M.schema_is_legacy_format(schema) then
-    return M.to_new_openai(schema)
+    return M.to_new_openai(schema, opts)
   end
   return schema
 end
