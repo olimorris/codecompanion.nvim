@@ -164,6 +164,9 @@ local defaults = {
             return false
           end,
           description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+          opts = {
+            requires_approval = true,
+          },
         },
         ["next_edit_suggestion"] = {
           callback = "strategies.chat.tools.catalog.next_edit_suggestion",

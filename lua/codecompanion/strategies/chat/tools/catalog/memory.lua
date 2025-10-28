@@ -4,13 +4,14 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----View the content of a file
+---Shows directory contents or file contents with optional line ranges
 ---@param path string The file path to view
 ---@param view_range? [number, number] The range of lines to view (start_line, end_line)
+---@return string The content of the file within the specified range
 local function view(path, view_range)
   local lines = files.read(path)
   if not lines then
-    return { status = "error", data = "File not found" }
+    error(fmt("File not found or invalid path at `%s`", path))
   end
 
   local start_line = view_range and view_range[1] or 1
@@ -23,7 +24,7 @@ local function view(path, view_range)
     end
   end
 
-  return { status = "success", data = table.concat(viewed_lines, "\n") }
+  return table.concat(viewed_lines, "\n")
 end
 
 ---@class CodeCompanion.Tool.Memory: CodeCompanion.Tools.Tool
@@ -36,16 +37,25 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      print(vim.inspect(args))
-      local err
-      if args.command == "view" then
-        local ok, err = pcall(view, args.path, args.view_range)
+      local function output_msg(status, msg)
+        return { status = status, data = msg }
       end
 
-      if err then
-        return { status = "error", data = err }
+      if args.command == "view" then
+        local ok, output = pcall(view, args.path, args.view_range)
+        if not ok then
+          return output_msg("error", fmt("Error running the `view` command: ", output))
+        end
+        return output_msg("success", fmt("Content of `%s`:\n<memory>\n%s\n</memory>", args.path, output))
       end
-      return { status = "success", data = "Command executed successfully" }
+
+      if args.command == "create" then
+        local ok, output = pcall(create, args.path, args.view_range)
+        if not ok then
+          return output_msg("error", fmt("Error running the `create` command: ", output))
+        end
+        return output_msg("success", fmt("Created the file at %s", args.path))
+      end
     end,
   },
   -- We don't need a schema as this is provided by Anthropic
