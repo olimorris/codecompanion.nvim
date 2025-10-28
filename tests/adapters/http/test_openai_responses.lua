@@ -165,11 +165,11 @@ T["Responses"]["build_messages"]["format available tools to call"] = function()
       ["type"] = "object",
       ["properties"] = {
         ["location"] = {
-          ["type"] = "string",
+          ["type"] = { "string", "null" },
           ["description"] = "City and country e.g. Bogotá, Colombia",
         },
         ["units"] = {
-          ["type"] = "string",
+          ["type"] = { "string", "null" },
           ["enum"] = { "celsius", "fahrenheit" },
           ["description"] = "Units the temperature will be returned in.",
         },
@@ -182,7 +182,7 @@ T["Responses"]["build_messages"]["format available tools to call"] = function()
 
   -- We need to adjust the tools format slightly with Responses
   -- https://platform.openai.com/docs/api-reference/responses
-  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools))
+  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools, { strict_mode = false }))
 end
 
 T["Responses"]["build_messages"]["format tool calls"] = function()
