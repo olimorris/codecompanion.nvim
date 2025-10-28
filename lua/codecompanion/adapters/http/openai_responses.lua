@@ -49,11 +49,7 @@ return {
   available_tools = {
     ["web_search"] = {
       description = "Allow models to search the web for the latest information before generating a response.",
-      ---@param adapter CodeCompanion.HTTPAdapter.Safe
-      ---@return boolean
-      condition = function(adapter)
-        return true
-      end,
+      enabled = true,
       ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
       ---@param tools table The transformed tools table
       callback = function(self, tools)
