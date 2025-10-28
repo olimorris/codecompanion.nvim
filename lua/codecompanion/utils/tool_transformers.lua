@@ -32,7 +32,7 @@ M.enforce_strictness = function(schema)
 
     if type(v.type) == "string" then
       v.type = { v.type, "null" }
-    elseif type(v.type) == "table" then
+    elseif type(v.type) == "table" and not vim.tbl_contains(v.type, "null") then
       table.insert(v.type, "null")
       table.sort(v.type)
     end
