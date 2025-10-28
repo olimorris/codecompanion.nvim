@@ -48,41 +48,7 @@ return {
       return { status = "success", data = "Command executed successfully" }
     end,
   },
-  schema = {
-    type = "function",
-    ["function"] = {
-      name = "create_file",
-      description = "This is a tool for creating a new file on the user's machine. The file will be created with the specified content, creating any necessary parent directories.",
-      parameters = {
-        type = "object",
-        properties = {
-          command = {
-            type = "string",
-            description = "The command to execute on the client side.",
-            enum = { "view", "create", "str_replace", "insert", "delete", "rename" },
-          },
-          path = {
-            type = "string",
-            description = "The relative path to the memory file.",
-          },
-          view_range = {
-            type = "array",
-            description = "The range of lines to view from the file. Format: [start_line, end_line]. For using the view command only.",
-          },
-          -- file_text = {}, -- Create only
-          -- old_str = {}, -- str_replace only
-          -- new_str = {}, -- str_replace only
-          -- insert_line = {}, -- insert only
-          -- insert_text = {}, -- insert only
-          -- old_path = {}, -- rename only
-          -- new_path = {}, -- rename only
-        },
-        required = {
-          "command",
-        },
-      },
-    },
-  },
+  -- We don't need a schema as this is provided by Anthropic
   handlers = {
     ---@param tools CodeCompanion.Tools The tool object
     ---@return nil

@@ -94,6 +94,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
+  -- Allow for hybrid tools that use an adapter's tool alongside a native tool
   if tool_config and tool_config._adapter_tool == true and tool_config._has_native_tool then
     tool_config = utils.resolve_nested_value(config, tool_config.opts.native_tool)
   end

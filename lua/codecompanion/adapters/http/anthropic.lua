@@ -62,18 +62,6 @@ return {
           type = "memory_20250818",
           name = "memory",
         })
-
-        -- Also add a link to the claude memory tool
-        local memory_tool = require("codecompanion.strategies.chat.tools.catalog.memory")
-        table.insert(tools, {
-          name = "claude_memory",
-          description = memory_tool.description,
-          input_schema = {
-            properties = memory_tool.schema["function"].parameters.properties,
-            required = memory_tool.schema["function"].parameters.required,
-            type = "object",
-          },
-        })
       end,
       opts = {
         -- Allow a hybrid tool -> One that uses both the Anthropic native tool and the local Claude memory tool

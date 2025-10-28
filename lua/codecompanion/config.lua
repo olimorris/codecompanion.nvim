@@ -362,7 +362,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
-
         ["symbols"] = {
           callback = "strategies.chat.slash_commands.symbols",
           description = "Insert symbols for a selected file",
