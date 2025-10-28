@@ -1081,14 +1081,15 @@ This is the code, for context:
         {
           role = constants.USER_ROLE,
           content = function()
-            return fmt(
+            local diff = vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait()
+            return string.format(
               [[You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
 
-```diff
+````diff
 %s
-```
+````
 ]],
-              vim.fn.system("git diff --no-ext-diff --staged")
+              diff.stdout
             )
           end,
           opts = {
