@@ -13,7 +13,7 @@ local api = vim.api
 ---@field has_changes boolean
 ---@field winnr number|nil
 ---@field is_floating boolean
----@field show_hints boolean Whether to show keymap hints
+---@field show_hints boolean
 
 ---@class CodeCompanion.Diff.Inline
 local InlineDiff = {}

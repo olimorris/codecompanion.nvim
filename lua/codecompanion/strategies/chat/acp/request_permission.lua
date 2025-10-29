@@ -217,7 +217,7 @@ local function on_user_response(request, diff, opts)
     end
   end
 
-  -- Cleanup: clear winbar, close window, and delete temp buffer
+  -- Cleanup: clear winbar, close window, and delete buffer
   local function cleanup()
     if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
       pcall(function()
@@ -355,8 +355,9 @@ local function show_diff(chat, request)
 
   require("codecompanion.strategies.chat.helpers").hide_chat_for_floating_diff(chat)
 
-  -- Create a buffer with the new content
-  local bufnr = api.nvim_create_buf(false, true)
+  local bufnr = api.nvim_create_buf(true, false)
+  local diff_id = math.random(10000000)
+  api.nvim_buf_set_name(bufnr, d.path .. "_diff_" .. diff_id)
   api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
 
   local ft = vim.filetype.match({ filename = d.path })
@@ -377,7 +378,6 @@ local function show_diff(chat, request)
   local normalized = normalize_maps(config.strategies.chat.keymaps)
   place_banner(winnr, normalized, kind_map)
 
-  local diff_id = math.random(10000000)
   local provider = config.display.diff.provider
   local ok, diff_module = pcall(require, "codecompanion.providers.diff." .. provider)
   if not ok then
@@ -402,6 +402,11 @@ local function show_diff(chat, request)
   if not diff then
     log:debug("[chat::acp::interactions] Failed to create diff; auto-canceling permission")
     return request.respond(nil, true)
+  end
+
+  -- For split provider, place banner on both diff windows
+  if provider == "split" and diff.diff and diff.diff.win then
+    place_banner(diff.diff.win, normalized, kind_map)
   end
 
   local mapped_lhs = {}
