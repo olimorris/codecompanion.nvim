@@ -64,8 +64,8 @@ return {
         })
       end,
       opts = {
-        -- Allow a hybrid tool -> One that uses both the Anthropic native tool and the local Claude memory tool
-        native_tool = "strategies.chat.tools.memory",
+        -- Allow a hybrid tool -> One that also has a client side implementation
+        client_tool = "strategies.chat.tools.memory",
       },
     },
     ["web_fetch"] = {

@@ -106,7 +106,7 @@ function ToolFilter.filter_enabled_tools(tools_config, opts)
       if should_show then
         filtered_config[tool_name] = vim.tbl_extend("force", tool_config, {
           _adapter_tool = true,
-          _has_native_tool = tool_config.opts and tool_config.opts.native_tool and true or false,
+          _has_client_tool = tool_config.opts and tool_config.opts.client_tool and true or false,
         })
       end
     end
