@@ -57,6 +57,12 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
     ollama.schema.model.choices = function() return { ["mock-model"] = { opts = {} } } end
   ]])
 
+  child.lua([[
+    local copilot = require("codecompanion.adapters.http.copilot")
+    copilot.schema.model.default = function() return "mock-model" end
+    copilot.schema.model.choices = function() return { ["mock-model"] = { opts = {} } } end
+  ]])
+
   -- Setup the chat with the specified adapter
   local tool_name = "weather"
   if file:find("no_params") then
