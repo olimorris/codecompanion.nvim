@@ -696,6 +696,8 @@ end
 function Chat:make_system_prompt_ctx()
   ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
   local dynamic_ctx = {
+    -- these can be slow-to-run or too complex for a one-liner.
+    -- wrap them in functions and use metatable to handle the eval when needed.
     adapter = function()
       return vim.deepcopy(self.adapter)
     end,
@@ -719,7 +721,7 @@ function Chat:make_system_prompt_ctx()
     date = tostring(os.date("%Y-%m-%d")),
     nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
     cwd = vim.fn.getcwd(winid ~= -1 and winid or nil),
-    project_root = vim.fs.root(bufnr, { ".git" }),
+    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
     default_system_prompt = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
 You can answer general programming questions and perform the following tasks:
