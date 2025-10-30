@@ -132,6 +132,10 @@ Alternatively, the system prompt can be a function. The `opts` parameter contain
 ---@field os string the operating system that the user is using
 ---@field default_system_prompt string
 ---@field cwd string current working directory
+---The closest parent directory that contains one of the following VCS markers:
+--- - `.git`
+--- - `.svn`
+--- - `.hg`
 ---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
 
 require("codecompanion").setup({

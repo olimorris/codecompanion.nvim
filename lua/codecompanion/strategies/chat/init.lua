@@ -690,7 +690,11 @@ end
 ---@field os string the operating system that the user is using
 ---@field default_system_prompt string
 ---@field cwd string current working directory
----@field project_root? string the closest parent directory that contains a `.git` subdirectory.
+---The closest parent directory that contains one of the following VCS markers:
+--- - `.git`
+--- - `.svn`
+--- - `.hg`
+---@field project_root? string
 
 ---@return CodeCompanion.SystemPrompt.Context
 function Chat:make_system_prompt_ctx()
