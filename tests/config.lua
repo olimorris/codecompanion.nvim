@@ -98,6 +98,11 @@ return {
             patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
           },
         },
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+        },
+
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
