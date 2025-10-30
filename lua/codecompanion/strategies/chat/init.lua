@@ -687,10 +687,10 @@ end
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
 ---@field date string
 ---@field nvim_version string
----@field os string
+---@field os string the operating system that the user is using
 ---@field default_system_prompt string
----@field cwd string
----@field project_root? string
+---@field cwd string current working directory
+---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
 
 ---@return CodeCompanion.SystemPrompt.Context
 function Chat:make_system_prompt_ctx()

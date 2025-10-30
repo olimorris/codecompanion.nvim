@@ -27,7 +27,6 @@ You can answer general programming questions and perform the following tasks:
 Follow the user's requirements carefully and to the letter.
 Use the context and attachments the user provides.
 Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
-All non-code text responses must be written in the ${language} language.
 Use Markdown formatting in your answers.
 Do not use H1 or H2 markdown headers.
 When suggesting code changes or new content, use Markdown code blocks.
@@ -58,6 +57,7 @@ When given a task:
 3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
 
 Additional context:
+All non-code text responses must be written in the ${language} language.
 The current date is ${date}.
 The user's Neovim version is ${version}.
 The user is working on a ${os} machine. Please respond with system specific commands if applicable.
@@ -122,24 +122,41 @@ require("codecompanion").setup({
 })
 ```
 
-Alternatively, the system prompt can be a function. The `opts` parameter contains the default adapter for the chat strategy (`opts.adapter`) alongside the language (`opts.language`) that the LLM should respond with:
-
+Alternatively, the system prompt can be a function. The `opts` parameter contains several pieces of information related to the chat, which you can use to build the system prompt:
 ```lua
-require("codecompanion").setup({
-  opts = {
-    ---@param opts { adapter: CodeCompanion.HTTPAdapter, language: string }
-    ---@return string
-    system_prompt = function(opts)
-      local machine = vim.uv.os_uname().sysname
-      if machine == "Darwin" then
-        machine = "Mac"
-      end
-      if machine:find("Windows") then
-        machine = "Windows"
-      end
+---@class CodeCompanion.SystemPrompt.Context
+---@field language string
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field date string
+---@field nvim_version string
+---@field os string the operating system that the user is using
+---@field default_system_prompt string
+---@field cwd string current working directory
+---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
 
-      return string.format("I'm working on my %s machine", machine)
-    end,
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        ---@param ctx CodeCompanion.SystemPrompt.Context
+        ---@return string
+        system_prompt = function(ctx)
+          return ctx.default_system_prompt
+            .. fmt(
+              [[Additional context:
+All non-code text responses must be written in the %s language.
+The current date is %s.
+The user's Neovim version is %s.
+The user is working on a %s machine. Please respond with system specific commands if applicable.
+]],
+              ctx.language,
+              ctx.date,
+              ctx.nvim_version,
+              ctx.os
+            )
+        end,
+      },
+    },
   },
 })
 ```
