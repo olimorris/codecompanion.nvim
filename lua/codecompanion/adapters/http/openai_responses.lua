@@ -255,7 +255,12 @@ return {
                 self.available_tools[schema.name].callback(self, transformed)
               end
             else
-              table.insert(transformed, tool_utils.transform_schema_from_legacy(schema))
+              table.insert(
+                transformed,
+                tool_utils.transform_schema_if_needed(schema, {
+                  strict_mode = true,
+                })
+              )
             end
           end
         end
