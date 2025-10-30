@@ -737,18 +737,14 @@ end
 ---@field os string the operating system that the user is using
 ---@field default_system_prompt string
 ---@field cwd string current working directory
----The closest parent directory that contains one of the following VCS markers:
---- - `.git`
---- - `.svn`
---- - `.hg`
----@field project_root? string
+---@field project_root? string The closest parent directory that contains either a `.git`, `.svn`, or `.hg` directory
 
 ---@return CodeCompanion.SystemPrompt.Context
 function Chat:make_system_prompt_ctx()
   ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
   local dynamic_ctx = {
-    -- these can be slow-to-run or too complex for a one-liner.
-    -- wrap them in functions and use metatable to handle the eval when needed.
+    -- These can be slow-to-run or too complex for a one-liner. So wrap them in
+    -- functions and use a metatable to handle the eval when needed.
     adapter = function()
       return vim.deepcopy(self.adapter)
     end,
@@ -766,8 +762,7 @@ function Chat:make_system_prompt_ctx()
 
   local bufnr = self.bufnr
   local winid = vim.fn.bufwinid(bufnr)
-  ---@type CodeCompanion.SystemPrompt.Context|{}
-  local static_ctx = {
+  local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
     language = config.opts.language or "English",
     date = tostring(os.date("%Y-%m-%d")),
     nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
@@ -790,7 +785,7 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@param prompt? string
----@param opts? {opts: table, _meta: table}
+---@param opts? {opts: table, _meta: table, index?: number}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
