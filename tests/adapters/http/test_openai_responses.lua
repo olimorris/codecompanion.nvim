@@ -153,38 +153,6 @@ T["Responses"]["build_messages"]["images"] = function()
   h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["build_messages"]["format available tools to call"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
-  local tools = { weather = { weather } }
-
-  local expected = {
-    ["type"] = "function",
-    ["name"] = "weather",
-    ["description"] = "Retrieves current weather for the given location.",
-    ["parameters"] = {
-      ["type"] = "object",
-      ["properties"] = {
-        ["location"] = {
-          ["type"] = { "string", "null" },
-          ["description"] = "City and country e.g. Bogotá, Colombia",
-        },
-        ["units"] = {
-          ["type"] = { "string", "null" },
-          ["enum"] = { "celsius", "fahrenheit" },
-          ["description"] = "Units the temperature will be returned in.",
-        },
-      },
-      ["required"] = { "location", "units" },
-      ["additionalProperties"] = false,
-    },
-    ["strict"] = true,
-  }
-
-  -- We need to adjust the tools format slightly with Responses
-  -- https://platform.openai.com/docs/api-reference/responses
-  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools, { strict_mode = false }))
-end
-
 T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {
@@ -380,26 +348,26 @@ T["Responses"]["build_tools"]["format available tools to call"] = function()
   local tools = { weather = { weather } }
 
   local expected = {
-    ["type"] = "function",
-    ["name"] = "weather",
-    ["description"] = "Retrieves current weather for the given location.",
-    ["parameters"] = {
-      ["type"] = "object",
-      ["properties"] = {
-        ["location"] = {
-          ["type"] = "string",
-          ["description"] = "City and country e.g. Bogotá, Colombia",
+    description = "Retrieves current weather for the given location.",
+    name = "weather",
+    parameters = {
+      additionalProperties = false,
+      properties = {
+        location = {
+          description = "City and country e.g. Bogotá, Colombia",
+          type = { "string", "null" },
         },
-        ["units"] = {
-          ["type"] = "string",
-          ["enum"] = { "celsius", "fahrenheit" },
-          ["description"] = "Units the temperature will be returned in.",
+        units = {
+          description = "Units the temperature will be returned in.",
+          enum = { "celsius", "fahrenheit" },
+          type = { "string", "null" },
         },
       },
-      ["required"] = { "location", "units" },
-      ["additionalProperties"] = false,
+      required = { "location", "units" },
+      type = "object",
     },
-    ["strict"] = true,
+    strict = true,
+    type = "function",
   }
 
   -- We need to adjust the tools format slightly with Responses
