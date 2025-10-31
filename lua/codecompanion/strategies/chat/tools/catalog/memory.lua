@@ -148,7 +148,14 @@ local function str_replace(path, old_str, new_str)
     error(fmt("String not found in file: %s", old_str))
   end
 
-  local new_content = content:gsub(vim.pesc(old_str), new_str, 1)
+  -- Escape the old string for pattern matching and the new string for replacement
+  -- We use plain text find above, but need to escape for gsub
+  local escaped_old = vim.pesc(old_str)
+
+  -- Escape % in replacement string (gsub interprets % as special)
+  local escaped_new = new_str:gsub("%%", "%%%%")
+
+  local new_content = content:gsub(escaped_old, escaped_new, 1)
 
   file_utils.write_to_path(normalized_path, new_content)
 end
@@ -342,17 +349,29 @@ return {
     ---@param stdout table The output from the command
     success = function(self, tools, cmd, stdout)
       local chat = tools.chat
+      local args = self.args
 
       local llm_output = ""
       local user_output = ""
 
       if cmd.command == "view" then
         llm_output = fmt('<memoryTool filepath="%s">%s</memoryTool>', cmd.path, vim.iter(stdout):flatten():join("\n"))
-        user_output = fmt("Viewed `%s`", self.args.path)
-      end
-      if cmd.command == "create" then
+        user_output = fmt("Viewed `%s`", cmd.path)
+      elseif cmd.command == "create" then
         llm_output = fmt("<memoryTool>Created file at %s</memoryTool>", cmd.path)
         user_output = fmt("Created file at `%s`", cmd.path)
+      elseif cmd.command == "str_replace" then
+        llm_output = fmt("<memoryTool>Replaced text in %s</memoryTool>", cmd.path)
+        user_output = fmt("Replaced text in `%s`", cmd.path)
+      elseif cmd.command == "insert" then
+        llm_output = fmt("<memoryTool>Inserted text at line %d in %s</memoryTool>", cmd.insert_line, cmd.path)
+        user_output = fmt("Inserted text at line %d in `%s`", cmd.insert_line, cmd.path)
+      elseif cmd.command == "delete" then
+        llm_output = fmt("<memoryTool>Deleted %s</memoryTool>", cmd.path)
+        user_output = fmt("Deleted `%s`", cmd.path)
+      elseif cmd.command == "rename" then
+        llm_output = fmt("<memoryTool>Renamed %s to %s</memoryTool>", cmd.old_path, cmd.new_path)
+        user_output = fmt("Renamed `%s` to `%s`", cmd.old_path, cmd.new_path)
       end
 
       chat:add_tool_output(self, llm_output, user_output)
