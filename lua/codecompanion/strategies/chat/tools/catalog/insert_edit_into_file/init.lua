@@ -76,7 +76,7 @@ local PROMPT = load_prompt()
 ---@param edits_string string The string containing edits in Python-like format
 ---@return string The converted JSON-like string
 local function parse_python_like_edits(edits_string)
-  log:trace("[Insert_edit_into_file Tool] Trying enhanced Python-like parser")
+  log:trace("[Insert Edit Into File::Main] Trying enhanced Python-like parser")
 
   -- Step 1: Fix boolean values first (before quote conversion)
   local fixed = edits_string
@@ -159,7 +159,7 @@ local function fix_edits_if_needed(args)
     return nil, "edits must be an array or parseable string"
   end
 
-  log:trace("[Insert_edit_into_file Tool] Edits field is a string, attempting to parse as JSON")
+  log:trace("[Insert Edit Into File::Main] Edits field is a string, attempting to parse as JSON")
 
   -- First, try standard JSON parsing
   local success, parsed_edits = pcall(vim.json.decode, args.edits)
@@ -170,7 +170,7 @@ local function fix_edits_if_needed(args)
   end
 
   -- If that failed, try minimal fixes for common LLM JSON issues
-  log:trace("[Insert_edit_into_file Tool] Standard JSON parsing failed, trying fixes")
+  log:trace("[Insert Edit Into File::Main] Standard JSON parsing failed, trying fixes")
 
   local fixed_json = args.edits
 
@@ -195,7 +195,7 @@ local function fix_edits_if_needed(args)
 
   if success and type(parsed_edits) == "table" then
     args.edits = parsed_edits
-    log:trace("[Insert_edit_into_file Tool] Successfully fixed and parsed edits JSON")
+    log:trace("[Insert Edit Into File::Main] Successfully fixed and parsed edits JSON")
     return args, nil
   end
 
@@ -205,7 +205,7 @@ local function fix_edits_if_needed(args)
     success, parsed_edits = pcall(vim.json.decode, python_converted)
     if success and type(parsed_edits) == "table" then
       args.edits = parsed_edits
-      log:trace("[Insert_edit_into_file Tool] Successfully parsed Python-like syntax")
+      log:trace("[Insert Edit Into File::Main] Successfully parsed Python-like syntax")
       return args, nil
     end
   end
@@ -220,14 +220,14 @@ end
 local function read_file_content(path)
   local p = Path:new(path)
   if not p:exists() or not p:is_file() then
-    return nil, fmt("File does not exist or is not a file: %s", path)
+    return nil, fmt("File does not exist or is not a file: `%s`", path)
   end
 
   local stat = vim.uv.fs_stat(path)
   local mtime = stat and stat.mtime.sec or nil
   local content = p:read()
   if not content then
-    return nil, fmt("Could not read file content: %s", path)
+    return nil, fmt("Could not read file content: `%s`", path)
   end
 
   -- Track file metadata for proper handling
@@ -274,7 +274,7 @@ local function write_file_content(path, content, file_info)
   end)
 
   if not ok then
-    return false, fmt("Failed to write file: %s", err)
+    return false, fmt("Failed to write file: `%s`", err)
   end
 
   -- Refresh buffer if file is open
@@ -395,7 +395,7 @@ local function process_edits_sequentially(content, edits, options)
       table.insert(strategies_used, "substring_exact_match_parallel")
     end
 
-    log:debug("[Insert_edit_into_file Tool] Applied %d substring edits in parallel", #substring_edits)
+    log:debug("[Insert Edit Into File::Main] Applied %d substring edits in parallel", #substring_edits)
   end
 
   -- Step 3: Process block/single edits sequentially
@@ -614,7 +614,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     return output_handler({
       status = "success",
       data = fmt(
-        "DRY RUN - Successfully processed %d %s using strategies: %s\nFile: %s\n\nTo apply these changes, set 'dryRun': false",
+        "DRY RUN - Successfully processed %d %s using strategies: %s\nFile: `%s`\n\nTo apply these changes, set 'dryRun': false",
         #action.edits,
         edit_word,
         strategies_summary,
@@ -625,18 +625,18 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Insert_edit_into_file Tool] Auto-applying changes (YOLO mode)")
+    log:debug("[Insert Edit Into File::Main] Auto-applying changes (YOLO mode)")
     local write_ok, write_err = write_file_content(path, dry_run_result.final_content, file_info)
     if not write_ok then
       return output_handler({
         status = "error",
-        data = fmt("Error writing to %s: %s", action.filepath, write_err),
+        data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
       })
     end
 
     return output_handler({
       status = "success",
-      data = fmt("Edited %s file", action.filepath),
+      data = fmt("Edited `%s` file", action.filepath),
     })
   end
 
@@ -649,7 +649,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   local final_success = {
     status = "success",
-    data = fmt("Edited %s file", action.filepath),
+    data = fmt("Edited `%s` file", action.filepath),
   }
 
   if should_diff and opts.user_confirmation then
@@ -678,13 +678,13 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
           else
             response = {
               status = "error",
-              data = fmt("Error writing to %s: %s", action.filepath, write_err),
+              data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
             }
           end
         else
           response = {
             status = "error",
-            data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+            data = fmt("Failed to apply changes to `%s`: %s", action.filepath, final_result.error),
           }
         end
       else
@@ -694,7 +694,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
         response = {
           status = "error",
           data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
-            .. fmt(" for %s", action.filepath),
+            .. fmt(" for `%s`", action.filepath),
         }
       end
 
@@ -715,13 +715,13 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
       else
         return output_handler({
           status = "error",
-          data = fmt("Error writing to %s: %s", action.filepath, write_err),
+          data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
         })
       end
     else
       return output_handler({
         status = "error",
-        data = fmt("Failed to apply changes to %s: %s", action.filepath, final_result.error),
+        data = fmt("Failed to apply changes to `%s`: %s", action.filepath, final_result.error),
       })
     end
   end
@@ -777,7 +777,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     local error_message = match_selector.format_helpful_error(dry_run_result, action.edits)
     return output_handler({
       status = "error",
-      data = fmt("Error processing edits for %s:\n%s", display_name, error_message),
+      data = fmt("Error processing edits for `%s`:\n%s", display_name, error_message),
     })
   end
 
@@ -797,7 +797,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     return output_handler({
       status = "success",
       data = fmt(
-        "DRY RUN - Successfully processed %d %s using strategies: %s\nBuffer: %s\n\nTo apply these changes, set 'dryRun': false",
+        "DRY RUN - Successfully processed %d %s using strategies: %s\nBuffer: `%s`\n\nTo apply these changes, set 'dryRun': false",
         #action.edits,
         edit_word,
         strategies_summary,
@@ -826,7 +826,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Auto-save in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Insert_edit_into_file Tool] Auto-saving buffer (YOLO mode)")
+    log:debug("[Insert Edit Into File::Main] Auto-saving buffer (YOLO mode)")
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
@@ -834,7 +834,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local success = {
     status = "success",
-    data = fmt("Edited %s buffer%s", display_name, action.explanation ~= "" and "\n" .. action.explanation or ""),
+    data = fmt("Edited `%s` buffer%s", display_name, action.explanation ~= "" and "\n" .. action.explanation or ""),
   }
 
   if should_diff and opts.user_confirmation then
@@ -863,7 +863,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         response = {
           status = "error",
           data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
-            .. fmt(" for %s", display_name),
+            .. fmt(" for `%s`", display_name),
         }
       end
 
@@ -1000,7 +1000,7 @@ return {
       local args = self.args
       local filepath = vim.fn.fnamemodify(args.filepath, ":.")
       local edit_count = args.edits and #args.edits or 0
-      return fmt("Apply %d edit(s) to %s?", edit_count, filepath)
+      return fmt("Apply %d edit(s) to `%s`?", edit_count, filepath)
     end,
 
     ---@param self CodeCompanion.Tool.EditFile
