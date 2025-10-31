@@ -389,7 +389,10 @@ function M.position_markers(content, old_text)
   local matches = {}
   local content_lines = vim.split(content, "\n", { plain = true })
 
-  if old_text == "^" or old_text == "<<START>>" then
+  -- Normalize boundary markers to handle whitespace variations (e.g., "^\n" -> "^")
+  local normalized_old_text = vim.trim(old_text)
+
+  if normalized_old_text == "^" or normalized_old_text == "<<START>>" then
     table.insert(matches, {
       start_line = 1,
       end_line = 0, -- Insert before line 1
@@ -397,7 +400,7 @@ function M.position_markers(content, old_text)
       confidence = 1.0,
       strategy = "start_marker",
     })
-  elseif old_text == "$" or old_text == "<<END>>" then
+  elseif normalized_old_text == "$" or normalized_old_text == "<<END>>" then
     table.insert(matches, {
       start_line = #content_lines + 1,
       end_line = #content_lines, -- Insert after last line
