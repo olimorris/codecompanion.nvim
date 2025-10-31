@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 30
+*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3235,10 +3235,10 @@ LLMs can act as agents by leveraging external tools. Andrew notes some common
 examples such as web searching or code execution that have obvious benefits
 when using LLMs.
 
-In the plugin, tools are simply context and actions that are shared with an LLM
-via a `system` prompt. The LLM can act as an agent by requesting tools via the
-chat buffer which in turn orchestrates their use within Neovim. Tools can be
-added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context and actions that are shared with an
+LLM. The LLM can act as an agent by executing tools via the chat buffer which
+in turn orchestrates their use within Neovim. Tools can be added as a
+participant to the chat buffer by using the `@` key.
 
 
   [!IMPORTANT] The use of some tools in the plugin results in you, the developer,
@@ -3263,11 +3263,15 @@ An outline of the architecture can be seen
 |codecompanion-extending-tools-architecture|.
 
 
-TOOLS ~
+BUILT-IN TOOLS ~
 
-CodeCompanion replaces the tool call in any prompt you send to the LLM with the
-value of `opts.tool_replacement_message`. This is to ensure that you can call a
-tool efficiently whilst making the prompt readable to the LLM.
+CodeCompanion comes with a number of built-in tools which you can leverage, as
+long as your adapter and model are |codecompanion--compatibility|.
+
+When calling a tool, CodeCompanion replaces the tool call in any prompt you
+send to the LLM with the value of a tool’s `opts.tool_replacement_message`
+string. This is to ensure that you can call a tool efficiently whilst making
+the prompt readable to the LLM.
 
 So calling a tool with:
 
@@ -3432,6 +3436,39 @@ The tool provides comprehensive information about symbols including:
 <
 
 
+MEMORY
+
+
+  [!IMPORTANT] For security, all memory operations are restricted to the
+  `/memories` directory
+
+  [!NOTE] This tool is separate to CodeCompanion’s
+  |codecompanion-usage-chat-buffer-memory| implementation but the two can be
+  combined by giving a memory group knowledge of the `/memories` directory
+The memory tool enables LLMs to store and retrieve information across
+conversations through a memory file directory (`/memories`).
+
+If you’re using the `Anthropic` adapter, then this tool will act as its
+client implementation. Please refer to their documentation
+<https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool> for
+more information.
+
+The tool has the following commands that an LLM can use:
+
+- **view** - Lists the contents in the `/memories` directory or displays file content with optional line ranges
+- **create** - Creates a new file or overwrites an existing file with specified content
+- **str_replace** - Replaces the first exact match of text in a file with new text
+- **insert** - Inserts text at a specific line number in a file
+- **delete** - Removes a file or recursively deletes a directory and all its contents
+- **rename** - Moves or renames a file or directory to a new path
+
+To use the tool:
+
+>md
+    Use @{memory} to carry on our conversation about streamlining my dotfiles
+<
+
+
 NEXT_EDIT_SUGGESTION
 
 Inspired by Copilot Next Edit Suggestion
@@ -3471,9 +3508,9 @@ ensure that an API key has been set accordingly, as per the adapter
 
 TOOL GROUPS ~
 
-Tool Groups are a convenient way to combine multiple tools together in the chat
-buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and
-`@{files}`.
+Tool Groups are a convenient way to combine multiple built-in tools together in
+the chat buffer. CodeCompanion comes with two built-in ones,
+`@{full_stack_dev}` and `@{files}`.
 
 When you include a tool group in the chat, all tools within that group become
 available to the LLM. By default, all the tools in the group will be shown as a
@@ -3552,6 +3589,44 @@ You can use it with:
 >md
     @{files}. Can you scaffold out the folder structure for a python package?
 <
+
+
+ADAPTER TOOLS ~
+
+
+  [!NOTE] Adapter tools are configured via the `available_tools` dictionary on
+  the adapter itself
+Prior to v17.30.0
+<https://github.com/olimorris/codecompanion.nvim/releases/tag/v17.30.0>, tool
+use in CodeCompanion was only possible with the built-in tools. However, that
+release unlocked `adapter` tools. That is, tools that are owned by LLM
+providers such as Anthropic
+<https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool>
+and OpenAI
+<https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses>.
+This allows for remote tool execution of common tasks such as web searching and
+computer use.
+
+From a UX perspective, there is no difference in using the built-in and adapter
+tools. However, please note that an adapter tool takes precedence over a
+built-in tool in the event of a name clash.
+
+
+ANTHROPIC
+
+The `anthropic` adapter the following tools are available:
+
+- `code_execution` - The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
+- `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
+- `web_fetch` - The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.
+- `web_search` - The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff
+
+
+OPENAI
+
+Using the `openai_responses` adapter the following tools are available:
+
+- `web_search` - Allow models to search the web for the latest information before generating a response.
 
 
 USEFUL TIPS ~
@@ -5664,7 +5739,7 @@ please see the diagram below:
 <
 
 
-BUILDING YOUR FIRST TOOL ~
+BUILDING YOUR FIRST BUILT-IN TOOL ~
 
 Before we begin, it’s important to familiarise yourself with the directory
 structure of the tools implementation:
@@ -6280,6 +6355,83 @@ tool execution:
       cancelled = function(self, tools, cmd)
         tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
       end,
+    },
+<
+
+
+SUPPORTING AN ADAPTER TOOL ~
+
+Many LLM providers such as Anthropic
+<https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool>
+and OpenAI
+<https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses>
+provide their own tools that clients like CodeCompanion can hook into.
+
+Thankfully, adding support for adapter tools is trivial. The #2307
+<https://github.com/olimorris/codecompanion.nvim/pull/2307> PR showed how this
+can be accomplished for both Anthropic and the OpenAI responses adapters.
+
+1. Add the tool to the structure of the adapter:
+
+>lua
+    -- openai_responses.lua
+    -- ... existing code ...
+    available_tools = {
+      ["web_search"] = {
+        description = "Allow models to search the web for the latest information before generating a response.",
+        enabled = true,
+        ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
+        ---@param tools table The transformed tools table
+        callback = function(self, tools)
+          table.insert(tools, {
+            type = "web_search",
+          })
+        end,
+      },
+    },
+    -- ... existing code ...
+<
+
+Within the `callback` function, which will be executed in step 2, it can be
+useful to carry out modifications to the adapter which may be required for the
+tool to function. In the case of Anthropic, we insert additional headers.
+
+1. Within `build_tools` or `form_tools` (depending on your adapter), ensure that when looping through a tool’s schema, you detect if the tool is an adapter tool and execute the `callback` from step 1:
+
+>lua
+    -- build_tools = function(self, tools)
+    -- OR
+    -- form_tools = function(self, tools)
+    local transformed = {}
+    for _, tool in pairs(tools) do
+      for _, schema in pairs(tool) do
+        -- // Add this logic
+        if schema._meta and schema._meta.adapter_tool then
+          if self.available_tools[schema.name] then
+            self.available_tools[schema.name].callback(self, transformed)
+          end
+        else
+        -- //
+          -- Previous loop logic goes here
+        end
+      end
+    end
+<
+
+Some adapter tools can be a `hybrid` in terms of their implementation. That is,
+they’re an adapter tool that requires a client-side component (i.e.� a
+built-in tool). This is the case for the
+|codecompanion-usage-chat-buffer-tools-memory| tool from Anthropic. To allow
+for this, ensure that the tool definition in `available_tools` has
+`client_tool` defined:
+
+>lua
+    ["memory"] = {
+      -- ...existing code here
+      opts = {
+        -- Allow a hybrid tool -> One that also has a client side implementation
+        client_tool = "strategies.chat.tools.memory",
+      },
     },
 <
 
