@@ -309,7 +309,7 @@ From a UX perspective, there is no difference in using the built-in and adapter 
 
 ### Anthropic
 
-The `anthropic` adapter the following tools are available:
+In the `anthropic` adapter, the following tools are available:
 
 - `code_execution` -  The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
 - `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
@@ -318,7 +318,7 @@ The `anthropic` adapter the following tools are available:
 
 ### OpenAI
 
-Using the `openai_responses` adapter the following tools are available:
+In the `openai_responses` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
