@@ -222,6 +222,8 @@ local function read_file_content(path)
     return nil, fmt("File does not exist or is not a file: %s", path)
   end
 
+  local stat = vim.uv.fs_stat(path)
+  local mtime = stat and stat.mtime.sec or nil
   local content = p:read()
   if not content then
     return nil, fmt("Could not read file content: %s", path)
@@ -231,6 +233,7 @@ local function read_file_content(path)
   local file_info = {
     has_trailing_newline = content:match("\n$") ~= nil,
     is_empty = content == "",
+    mtime = mtime,
   }
 
   return content, nil, file_info
@@ -243,6 +246,19 @@ end
 ---@return boolean, string|nil Success status and error message
 local function write_file_content(path, content, file_info)
   file_info = file_info or {}
+
+  -- Check if file was modified since we read it
+  if file_info.mtime then
+    local stat = vim.uv.fs_stat(path)
+    if stat and stat.mtime.sec ~= file_info.mtime then
+      return false,
+        fmt(
+          "File was modified by another process since it was read (expected mtime: %d, actual: %d)",
+          file_info.mtime,
+          stat.mtime.sec
+        )
+    end
+  end
 
   -- Preserve original newline behavior
   if file_info.has_trailing_newline == false and content:match("\n$") then
