@@ -364,60 +364,58 @@ local function process_substring_edits_parallel(content, substring_edits)
   return result_content, nil
 end
 
----Process multiple edits sequentially
----@param content string The current file content
----@param edits table[] The array of edits
----@param options table|nil Options for processing
----@return table Result containing success status and final content
-local function process_edits_sequentially(content, edits, options)
-  options = options or {}
-  local current_content = content
-  local results = {}
-  local strategies_used = {}
+---Apply substring edits in parallel and record results
+---@param content string The current content
+---@param substring_edits table[] Array of substring edit wrappers
+---@return string|nil new_content, table|nil error_result
+local function apply_substring_edits(content, substring_edits)
+  local substring_edit_list = vim.tbl_map(function(item)
+    return item.edit
+  end, substring_edits)
 
-  -- Step 1: Separate edits by type (substring vs block/single)
-  local substring_edits, other_edits = separate_edits_by_type(edits)
+  local parallel_result, parallel_error = process_substring_edits_parallel(content, substring_edit_list)
 
-  -- Step 2: Process all substring replaceAll edits in parallel (if any)
-  if #substring_edits > 0 then
-    local substring_edit_list = vim.tbl_map(function(item)
-      return item.edit
-    end, substring_edits)
-
-    local parallel_result, parallel_error = process_substring_edits_parallel(current_content, substring_edit_list)
-
-    if not parallel_result then
-      return {
+  if parallel_error then
+    return nil,
+      {
         success = false,
         error = "substring_parallel_processing_failed",
         message = parallel_error,
       }
-    end
-
-    current_content = parallel_result
-
-    -- Record results for all substring edits
-    for _, item in ipairs(substring_edits) do
-      table.insert(results, {
-        edit_index = item.original_index,
-        strategy = "substring_exact_match_parallel",
-        confidence = 1.0,
-        selection_reason = "parallel_processing",
-        auto_selected = true,
-      })
-      table.insert(strategies_used, "substring_exact_match_parallel")
-    end
-
-    log:debug("[Insert Edit Into File::Main] Applied %d substring edits in parallel", #substring_edits)
   end
 
-  -- Step 3: Process block/single edits sequentially
-  edits = vim.tbl_map(function(item)
-    return item.edit
-  end, other_edits)
+  return parallel_result, nil
+end
 
+---Create result entries for substring edits
+---@param substring_edits table[] Array of substring edit wrappers
+---@return table[] results, table[] strategies
+local function create_substring_results(substring_edits)
+  local results = {}
+  local match_strategies = {}
+
+  for _, item in ipairs(substring_edits) do
+    table.insert(results, {
+      edit_index = item.original_index,
+      strategy = "substring_exact_match_parallel",
+      confidence = 1.0,
+      selection_reason = "parallel_processing",
+      auto_selected = true,
+    })
+    table.insert(match_strategies, "substring_exact_match_parallel")
+  end
+
+  return results, match_strategies
+end
+
+---Handle special cases (empty file, overwrite mode)
+---@param content string The current content
+---@param edits table[] Array of edits
+---@param options table Processing options
+---@return table|nil result if special case handled, nil otherwise
+local function handle_special_cases(content, edits, options)
   -- Handle empty file case
-  if current_content == "" and #edits == 1 and (edits[1].oldText == "" or edits[1].oldText == nil) then
+  if content == "" and #edits == 1 and (edits[1].oldText == "" or edits[1].oldText == nil) then
     return {
       success = true,
       final_content = edits[1].newText,
@@ -452,9 +450,17 @@ local function process_edits_sequentially(content, edits, options)
     }
   end
 
-  -- Check for conflicts first
+  return nil
+end
+
+---Check for conflicting edits
+---@param content string The current content
+---@param edits table[] Array of edits
+---@param options table Processing options
+---@return table|nil error_result if conflicts found, nil otherwise
+local function check_for_conflicts(content, edits, options)
   if not options.dry_run then
-    local conflicts = match_selector.detect_edit_conflicts(current_content, edits)
+    local conflicts = match_selector.detect_edit_conflicts(content, edits)
     if #conflicts > 0 then
       return {
         success = false,
@@ -466,80 +472,163 @@ local function process_edits_sequentially(content, edits, options)
       }
     end
   end
+  return nil
+end
 
-  for i, edit in ipairs(edits) do
-    -- Validate required fields
-    if not edit.oldText and not (current_content == "" or options.mode == "overwrite") then
-      return {
+---Validate required fields for a single edit
+---@param edit table The edit to validate
+---@param index number Edit index for error messages
+---@param content string Current content
+---@param options table Processing options
+---@param partial_results table[] Results from previous edits
+---@return table|nil error_result if validation fails, nil otherwise
+local function validate_edit_fields(edit, index, content, options, partial_results)
+  if not edit.oldText and not (content == "" or options.mode == "overwrite") then
+    return {
+      success = false,
+      failed_at_edit = index,
+      error = "missing_oldText",
+      partial_results = partial_results,
+      message = "Edit #"
+        .. index
+        .. " is missing required field 'oldText'. Every edit MUST have both 'oldText' and 'newText' fields.",
+    }
+  end
+
+  if not edit.newText and edit.newText ~= "" then
+    return {
+      success = false,
+      failed_at_edit = index,
+      error = "missing_newText",
+      partial_results = partial_results,
+      message = "Edit #"
+        .. index
+        .. " is missing required field 'newText'. Every edit MUST have both 'oldText' and 'newText' fields.",
+    }
+  end
+
+  return nil
+end
+
+---Process a single edit operation
+---@param edit table The edit to process
+---@param index number Edit index
+---@param content string Current content
+---@param options table Processing options
+---@param partial_results table[] Results from previous edits
+---@return string|nil new_content, table|nil error_result, table|nil result_info
+local function process_single_edit(edit, index, content, options, partial_results)
+  local validation_error = validate_edit_fields(edit, index, content, options, partial_results)
+  if validation_error then
+    return nil, validation_error, nil
+  end
+
+  -- Find matches using strategies
+  local match_result = strategies.find_best_match(content, edit.oldText, edit.replaceAll)
+
+  if not match_result.success then
+    return nil,
+      {
         success = false,
-        failed_at_edit = i,
-        error = "missing_oldText",
-        partial_results = results,
-        message = "Edit #"
-          .. i
-          .. " is missing required field 'oldText'. Every edit MUST have both 'oldText' and 'newText' fields.",
-      }
-    end
-
-    if not edit.newText and edit.newText ~= "" then
-      return {
-        success = false,
-        failed_at_edit = i,
-        error = "missing_newText",
-        partial_results = results,
-        message = "Edit #"
-          .. i
-          .. " is missing required field 'newText'. Every edit MUST have both 'oldText' and 'newText' fields.",
-      }
-    end
-
-    -- Find matches using edit tool exp strategies
-    local match_result = strategies.find_best_match(current_content, edit.oldText, edit.replaceAll)
-
-    if not match_result.success then
-      return {
-        success = false,
-        failed_at_edit = i,
+        failed_at_edit = index,
         error = match_result.error,
-        partial_results = results,
+        partial_results = partial_results,
         attempted_strategies = match_result.attempted_strategies,
-      }
-    end
+      },
+      nil
+  end
 
-    -- Select best match from candidates
-    local selection_result = strategies.select_best_match(match_result.matches, edit.replaceAll)
+  local selection_result = strategies.select_best_match(match_result.matches, edit.replaceAll)
 
-    if not selection_result.success then
-      return {
+  if not selection_result.success then
+    return nil,
+      {
         success = false,
-        failed_at_edit = i,
+        failed_at_edit = index,
         error = selection_result.error,
         matches = selection_result.matches,
         suggestion = selection_result.suggestion,
-        partial_results = results,
-      }
+        partial_results = partial_results,
+      },
+      nil
+  end
+
+  -- Apply the replacement
+  local new_content = strategies.apply_replacement(content, selection_result.selected, edit.newText)
+
+  local result_info = {
+    edit_index = index,
+    strategy = match_result.strategy_used,
+    confidence = selection_result.selected.confidence
+      or (type(selection_result.selected) == "table" and selection_result.selected[1] and selection_result.selected[1].confidence)
+      or 0,
+    selection_reason = selection_result.selection_reason,
+    auto_selected = selection_result.auto_selected,
+  }
+
+  return new_content, nil, result_info
+end
+
+---Process multiple edits sequentially
+---@param content string The current file content
+---@param edits table[] The array of edits
+---@param options table|nil Options for processing
+---@return table Result containing success status and final content
+local function process_edits_sequentially(content, edits, options)
+  options = options or {}
+  local current_content = content
+  local results = {}
+  local strategies_used = {}
+
+  -- Step 1: Separate edits by type (substring vs block/single)
+  local substring_edits, other_edits = separate_edits_by_type(edits)
+
+  -- Step 2: Process all substring replaceAll edits in parallel (if any)
+  if #substring_edits > 0 then
+    local new_content, error_result = apply_substring_edits(current_content, substring_edits)
+    if error_result then
+      return error_result
     end
 
-    -- Apply the replacement if not dry run
-    if not options.dry_run then
-      current_content = strategies.apply_replacement(current_content, selection_result.selected, edit.newText)
-    else
-      -- For dry run, simulate the change for diff generation
-      local temp_content = strategies.apply_replacement(current_content, selection_result.selected, edit.newText)
-      current_content = temp_content
+    current_content = new_content --[[@as string]]
+    local substring_results, substring_strategies = create_substring_results(substring_edits)
+    vim.list_extend(results, substring_results)
+    vim.list_extend(strategies_used, substring_strategies)
+
+    log:debug("[Insert Edit Into File::Main] Applied %d substring edits in parallel", #substring_edits)
+  end
+
+  -- Step 3: Extract block/single edits for special case and conflict checking
+  local block_edits = vim.tbl_map(function(item)
+    return item.edit
+  end, other_edits)
+
+  -- Special cases (empty file, overwrite mode)
+  local special_result = handle_special_cases(current_content, block_edits, options)
+  if special_result then
+    return special_result
+  end
+
+  local conflict_result = check_for_conflicts(current_content, block_edits, options)
+  if conflict_result then
+    return conflict_result
+  end
+
+  -- Process each block/single edit sequentially
+  for i, edit_wrapper in ipairs(other_edits) do
+    local edit = edit_wrapper.edit
+    local original_index = edit_wrapper.original_index
+    local new_content, error_result, result_info =
+      process_single_edit(edit, original_index, current_content, options, results)
+
+    if error_result then
+      return error_result
     end
 
-    table.insert(results, {
-      edit_index = i,
-      strategy = match_result.strategy_used,
-      confidence = selection_result.selected.confidence
-        or (type(selection_result.selected) == "table" and selection_result.selected[1] and selection_result.selected[1].confidence)
-        or 0,
-      selection_reason = selection_result.selection_reason,
-      auto_selected = selection_result.auto_selected,
-    })
-
-    table.insert(strategies_used, match_result.strategy_used)
+    current_content = new_content--[[@as string]]
+    table.insert(results, result_info)
+    ---@diagnostic disable-next-line: need-check-nil
+    table.insert(strategies_used, result_info.strategy)
   end
 
   return {
