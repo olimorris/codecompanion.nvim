@@ -23,9 +23,12 @@ Every edit MUST have both `oldText` AND `newText` - NO EXCEPTIONS.
 ❌ **Common mistakes that cause FAILURE:**
 - Missing `oldText` or `newText` fields
 - Putting `filepath` or `explanation` inside the `edits` array
-- Making `edits` a string instead of an array
 - Using single quotes instead of double quotes in JSON
 - Including line numbers in `oldText` (e.g., "117: function test()")
+
+** NEVER use placeholders** (`"# ...existing code..."`, `"// ... rest ..."`, `"... (unchanged)"`). Instead:
+- Use `"^"` to insert at file start: `{"oldText": "^", "newText": "import math\n\n"}`
+- Use `"$"` to insert at file end: `{"oldText": "$", "newText": "\n# footer"}`
 
 # How Matching Works
 
@@ -195,6 +198,7 @@ Use `overwrite` mode to replace all file contents completely.
 - ✓ Include enough context (function names, unique variables) for unique matching
 - ❌ Never include line numbers (e.g., "117: function test()")
 - ❌ Never include editor artifacts (→, │, gutter symbols)
+- ❌ Never use placeholders - use `"^"` (file start) or `"$"` (file end) instead
 - ❌ Never use empty `{"oldText": "", "newText": ""}` to read or inspect files - this is invalid and does nothing.
 
 **⚠️ WARNING: Avoid overlapping patterns when batching substring edits:**
@@ -226,7 +230,7 @@ Use `overwrite` mode to replace all file contents completely.
 
 # Troubleshooting
 
-**"No confident matches found"** - `oldText` doesn't match file. If you have access to `read_file` tool, use it to verify exact content including whitespace.
+**"No confident matches found"** - `oldText` doesn't match file. If you have access to `read_file` tool, use it to verify exact content including whitespace. If trying to insert at file start/end, use `"^"` or `"$"` instead of placeholders.
 
 **"Ambiguous matches"** - Add more unique context to `oldText`, or use `replaceAll: true` to change all occurrences.
 

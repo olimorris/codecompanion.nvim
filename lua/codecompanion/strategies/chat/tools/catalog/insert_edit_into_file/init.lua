@@ -46,6 +46,7 @@ local Path = require("plenary.path")
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+local constants = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.constants")
 local diff = require("codecompanion.strategies.chat.helpers.diff")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local match_selector = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.match_selector")
@@ -570,10 +571,14 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- Early size validation to prevent freezes
-  if #current_content > 2000000 then -- 2MB limit
+  if #current_content > constants.LIMITS.FILE_SIZE_MAX then
     return output_handler({
       status = "error",
-      data = fmt("Error: File too large (%d bytes). Maximum supported size is 2MB.", #current_content),
+      data = fmt(
+        "Error: File too large (%d bytes). Maximum supported size is %d bytes.",
+        #current_content,
+        constants.LIMITS.FILE_SIZE_MAX
+      ),
     })
   end
 
@@ -593,7 +598,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     })
   end
 
-  -- Generate summary (using existing diff system for interactive diffs)
+  -- Generate summary for diffs
   local strategies_summary = table.concat(
     vim.tbl_map(function(strategy)
       return strategy:gsub("_", " ")

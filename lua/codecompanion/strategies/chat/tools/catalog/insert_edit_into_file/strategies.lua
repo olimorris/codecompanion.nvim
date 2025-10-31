@@ -48,72 +48,11 @@ This adaptive approach prevents false positives while ensuring edits eventually 
 - **apply_replacement**: Applies text replacement (line-based or position-based)
 --]]
 
+local constants = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.constants")
 local log = require("codecompanion.utils.log")
+local text_utils = require("codecompanion.strategies.chat.tools.catalog.insert_edit_into_file.text_utils")
 
 local M = {}
-
----Levenshtein distance for similarity scoring
----@param a string First string to compare
----@param b string Second string to compare
----@return number The edit distance between the two strings
-local function levenshtein_distance(a, b)
-  if a == "" then
-    return #b
-  end
-  if b == "" then
-    return #a
-  end
-
-  local matrix = {}
-  for i = 0, #a do
-    matrix[i] = { [0] = i }
-  end
-  for j = 0, #b do
-    matrix[0][j] = j
-  end
-
-  for i = 1, #a do
-    for j = 1, #b do
-      local cost = (a:sub(i, i) == b:sub(j, j)) and 0 or 1
-      matrix[i][j] = math.min(
-        matrix[i - 1][j] + 1, -- deletion
-        matrix[i][j - 1] + 1, -- insertion
-        matrix[i - 1][j - 1] + cost -- substitution
-      )
-    end
-  end
-
-  return matrix[#a][#b]
-end
-
----Calculate similarity score between two strings (0.0 to 1.0)
----@param a string First string to compare
----@param b string Second string to compare
----@return number Similarity score from 0.0 (no similarity) to 1.0 (identical)
-local function similarity_score(a, b)
-  if a == b then
-    return 1.0
-  end
-  local max_len = math.max(#a, #b)
-  if max_len == 0 then
-    return 1.0
-  end
-  return 1.0 - (levenshtein_distance(a, b) / max_len)
-end
-
----Normalize whitespace for better matching
----@param text string The text to normalize
----@param aggressive boolean Whether to use aggressive normalization
----@return string The normalized text
-local function normalize_whitespace(text, aggressive)
-  if aggressive then
-    -- Remove all extra whitespace, normalize indentation
-    return text:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
-  else
-    -- Just trim and normalize line endings
-    return vim.trim(text):gsub("\r\n", "\n")
-  end
-end
 
 ---Apply line-based replacement
 ---@param content_lines string[] Array of content lines
@@ -184,11 +123,7 @@ function M.exact_match(content, old_text)
   local content_lines = vim.split(content, "\n", { plain = true })
   local old_text_lines = vim.split(old_text, "\n", { plain = true })
 
-  -- Handle trailing newline normalization (like production tools)
-  -- Remove empty trailing line if present (handles "text\n" patterns)
-  if #old_text_lines >= 2 and old_text_lines[#old_text_lines] == "" then
-    old_text_lines = vim.list_slice(old_text_lines, 1, #old_text_lines - 1)
-  end
+  old_text_lines = text_utils.normalize_trailing_newline(old_text_lines)
 
   local matches = {}
 
@@ -234,7 +169,7 @@ function M.exact_match(content, old_text)
     end
   end
 
-  log:debug("[Insert_edit_into_file Strategies] Exact match found %d matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Exact match found %d matches", #matches)
   return matches
 end
 
@@ -246,11 +181,7 @@ function M.trimmed_lines(content, old_text)
   local content_lines = vim.split(content, "\n", { plain = true })
   local search_lines = vim.split(old_text, "\n", { plain = true })
 
-  -- Handle trailing newline normalization (like production tools)
-  -- Remove empty trailing line if present (handles "text\n" patterns)
-  if #search_lines >= 2 and search_lines[#search_lines] == "" then
-    search_lines = vim.list_slice(search_lines, 1, #search_lines - 1)
-  end
+  search_lines = text_utils.normalize_trailing_newline(search_lines)
 
   local matches = {}
 
@@ -259,20 +190,16 @@ function M.trimmed_lines(content, old_text)
   end
 
   -- Performance safeguards to prevent freezes
-  local max_content_lines = 5000
-  local max_search_lines = 200
-  local max_iterations = 10000
-
-  if #content_lines > max_content_lines then
+  if #content_lines > constants.LIMITS.CONTENT_LINES_STANDARD then
     log:warn(
       "[Insert_edit_into_file Strategies] File too large (%d lines), trimming to %d",
       #content_lines,
-      max_content_lines
+      constants.LIMITS.CONTENT_LINES_STANDARD
     )
-    content_lines = vim.list_slice(content_lines, 1, max_content_lines)
+    content_lines = vim.list_slice(content_lines, 1, constants.LIMITS.CONTENT_LINES_STANDARD)
   end
 
-  if #search_lines > max_search_lines then
+  if #search_lines > constants.LIMITS.SEARCH_LINES_STANDARD then
     log:warn(
       "[Insert_edit_into_file Strategies] Search text too large (%d lines), aborting trimmed_lines strategy",
       #search_lines
@@ -280,43 +207,8 @@ function M.trimmed_lines(content, old_text)
     return matches
   end
 
-  ---Remove common indentation from search pattern (like production tools)
-  ---@param lines string[] Array of lines to process
-  ---@return string[] Array of lines with common indentation removed
-  local function remove_common_indentation(lines)
-    local non_empty_lines = vim.tbl_filter(function(line)
-      return vim.trim(line) ~= ""
-    end, lines)
-
-    if #non_empty_lines == 0 then
-      return lines
-    end
-
-    -- Find minimum indentation
-    local min_indent = math.huge
-    for _, line in ipairs(non_empty_lines) do
-      local indent = line:match("^(%s*)")
-      min_indent = math.min(min_indent, #indent)
-    end
-
-    if min_indent == 0 or min_indent == math.huge then
-      return lines
-    end
-
-    -- Remove common indentation
-    local result = {}
-    for _, line in ipairs(lines) do
-      if vim.trim(line) == "" then
-        table.insert(result, line)
-      else
-        table.insert(result, line:sub(min_indent + 1))
-      end
-    end
-    return result
-  end
-
   -- Normalize search pattern for indentation-flexible matching
-  local normalized_search_lines = remove_common_indentation(search_lines)
+  local normalized_search_lines = text_utils.remove_common_indentation(search_lines)
   local trimmed_search_lines = {}
   for i, line in ipairs(normalized_search_lines) do
     trimmed_search_lines[i] = vim.trim(line)
@@ -325,13 +217,13 @@ function M.trimmed_lines(content, old_text)
   local iterations = 0
   for i = 1, #content_lines - #search_lines + 1 do
     iterations = iterations + 1
-    if iterations > max_iterations then
-      log:warn("[Insert_edit_into_file Strategies] Too many iterations (%d), terminating search early", iterations)
+    if iterations > constants.LIMITS.ITERATIONS_MAX then
+      log:warn("[Insert Edit Into File::Strategies] Too many iterations (%d), terminating search early", iterations)
       break
     end
 
     local content_block = vim.list_slice(content_lines, i, i + #search_lines - 1)
-    local normalized_content_lines = remove_common_indentation(content_block)
+    local normalized_content_lines = text_utils.remove_common_indentation(content_block)
 
     local match = true
     local confidence = 0
@@ -342,12 +234,19 @@ function M.trimmed_lines(content, old_text)
 
       if content_line == search_line then
         confidence = confidence + 1
-      elseif normalize_whitespace(content_line, true) == normalize_whitespace(search_line, true) then
-        confidence = confidence + 0.95
-      elseif similarity_score(content_line, search_line) >= 0.85 then
-        confidence = confidence + 0.85
-      elseif similarity_score(content_line, search_line) >= 0.7 then
-        confidence = confidence + 0.7
+      elseif
+        text_utils.normalize_whitespace(content_line, "aggressive")
+        == text_utils.normalize_whitespace(search_line, "aggressive")
+      then
+        confidence = confidence + constants.CONFIDENCE.SIMILARITY_THRESHOLD_HIGH
+      elseif
+        text_utils.similarity_score(content_line, search_line) >= constants.CONFIDENCE.SIMILARITY_THRESHOLD_MEDIUM
+      then
+        confidence = confidence + constants.CONFIDENCE.SIMILARITY_THRESHOLD_MEDIUM
+      elseif
+        text_utils.similarity_score(content_line, search_line) >= constants.CONFIDENCE.SIMILARITY_THRESHOLD_LOW
+      then
+        confidence = confidence + constants.CONFIDENCE.SIMILARITY_THRESHOLD_LOW
       else
         match = false
         break
@@ -377,7 +276,7 @@ function M.trimmed_lines(content, old_text)
     end
   end
 
-  log:debug("[Insert_edit_into_file Strategies] Trimmed lines found %d matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Trimmed lines found %d matches", #matches)
   return matches
 end
 
@@ -410,7 +309,7 @@ function M.position_markers(content, old_text)
     })
   end
 
-  log:debug("[Insert_edit_into_file Strategies] Position markers found %d matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Position markers found %d matches", #matches)
   return matches
 end
 
@@ -423,40 +322,14 @@ function M.punctuation_normalized(content, old_text)
   local content_lines = vim.split(content, "\n", { plain = true })
   local old_text_lines = vim.split(old_text, "\n", { plain = true })
 
-  -- Handle trailing newline normalization
-  if #old_text_lines >= 2 and old_text_lines[#old_text_lines] == "" then
-    old_text_lines = vim.list_slice(old_text_lines, 1, #old_text_lines - 1)
-  end
-
-  ---Normalize punctuation: remove trailing punctuation, normalize spacing
-  ---@param text string The text to normalize
-  ---@return string The text with normalized punctuation
-  local function normalize_punctuation(text)
-    return vim
-      .trim(text)
-      -- Remove trailing commas and semicolons
-      :gsub(",%s*$", "")
-      :gsub(";%s*$", "")
-      -- Normalize comma and semicolon spacing
-      :gsub("%s*,%s*", ",")
-      :gsub("%s*;%s*", ";")
-      -- Normalize parentheses spacing
-      :gsub("%s*%(%s*", "(")
-      :gsub("%s*%)%s*", ")")
-      -- Normalize bracket spacing
-      :gsub("%s*%[%s*", "[")
-      :gsub("%s*%]%s*", "]")
-      -- Normalize brace spacing
-      :gsub("%s*{%s*", "{")
-      :gsub("%s*}%s*", "}")
-  end
+  old_text_lines = text_utils.normalize_trailing_newline(old_text_lines)
 
   -- Handle single line matching
   if #old_text_lines == 1 then
-    local normalized_search = normalize_punctuation(old_text_lines[1])
+    local normalized_search = text_utils.normalize_punctuation(old_text_lines[1])
 
     for line_num, line in ipairs(content_lines) do
-      local normalized_line = normalize_punctuation(line)
+      local normalized_line = text_utils.normalize_punctuation(line)
       if normalized_line == normalized_search then
         table.insert(matches, {
           start_line = line_num,
@@ -477,7 +350,7 @@ function M.punctuation_normalized(content, old_text)
         local content_line = content_lines[i + j - 1] or ""
         local search_line = old_text_lines[j]
 
-        if normalize_punctuation(content_line) ~= normalize_punctuation(search_line) then
+        if text_utils.normalize_punctuation(content_line) ~= text_utils.normalize_punctuation(search_line) then
           match_found = false
           break
         end
@@ -496,11 +369,11 @@ function M.punctuation_normalized(content, old_text)
     end
   end
 
-  log:debug("[Insert_edit_into_file Strategies] Punctuation normalized found %d matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Punctuation normalized found %d matches", #matches)
   return matches
 end
 
----Strategy: Whitespace normalized matching (based on production tools)
+---Strategy: Whitespace normalized matching
 ---@param content string The content to search within
 ---@param old_text string The text to find using whitespace normalization
 ---@return table[] Array of matches found using whitespace normalization
@@ -509,24 +382,14 @@ function M.whitespace_normalized(content, old_text)
   local content_lines = vim.split(content, "\n", { plain = true })
   local old_text_lines = vim.split(old_text, "\n", { plain = true })
 
-  -- Handle trailing newline normalization
-  if #old_text_lines >= 2 and old_text_lines[#old_text_lines] == "" then
-    old_text_lines = vim.list_slice(old_text_lines, 1, #old_text_lines - 1)
-  end
-
-  ---Normalize whitespace: collapse multiple spaces to single space and trim
-  ---@param text string The text to normalize
-  ---@return string The text with normalized whitespace
-  local function normalize_whitespace(text)
-    return vim.trim(text):gsub("%s+", " ")
-  end
+  old_text_lines = text_utils.normalize_trailing_newline(old_text_lines)
 
   -- Handle single line matching
   if #old_text_lines == 1 then
-    local normalized_search = normalize_whitespace(old_text_lines[1])
+    local normalized_search = text_utils.normalize_whitespace(old_text_lines[1], "simple")
 
     for line_num, line in ipairs(content_lines) do
-      local normalized_line = normalize_whitespace(line)
+      local normalized_line = text_utils.normalize_whitespace(line, "simple")
       if normalized_line == normalized_search then
         table.insert(matches, {
           start_line = line_num,
@@ -547,7 +410,10 @@ function M.whitespace_normalized(content, old_text)
         local content_line = content_lines[i + j - 1] or ""
         local search_line = old_text_lines[j]
 
-        if normalize_whitespace(content_line) ~= normalize_whitespace(search_line) then
+        if
+          text_utils.normalize_whitespace(content_line, "simple")
+          ~= text_utils.normalize_whitespace(search_line, "simple")
+        then
           match_found = false
           break
         end
@@ -566,48 +432,8 @@ function M.whitespace_normalized(content, old_text)
     end
   end
 
-  log:debug("[Insert_edit_into_file Strategies] Whitespace normalized found %d matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Whitespace normalized found %d matches", #matches)
   return matches
-end
-
----Calculate line similarity with better fuzzy matching
----@param line1 string First line to compare
----@param line2 string Second line to compare
----@return number Similarity score between 0 and 1
-local function calculate_line_similarity(line1, line2)
-  if line1 == line2 then
-    return 1.0
-  end
-
-  local trimmed1 = vim.trim(line1)
-  local trimmed2 = vim.trim(line2)
-
-  if trimmed1 == trimmed2 then
-    return 0.95 -- High similarity for whitespace-only differences
-  end
-
-  -- Use edit distance for fuzzy comparison
-  return similarity_score(trimmed1, trimmed2)
-end
-
----Normalize empty lines for better LLM code block matching (conservative approach)
----@param text string Text to normalize empty lines in
----@return string Text with normalized empty lines
-local function normalize_empty_lines(text)
-  -- Be more conservative - only normalize multiple consecutive empty lines to single
-  -- and trim leading/trailing empty lines to preserve line positions
-  local normalized = text
-
-  -- Normalize multiple consecutive empty lines to at most 1
-  normalized = normalized:gsub("\n\n\n+", "\n\n")
-
-  -- Trim leading empty lines
-  normalized = normalized:gsub("^%s*\n", "")
-
-  -- Trim trailing empty lines
-  normalized = normalized:gsub("\n%s*$", "")
-
-  return normalized
 end
 
 ---Enhanced anchor detection using character count
@@ -622,13 +448,120 @@ local function get_meaningful_anchor(lines, from_end)
   for idx = start_idx, end_idx, direction do
     local line = vim.trim(lines[idx])
     -- Use meaningful line (>10 chars) or non-punctuation-only
-    if #line > 10 or (#line > 0 and not line:match("^[%s%p]*$")) then
+    if #line > constants.ANCHOR.MEANINGFUL_LINE_MIN_LENGTH or (#line > 0 and not line:match("^[%s%p]*$")) then
       return line, idx
     end
   end
 
   -- Fallback to original line if no meaningful line found
   return vim.trim(lines[start_idx]), start_idx
+end
+
+---Validate input sizes to prevent processing huge inputs
+---@param content string The content to validate
+---@param old_text string The search text to validate
+---@return table|nil Error result if validation fails, nil if valid
+local function validate_input_sizes(content, old_text)
+  if #content > constants.LIMITS.FILE_SIZE_MAX then
+    log:warn("[Insert Edit Into File::Strategies] Content too large (%d bytes), aborting", #content)
+    return {
+      success = false,
+      error = "File too large for matching strategies",
+      attempted_strategies = {},
+    }
+  end
+
+  if #old_text > constants.LIMITS.SEARCH_TEXT_MAX then
+    log:warn("[Insert Edit Into File::Strategies] Search text too large (%d bytes), aborting", #old_text)
+    return {
+      success = false,
+      error = "Search text too large for matching strategies",
+      attempted_strategies = {},
+    }
+  end
+
+  return nil
+end
+
+---Check if strategy should be skipped based on configuration
+---@param strategy table
+---@param replace_all boolean
+---@return boolean should_skip
+local function should_skip_strategy(strategy, replace_all)
+  return strategy.only_replace_all and not replace_all
+end
+
+---Execute single strategy with timeout protection
+---@param strategy table
+---@param content string The content to search within
+---@param old_text string Text to find
+---@return table matches, number elapsed_ms
+local function execute_strategy(strategy, content, old_text)
+  local start_time = vim.uv.hrtime()
+  local matches = strategy.func(content, old_text)
+  local elapsed_ms = (vim.uv.hrtime() - start_time) / 1000000
+
+  if elapsed_ms > constants.LIMITS.STRATEGY_TIMEOUT_MS then
+    log:warn("[Insert Edit Into File::Strategies] %s took unusually long: %.2fms", strategy.name, elapsed_ms)
+  end
+
+  return matches, elapsed_ms
+end
+
+---Filter matches by confidence threshold
+---@param matches table[]
+---@param min_confidence number
+---@return table[] Matches above threshold
+local function filter_by_confidence(matches, min_confidence)
+  return vim.tbl_filter(function(match)
+    return match.confidence >= min_confidence
+  end, matches)
+end
+
+---Use best ambiguous match as fallback when all strategies exhausted
+---@param best_ambiguous_result table
+---@return table Result with single best match
+local function use_ambiguous_fallback(best_ambiguous_result)
+  table.sort(best_ambiguous_result.matches, function(a, b)
+    if math.abs(a.confidence - b.confidence) > constants.CONFIDENCE.COMPARISON_EPSILON then
+      return a.confidence > b.confidence
+    end
+    return (a.start_line or 0) < (b.start_line or 0)
+  end)
+
+  return {
+    success = true,
+    matches = { best_ambiguous_result.matches[1] },
+    strategy_used = best_ambiguous_result.strategy_used,
+    fallback_used = true,
+  }
+end
+
+---Get all available strategies with their configurations
+---@return table[] Array of strategy configurations
+local function get_all_strategies()
+  return {
+    { name = "exact_match", func = M.exact_match, min_confidence = constants.CONFIDENCE.EXACT_MATCH },
+    {
+      name = "substring_exact_match",
+      func = M.substring_exact_match,
+      min_confidence = constants.CONFIDENCE.SUBSTRING_EXACT_MATCH,
+      only_replace_all = true,
+    },
+    {
+      name = "whitespace_normalized",
+      func = M.whitespace_normalized,
+      min_confidence = constants.CONFIDENCE.WHITESPACE_NORMALIZED,
+    },
+    {
+      name = "punctuation_normalized",
+      func = M.punctuation_normalized,
+      min_confidence = constants.CONFIDENCE.PUNCTUATION_NORMALIZED,
+    },
+    { name = "position_markers", func = M.position_markers, min_confidence = constants.CONFIDENCE.POSITION_MARKERS },
+    { name = "trimmed_lines", func = M.trimmed_lines, min_confidence = constants.CONFIDENCE.TRIMMED_LINES_MIN },
+    { name = "block_anchor", func = M.block_anchor, min_confidence = constants.CONFIDENCE.BLOCK_ANCHOR_MIN },
+  }
 end
 
 ---Strategy 4: Substring exact match for replaceAll operations
@@ -648,10 +581,9 @@ function M.substring_exact_match(content, old_text)
   end
 
   local start = 1
-  local max_matches = 1000
   local match_count = 0
 
-  while match_count < max_matches do
+  while match_count < constants.LIMITS.SUBSTRING_MATCHES_MAX do
     local pos = content:find(old_text, start, true) -- plain text search
     if not pos then
       break
@@ -674,11 +606,11 @@ function M.substring_exact_match(content, old_text)
     start = pos + #old_text -- Jump ahead by match length
   end
 
-  if match_count >= max_matches then
-    log:warn("[Substring Exact Match] Hit limit of %d matches", max_matches)
+  if match_count >= constants.LIMITS.SUBSTRING_MATCHES_MAX then
+    log:warn("[Insert Edit Into File::Strategies] Hit limit of %d matches", constants.LIMITS.SUBSTRING_MATCHES_MAX)
   end
 
-  log:debug("[Substring Exact Match] Found %d total matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Found %d total matches", #matches)
   return matches
 end
 
@@ -688,16 +620,14 @@ end
 ---@return table[] Array of matches found using block anchor strategy
 function M.block_anchor(content, old_text)
   -- Normalize empty lines for better LLM matching (applied before line splitting)
-  local normalized_content = normalize_empty_lines(content)
-  local normalized_old_text = normalize_empty_lines(old_text)
+  local normalized_content = text_utils.normalize_empty_lines(content)
+  local normalized_old_text = text_utils.normalize_empty_lines(old_text)
 
   local content_lines = vim.split(normalized_content, "\n", { plain = true })
   local search_lines = vim.split(normalized_old_text, "\n", { plain = true })
 
-  -- Handle trailing newline normalization (like production tools)
-  if #search_lines >= 2 and search_lines[#search_lines] == "" then
-    search_lines = vim.list_slice(search_lines, 1, #search_lines - 1)
-  end
+  -- Handle trailing newline normalization
+  search_lines = text_utils.normalize_trailing_newline(search_lines)
 
   local matches = {}
 
@@ -706,17 +636,17 @@ function M.block_anchor(content, old_text)
   end
 
   -- Performance safeguards
-  local max_content_lines = 3000
-  local max_search_lines = 100
-  local max_anchor_pairs = 50
-
-  if #content_lines > max_content_lines then
-    log:warn("[Block Anchor Enhanced] File too large (%d lines), limiting to %d", #content_lines, max_content_lines)
-    content_lines = vim.list_slice(content_lines, 1, max_content_lines)
+  if #content_lines > constants.LIMITS.CONTENT_LINES_BLOCK_ANCHOR then
+    log:warn(
+      "[Block Anchor Enhanced] File too large (%d lines), limiting to %d",
+      #content_lines,
+      constants.LIMITS.CONTENT_LINES_BLOCK_ANCHOR
+    )
+    content_lines = vim.list_slice(content_lines, 1, constants.LIMITS.CONTENT_LINES_BLOCK_ANCHOR)
   end
 
-  if #search_lines > max_search_lines then
-    log:warn("[Block Anchor Enhanced] Search block too large (%d lines), aborting", #search_lines)
+  if #search_lines > constants.LIMITS.SEARCH_LINES_BLOCK_ANCHOR then
+    log:warn("[Insert Edit Into File::Strategies] Search block too large (%d lines), aborting", #search_lines)
     return matches
   end
 
@@ -754,7 +684,7 @@ function M.block_anchor(content, old_text)
               local content_line = trimmed_content_lines[content_line_idx] or ""
               local search_line = vim.trim(search_lines[j])
 
-              local line_similarity = calculate_line_similarity(content_line, search_line)
+              local line_similarity = text_utils.calculate_line_similarity(content_line, search_line)
               middle_confidence = middle_confidence + line_similarity
             end
           else
@@ -767,7 +697,7 @@ function M.block_anchor(content, old_text)
           local total_confidence = (1.0 + avg_middle_confidence + 1.0) / 3 -- first + middle + last
 
           -- Use confidence threshold
-          if total_confidence >= 0.7 then
+          if total_confidence >= constants.CONFIDENCE.BLOCK_ANCHOR_CONFIDENCE_MIN then
             local matched_lines = {}
             for k = i, expected_end do
               table.insert(matched_lines, content_lines[k] or "")
@@ -784,8 +714,11 @@ function M.block_anchor(content, old_text)
           end
 
           -- Safety check to prevent infinite processing
-          if anchor_pairs_checked >= max_anchor_pairs then
-            log:warn("[Block Anchor Enhanced] Checked %d anchor pairs, terminating early", anchor_pairs_checked)
+          if anchor_pairs_checked >= constants.LIMITS.ANCHOR_PAIRS_MAX then
+            log:warn(
+              "[Insert Edit Into File::Strategies] Checked %d anchor pairs, terminating early",
+              anchor_pairs_checked
+            )
             break
           end
         end
@@ -793,81 +726,43 @@ function M.block_anchor(content, old_text)
     end
   end
 
-  log:debug("[Insert_edit_into_file Strategies] Block anchor found %d matches", #matches)
+  log:debug("[Insert Edit Into File::Strategies] Block anchor found %d matches", #matches)
   return matches
 end
 
 ---Main strategy executor - tries strategies in order until confident match found
 ---@param content string The content to search within
 ---@param old_text string The text to find the best match for
----@param replace_all? boolean Whether this is a replaceAll operation
+---@param replace_all? boolean
 ---@return table Result containing success status, matches, and strategy information
 function M.find_best_match(content, old_text, replace_all)
   replace_all = replace_all or false
-  -- Early validation to prevent processing huge inputs
-  if #content > 2000000 then -- 2MB limit
-    log:warn("[Edit Tool Exp Strategies] Content too large (%d bytes), aborting", #content)
-    return {
-      success = false,
-      error = "File too large for edit tool exp matching strategies",
-      attempted_strategies = {},
-    }
+
+  local validation_error = validate_input_sizes(content, old_text)
+  if validation_error then
+    return validation_error
   end
 
-  if #old_text > 50000 then -- 50KB limit for search text
-    log:warn("[Insert_edit_into_file Strategies] Search text too large (%d bytes), aborting", #old_text)
-    return {
-      success = false,
-      error = "Search text too large for edit tool exp matching strategies",
-      attempted_strategies = {},
-    }
-  end
-
-  local all_strategies = {
-    { name = "exact_match", func = M.exact_match, min_confidence = 1.0 },
-    { name = "substring_exact_match", func = M.substring_exact_match, min_confidence = 1.0, only_replace_all = true },
-    { name = "whitespace_normalized", func = M.whitespace_normalized, min_confidence = 0.95 },
-    { name = "punctuation_normalized", func = M.punctuation_normalized, min_confidence = 0.93 },
-    { name = "position_markers", func = M.position_markers, min_confidence = 1.0 },
-    { name = "trimmed_lines", func = M.trimmed_lines, min_confidence = 0.8 },
-    { name = "block_anchor", func = M.block_anchor, min_confidence = 0.6 },
-  }
-
-  -- Keep track of best ambiguous match as fallback
+  local all_strategies = get_all_strategies()
   local best_ambiguous_result = nil
 
   for i, strategy in ipairs(all_strategies) do
-    -- Skip substring_exact_match if not replaceAll
-    if strategy.only_replace_all and not replace_all then
-      log:debug("[Insert_edit_into_file Strategies] Skipping %s (only for replaceAll)", strategy.name)
+    if should_skip_strategy(strategy, replace_all) then
+      log:debug("[Insert Edit Into File::Strategies] Skipping %s (only for replaceAll)", strategy.name)
       goto continue
     end
 
-    log:debug("[Insert_edit_into_file Strategies] Trying strategy: %s", strategy.name)
+    log:debug("[Insert Edit Into File::Strategies] Trying strategy: %s", strategy.name)
 
-    -- Add timeout protection for each strategy
-    local start_time = vim.loop.hrtime()
-    local matches = strategy.func(content, old_text)
-    local elapsed_ms = (vim.loop.hrtime() - start_time) / 1000000
+    local matches, elapsed_ms = execute_strategy(strategy, content, old_text)
+    log:debug("[Insert Edit Into File::Strategies] Strategy %s took %.2fms", strategy.name, elapsed_ms)
 
-    log:debug("[Insert_edit_into_file Strategies] Strategy %s took %.2fms", strategy.name, elapsed_ms)
-
-    if elapsed_ms > 5000 then -- 5 second warning
-      log:warn("[Insert_edit_into_file Strategies] Strategy %s took unusually long: %.2fms", strategy.name, elapsed_ms)
-    end
-
-    -- Filter by confidence threshold
-    local good_matches = vim.tbl_filter(function(match)
-      return match.confidence >= strategy.min_confidence
-    end, matches)
+    local good_matches = filter_by_confidence(matches, strategy.min_confidence)
 
     if #good_matches > 0 then
-      log:debug("[Insert_edit_into_file Strategies] Strategy %s found %d matches", strategy.name, #good_matches)
+      log:debug("[Insert Edit Into File::Strategies] Strategy %s found %d matches", strategy.name, #good_matches)
 
-      -- Check if this is the last strategy
       local is_last_strategy = (i == #all_strategies)
-
-      -- Try to select best match - if ambiguous, continue to next strategy
       local selection_result = M.select_best_match(good_matches, replace_all)
 
       if selection_result.should_try_next then
@@ -880,28 +775,14 @@ function M.find_best_match(content, old_text, replace_all)
         end
 
         if is_last_strategy then
-          -- Last strategy and ambiguous - use best match as fallback
-          table.sort(good_matches, function(a, b)
-            if math.abs(a.confidence - b.confidence) > 0.01 then
-              return a.confidence > b.confidence
-            end
-            return (a.start_line or 0) < (b.start_line or 0)
-          end)
-          -- Return only the best match (first after sorting) to avoid re-selection ambiguity
-          return {
-            success = true,
-            matches = { good_matches[1] },
-            strategy_used = strategy.name,
-            total_attempts = vim.tbl_keys(all_strategies),
-            fallback_used = true,
-          }
+          return use_ambiguous_fallback(best_ambiguous_result)
         else
           goto continue
         end
       end
 
       if selection_result.success then
-        log:debug("[Insert_edit_into_file Strategies] Strategy %s succeeded with confident match", strategy.name)
+        log:debug("[Insert Edit Into File::Strategies] Strategy %s succeeded with confident match", strategy.name)
         return {
           success = true,
           matches = good_matches,
@@ -916,23 +797,10 @@ function M.find_best_match(content, old_text, replace_all)
 
   -- If we have ambiguous matches from any strategy, use them as last resort
   if best_ambiguous_result then
-    table.sort(best_ambiguous_result.matches, function(a, b)
-      if math.abs(a.confidence - b.confidence) > 0.01 then
-        return a.confidence > b.confidence
-      end
-      return (a.start_line or 0) < (b.start_line or 0)
-    end)
-    -- Return only the best match (first after sorting) to avoid re-selection ambiguity
-    return {
-      success = true,
-      matches = { best_ambiguous_result.matches[1] },
-      strategy_used = best_ambiguous_result.strategy_used,
-      total_attempts = vim.tbl_keys(all_strategies),
-      fallback_used = true,
-    }
+    return use_ambiguous_fallback(best_ambiguous_result)
   end
 
-  log:debug("[Insert_edit_into_file Strategies] All strategies failed")
+  log:debug("[Insert Edit Into File::Strategies] All strategies failed")
   return {
     success = false,
     error = "No confident matches found with any strategy",
@@ -961,7 +829,7 @@ function M.select_best_match(matches, replace_all)
 
   -- Multiple matches - try to pick the best one automatically
   table.sort(matches, function(a, b)
-    if math.abs(a.confidence - b.confidence) > 0.1 then
+    if math.abs(a.confidence - b.confidence) > constants.CONFIDENCE.COMPARISON_EPSILON * 10 then
       return a.confidence > b.confidence
     end
     -- Tie-breaker: prefer earlier occurrence
@@ -972,7 +840,7 @@ function M.select_best_match(matches, replace_all)
   local second_best = matches[2]
 
   -- Check if matches are too ambiguous - signal to try next strategy
-  if math.abs(best_match.confidence - second_best.confidence) < 0.15 then
+  if math.abs(best_match.confidence - second_best.confidence) < constants.CONFIDENCE.AMBIGUITY_THRESHOLD then
     return {
       success = false,
       error = "ambiguous_matches",
