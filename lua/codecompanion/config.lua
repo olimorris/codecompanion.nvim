@@ -157,7 +157,7 @@ local defaults = {
         },
         ["memory"] = {
           callback = "strategies.chat.tools.catalog.memory",
-          description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             requires_approval = true,
           },
