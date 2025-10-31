@@ -4,15 +4,18 @@ local log = require("codecompanion.utils.log")
 ---@class CodeCompanion.Tools.ToolFilter
 local ToolFilter = {}
 
-local _enabled_cache = {}
+local _tool_cache = {}
 local _cache_timestamp = 0
 local _config_hash = nil
-local CACHE_TTL = 30000
+
+local CONSTANTS = {
+  CACHE_TTL = 30000,
+}
 
 ---Clear the enabled tools cache
 ---@return nil
 local function clear_cache()
-  _enabled_cache = {}
+  _tool_cache = {}
   _cache_timestamp = 0
   _config_hash = nil
   log:trace("[Tool Filter] Cache cleared")
@@ -22,23 +25,26 @@ end
 ---@param tools_config_hash number The hash of the tools config
 ---@return boolean
 local function is_cache_valid(tools_config_hash)
-  local time_valid = vim.loop.now() - _cache_timestamp < CACHE_TTL
+  local time_valid = vim.loop.now() - _cache_timestamp < CONSTANTS.CACHE_TTL
   local config_unchanged = _config_hash == tools_config_hash
   return time_valid and config_unchanged
 end
 
 ---Get enabled tools from the cache or compute them
 ---@param tools_config table The tools configuration
+---@param opts? { adapter: CodeCompanion.HTTPAdapter }
 ---@return table<string, boolean> Map of tool names to enabled status
-local function get_enabled_tools(tools_config)
+local function get_enabled_tools(tools_config, opts)
+  opts = opts or {}
+
   local current_hash = hash.hash(tools_config)
-  if is_cache_valid(current_hash) and next(_enabled_cache) then
+  if is_cache_valid(current_hash) and next(_tool_cache) then
     log:trace("[Tool Filter] Using cached enabled tools")
-    return _enabled_cache
+    return _tool_cache
   end
 
   log:trace("[Tool Filter] Computing enabled tools")
-  _enabled_cache = {}
+  _tool_cache = {}
   _cache_timestamp = vim.loop.now()
   _config_hash = current_hash
 
@@ -49,7 +55,7 @@ local function get_enabled_tools(tools_config)
 
       if tool_config.enabled ~= nil then
         if type(tool_config.enabled) == "function" then
-          local ok, result = pcall(tool_config.enabled)
+          local ok, result = pcall(tool_config.enabled, opts)
           if ok then
             is_enabled = result
           else
@@ -61,19 +67,20 @@ local function get_enabled_tools(tools_config)
         end
       end
 
-      _enabled_cache[tool_name] = is_enabled
+      _tool_cache[tool_name] = is_enabled
       log:trace("[Tool Filter] Tool '%s' enabled: %s", tool_name, is_enabled)
     end
   end
 
-  return _enabled_cache
+  return _tool_cache
 end
 
 ---Filter tools configuration to only include enabled tools
 ---@param tools_config table The tools configuration
+---@param opts? { adapter: CodeCompanion.HTTPAdapter }
 ---@return table The filtered tools configuration
-function ToolFilter.filter_enabled_tools(tools_config)
-  local enabled_tools = get_enabled_tools(tools_config)
+function ToolFilter.filter_enabled_tools(tools_config, opts)
+  local enabled_tools = get_enabled_tools(tools_config, opts)
   local filtered_config = vim.deepcopy(tools_config)
 
   -- Remove disabled tools
@@ -81,6 +88,27 @@ function ToolFilter.filter_enabled_tools(tools_config)
     if not is_enabled then
       filtered_config[tool_name] = nil
       log:trace("[Tool Filter] Filtered out disabled tool: %s", tool_name)
+    end
+  end
+
+  if opts and opts.adapter and opts.adapter.available_tools then
+    for tool_name, tool_config in pairs(opts.adapter.available_tools) do
+      local should_show = true
+      if tool_config.enabled then
+        if type(tool_config.enabled) == "function" then
+          should_show = tool_config.enabled(opts.adapter)
+        else
+          should_show = tool_config.enabled
+        end
+      end
+
+      -- An adapter's tool will take precedence over built-in tools
+      if should_show then
+        filtered_config[tool_name] = vim.tbl_extend("force", tool_config, {
+          _adapter_tool = true,
+          _has_client_tool = tool_config.opts and tool_config.opts.client_tool and true or false,
+        })
+      end
     end
   end
 

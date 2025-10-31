@@ -155,6 +155,13 @@ local defaults = {
             user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
         },
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
         ["next_edit_suggestion"] = {
           callback = "strategies.chat.tools.catalog.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
@@ -163,8 +170,8 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -352,7 +359,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
-
         ["symbols"] = {
           callback = "strategies.chat.slash_commands.symbols",
           description = "Insert symbols for a selected file",

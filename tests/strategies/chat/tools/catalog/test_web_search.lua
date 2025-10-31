@@ -18,7 +18,7 @@ local T = new_set({
         local mock_adapter = {
           methods = {
             tools = {
-              search_web = {
+              web_search = {
                 setup = function() end,
                 callback = function(adapter, data)
                   -- Let the real tool handle the formatting
@@ -61,8 +61,8 @@ local T = new_set({
 
         -- Minimal config
         local config = require("codecompanion.config")
-        config.strategies.chat.tools.search_web = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        config.strategies.chat.tools.web_search = {
+          callback = "strategies.chat.tools.catalog.web_search",
           opts = { adapter = "test_adapter" }
         }
         config.adapters.test_adapter = {}
@@ -84,7 +84,7 @@ T["searches web successfully"] = function()
   child.lua([[
     local tool_call = {
       ["function"] = {
-        name = "search_web",
+        name = "web_search",
         arguments = '{"query": "neovim plugins", "domains": []}'
       },
       id = "test_call_id",

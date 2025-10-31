@@ -66,6 +66,21 @@ T["filters disabled tools in groups"] = function()
   h.eq(filtered.groups.empty_group, nil) -- Empty group should be removed
 end
 
+T["ensures adapter tools take priority over config tools"] = function()
+  local tools_config = {
+    tool1 = { callback = "test", enabled = true },
+    tool2 = { callback = "test", enabled = true },
+  }
+
+  local adapter = {
+    available_tools = { tool1 = { callback = "adapter test" } },
+  }
+
+  local filtered = ToolFilter.filter_enabled_tools(tools_config, { adapter = adapter })
+
+  h.eq(filtered["tool1"]._adapter_tool, true)
+end
+
 T["cache invalidation"] = new_set()
 
 T["cache invalidation"]["detects config changes when tools are added"] = function()
