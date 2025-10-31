@@ -54,8 +54,8 @@ return {
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
-    form_tools = function(self, params, messages)
-      return openai.handlers.form_tools(self, params, messages)
+    form_tools = function(self, params)
+      return openai.handlers.form_tools(self, params)
     end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
