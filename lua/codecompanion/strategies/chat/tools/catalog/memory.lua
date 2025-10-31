@@ -309,7 +309,67 @@ return {
       return output_msg("error", fmt("Unknown command: %s", command))
     end,
   },
-  -- We don't need a schema as this is provided by Anthropic
+  schema = {
+    type = "function",
+    ["function"] = {
+      name = "memory",
+      description = "Tool for reading, writing, and managing files in a memory system that lives under /memories. This system records your own memory, and is initialized as an empty folder when the task started. This tool can only change files under /memories. This is your memory, you are free to structure this directory as you see fit.\n* The view command supports the following cases:\n  - Directories: Lists files and directories up to 2 levels deep, ignoring hidden items and node_modules\n  - Image files (.jpg, .jpeg, or .png): Displays the image visually\n  - Text files: Displays numbered lines. Lines are determined from Python's .splitlines() method, which recognizes all standard line breaks. If the file contains more than 16000 characters, the output will be truncated.\n* The create command creates or overwrites text files with the content specified in the file_text parameter.\n* The str_replace command replaces text in a file. Requires an exact, unique match of old_str (whitespace sensitive)\n  - Will fail if old_str doesn't exist or appears multiple times\n  - Omitting new_str deletes the matched text\n* The insert command inserts the text insert_text at the line insert_line.\n* The delete command deletes a file or directory (including all contents if a directory).\n* The rename command renames a file or directory. Both old_path and new_path must be provided.\n* All operations are restricted to files and directories within /memories.\n* You cannot delete or rename /memories itself, only its contents.\n* Note: when editing your memory folder, always try to keep the content up-to-date, coherent and organized. You can rename or delete files that are no longer relevant. Do not create new files unless necessary.",
+      parameters = {
+        type = "object",
+        properties = {
+          command = {
+            type = "string",
+            enum = { "view", "create", "str_replace", "insert", "delete", "rename" },
+            description = "The operation to perform. Choose from: view, create, str_replace, insert, delete, rename. See the usage notes below for details.",
+          },
+          path = {
+            type = "string",
+            description = "Required for view, create, str_replace, insert, and delete commands. Absolute path to file or directory.",
+          },
+          view_range = {
+            type = "array",
+            items = { type = "integer" },
+            description = "Optional parameter for the view command (text files only). Format: [start_line, end_line] where lines are indexed starting at 1. Use [start_line, -1] to view from start_line to the end of the file.",
+          },
+          file_text = {
+            type = "string",
+            description = "Required for create command. Contains the complete text content to write to the file.",
+          },
+          old_str = {
+            type = "string",
+            description = "Required parameter of str_replace command, with string to be replaced. Must be an EXACT and UNIQUE match in the file (be mindful of whitespaces). Tool will fail if multiple matches or no matches are found.",
+          },
+          new_str = {
+            type = "string",
+            description = "Optional for str_replace command. The text that will replace old_str. If omitted, old_str will be deleted without replacement.",
+          },
+          insert_line = {
+            type = "integer",
+            description = "Required parameter of insert command with line position for insertion: 0 places text at the beginning of the file, N places text after line N, and using the total number of lines in the file places text at the end. Lines in a file are determined using Python's .splitlines() method, which recognizes all standard line breaks.",
+          },
+          insert_text = {
+            type = "string",
+            description = "Required parameter of insert command, containing the text to insert. Must end with a newline character for the new text to appear on a separate line from any existing text that follows the insertion point.",
+          },
+          old_path = {
+            type = "string",
+            description = "Required for rename command. The current path of the file or directory to rename.",
+          },
+          new_path = {
+            type = "string",
+            description = "Required for rename command. The new path for the file or directory.",
+          },
+        },
+        required = { "command" },
+      },
+    },
+  },
+  system_prompt = [[- Always check the memory tool for relevant context before answering questions about previous conversations.
+- Use the memory tool to save important decisions, summaries, or insights from ongoing discussions.
+- When context is unclear, search memory for related topics or keywords before responding.
+- Prefer updating existing memory entries over creating new ones, unless a new topic is introduced.
+- Clearly reference retrieved memory when continuing or summarising conversations.
+- If no relevant memory is found, inform the user and ask if they wish to start a new topic or save new context.]],
   handlers = {
     ---@param tools CodeCompanion.Tools The tool object
     ---@return nil
