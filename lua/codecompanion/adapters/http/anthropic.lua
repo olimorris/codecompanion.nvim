@@ -612,6 +612,11 @@ return {
           formatted_name = "Claude Sonnet 4.5",
           opts = { can_reason = true, has_vision = true },
         },
+        ["claude-haiku-4-5-20251001"] = {
+          formatted_name = "Claude Haiku 4.5",
+          opts = { can_reason = true, has_vision = true },
+        },
+
         ["claude-sonnet-4-20250514"] = {
           formatted_name = "Claude Sonnet 4",
           opts = { can_reason = true, has_vision = true },
