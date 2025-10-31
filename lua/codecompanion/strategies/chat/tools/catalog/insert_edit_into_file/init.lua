@@ -305,6 +305,19 @@ local function separate_edits_by_type(edits)
   return substring_edits, other_edits
 end
 
+---Extract explanation from action (top level or fallback to first edit)
+---@param action table The action containing explanation
+---@return string Formatted explanation with newline prefix, or empty string
+local function extract_explanation(action)
+  local explanation = action.explanation or (action.edits and action.edits[1] and action.edits[1].explanation)
+
+  if explanation and explanation ~= "" then
+    return "\n" .. explanation
+  end
+
+  return ""
+end
+
 ---Process substring replaceAll edits in parallel to avoid overlaps
 ---Finds all matches in original content, then applies all replacements at once
 ---@param content string The original content
@@ -636,7 +649,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
     return output_handler({
       status = "success",
-      data = fmt("Edited `%s` file", action.filepath),
+      data = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)),
     })
   end
 
@@ -649,7 +662,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   local final_success = {
     status = "success",
-    data = fmt("Edited `%s` file", action.filepath),
+    data = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)),
   }
 
   if should_diff and opts.user_confirmation then
@@ -834,7 +847,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local success = {
     status = "success",
-    data = fmt("Edited `%s` buffer%s", display_name, action.explanation ~= "" and "\n" .. action.explanation or ""),
+    data = fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)),
   }
 
   if should_diff and opts.user_confirmation then
