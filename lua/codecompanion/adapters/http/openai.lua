@@ -257,6 +257,7 @@ return {
           role = delta.role,
           content = delta.content,
         },
+        extra_content = delta.extra_content,
       }
     end,
 
