@@ -60,13 +60,6 @@ local M = {}
 ---@param new_text string The replacement text
 ---@return string The content with replacement applied
 local function apply_line_replacement(content_lines, match, new_text)
-  log:trace(
-    "[Insert_edit_into_file Strategies] Line replacement: lines %d-%d, strategy: %s",
-    match.start_line,
-    match.end_line,
-    match.strategy or "unknown"
-  )
-
   local new_content_lines = {}
   local new_text_lines = vim.split(new_text, "\n", { plain = true })
 
@@ -94,12 +87,6 @@ local function apply_line_replacement(content_lines, match, new_text)
     for i = 1, before_count do
       table.insert(new_content_lines, content_lines[i])
     end
-
-    log:trace(
-      "[Insert_edit_into_file Strategies] Replacing %d lines with %d lines",
-      match.end_line - match.start_line + 1,
-      #new_text_lines
-    )
 
     -- Insert new content lines
     for j, line in ipairs(new_text_lines) do
@@ -169,7 +156,6 @@ function M.exact_match(content, old_text)
     end
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Exact match found %d matches", #matches)
   return matches
 end
 
@@ -276,7 +262,6 @@ function M.trimmed_lines(content, old_text)
     end
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Trimmed lines found %d matches", #matches)
   return matches
 end
 
@@ -309,7 +294,6 @@ function M.position_markers(content, old_text)
     })
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Position markers found %d matches", #matches)
   return matches
 end
 
@@ -369,7 +353,6 @@ function M.punctuation_normalized(content, old_text)
     end
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Punctuation normalized found %d matches", #matches)
   return matches
 end
 
@@ -432,14 +415,13 @@ function M.whitespace_normalized(content, old_text)
     end
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Whitespace normalized found %d matches", #matches)
   return matches
 end
 
 ---Enhanced anchor detection using character count
 ---@param lines string[] Array of lines to search
 ---@param from_end boolean Whether to search from the end backwards
----@return string|nil The meaningful anchor line or nil if not found
+---@return string|nil, number|nil The meaningful anchor line and its index, or nil if not found
 local function get_meaningful_anchor(lines, from_end)
   local start_idx = from_end and #lines or 1
   local end_idx = from_end and 1 or #lines
@@ -457,7 +439,7 @@ local function get_meaningful_anchor(lines, from_end)
   return vim.trim(lines[start_idx]), start_idx
 end
 
----Validate input sizes to prevent processing huge inputs
+---Validate input sizes to prevent performance issues
 ---@param content string The content to validate
 ---@param old_text string The search text to validate
 ---@return table|nil Error result if validation fails, nil if valid
@@ -610,7 +592,6 @@ function M.substring_exact_match(content, old_text)
     log:warn("[Insert Edit Into File::Strategies] Hit limit of %d matches", constants.LIMITS.SUBSTRING_MATCHES_MAX)
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Found %d total matches", #matches)
   return matches
 end
 
@@ -726,7 +707,6 @@ function M.block_anchor(content, old_text)
     end
   end
 
-  log:debug("[Insert Edit Into File::Strategies] Block anchor found %d matches", #matches)
   return matches
 end
 
@@ -748,20 +728,14 @@ function M.find_best_match(content, old_text, replace_all)
 
   for i, strategy in ipairs(all_strategies) do
     if should_skip_strategy(strategy, replace_all) then
-      log:debug("[Insert Edit Into File::Strategies] Skipping %s (only for replaceAll)", strategy.name)
       goto continue
     end
 
-    log:debug("[Insert Edit Into File::Strategies] Trying strategy: %s", strategy.name)
-
     local matches, elapsed_ms = execute_strategy(strategy, content, old_text)
-    log:debug("[Insert Edit Into File::Strategies] Strategy %s took %.2fms", strategy.name, elapsed_ms)
 
     local good_matches = filter_by_confidence(matches, strategy.min_confidence)
 
     if #good_matches > 0 then
-      log:debug("[Insert Edit Into File::Strategies] Strategy %s found %d matches", strategy.name, #good_matches)
-
       local is_last_strategy = (i == #all_strategies)
       local selection_result = M.select_best_match(good_matches, replace_all)
 
@@ -782,7 +756,6 @@ function M.find_best_match(content, old_text, replace_all)
       end
 
       if selection_result.success then
-        log:debug("[Insert Edit Into File::Strategies] Strategy %s succeeded with confident match", strategy.name)
         return {
           success = true,
           matches = good_matches,

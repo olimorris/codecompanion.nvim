@@ -73,29 +73,26 @@ end
 local PROMPT = load_prompt()
 
 -- Enhanced Python-like parser for handling LLM's mixed Python/JSON syntax
----@param edits_string string The string containing edits in Python-like format
+---@param edits string The string containing edits in Python-like format
 ---@return string The converted JSON-like string
-local function parse_python_like_edits(edits_string)
-  log:trace("[Insert Edit Into File::Main] Trying enhanced Python-like parser")
-
-  -- Step 1: Fix boolean values first (before quote conversion)
-  local fixed = edits_string
+local function parse_python_like_edits(edits)
+  -- Fix booleans before quote conversion to prevent 'True' → "True" string conversion
+  local fixed = edits
+  -- Capture trailing delimiters ([,%]}%s]) to preserve structure
   fixed = fixed:gsub(":%s*True([,%]}%s])", ": true%1")
   fixed = fixed:gsub(":%s*False([,%]}%s])", ": false%1")
   fixed = fixed:gsub("^%s*True([,%]}%s])", "true%1")
   fixed = fixed:gsub("^%s*False([,%]}%s])", "false%1")
-  -- Also handle end of string
   fixed = fixed:gsub(":%s*True$", ": true")
   fixed = fixed:gsub(":%s*False$", ": false")
 
-  -- Step 1.5: Normalize escape sequences (fix double-escaping issues)
-  fixed = fixed:gsub("\\\\n", "\n") -- \\n -> \n (newlines)
-  fixed = fixed:gsub("\\\\t", "\t") -- \\t -> \t (tabs)
-  fixed = fixed:gsub("\\\\r", "\r") -- \\r -> \r (carriage returns)
-  fixed = fixed:gsub("\\\\\\\\", "\\") -- \\\\ -> \ (backslashes)
+  -- LLMs often double-escape: convert \\n to actual newline character
+  fixed = fixed:gsub("\\\\n", "\n")
+  fixed = fixed:gsub("\\\\t", "\t")
+  fixed = fixed:gsub("\\\\r", "\r")
+  fixed = fixed:gsub("\\\\\\\\", "\\")
 
-  -- Step 2: Convert single quotes to double quotes carefully
-  -- Handle existing double quotes and escaped single quotes inside strings
+  -- Convert Python-style single quotes to JSON double quotes while preserving escaped quotes
   local result = {}
   local i = 1
   local in_string = false
@@ -159,8 +156,6 @@ local function fix_edits_if_needed(args)
     return nil, "edits must be an array or parseable string"
   end
 
-  log:trace("[Insert Edit Into File::Main] Edits field is a string, attempting to parse as JSON")
-
   -- First, try standard JSON parsing
   local success, parsed_edits = pcall(vim.json.decode, args.edits)
 
@@ -170,23 +165,18 @@ local function fix_edits_if_needed(args)
   end
 
   -- If that failed, try minimal fixes for common LLM JSON issues
-  log:trace("[Insert Edit Into File::Main] Standard JSON parsing failed, trying fixes")
-
   local fixed_json = args.edits
 
-  -- Fix keys first
+  -- Convert Python dict syntax to JSON object syntax
   fixed_json = fixed_json:gsub("{'oldText':", '{"oldText":')
   fixed_json = fixed_json:gsub("'newText':", '"newText":')
   fixed_json = fixed_json:gsub("'replaceAll':", '"replaceAll":')
 
-  -- Fix values - simple approach
-  -- Pattern: : 'value' -> : "value" (after colons)
+  -- Convert single quotes to double quotes for values
   fixed_json = fixed_json:gsub(": '([^']*)'", ': "%1"')
-
-  -- Pattern: , 'value' -> , "value" (after commas)
   fixed_json = fixed_json:gsub(", '([^']*)'", ', "%1"')
 
-  -- Fix boolean values (Python-style to JSON-style)
+  -- Capture delimiters ([,}%]]) to preserve array/object structure
   fixed_json = fixed_json:gsub(": False([,}%]])", ": false%1")
   fixed_json = fixed_json:gsub(": True([,}%]])", ": true%1")
 
@@ -195,7 +185,6 @@ local function fix_edits_if_needed(args)
 
   if success and type(parsed_edits) == "table" then
     args.edits = parsed_edits
-    log:trace("[Insert Edit Into File::Main] Successfully fixed and parsed edits JSON")
     return args, nil
   end
 
@@ -205,7 +194,6 @@ local function fix_edits_if_needed(args)
     success, parsed_edits = pcall(vim.json.decode, python_converted)
     if success and type(parsed_edits) == "table" then
       args.edits = parsed_edits
-      log:trace("[Insert Edit Into File::Main] Successfully parsed Python-like syntax")
       return args, nil
     end
   end
@@ -727,7 +715,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Insert Edit Into File::Main] Auto-applying changes (YOLO mode)")
     local write_ok, write_err = write_file_content(path, dry_run_result.final_content, file_info)
     if not write_ok then
       return output_handler({
@@ -926,9 +913,8 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     ui.scroll_to_line(bufnr, start_line)
   end
 
-  -- Auto-save in YOLO mode
+  -- Auto-save if in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    log:debug("[Insert Edit Into File::Main] Auto-saving buffer (YOLO mode)")
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
@@ -1070,21 +1056,18 @@ return {
     ---The handler to determine whether to prompt the user for approval
     ---@param self CodeCompanion.Tool.EditFile
     ---@param tools CodeCompanion.Tools
-    ---@param config table The tool configuration
     ---@return boolean
-    prompt_condition = function(self, tools, config)
-      local opts = config["insert_edit_into_file"] and config["insert_edit_into_file"].opts or {}
-
+    prompt_condition = function(self, tools)
       local args = self.args
       local bufnr = buffers.get_bufnr_from_path(args.filepath)
       if bufnr then
-        if opts.requires_approval and opts.requires_approval.buffer then
+        if self.opts.requires_approval and self.opts.requires_approval.buffer then
           return true
         end
         return false
       end
 
-      if opts.requires_approval and opts.requires_approval.file then
+      if self.opts.requires_approval and self.opts.requires_approval.file then
         return true
       end
       return false
