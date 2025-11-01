@@ -1,8 +1,8 @@
 --[[
 Error handling and diagnostics for edit operations
 
-This module provides helpful error messages, conflict detection, and similarity-based
-suggestions when edits fail. It helps LLMs understand what went wrong and how to fix it.
+This module provides helpful error messages and conflict detection when edits fail.
+It helps LLMs understand what went wrong and how to fix it.
 
 ## Key Functions:
 
@@ -16,16 +16,6 @@ suggestions when edits fail. It helps LLMs understand what went wrong and how to
    - Finds overlapping edits (same region modified by multiple edits)
    - Prevents conflicting changes that would corrupt the file
    - Reports which edits conflict with each other
-
-3. **find_similar_text**:
-   - Searches for text similar to failed oldText
-   - Uses simple similarity scoring (character-based)
-   - Shows top matches with line numbers and confidence
-   - Helps diagnose typos or formatting issues
-
-4. **calculate_similarity**:
-   - Computes similarity score between two strings (0.0 to 1.0)
-   - Used for finding near-matches when exact match fails
 --]]
 
 local M = {}
@@ -211,96 +201,6 @@ function M.detect_edit_conflicts(content, edits)
   end
 
   return conflicts
-end
-
----Find similar text in content that might be what the user meant
----@param content string The file content to search in
----@param target_text string The text to find similar matches for
----@param min_similarity? number Minimum similarity threshold (default: 0.7)
----@return table[] Array of similar matches with line, text, and similarity fields
-function M.find_similar_text(content, target_text, min_similarity)
-  min_similarity = min_similarity or 0.7
-  local similar_matches = {}
-  local content_lines = vim.split(content, "\n", { plain = true })
-  local target_lines = vim.split(target_text, "\n", { plain = true })
-
-  -- Simple similarity search - look for lines that are similar to target
-  if #target_lines == 1 then
-    -- Single line target - check each line
-    local target_line = vim.trim(target_lines[1])
-
-    for i, content_line in ipairs(content_lines) do
-      local trimmed_content = vim.trim(content_line)
-      local similarity = M.calculate_similarity(target_line, trimmed_content)
-
-      if similarity >= min_similarity then
-        table.insert(similar_matches, {
-          line = i,
-          text = content_line,
-          similarity = similarity,
-        })
-      end
-    end
-  else
-    -- Multi-line target - look for similar blocks
-    for i = 1, #content_lines - #target_lines + 1 do
-      local block_similarity = 0
-
-      for j = 1, #target_lines do
-        local content_line = vim.trim(content_lines[i + j - 1] or "")
-        local target_line = vim.trim(target_lines[j])
-        block_similarity = block_similarity + M.calculate_similarity(content_line, target_line)
-      end
-
-      local avg_similarity = block_similarity / #target_lines
-      if avg_similarity >= min_similarity then
-        local block_lines = {}
-        for k = i, i + #target_lines - 1 do
-          table.insert(block_lines, content_lines[k] or "")
-        end
-
-        table.insert(similar_matches, {
-          line = i,
-          text = table.concat(block_lines, "\n"),
-          similarity = avg_similarity,
-        })
-      end
-    end
-  end
-
-  -- Sort by similarity (best first)
-  table.sort(similar_matches, function(a, b)
-    return a.similarity > b.similarity
-  end)
-
-  return similar_matches
-end
-
----Calculate simple similarity score between two strings
----@param str1 string First string to compare
----@param str2 string Second string to compare
----@return number Similarity score between 0.0 and 1.0
-function M.calculate_similarity(str1, str2)
-  if str1 == str2 then
-    return 1.0
-  end
-
-  -- Simple character-based similarity
-  local max_len = math.max(#str1, #str2)
-  if max_len == 0 then
-    return 1.0
-  end
-
-  local common_chars = 0
-  local min_len = math.min(#str1, #str2)
-
-  for i = 1, min_len do
-    if str1:sub(i, i) == str2:sub(i, i) then
-      common_chars = common_chars + 1
-    end
-  end
-
-  return common_chars / max_len
 end
 
 return M
