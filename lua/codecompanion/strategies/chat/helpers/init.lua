@@ -71,8 +71,8 @@ function M.slash_command_keymaps(slash_commands)
 end
 
 ---Base64 encode the given image
----@param image table The image object containing the path and other metadata.
----@return {base64: string, mimetype: string}|string The base64 encoded image string
+---@param image CodeCompanion.Image The image object containing the path and other metadata.
+---@return CodeCompanion.Image|string The base64 encoded image string
 function M.encode_image(image)
   local b64_content, b64_err = base64.encode(image.path)
   if b64_err then

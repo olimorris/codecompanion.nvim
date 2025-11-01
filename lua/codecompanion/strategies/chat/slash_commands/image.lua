@@ -2,6 +2,7 @@ local Curl = require("plenary.curl")
 
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
+local image_utils = require("codecompanion.utils.images")
 local log = require("codecompanion.utils.log")
 
 local CONSTANTS = {
@@ -39,7 +40,13 @@ local providers = {
     default = default
       .new({
         output = function(selection)
-          SlashCommand:output(selection)
+          image_utils.from_path(selection.path, function(_res)
+            if type(_res) == "string" then
+              -- TODO: error handling
+              return
+            end
+            return SlashCommand:output(_res)
+          end)
         end,
         SlashCommand = SlashCommand,
         title = CONSTANTS.PROMPT,
@@ -55,10 +62,13 @@ local providers = {
     local snacks = require("codecompanion.providers.slash_commands.snacks")
     snacks = snacks.new({
       output = function(selection)
-        return SlashCommand:output({
-          relative_path = selection.file,
-          path = selection.file,
-        })
+        image_utils.from_path(selection.file, function(_res)
+          if type(_res) == "string" then
+            -- TODO: error handling
+            return
+          end
+          return SlashCommand:output(_res)
+        end)
       end,
     })
 
@@ -80,9 +90,15 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        return SlashCommand:output({
-          path = selection[1],
-        })
+        image_utils.from_path(selection[1], function(_res)
+          if type(_res) == "string" then
+            -- TODO: error handling
+            return
+          end
+          return SlashCommand:output({
+            path = selection[1],
+          })
+        end)
       end,
     })
 
@@ -124,51 +140,12 @@ local choice = {
         return log:warn("The `base64` command could not be found")
       end
 
-      -- Download the image to a temporary directory
-      local loc = vim.fn.tempname()
-      local response
-      local curl_ok, curl_payload = pcall(function()
-        response = Curl.get(url, {
-          insecure = config.adapters.http.opts.allow_insecure,
-          proxy = config.adapters.http.opts.proxy,
-          output = loc,
-        })
+      image_utils.from_url(url, function(_res)
+        if type(_res) == "string" then
+          return log:error(_res)
+        end
+        SlashCommand:output(_res)
       end)
-      if not curl_ok then
-        vim.loop.fs_unlink(loc)
-        return log:error("Failed to execute curl: %s", tostring(curl_payload))
-      end
-
-      -- Check if the response is valid
-      if not response or (response.status and response.status >= 400) then
-        local err_msg = "Could not download the image."
-        if response and response.status then
-          err_msg = err_msg .. " HTTP Status: " .. response.status
-        end
-        if response and response.body and #response.body > 0 then
-          err_msg = err_msg .. "\nServer response: " .. response.body:sub(1, 200)
-        end
-        vim.loop.fs_unlink(loc)
-        return log:error(err_msg)
-      end
-
-      -- Fetch the MIME type from headers
-      local mimetype = nil
-      if response.headers then
-        for _, header_line in ipairs(response.headers) do
-          local key, value = header_line:match("^([^:]+):%s*(.+)$")
-          if key and value and key:lower() == "content-type" then
-            mimetype = vim.trim(value:match("^([^;]+)")) -- Get part before any '; charset=...'
-            break
-          end
-        end
-      end
-
-      return SlashCommand:output({
-        id = url,
-        path = loc,
-        mimetype = mimetype,
-      })
     end)
   end,
 }
@@ -202,7 +179,7 @@ function SlashCommand:execute(SlashCommands)
 end
 
 ---Put a context item for the image in the chat buffer
----@param selected table The selected image { source = string, path = string }
+---@param selected CodeCompanion.Image The selected image { source = string, path = string }
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
