@@ -155,18 +155,6 @@ local defaults = {
             respect_gitignore = true,
           },
         },
-        ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
-          opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
-            requires_approval = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = true, -- For editing files in the current working directory
-            },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
-          },
-        },
         ["memory"] = {
           callback = "strategies.chat.tools.catalog.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",

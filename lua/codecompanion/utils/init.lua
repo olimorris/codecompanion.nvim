@@ -195,6 +195,8 @@ function M.resolve_nested_value(tbl, path)
     end
   end
   return resolved
+end
+
 ---Convert a word to singular or plural form based on count
 ---@param count number The count to determine singular or plural
 ---@param word string The base word (singular form)
