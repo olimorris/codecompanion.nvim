@@ -103,6 +103,18 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          description = "Robustly edit existing files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Maximum file size in MB
+          },
+        },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
@@ -141,18 +153,6 @@ local defaults = {
           opts = {
             max_results = 100,
             respect_gitignore = true,
-          },
-        },
-        ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
-          opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
-            requires_approval = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = true, -- For editing files in the current working directory
-            },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
         },
         ["memory"] = {

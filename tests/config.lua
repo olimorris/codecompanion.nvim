@@ -91,18 +91,21 @@ return {
           callback = "strategies.chat.tools.catalog.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
-        ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
-          opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
-          },
-        },
         ["memory"] = {
           callback = "strategies.chat.tools.catalog.memory",
           description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
         },
-
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          description = "Robustly edit files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = {
+              buffer = false,
+              file = false,
+            },
+            user_confirmation = false,
+          },
+        },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",

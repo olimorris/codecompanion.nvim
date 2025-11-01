@@ -47,7 +47,7 @@ local T = new_set({
               edit_operations = {
                 {
                   id = "op1",
-                  tool_name = "edit_file",
+                  tool_name = "insert_edit_into_file",
                   status = "accepted",
                   timestamp = 1000000000000000000,
                   original_content = { "local x = 1", "print(x)" },
@@ -316,7 +316,7 @@ T["handles mixed operation statuses"] = function()
         edit_operations = {
           {
             id = "accepted_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "accepted",
             timestamp = 1000000000000000000,
             original_content = { "print('old')" },
@@ -325,7 +325,7 @@ T["handles mixed operation statuses"] = function()
           },
           {
             id = "pending_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "pending",
             timestamp = 2000000000000000000,
             original_content = { "print('new')" },
@@ -334,7 +334,7 @@ T["handles mixed operation statuses"] = function()
           },
           {
             id = "rejected_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "rejected",
             timestamp = 3000000000000000000,
             original_content = { "print('newer')" },
@@ -404,7 +404,7 @@ T["integration - complete workflow"] = function()
         edit_operations = {
           {
             id = "workflow_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "accepted",
             timestamp = 1000000000000000000,
             original_content = { "local x = 1" },
