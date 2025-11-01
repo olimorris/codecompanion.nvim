@@ -189,7 +189,7 @@ local defaults = {
           description = "Find code symbol context",
         },
         opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
+          auto_submit_errors = true, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           folds = {
             enabled = true, -- Fold tool output in the buffer?
@@ -339,6 +339,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["image"] = {
           callback = "strategies.chat.slash_commands.image",
           description = "Insert an image",
+          enabled = function(adapter)
+            return adapter.opts and adapter.opts.vision == true
+          end,
           opts = {
             dirs = {}, -- Directories to search for images
             filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
