@@ -15,7 +15,7 @@
 
 local EditTracker = require("codecompanion.strategies.chat.edit_tracker")
 local Orchestrator = require("codecompanion.strategies.chat.tools.orchestrator")
-local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
+local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -195,7 +195,7 @@ function Tools.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = args.adapter }),
+    tools_config = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = args.adapter }),
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
 
@@ -208,7 +208,7 @@ function Tools.new(args)
         return
       end
       self.tools_config =
-        ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = autocmd_args.data.adapter })
+        tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = autocmd_args.data.adapter })
     end,
   })
 
@@ -220,7 +220,7 @@ end
 ---@return CodeCompanion.Tools
 function Tools:refresh(opts)
   opts = opts or {}
-  self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, opts)
+  self.tools_config = tool_filter.filter_enabled_tools(config.strategies.chat.tools, opts)
   return self
 end
 

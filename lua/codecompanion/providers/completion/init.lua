@@ -1,8 +1,8 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
-local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
+local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
 local api = vim.api
 
@@ -62,7 +62,7 @@ api.nvim_create_autocmd("User", {
   callback = function(args)
     local bufnr = args.data.bufnr
     if args.data.adapter then
-      ToolFilter.refresh_cache()
+      tool_filter.refresh_cache()
 
       local evaluated_tools = {}
 
@@ -228,7 +228,7 @@ function M.tools()
   end
 
   -- Get filtered tools configuration (this uses the cache!)
-  local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
+  local tools = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
 
   -- Add groups
   local items = vim

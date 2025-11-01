@@ -1,8 +1,8 @@
 local hash = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Tools.ToolFilter
-local ToolFilter = {}
+---@class CodeCompanion.Tools.Filter
+local Filter = {}
 
 local _tool_cache = {}
 local _cache_timestamp = 0
@@ -79,7 +79,7 @@ end
 ---@param tools_config table The tools configuration
 ---@param opts? { adapter: CodeCompanion.HTTPAdapter }
 ---@return table The filtered tools configuration
-function ToolFilter.filter_enabled_tools(tools_config, opts)
+function Filter.filter_enabled_tools(tools_config, opts)
   local enabled_tools = get_enabled_tools(tools_config, opts)
   local filtered_config = vim.deepcopy(tools_config)
 
@@ -140,14 +140,14 @@ end
 ---@param tool_name string The name of the tool
 ---@param tools_config table The tools configuration
 ---@return boolean
-function ToolFilter.is_tool_enabled(tool_name, tools_config)
+function Filter.is_tool_enabled(tool_name, tools_config)
   local enabled_tools = get_enabled_tools(tools_config)
   return enabled_tools[tool_name] == true
 end
 
 ---Force the cache to refresh (useful for testing or manual refresh)
 ---@return nil
-function ToolFilter.refresh_cache()
+function Filter.refresh_cache()
   clear_cache()
   log:trace("[Tool Filter] Cache manually refreshed")
 end
@@ -160,4 +160,4 @@ vim.api.nvim_create_autocmd("User", {
   end,
 })
 
-return ToolFilter
+return Filter
