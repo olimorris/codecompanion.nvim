@@ -112,6 +112,7 @@ local defaults = {
               file = false, -- For editing files in the current working directory
             },
             user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
         ["create_file"] = {

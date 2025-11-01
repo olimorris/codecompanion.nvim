@@ -1,11 +1,23 @@
 ---Constants for the insert_edit_into_file tool
 
+local config = require("codecompanion.config")
+
 local M = {}
+
+---Get the file size limit from config or use default
+---@return number The file size limit in bytes
+local function get_file_size_limit()
+  local opts = config.strategies.chat.tools["insert_edit_into_file"]
+      and config.strategies.chat.tools["insert_edit_into_file"].opts
+    or {}
+  local limit_mb = opts.file_size_limit_mb or 2 -- Default 2MB
+  return limit_mb * 1000000 -- Convert MB to bytes
+end
 
 ---Size limits to prevent performance issues
 M.LIMITS = {
   -- File and content size limits
-  FILE_SIZE_MAX = 2000000, -- 2MB maximum file size
+  FILE_SIZE_MAX = get_file_size_limit(),
   SEARCH_TEXT_MAX = 50000, -- 50KB maximum search text size
 
   -- Line-based limits for different strategies
