@@ -1052,6 +1052,8 @@ return {
       strict = true,
     },
   },
+  system_prompt = [[- Always use insert_edit_into_file to modify existing files by providing exact oldText to match and newText to replace it.
+- Include enough surrounding context in oldText to make matches unique and unambiguous. All edits are atomic: either all succeed or none are applied.]],
   handlers = {
     ---The handler to determine whether to prompt the user for approval
     ---@param self CodeCompanion.Tool.EditFile
