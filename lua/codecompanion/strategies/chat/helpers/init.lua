@@ -128,7 +128,7 @@ end
 ---@param path string Raw path from tool args
 ---@return string|nil normalized_path Returns nil if path is invalid
 function M.validate_and_normalize_path(path)
-  local stat = vim.uv.fs_stat(path)
+  local stat = vim.uv.fs_stat(vim.fs.normalize(path))
   if stat then
     return vim.fs.normalize(path)
   end
@@ -139,7 +139,7 @@ function M.validate_and_normalize_path(path)
     return normalized_path
   end
   -- Check for duplicate CWD and fix it
-  local cwd = vim.uv.cwd()
+  local cwd = vim.fs.normalize(vim.uv.cwd())
   if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
     local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
     fixed_path = vim.fs.normalize(fixed_path)
