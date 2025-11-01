@@ -1,5 +1,13 @@
 # Changelog
 
+## [17.30.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.29.0...v17.30.0) (2025-11-01)
+
+
+### Features
+
+* **chat:** system prompt is modularised ([#2322](https://github.com/olimorris/codecompanion.nvim/issues/2322)) ([50ea30e](https://github.com/olimorris/codecompanion.nvim/commit/50ea30ec76e1a2695164991a7480f0fa0662e9db))
+* support an adapter's built-in tools ([#2307](https://github.com/olimorris/codecompanion.nvim/issues/2307)) ([462197a](https://github.com/olimorris/codecompanion.nvim/commit/462197a603817ef91471266e1476464803f65224))
+
 ## [17.29.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.28.0...v17.29.0) (2025-10-29)
 
 
