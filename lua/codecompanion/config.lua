@@ -294,7 +294,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.catalog.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -303,7 +303,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -312,14 +312,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["quickfix"] = {
-          callback = "strategies.chat.slash_commands.quickfix",
+          callback = "strategies.chat.slash_commands.catalog.quickfix",
           description = "Insert quickfix list entries",
           opts = {
             contains_code = true,
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.file",
+          callback = "strategies.chat.slash_commands.catalog.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -328,7 +328,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "strategies.chat.slash_commands.help",
+          callback = "strategies.chat.slash_commands.catalog.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -337,7 +337,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "strategies.chat.slash_commands.image",
+          callback = "strategies.chat.slash_commands.catalog.image",
           description = "Insert an image",
           enabled = function(adapter)
             return adapter.opts and adapter.opts.vision == true
@@ -349,21 +349,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["memory"] = {
-          callback = "strategies.chat.slash_commands.memory",
+          callback = "strategies.chat.slash_commands.catalog.memory",
           description = "Insert a memory into the chat buffer",
           opts = {
             contains_code = true,
           },
         },
         ["now"] = {
-          callback = "strategies.chat.slash_commands.now",
+          callback = "strategies.chat.slash_commands.catalog.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
         ["symbols"] = {
-          callback = "strategies.chat.slash_commands.symbols",
+          callback = "strategies.chat.slash_commands.catalog.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -371,14 +371,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["terminal"] = {
-          callback = "strategies.chat.slash_commands.terminal",
+          callback = "strategies.chat.slash_commands.catalog.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
           },
         },
         ["workspace"] = {
-          callback = "strategies.chat.slash_commands.workspace",
+          callback = "strategies.chat.slash_commands.catalog.workspace",
           description = "Load a workspace file",
           opts = {
             contains_code = true,
