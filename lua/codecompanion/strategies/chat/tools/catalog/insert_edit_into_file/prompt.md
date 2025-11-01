@@ -1,7 +1,7 @@
 The insert_edit_into_file tool performs deterministic file edits using text-based matching. It supports exact, block, or substring replacements with optional context matching for safety.
-Use edit_tool_exp for safe, reliable file editing with advanced matching strategies.
+Use insert_edit_into_file for safe, reliable file editing with advanced matching strategies.
 
-# Quick Reference
+## Quick Reference
 ✓ **Correct structure:**
 ```json
 {
@@ -16,7 +16,7 @@ Use edit_tool_exp for safe, reliable file editing with advanced matching strateg
 }
 ```
 
-# CRITICAL: Schema Requirements
+## CRITICAL: Schema Requirements
 Every edit MUST have both `oldText` AND `newText` - NO EXCEPTIONS.
 - ✓ Preserve exact indentation (tabs/spaces) as it appears in the file
 
@@ -30,7 +30,7 @@ Every edit MUST have both `oldText` AND `newText` - NO EXCEPTIONS.
 - Use `"^"` to insert at file start: `{"oldText": "^", "newText": "import math\n\n"}`
 - Use `"$"` to insert at file end: `{"oldText": "$", "newText": "\n# footer"}`
 
-# How Matching Works
+## How Matching Works
 
 The tool uses different strategies based on your parameters:
 
@@ -46,7 +46,8 @@ The tool uses different strategies based on your parameters:
 **Block replace all:**
 - Activated when: `replaceAll: true` AND `oldText` contains `\n` characters
 - Replaces all matching code blocks/structures
-# When to Use What
+
+## When to Use What
 
 | Goal | Method |
 |------|--------|
@@ -59,13 +60,14 @@ The tool uses different strategies based on your parameters:
 | Initialize empty file contents | `oldText: ""` with initial content |
 | Replace entire file contents | `mode: "overwrite"` |
 
-# Performance Notes
+
+## Performance Notes
 
 - Substring replacement with `replaceAll: true` is limited to 1000 replacements per edit
 - For large-scale refactoring, consider breaking into multiple insert_edit_into_file calls
 - Sequential edits in one call are more efficient than multiple separate calls
 
-# Parameters
+## Parameters
 
 - **filepath** (required): Path to file including extension
 - **edits** (required): Array of edit objects, each with:
@@ -75,9 +77,9 @@ The tool uses different strategies based on your parameters:
 - **mode** (optional): "append" (default) or "overwrite"
 - **explanation** (strongly recommended): Brief, clear description of what the edits accomplish and why. While optional, providing an explanation helps with:
 
-# Edit Operations
+## Edit Operations
 
-## 1. Standard Replacement
+### 1. Standard Replacement
 Replace a specific code block. Include enough context to make it unique.
 
 ```json
@@ -93,7 +95,7 @@ Replace a specific code block. Include enough context to make it unique.
 }
 ```
 
-## 2. Multiple Sequential Edits
+### 2. Multiple Sequential Edits
 Edits are applied in order. Each edit sees the result of previous edits.
 
 ```json
@@ -107,7 +109,7 @@ Edits are applied in order. Each edit sees the result of previous edits.
 }
 ```
 
-## 3. Replace All Occurrences
+### 3. Replace All Occurrences
 
 **Block/structure replacement** (oldText contains `\n`):
 ```json
@@ -137,7 +139,7 @@ Edits are applied in order. Each edit sees the result of previous edits.
 }
 ```
 
-## 4. Insert at File Start
+### 4. Insert at File Start
 ```json
 {
   "filepath": "script.py",
@@ -147,7 +149,7 @@ Edits are applied in order. Each edit sees the result of previous edits.
 }
 ```
 
-## 5. Insert at File End
+### 5. Insert at File End
 ```json
 {
   "filepath": "config.js",
@@ -157,7 +159,7 @@ Edits are applied in order. Each edit sees the result of previous edits.
 }
 ```
 
-## 6. Delete Content
+### 6. Delete Content
 ```json
 {
   "filepath": "test.js",
@@ -167,7 +169,7 @@ Edits are applied in order. Each edit sees the result of previous edits.
 }
 ```
 
-## 7. Initialize Empty File Contents
+### 7. Initialize Empty File Contents
 Use empty `oldText` to set initial contents for a new or empty file.
 ```json
 {
@@ -178,7 +180,7 @@ Use empty `oldText` to set initial contents for a new or empty file.
 }
 ```
 
-## 8. Replace Entire File Contents
+### 8. Replace Entire File Contents
 Use `overwrite` mode to replace all file contents completely.
 
 ```json
@@ -191,7 +193,7 @@ Use `overwrite` mode to replace all file contents completely.
 }
 ```
 
-# Critical Rules for oldText
+## Critical Rules for oldText
 
 **oldText must match file content exactly:**
 - ✓ Use proper JSON escaping (`\n` for newlines, `\"` for quotes, `\\` for backslashes)
@@ -220,7 +222,7 @@ Use `overwrite` mode to replace all file contents completely.
 ]
 ```
 
-# Best Practices
+## Best Practices
 
 - **Always provide an `explanation` field** - Even simple changes benefit from brief context (e.g., "Fix typo in variable name", "Update API endpoint to v2")
 - Edits are applied sequentially (each sees the result of previous edits)
@@ -228,7 +230,7 @@ Use `overwrite` mode to replace all file contents completely.
 - For ambiguous matches, add more surrounding context to `oldText`
 - When unsure about current file content, If available, use `read_file` first
 
-# Troubleshooting
+## Troubleshooting
 
 **"No confident matches found"** - `oldText` doesn't match file. If you have access to `read_file` tool, use it to verify exact content including whitespace. If trying to insert at file start/end, use `"^"` or `"$"` instead of placeholders.
 
