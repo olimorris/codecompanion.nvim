@@ -191,7 +191,7 @@ function SlashCommand:output(selected, opts)
   self.Chat.context:add({
     id = id or "",
     path = selected.path,
-    source = "codecompanion.strategies.chat.slash_commands.file",
+    source = "codecompanion.strategies.chat.slash_commands.catalog.file",
   })
 
   if opts.silent then
