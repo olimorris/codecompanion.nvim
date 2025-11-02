@@ -44,7 +44,7 @@ return {
         .new({
           adapter = adapter,
         })
-        :request(_, {
+        :request({ messages = {}, tools = nil }, {
           callback = function(err, data)
             if err then
               log:error("[Fetch Webpage Tool] Error fetching `%s`: %s", url, err)

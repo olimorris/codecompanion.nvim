@@ -1,4 +1,5 @@
 ---@class CodeCompanion.Tools
+---@field adapter CodeCompanion.HTTPAdapter The adapter in use for the chat
 ---@field tools_config table The available tools for the tool system
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
@@ -93,6 +94,11 @@ function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
+  -- Allow for hybrid tools that use an adapter's tool alongside a CodeCompanion tool
+  if tool_config and tool_config._adapter_tool == true and tool_config._has_client_tool then
+    tool_config = utils.resolve_nested_value(config, tool_config.opts.client_tool)
+  end
+
   if not tool_config then
     return nil, string.format("Couldn't find the tool `%s`", name), false
   end
@@ -102,6 +108,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   end)
 
   if not ok or not resolved_tool then
+    log:debug("Tool resolution failed for `%s`: %s", name, resolved_tool)
     return nil, string.format("Couldn't resolve the tool `%s`", name), false
   end
 
@@ -178,6 +185,7 @@ end
 ---@param args table
 function Tools.new(args)
   local self = setmetatable({
+    adapter = args.adapter,
     aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. args.bufnr, { clear = true }),
     bufnr = args.bufnr,
     chat = {},
@@ -187,17 +195,32 @@ function Tools.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools), -- Filter here
+    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = args.adapter }),
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
+
+  -- Listen for any adapter and model changes on the chat buffer and update the available tools
+  api.nvim_create_autocmd("User", {
+    group = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ".list:" .. args.bufnr, { clear = true }),
+    pattern = "CodeCompanionChatModel",
+    callback = function(autocmd_args)
+      if autocmd_args.data.bufnr ~= self.bufnr then
+        return
+      end
+      self.tools_config =
+        ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = autocmd_args.data.adapter })
+    end,
+  })
 
   return self
 end
 
 ---Refresh the tools configuration to pick up any dynamically added tools
+---@param opts? table Options for refreshing the tools
 ---@return CodeCompanion.Tools
-function Tools:refresh()
-  self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
+function Tools:refresh(opts)
+  opts = opts or {}
+  self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, opts)
   return self
 end
 

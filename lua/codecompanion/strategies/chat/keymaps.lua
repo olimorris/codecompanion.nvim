@@ -575,8 +575,7 @@ M.change_adapter = {
       local system_prompt = config.strategies.chat.opts.system_prompt
       if type(system_prompt) == "function" then
         if chat.messages[1] and chat.messages[1].role == "system" then
-          local opts = { adapter = chat.adapter, language = config.opts.language }
-          chat.messages[1].content = system_prompt(opts)
+          chat.messages[1].content = system_prompt(chat:make_system_prompt_ctx())
         end
       end
 
@@ -618,11 +617,6 @@ M.change_adapter = {
           if not selected_model then
             return
           end
-
-          if current_model ~= selected_model then
-            utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected_model })
-          end
-
           chat:apply_model(selected_model)
         end)
       end
