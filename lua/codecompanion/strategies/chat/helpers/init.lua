@@ -1,4 +1,5 @@
 local Path = require("plenary.path")
+local image_utils = require("codecompanion.utils.images")
 
 local base64 = require("codecompanion.utils.base64")
 local buf_utils = require("codecompanion.utils.buffers")
@@ -68,27 +69,6 @@ function M.slash_command_keymaps(slash_commands)
   end
 
   return keymaps
-end
-
----Base64 encode the given image
----@param image CodeCompanion.Image The image object containing the path and other metadata.
----@return CodeCompanion.Image|string The base64 encoded image string
-function M.encode_image(image)
-  if image.base64 == nil then
-    -- skip if already encoded
-    local b64_content, b64_err = base64.encode(image.path)
-    if b64_err then
-      return b64_err
-    end
-
-    image.base64 = b64_content
-  end
-
-  if not image.mimetype then
-    image.mimetype = base64.get_mimetype(image.path)
-  end
-
-  return image
 end
 
 ---Add an image to the chat buffer

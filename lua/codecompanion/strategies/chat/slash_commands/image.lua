@@ -177,7 +177,7 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
-  local encoded_image = helpers.encode_image(selected)
+  local encoded_image = image_utils.encode_image(selected)
   if type(encoded_image) == "string" then
     return log:error("Could not encode image: %s", encoded_image)
   end

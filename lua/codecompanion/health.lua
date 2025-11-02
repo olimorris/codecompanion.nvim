@@ -29,10 +29,6 @@ M.libraries = {
     name = "curl",
   },
   {
-    name = "base64",
-    optional = true,
-  },
-  {
     name = "rg",
     optional = true,
   },

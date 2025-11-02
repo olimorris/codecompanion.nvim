@@ -3,8 +3,26 @@ local M = {}
 local Curl = require("plenary.curl")
 local base64 = require("codecompanion.utils.base64")
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.strategies.chat.helpers")
 local ui_utils = require("codecompanion.utils.ui")
+
+---Get the mimetype from the given file
+---@param path string The path to the file
+---@return string
+function M.get_mimetype(path)
+  local map = {
+    gif = "image/gif",
+    jpg = "image/jpeg",
+    jpeg = "image/jpeg",
+    png = "image/png",
+    webp = "image/webp",
+    pdf = "application/pdf",
+  }
+
+  local extension = vim.fn.fnamemodify(path, ":e")
+  extension = extension:lower()
+
+  return map[extension]
+end
 
 ---@class (private) CodeCompanion.Image
 ---@field id string
@@ -12,6 +30,27 @@ local ui_utils = require("codecompanion.utils.ui")
 ---@field bufnr? integer
 ---@field base64? string
 ---@field mimetype? string
+
+---Base64 encode the given image and generate the corresponding mimetype
+---@param image CodeCompanion.Image The image object containing the path and other metadata.
+---@return CodeCompanion.Image|string The base64 encoded image string
+function M.encode_image(image)
+  if image.base64 == nil then
+    -- skip if already encoded
+    local b64_content, b64_err = base64.encode_file(image.path)
+    if b64_err then
+      return b64_err
+    end
+
+    image.base64 = b64_content
+  end
+
+  if not image.mimetype then
+    image.mimetype = M.get_mimetype(image.path)
+  end
+
+  return image
+end
 
 ---Keep track of temp files, and GC them at `VimLeavePre`
 ---@type string[]
@@ -35,7 +74,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 
 ---@type CodeCompanion.Image.Preprocessor
 function M.from_path(path, _, cb)
-  local encoded = helpers.encode_image({ path = path, id = path, mimetype = base64.get_mimetype(path) })
+  local encoded = M.encode_image({ path = path, id = path, mimetype = M.get_mimetype(path) })
   if type(cb) == "function" then
     return vim.schedule(function()
       ---@diagnostic disable-next-line: param-type-mismatch
@@ -95,7 +134,7 @@ function M.from_url(url, ctx, cb)
           end
         end
 
-        result = helpers.encode_image({ mimetype = mimetype, path = loc, id = url })
+        result = M.encode_image({ mimetype = mimetype, path = loc, id = url })
         if type(cb) == "function" then
           vim.schedule(function()
             cb(result)

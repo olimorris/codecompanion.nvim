@@ -61,6 +61,7 @@ local config = require("codecompanion.config")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
+local im_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
@@ -1248,7 +1249,7 @@ function Chat:check_images(message)
   end
 
   for _, image in ipairs(images) do
-    local encoded_image = helpers.encode_image(image)
+    local encoded_image = im_utils.encode_image(image)
     if type(encoded_image) == "string" then
       log:warn("Could not encode image: %s", encoded_image)
     else
