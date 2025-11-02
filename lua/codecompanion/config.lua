@@ -339,8 +339,8 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["image"] = {
           callback = "strategies.chat.slash_commands.catalog.image",
           description = "Insert an image",
-          enabled = function(adapter)
-            return adapter.opts and adapter.opts.vision == true
+          enabled = function(opts)
+            return opts.adapter.opts and opts.adapter.opts.vision == true
           end,
           opts = {
             dirs = {}, -- Directories to search for images
