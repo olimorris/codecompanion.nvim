@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 31
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 02
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1353,6 +1353,29 @@ You can configure Slash Commands with:
     })
 <
 
+It’s also possible to conditionally enable a slash command by including
+`enabled` in the config:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          slash_commands = {
+            ["image"] = {
+              callback = "strategies.chat.slash_commands.catalog.image",
+              description = "Insert an image",
+              ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+              ---@return boolean
+              enabled = function(opts)
+                return opts.adapter.opts and opts.adapter.opts.vision == true
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
 
   [!IMPORTANT] Each slash command may have their own unique configuration so be
   sure to check out the config.lua
@@ -1468,7 +1491,7 @@ function or a string that points to a luafile that return the table.
 
 TOOL CONDITIONALS
 
-Tools can also be conditionally enabled:
+Built-in tools can also be conditionally enabled:
 
 >lua
     require("codecompanion").setup({
@@ -1476,8 +1499,9 @@ Tools can also be conditionally enabled:
         chat = {
           tools = {
             ["grep_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
               ---@return boolean
-              enabled = function()
+              enabled = function(adapter)
                 return vim.fn.executable("rg") == 1
               end,
             },
@@ -1490,6 +1514,26 @@ Tools can also be conditionally enabled:
 This is useful to ensure that a particular dependency is installed on the
 machine. After the user has installed the dependency, the `:CodeCompanionChat
 RefreshCache` command can be used to refresh the cache’s across chat buffers.
+
+If you wish to conditionally enable an adapter’s own tools, you can do so
+with:
+
+>lua
+    require("codecompanion").setup({
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          available_tools = {
+            ["web_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
+              enabled = function(adapter)
+                return false
+              end,
+            },
+          },
+        })
+      end,
+    })
+<
 
 
 APPROVALS
@@ -3614,7 +3658,7 @@ built-in tool in the event of a name clash.
 
 ANTHROPIC
 
-The `anthropic` adapter the following tools are available:
+In the `anthropic` adapter, the following tools are available:
 
 - `code_execution` - The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
 - `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
@@ -3624,7 +3668,7 @@ The `anthropic` adapter the following tools are available:
 
 OPENAI
 
-Using the `openai_responses` adapter the following tools are available:
+In the `openai_responses` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 

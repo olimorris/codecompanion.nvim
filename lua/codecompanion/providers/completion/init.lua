@@ -1,8 +1,8 @@
-local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
-local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
 local strategy = require("codecompanion.strategies")
+local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
 local api = vim.api
 
@@ -62,30 +62,9 @@ api.nvim_create_autocmd("User", {
   callback = function(args)
     local bufnr = args.data.bufnr
     if args.data.adapter then
-      ToolFilter.refresh_cache()
-
-      local evaluated_tools = {}
-
-      -- Evaluate the available tools from the adapter
-      if args.data.adapter.available_tools then
-        for tool_name, tool_config in pairs(args.data.adapter.available_tools) do
-          local should_show = true
-          if tool_config.condition and type(tool_config.condition) == "function" then
-            should_show = tool_config.condition(args.data.adapter, args.data.model)
-          end
-
-          if should_show then
-            evaluated_tools[tool_name] = tool_config
-          end
-        end
-      end
-
-      adapter_cache[bufnr] = {
-        type = args.data.adapter.type,
-        name = args.data.adapter.formatted_name,
-        model = args.data.adapter.model,
-        available_tools = evaluated_tools,
-      }
+      tool_filter.refresh_cache()
+      slash_command_filter.refresh_cache()
+      adapter_cache[bufnr] = args.data.adapter
     else
       adapter_cache[bufnr] = nil
     end
@@ -104,8 +83,16 @@ api.nvim_create_autocmd("User", {
 ---Return the slash commands to be used for completion
 ---@return table
 function M.slash_commands()
+  local bufnr = api.nvim_get_current_buf()
+  local adapter_info = adapter_cache[bufnr]
+
+  local filtered_slash_commands = slash_command_filter.filter_enabled_slash_commands(
+    config.strategies.chat.slash_commands,
+    { adapter = adapter_info }
+  )
+
   local slash_commands = vim
-    .iter(config.strategies.chat.slash_commands)
+    .iter(filtered_slash_commands)
     :filter(function(name)
       return name ~= "opts"
     end)
@@ -119,10 +106,25 @@ function M.slash_commands()
     end)
     :totable()
 
+  -- Slash commands from prompt library
   vim
     .iter(pairs(config.prompt_library))
     :filter(function(_, v)
-      return v.opts and v.opts.is_slash_cmd and v.strategy == "chat"
+      if not (v.opts and v.opts.is_slash_cmd and v.strategy == "chat") then
+        return false
+      end
+
+      -- Check if this prompt library slash command should be enabled
+      if v.enabled ~= nil then
+        if type(v.enabled) == "function" then
+          local ok, result = pcall(v.enabled, { adapter = adapter_info })
+          return ok and result
+        elseif type(v.enabled) == "boolean" then
+          return v.enabled
+        end
+      end
+
+      return true
     end)
     :each(function(_, v)
       table.insert(slash_commands, {
@@ -158,7 +160,7 @@ function M.slash_commands_execute(selected, chat)
       end
     end)
   else
-    SlashCommands:execute(selected, chat)
+    require("codecompanion.strategies.chat.slash_commands"):execute(selected, chat)
   end
 end
 
@@ -228,7 +230,7 @@ function M.tools()
   end
 
   -- Get filtered tools configuration (this uses the cache!)
-  local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
+  local tools = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
 
   -- Add groups
   local items = vim

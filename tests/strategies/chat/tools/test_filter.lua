@@ -1,5 +1,5 @@
-local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local h = require("tests.helpers")
+local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
 local new_set = MiniTest.new_set
 
@@ -7,7 +7,7 @@ local T = new_set({
   hooks = {
     pre_case = function()
       -- Clear cache before each test
-      ToolFilter.refresh_cache()
+      tool_filter.refresh_cache()
     end,
   },
 })
@@ -35,7 +35,7 @@ T["filters out disabled tools"] = function()
     opts = {},
   }
 
-  local filtered = ToolFilter.filter_enabled_tools(tools_config)
+  local filtered = tool_filter.filter_enabled_tools(tools_config)
 
   h.eq(filtered.enabled_tool ~= nil, true)
   h.eq(filtered.default_enabled_tool ~= nil, true)
@@ -60,7 +60,7 @@ T["filters disabled tools in groups"] = function()
     opts = {},
   }
 
-  local filtered = ToolFilter.filter_enabled_tools(tools_config)
+  local filtered = tool_filter.filter_enabled_tools(tools_config)
 
   h.eq(#filtered.groups.mixed_group.tools, 2) -- Only tool1 and tool3
   h.eq(filtered.groups.empty_group, nil) -- Empty group should be removed
@@ -76,7 +76,7 @@ T["ensures adapter tools take priority over config tools"] = function()
     available_tools = { tool1 = { callback = "adapter test" } },
   }
 
-  local filtered = ToolFilter.filter_enabled_tools(tools_config, { adapter = adapter })
+  local filtered = tool_filter.filter_enabled_tools(tools_config, { adapter = adapter })
 
   h.eq(filtered["tool1"]._adapter_tool, true)
 end
@@ -90,7 +90,7 @@ T["cache invalidation"]["detects config changes when tools are added"] = functio
   }
 
   -- First call - should cache
-  local filtered1 = ToolFilter.filter_enabled_tools(initial_config)
+  local filtered1 = tool_filter.filter_enabled_tools(initial_config)
   h.eq(filtered1.tool1 ~= nil, true)
   h.eq(filtered1.tool2, nil)
 
@@ -98,7 +98,7 @@ T["cache invalidation"]["detects config changes when tools are added"] = functio
   initial_config.tool2 = { callback = "test", enabled = true }
 
   -- Second call - should detect config change and return new tool
-  local filtered2 = ToolFilter.filter_enabled_tools(initial_config)
+  local filtered2 = tool_filter.filter_enabled_tools(initial_config)
   h.eq(filtered2.tool1 ~= nil, true)
   h.eq(filtered2.tool2 ~= nil, true)
 end
@@ -111,7 +111,7 @@ T["cache invalidation"]["detects config changes when tools are removed"] = funct
   }
 
   -- First call - should cache both tools
-  local filtered1 = ToolFilter.filter_enabled_tools(config)
+  local filtered1 = tool_filter.filter_enabled_tools(config)
   h.eq(filtered1.tool1 ~= nil, true)
   h.eq(filtered1.tool2 ~= nil, true)
 
@@ -119,7 +119,7 @@ T["cache invalidation"]["detects config changes when tools are removed"] = funct
   config.tool2 = nil
 
   -- Second call - should detect config change and return only remaining tool
-  local filtered2 = ToolFilter.filter_enabled_tools(config)
+  local filtered2 = tool_filter.filter_enabled_tools(config)
   h.eq(filtered2.tool1 ~= nil, true)
   h.eq(filtered2.tool2, nil)
 end
@@ -137,14 +137,14 @@ T["cache invalidation"]["detects changes in groups"] = function()
   }
 
   -- First call - should cache
-  local filtered1 = ToolFilter.filter_enabled_tools(config)
+  local filtered1 = tool_filter.filter_enabled_tools(config)
   h.eq(#filtered1.groups.test_group.tools, 1)
 
   -- Add tool to group
   config.groups.test_group.tools = { "tool1", "tool2" }
 
   -- Second call - should detect config change
-  local filtered2 = ToolFilter.filter_enabled_tools(config)
+  local filtered2 = tool_filter.filter_enabled_tools(config)
   h.eq(#filtered2.groups.test_group.tools, 2)
 end
 

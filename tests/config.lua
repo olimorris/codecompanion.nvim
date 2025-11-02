@@ -322,7 +322,7 @@ return {
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.catalog.buffer",
           description = "Insert open buffers",
           keymaps = {
             modes = {
@@ -336,7 +336,7 @@ return {
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina|tavily
@@ -345,7 +345,7 @@ return {
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.file",
+          callback = "strategies.chat.slash_commands.catalog.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
