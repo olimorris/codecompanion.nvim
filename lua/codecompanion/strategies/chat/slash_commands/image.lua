@@ -1,5 +1,3 @@
-local Curl = require("plenary.curl")
-
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local image_utils = require("codecompanion.utils.images")
@@ -134,10 +132,6 @@ local choice = {
     return vim.ui.input({ prompt = "Enter the URL: " }, function(url)
       if #vim.trim(url or "") == 0 then
         return
-      end
-
-      if vim.fn.executable("base64") == 0 then
-        return log:warn("The `base64` command could not be found")
       end
 
       image_utils.from_url(url, function(_res)
