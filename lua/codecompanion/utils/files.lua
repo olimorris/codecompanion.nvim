@@ -186,4 +186,20 @@ function M.read(path)
   return data
 end
 
+---Base64 encode a given file using the `base64` command.
+---@param path string The path to the file to encode
+---@return string?, string? The output and error message
+function M.base64_encode_file(path)
+  local read_ok, content = pcall(M.read, path)
+  if read_ok then
+    local ok, res = pcall(vim.base64.encode, content)
+    if ok then
+      return res, nil
+    else
+      return nil, "Could not base64-encode the file: " .. path
+    end
+  else
+    return nil, string.format("Could not load the file: %s", path)
+  end
+end
 return M

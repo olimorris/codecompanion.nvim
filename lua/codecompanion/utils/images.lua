@@ -1,7 +1,6 @@
 local M = {}
 
 local Curl = require("plenary.curl")
-local base64 = require("codecompanion.utils.base64")
 local config = require("codecompanion.config")
 local ui_utils = require("codecompanion.utils.ui")
 
@@ -37,7 +36,7 @@ end
 function M.encode_image(image)
   if image.base64 == nil then
     -- skip if already encoded
-    local b64_content, b64_err = base64.encode_file(image.path)
+    local b64_content, b64_err = require("codecompanion.utils.files").base64_encode_file(image.path)
     if b64_err then
       return b64_err
     end

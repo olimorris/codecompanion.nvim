@@ -1,7 +1,4 @@
 local Path = require("plenary.path")
-local image_utils = require("codecompanion.utils.images")
-
-local base64 = require("codecompanion.utils.base64")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 
