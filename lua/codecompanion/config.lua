@@ -339,8 +339,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["image"] = {
           callback = "strategies.chat.slash_commands.catalog.image",
           description = "Insert an image",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+          ---@return boolean
           enabled = function(opts)
-            return opts.adapter.opts and opts.adapter.opts.vision == true
+            if opts.adapter and opts.adapter.opts then
+              return opts.adapter.opts.vision == true
+            end
+            return false
           end,
           opts = {
             dirs = {}, -- Directories to search for images
