@@ -1,7 +1,7 @@
-local filter_base = require("codecompanion.utils.filter_base")
+local filter = require("codecompanion.strategies.chat.helpers.filter")
 
 ---@class CodeCompanion.SlashCommands.Filter
-local Filter = filter_base.create_filter("Slash Command", {
+local Filter = filter.create_filter("Slash Command", {
   skip_keys = { "opts" },
 })
 
