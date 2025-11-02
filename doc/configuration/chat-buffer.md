@@ -114,6 +114,28 @@ require("codecompanion").setup({
 })
 ```
 
+It's also possible to conditionally enable a slash command by including `enabled` in the config:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      slash_commands = {
+        ["image"] = {
+          callback = "strategies.chat.slash_commands.catalog.image",
+          description = "Insert an image",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            return opts.adapter.opts and opts.adapter.opts.vision == true
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
 > [!IMPORTANT]
 > Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
