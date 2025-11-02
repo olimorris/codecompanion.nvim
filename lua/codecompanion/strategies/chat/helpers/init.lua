@@ -68,33 +68,6 @@ function M.slash_command_keymaps(slash_commands)
   return keymaps
 end
 
----Add an image to the chat buffer
----@param Chat CodeCompanion.Chat The chat instance
----@param image table The image object containing the path and other metadata
----@param opts table Options for adding the image
----@return nil
-function M.add_image(Chat, image, opts)
-  opts = opts or {}
-
-  local id = "<image>" .. (image.id or image.path) .. "</image>"
-
-  Chat:add_message({
-    role = opts.role or config.constants.USER_ROLE,
-    content = image.base64,
-  }, {
-    context = { id = id, mimetype = image.mimetype, path = image.id or image.path },
-    _meta = { tag = "image" },
-    visible = false,
-  })
-
-  Chat.context:add({
-    bufnr = opts.bufnr or image.bufnr,
-    id = id,
-    path = image.path,
-    source = opts.source or "codecompanion.strategies.chat.slash_commands.image",
-  })
-end
-
 ---Check if the messages contain any user messages
 ---@param messages table The list of messages to check
 ---@return boolean

@@ -181,7 +181,7 @@ function SlashCommand:output(selected, opts)
   if type(encoded_image) == "string" then
     return log:error("Could not encode image: %s", encoded_image)
   end
-  return helpers.add_image(self.Chat, selected)
+  return self.Chat:add_image_message(selected)
 end
 
 ---Is the slash command enabled?
