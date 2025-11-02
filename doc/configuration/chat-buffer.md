@@ -215,7 +215,7 @@ A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys th
 
 ### Tool Conditionals
 
-Tools can also be conditionally enabled:
+Built-in tools can also be conditionally enabled:
 
 ```lua
 require("codecompanion").setup({
@@ -223,8 +223,9 @@ require("codecompanion").setup({
     chat = {
       tools = {
         ["grep_search"] = {
+          ---@param adapter CodeCompanion.HTTPAdapter
           ---@return boolean
-          enabled = function()
+          enabled = function(adapter)
             return vim.fn.executable("rg") == 1
           end,
         },
@@ -235,6 +236,25 @@ require("codecompanion").setup({
 ```
 
 This is useful to ensure that a particular dependency is installed on the machine. After the user has installed the dependency, the `:CodeCompanionChat RefreshCache` command can be used to refresh the cache's across chat buffers.
+
+If you wish to conditionally enable an adapter's own tools, you can do so with:
+
+```lua
+require("codecompanion").setup({
+  openai_responses = function()
+    return require("codecompanion.adapters").extend("openai_responses", {
+      available_tools = {
+        ["web_search"] = {
+          ---@param adapter CodeCompanion.HTTPAdapter
+          enabled = function(adapter)
+            return false
+          end,
+        },
+      },
+    })
+  end,
+})
+```
 
 ### Approvals
 
