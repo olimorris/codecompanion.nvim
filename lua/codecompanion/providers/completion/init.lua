@@ -56,9 +56,12 @@ local adapter_cache = {}
 
 local aug = api.nvim_create_augroup("codecompanion.completion", { clear = true })
 
+-- Listen to both ChatAdapter and ChatModel events to keep cache in sync
+-- ChatAdapter fires when the adapter changes
+-- ChatModel fires when the model changes (primarily for HTTP adapters)
 api.nvim_create_autocmd("User", {
   group = aug,
-  pattern = "CodeCompanionChatModel",
+  pattern = { "CodeCompanionChatAdapter", "CodeCompanionChatModel" },
   callback = function(args)
     local bufnr = args.data.bufnr
     if args.data.adapter then

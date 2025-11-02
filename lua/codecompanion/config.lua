@@ -360,6 +360,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
           },
         },
+        ["mode"] = {
+          callback = "strategies.chat.slash_commands.catalog.mode",
+          description = "Change the ACP session mode",
+          ---@param opts { adapter: CodeCompanion.Adapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["now"] = {
           callback = "strategies.chat.slash_commands.catalog.now",
           description = "Insert the current date and time",

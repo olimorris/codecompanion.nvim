@@ -60,6 +60,10 @@ The _image_ slash command allows you to add images into a chat buffer via remote
 
 The _memory_ slash command allows you to add [memory](/usage/chat-buffer/memory) groups to the chat buffer.
 
+## /mode
+
+The _mode_ slash command is specific to [ACP](/configuration/acp) adapters allows users to switch between different agent operating modes, as per the [protocol](https://agentclientprotocol.com/protocol/session-modes) docs.
+
 ## /now
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
