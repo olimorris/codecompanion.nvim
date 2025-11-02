@@ -38,7 +38,7 @@ local providers = {
     default = default
       .new({
         output = function(selection)
-          image_utils.from_path(selection.path, function(_res)
+          image_utils.from_path(selection.path, {}, function(_res)
             if type(_res) == "string" then
               -- TODO: error handling
               return
@@ -60,7 +60,7 @@ local providers = {
     local snacks = require("codecompanion.providers.slash_commands.snacks")
     snacks = snacks.new({
       output = function(selection)
-        image_utils.from_path(selection.file, function(_res)
+        image_utils.from_path(selection.file, {}, function(_res)
           if type(_res) == "string" then
             -- TODO: error handling
             return
@@ -88,7 +88,7 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        image_utils.from_path(selection[1], function(_res)
+        image_utils.from_path(selection[1], {}, function(_res)
           if type(_res) == "string" then
             -- TODO: error handling
             return
@@ -134,7 +134,7 @@ local choice = {
         return
       end
 
-      image_utils.from_url(url, function(_res)
+      image_utils.from_url(url, { chat_bufnr = SlashCommand.Chat.bufnr }, function(_res)
         if type(_res) == "string" then
           return log:error(_res)
         end

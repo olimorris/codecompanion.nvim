@@ -74,12 +74,15 @@ end
 ---@param image CodeCompanion.Image The image object containing the path and other metadata.
 ---@return CodeCompanion.Image|string The base64 encoded image string
 function M.encode_image(image)
-  local b64_content, b64_err = base64.encode(image.path)
-  if b64_err then
-    return b64_err
-  end
+  if image.base64 == nil then
+    -- skip if already encoded
+    local b64_content, b64_err = base64.encode(image.path)
+    if b64_err then
+      return b64_err
+    end
 
-  image.base64 = b64_content
+    image.base64 = b64_content
+  end
 
   if not image.mimetype then
     image.mimetype = base64.get_mimetype(image.path)
