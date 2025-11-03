@@ -167,16 +167,18 @@ FILE=tests/adapters/test_openai.lua make test_file
 
 When adding new features, please include tests in the appropriate test file under the `tests/` directory.
 
-### Running tests on Native Windows
+### Running tests on Windows
 
-*Note, this is for* native *Windows,* not *POSIX emulation environments such as WSL, MSYS2, or Cygwin.*
+> [!Note]
+> The below guide is for native Windows. Not POSIX emulation environments such as WSL, MSYS2, or Cygwin.
 
-Tests do run on Windows, but you need to do some prepwork:
-- ensure `git` is in `%PATH%`;
-- ensure some `make` is in `%PATH%`
-- ensure some C/C++ compiler is in path for TreeSitter to get bootstrapped;
-- define the `%HOME%` environment variable to `%HOMEDRIVE%%HOMEPATH%` or `%USERPROFILE%`;
-- create directory `deps` if it doesn't exist.
+In order for tests to run on Windows, please ensure the following:
+
+- `git` is in `%PATH%`
+- Some `make` is in `%PATH%`
+- Some C/C++ compiler is in path for Tree-sitter to get bootstrapped
+- Define the `%HOME%` environment variable to `%HOMEDRIVE%%HOMEPATH%` or `%USERPROFILE%`
+- Create the directory `deps` in the CodeCompanion root, if it doesn't exist.
 
 For *make* and a compiler, running *x64 Native Tools Command Prompt* from *Visual Studio Community 2022*, provides *NMake* and the *Visual C++* compiler, which work fine for this purpose.
 
