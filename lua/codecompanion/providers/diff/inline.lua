@@ -229,6 +229,7 @@ end
 function InlineDiff:close_floating_window()
   if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
     log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
+    vim.wo[self.winnr].winbar = ""
     pcall(api.nvim_win_close, self.winnr, true)
     self.winnr = nil
     require("codecompanion.utils.ui").close_background_window()

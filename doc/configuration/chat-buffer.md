@@ -114,6 +114,28 @@ require("codecompanion").setup({
 })
 ```
 
+It's also possible to conditionally enable a slash command by including `enabled` in the config:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      slash_commands = {
+        ["image"] = {
+          callback = "strategies.chat.slash_commands.catalog.image",
+          description = "Insert an image",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            return opts.adapter.opts and opts.adapter.opts.vision == true
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
 > [!IMPORTANT]
 > Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
@@ -215,7 +237,7 @@ A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys th
 
 ### Tool Conditionals
 
-Tools can also be conditionally enabled:
+Built-in tools can also be conditionally enabled:
 
 ```lua
 require("codecompanion").setup({
@@ -223,8 +245,9 @@ require("codecompanion").setup({
     chat = {
       tools = {
         ["grep_search"] = {
+          ---@param adapter CodeCompanion.HTTPAdapter
           ---@return boolean
-          enabled = function()
+          enabled = function(adapter)
             return vim.fn.executable("rg") == 1
           end,
         },
@@ -235,6 +258,25 @@ require("codecompanion").setup({
 ```
 
 This is useful to ensure that a particular dependency is installed on the machine. After the user has installed the dependency, the `:CodeCompanionChat RefreshCache` command can be used to refresh the cache's across chat buffers.
+
+If you wish to conditionally enable an adapter's own tools, you can do so with:
+
+```lua
+require("codecompanion").setup({
+  openai_responses = function()
+    return require("codecompanion.adapters").extend("openai_responses", {
+      available_tools = {
+        ["web_search"] = {
+          ---@param adapter CodeCompanion.HTTPAdapter
+          enabled = function(adapter)
+            return false
+          end,
+        },
+      },
+    })
+  end,
+})
+```
 
 ### Approvals
 

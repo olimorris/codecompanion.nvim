@@ -359,6 +359,18 @@ local function set_autocmds(chat)
       end,
     })
   end
+
+  -- Update metadata when ACP mode changes
+  api.nvim_create_autocmd("User", {
+    group = chat.aug,
+    pattern = "CodeCompanionChatACPModeChanged",
+    desc = "Update chat metadata when ACP mode changes",
+    callback = function(args)
+      if chat.acp_connection and args.data and args.data.session_id == chat.acp_connection.session_id then
+        chat:update_metadata()
+      end
+    end,
+  })
 end
 
 --=============================================================================
@@ -1604,6 +1616,23 @@ function Chat:update_metadata()
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
   end
 
+  local mode_info
+  if self.adapter.type == "acp" and self.acp_connection then
+    local modes = self.acp_connection:get_modes()
+    if modes and modes.currentModeId then
+      mode_info = {
+        current = modes.currentModeId,
+      }
+      -- Get the mode name for display
+      for _, mode in ipairs(modes.availableModes or {}) do
+        if mode.id == modes.currentModeId then
+          mode_info.name = mode.name
+          break
+        end
+      end
+    end
+  end
+
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
       name = self.adapter.formatted_name,
@@ -1612,6 +1641,7 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
+    mode = mode_info,
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
