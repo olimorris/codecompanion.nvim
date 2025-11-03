@@ -6,6 +6,8 @@ local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
 
+local sleep_time = vim.fn.has("win32") == 1 and 1000 or 100
+
 local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
@@ -47,7 +49,7 @@ T["Tools"]["cmds"]["handlers and outputs are called"] = function()
     tools:execute(chat, tool_call)
     vim.wait(%d)
   ]],
-    vim.fn.has("win32") == 1 and 1000 or 100
+    sleep_time
   ))
 
   -- handlers.setup
@@ -74,7 +76,7 @@ T["Tools"]["cmds"]["output.errors is called"] = function()
     tools:execute(chat, tool_call)
     vim.wait(%d)
   ]],
-    vim.fn.has("win32") == 1 and 1000 or 100
+    sleep_time
   ))
 
   -- output.error
@@ -97,7 +99,7 @@ T["Tools"]["cmds"]["can run multiple commands"] = function()
     tools:execute(chat, tool_call)
     vim.wait(%d)
   ]],
-    vim.fn.has("win32") == 1 and 5000 or 100
+    sleep_time
   ))
 
   -- on_exit should only be called at the end
@@ -123,7 +125,7 @@ T["Tools"]["cmds"]["can set test flags on the chat object"] = function()
     tools:execute(chat, tool_call)
     vim.wait(%d)
   ]],
-    vim.fn.has("win32") == 1 and 1000 or 100
+    sleep_time
   ))
 
   h.eq({ testing = true }, child.lua_get("tools.chat.tool_registry.flags"))
