@@ -1,5 +1,6 @@
 local log = require("codecompanion.utils.log")
 local uv = vim.uv
+local fn = vim.fn
 
 local fmt = string.format
 
@@ -202,4 +203,32 @@ function M.base64_encode_file(path)
     return nil, string.format("Could not load the file: %s", path)
   end
 end
+
+---Get the mimetype from the given file
+---@param path string The path to the file
+---@return string
+function M.get_mimetype(path)
+  if fn.executable("file") == 1 then
+    local out = vim.system({ "file", "--mime-type", path }):wait()
+    if (out.code == 0) and out.stdout then
+      local _type, _ = out.stdout:gsub(".*:", "")
+      return vim.trim(_type)
+    end
+  end
+
+  local map = {
+    gif = "image/gif",
+    jpg = "image/jpeg",
+    jpeg = "image/jpeg",
+    png = "image/png",
+    webp = "image/webp",
+    pdf = "application/pdf",
+  }
+
+  local extension = vim.fn.fnamemodify(path, ":e")
+  extension = extension:lower()
+
+  return map[extension]
+end
+
 return M

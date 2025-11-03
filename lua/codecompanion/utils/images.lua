@@ -2,26 +2,8 @@ local M = {}
 
 local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
+local files_utils = require("codecompanion.utils.files")
 local ui_utils = require("codecompanion.utils.ui")
-
----Get the mimetype from the given file
----@param path string The path to the file
----@return string
-function M.get_mimetype(path)
-  local map = {
-    gif = "image/gif",
-    jpg = "image/jpeg",
-    jpeg = "image/jpeg",
-    png = "image/png",
-    webp = "image/webp",
-    pdf = "application/pdf",
-  }
-
-  local extension = vim.fn.fnamemodify(path, ":e")
-  extension = extension:lower()
-
-  return map[extension]
-end
 
 ---@class (private) CodeCompanion.Image
 ---@field id string
@@ -36,7 +18,7 @@ end
 function M.encode_image(image)
   if image.base64 == nil then
     -- skip if already encoded
-    local b64_content, b64_err = require("codecompanion.utils.files").base64_encode_file(image.path)
+    local b64_content, b64_err = files_utils.base64_encode_file(image.path)
     if b64_err then
       return b64_err
     end
@@ -45,7 +27,7 @@ function M.encode_image(image)
   end
 
   if not image.mimetype then
-    image.mimetype = M.get_mimetype(image.path)
+    image.mimetype = files_utils.get_mimetype(image.path)
   end
 
   return image
@@ -73,7 +55,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 
 ---@type CodeCompanion.Image.Preprocessor
 function M.from_path(path, _, cb)
-  local encoded = M.encode_image({ path = path, id = path, mimetype = M.get_mimetype(path) })
+  local encoded = M.encode_image({ path = path, id = path, mimetype = files_utils.get_mimetype(path) })
   if type(cb) == "function" then
     return vim.schedule(function()
       ---@diagnostic disable-next-line: param-type-mismatch
