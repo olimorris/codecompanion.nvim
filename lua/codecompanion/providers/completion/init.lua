@@ -64,13 +64,27 @@ api.nvim_create_autocmd("User", {
   pattern = { "CodeCompanionChatAdapter", "CodeCompanionChatModel" },
   callback = function(args)
     local bufnr = args.data.bufnr
-    if args.data.adapter then
-      tool_filter.refresh_cache()
-      slash_command_filter.refresh_cache()
-      adapter_cache[bufnr] = args.data.adapter
-    else
-      adapter_cache[bufnr] = nil
+
+    -- Only update adapter cache if the event explicitly includes adapter data
+    local has_adapter_field = false
+    for k, _ in pairs(args.data) do
+      if k == "adapter" then
+        has_adapter_field = true
+        break
+      end
     end
+
+    if has_adapter_field then
+      if args.data.adapter then
+        tool_filter.refresh_cache()
+        slash_command_filter.refresh_cache()
+        adapter_cache[bufnr] = args.data.adapter
+      else
+        adapter_cache[bufnr] = nil
+      end
+    end
+
+    -- If adapter field is not present in the event then we don't update the cache
   end,
 })
 

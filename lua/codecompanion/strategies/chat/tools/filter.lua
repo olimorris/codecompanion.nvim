@@ -2,7 +2,7 @@ local filter = require("codecompanion.strategies.chat.helpers.filter")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Tools.Filter
-local Filter = filter.create_filter("Tool", {
+local Filter = filter.create_filter({
   skip_keys = { "opts", "groups" },
   post_filter = function(filtered_config, opts, enabled_items)
     -- Adapter specific tool
