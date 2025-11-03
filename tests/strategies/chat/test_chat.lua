@@ -132,10 +132,6 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq("What does this image do?", message)
 
-  if vim.fn.executable("base64") == 0 then
-    MiniTest.skip("base64 is not installed, skipping test")
-  end
-
   message = child.lua([[
     local messages = _G.chat.messages
     return messages[#messages]
