@@ -78,7 +78,6 @@ function M.from_url(url, ctx, cb)
   local result = string.format("Could not get the image from %s.", url)
 
   local extmark_id = nil
-
   local ns = nil
   if ctx.chat_bufnr then
     ns = "codecompanion_fetch_image_" .. tostring(ctx.chat_bufnr)
@@ -94,6 +93,12 @@ function M.from_url(url, ctx, cb)
     proxy = config.adapters.http.opts.proxy,
     output = loc,
     callback = function(response)
+      if extmark_id then
+        extmark_id = nil
+        vim.schedule(function()
+          ui_utils.clear_notification(ctx.chat_bufnr, { namespace = ns })
+        end)
+      end
       if response.status ~= 200 then
         result = string.format(
           "Could not get the image from %s.\nHTTP Status: %d\nError: %s",
@@ -122,13 +127,6 @@ function M.from_url(url, ctx, cb)
             cb(result)
           end)
         end
-      end
-
-      if extmark_id then
-        vim.schedule(function()
-          extmark_id = nil
-          ui_utils.clear_notification(ctx.chat_bufnr, { namespace = ns })
-        end)
       end
     end,
   })
