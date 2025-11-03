@@ -13,6 +13,8 @@ local api = vim.api
 ---@field has_changes boolean
 ---@field winnr number|nil
 ---@field is_floating boolean
+---@field hunk_start_lines number[] Array of hunk start lines (1-indexed)
+---@field hunk_count number Total number of hunks
 local InlineDiff = {}
 
 ---@class CodeCompanion.Diff.InlineArgs
@@ -37,6 +39,8 @@ function InlineDiff.new(args)
     ),
     extmark_ids = {},
     has_changes = false,
+    hunk_start_lines = {},
+    hunk_count = 0,
   }, { __index = InlineDiff })
   ---@cast self CodeCompanion.Diff.Inline
 
@@ -85,6 +89,8 @@ end
 ---@param line_offset? number Line offset
 ---@param opts? table Options: {show_removed: boolean, full_width_removed: boolean, status?: string}
 ---@return number[] extmark_ids
+---@return number[] hunk_start_lines Array of hunk start lines (1-indexed)
+---@return number hunk_count Total number of hunks
 function InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
   opts = opts or { show_removed = true, full_width_removed = true, status = "pending" }
   return diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
