@@ -127,7 +127,7 @@ local choice = {
         return
       end
 
-      image_utils.from_url(url, { chat_bufnr = SlashCommand.Chat.bufnr }, function(_res)
+      image_utils.from_url(url, { chat_bufnr = SlashCommand.Chat.bufnr, from = "slash_command" }, function(_res)
         if type(_res) == "string" then
           return log:error(_res)
         end

@@ -164,6 +164,10 @@ local defaults = {
             adapter = "jina",
           },
         },
+        ["fetch_images"] = {
+          callback = "interactions.chat.tools.builtin.fetch_images",
+          description = "Fetches images from the given URL(s).",
+        },
         ["file_search"] = {
           callback = "interactions.chat.tools.builtin.file_search",
           description = "Search for files in the current working directory by glob pattern",
