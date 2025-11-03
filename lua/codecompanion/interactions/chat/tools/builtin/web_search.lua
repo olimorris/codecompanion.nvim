@@ -30,6 +30,16 @@ return {
         return cb({ status = "error", data = "No query provided for the web_search tool" })
       end
 
+      if args.include_images then
+        if self.chat.adapter.opts == nil then
+          log:warn("[Web Search Tool] Disabling `include_images` because the chat adapter doesn't support vision.")
+          args.include_images = nil
+        elseif not self.chat.adapter.opts.vision then
+          log:warn("[Web Search Tool] Disabling `include_images` because the chat adapter disabled vision.")
+          args.include_images = nil
+        end
+      end
+
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
       local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter
@@ -42,7 +52,7 @@ return {
         .new({
           adapter = adapter,
         })
-        :request({ query = query, domains = args.domains }, {
+        :request({ query = query, domains = args.domains, include_images = args.include_images }, {
           callback = function(err, data)
             local error_message = [[Error searching for `%s`]]
             local error_message_expanded = error_message .. "\n%s"
@@ -59,7 +69,7 @@ return {
                 return cb({ status = "error", data = fmt(error_message_expanded, query, output.content) })
               end
 
-              return cb({ status = "success", data = output.content })
+              return cb({ status = "success", data = { content = output.content, images = output.images } })
             end
           end,
         })
@@ -84,8 +94,12 @@ return {
             },
             description = "An array of domains to search from. You can leave this as an empty string and the search will be performed across all domains.",
           },
+          include_images = {
+            type = "boolean",
+            description = "Whether image results are needed for this search. Enable this if the query is related to the appearance of something, like the design of a GUI application.",
+          },
         },
-        required = { "query", "domains" },
+        required = { "query", "domains", "include_images" },
       },
     },
   },
@@ -98,15 +112,34 @@ return {
       local chat = tools.chat
 
       local content = vim
-        .iter(stdout[1])
+        .iter(stdout[1].content)
         :map(function(result)
           return fmt([[<attachment url="%s" title="%s">%s</attachment>]], result.url, result.title, result.content)
         end)
         :totable()
+
+      ---@type string[]
+      local images = vim
+        .iter(stdout[1].images or {})
+        :map(function(item)
+          -- https://docs.tavily.com/documentation/api-reference/endpoint/search#response-images
+          if type(item) == "string" then
+            return fmt([[<attachment image_url="%s"></attachment>]], item)
+          elseif type(item) == "table" then
+            return fmt([[<attachment image_url="%s">%s</attachment>]], item.url, item.description)
+          end
+        end)
+        :totable()
+
       local length = #content
 
       local llm_output = fmt([[%s]], table.concat(content, "\n"))
       local user_output = fmt([[Searched for `%s`, %d result(s)]], cmd.query, length)
+
+      if #images > 0 then
+        llm_output = llm_output .. fmt("\n%s", table.concat(images, "\n"))
+        user_output = user_output .. fmt(" and %d image(s)", #images)
+      end
 
       chat:add_tool_output(self, llm_output, user_output)
     end,
