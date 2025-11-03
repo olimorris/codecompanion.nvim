@@ -61,6 +61,7 @@ local config = require("codecompanion.config")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
+local im_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
@@ -941,6 +942,36 @@ function Chat:add_message(data, opts)
   return self
 end
 
+---Add an image to the chat buffer
+---@param image CodeCompanion.Image The image object containing the path and other metadata
+---@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@return nil
+function Chat:add_image_message(image, opts)
+  opts = vim.tbl_deep_extend("force", {
+    role = config.constants.USER_ROLE,
+    source = "codecompanion.strategies.chat.slash_commands.image",
+    bufnr = image.bufnr,
+  }, opts or {})
+
+  local id = "<image>" .. (image.id or image.path) .. "</image>"
+
+  self:add_message({
+    role = opts.role,
+    content = image.base64,
+  }, {
+    context = { id = id, mimetype = image.mimetype, path = image.path or image.id },
+    _meta = { tag = "image" },
+    visible = false,
+  })
+
+  self.context:add({
+    bufnr = opts.bufnr,
+    id = id,
+    path = image.path,
+    source = opts.source,
+  })
+end
+
 ---Apply any tools or variables that a user has tagged in their message
 ---@param message table
 ---@return nil
@@ -1260,11 +1291,11 @@ function Chat:check_images(message)
   end
 
   for _, image in ipairs(images) do
-    local encoded_image = helpers.encode_image(image)
+    local encoded_image = im_utils.encode_image(image)
     if type(encoded_image) == "string" then
       log:warn("Could not encode image: %s", encoded_image)
     else
-      helpers.add_image(self, encoded_image)
+      self:add_image_message(encoded_image)
 
       -- Replace the image link in the message with "image"
       local to_remove = fmt("[Image](%s)", image.path)
