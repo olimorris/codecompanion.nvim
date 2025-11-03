@@ -46,7 +46,7 @@ T["short_title handles search with escaped pattern"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Search: ^local M = {}', result)
+  h.eq("Search: ^local M = {}", result)
 end
 
 T["short_title unescapes common regex characters"] = function()
@@ -62,7 +62,7 @@ T["short_title unescapes common regex characters"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Search: @class CodeCompanion.', result)
+  h.eq("Search: @class CodeCompanion.", result)
 end
 
 T["short_title handles require pattern with parentheses"] = function()
@@ -96,7 +96,7 @@ T["short_title handles grep with flags"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Search: @field.*adapter', result)
+  h.eq("Search: @field.*adapter", result)
 end
 
 T["short_title handles read with file path"] = function()
@@ -117,7 +117,7 @@ T["short_title handles read with file path"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Read: debug.lua', result)
+  h.eq("Read: debug.lua", result)
 end
 
 T["short_title handles read with line range"] = function()
@@ -140,7 +140,7 @@ T["short_title handles read with line range"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Read: init.lua (L29-68)', result)
+  h.eq("Read: init.lua (L29-68)", result)
 end
 
 T["short_title handles search in directory"] = function()
@@ -177,7 +177,7 @@ T["short_title handles glob pattern"] = function()
   ]])
 
   -- Should strip ** prefix and backticks
-  h.eq('Search: debug.lua', result)
+  h.eq("Search: debug.lua", result)
 end
 
 T["short_title strips markdown backticks"] = function()
@@ -192,7 +192,7 @@ T["short_title strips markdown backticks"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Search: formatters.lua', result)
+  h.eq("Search: formatters.lua", result)
 end
 
 T["short_title handles diff operations"] = function()
@@ -212,7 +212,7 @@ T["short_title handles diff operations"] = function()
     return formatters.short_title(tool_call)
   ]])
 
-  h.eq('Edit: config.lua', result)
+  h.eq("Edit: config.lua", result)
 end
 
 T["short_title truncates long patterns"] = function()
@@ -244,7 +244,7 @@ T["short_title uses colon separator to avoid markdown rendering"] = function()
   ]])
 
   -- Should use colon, not space, to prevent markdown list formatting
-  h.eq('Search: function.*:add_message', result)
+  h.eq("Search: function.*:add_message", result)
   h.is_true(result:match("^[^%s]+:") ~= nil)
 end
 
