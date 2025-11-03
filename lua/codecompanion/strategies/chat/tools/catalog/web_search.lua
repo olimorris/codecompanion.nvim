@@ -2,6 +2,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -79,7 +80,8 @@ return {
     type = "function",
     ["function"] = {
       name = "web_search",
-      description = "Searches the web for a given query and returns the results.",
+      description = [[Searches the web for a given query and returns the results. 
+If the tool returned image URLs, you should call the `fetch_images` tool to view the images that are relevant to the current tasks.]],
       parameters = {
         type = "object",
         properties = {
@@ -96,7 +98,7 @@ return {
           },
           include_images = {
             type = "boolean",
-            description = "Whether image results are needed for this search. Enable this if the query is related to the appearance of something, like the design of a GUI application.",
+            description = "Whether image results are needed for this search. Enable this if the query is related to the appearance of something, like the design of a GUI application or a website.",
           },
         },
         required = { "query", "domains", "include_images" },
@@ -120,7 +122,7 @@ return {
 
       ---@type string[]
       local images = vim
-        .iter(stdout[1].images or {})
+        .iter(utils.fix_nil(stdout[1].images) or {})
         :map(function(item)
           -- https://docs.tavily.com/documentation/api-reference/endpoint/search#response-images
           if type(item) == "string" then
