@@ -127,8 +127,8 @@ If the tool returned image URLs, you should call the `fetch_images` tool to view
           -- https://docs.tavily.com/documentation/api-reference/endpoint/search#response-images
           if type(item) == "string" then
             return fmt([[<attachment image_url="%s"></attachment>]], item)
-          elseif type(item) == "table" then
-            return fmt([[<attachment image_url="%s">%s</attachment>]], item.url, item.description)
+          elseif type(item) == "table" and type(item.url) == "string" then
+            return fmt([[<attachment image_url="%s">%s</attachment>]], item.url, item.description or "")
           end
         end)
         :totable()
