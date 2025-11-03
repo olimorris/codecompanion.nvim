@@ -12,7 +12,7 @@ description: How to install CodeCompanion and it's dependencies
 - The `curl` library
 - Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
-- _(Optional)_ The `base64` library for image/vision support
+- _(Optional)_ The [file](https://man7.org/linux/man-pages/man1/file.1.html) command for image/vision support
 - _(Optional)_ The [ripgrep](https://github.com/BurntSushi/ripgrep) library for the `grep_search` tool
 
 ## Installation
