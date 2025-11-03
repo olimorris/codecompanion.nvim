@@ -13,7 +13,7 @@ description: Learn how tools can aid your code, in CodeCompanion
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, tools are simply context and actions that are shared with an LLM via a `system` prompt. The LLM can act as an agent by requesting tools via the chat buffer which in turn orchestrates their use within Neovim. Tools can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context and actions that are shared with an LLM. The LLM can act as an agent by executing tools via the chat buffer which in turn orchestrates their use within Neovim. Tools can be added as a participant to the chat buffer by using the `@` key.
 
 > [!IMPORTANT]
 > The use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and approving their use.
@@ -26,9 +26,11 @@ When a tool is added to the chat buffer, the LLM is instructured by the plugin t
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
 
-## Tools
+## Built-in Tools
 
-CodeCompanion replaces the tool call in any prompt you send to the LLM with the value of `opts.tool_replacement_message`. This is to ensure that you can call a tool efficiently whilst making the prompt readable to the LLM.
+CodeCompanion comes with a number of built-in tools which you can leverage, as long as your adapter and model are [supported](#compatibility).
+
+When calling a tool, CodeCompanion replaces the tool call in any prompt you send to the LLM with the value of a tool's `opts.tool_replacement_message` string. This is to ensure that you can call a tool efficiently whilst making the prompt readable to the LLM.
 
 So calling a tool with:
 
@@ -172,6 +174,33 @@ Use @{list_code_usages} to find all usages of the `create_file` function
 Can you use @{list_code_usages} to show me how the `Tools` class is implemented and used?
 ```
 
+### memory
+
+> [!IMPORTANT]
+> For security, all memory operations are restricted to the `/memories` directory
+
+> [!NOTE]
+> This tool is separate to CodeCompanion's [memory](/usage/chat-buffer/memory) implementation but the two can be combined by giving a memory group knowledge of the `/memories` directory
+
+The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory (`/memories`).
+
+If you're using the _Anthropic_ adapter, then this tool will act as its client implementation. Please refer to their [documentation](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) for more information.
+
+The tool has the following commands that an LLM can use:
+
+- **view** - Lists the contents in the `/memories` directory or displays file content with optional line ranges
+- **create** - Creates a new file or overwrites an existing file with specified content
+- **str_replace** - Replaces the first exact match of text in a file with new text
+- **insert** - Inserts text at a specific line number in a file
+- **delete** - Removes a file or recursively deletes a directory and all its contents
+- **rename** - Moves or renames a file or directory to a new path
+
+To use the tool:
+
+```md
+Use @{memory} to carry on our conversation about streamlining my dotfiles
+```
+
 ### next_edit_suggestion
 
 Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
@@ -183,16 +212,16 @@ Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
-### search_web
+### web_search
 
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
 
 ```md
-Use @{search_web} to find the latest version of Neovim?
+Use @{web_search} to find the latest version of Neovim?
 ```
 
 ```md
-Use @{search_web} to search neovim.io and explain how I can configure a new language server
+Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
 
@@ -200,7 +229,7 @@ Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ens
 
 ## Tool Groups
 
-Tool Groups are a convenient way to combine multiple tools together in the chat buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and `@{files}`.
+Tool Groups are a convenient way to combine multiple built-in tools together in the chat buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and `@{files}`.
 
 When you include a tool group in the chat, all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
 
@@ -269,6 +298,30 @@ You can use it with:
 @{files}. Can you scaffold out the folder structure for a python package?
 ```
 
+## Adapter Tools
+
+> [!NOTE]
+> Adapter tools are configured via the `available_tools` dictionary on the adapter itself
+
+Prior to [v17.30.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v17.30.0), tool use in CodeCompanion was only possible with the built-in tools. However, that release unlocked _adapter_ tools. That is, tools that are owned by LLM providers such as [Anthropic](https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool) and [OpenAI](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses). This allows for remote tool execution of common tasks such as web searching and computer use.
+
+From a UX perspective, there is no difference in using the built-in and adapter tools. However, please note that an adapter tool takes precedence over a built-in tool in the event of a name clash.
+
+### Anthropic
+
+In the `anthropic` adapter, the following tools are available:
+
+- `code_execution` -  The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
+- `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
+- `web_fetch` - The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.
+- `web_search` - The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff
+
+### OpenAI
+
+In the `openai_responses` adapter, the following tools are available:
+
+- `web_search` - Allow models to search the web for the latest information before generating a response.
+
 ## Useful Tips
 
 ### YOLO mode
@@ -303,8 +356,13 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Gemini            |                   | :white_check_mark: | Dependent on the model              |
 | GitHub Models     | All               | :x:                | Not supported yet                   |
 | Huggingface       | All               | :x:                | Not supported yet                   |
-| Mistral           | All               | :x:                | Not supported yet                   |
-| Novita            |                   | :white_check_mark:                | Dependent on the model  |
+| Mistral           |                   | :white_check_mark: | Dependent on the model              |
+| Novita            |                   | :white_check_mark: | Dependent on the model              |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | All               | :x:                | Not supported yet                   |
+
+
+> [!IMPORTANT]
+> When using Mistral, you will need to set `strategies.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.
+

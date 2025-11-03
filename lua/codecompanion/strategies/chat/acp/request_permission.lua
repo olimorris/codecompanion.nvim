@@ -343,8 +343,9 @@ local function show_diff(chat, request)
 
   local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
-  local inline_config = config.display.diff.provider_opts.inline or {}
-  local show_dim = inline_config.opts and inline_config.opts.show_dim
+  local provider = config.display.diff.provider
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local show_dim = provider_config.opts and provider_config.opts.show_dim
 
   local bufnr, winnr = ui_utils.create_float(new_lines, {
     window = { width = window_config.width, height = window_config.height },

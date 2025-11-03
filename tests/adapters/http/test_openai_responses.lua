@@ -35,7 +35,7 @@ T["Responses"]["can form reasoning output"] = function()
     encrypted_content = "somefakebase64encoding",
   }
 
-  h.eq(expected, adapter.handlers.form_reasoning(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_reasoning(adapter, input))
 end
 
 T["Responses"]["can output tool calls"] = function()
@@ -60,12 +60,12 @@ T["Responses"]["can output tool calls"] = function()
       id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
       call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
     },
-  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
+  }, adapter.handlers.tools.format_response(adapter, tool_call, output))
 end
 
-T["Responses"]["form_messages"] = new_set()
+T["Responses"]["build_messages"] = new_set()
 
-T["Responses"]["form_messages"]["messages only"] = function()
+T["Responses"]["build_messages"]["messages only"] = function()
   local messages = {
     {
       content = "You are a helpful assistant.",
@@ -89,10 +89,10 @@ T["Responses"]["form_messages"]["messages only"] = function()
         content = messages[3].content,
       },
     },
-  }, adapter.handlers.form_messages(adapter, messages))
+  }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["images"] = function()
+T["Responses"]["build_messages"]["images"] = function()
   local messages = {
     {
       _meta = { sent = true },
@@ -150,42 +150,10 @@ T["Responses"]["form_messages"]["images"] = function()
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, messages))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["format available tools to call"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
-  local tools = { weather = { weather } }
-
-  local expected = {
-    ["type"] = "function",
-    ["name"] = "weather",
-    ["description"] = "Retrieves current weather for the given location.",
-    ["parameters"] = {
-      ["type"] = "object",
-      ["properties"] = {
-        ["location"] = {
-          ["type"] = "string",
-          ["description"] = "City and country e.g. Bogotá, Colombia",
-        },
-        ["units"] = {
-          ["type"] = "string",
-          ["enum"] = { "celsius", "fahrenheit" },
-          ["description"] = "Units the temperature will be returned in.",
-        },
-      },
-      ["required"] = { "location", "units" },
-      ["additionalProperties"] = false,
-    },
-    ["strict"] = true,
-  }
-
-  -- We need to adjust the tools format slightly with Responses
-  -- https://platform.openai.com/docs/api-reference/responses
-  h.eq({ tools = { expected } }, adapter.handlers.form_tools(adapter, tools))
-end
-
-T["Responses"]["form_messages"]["format tool calls"] = function()
+T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {
       role = "assistant",
@@ -231,10 +199,10 @@ T["Responses"]["form_messages"]["format tool calls"] = function()
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["format tool output"] = function()
+T["Responses"]["build_messages"]["format tool output"] = function()
   local messages = {
     {
       role = "tool",
@@ -267,10 +235,10 @@ T["Responses"]["form_messages"]["format tool output"] = function()
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["Responses"]["form_messages"]["can handle reasoning"] = function()
+T["Responses"]["build_messages"]["can handle reasoning"] = function()
   local messages = {
     {
       _meta = {
@@ -361,7 +329,7 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     },
   }
 
-  local result = adapter.handlers.form_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, messages)
 
   h.eq({
     summary = { {
@@ -371,6 +339,56 @@ T["Responses"]["form_messages"]["can handle reasoning"] = function()
     encrypted_content = "somefakebase64encoding",
     type = "reasoning",
   }, result.input[2])
+end
+
+T["Responses"]["build_tools"] = new_set()
+
+T["Responses"]["build_tools"]["format available tools to call"] = function()
+  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local tools = { weather = { weather } }
+
+  local expected = {
+    description = "Retrieves current weather for the given location.",
+    name = "weather",
+    parameters = {
+      additionalProperties = false,
+      properties = {
+        location = {
+          description = "City and country e.g. Bogotá, Colombia",
+          type = { "string", "null" },
+        },
+        units = {
+          description = "Units the temperature will be returned in.",
+          enum = { "celsius", "fahrenheit" },
+          type = { "string", "null" },
+        },
+      },
+      required = { "location", "units" },
+      type = "object",
+    },
+    strict = true,
+    type = "function",
+  }
+
+  -- We need to adjust the tools format slightly with Responses
+  -- https://platform.openai.com/docs/api-reference/responses
+  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools))
+end
+
+T["Responses"]["build_tools"]["can format for an adapter's remote tools"] = function()
+  local tools = {
+    {
+      ["<tool>web_search</tool>"] = {
+        _meta = {
+          adapter_tool = true,
+        },
+        description = "Allow models to search the web for the latest information before generating a response.",
+        name = "web_search",
+      },
+    },
+  }
+
+  h.eq({ tools = { { type = "web_search" } } }, adapter.handlers.request.build_tools(adapter, tools))
 end
 
 T["Responses"]["No Streaming"] = new_set({
@@ -392,7 +410,7 @@ T["Responses"]["No Streaming"]["chat_output"] = function()
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Dynamic, expressive", adapter.handlers.chat_output(adapter, json).output.content)
+  h.eq("Dynamic, expressive", adapter.handlers.response.parse_chat(adapter, json).output.content)
 end
 
 T["Responses"]["No Streaming"]["can process tools"] = function()
@@ -403,7 +421,7 @@ T["Responses"]["No Streaming"]["can process tools"] = function()
 
   -- Match the format of the actual request
   local json = { body = data }
-  adapter.handlers.chat_output(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, json, tools)
 
   local tool_output = {
     {
@@ -439,7 +457,7 @@ T["Responses"]["No Streaming"]["can output for the inline assistant"] = function
 
   h.eq(
     '{"code": "print(\'Hello World\')","language": "lua","placement": "add"}',
-    adapter.handlers.inline_output(adapter, json).output
+    adapter.handlers.response.parse_inline(adapter, json).output
   )
 end
 
@@ -452,14 +470,14 @@ T["Responses"]["No Streaming"]["can process reasoning output"] = function()
 
   h.expect_contains(
     "**Choosing descriptive terms**",
-    adapter.handlers.chat_output(adapter, json).output.reasoning.content
+    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.content
   )
 
   h.eq(
     "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
-    adapter.handlers.chat_output(adapter, json).output.reasoning.id
+    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.id
   )
-  h.eq("gAAAAABo6", adapter.handlers.chat_output(adapter, json).output.reasoning.encrypted_content)
+  h.eq("gAAAAABo6", adapter.handlers.response.parse_chat(adapter, json).output.reasoning.encrypted_content)
 end
 
 T["Responses"]["Streaming"] = new_set()
@@ -468,7 +486,7 @@ T["Responses"]["Streaming"]["can output streamed data into the chat buffer"] = f
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
     if chat_output and chat_output.output.content then
       output = output .. chat_output.output.content
     end
@@ -481,7 +499,7 @@ T["Responses"]["Streaming"]["can process reasoning output"] = function()
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
     if chat_output and chat_output.output and chat_output.output.reasoning and chat_output.output.reasoning.content then
       output = output .. chat_output.output.reasoning.content
     end
@@ -495,7 +513,7 @@ T["Responses"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.chat_output(adapter, line, tools)
+    adapter.handlers.response.parse_chat(adapter, line, tools)
   end
 
   local expected = {

@@ -395,7 +395,7 @@ function Inline:stop()
   if self.current_request then
     self.current_request.cancel()
     self.current_request = nil
-    self.adapter.handlers.on_exit(self.adapter)
+    adapters.call_handler(self.adapter, "on_exit")
   end
 end
 
@@ -430,7 +430,7 @@ function Inline:submit(prompt)
         end
 
         if data then
-          data = self.adapter.handlers.inline_output(adapter, data, self.buffer_context)
+          data = adapters.call_handler(adapter, "parse_inline", data, self.buffer_context)
           if data.status == CONSTANTS.STATUS_SUCCESS then
             return self:done(data.output)
           else

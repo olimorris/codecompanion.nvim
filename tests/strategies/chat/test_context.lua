@@ -332,7 +332,7 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat.context:add({
        id = "<file>tests/stubs/file.txt</file>",
        path = path,
-       source = "codecompanion.strategies.chat.slash_commands.file",
+       source = "codecompanion.strategies.chat.slash_commands.catalog.file",
        opts = {
          pinned = true,
        },

@@ -30,25 +30,32 @@ function Provider:picker(items, opts)
   -- Transform items to include both display text and original data
   local picker_items = {}
   for _, item in ipairs(items) do
-    local description = item.description and " - " .. item.description or ""
+    local description = item.description or ""
+    local preview = { text = description }
+    if item.bufnr ~= nil then
+      preview =
+        { text = table.concat(vim.api.nvim_buf_get_lines(item.bufnr, 0, -1, false), "\n"), ft = "codecompanion" }
+    end
     table.insert(picker_items, {
-      text = string.format("%s%s", item.name, description),
+      text = item.name,
       item = item,
+      preview = preview,
     })
   end
   -- Create Snacks picker
   Snacks.picker({
     items = picker_items,
     title = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions",
-    -- Use the default layout for the picker
-    layout = { preset = "select" },
+    preview = "preview",
     -- Define what happens when an item is confirmed
     confirm = function(picker, item)
       if item and item.item then
         -- Close the picker
         picker:close()
         -- Process the selection using the provider's resolve method or select method
-        if provider.resolve then
+        if type(item.item.callback) == "function" then
+          item.item.callback()
+        elseif provider.resolve and (item.item.picker == nil) then
           provider.resolve(item.item, provider.context)
         else
           provider:select(item.item)
@@ -66,7 +73,7 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
-  if self.resolve then
+  if self.resolve and (item.picker == nil) then
     return self.resolve(item, self.context)
   end
   return require("codecompanion.providers.actions.shared").select(self, item)

@@ -61,6 +61,7 @@ local config = require("codecompanion.config")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
+local im_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
@@ -78,6 +79,53 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
+
+  SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
+
+You can answer general programming questions and perform the following tasks:
+* Answer general programming questions.
+* Explain how the code in a Neovim buffer works.
+* Review the selected code from a Neovim buffer.
+* Generate unit tests for the selected code.
+* Propose fixes for problems in the selected code.
+* Scaffold code for a new workspace.
+* Find relevant code to the user's query.
+* Propose fixes for test failures.
+* Answer questions about Neovim.
+
+Follow the user's requirements carefully and to the letter.
+Use the context and attachments the user provides.
+Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
+Use Markdown formatting in your answers.
+Do not use H1 or H2 markdown headers.
+When suggesting code changes or new content, use Markdown code blocks.
+To start a code block, use 4 backticks.
+After the backticks, add the programming language name as the language ID.
+To close a code block, use 4 backticks on a new line.
+If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
+If you want the user to decide where to place the code, do not add the file path comment.
+In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
+Code block example:
+````languageId
+// filepath: /path/to/file
+// ...existing code...
+{ changed code }
+// ...existing code...
+{ changed code }
+// ...existing code...
+````
+Ensure line comments use the correct syntax for the programming language (e.g. "#" for Python, "--" for Lua).
+For code blocks use four backticks to start and end.
+Avoid wrapping the whole response in triple backticks.
+Do not include diff formatting unless explicitly asked.
+Do not include line numbers in code blocks.
+
+When given a task:
+1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
+2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
+3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
+
+]],
 }
 
 local clients = {} -- Cache for HTTP and ACP clients
@@ -311,6 +359,18 @@ local function set_autocmds(chat)
       end,
     })
   end
+
+  -- Update metadata when ACP mode changes
+  api.nvim_create_autocmd("User", {
+    group = chat.aug,
+    pattern = "CodeCompanionChatACPModeChanged",
+    desc = "Update chat metadata when ACP mode changes",
+    callback = function(args)
+      if chat.acp_connection and args.data and args.data.session_id == chat.acp_connection.session_id then
+        chat:update_metadata()
+      end
+    end,
+  })
 end
 
 --=============================================================================
@@ -399,14 +459,6 @@ function Chat.new(args)
     self.yaml_parser = yaml_parser
   end
 
-  self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
-  self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
-  self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
-  self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
-  self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
-  self.variables = require("codecompanion.strategies.chat.variables").new()
-  self.watched_buffers = require("codecompanion.strategies.chat.watchers").new()
-
   table.insert(_G.codecompanion_buffers, self.bufnr)
   chatmap[self.bufnr] = {
     name = "Chat " .. vim.tbl_count(chatmap) + 1,
@@ -428,10 +480,12 @@ function Chat.new(args)
     bufnr = self.bufnr,
     id = self.id,
   })
-  utils.fire(
-    "ChatModel",
-    { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
-  )
+  utils.fire("ChatModel", {
+    adapter = adapters.make_safe(self.adapter),
+    bufnr = self.bufnr,
+    id = self.id,
+    model = self.adapter.schema and self.adapter.schema.model.default,
+  })
 
   if self.adapter.type == "http" then
     self:apply_settings(schema.get_default(self.adapter, args.settings))
@@ -442,6 +496,19 @@ function Chat.new(args)
       helpers.create_acp_connection(self)
     end)
   end
+
+  -- Initialize components
+  self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
+  self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
+  self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
+  self.tools = require("codecompanion.strategies.chat.tools").new({
+    adapter = self.adapter,
+    bufnr = self.bufnr,
+    messages = self.messages,
+  })
+  self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
+  self.variables = require("codecompanion.strategies.chat.variables").new()
+  self.watched_buffers = require("codecompanion.strategies.chat.watchers").new()
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -642,6 +709,9 @@ function Chat:apply_model(model)
   self.settings.model = model
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
+
+  utils.fire("ChatModel", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter), model = model })
+
   self:set_system_prompt()
   self:update_metadata()
   self:apply_settings()
@@ -682,9 +752,63 @@ function Chat:complete_models(callback)
   callback({ items = items, isIncomplete = false })
 end
 
+---@class CodeCompanion.SystemPrompt.Context
+---@field language string
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field date string
+---@field nvim_version string
+---@field os string the operating system that the user is using
+---@field default_system_prompt string
+---@field cwd string current working directory
+---@field project_root? string The closest parent directory that contains either a `.git`, `.svn`, or `.hg` directory
+
+---@return CodeCompanion.SystemPrompt.Context
+function Chat:make_system_prompt_ctx()
+  ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
+  local dynamic_ctx = {
+    -- These can be slow-to-run or too complex for a one-liner. So wrap them in
+    -- functions and use a metatable to handle the eval when needed.
+    adapter = function()
+      return vim.deepcopy(self.adapter)
+    end,
+    os = function()
+      local machine = vim.uv.os_uname().sysname
+      if machine == "Darwin" then
+        machine = "Mac"
+      end
+      if machine:find("Windows") then
+        machine = "Windows"
+      end
+      return machine
+    end,
+  }
+
+  local bufnr = self.bufnr
+  local winid = vim.fn.bufwinid(bufnr)
+  local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
+    language = config.opts.language or "English",
+    date = tostring(os.date("%Y-%m-%d")),
+    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    cwd = vim.fn.getcwd(winid ~= -1 and winid or nil),
+    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
+    default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
+  }
+
+  ---@type CodeCompanion.SystemPrompt.Context
+  return setmetatable(static_ctx, {
+    __index = function(_, key)
+      local val = dynamic_ctx[key]
+      if type(val) == "function" then
+        return val()
+      end
+      return val
+    end,
+  })
+end
+
 ---Set the system prompt in the chat buffer
----@params prompt? string
----@params opts? {opts: table, _meta: table}
+---@param prompt? string
+---@param opts? {opts: table, _meta: table, index?: number}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
@@ -718,10 +842,7 @@ function Chat:set_system_prompt(prompt, opts)
 
   if prompt ~= "" then
     if type(prompt) == "function" then
-      prompt = prompt({
-        adapter = self.adapter,
-        language = config.opts.language,
-      })
+      prompt = prompt(self:make_system_prompt_ctx())
     end
 
     local system_prompt = {
@@ -821,6 +942,36 @@ function Chat:add_message(data, opts)
   return self
 end
 
+---Add an image to the chat buffer
+---@param image CodeCompanion.Image The image object containing the path and other metadata
+---@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@return nil
+function Chat:add_image_message(image, opts)
+  opts = vim.tbl_deep_extend("force", {
+    role = config.constants.USER_ROLE,
+    source = "codecompanion.strategies.chat.slash_commands.image",
+    bufnr = image.bufnr,
+  }, opts or {})
+
+  local id = "<image>" .. (image.id or image.path) .. "</image>"
+
+  self:add_message({
+    role = opts.role,
+    content = image.base64,
+  }, {
+    context = { id = id, mimetype = image.mimetype, path = image.path or image.id },
+    _meta = { tag = "image" },
+    visible = false,
+  })
+
+  self.context:add({
+    bufnr = opts.bufnr,
+    id = id,
+    path = image.path,
+    source = opts.source,
+  })
+end
+
 ---Apply any tools or variables that a user has tagged in their message
 ---@param message table
 ---@return nil
@@ -851,13 +1002,13 @@ function Chat:_submit_http(payload)
 
   local function process_chunk(data)
     if adapter.features.tokens then
-      local tokens = adapter.handlers.tokens(adapter, data)
+      local tokens = adapters.call_handler(adapter, "parse_tokens", data)
       if tokens then
         self.ui.tokens = tokens
       end
     end
 
-    local result = adapter.handlers.chat_output(adapter, data, tools)
+    local result = adapters.call_handler(adapter, "parse_chat", data, tools)
     if result and result.status then
       self.status = result.status
       if self.status == CONSTANTS.STATUS_SUCCESS then
@@ -867,10 +1018,12 @@ function Chat:_submit_http(payload)
         end
         if result.output.reasoning then
           table.insert(reasoning, result.output.reasoning)
-          self:add_buf_message({
-            role = config.constants.LLM_ROLE,
-            content = result.output.reasoning.content,
-          }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+          if config.display.chat.show_reasoning then
+            self:add_buf_message({
+              role = config.constants.LLM_ROLE,
+              content = result.output.reasoning.content,
+            }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+          end
         end
         if result.output.meta then
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
@@ -935,7 +1088,9 @@ function Chat:submit(opts)
   end
 
   -- Refresh tools before submitting to pick up any dynamically added tools
-  self.tools:refresh()
+  if self.adapter.type == "http" then
+    self.tools:refresh({ adapter = self.adapter })
+  end
 
   if opts.auto_submit then
     self.watched_buffers:check_for_changes(self)
@@ -1049,9 +1204,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   local reasoning_content = nil
   if reasoning and not vim.tbl_isempty(reasoning) then
-    if self.adapter.handlers.form_reasoning then
-      reasoning_content = self.adapter.handlers.form_reasoning(self.adapter, reasoning)
-    end
+    reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
   end
 
   if content and content ~= "" then
@@ -1073,16 +1226,18 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   -- Process tools last
   if has_tools then
-    tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
-    self:add_message({
-      role = config.constants.LLM_ROLE,
-      reasoning = reasoning_content,
-      tool_calls = tools,
-      _meta = has_meta and meta or nil,
-    }, {
-      visible = false,
-    })
-    return self.tools:execute(self, tools)
+    tools = adapters.call_handler(self.adapter, "format_calls", tools)
+    if tools then
+      self:add_message({
+        role = config.constants.LLM_ROLE,
+        reasoning = reasoning_content,
+        tool_calls = tools,
+        _meta = has_meta and meta or nil,
+      }, {
+        visible = false,
+      })
+      return self.tools:execute(self, tools)
+    end
   end
 
   ready_chat_buffer(self)
@@ -1136,11 +1291,11 @@ function Chat:check_images(message)
   end
 
   for _, image in ipairs(images) do
-    local encoded_image = helpers.encode_image(image)
+    local encoded_image = im_utils.encode_image(image)
     if type(encoded_image) == "string" then
       log:warn("Could not encode image: %s", encoded_image)
     else
-      helpers.add_image(self, encoded_image)
+      self:add_image_message(encoded_image)
 
       -- Replace the image link in the message with "image"
       local to_remove = fmt("[Image](%s)", image.path)
@@ -1302,9 +1457,7 @@ function Chat:stop()
       end
     end)
 
-    if self.adapter.handlers and self.adapter.handlers.on_exit then
-      self.adapter.handlers.on_exit(self.adapter)
-    end
+    adapters.call_handler(self.adapter, "on_exit")
   end
 
   vim.schedule(function()
@@ -1380,7 +1533,11 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
-  local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
+  local output = adapters.call_handler(self.adapter, "format_response", tool_call, for_llm)
+  if not output then
+    return log:error("Adapter does not support tool response formatting")
+  end
+
   output._meta = { cycle = self.cycle }
   output._meta.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
@@ -1459,6 +1616,23 @@ function Chat:update_metadata()
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
   end
 
+  local mode_info
+  if self.adapter.type == "acp" and self.acp_connection then
+    local modes = self.acp_connection:get_modes()
+    if modes and modes.currentModeId then
+      mode_info = {
+        current = modes.currentModeId,
+      }
+      -- Get the mode name for display
+      for _, mode in ipairs(modes.availableModes or {}) do
+        if mode.id == modes.currentModeId then
+          mode_info.name = mode.name
+          break
+        end
+      end
+    end
+  end
+
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
       name = self.adapter.formatted_name,
@@ -1467,6 +1641,7 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
+    mode = mode_info,
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
