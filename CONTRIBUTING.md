@@ -167,6 +167,35 @@ FILE=tests/adapters/test_openai.lua make test_file
 
 When adding new features, please include tests in the appropriate test file under the `tests/` directory.
 
+### Running tests on Native Windows
+
+*Note, this is for* native *Windows,* not *POSIX emulation environments such as WSL, MSYS2, or Cygwin.*
+
+Tests do run on Windows, but you need to do some prepwork:
+- ensure `git` is in `%PATH%`;
+- ensure some `make` is in `%PATH%`
+- ensure some C/C++ compiler is in path for TreeSitter to get bootstrapped;
+- define the `%HOME%` environment variable to `%HOMEDRIVE%%HOMEPATH%` or `%USERPROFILE%`;
+- create directory `deps` if it doesn't exist.
+
+For *make* and a compiler, running *x64 Native Tools Command Prompt* from *Visual Studio Community 2022*, provides *NMake* and the *Visual C++* compiler, which work fine for this purpose.
+
+From cmd.exe:
+
+```winbatch
+REM setup environment
+IF NOT EXIST deps MD deps
+SET "HOME=%HOMEDRIVE%%HOMEPATH%"
+SET "PATH=%PATH%;C:\Program Files\Git\bin"
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\VC\Auxiliary\Build\vcvars64.bat"
+
+REM run all tests
+nmake test
+
+REM run a single test suite
+nmake FILE=tests/strategies/chat/tools/runtime/tests_cmd.lua test_file
+```
+
 ### Testing Tips
 
 Trying to understand the CodeCompanion codebase and then having to learn how to create tests can feel onerous. So to make this process easier, it's recommended to load the `test` workspace into your chat buffer to give your LLM knowledge of how Mini.Test works.
