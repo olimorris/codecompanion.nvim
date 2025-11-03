@@ -339,7 +339,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["image"] = {
           callback = "strategies.chat.slash_commands.catalog.image",
           description = "Insert an image",
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
           enabled = function(opts)
             if opts.adapter and opts.adapter.opts then
@@ -363,7 +363,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["mode"] = {
           callback = "strategies.chat.slash_commands.catalog.mode",
           description = "Change the ACP session mode",
-          ---@param opts { adapter: CodeCompanion.Adapter }
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
           enabled = function(opts)
             if opts.adapter and opts.adapter.type == "acp" then

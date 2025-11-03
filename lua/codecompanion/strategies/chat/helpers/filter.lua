@@ -1,5 +1,4 @@
 local hash = require("codecompanion.utils.hash")
-local log = require("codecompanion.utils.log")
 
 local CONSTANTS = {
   CACHE_TTL = 30000,
@@ -9,13 +8,11 @@ local CONSTANTS = {
 local Filter = {}
 
 ---Create a new filter instance
----@param filter_type string The type of filter (e.g., "tool", "slash_command")
 ---@param config table Configuration with optional custom logic
 ---@return table The filter module
-function Filter.create_filter(filter_type, config)
+function Filter.create_filter(config)
   config = config or {}
 
-  local Filter = {}
   local _cache = {}
   local _cache_timestamp = 0
   local _config_hash = nil
@@ -26,16 +23,15 @@ function Filter.create_filter(filter_type, config)
     _cache = {}
     _cache_timestamp = 0
     _config_hash = nil
-    log:trace("[%s Filter] Cache cleared", filter_type)
   end
 
   ---Check if the cache is valid (time + config unchanged)
-  ---@param config_hash number The hash of the config
+  ---@param cache_key string The cache key (includes config and adapter)
   ---@return boolean
-  local function is_cache_valid(config_hash)
+  local function is_cache_valid(cache_key)
     local time_valid = vim.loop.now() - _cache_timestamp < CONSTANTS.CACHE_TTL
-    local config_unchanged = _config_hash == config_hash
-    return time_valid and config_unchanged
+    local key_unchanged = _config_hash == cache_key
+    return time_valid and key_unchanged
   end
 
   ---Evaluate if an item should be enabled
@@ -49,9 +45,9 @@ function Filter.create_filter(filter_type, config)
       if type(item_config.enabled) == "function" then
         local ok, result = pcall(item_config.enabled, opts)
         if ok then
-          is_enabled = result
+          -- Convert result to boolean (handles nil -> false)
+          is_enabled = result and true or false
         else
-          log:error("[%s Filter] Error evaluating enabled function: %s", filter_type, result)
           is_enabled = false
         end
       elseif type(item_config.enabled) == "boolean" then
@@ -69,16 +65,30 @@ function Filter.create_filter(filter_type, config)
   local function get_enabled_items(items_config, opts)
     opts = opts or {}
 
-    local current_hash = hash.hash(items_config)
-    if is_cache_valid(current_hash) and next(_cache) then
-      log:trace("[%s Filter] Using cached enabled items", filter_type)
+    -- Create a cache key that includes both config and adapter state
+    -- Use a simplified adapter representation to ensure reliable hashing
+    local adapter_key = nil
+    if opts.adapter then
+      adapter_key = {
+        name = opts.adapter.name,
+        type = opts.adapter.type,
+        opts = opts.adapter.opts,
+      }
+    end
+
+    local cache_key_data = {
+      config = items_config,
+      adapter = adapter_key,
+    }
+    local current_cache_key = hash.hash(cache_key_data)
+
+    if is_cache_valid(current_cache_key) and next(_cache) then
       return _cache
     end
 
-    log:trace("[%s Filter] Computing enabled items", filter_type)
     _cache = {}
     _cache_timestamp = vim.loop.now()
-    _config_hash = current_hash
+    _config_hash = current_cache_key
 
     -- Get skip keys from config or use defaults
     local skip_keys = config.skip_keys or { "opts" }
@@ -96,7 +106,6 @@ function Filter.create_filter(filter_type, config)
       if not should_skip then
         local is_enabled = evaluate_enabled(item_config, opts)
         _cache[item_name] = is_enabled
-        log:trace("[%s Filter] Item '%s' enabled: %s", filter_type, item_name, is_enabled)
       end
     end
 
@@ -115,7 +124,6 @@ function Filter.create_filter(filter_type, config)
     for item_name, is_enabled in pairs(enabled_items) do
       if not is_enabled then
         filtered_config[item_name] = nil
-        log:trace("[%s Filter] Filtered out disabled item: %s", filter_type, item_name)
       end
     end
 
@@ -141,14 +149,12 @@ function Filter.create_filter(filter_type, config)
   ---@return nil
   function Filter.refresh_cache()
     clear_cache()
-    log:trace("[%s Filter] Cache manually refreshed", filter_type)
   end
 
   -- Set up autocmd for cache refresh
   vim.api.nvim_create_autocmd("User", {
     pattern = "CodeCompanionChatRefreshCache",
     callback = function()
-      log:trace("[%s Filter] Cache cleared via autocommand", filter_type)
       clear_cache()
     end,
   })
