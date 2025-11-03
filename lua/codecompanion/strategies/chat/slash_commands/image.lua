@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.strategies.chat.helpers")
 local image_utils = require("codecompanion.utils.images")
 local log = require("codecompanion.utils.log")
 
@@ -38,13 +37,11 @@ local providers = {
     default = default
       .new({
         output = function(selection)
-          image_utils.from_path(selection.path, {}, function(_res)
-            if type(_res) == "string" then
-              -- TODO: error handling
-              return
-            end
-            return SlashCommand:output(_res)
-          end)
+          local _res = image_utils.from_path(selection.path, { chat_bufnr = SlashCommand.Chat.bufnr })
+          if type(_res) == "string" then
+            return log:error(_res)
+          end
+          return SlashCommand:output(_res)
         end,
         SlashCommand = SlashCommand,
         title = CONSTANTS.PROMPT,
@@ -60,13 +57,11 @@ local providers = {
     local snacks = require("codecompanion.providers.slash_commands.snacks")
     snacks = snacks.new({
       output = function(selection)
-        image_utils.from_path(selection.file, {}, function(_res)
-          if type(_res) == "string" then
-            -- TODO: error handling
-            return
-          end
-          return SlashCommand:output(_res)
-        end)
+        local _res = image_utils.from_path(selection.file, { chat_bufnr = SlashCommand.Chat.bufnr })
+        if type(_res) == "string" then
+          return log:error(_res)
+        end
+        return SlashCommand:output(_res)
       end,
     })
 
@@ -88,15 +83,13 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        image_utils.from_path(selection[1], {}, function(_res)
-          if type(_res) == "string" then
-            -- TODO: error handling
-            return
-          end
-          return SlashCommand:output({
-            path = selection[1],
-          })
-        end)
+        local _res = image_utils.from_path(selection[1], { chat_bufnr = SlashCommand.Chat.bufnr })
+        if type(_res) == "string" then
+          return log:error(_res)
+        end
+        return SlashCommand:output({
+          path = selection[1],
+        })
       end,
     })
 
