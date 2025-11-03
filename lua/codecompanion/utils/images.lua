@@ -44,6 +44,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
     end)
   end,
   group = vim.api.nvim_create_augroup("codecompanion.image", { clear = true }),
+  desc = "Clear temporary files.",
 })
 
 ---@class (private) CodeCompanion.Image.Preprocessor.Context
