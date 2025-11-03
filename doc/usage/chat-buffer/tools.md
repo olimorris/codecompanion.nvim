@@ -238,6 +238,20 @@ Use @{web_search} to search neovim.io and explain how I can configure a new lang
 
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+This tool also supports image results in the search that can be consumed by multi-modal LLMs.
+To achieve that, you'd also need to give the `@{fetch_images}` tool to the LLM.
+
+### `fetch_images`
+
+This tool allows the LLM to fetch images from given URLs. 
+Any URL that directly points to an image would work with this tool. 
+While you could certainly copy-paste URLs to the chat buffer, it's probably more convenient to use this with the `@search_web` tool:
+
+```md
+Using the @{web_search} and @{fetch_images} tools, tell me what the logo of codecompanion.nvim look like.
+```
+
+**You should only use this tool with a multi-modal LLM.**
 
 ## Tool Groups
 

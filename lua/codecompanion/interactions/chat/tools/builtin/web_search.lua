@@ -98,7 +98,7 @@ If the tool returned image URLs, you should call the `fetch_images` tool to view
           },
           include_images = {
             type = "boolean",
-            description = "Whether image results are needed for this search. Enable this if the query is related to the appearance of something, like the design of a GUI application or a website.",
+            description = "Whether image results are needed for this search. Enable this if the query is related to the appearance of something, like the design of a GUI application or a website. Otherwise, disable this to save tokens.",
           },
         },
         required = { "query", "domains", "include_images" },
