@@ -1028,6 +1028,7 @@ return {
                 },
               },
               required = { "oldText", "newText" },
+              additionalProperties = false,
             },
           },
           dryRun = {

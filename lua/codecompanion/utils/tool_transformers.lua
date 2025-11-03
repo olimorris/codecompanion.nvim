@@ -20,15 +20,16 @@ M.to_anthropic = function(schema)
   }
 end
 
----Enforce that the schema follows OpenAI's strictness rules
----@param schema table
----@return table
-M.enforce_strictness = function(schema)
-  schema["function"].parameters.strict = true
+---Recursively make all properties required and add null types
+---@param obj table Object with properties field
+local function make_all_properties_required(obj)
+  if not obj.properties then
+    return
+  end
 
-  local properties = {}
-  for k, v in pairs(schema["function"].parameters.properties) do
-    table.insert(properties, k)
+  local property_keys = {}
+  for k, v in pairs(obj.properties) do
+    table.insert(property_keys, k)
 
     if type(v.type) == "string" then
       v.type = { v.type, "null" }
@@ -36,11 +37,28 @@ M.enforce_strictness = function(schema)
       table.insert(v.type, "null")
       table.sort(v.type)
     end
+
+    -- Recurse for array items with object type
+    if v.items and v.items.properties then
+      make_all_properties_required(v.items)
+    end
+
+    -- Recurse for nested object properties
+    if v.properties then
+      make_all_properties_required(v)
+    end
   end
 
-  table.sort(properties)
-  schema["function"].parameters.required = properties
+  table.sort(property_keys)
+  obj.required = property_keys
+end
 
+---Enforce that the schema follows OpenAI's strictness rules
+---@param schema table
+---@return table
+M.enforce_strictness = function(schema)
+  schema["function"].parameters.strict = true
+  make_all_properties_required(schema["function"].parameters)
   return schema
 end
 
