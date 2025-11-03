@@ -10,7 +10,7 @@ local T = new_set({
       child.lua([[
         h = require('tests.helpers')
         chat, tools = h.setup_chat_buffer()
-        _G.TEST_FILE_PATH = os.tmpname()
+        _G.TEST_FILE_PATH = vim.fs.normalize(os.tmpname())
         _G.output = nil
 
         -- Create a dummy file for the tool to jump to
