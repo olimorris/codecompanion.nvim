@@ -44,6 +44,8 @@ return {
               include_answer = opts.include_answer or false,
               include_raw_content = opts.include_raw_content or false,
               include_domains = data.domains,
+              include_images = data.include_images,
+              include_image_descriptions = data.include_images, -- always include descriptions when searching for images.
             }
 
             if opts.topic == "news" then
@@ -96,6 +98,7 @@ return {
           return {
             status = "success",
             content = output,
+            images = body.images,
           }
         end,
       },
