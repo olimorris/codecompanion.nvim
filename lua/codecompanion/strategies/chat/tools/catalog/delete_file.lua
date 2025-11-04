@@ -1,4 +1,3 @@
-local files = require("codecompanion.utils.files")
 local helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
 local log = require("codecompanion.utils.log")
 
@@ -42,7 +41,7 @@ end
 
 ---@class CodeCompanion.Tool.DeleteFile: CodeCompanion.Tools.Tool
 return {
-  name = "create_file",
+  name = "delete_file",
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tool.DeleteFile
@@ -122,7 +121,7 @@ return {
     ---@param opts table
     ---@return nil
     rejected = function(self, tools, cmd, opts)
-      local message = "The user rejected the creation of the file"
+      local message = "The user rejected the deletion of the file"
       opts = vim.tbl_extend("force", { message = message }, opts or {})
       helpers.rejected(self, tools, cmd, opts)
     end,
