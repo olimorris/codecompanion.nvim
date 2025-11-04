@@ -32,10 +32,7 @@ return {
       end
 
       if args.include_images then
-        if self.chat.adapter.opts == nil then
-          log:warn("[Web Search Tool] Disabling `include_images` because the chat adapter doesn't support vision.")
-          args.include_images = nil
-        elseif not self.chat.adapter.opts.vision then
+        if type(self.chat.adapter.opts) == "table" and not self.chat.adapter.opts.vision then
           log:warn("[Web Search Tool] Disabling `include_images` because the chat adapter disabled vision.")
           args.include_images = nil
         end
@@ -113,8 +110,9 @@ If the tool returned image URLs, you should call the `fetch_images` tool to view
     success = function(self, tools, cmd, stdout)
       local chat = tools.chat
 
-      local content = vim
-        .iter(stdout[1].content)
+      local search_results = stdout[1]
+      local text_content = vim
+        .iter(search_results.content)
         :map(function(result)
           return fmt([[<attachment url="%s" title="%s">%s</attachment>]], result.url, result.title, result.content)
         end)
@@ -122,21 +120,16 @@ If the tool returned image URLs, you should call the `fetch_images` tool to view
 
       ---@type string[]
       local images = vim
-        .iter(utils.fix_nil(stdout[1].images) or {})
+        .iter(utils.fix_nil(search_results.images) or {})
         :map(function(item)
-          -- https://docs.tavily.com/documentation/api-reference/endpoint/search#response-images
-          if type(item) == "string" then
-            return fmt([[<attachment image_url="%s"></attachment>]], item)
-          elseif type(item) == "table" and type(item.url) == "string" then
-            return fmt([[<attachment image_url="%s">%s</attachment>]], item.url, item.description or "")
-          end
+          return fmt([[<attachment image_url="%s">%s</attachment>]], item.url, item.description or "")
         end)
         :totable()
 
-      local length = #content
+      local text_result_count = #text_content
 
-      local llm_output = fmt([[%s]], table.concat(content, "\n"))
-      local user_output = fmt([[Searched for `%s`, %d result(s)]], cmd.query, length)
+      local llm_output = fmt([[%s]], table.concat(text_content, "\n"))
+      local user_output = fmt([[Searched for `%s`, %d result(s)]], cmd.query, text_result_count)
 
       if #images > 0 then
         llm_output = llm_output .. fmt("\n%s", table.concat(images, "\n"))
