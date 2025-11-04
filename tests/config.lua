@@ -110,6 +110,10 @@ return {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
         },
+        ["delete_file"] = {
+          callback = "strategies.chat.tools.catalog.delete_file",
+          description = "Delete a file in the current working directory",
+        },
         ["fetch_webpage"] = {
           callback = "strategies.chat.tools.catalog.fetch_webpage",
           description = "Fetches content from a webpage",

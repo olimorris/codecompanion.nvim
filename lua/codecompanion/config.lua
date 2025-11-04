@@ -68,6 +68,7 @@ local defaults = {
             tools = {
               "cmd_runner",
               "create_file",
+              "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
@@ -84,6 +85,7 @@ local defaults = {
             prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
               "create_file",
+              "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
@@ -118,6 +120,13 @@ local defaults = {
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["delete_file"] = {
+          callback = "strategies.chat.tools.catalog.delete_file",
+          description = "Delete a file in the current working directory",
           opts = {
             requires_approval = true,
           },
