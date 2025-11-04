@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local formatter = require("codecompanion.strategies.chat.acp.formatters")
+local formatters = require("codecompanion.strategies.chat.acp.formatters")
 
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
@@ -196,7 +196,7 @@ function ACPHandler:process_tool_call(tool_call)
     tool_call = merged or tool_call
   end
 
-  local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
+  local ok, content = pcall(formatters.tool_message, tool_call, self.chat.adapter)
   if not ok then
     content = "[Error formatting tool output]"
   end

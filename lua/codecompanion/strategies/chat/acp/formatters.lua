@@ -1,3 +1,13 @@
+--[[
+===============================================================================
+    File:       codecompanion/strategies/chat/acp/formatters.lua
+    Description:
+      Unified formatter for ACP tool calls.
+      Handles all ACP agents (Claude Code, Codex, Gemini, etc) generically
+      by trying multiple field structures and falling back to title parsing.
+===============================================================================
+--]]
+
 local M = {}
 
 ---Get the relative path from a path
@@ -151,10 +161,10 @@ local function extract_location_path(locations)
 end
 
 ---Create a compact, sanitized title for a tool call
----Handles specific ACP tool patterns and avoids markdown syntax
+---Unified formatter handles all ACP agents by trying multiple field structures
 ---@param tool_call table
 ---@return string
-function M.short_title(tool_call)
+function M.output_tool_call(tool_call)
   local kind = fmt_kind(tool_call.kind or "tool")
   local raw_input = tool_call.rawInput
 
@@ -166,7 +176,11 @@ function M.short_title(tool_call)
 
   -- Handle read operations with file paths
   if tool_call.kind == "read" and type(raw_input) == "table" then
-    local file_path = raw_input.file_path or extract_location_path(tool_call.locations)
+    -- Try multiple locations for file path (works for Claude Code, Codex, and others)
+    local file_path = raw_input.file_path
+      or (raw_input.parsed_cmd and raw_input.parsed_cmd[1] and raw_input.parsed_cmd[1].path)
+      or extract_location_path(tool_call.locations)
+
     if file_path then
       local range = extract_line_range(raw_input)
       local file = basename(relpath(file_path))
@@ -177,11 +191,19 @@ function M.short_title(tool_call)
     end
   end
 
-  -- Handle search/grep operations
-  if tool_call.kind == "search" and type(raw_input) == "table" then
+  -- Handle search/grep/execute operations
+  if (tool_call.kind == "search" or tool_call.kind == "execute") and type(raw_input) == "table" then
     local pattern = extract_pattern(raw_input, 40)
+
+    -- Also try to extract from parsed_cmd (Codex format)
+    if not pattern and raw_input.parsed_cmd and raw_input.parsed_cmd[1] then
+      local parsed = raw_input.parsed_cmd[1]
+      pattern = parsed.query or parsed.pattern
+    end
+
     if pattern then
-      local path = raw_input.path
+      local path = raw_input.path or (raw_input.parsed_cmd and raw_input.parsed_cmd[1] and raw_input.parsed_cmd[1].path)
+
       if path and path ~= "" then
         -- If searching in a specific directory, show the dir name
         local dir = basename(path)
@@ -190,13 +212,10 @@ function M.short_title(tool_call)
         end
       end
       return ("%s: %s"):format(kind, pattern)
-    else
-      -- rawInput exists but pattern not yet populated (streaming initial state)
-      return kind
     end
   end
 
-  -- Fallback: sanitize the title field
+  -- Fallback: use and sanitize the title field
   local t = tool_call.title or "Tool call"
 
   -- Handle incomplete/streaming tool calls
@@ -204,23 +223,15 @@ function M.short_title(tool_call)
     return kind
   end
 
-  -- Remove markdown backticks
-  t = t:gsub("`", "")
+  -- Remove triple-backticks (markdown code fences) but keep single backticks
+  t = t:gsub("```", "")
+
+  -- Strip leading/trailing backticks but preserve them in the middle
+  t = t:gsub("^`+", ""):gsub("`+$", "")
 
   -- Strip result preview indicators
   t = t:gsub("%s*=>.*$", "")
   t = t:gsub("%s*—.*$", "")
-
-  -- Clean up grep-style titles: 'grep -n | head -20 "pattern"' -> just the pattern
-  local grep_pattern = t:match('grep%s+[^"]*"([^"]+)"')
-  if grep_pattern then
-    grep_pattern = unescape_regex(grep_pattern)
-
-    if #grep_pattern > 50 then
-      grep_pattern = grep_pattern:sub(1, 47) .. "..."
-    end
-    return ("%s: %s"):format(kind, grep_pattern)
-  end
 
   -- For "Action target" format, prefer just the target
   local action, target = t:match("^%s*([^%s]+)%s+(.+)$")
@@ -249,6 +260,58 @@ function M.short_title(tool_call)
   return ("%s: %s"):format(kind, t)
 end
 
+---Strip markdown code block wrappers from content
+---@param text string
+---@return string
+local function strip_code_blocks(text)
+  -- Remove opening code fence with optional language
+  text = text:gsub("^```%w*\n", "")
+  -- Remove closing code fence
+  text = text:gsub("\n```$", "")
+  return text
+end
+
+---Check if content is likely a full file dump (too verbose for inline display)
+---@param text string
+---@param max_lines? number
+---@return boolean
+local function is_verbose_output(text, max_lines)
+  max_lines = max_lines or 15
+  local line_count = select(2, text:gsub("\n", "\n")) + 1
+  return line_count > max_lines
+end
+
+---Create a summary for verbose content
+---@param text string
+---@param tool_call table
+---@return string
+local function summarize_verbose_content(text, tool_call)
+  local lines = vim.split(text, "\n", { plain = true })
+  local line_count = #lines
+
+  -- Try to extract meaningful info from the tool call
+  local kind = tool_call.kind
+  local locations = tool_call.locations
+
+  if kind == "read" and locations and #locations > 0 then
+    local path = locations[1].path
+    if path then
+      return ("%d lines from %s"):format(line_count, basename(relpath(path)))
+    end
+  end
+
+  if kind == "search" then
+    local match_count = line_count
+    return ("%d matches found"):format(match_count)
+  end
+
+  if kind == "execute" then
+    return ("%d lines of output"):format(line_count)
+  end
+
+  return ("%d lines"):format(line_count)
+end
+
 ---Summarize the content of a tool call
 ---@param tool_call table
 ---@return string|nil
@@ -273,6 +336,14 @@ function M.summarize_tool_content(tool_call)
     elseif c.type == "content" then
       local t = M.extract_text(c.content)
       if t and t ~= "" then
+        -- Strip markdown code blocks
+        t = strip_code_blocks(t)
+
+        -- If content is too verbose, summarize it
+        if is_verbose_output(t) then
+          return summarize_verbose_content(t, tool_call)
+        end
+
         return t
       end
     end
@@ -286,7 +357,7 @@ end
 ---@return string
 function M.tool_message(tool_call, adapter)
   local status = tool_call.status or "pending"
-  local title = M.short_title(tool_call)
+  local title = M.output_tool_call(tool_call)
   local trim_tool_output = adapter.opts and adapter.opts.trim_tool_output
 
   if status == "completed" then

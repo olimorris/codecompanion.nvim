@@ -18,22 +18,22 @@ T = new_set({
   },
 })
 
--- Test cases based on real RPC output from Claude Code sessions
+-- Unified formatter tests - works for all ACP agents
 
-T["short_title handles undefined title"] = function()
+T["output_tool_call handles undefined title"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
       title = "undefined",
       rawInput = {},
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Search", result)
 end
 
-T["short_title handles search with escaped pattern"] = function()
+T["output_tool_call handles search with escaped pattern"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -43,13 +43,13 @@ T["short_title handles search with escaped pattern"] = function()
         output_mode = "count"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Search: ^local M = {}", result)
 end
 
-T["short_title unescapes common regex characters"] = function()
+T["output_tool_call unescapes common regex characters"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -59,13 +59,13 @@ T["short_title unescapes common regex characters"] = function()
         output_mode = "files_with_matches"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Search: @class CodeCompanion.", result)
 end
 
-T["short_title handles require pattern with parentheses"] = function()
+T["output_tool_call handles require pattern with parentheses"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -75,13 +75,13 @@ T["short_title handles require pattern with parentheses"] = function()
         output_mode = "files_with_matches"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq('Search: require("codecompanion.adapters.', result)
 end
 
-T["short_title handles grep with flags"] = function()
+T["output_tool_call handles grep with flags"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -93,13 +93,13 @@ T["short_title handles grep with flags"] = function()
         head_limit = 20
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Search: @field.*adapter", result)
 end
 
-T["short_title handles read with file path"] = function()
+T["output_tool_call handles read with file path"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "read",
@@ -114,13 +114,13 @@ T["short_title handles read with file path"] = function()
         }
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Read: debug.lua", result)
 end
 
-T["short_title handles read with line range"] = function()
+T["output_tool_call handles read with line range"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "read",
@@ -137,13 +137,13 @@ T["short_title handles read with line range"] = function()
         }
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Read: init.lua (L29-68)", result)
 end
 
-T["short_title handles search in directory"] = function()
+T["output_tool_call handles search in directory"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -155,7 +155,7 @@ T["short_title handles search in directory"] = function()
         ["-n"] = true
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   -- Should show directory basename and truncate pattern at 40 chars
@@ -164,7 +164,7 @@ T["short_title handles search in directory"] = function()
   h.is_true(result:match("%.%.%.") ~= nil) -- Should be truncated
 end
 
-T["short_title handles glob pattern"] = function()
+T["output_tool_call handles glob pattern"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -173,14 +173,14 @@ T["short_title handles glob pattern"] = function()
         pattern = "**/debug.lua"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   -- Should strip ** prefix and backticks
   h.eq("Search: debug.lua", result)
 end
 
-T["short_title strips markdown backticks"] = function()
+T["output_tool_call strips markdown backticks"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -189,13 +189,13 @@ T["short_title strips markdown backticks"] = function()
         pattern = "`**/formatters.lua`"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Search: formatters.lua", result)
 end
 
-T["short_title handles diff operations"] = function()
+T["output_tool_call handles diff operations"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "edit",
@@ -209,13 +209,13 @@ T["short_title handles diff operations"] = function()
         }
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   h.eq("Edit: config.lua", result)
 end
 
-T["short_title truncates long patterns"] = function()
+T["output_tool_call truncates long patterns"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -224,7 +224,7 @@ T["short_title truncates long patterns"] = function()
         pattern = "this is a very long pattern that should be truncated because it exceeds the maximum length allowed"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   -- Should be truncated to 40 chars + "..."
@@ -232,7 +232,7 @@ T["short_title truncates long patterns"] = function()
   h.is_true(result:match("%.%.%.$") ~= nil)
 end
 
-T["short_title uses colon separator to avoid markdown rendering"] = function()
+T["output_tool_call uses colon separator to avoid markdown rendering"] = function()
   local result = child.lua([[
     local tool_call = {
       kind = "search",
@@ -240,7 +240,7 @@ T["short_title uses colon separator to avoid markdown rendering"] = function()
         pattern = "function.*:add_message"
       },
     }
-    return formatters.short_title(tool_call)
+    return formatters.output_tool_call(tool_call)
   ]])
 
   -- Should use colon, not space, to prevent markdown list formatting
