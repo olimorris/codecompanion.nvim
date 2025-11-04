@@ -116,10 +116,6 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
 end
 
 T["Chat"]["images are replaced in text and base64 encoded"] = function()
-  if vim.fn.executable("base64") == 0 then
-    MiniTest.skip("base64 is not installed, skipping test")
-  end
-
   local prompt =
     string.format("What does this [Image](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
   local message = child.lua(string.format(
