@@ -77,7 +77,7 @@ return {
           end
 
           -- Process results (move existing output logic here)
-          if body.results == nil or #body.results == 0 then
+          if (body.results == nil or #body.results == 0) and (body.images == nil or #body.images == 0) then
             return {
               status = "error",
               content = "No results found",
@@ -85,7 +85,7 @@ return {
           end
 
           local output = vim
-            .iter(body.results)
+            .iter(body.results or {})
             :map(function(result)
               return {
                 content = result.content or "",
@@ -95,10 +95,22 @@ return {
             end)
             :totable()
 
+          local images = vim
+            .iter(body.images or {})
+            :map(function(result)
+              -- https://docs.tavily.com/documentation/api-reference/endpoint/search#response-images
+              if type(result) == "string" then
+                return { url = result }
+              elseif type(result) == "table" then
+                return { url = result.url, description = result.description }
+              end
+            end)
+            :totable()
+
           return {
             status = "success",
             content = output,
-            images = body.images,
+            images = images,
           }
         end,
       },

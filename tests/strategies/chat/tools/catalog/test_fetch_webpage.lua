@@ -22,7 +22,7 @@ local T = new_set({
                 setup = function() end,
                 callback = function(adapter, data)
                   -- Let the real tool handle the formatting
-                  return { status = "success", content = data.html or "mock content" }
+                  return { status = "success", text = data.html or "mock content", screenshot = 'https://mock.screen.shot', pageshot = 'https://mock.page.shot' }
                 end
               }
             }
@@ -67,12 +67,12 @@ local T = new_set({
   },
 })
 
-T["fetches webpage content successfully"] = function()
+T["fetches webpage text successfully"] = function()
   child.lua([[
     local tool_call = {
       ["function"] = {
         name = "fetch_webpage",
-        arguments = '{"url": "https://example.com"}'
+        arguments = '{"url": "https://example.com", "content_format": "text"}'
       },
       id = "test_call_id",
       type = "function"
@@ -93,5 +93,59 @@ T["fetches webpage content successfully"] = function()
   h.expect_contains("Hello World content", tool_message.content)
   h.expect_contains("</attachment>", tool_message.content)
 end
+T["fetches webpage screenshot successfully"] = function()
+  child.lua([[
+    local tool_call = {
+      ["function"] = {
+        name = "fetch_webpage",
+        arguments = '{"url": "https://example.com", "content_format": "screenshot"}'
+      },
+      id = "test_call_id",
+      type = "function"
+    }
 
+    -- Execute with real tool
+    tools:execute(chat, { tool_call })
+    vim.wait(200) -- Give time for async operations
+  ]])
+
+  local messages = child.lua_get("chat.messages")
+  local tool_message = vim.tbl_filter(function(msg)
+    return msg.role == "tool"
+  end, messages)[1]
+
+  -- Match the actual output format
+  h.expect_contains(
+    '<attachment image_url="https://mock.screen.shot">Screenshot of https://example.com</attachment>',
+    tool_message.content
+  )
+end
+
+T["fetches webpage pageshot successfully"] = function()
+  child.lua([[
+    local tool_call = {
+      ["function"] = {
+        name = "fetch_webpage",
+        arguments = '{"url": "https://example.com", "content_format": "pageshot"}'
+      },
+      id = "test_call_id",
+      type = "function"
+    }
+
+    -- Execute with real tool
+    tools:execute(chat, { tool_call })
+    vim.wait(200) -- Give time for async operations
+  ]])
+
+  local messages = child.lua_get("chat.messages")
+  local tool_message = vim.tbl_filter(function(msg)
+    return msg.role == "tool"
+  end, messages)[1]
+
+  -- Match the actual output format
+  h.expect_contains(
+    '<attachment image_url="https://mock.page.shot">Pageshot of https://example.com</attachment>',
+    tool_message.content
+  )
+end
 return T

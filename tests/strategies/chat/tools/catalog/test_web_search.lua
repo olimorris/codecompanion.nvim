@@ -22,7 +22,7 @@ local T = new_set({
                 setup = function() end,
                 callback = function(adapter, data)
                   -- Let the real tool handle the formatting
-                  return { status = "success", content = data.results or {} }
+                  return { status = "success", content = data.results or {}, images = data.images }
                 end
               }
             }
@@ -50,6 +50,13 @@ local T = new_set({
                         url = "https://example.com/result2",
                         title = "Example Result 2",
                         content = "Content of second search result"
+                      },
+                    },
+                    images = {
+                      { url = "IMAGE1" }, 
+                      {
+                        url = "IMAGE2", 
+                        description = "IMAGE2_DESC"
                       }
                     }
                   })
@@ -85,7 +92,7 @@ T["searches web successfully"] = function()
     local tool_call = {
       ["function"] = {
         name = "web_search",
-        arguments = '{"query": "neovim plugins", "domains": []}'
+        arguments = '{"query": "neovim plugins", "domains": [], "include_images": true}'
       },
       id = "test_call_id",
       type = "function"
@@ -105,6 +112,8 @@ T["searches web successfully"] = function()
   h.expect_contains('<attachment url="https://example.com/result1" title="Example Result 1">', tool_message.content)
   h.expect_contains("Content of first search result", tool_message.content)
   h.expect_contains("</attachment>", tool_message.content)
+  h.expect_contains('image_url="IMAGE1"', tool_message.content)
+  h.expect_contains("IMAGE2_DESC", tool_message.content)
 end
 
 return T
