@@ -17,20 +17,12 @@ local function create(action)
     if stat.type == "directory" then
       return {
         status = "error",
-        data = fmt(
-          [[Failed creating `%s`
-- Already exists as a directory]],
-          action.filepath
-        ),
+        data = fmt([[Failed creating `%s` - Already exists as a directory]], action.filepath),
       }
     elseif stat.type == "file" then
       return {
         status = "error",
-        data = fmt(
-          [[Failed creating `%s`
-- File already exists]],
-          action.filepath
-        ),
+        data = fmt([[Failed creating `%s` - File already exists]], action.filepath),
       }
     end
   end
@@ -41,12 +33,7 @@ local function create(action)
   if not vim.uv.fs_stat(parent_dir) then
     local success, err_msg = files.create_dir_recursive(parent_dir)
     if not success then
-      local error_message = fmt(
-        [[Failed creating `%s`
-- %s]],
-        action.filepath,
-        err_msg
-      )
+      local error_message = fmt([[Failed creating `%s` - %s]], action.filepath, err_msg)
       log:error(error_message)
       return { status = "error", data = error_message }
     end
@@ -55,48 +42,25 @@ local function create(action)
   -- Create file with safer error handling
   local fd, fs_open_err, fs_open_errname = vim.uv.fs_open(filepath, "w", 420) -- 0644 permissions
   if not fd then
-    local error_message = fmt(
-      [[Failed creating `%s`
-- %s
--%s ]],
-      action.filepath,
-      fs_open_err,
-      fs_open_errname
-    )
+    local error_message = fmt([[Failed creating `%s` - %s - %s ]], action.filepath, fs_open_err, fs_open_errname)
     log:error(error_message)
     return { status = "error", data = error_message }
   end
 
   -- Try to write to the file
-  local bytes_written, fs_write_err, fs_write_errname = vim.uv.fs_write(fd, action.content)
+  local bytes_written, fs_write_err, _ = vim.uv.fs_write(fd, action.content)
   local write_error_message
   if not bytes_written then
-    write_error_message = fmt(
-      [[Failed creating `%s`
-- %s]],
-      action.filepath,
-      fs_write_err
-    )
+    write_error_message = fmt([[Failed creating `%s` - %s]], action.filepath, fs_write_err)
   elseif bytes_written ~= #action.content then
-    write_error_message = fmt(
-      [[Failed creating `%s`
-- Could only write %s bytes]],
-      action.filepath,
-      bytes_written
-    )
+    write_error_message = fmt([[Failed creating `%s` - Could only write %s bytes]], action.filepath, bytes_written)
   end
 
   -- Always try to close the file descriptor
-  local close_success, fs_close_err, fs_close_errname = vim.uv.fs_close(fd)
+  local close_success, fs_close_err, _ = vim.uv.fs_close(fd)
   local close_error_message
   if not close_success then
-    close_error_message = fmt(
-      [[Failed creating `%s`
-- Could not close the file
-- %s ]],
-      action.filepath,
-      fs_close_err
-    )
+    close_error_message = fmt([[Failed creating `%s` - Could not close the file - %s ]], action.filepath, fs_close_err)
   end
 
   -- Combine errors if any
@@ -111,12 +75,7 @@ local function create(action)
 
   -- If any error occurred during write or close, return error
   if final_error_message then
-    local full_error = fmt(
-      [[Failed creating `%s`
-- %s]],
-      action.filepath,
-      final_error_message
-    )
+    local full_error = fmt([[Failed creating `%s` - %s]], action.filepath, final_error_message)
     log:error(full_error)
     return { status = "error", data = full_error }
   end
@@ -199,9 +158,10 @@ return {
 
       local result_msg = fmt(
         [[Created file `%s`
-```%s
+
+````%s
 %s
-```]],
+````]],
         path,
         file_ext,
         args.content or ""
@@ -216,7 +176,6 @@ return {
     ---@param stderr table The error output from the command
     error = function(self, tools, cmd, stderr)
       local chat = tools.chat
-      local args = self.args
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Create File Tool] Error output: %s", stderr)
 
