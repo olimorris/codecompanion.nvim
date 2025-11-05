@@ -722,17 +722,6 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     })
   end
 
-  -- Update file_info.mtime after writing for restoration
-  local stat = vim.uv.fs_stat(path)
-  if stat then
-    file_info.mtime = stat.mtime.sec
-  end
-
-  local bufnr = vim.fn.bufnr(path)
-  if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
-    pcall(api.nvim_command, "checktime " .. bufnr)
-  end
-
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
     return output_handler({
@@ -769,8 +758,12 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
         -- File is already written to disk
         response = final_success
       else
-        -- User rejected - restore original content
-        local restore_ok, restore_err = write_file_content(path, current_content, file_info)
+        -- User rejected - restore original content - Skip mtime check since we own it
+        local restore_file_info = {
+          has_trailing_newline = file_info and file_info.has_trailing_newline,
+          is_empty = file_info and file_info.is_empty,
+        }
+        local restore_ok, restore_err = write_file_content(path, current_content, restore_file_info)
         if not restore_ok then
           log:error("Failed to restore original content: %s", restore_err)
           -- Inform user about restoration failure
