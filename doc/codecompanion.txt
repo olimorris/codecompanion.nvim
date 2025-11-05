@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 02
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -120,7 +120,7 @@ REQUIREMENTS                         *codecompanion-installation-requirements*
 - The `curl` library
 - Neovim 0.11.0 or greater
 - `(Optional)` An API key for your chosen LLM
-- `(Optional)` The `base64` library for image/vision support
+- `(Optional)` The file <https://man7.org/linux/man-pages/man1/file.1.html> command for detecting image mimetype
 - `(Optional)` The ripgrep <https://github.com/BurntSushi/ripgrep> library for the `grep_search` tool
 
 
@@ -3250,6 +3250,20 @@ Create a file within the current working directory:
 <
 
 **Options:** - `requires_approval` require approval before creating a file?
+(Default: true)
+
+
+DELETE_FILE
+
+
+  [!NOTE] By default, this tool requires user approval before it can be executed
+Delete a file within the current working directory:
+
+>md
+    Can you use @{delete_file} to delete the quotes.lua file?
+<
+
+**Options:** - `requires_approval` require approval before deleting a file?
 (Default: true)
 
 

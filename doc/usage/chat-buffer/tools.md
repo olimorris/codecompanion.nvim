@@ -77,6 +77,20 @@ Can you create some test fixtures using @{create_file}?
 **Options:**
 - `requires_approval` require approval before creating a file? (Default: true)
 
+### delete_file
+
+> [!NOTE]
+> By default, this tool requires user approval before it can be executed
+
+Delete a file within the current working directory:
+
+```md
+Can you use @{delete_file} to delete the quotes.lua file?
+```
+
+**Options:**
+- `requires_approval` require approval before deleting a file? (Default: true)
+
 ### fetch_webpage
 
 This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
