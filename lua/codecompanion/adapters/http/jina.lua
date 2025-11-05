@@ -103,9 +103,11 @@ return {
           end
           return {
             success = "success",
-            text = data.data.text,
-            screenshot = data.data.screenshotUrl,
-            pageshot = data.data.pageshotUrl,
+            content = {
+              text = data.data.text,
+              screenshot = data.data.screenshotUrl,
+              pageshot = data.data.pageshotUrl,
+            },
           }
         end,
       },

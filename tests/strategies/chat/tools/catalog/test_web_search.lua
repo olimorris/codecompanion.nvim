@@ -22,7 +22,13 @@ local T = new_set({
                 setup = function() end,
                 callback = function(adapter, data)
                   -- Let the real tool handle the formatting
-                  return { status = "success", content = data.results or {}, images = data.images }
+                  return {
+                    status = "success", 
+                    content = {
+                      text = data.results or {}, 
+                      images = data.images
+                    } 
+                  }
                 end
               }
             }

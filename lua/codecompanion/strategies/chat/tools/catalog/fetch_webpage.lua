@@ -69,9 +69,9 @@ return {
               return cb({
                 status = "success",
                 data = {
-                  text = (args.content_format == "text") and output.text or nil,
-                  screenshot = (args.content_format == "screenshot") and output.screenshot or nil,
-                  pageshot = (args.content_format == "pageshot") and output.pageshot or nil,
+                  text = (args.content_format == "text") and output.content.text or nil,
+                  screenshot = (args.content_format == "screenshot") and output.content.screenshot or nil,
+                  pageshot = (args.content_format == "pageshot") and output.content.pageshot or nil,
                 },
               })
             end

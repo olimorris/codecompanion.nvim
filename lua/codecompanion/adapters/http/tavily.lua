@@ -84,7 +84,7 @@ return {
             }
           end
 
-          local output = vim
+          local text_output = vim
             .iter(body.results or {})
             :map(function(result)
               return {
@@ -109,8 +109,10 @@ return {
 
           return {
             status = "success",
-            content = output,
-            images = images,
+            content = {
+              text = text_output,
+              images = images,
+            },
           }
         end,
       },

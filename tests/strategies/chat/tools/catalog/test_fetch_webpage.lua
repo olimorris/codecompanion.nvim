@@ -22,7 +22,14 @@ local T = new_set({
                 setup = function() end,
                 callback = function(adapter, data)
                   -- Let the real tool handle the formatting
-                  return { status = "success", text = data.html or "mock content", screenshot = 'https://mock.screen.shot', pageshot = 'https://mock.page.shot' }
+                  return { 
+                    status = "success", 
+                    content = {
+                      text = data.html or "mock content", 
+                      screenshot = 'https://mock.screen.shot', 
+                      pageshot = 'https://mock.page.shot'
+                    }
+                  }
                 end
               }
             }

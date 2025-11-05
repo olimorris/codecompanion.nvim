@@ -67,7 +67,7 @@ return {
                 return cb({ status = "error", data = fmt(error_message_expanded, query, output.content) })
               end
 
-              return cb({ status = "success", data = { content = output.content, images = output.images } })
+              return cb({ status = "success", data = output.content })
             end
           end,
         })
@@ -112,7 +112,7 @@ If the tool returned image URLs, you should call the `fetch_images` tool to view
 
       local search_results = stdout[1]
       local text_content = vim
-        .iter(search_results.content)
+        .iter(search_results.text)
         :map(function(result)
           return fmt([[<attachment url="%s" title="%s">%s</attachment>]], result.url, result.title, result.content)
         end)
