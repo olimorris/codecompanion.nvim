@@ -462,6 +462,15 @@ CodeCompanion.setup = function(opts)
       end,
     })
   end
+
+  -- Prototype placement
+  pcall(function()
+    -- Ensure MRU autocmds are registered
+    local ok, mru = pcall(require, "codecompanion.utils.mru")
+    if ok and mru and type(mru.setup) == "function" then
+      pcall(mru.setup)
+    end
+  end)
 end
 
 return CodeCompanion

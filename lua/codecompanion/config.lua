@@ -66,6 +66,7 @@ local defaults = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
             prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
+              "get_editing_context",
               "cmd_runner",
               "create_file",
               "file_search",
@@ -170,6 +171,10 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
+        ["get_editing_context"] = {
+          callback = "strategies.chat.tools.catalog.get_editing_context",
+          description = "Return the combined editing context for the most relevant buffer (bufnr, path, filename, filetype, line_count, cursor, visible_ranges, visible_text, surrounding)",
+        },
         ["web_search"] = {
           callback = "strategies.chat.tools.catalog.web_search",
           description = "Search the web for information",
@@ -236,6 +241,7 @@ Never use a tool that does not exist. Use tools using the proper procedure, DO N
 Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
 If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
+When user makes a request to edit code, always use get_editing_context to understand the current file and cursor position before making any edits.
 </toolUseInstructions>
 <outputFormatting>
 Use proper Markdown formatting in your answers. When referring to a filename or symbol in the user's workspace, wrap it in backticks.
