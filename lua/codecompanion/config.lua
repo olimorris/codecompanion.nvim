@@ -650,6 +650,20 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.always_accept",
           description = "Accept and enable auto mode",
         },
+        next_hunk = {
+          modes = { n = "]h" },
+          opts = { nowait = true, noremap = true },
+          index = 4,
+          callback = "keymaps.next_hunk",
+          description = "Jump to next hunk",
+        },
+        prev_hunk = {
+          modes = { n = "[h" },
+          opts = { nowait = true, noremap = true },
+          index = 5,
+          callback = "keymaps.prev_hunk",
+          description = "Jump to previous hunk",
+        },
       },
       variables = {
         ["buffer"] = {

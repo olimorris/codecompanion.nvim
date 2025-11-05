@@ -241,8 +241,7 @@ function M.jump_to_next_hunk(hunk_start_lines, current_line)
     end
   end
 
-  -- Wrap around to first hunk
-  return hunk_start_lines[1]
+  return hunk_start_lines[1] -- Wrap around to first hunk
 end
 
 ---Jump to the previous hunk in the buffer
@@ -254,15 +253,21 @@ function M.jump_to_prev_hunk(hunk_start_lines, current_line)
     return nil
   end
 
-  -- Find last hunk before current line
+  -- Find which hunk we're currently in or after
+  local current_hunk_index = nil
   for i = #hunk_start_lines, 1, -1 do
-    if hunk_start_lines[i] < current_line then
-      return hunk_start_lines[i]
+    if hunk_start_lines[i] <= current_line then
+      current_hunk_index = i
+      break
     end
   end
 
-  -- Wrap around to last hunk
-  return hunk_start_lines[#hunk_start_lines]
+  -- If we found a current hunk, go to the previous one
+  if current_hunk_index and current_hunk_index > 1 then
+    return hunk_start_lines[current_hunk_index - 1]
+  end
+
+  return hunk_start_lines[#hunk_start_lines] -- Wrap around to last hunk
 end
 
 return M

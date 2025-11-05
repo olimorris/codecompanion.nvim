@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local diff_helpers = require("codecompanion.strategies.chat.helpers.diff")
 local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -94,7 +95,8 @@ end
 ---@param kind_map table<string, string> kind -> optionId
 ---@param finish fun(accepted: boolean, timed_out: boolean, kind: string|nil)
 ---@param mapped_lhs_out string[] (output param to collect mapped lhs for cleanup)
-local function setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs_out)
+---@param diff? table Optional diff object for hunk navigation
+local function setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs_out, diff)
   for kind, option_id in pairs(kind_map or {}) do
     local lhs = normalized[kind]
     if option_id and lhs then
@@ -111,6 +113,28 @@ local function setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs_out
   vim.keymap.set("n", "q", function()
     finish(false, false, nil)
   end, { buffer = bufnr, silent = true, nowait = true })
+
+  -- Hunk navigation keymaps
+  if diff and diff.hunk_count and diff.hunk_count > 0 then
+    local km = config.strategies.inline.keymaps
+    if km then
+      if km.next_hunk and km.next_hunk.modes.n then
+        local lhs = km.next_hunk.modes.n
+        table.insert(mapped_lhs_out, lhs)
+        vim.keymap.set("n", lhs, function()
+          diff:jump_to_next_hunk()
+        end, { buffer = bufnr, silent = true, nowait = true, desc = "Jump to next hunk" })
+      end
+
+      if km.prev_hunk and km.prev_hunk.modes.n then
+        local lhs = km.prev_hunk.modes.n
+        table.insert(mapped_lhs_out, lhs)
+        vim.keymap.set("n", lhs, function()
+          diff:jump_to_prev_hunk()
+        end, { buffer = bufnr, silent = true, nowait = true, desc = "Jump to previous hunk" })
+      end
+    end
+  end
 end
 
 ---Simple human label from kind (no hardcoded enum)
@@ -124,35 +148,40 @@ end
 ---Build a single banner string from available keymaps
 ---@param normalized table<string, string> kind -> lhs
 ---@param kind_map table<string, string> kind -> optionId
+---@param diff? table Optional diff object to show hunk count and navigation
 ---@return string
-local function build_banner(normalized, kind_map)
+local function build_banner(normalized, kind_map, diff)
   local maps = {}
   for kind, _ in pairs(kind_map or {}) do
     local lhs = normalized[kind]
     if lhs then
-      table.insert(maps, ("[" .. format_kind(kind) .. ": " .. lhs .. "]"))
+      table.insert(
+        maps,
+        "[%#" .. diff_helpers.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. lhs .. "%*: " .. format_kind(kind) .. "]"
+      )
     end
   end
+
   table.sort(maps)
-  table.insert(maps, "[Close: q]")
-  return " Keymaps: " .. table.concat(maps, " | ") .. " "
+  table.insert(maps, "[%#" .. diff_helpers.CONSTANTS.HIGHLIGHT_KEYMAP .. "#q%*: Close]")
+  local review = diff_helpers.CONSTANTS.ICON .. diff_helpers.CONSTANTS.SEP .. table.concat(maps, "  ")
+  local nav = diff_helpers.build_hunk_nav(diff, config.strategies.inline.keymaps)
+
+  return nav ~= "" and (review .. diff_helpers.CONSTANTS.SEP .. nav) or review
 end
 
 ---Place banner in the winbar of the given window, or notify if that fails
 ---@param winnr number Window number to set up winbar for
 ---@param normalized table<string, string> kind -> lhs mapping
 ---@param kind_map table<string, string> kind -> optionId mapping
-local function place_banner(winnr, normalized, kind_map)
-  local banner = build_banner(normalized, kind_map)
+---@param diff? table Optional diff object to show hunk count and navigation
+local function place_banner(winnr, normalized, kind_map, diff)
+  local banner = build_banner(normalized, kind_map, diff)
 
-  local ok = false
+  -- Use set_winbar with escape=false to allow inline highlight syntax
   if winnr and api.nvim_win_is_valid(winnr) then
-    ok = pcall(function()
-      ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
-    end)
-  end
-
-  if not ok then
+    ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner", false)
+  else
     utils.notify(banner)
   end
 end
@@ -363,10 +392,9 @@ local function show_diff(chat, request)
     show_dim = show_dim,
   })
 
-  -- Build present kinds and normalize keymaps from config, then setup winbar
+  -- Build present kinds and normalize keymaps from config
   local kind_map = build_kind_map(request.options)
   local normalized = normalize_maps(config.strategies.chat.keymaps)
-  place_banner(winnr, normalized, kind_map)
 
   local diff_id = math.random(10000000)
   -- Force users to use the inline diff
@@ -384,6 +412,8 @@ local function show_diff(chat, request)
     return request.respond(nil, true)
   end
 
+  place_banner(winnr, normalized, kind_map, diff)
+
   local mapped_lhs = {}
   local finish = on_user_response(request, diff, {
     bufnr = bufnr,
@@ -391,7 +421,7 @@ local function show_diff(chat, request)
     winnr = winnr,
   })
 
-  setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
+  setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs, diff)
   setup_autocmds(bufnr, winnr, finish)
 
   return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)

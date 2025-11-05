@@ -7,6 +7,37 @@ local api = vim.api
 
 local M = {}
 
+-- Banner constants and highlights
+M.CONSTANTS = {
+  ICON = " ",
+  SEP = "  •  ",
+  COMPACT_SEP = "•",
+  HIGHLIGHT_KEYMAP = "CodeCompanionBannerKeymap",
+  HIGHLIGHT_COUNT = "CodeCompanionNumber",
+}
+
+---Build hunk navigation section
+---@param diff table|nil Diff object with hunk_count
+---@param km table|nil Keymap configuration
+---@param mode? string Keymap mode (default: "n")
+---@return string nav Navigation section string, or empty string if no hunks
+function M.build_hunk_nav(diff, km, mode)
+  mode = mode or "n"
+
+  if not diff or not diff.hunk_count or diff.hunk_count == 0 then
+    return ""
+  end
+
+  if not km then
+    return ""
+  end
+
+  local next_h = (km.next_hunk and km.next_hunk.modes[mode]) or "]h"
+  local prev_h = (km.prev_hunk and km.prev_hunk.modes[mode]) or "[h"
+
+  return string.format("Hunk nav: %s/%s (%%#%s#%s%%*)", next_h, prev_h, M.CONSTANTS.HIGHLIGHT_COUNT, diff.hunk_count)
+end
+
 ---Check if a buffer is suitable for taking over
 ---@param buf_info table Buffer info from getbufinfo()
 ---@return boolean
@@ -131,34 +162,63 @@ end
 
 ---Setup winbar for diff window with keymap hints
 ---@param winnr number Window number to set up winbar for
+---@param diff? table Optional diff object to show hunk count and navigation
 ---@return nil
-local function place_diff_winbar(winnr)
+local function place_diff_winbar(winnr, diff)
   local provider = config.display.diff.provider
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local show_keymap_hints = provider_config.opts and provider_config.opts.show_keymap_hints
-
   if not show_keymap_hints then
     return
   end
 
-  local keymaps_config = config.strategies.inline.keymaps
-  if not keymaps_config then
+  local km = config.strategies.inline.keymaps
+  if not km then
     return
   end
 
-  local parts = {}
-  if keymaps_config.always_accept.modes.n then
-    table.insert(parts, "[Always Accept: " .. keymaps_config.always_accept.modes.n .. "]")
-  end
-  if keymaps_config.accept_change.modes.n then
-    table.insert(parts, "[Accept: " .. keymaps_config.accept_change.modes.n .. "]")
-  end
-  if keymaps_config.reject_change.modes.n then
-    table.insert(parts, "[Reject: " .. keymaps_config.reject_change.modes.n .. "]")
+  local mode = "n"
+  local ga = km.always_accept and km.always_accept.modes[mode] or nil
+  local gy = km.accept_change and km.accept_change.modes[mode] or nil
+  local gn = km.reject_change and km.reject_change.modes[mode] or nil
+
+  if not (ga or gy or gn) then
+    return
   end
 
-  local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
-  ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+  -- Build review section with highlighted keymaps
+  local review_parts = {}
+  if ga then
+    table.insert(review_parts, "[%#" .. M.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. ga .. "%*: Always Accept]")
+  end
+  if gy then
+    table.insert(review_parts, "[%#" .. M.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. gy .. "%*: Accept]")
+  end
+  if gn then
+    table.insert(review_parts, "[%#" .. M.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. gn .. "%*: Reject]")
+  end
+  local review = M.CONSTANTS.ICON .. M.CONSTANTS.SEP .. table.concat(review_parts, "  ")
+
+  local nav = M.build_hunk_nav(diff, km, mode)
+  local banner = nav ~= "" and (review .. M.CONSTANTS.SEP .. nav) or review
+
+  -- Truncate if window too small
+  local ok, win_width = pcall(api.nvim_win_get_width, winnr)
+  if ok and win_width < 80 then
+    local short_keys = table.concat(
+      vim.tbl_filter(function(x)
+        return x
+      end, { ga, gy, gn }),
+      " "
+    )
+    if nav ~= "" then
+      banner = M.CONSTANTS.ICON .. " " .. short_keys .. M.CONSTANTS.COMPACT_SEP .. nav:gsub("Hunk nav: ", "")
+    else
+      banner = M.CONSTANTS.ICON .. " " .. short_keys
+    end
+  end
+
+  ui_utils.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner", false)
 end
 
 ---Create diff floating window using create_float
@@ -184,7 +244,7 @@ local function create_diff_floating_window(bufnr, path)
     relative = window_config.relative,
     filetype = filetype,
     title = ui_utils.build_float_title({
-      title_prefix = " Diff",
+      title_prefix = " Diff Review ",
       path = path,
     }),
     lock = false, -- Allow edits for diff
@@ -192,10 +252,6 @@ local function create_diff_floating_window(bufnr, path)
     opts = window_config.opts,
     show_dim = show_dim,
   })
-
-  if winnr then
-    place_diff_winbar(winnr)
-  end
 
   return winnr
 end
@@ -357,6 +413,9 @@ function M.create(bufnr_or_path, diff_id, opts)
   if diff and opts.set_keymaps then
     vim.schedule(function()
       M.setup_keymaps(diff, opts)
+      if winnr and api.nvim_win_is_valid(winnr) then
+        place_diff_winbar(winnr, diff)
+      end
     end)
   end
 
@@ -374,8 +433,6 @@ function M.setup_keymaps(diff, opts)
     return
   end
 
-  -- For floating windows, we show keymaps in winbar and still set them up
-  -- For non-floating windows, we just set them up normally
   keymaps
     .new({
       bufnr = diff.bufnr,

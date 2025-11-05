@@ -118,43 +118,10 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   local hunks = InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
   local first_diff_line = nil
 
-  -- Add keymap hint above the first hunk if there are changes
+  -- Store first diff line for cursor positioning
   if #hunks > 0 then
     local first_hunk = hunks[1]
-    first_diff_line = math.max(1, first_hunk.updated_start) -- Store for cursor positioning
-    -- Only show keymap hints if config allows it, not in test mode, and not floating
-    local show_keymap_hints = inline_config.opts.show_keymap_hints
-    if show_keymap_hints == nil then
-      show_keymap_hints = true -- Default to true
-    end
-    -- Check if we're in a test environment
-    ---@diagnostic disable-next-line: undefined-field
-    local is_testing = _G.MiniTest ~= nil
-    -- Don't show hints for floating windows since they use winbar instead
-    if show_keymap_hints and not is_testing and not self.is_floating then
-      local attach_line = math.max(0, first_hunk.updated_start - 2)
-      if first_diff_line == 1 then
-        attach_line = attach_line + 1
-      end
-      -- Build hint text from configured keymaps
-      local keymaps_config = config.strategies.inline.keymaps
-      if keymaps_config then
-        local hint_parts = {}
-        table.insert(hint_parts, keymaps_config.always_accept.modes.n .. ": always accept")
-        table.insert(hint_parts, keymaps_config.accept_change.modes.n .. ": accept")
-        table.insert(hint_parts, keymaps_config.reject_change.modes.n .. ": reject")
-        local hint_text = table.concat(hint_parts, " | ")
-        local success, keymap_extmark_id = pcall(api.nvim_buf_set_extmark, self.bufnr, self.ns_id, attach_line, 0, {
-          virt_text = { { hint_text, "CodeCompanionInlineDiffHint" } },
-          virt_text_pos = "right_align",
-          priority = 300,
-        })
-        if not success then
-          log:debug("[providers::diff::inline] Failed to create keymap hint: %s", keymap_extmark_id)
-        end
-        table.insert(self.extmark_ids, keymap_extmark_id)
-      end
-    end
+    first_diff_line = math.max(1, first_hunk.updated_start)
   end
 
   local extmark_ids, hunk_start_lines, hunk_count = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
@@ -240,10 +207,19 @@ end
 function InlineDiff:close_floating_window()
   if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
     log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
-    vim.wo[self.winnr].winbar = ""
     pcall(api.nvim_win_close, self.winnr, true)
     self.winnr = nil
     require("codecompanion.utils.ui").close_background_window()
+  end
+end
+
+---Clear winbar from the diff window
+---@return nil
+function InlineDiff:clear_winbar()
+  if self.winnr and api.nvim_win_is_valid(self.winnr) then
+    pcall(function()
+      vim.wo[self.winnr].winbar = ""
+    end)
   end
 end
 
@@ -257,6 +233,7 @@ function InlineDiff:teardown()
     end)
   end)
   self:clear_highlights()
+  self:clear_winbar()
   self:close_floating_window()
   utils.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 end
@@ -269,7 +246,11 @@ function InlineDiff:jump_to_next_hunk()
     return
   end
 
-  local current_line = api.nvim_win_get_cursor(0)[1]
+  local ok, cursor = pcall(api.nvim_win_get_cursor, 0)
+  if not ok or not cursor then
+    return
+  end
+  local current_line = cursor[1]
   local next_line = diff_utils.jump_to_next_hunk(self.hunk_start_lines, current_line)
 
   if next_line then
@@ -286,7 +267,11 @@ function InlineDiff:jump_to_prev_hunk()
     return
   end
 
-  local current_line = api.nvim_win_get_cursor(0)[1]
+  local ok, cursor = pcall(api.nvim_win_get_cursor, 0)
+  if not ok or not cursor then
+    return
+  end
+  local current_line = cursor[1]
   local prev_line = diff_utils.jump_to_prev_hunk(self.hunk_start_lines, current_line)
 
   if prev_line then
