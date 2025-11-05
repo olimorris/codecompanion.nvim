@@ -208,7 +208,11 @@ local function place_diff_winbar(winnr, diff)
     local short_keys = table.concat(
       vim.tbl_filter(function(x)
         return x
-      end, { ga, gy, gn }),
+      end, {
+        ga and (ga .. ":Always Accept"),
+        gy and (gy .. ":Accept"),
+        gn and (gn .. ":Reject"),
+      }),
       " "
     )
     if nav ~= "" then

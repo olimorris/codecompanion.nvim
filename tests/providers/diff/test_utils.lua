@@ -524,4 +524,71 @@ T["DiffUtils Screenshots"]["Shows complex multi-hunk highlights"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["DiffUtils"]["jump_to_next_hunk - navigates forward through hunks"] = function()
+  local hunk_start_lines = { 5, 10, 15, 20 }
+
+  -- From line 1, should jump to first hunk at line 5
+  local next = diff_utils.jump_to_next_hunk(hunk_start_lines, 1)
+  h.eq(next, 5)
+
+  -- From line 7, should jump to next hunk at line 10
+  next = diff_utils.jump_to_next_hunk(hunk_start_lines, 7)
+  h.eq(next, 10)
+
+  -- From line 18, should jump to next hunk at line 20
+  next = diff_utils.jump_to_next_hunk(hunk_start_lines, 18)
+  h.eq(next, 20)
+end
+
+T["DiffUtils"]["jump_to_next_hunk - wraps around to first hunk"] = function()
+  local hunk_start_lines = { 5, 10, 15 }
+
+  -- From last hunk or beyond, should wrap to first
+  local next = diff_utils.jump_to_next_hunk(hunk_start_lines, 20)
+  h.eq(next, 5)
+
+  next = diff_utils.jump_to_next_hunk(hunk_start_lines, 15)
+  h.eq(next, 5)
+end
+
+T["DiffUtils"]["jump_to_next_hunk - handles empty hunk list"] = function()
+  local hunk_start_lines = {}
+  local next = diff_utils.jump_to_next_hunk(hunk_start_lines, 10)
+  h.eq(next, nil)
+end
+
+T["DiffUtils"]["jump_to_prev_hunk - navigates backward through hunks"] = function()
+  local hunk_start_lines = { 5, 10, 15, 20 }
+
+  -- From line 25, should jump to previous hunk at line 15
+  local prev = diff_utils.jump_to_prev_hunk(hunk_start_lines, 25)
+  h.eq(prev, 15)
+
+  -- From line 12 (after hunk at 10), should jump to previous hunk at line 5
+  prev = diff_utils.jump_to_prev_hunk(hunk_start_lines, 12)
+  h.eq(prev, 5)
+
+  -- From line 15 (on a hunk), should jump to previous hunk at line 10
+  prev = diff_utils.jump_to_prev_hunk(hunk_start_lines, 15)
+  h.eq(prev, 10)
+end
+
+T["DiffUtils"]["jump_to_prev_hunk - wraps around to last hunk"] = function()
+  local hunk_start_lines = { 5, 10, 15 }
+
+  -- From before first hunk, should wrap to last
+  local prev = diff_utils.jump_to_prev_hunk(hunk_start_lines, 3)
+  h.eq(prev, 15)
+
+  -- From first hunk, should wrap to last
+  prev = diff_utils.jump_to_prev_hunk(hunk_start_lines, 5)
+  h.eq(prev, 15)
+end
+
+T["DiffUtils"]["jump_to_prev_hunk - handles empty hunk list"] = function()
+  local hunk_start_lines = {}
+  local prev = diff_utils.jump_to_prev_hunk(hunk_start_lines, 10)
+  h.eq(prev, nil)
+end
+
 return T
