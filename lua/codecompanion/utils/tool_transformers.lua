@@ -84,6 +84,16 @@ M.to_new_openai = function(schema, opts)
 
   local function_def = schema["function"]
 
+  -- Use parameters.strict if set, otherwise use function.strict,
+  -- otherwise use strict_mode option
+  local strict_value = function_def.parameters.strict
+  if strict_value == nil then
+    strict_value = function_def.strict
+  end
+  if strict_value == nil then
+    strict_value = opts.strict_mode
+  end
+
   return {
     type = schema.type,
     name = function_def.name,
@@ -94,7 +104,7 @@ M.to_new_openai = function(schema, opts)
       required = function_def.parameters.required,
       additionalProperties = function_def.parameters.additionalProperties or false,
     },
-    strict = function_def.strict or true,
+    strict = strict_value,
   }
 end
 
