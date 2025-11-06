@@ -34,7 +34,7 @@ require("codecompanion").setup({
 })
 ```
 
-## Setup: Auggie CLI
+## Setup: Auggie CLI from Augment Code
 
 To use [Auggie CLI](https://docs.augmentcode.com/cli/overview) within CodeCompanion, you simply need to follow their [Getting Started](https://docs.augmentcode.com/cli/overview#getting-started) guide.
 
