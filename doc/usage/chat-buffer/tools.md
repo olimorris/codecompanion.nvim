@@ -5,6 +5,7 @@ description: Learn how tools can aid your code, in CodeCompanion
 # Using Tools
 
 > [!IMPORTANT]
+> Tools are not supported for ACP adapters as they have their own set.
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
@@ -355,9 +356,6 @@ When using CodeCompanion's in-built tools, there are three choices:
 3. **Cancel** - All tools in the queue will **NOT** be executed
 
 ## Compatibility
-
-> [!NOTE]
-> Tools are not supported for ACP adapters as they have their own set.
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
