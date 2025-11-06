@@ -1050,7 +1050,7 @@ return {
         required = { "filepath", "edits" },
         additionalProperties = false,
       },
-      strict = true,
+      strict = false,
     },
   },
   system_prompt = [[- Always use insert_edit_into_file to modify existing files by providing exact oldText to match and newText to replace it.
