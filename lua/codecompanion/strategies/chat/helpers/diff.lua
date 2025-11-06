@@ -17,6 +17,21 @@ M.CONSTANTS = {
   MIN_WIDTH = 60,
 }
 
+-- Keymap action labels
+M.KEYMAP_LABELS = {
+  always_accept = "Always Accept",
+  accept_change = "Accept",
+  reject_change = "Reject",
+}
+
+---Build a highlighted keymap string for winbar
+---@param keymap string
+---@param label string
+---@return string Highlighted string with format [keymap: label]
+function M.build_highlighted_keymap(keymap, label)
+  return string.format("[%%#%s#%s%%*: %s]", M.CONSTANTS.HIGHLIGHT_KEYMAP, keymap, label)
+end
+
 ---Build hunk navigation section
 ---@param diff table|nil Diff object with hunk_count
 ---@param km table|nil Keymap configuration
@@ -190,15 +205,15 @@ local function place_diff_winbar(winnr, diff)
   -- Build review section with highlighted keymaps
   local review_parts = {}
   if ga then
-    table.insert(review_parts, "[%#" .. M.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. ga .. "%*: Always Accept]")
+    table.insert(review_parts, M.build_highlighted_keymap(ga, M.KEYMAP_LABELS.always_accept))
   end
   if gy then
-    table.insert(review_parts, "[%#" .. M.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. gy .. "%*: Accept]")
+    table.insert(review_parts, M.build_highlighted_keymap(gy, M.KEYMAP_LABELS.accept_change))
   end
   if gn then
-    table.insert(review_parts, "[%#" .. M.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. gn .. "%*: Reject]")
+    table.insert(review_parts, M.build_highlighted_keymap(gn, M.KEYMAP_LABELS.reject_change))
   end
-  local review = M.CONSTANTS.ICON .. M.CONSTANTS.SEP .. table.concat(review_parts, "  ")
+  local review = table.concat(review_parts, "  ")
 
   local nav = M.build_hunk_nav(diff, km, mode)
   local banner = nav ~= "" and (review .. M.CONSTANTS.SEP .. nav) or review
@@ -210,16 +225,16 @@ local function place_diff_winbar(winnr, diff)
       vim.tbl_filter(function(x)
         return x
       end, {
-        ga and (ga .. ":Always Accept"),
-        gy and (gy .. ":Accept"),
-        gn and (gn .. ":Reject"),
+        ga and (ga .. ":" .. M.KEYMAP_LABELS.always_accept),
+        gy and (gy .. ":" .. M.KEYMAP_LABELS.accept_change),
+        gn and (gn .. ":" .. M.KEYMAP_LABELS.reject_change),
       }),
       " "
     )
     if nav ~= "" then
-      banner = M.CONSTANTS.ICON .. " " .. short_keys .. M.CONSTANTS.COMPACT_SEP .. nav:gsub("Hunk nav: ", "")
+      banner = short_keys .. M.CONSTANTS.COMPACT_SEP .. nav:gsub("Hunk nav: ", "")
     else
-      banner = M.CONSTANTS.ICON .. " " .. short_keys
+      banner = short_keys
     end
   end
 
@@ -249,7 +264,7 @@ local function create_diff_floating_window(bufnr, path)
     relative = window_config.relative,
     filetype = filetype,
     title = ui_utils.build_float_title({
-      title_prefix = " Diff Review ",
+      title_prefix = M.CONSTANTS.ICON .. " Diff Review ",
       path = path,
     }),
     lock = false, -- Allow edits for diff
@@ -399,7 +414,6 @@ function M.create(bufnr_or_path, diff_id, opts)
     return nil
   end
 
-  local provider = config.display.diff.provider
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
 

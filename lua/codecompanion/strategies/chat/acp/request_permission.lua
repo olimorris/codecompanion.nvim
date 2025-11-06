@@ -155,16 +155,13 @@ local function build_banner(normalized, kind_map, diff)
   for kind, _ in pairs(kind_map or {}) do
     local lhs = normalized[kind]
     if lhs then
-      table.insert(
-        maps,
-        "[%#" .. diff_helpers.CONSTANTS.HIGHLIGHT_KEYMAP .. "#" .. lhs .. "%*: " .. format_kind(kind) .. "]"
-      )
+      table.insert(maps, diff_helpers.build_highlighted_keymap(lhs, format_kind(kind)))
     end
   end
 
   table.sort(maps)
-  table.insert(maps, "[%#" .. diff_helpers.CONSTANTS.HIGHLIGHT_KEYMAP .. "#q%*: Close]")
-  local review = diff_helpers.CONSTANTS.ICON .. diff_helpers.CONSTANTS.SEP .. table.concat(maps, "  ")
+  table.insert(maps, diff_helpers.build_highlighted_keymap("q", "Close"))
+  local review = table.concat(maps, "  ")
   local nav = diff_helpers.build_hunk_nav(diff, config.strategies.inline.keymaps)
 
   return nav ~= "" and (review .. diff_helpers.CONSTANTS.SEP .. nav) or review
@@ -383,7 +380,7 @@ local function show_diff(chat, request)
     relative = window_config.relative or "editor",
     filetype = vim.filetype.match({ filename = d.path }),
     title = ui_utils.build_float_title({
-      title_prefix = "Edit Requested",
+      title_prefix = diff_helpers.CONSTANTS.ICON .. " Edit Requested",
       path = d.path,
     }),
     lock = true,
