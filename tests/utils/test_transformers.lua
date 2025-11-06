@@ -160,4 +160,37 @@ T["Transformers"]["can enforce strictness with nested objects in arrays"] = func
   h.eq(true, result["function"].parameters.strict)
 end
 
+T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has no strict field"] = function()
+  local schema_without_strict = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      description = "A test tool",
+      -- No strict field
+      parameters = {
+        type = "object",
+        properties = {
+          query = {
+            type = "string",
+            description = "Query parameter",
+          },
+        },
+        required = { "query" },
+        additionalProperties = false,
+      },
+    },
+  }
+
+  -- With strict_mode = false, strict should be false/nil
+  local result1 = transform.transform_schema_if_needed(vim.deepcopy(schema_without_strict), { strict_mode = false })
+  h.eq(false, result1.strict)
+  h.eq("string", result1.parameters.properties.query.type) -- No null type
+
+  -- With strict_mode = true, strict should be true and strictness enforced
+  local result2 = transform.transform_schema_if_needed(vim.deepcopy(schema_without_strict), { strict_mode = true })
+  h.eq(true, result2.strict)
+  h.eq({ "string", "null" }, result2.parameters.properties.query.type) -- Has null type
+  h.eq({ "query" }, result2.parameters.required) -- All properties required
+end
+
 return T
