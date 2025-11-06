@@ -713,16 +713,17 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     })
   end
 
+  -- Write to DISK before creating diff
+  local write_ok, write_err = write_file_content(path, dry_run_result.final_content, file_info)
+  if not write_ok then
+    return output_handler({
+      status = "error",
+      data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
+    })
+  end
+
   -- Auto-apply in YOLO mode
   if vim.g.codecompanion_yolo_mode then
-    local write_ok, write_err = write_file_content(path, dry_run_result.final_content, file_info)
-    if not write_ok then
-      return output_handler({
-        status = "error",
-        data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
-      })
-    end
-
     return output_handler({
       status = "success",
       data = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)),
@@ -754,65 +755,44 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
       local response
       if result.accepted then
-        -- Apply the actual changes
-        local final_result = process_edits_sequentially(current_content, action.edits, {
-          dry_run = false,
-          file_info = file_info,
-          mode = action.mode,
-        })
-        if final_result.success then
-          local write_ok, write_err = write_file_content(path, final_result.final_content, file_info)
-          if write_ok then
-            response = final_success
-          else
-            response = {
-              status = "error",
-              data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
-            }
-          end
-        else
+        -- File is already written to disk
+        response = final_success
+      else
+        -- User rejected - restore original content - Skip mtime check since we own it
+        local restore_file_info = {
+          has_trailing_newline = file_info and file_info.has_trailing_newline,
+          is_empty = file_info and file_info.is_empty,
+        }
+        local restore_ok, restore_err = write_file_content(path, current_content, restore_file_info)
+        if not restore_ok then
+          log:error("Failed to restore original content: %s", restore_err)
+          -- Inform user about restoration failure
           response = {
             status = "error",
-            data = fmt("Failed to apply changes to `%s`: %s", action.filepath, final_result.error),
+            data = fmt(
+              "User rejected the edits for `%s`, but failed to restore original content: %s\n\nWARNING: File may be in an inconsistent state. Please review and restore manually if needed.",
+              action.filepath,
+              restore_err
+            ),
+          }
+        else
+          if result.timeout and should_diff and should_diff.reject then
+            should_diff:reject()
+          end
+          response = {
+            status = "error",
+            data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
+              .. fmt(" for `%s`", action.filepath),
           }
         end
-      else
-        if result.timeout and should_diff and should_diff.reject then
-          should_diff:reject()
-        end
-        response = {
-          status = "error",
-          data = (result.timeout and "User failed to accept the edits in time" or "User rejected the edits")
-            .. fmt(" for `%s`", action.filepath),
-        }
       end
 
       codecompanion.restore(chat_bufnr)
       return output_handler(response)
     end, wait_opts)
   else
-    -- Apply changes immediately
-    local final_result = process_edits_sequentially(current_content, action.edits, {
-      dry_run = false,
-      file_info = file_info,
-      mode = action.mode,
-    })
-    if final_result.success then
-      local write_ok, write_err = write_file_content(path, final_result.final_content, file_info)
-      if write_ok then
-        return output_handler(final_success)
-      else
-        return output_handler({
-          status = "error",
-          data = fmt("Error writing to `%s`: %s", action.filepath, write_err),
-        })
-      end
-    else
-      return output_handler({
-        status = "error",
-        data = fmt("Failed to apply changes to `%s`: %s", action.filepath, final_result.error),
-      })
-    end
+    -- File is already written above, no need for user confirmation
+    return output_handler(final_success)
   end
 end
 
