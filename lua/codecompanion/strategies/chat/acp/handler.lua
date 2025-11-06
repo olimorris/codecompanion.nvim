@@ -1,6 +1,9 @@
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.strategies.chat.acp.formatters")
 
+-- Keep a record of UI changes in the chat buffer
+local ui = {}
+
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
 ---@field output table Standard output message from the Agent
@@ -17,6 +20,8 @@ function ACPHandler.new(chat)
     reasoning = {},
     tools = {},
   }, { __index = ACPHandler })
+
+  ui[chat.bufnr] = {}
 
   return self --[[@type CodeCompanion.Chat.ACPHandler]]
 end
@@ -201,8 +206,15 @@ function ACPHandler:process_tool_call(tool_call)
     content = "[Error formatting tool output]"
   end
 
+  -- If the tool call has already output a message, then we update that line
+  -- in the buffer instead of adding a new one.
+  if ui[self.chat.bufnr][tool_call.toolCallId] then
+    local line_number = ui[self.chat.bufnr][tool_call.toolCallId]
+    return self.chat:update_buf_line(line_number, content, { status = tool_call.status })
+  end
+
   table.insert(self.output, content)
-  self.chat:add_buf_message({
+  local inserted_at = self.chat:add_buf_message({
     role = config.constants.LLM_ROLE,
     content = content,
   }, {
@@ -213,6 +225,8 @@ function ACPHandler:process_tool_call(tool_call)
     kind = tool_call.kind,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
+
+  ui[self.chat.bufnr][tool_call.toolCallId] = inserted_at
 end
 
 ---Handle tool call notifications

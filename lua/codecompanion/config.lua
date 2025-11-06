@@ -1200,6 +1200,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/acp/acp.md",
           },
         },
+        ["acp-json-rpc"] = {
+          description = "The JSON-RPC output for various ACP adapters",
+          files = {
+            ".codecompanion/acp/claude_code_acp.md",
+          },
+        },
         ["tests"] = {
           description = "Testing in the plugin",
           files = {

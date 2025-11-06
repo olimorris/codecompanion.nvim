@@ -137,7 +137,7 @@ end
 ---Add message using centralized state
 ---@param data table
 ---@param opts table
----@return nil
+---@return number|nil
 function Builder:add_message(data, opts)
   opts = opts or {}
   local lines, fold_info, current_type, formatter = {}, nil, nil, nil
@@ -171,8 +171,6 @@ function Builder:add_message(data, opts)
 
   local has_content = data.content or (data.reasoning and data.reasoning.content)
 
-  --log:info("[Builder] state %s", state)
-
   if has_content then
     formatter = self:_get_formatter(data, opts)
     local content_lines, content_fold_info = formatter:format(data, opts, state)
@@ -188,8 +186,9 @@ function Builder:add_message(data, opts)
     end
   end
 
+  local insert_line
   if not vim.tbl_isempty(lines) then
-    self:_write_to_buffer(lines, opts, fold_info, state)
+    insert_line = self:_write_to_buffer(lines, opts, fold_info, state)
   end
 
   if current_type then
@@ -212,6 +211,8 @@ function Builder:add_message(data, opts)
 
   self:_sync_state_from_formatting_state(state)
   self:_sync_state_to_chat()
+
+  return insert_line
 end
 
 ---Determine if we should start a new block under the header
@@ -258,6 +259,7 @@ end
 ---@param opts table
 ---@param fold_info table|nil
 ---@param state table
+---@return number The line number where the content was written
 function Builder:_write_to_buffer(lines, opts, fold_info, state)
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
@@ -315,6 +317,8 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   end
 
   self.chat.ui:move_cursor(cursor_moved)
+
+  return insert_line + 1
 end
 
 ---Sync formatting state back to builder's persistent state
@@ -328,6 +332,42 @@ end
 ---Sync builder state back to chat object for persistence
 function Builder:_sync_state_to_chat()
   self.chat._last_role = self.state.last_role
+end
+
+---Update a specific line in the chat buffer
+---@param line_number number The line number to update (1-based)
+---@param content string The new content for the line
+---@param opts? table Optional parameters
+---@return boolean success Whether the update was successful
+function Builder:update_line(line_number, content, opts)
+  opts = opts or {}
+
+  -- Validate line number
+  if line_number < 1 then
+    return false
+  end
+
+  -- Convert to 0-based indexing for nvim API
+  local zero_based_line = line_number - 1
+  local line_count = api.nvim_buf_line_count(self.chat.bufnr)
+
+  if zero_based_line >= line_count then
+    return false
+  end
+
+  self.chat.ui:unlock_buf()
+
+  -- Determine the range to replace
+  local start_line = zero_based_line
+  local end_line = zero_based_line + 1
+
+  api.nvim_buf_set_lines(self.chat.bufnr, start_line, end_line, false, { content })
+
+  if self.state.last_role ~= config.constants.USER_ROLE then
+    self.chat.ui:lock_buf()
+  end
+
+  return true
 end
 
 return Builder
