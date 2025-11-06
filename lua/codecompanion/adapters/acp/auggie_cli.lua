@@ -1,9 +1,9 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.Auggie: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.AuggieCLI: CodeCompanion.ACPAdapter
 return {
-  name = "auggie",
-  formatted_name = "Auggie",
+  name = "auggie_cli",
+  formatted_name = "Auggie CLI",
   type = "acp",
   roles = {
     llm = "assistant",
