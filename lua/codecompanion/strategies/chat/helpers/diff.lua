@@ -11,9 +11,10 @@ local M = {}
 M.CONSTANTS = {
   ICON = " ",
   SEP = "  •  ",
-  COMPACT_SEP = "•",
+  COMPACT_SEP = " • ",
   HIGHLIGHT_KEYMAP = "CodeCompanionBannerKeymap",
   HIGHLIGHT_COUNT = "CodeCompanionNumber",
+  MIN_WIDTH = 60,
 }
 
 ---Build hunk navigation section
@@ -204,7 +205,7 @@ local function place_diff_winbar(winnr, diff)
 
   -- Truncate if window too small
   local ok, win_width = pcall(api.nvim_win_get_width, winnr)
-  if ok and win_width < 80 then
+  if ok and win_width < M.CONSTANTS.MIN_WIDTH then
     local short_keys = table.concat(
       vim.tbl_filter(function(x)
         return x
