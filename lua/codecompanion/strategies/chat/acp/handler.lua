@@ -208,10 +208,10 @@ function ACPHandler:process_tool_call(tool_call)
 
   -- If the tool call has already output a message, then we update that line
   -- in the buffer instead of adding a new one.
-  if ui[self.chat.bufnr][tool_call.toolCallId] then
-    local line_number = ui[self.chat.bufnr][tool_call.toolCallId]
-    return self.chat:update_buf_line(line_number, content, { status = tool_call.status })
-  end
+  -- if ui[self.chat.bufnr][tool_call.toolCallId] then
+  --   local line_number = ui[self.chat.bufnr][tool_call.toolCallId]
+  --   return self.chat:update_buf_line(line_number, content, { status = tool_call.status })
+  -- end
 
   table.insert(self.output, content)
   local inserted_at = self.chat:add_buf_message({
