@@ -1525,7 +1525,7 @@ function Chat:add_buf_message(data, opts)
   return self.builder:add_message(data, opts)
 end
 
----Update a specifc line in the chat buffer
+---Update a specific line in the chat buffer
 ---@param line_number number The line number to update (1-based)
 ---@param content string The new content for the line
 ---@param opts? table Optional parameters
