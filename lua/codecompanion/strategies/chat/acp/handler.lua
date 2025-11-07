@@ -242,7 +242,7 @@ function ACPHandler:process_tool_call(tool_call)
     role = require("codecompanion.config").constants.LLM_ROLE,
     content = content,
   }, {
-    status = tool_call.status or "pending",
+    status = tool_call.status or "in_progress",
     virt_text_pos = "inline",
     tools = { call_id = id },
     kind = tool_call.kind,

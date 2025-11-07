@@ -231,12 +231,12 @@ end
 local function generate_smart_summary(tool_call, adapter)
   local kind = tool_call.kind or "tool"
   local status = tool_call.status or "pending"
-  local trim_tool_output = adapter.opts and adapter.opts.trim_tool_output
+  local show_verbose_output = adapter.opts and adapter.opts.verbose_output and adapter.opts.verbose_output == true
 
   -- Get base title (use enhanced version for better handling)
   local title = M.enhanced_title(tool_call)
 
-  if status == "pending" or status == "in_progress" or trim_tool_output then
+  if status == "pending" or status == "in_progress" or not show_verbose_output then
     return title
   end
 

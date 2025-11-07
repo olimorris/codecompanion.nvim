@@ -12,13 +12,13 @@ local T = new_set({
         -- Mock adapter configurations
         mock_adapter_full = {
           opts = {
-            trim_tool_output = false,
+            verbose_output = false,
           },
         }
 
         mock_adapter_trimmed = {
           opts = {
-            trim_tool_output = true,
+            verbose_output = true,
           },
         }
 
@@ -107,7 +107,7 @@ T["ACP Formatters"]["tool_message - Edit Tools"] = function()
           locations = { { path = "/Users/test/file.lua" } },
         }
       ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = false } }]],
+    [[_G.test_adapter = { opts = { verbose_output = true } }]],
     "Edited /Users/test/file.lua (+1 lines)"
   )
 
@@ -130,7 +130,7 @@ T["ACP Formatters"]["tool_message - Edit Tools"] = function()
           locations = { { path = "/Users/test/file.lua" } },
         }
       ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = true } }]],
+    [[_G.test_adapter = { opts = { verbose_output = false } }]],
     "Edit: /Users/test/file.lua"
   )
 
@@ -145,7 +145,7 @@ T["ACP Formatters"]["tool_message - Edit Tools"] = function()
           locations = { { path = "/Users/test/file.lua" } },
         }
       ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = false } }]],
+    [[_G.test_adapter = { opts = { verbose_output = false } }]],
     "Edit: /Users/test/file.lua"
   )
 end
@@ -171,7 +171,7 @@ T["ACP Formatters"]["tool_message - Read Tools"] = function()
           locations = { { path = "/Users/test/config.json" } },
         }
       ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = false } }]],
+    [[_G.test_adapter = { opts = { verbose_output = true } }]],
     'Read: /Users/test/config.json — {"name": "test"} formatted'
   )
 
@@ -187,7 +187,7 @@ T["ACP Formatters"]["tool_message - Read Tools"] = function()
           locations = { { path = "/Users/test/config.json" } },
         }
       ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = false } }]],
+    [[_G.test_adapter = { opts = { verbose_output = false } }]],
     "Read: /Users/test/config.json"
   )
 end
@@ -214,7 +214,7 @@ T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
       },
     }
   ]])
-  child.lua([[_G.test_adapter = { opts = { trim_tool_output = false } }]])
+  child.lua([[_G.test_adapter = { opts = { verbose_output = true } }]])
   local result = child.lua_get("formatters.tool_message(_G.test_tool_call, _G.test_adapter)")
   h.eq("Edited quotes.lua (+2 lines)", result)
 
@@ -238,7 +238,7 @@ T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
     _G.result = formatters.tool_message(_G.claude_execute, mock_adapter_full)
   ]])
   local result = child.lua_get("_G.result")
-  h.expect_truthy(result:match("^Execute: ls %-la lua/codecompanion/strategies/chat/acp/formatters/ — total 56"))
+  h.eq("Execute: ls -la lua/codecompanion/strategies/chat/acp/formatters/", result)
   h.expect_truthy(not result:match("\n"))
 
   -- Test Claude Code search example
@@ -260,7 +260,7 @@ T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
           },
         }
       ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = false } }]],
+    [[_G.test_adapter = { opts = { verbose_output = true } }]],
     "Search: Find `**/*add_buf_message*` — No files found"
   )
 end
