@@ -1,0 +1,15 @@
+return {
+  statsfile = "luacov.stats",
+  reportfile = "luacov.report",
+  runreport = true,
+  -- include = {
+  --   "lua/codecompanion$",
+  --   "lua/codecompanion%/.+$",
+  -- },
+  -- exclude = {},
+  -- modules = {
+  --   ["codecompanion"] = "lua/codecompanion/init.lua",
+  --   ["codecompanion.*"] = "lua/",
+  -- },
+}
+-- vim:ft=lua
