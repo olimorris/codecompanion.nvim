@@ -193,30 +193,30 @@ T["ACP Formatters"]["tool_message - Read Tools"] = function()
 end
 
 T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
-  -- Test Claude Code edit example from JSON RPC
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "toolu_01VRjmb5Vsv9WwwKu6cgH8a4",
-          title = "Write /Users/Oli/Code/Neovim/codecompanion.nvim/quotes.lua",
-          kind = "edit",
-          status = "completed",
-          content = {
-            {
-              type = "diff",
-              path = "/Users/Oli/Code/Neovim/codecompanion.nvim/quotes.lua",
-              oldText = nil,
-              newText = "-- Simple test comment for ACP capture\nreturn {}\n",
-            },
-          },
-          locations = {
-            { path = "/Users/Oli/Code/Neovim/codecompanion.nvim/quotes.lua" },
-          },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { trim_tool_output = false } }]],
-    "Edited quotes.lua (+2 lines)"
-  )
+  -- Test Claude Code edit example with dynamic path that works in any environment
+  child.lua([[
+    local cwd = vim.fn.getcwd()
+    _G.test_tool_call = {
+      toolCallId = "toolu_01VRjmb5Vsv9WwwKu6cgH8a4",
+      title = "Write quotes.lua",
+      kind = "edit",
+      status = "completed",
+      content = {
+        {
+          type = "diff",
+          path = cwd .. "/quotes.lua",
+          oldText = nil,
+          newText = "-- Simple test comment for ACP capture\nreturn {}\n",
+        },
+      },
+      locations = {
+        { path = cwd .. "/quotes.lua" },
+      },
+    }
+  ]])
+  child.lua([[_G.test_adapter = { opts = { trim_tool_output = false } }]])
+  local result = child.lua_get("formatters.tool_message(_G.test_tool_call, _G.test_adapter)")
+  h.eq("Edited quotes.lua (+2 lines)", result)
 
   -- Test Claude Code execute example
   child.lua([[
