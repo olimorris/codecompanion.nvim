@@ -2,7 +2,6 @@ local formatter = require("codecompanion.strategies.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 
 -- Keep a record of UI changes in the chat buffer
-local ui = {}
 
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
@@ -10,6 +9,8 @@ local ui = {}
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
 local ACPHandler = {}
+
+local ACPHandlerUI = {} -- Cache of tool call UI states by chat buffer
 
 ---@param chat CodeCompanion.Chat
 ---@return CodeCompanion.Chat.ACPHandler
@@ -21,7 +22,7 @@ function ACPHandler.new(chat)
     tools = {},
   }, { __index = ACPHandler })
 
-  ui[chat.bufnr] = {}
+  ACPHandlerUI[chat.bufnr] = {}
 
   return self --[[@type CodeCompanion.Chat.ACPHandler]]
 end
@@ -212,8 +213,8 @@ function ACPHandler:process_tool_call(tool_call)
   -- If the tool call has already written output to the chat buffer, then we can
   -- update it rather than adding a new line. We do this by keeping track in
   -- a global cache, segmented by chat buffer and tool call IDs
-  if ui[self.chat.bufnr][id] then
-    local match = ui[self.chat.bufnr][id]
+  if ACPHandlerUI[self.chat.bufnr][id] then
+    local match = ACPHandlerUI[self.chat.bufnr][id]
     -- Whilst I've tried to account for all types of ACP tool output, I'm taking
     -- a cautious approach and wrapping line updates. Any failures and we'll
     -- just write the tool output onto a new line in the chat buffer
@@ -227,7 +228,7 @@ function ACPHandler:process_tool_call(tool_call)
 
     -- Cleanup the cache
     if tool_call.status == "completed" then
-      ui[self.chat.bufnr][id] = nil
+      ACPHandlerUI[self.chat.bufnr][id] = nil
     end
 
     if ok then
@@ -248,7 +249,7 @@ function ACPHandler:process_tool_call(tool_call)
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
 
-  ui[self.chat.bufnr][id] = { line_number = line_number }
+  ACPHandlerUI[self.chat.bufnr][id] = { line_number = line_number }
 end
 
 ---Handle tool call notifications
