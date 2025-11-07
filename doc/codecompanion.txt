@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 06
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2965,9 +2965,10 @@ To disable a keymap, you can set it to `false` in your configuration:
 
 AGENTS                                            *codecompanion-usage-agents*
 
-CodeCompanion enables you to work with agents such as Gemini
-<https://github.com/google-gemini/gemini-cli> by leveraging the Agent Client
-Protocol <https://agentclientprotocol.com>.
+CodeCompanion implements the Agent Client Protocol
+<https://agentclientprotocol.com> to enable you to work with coding agents from
+within Neovim. Please refer to the |codecompanion-configuration-acp| if
+you’ve not setup an ACP adapter.
 
 
 GETTING STARTED ~
@@ -2997,7 +2998,10 @@ with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
 |codecompanion-usage-chat-buffer-variables| are available to share additional
 context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
 disabled as the agent has their own tool set and the autonomy to decide what to
-run and when.
+run and when. CodeCompanion also supports an agent’s own slash commands
+<https://agentclientprotocol.com/protocol/slash-commands> however these are
+invoked with `\` instead of `/` which is reserved for CodeCompanion’s
+built-in ones.
 
 As outlined in the Agent Client Protocol documentation
 <https://agentclientprotocol.com/protocol/initialization>, there are a number
@@ -3153,8 +3157,9 @@ note, this will remove `ALL` context that’s been designated as `memory`.
 TOOLS                                              *codecompanion-usage-tools*
 
 
-  [!IMPORTANT] Not all LLMs support function calling and the use of tools. Please
-  see the |codecompanion--compatibility| section for more information.
+  [!IMPORTANT] Tools are not supported for ACP adapters as they have their own
+  set. Not all LLMs support function calling and the use of tools. Please see the
+  |codecompanion--compatibility| section for more information.
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,
 LLMs can act as agents by leveraging external tools. Andrew notes some common
@@ -3608,8 +3613,6 @@ When using CodeCompanion’s in-built tools, there are three choices:
 
 COMPATIBILITY ~
 
-
-  [!NOTE] Tools are not supported for ACP adapters as they have their own set.
 Below is the tool use status of various adapters and models in CodeCompanion:
 
   ------------------------------------------------------------------------
