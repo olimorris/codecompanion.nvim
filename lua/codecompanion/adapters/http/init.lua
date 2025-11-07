@@ -50,6 +50,7 @@ local function get_handler(adapter, name)
     parse_chat = "chat_output",
     parse_inline = "inline_output",
     parse_tokens = "tokens",
+    parse_extra = "parse_extra",
 
     -- tools
     format_calls = "format_tool_calls",

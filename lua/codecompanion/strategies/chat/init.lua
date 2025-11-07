@@ -1009,6 +1009,12 @@ function Chat:_submit_http(payload)
     end
 
     local result = adapters.call_handler(adapter, "parse_chat", data, tools)
+
+    local parse_extra = adapters.get_handler(adapter, "parse_extra")
+    if result and result.extra and type(parse_extra) == "function" then
+      result = parse_extra(adapter, result)
+    end
+
     if result and result.status then
       self.status = result.status
       if self.status == CONSTANTS.STATUS_SUCCESS then

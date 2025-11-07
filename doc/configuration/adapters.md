@@ -380,3 +380,40 @@ require("codecompanion").setup({
 }),
 ```
 
+## Setup: OpenRouter with Reasoning Output
+
+```lua 
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter = function()
+        return require("codecompanion.adapters").extend("openai_compatible", {
+          env = {
+            url = "https://openrouter.ai/api",
+            api_key = "OPENROUTER_API_KEY",
+            chat_url = "/v1/chat/completions",
+          },
+          handlers = {
+            parse_extra = function(self, data)
+              local extra = data.extra
+              if extra and extra.reasoning then
+                data.output.reasoning = { content = extra.reasoning }
+                data.output.content = nil
+              end
+              return data
+            end,
+          },
+        })
+      end,
+    },
+  },
+  strategies = {
+    chat = {
+      adapter = "openrouter",
+    },
+    inline = {
+      adapter = "openrouter",
+    },
+  },
+})
+```
