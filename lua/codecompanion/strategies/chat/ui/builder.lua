@@ -16,6 +16,7 @@
 --]]
 local config = require("codecompanion.config")
 
+local Icons = require("codecompanion.strategies.chat.ui.icons")
 local Reasoning = require("codecompanion.strategies.chat.ui.formatters.reasoning")
 local Standard = require("codecompanion.strategies.chat.ui.formatters.standard")
 local Tools = require("codecompanion.strategies.chat.ui.formatters.tools")
@@ -137,7 +138,7 @@ end
 ---Add message using centralized state
 ---@param data table
 ---@param opts table
----@return number|nil
+---@return number,number|nil
 function Builder:add_message(data, opts)
   opts = opts or {}
   local lines, fold_info, current_type, formatter = {}, nil, nil, nil
@@ -186,9 +187,9 @@ function Builder:add_message(data, opts)
     end
   end
 
-  local insert_line
+  local insert_line, icon_id
   if not vim.tbl_isempty(lines) then
-    insert_line = self:_write_to_buffer(lines, opts, fold_info, state)
+    insert_line, icon_id = self:_write_to_buffer(lines, opts, fold_info, state)
   end
 
   if current_type then
@@ -212,7 +213,7 @@ function Builder:add_message(data, opts)
   self:_sync_state_from_formatting_state(state)
   self:_sync_state_to_chat()
 
-  return insert_line
+  return insert_line, icon_id
 end
 
 ---Determine if we should start a new block under the header
@@ -259,7 +260,7 @@ end
 ---@param opts table
 ---@param fold_info table|nil
 ---@param state table
----@return number The line number where the content was written
+---@return number,number|nil The line number where the content was written and the extmark id of any icon applied
 function Builder:_write_to_buffer(lines, opts, fold_info, state)
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
@@ -272,11 +273,11 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
 
+  local icon_id
   if opts._icon_info and opts._icon_info.has_icon then
     vim.schedule(function()
-      local Icons = require("codecompanion.strategies.chat.ui.icons")
       local target_line = last_line + (opts._icon_info.line_offset or 0)
-      Icons.apply_tool_icon(self.chat.bufnr, target_line, opts._icon_info.status)
+      icon_id = Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status)
     end)
   end
 
@@ -318,7 +319,7 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   self.chat.ui:move_cursor(cursor_moved)
 
-  return insert_line + 1
+  return end_line_written + 1, icon_id
 end
 
 ---Sync formatting state back to builder's persistent state
@@ -361,7 +362,12 @@ function Builder:update_line(line_number, content, opts)
   local start_line = zero_based_line
   local end_line = zero_based_line + 1
 
-  api.nvim_buf_set_lines(self.chat.bufnr, start_line, end_line, false, { content })
+  local ok, _ = pcall(api.nvim_buf_set_lines, self.chat.bufnr, start_line, end_line, false, { content })
+  if ok and opts.status then
+    vim.schedule(function()
+      Icons.apply(self.chat.bufnr, start_line, opts.status, opts)
+    end)
+  end
 
   if self.state.last_role ~= config.constants.USER_ROLE then
     self.chat.ui:lock_buf()
