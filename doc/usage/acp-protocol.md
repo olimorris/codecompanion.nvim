@@ -23,6 +23,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **Tool Calls** | ✅ Full | Content blocks, file diffs, status updates |
 | **Session Modes** | ✅ Full | Mode switching and state management |
 | **MCP Integration** | ✅ Full | Stdio, HTTP, and SSE transports |
+| **Agent Plans** | ❌ | Visual display of an agent's execution plan |
 | **Terminal Operations** | ❌        | Terminal capabilities not implemented |
 
 ### Supported Adapters
@@ -118,7 +119,7 @@ The protocol version is negotiated during initialization. If an agent selects a 
 
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`, `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion doesn't advertise terminal capabilities to agents.
 
-- **Plan Rendering**: Plan updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
+- **Agent Plan Rendering**: [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
 
 - **Cancellation**: The `session/cancel` notification isn't currently sent by the client, though CodeCompanion properly handles cancelled states when agents report them.
 
