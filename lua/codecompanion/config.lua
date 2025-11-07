@@ -1278,7 +1278,7 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_pending = " ",
         tool_in_progress = " ",
         tool_failure = " ",
-        tool_success = " ",
+        tool_success = "  ",
       },
       -- Window options for the chat buffer
       window = {
