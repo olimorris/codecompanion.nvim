@@ -238,7 +238,7 @@ function ACPHandler:process_tool_call(tool_call)
   end
 
   table.insert(self.output, content)
-  local line_number, _ = self.chat:add_buf_message({
+  local line_number = self.chat:add_buf_message({
     role = require("codecompanion.config").constants.LLM_ROLE,
     content = content,
   }, {

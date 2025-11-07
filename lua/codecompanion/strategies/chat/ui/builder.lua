@@ -260,7 +260,7 @@ end
 ---@param opts table
 ---@param fold_info table|nil
 ---@param state table
----@return number,number|nil The line number where the content was written and the extmark id of any icon applied
+---@return number The line number where the content was written and the extmark id of any icon applied
 function Builder:_write_to_buffer(lines, opts, fold_info, state)
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
@@ -273,11 +273,10 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
 
-  local icon_id
   if opts._icon_info and opts._icon_info.has_icon then
     vim.schedule(function()
       local target_line = last_line + (opts._icon_info.line_offset or 0)
-      icon_id = Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status)
+      Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status)
     end)
   end
 
@@ -319,7 +318,7 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   self.chat.ui:move_cursor(cursor_moved)
 
-  return end_line_written + 1, icon_id
+  return end_line_written + 1
 end
 
 ---Sync formatting state back to builder's persistent state

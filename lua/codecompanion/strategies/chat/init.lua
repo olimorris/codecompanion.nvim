@@ -1517,7 +1517,7 @@ end
 ---This will NOT form part of the message stack that is sent to the LLM
 ---@param data table
 ---@param opts? table
----@return number|nil
+---@return number|nil The last line number of the added message, or nil on failure
 function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
   opts = opts or {}
