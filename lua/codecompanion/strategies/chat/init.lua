@@ -1517,11 +1517,24 @@ end
 ---This will NOT form part of the message stack that is sent to the LLM
 ---@param data table
 ---@param opts? table
+---@return number|nil The last line number of the added message, or nil on failure
 function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
   opts = opts or {}
 
-  self.builder:add_message(data, opts)
+  return self.builder:add_message(data, opts)
+end
+
+---Update a specific line in the chat buffer
+---@param line_number number The line number to update (1-based)
+---@param content string The new content for the line
+---@param opts? table Optional parameters
+---@return boolean success Whether the update was successful
+function Chat:update_buf_line(line_number, content, opts)
+  assert(type(content) == "string", "content must be a string")
+  opts = opts or {}
+
+  return self.builder:update_line(line_number, content, opts)
 end
 
 ---Add the output from a tool to the message history and a message to the UI
