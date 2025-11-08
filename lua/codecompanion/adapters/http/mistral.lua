@@ -61,6 +61,20 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
+      local is_previous_tool = false
+      local messages = vim.iter(messages):filter(function(msg)
+        local is_tool = msg.role == "tool"
+        local is_user = msg.role == "user"
+        local keep = true
+        -- Mistral does not like user after tool messages, those should always be assistant
+        -- Worst case we drop 1 user message, but the assistant will respond to the tool
+        if is_previous_tool and is_user then
+          log:debug("Dropping user after tool message: %s", msg.content)
+          keep = false
+        end
+        is_previous_tool = is_tool
+        return keep
+      end)
       return openai.handlers.form_messages(self, messages)
     end,
     chat_output = function(self, data, tools)
