@@ -34,7 +34,12 @@ end
 ---@param bufnr number
 ---@return table
 function M.name_from_bufnr(bufnr)
-  return vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
+  local bufname = api.nvim_buf_get_name(bufnr)
+  if vim.fn.has("win32") == 1 then
+    -- On Windows, slashes need to be consistent with getcwd, which uses backslashes
+    bufname = bufname:gsub("/", "\\")
+  end
+  return vim.fn.fnamemodify(bufname, ":.")
 end
 
 ---Get the information of a given buffer
@@ -77,11 +82,11 @@ function M.get_open(ft)
   return buffers
 end
 
----Check if a filepath is open as a buffer and return the buffer number
----@param filepath string The filepath to check
+---Check if a path is open as a buffer and return the buffer number
+---@param path string The path to check
 ---@return number|nil Buffer number if found, nil otherwise
-function M.get_bufnr_from_filepath(filepath)
-  local normalized_path = vim.fn.fnamemodify(filepath, ":p")
+function M.get_bufnr_from_path(path)
+  local normalized_path = vim.fn.fnamemodify(path, ":p")
 
   for _, bufnr in ipairs(api.nvim_list_bufs()) do
     if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then

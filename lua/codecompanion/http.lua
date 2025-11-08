@@ -2,9 +2,10 @@ local Curl = require("plenary.curl")
 local Path = require("plenary.path")
 
 local adapter_utils = require("codecompanion.utils.adapters")
+local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.HTTPClient
 ---@field adapter CodeCompanion.HTTPAdapter
@@ -174,13 +175,10 @@ function Client:send_sync(payload, opts)
   -- end
 
   local adapter = vim.deepcopy(self.adapter)
-  local handlers = adapter.handlers
 
-  if handlers and handlers.setup then
-    local ok = handlers.setup(adapter)
-    if not ok then
-      return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
-    end
+  local ok = adapters.call_handler(adapter, "setup")
+  if ok == false then
+    return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
   end
 
   adapter = adapter_utils.get_env_vars(adapter)
@@ -188,17 +186,16 @@ function Client:send_sync(payload, opts)
   local body = self.methods.encode(
     vim.tbl_extend(
       "keep",
-      handlers.form_parameters
-          and handlers.form_parameters(
-            adapter,
-            adapter_utils.set_env_vars(adapter, adapter.parameters),
-            payload.messages
-          )
-        or {},
-      handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
-      handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
+      adapters.call_handler(
+        adapter,
+        "build_parameters",
+        adapter_utils.set_env_vars(adapter, adapter.parameters),
+        payload.messages
+      ) or {},
+      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
       adapter.body and adapter.body or {},
-      handlers.set_body and handlers.set_body(adapter, payload) or {}
+      adapters.call_handler(adapter, "build_body", payload) or {}
     )
   )
 
@@ -253,7 +250,7 @@ function Client:send_sync(payload, opts)
     },
   }
   if not opts.silent then
-    util.fire("RequestStarted", event_opts)
+    utils.fire("RequestStarted", event_opts)
   end
 
   local response, err = nil, nil
@@ -268,19 +265,11 @@ function Client:send_sync(payload, opts)
     end
   end
 
-  if handlers and handlers.on_exit then
-    pcall(function()
-      handlers.on_exit(adapter, response or (err and err.stderr))
-    end)
-  end
-  if handlers and handlers.teardown then
-    pcall(function()
-      handlers.teardown(adapter)
-    end)
-  end
+  adapters.call_handler(adapter, "on_exit", response or (err and err.stderr))
+  adapters.call_handler(adapter, "teardown")
 
   if not opts.silent then
-    util.fire("RequestFinished", event_opts)
+    utils.fire("RequestFinished", event_opts)
   end
 
   cleanup_file()
@@ -313,13 +302,9 @@ function Client:request(payload, actions, opts)
   -- Make a copy of the adapter to ensure that we replace variables in every request
   local adapter = vim.deepcopy(self.adapter)
 
-  local handlers = adapter.handlers
-
-  if handlers and handlers.setup then
-    local ok = handlers.setup(adapter)
-    if not ok then
-      return log:error("Failed to setup adapter")
-    end
+  local ok = adapters.call_handler(adapter, "setup")
+  if ok == false then
+    return log:error("Failed to setup adapter")
   end
 
   adapter = adapter_utils.get_env_vars(adapter)
@@ -327,17 +312,16 @@ function Client:request(payload, actions, opts)
   local body = self.methods.encode(
     vim.tbl_extend(
       "keep",
-      handlers.form_parameters
-          and handlers.form_parameters(
-            adapter,
-            adapter_utils.set_env_vars(adapter, adapter.parameters),
-            payload.messages
-          )
-        or {},
-      handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
-      handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
+      adapters.call_handler(
+        adapter,
+        "build_parameters",
+        adapter_utils.set_env_vars(adapter, adapter.parameters),
+        payload.messages
+      ) or {},
+      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
       adapter.body and adapter.body or {},
-      handlers.set_body and handlers.set_body(adapter, payload) or {}
+      adapters.call_handler(adapter, "build_body", payload) or {}
     )
   )
 
@@ -383,15 +367,13 @@ function Client:request(payload, actions, opts)
     callback = function(data)
       self.methods.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
-          log:trace("Output data:\n%s", data)
+          log:debug("Output data:\n%s", data)
           cb(nil, data, adapter)
         end
-        if handlers and handlers.on_exit then
-          handlers.on_exit(adapter, data)
-        end
-        if handlers and handlers.teardown then
-          handlers.teardown(adapter)
-        end
+
+        adapters.call_handler(adapter, "on_exit", data)
+        adapters.call_handler(adapter, "teardown")
+
         if actions.done and type(actions.done) == "function" then
           actions.done()
         end
@@ -403,12 +385,12 @@ function Client:request(payload, actions, opts)
         end
 
         if not opts.silent then
-          util.fire("RequestFinished", opts)
+          utils.fire("RequestFinished", opts)
         end
         cleanup(opts.status)
         if self.user_args.event then
           if not opts.silent then
-            util.fire(self.user_args.event, opts)
+            utils.fire(self.user_args.event, opts)
           end
         end
       end)
@@ -417,7 +399,7 @@ function Client:request(payload, actions, opts)
       self.methods.schedule(function()
         actions.callback(err, nil)
         if not opts.silent then
-          util.fire("RequestFinished", opts)
+          utils.fire("RequestFinished", opts)
         end
       end)
     end,
@@ -432,12 +414,12 @@ function Client:request(payload, actions, opts)
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
-        log:trace("Output data:\n%s", data)
+        log:debug("Output data:\n%s", data)
       end
       if not has_started_steaming then
         has_started_steaming = true
         if not opts.silent then
-          util.fire("RequestStreaming", opts)
+          utils.fire("RequestStreaming", opts)
         end
       end
       cb(nil, data, adapter)
@@ -462,7 +444,7 @@ function Client:request(payload, actions, opts)
   }
 
   if not opts.silent then
-    util.fire("RequestStarted", opts)
+    utils.fire("RequestStarted", opts)
   end
 
   if job and job.args then
@@ -470,8 +452,13 @@ function Client:request(payload, actions, opts)
   end
   if self.user_args.event then
     if not opts.silent then
-      util.fire(self.user_args.event, opts)
+      utils.fire(self.user_args.event, opts)
     end
+  end
+
+  -- Unify the API across the plugin
+  job.cancel = function()
+    job:shutdown()
   end
 
   return job

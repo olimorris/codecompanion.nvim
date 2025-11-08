@@ -4,7 +4,7 @@ local config = require("codecompanion.config")
 local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local M = {}
 
@@ -24,7 +24,7 @@ local function expand_memory_group(picker_items, group_path, group_cfg, parent_c
   local files = group_cfg.files or {}
 
   -- If this group holds a list of files, add it as a selectable picker item
-  if util.is_array(files) then
+  if utils.is_array(files) then
     table.insert(picker_items, {
       name = group_path,
       description = inherited.description,
@@ -64,7 +64,7 @@ function M.list()
     end
     if not vim.tbl_contains(exclusions, name) and type(cfg) == "table" then
       local files = cfg.files or {}
-      if util.is_array(files) then
+      if utils.is_array(files) then
         -- Memory is a singular group
         table.insert(picker_items, {
           name = name,
@@ -112,7 +112,7 @@ function M.add_callbacks(args, memory_name)
     local current = config.memory[name]
     if current then
       -- Ensure that we extend any existing callbacks
-      args.callbacks = util.callbacks_extend(args.callbacks, "on_created", function(chat)
+      args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
         require("codecompanion.strategies.chat.memory").add_to_chat({
           name = name,
           opts = current.opts,
@@ -165,7 +165,7 @@ function M.add_files_or_buffers(included_files, chat)
     end
 
     -- Then determine if the file is open as a buffer
-    local bufnr = buf_utils.get_bufnr_from_filepath(path)
+    local bufnr = buf_utils.get_bufnr_from_path(path)
     if bufnr then
       local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
       if not ok then

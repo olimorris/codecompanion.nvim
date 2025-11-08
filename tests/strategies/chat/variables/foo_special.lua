@@ -17,7 +17,7 @@ function FooSpecial:output()
   self.Chat:add_message({
     role = "user",
     content = "foo_special",
-  }, { tag = "variable", visible = false })
+  }, { _meta = { tag = "variable" }, visible = false })
 end
 
 return FooSpecial

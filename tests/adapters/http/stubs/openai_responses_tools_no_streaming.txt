@@ -1,0 +1,44 @@
+{
+  "id": "resp_07f118f077c91f1a0068e4319cbbf081968f927d040b0daf8f",
+  "object": "response",
+  "created_at": 1759785372,
+  "status": "completed",
+  "background": false,
+  "model": "gpt-4.1-2025-04-14",
+  "output": [
+    {
+      "id": "fc_07f118f077c91f1a0068e4319f231481969324b4a9180f3bda",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"location\":\"London, UK\",\"units\":\"celsius\"}",
+      "call_id": "call_tgWgQU4IzqjLCPTdsbODFoOh",
+      "name": "weather"
+    },
+    {
+      "id": "fc_07f118f077c91f1a0068e4319f6ac481969fde8ab4fb4e0f50",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"location\":\"Paris, France\",\"units\":\"celsius\"}",
+      "call_id": "call_kGgpknBihLExIymnhL9421wC",
+      "name": "weather"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto"
+}

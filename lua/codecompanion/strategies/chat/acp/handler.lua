@@ -1,5 +1,7 @@
-local config = require("codecompanion.config")
 local formatter = require("codecompanion.strategies.chat.acp.formatters")
+local log = require("codecompanion.utils.log")
+
+-- Keep a record of UI changes in the chat buffer
 
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
@@ -7,6 +9,8 @@ local formatter = require("codecompanion.strategies.chat.acp.formatters")
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
 local ACPHandler = {}
+
+local ACPHandlerUI = {} -- Cache of tool call UI states by chat buffer
 
 ---@param chat CodeCompanion.Chat
 ---@return CodeCompanion.Chat.ACPHandler
@@ -17,6 +21,8 @@ function ACPHandler.new(chat)
     reasoning = {},
     tools = {},
   }, { __index = ACPHandler })
+
+  ACPHandlerUI[chat.bufnr] = {}
 
   return self --[[@type CodeCompanion.Chat.ACPHandler]]
 end
@@ -66,16 +72,76 @@ function ACPHandler:ensure_connection()
     if not connected then
       return false
     end
+
+    -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
+    if self.chat.acp_connection.session_id then
+      local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+      acp_commands.link_buffer_to_session(self.chat.bufnr, self.chat.acp_connection.session_id)
+    end
   end
   return true
+end
+
+---Transform ACP commands in messages from \command to /command
+---@param messages table The messages to transform
+---@return table The transformed messages
+function ACPHandler:transform_acp_commands(messages)
+  if not self.chat.acp_connection or not self.chat.acp_connection.session_id then
+    return messages
+  end
+
+  -- Get available ACP commands for this session
+  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local commands = acp_commands.get_commands_for_session(self.chat.acp_connection.session_id)
+
+  if #commands == 0 then
+    return messages
+  end
+
+  -- Get trigger character
+  local config = require("codecompanion.config")
+  local trigger = "\\"
+  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
+    trigger = config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+  end
+  local escaped_trigger = vim.pesc(trigger)
+
+  -- Transform messages by replacing each known command
+  local transformed = vim.deepcopy(messages)
+  for _, message in ipairs(transformed) do
+    if message.content and type(message.content) == "string" then
+      -- Replace \command with /command for each known ACP command
+      for _, cmd in ipairs(commands) do
+        local escaped_name = vim.pesc(cmd.name)
+
+        -- Pattern with trailing space
+        local pattern_space = escaped_trigger .. escaped_name .. "(%s)"
+        message.content = message.content:gsub(pattern_space, "/" .. cmd.name .. "%1")
+
+        -- Pattern at end of string or followed by non-word character
+        local pattern_end = escaped_trigger .. escaped_name .. "([^%w])"
+        message.content = message.content:gsub(pattern_end, "/" .. cmd.name .. "%1")
+
+        -- Pattern at end of string
+        local pattern_eol = escaped_trigger .. escaped_name .. "$"
+        message.content = message.content:gsub(pattern_eol, "/" .. cmd.name)
+      end
+    end
+  end
+
+  return transformed
 end
 
 ---Create and configure the prompt request with all handlers
 ---@param payload table
 ---@return table Request object
 function ACPHandler:create_and_send_prompt(payload)
+  -- Transform ACP commands before sending
+  local transformed_payload = vim.deepcopy(payload)
+  transformed_payload.messages = self:transform_acp_commands(payload.messages)
+
   return self.chat.acp_connection
-    :session_prompt(payload.messages)
+    :session_prompt(transformed_payload.messages)
     :on_message_chunk(function(content)
       self:handle_message_chunk(content)
     end)
@@ -127,33 +193,63 @@ end
 function ACPHandler:process_tool_call(tool_call)
   -- Cache the tool call to handle processing later on, such as a later permission request
   local id = tool_call.toolCallId
-  if id then
-    local prev = self.tools[id]
-    local merged = merge_tool_call(prev, tool_call)
-    -- Drop from the cache once completed
-    if tool_call.status == "completed" then
-      self.tools[id] = nil
-    else
-      self.tools[id] = merged
-    end
-    tool_call = merged or tool_call
-  end
+
+  local prev = self.tools[id]
+  local merged = merge_tool_call(prev, tool_call)
+  tool_call = merged or tool_call
 
   local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
   if not ok then
     content = "[Error formatting tool output]"
   end
 
+  -- Cache or cleanup
+  if tool_call.status == "completed" then
+    self.tools[id] = nil
+  else
+    self.tools[id] = merged
+  end
+
+  -- If the tool call has already written output to the chat buffer, then we can
+  -- update it rather than adding a new line. We do this by keeping track in
+  -- a global cache, segmented by chat buffer and tool call IDs
+  if ACPHandlerUI[self.chat.bufnr][id] then
+    local match = ACPHandlerUI[self.chat.bufnr][id]
+    -- Whilst I've tried to account for all types of ACP tool output, I'm taking
+    -- a cautious approach and wrapping line updates. Any failures and we'll
+    -- just write the tool output onto a new line in the chat buffer
+    ok, _ = pcall(function()
+      self.chat:update_buf_line(
+        match.line_number,
+        content,
+        { status = tool_call.status, icon_id = match.icon_id, priority = 120, virt_text_pos = "inline" }
+      )
+    end)
+
+    -- Cleanup the cache
+    if tool_call.status == "completed" then
+      ACPHandlerUI[self.chat.bufnr][id] = nil
+    end
+
+    if ok then
+      return
+    end
+    log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", tool_call.toolCallId)
+  end
+
   table.insert(self.output, content)
-  self.chat:add_buf_message({
-    role = config.constants.LLM_ROLE,
+  local line_number = self.chat:add_buf_message({
+    role = require("codecompanion.config").constants.LLM_ROLE,
     content = content,
   }, {
-    status = tool_call.status,
-    tool_call_id = tool_call.toolCallId,
+    status = tool_call.status or "in_progress",
+    virt_text_pos = "inline",
+    tools = { call_id = id },
     kind = tool_call.kind,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
+
+  ACPHandlerUI[self.chat.bufnr][id] = { line_number = line_number }
 end
 
 ---Handle tool call notifications
@@ -202,7 +298,7 @@ end
 ---@param error string
 function ACPHandler:handle_error(error)
   self.chat.status = "error"
-  require("codecompanion.utils.log"):error("[chat::ACPHandler] Error: %s", error)
+  log:error("[ACP::Handler] Error: %s", error)
   self.chat:done(self.output)
 end
 

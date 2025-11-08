@@ -1,5 +1,5 @@
 local providers = require("codecompanion.providers")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -23,6 +23,7 @@ local defaults = {
       mistral = "mistral",
       ollama = "ollama",
       openai = "openai",
+      openai_responses = "openai_responses",
       xai = "xai",
       jina = "jina",
       tavily = "tavily",
@@ -35,7 +36,9 @@ local defaults = {
       },
     },
     acp = {
+      auggie_cli = "auggie_cli",
       claude_code = "claude_code",
+      codex = "codex",
       gemini_cli = "gemini_cli",
       opts = {
         show_defaults = true, -- Show default adapters
@@ -66,6 +69,7 @@ local defaults = {
             tools = {
               "cmd_runner",
               "create_file",
+              "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
@@ -82,6 +86,7 @@ local defaults = {
             prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
               "create_file",
+              "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
@@ -101,9 +106,28 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          description = "Robustly edit existing files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Maximum file size in MB
+          },
+        },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["delete_file"] = {
+          callback = "strategies.chat.tools.catalog.delete_file",
+          description = "Delete a file in the current working directory",
           opts = {
             requires_approval = true,
           },
@@ -141,16 +165,11 @@ local defaults = {
             respect_gitignore = true,
           },
         },
-        ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
-            requires_approval = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = true, -- For editing files in the current working directory
-            },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            requires_approval = true,
           },
         },
         ["next_edit_suggestion"] = {
@@ -161,8 +180,8 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -180,7 +199,7 @@ local defaults = {
           description = "Find code symbol context",
         },
         opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
+          auto_submit_errors = true, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           folds = {
             enabled = true, -- Fold tool output in the buffer?
@@ -285,7 +304,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.catalog.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -294,7 +313,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -303,14 +322,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["quickfix"] = {
-          callback = "strategies.chat.slash_commands.quickfix",
+          callback = "strategies.chat.slash_commands.catalog.quickfix",
           description = "Insert quickfix list entries",
           opts = {
             contains_code = true,
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.file",
+          callback = "strategies.chat.slash_commands.catalog.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -319,7 +338,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "strategies.chat.slash_commands.help",
+          callback = "strategies.chat.slash_commands.catalog.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -328,8 +347,16 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "strategies.chat.slash_commands.image",
+          callback = "strategies.chat.slash_commands.catalog.image",
           description = "Insert an image",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.opts then
+              return opts.adapter.opts.vision == true
+            end
+            return false
+          end,
           opts = {
             dirs = {}, -- Directories to search for images
             filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
@@ -337,22 +364,36 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["memory"] = {
-          callback = "strategies.chat.slash_commands.memory",
+          callback = "strategies.chat.slash_commands.catalog.memory",
           description = "Insert a memory into the chat buffer",
           opts = {
             contains_code = true,
           },
         },
+        ["mode"] = {
+          callback = "strategies.chat.slash_commands.catalog.mode",
+          description = "Change the ACP session mode",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["now"] = {
-          callback = "strategies.chat.slash_commands.now",
+          callback = "strategies.chat.slash_commands.catalog.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
-
         ["symbols"] = {
-          callback = "strategies.chat.slash_commands.symbols",
+          callback = "strategies.chat.slash_commands.catalog.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -360,17 +401,23 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["terminal"] = {
-          callback = "strategies.chat.slash_commands.terminal",
+          callback = "strategies.chat.slash_commands.catalog.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
           },
         },
         ["workspace"] = {
-          callback = "strategies.chat.slash_commands.workspace",
+          callback = "strategies.chat.slash_commands.catalog.workspace",
           description = "Load a workspace file",
           opts = {
             contains_code = true,
+          },
+        },
+        opts = {
+          acp = {
+            enabled = true, -- Enable ACP command completion
+            trigger = "\\", -- Trigger character for ACP commands
           },
         },
       },
@@ -547,7 +594,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
-        undo_levels = 10, -- Number of undo levels to add to chat buffers
         wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
         yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
 
@@ -555,80 +601,28 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
-        goto_file_action = ui.tabnew_reuse,
+        goto_file_action = ui_utils.tabnew_reuse,
 
         ---This is the default prompt which is sent with every request in the chat
         ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
         ---but with some modifications. You can choose to remove this via
         ---your own config but note that LLM results may not be as good
-        ---@param args { adapter: CodeCompanion.HTTPAdapter, language: string }
+        ---@param ctx CodeCompanion.SystemPrompt.Context
         ---@return string
-        system_prompt = function(args)
-          -- Determine the user's machine
-          local machine = vim.uv.os_uname().sysname
-          if machine == "Darwin" then
-            machine = "Mac"
-          end
-          if machine:find("Windows") then
-            machine = "Windows"
-          end
-
-          return fmt(
-            [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
-
-You can answer general programming questions and perform the following tasks:
-* Answer general programming questions.
-* Explain how the code in a Neovim buffer works.
-* Review the selected code from a Neovim buffer.
-* Generate unit tests for the selected code.
-* Propose fixes for problems in the selected code.
-* Scaffold code for a new workspace.
-* Find relevant code to the user's query.
-* Propose fixes for test failures.
-* Answer questions about Neovim.
-
-Follow the user's requirements carefully and to the letter.
-Use the context and attachments the user provides.
-Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
+        system_prompt = function(ctx)
+          return ctx.default_system_prompt
+            .. fmt(
+              [[Additional context:
 All non-code text responses must be written in the %s language.
-Use Markdown formatting in your answers.
-Do not use H1 or H2 markdown headers.
-When suggesting code changes or new content, use Markdown code blocks.
-To start a code block, use 4 backticks.
-After the backticks, add the programming language name as the language ID.
-To close a code block, use 4 backticks on a new line.
-If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
-If you want the user to decide where to place the code, do not add the file path comment.
-In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
-Code block example:
-````languageId
-// filepath: /path/to/file
-// ...existing code...
-{ changed code }
-// ...existing code...
-{ changed code }
-// ...existing code...
-````
-Ensure line comments use the correct syntax for the programming language (e.g. "#" for Python, "--" for Lua).
-For code blocks use four backticks to start and end.
-Avoid wrapping the whole response in triple backticks.
-Do not include diff formatting unless explicitly asked.
-Do not include line numbers in code blocks.
-
-When given a task:
-1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
-2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
-3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
-
-Additional context:
 The current date is %s.
 The user's Neovim version is %s.
-The user is working on a %s machine. Please respond with system specific commands if applicable.]],
-            args.language or "English",
-            os.date("%Y-%m-%d"),
-            vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-            machine
-          )
+The user is working on a %s machine. Please respond with system specific commands if applicable.
+]],
+              ctx.language,
+              ctx.date,
+              ctx.nvim_version,
+              ctx.os
+            )
         end,
       },
     },
@@ -1074,14 +1068,15 @@ This is the code, for context:
         {
           role = constants.USER_ROLE,
           content = function()
-            return fmt(
+            local diff = vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait()
+            return string.format(
               [[You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
 
-```diff
+````diff
 %s
-```
+````
 ]],
-              vim.fn.system("git diff --no-ext-diff --staged")
+              diff.stdout
             )
           end,
           opts = {
@@ -1206,6 +1201,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/acp/acp.md",
           },
         },
+        ["acp-json-rpc"] = {
+          description = "The JSON-RPC output for various ACP adapters",
+          files = {
+            ".codecompanion/acp/claude_code_acp.md",
+          },
+        },
         ["tests"] = {
           description = "Testing in the plugin",
           files = {
@@ -1277,7 +1278,7 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_pending = " ",
         tool_in_progress = " ",
         tool_failure = " ",
-        tool_success = " ",
+        tool_success = "  ",
       },
       -- Window options for the chat buffer
       window = {
@@ -1345,7 +1346,9 @@ You must create or modify a workspace file through a series of prompts over mult
 
       show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       fold_context = false, -- Fold context in the chat buffer?
-      fold_reasoning = true, -- Fold the reasoning content from the LLM in the chat buffer?
+
+      show_reasoning = true, -- Show reasoning content in the chat buffer?
+      fold_reasoning = true, -- Fold the reasoning content in the chat buffer?
 
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
@@ -1391,6 +1394,7 @@ You must create or modify a workspace file through a series of prompts over mult
 
           opts = {
             context_lines = 3, -- Number of context lines in hunks
+            show_dim = true, -- Enable dimming background for floating windows (applies to both diff and super_diff)
             dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
             full_width_removed = true, -- Make removed lines span full width
             show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
@@ -1445,6 +1449,17 @@ local M = {
   config = vim.deepcopy(defaults),
 }
 
+---@param keymaps table<string, table|boolean>
+local function remove_disabled_keymaps(keymaps)
+  local enabled = {}
+  for name, keymap in pairs(keymaps) do
+    if keymap ~= false then
+      enabled[name] = keymap
+    end
+  end
+  return enabled
+end
+
 ---@param args? table
 M.setup = function(args)
   args = args or {}
@@ -1458,6 +1473,9 @@ M.setup = function(args)
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
+
+  M.config.strategies.chat.keymaps = remove_disabled_keymaps(M.config.strategies.chat.keymaps)
+  M.config.strategies.inline.keymaps = remove_disabled_keymaps(M.config.strategies.inline.keymaps)
 
   -- TODO: Add a deprecation warning at some point
   if M.config.opts and M.config.opts.system_prompt then

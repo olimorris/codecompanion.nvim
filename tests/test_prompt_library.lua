@@ -92,8 +92,8 @@ T["Prompt Library"]["can add references"] = function()
   ]])
 
   h.eq(2, #refs)
-  h.eq("<file>lua/codecompanion/health.lua</file>", refs[1].id)
-  h.eq("<file>lua/codecompanion/http.lua</file>", refs[2].id)
+  h.expect_match(refs[1].id, "^<file>lua[\\/]codecompanion[\\/]health.lua</file>$")
+  h.expect_match(refs[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
 end
 
 T["Prompt Library"]["can add context"] = function()
@@ -178,8 +178,8 @@ T["Prompt Library"]["can add context"] = function()
     ]])
 
   h.eq(2, #items)
-  h.eq("<file>lua/codecompanion/health.lua</file>", items[1].id)
-  h.eq("<file>lua/codecompanion/http.lua</file>", items[2].id)
+  h.expect_match(items[1].id, "^<file>lua[\\/]codecompanion[\\/]health.lua</file>$")
+  h.expect_match(items[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
 end
 
 -- New: ensure default_memory adds a memory context item
@@ -246,7 +246,7 @@ T["Prompt Library"]["can ignore system prompt"] = function()
       codecompanion.prompt("no_sys")
       local chat = codecompanion.last_chat()
       for _, msg in ipairs(chat.messages) do
-        if msg.opts and msg.opts.tag == "system_prompt_from_config" then
+        if msg._meta and msg._meta.tag == "system_prompt_from_config" then
           return true
         end
       end

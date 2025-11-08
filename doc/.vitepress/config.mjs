@@ -113,6 +113,7 @@ export default withMermaid(
           collapsed: true,
           items: [
             { text: "Action Palette", link: "/configuration/action-palette" },
+            { text: "ACP", link: "/configuration/acp" },
             { text: "Adapters", link: "/configuration/adapters" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
             { text: "Extensions", link: "/configuration/extensions" },
@@ -131,6 +132,7 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: "Introduction", link: "/usage/introduction" },
+            { text: "ACP Protocol", link: "/usage/acp-protocol" },
             { text: "Action Palette", link: "/usage/action-palette" },
             {
               text: "Chat Buffer",

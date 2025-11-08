@@ -18,28 +18,28 @@ local function range_from_nodes(start_node, end_node)
 end
 
 ---Extract symbols from a file using Tree-sitter
----@param filepath string The path to the file
+---@param path string The path to the file
 ---@param target_kinds? string[] Optional list of symbol kinds to include (default: all)
 ---@return table[]|nil symbols Array of symbols with name, kind, start_line, end_line
 ---@return string|nil content File content if successful
 ---@return string|nil filetype File type if successful
-function M.extract_file_symbols(filepath, target_kinds)
+function M.extract_file_symbols(path, target_kinds)
   local ok, content = pcall(function()
-    return Path.new(filepath):read()
+    return Path.new(path):read()
   end)
 
   if not ok then
-    log:error("[chat::slash_commands::helpers] Could not read the file at %s", filepath)
+    log:error("[chat::slash_commands::helpers] Could not read the file at %s", path)
     return nil, nil, nil
   end
 
   local ft = vim.filetype.match({
-    filename = filepath,
+    filename = path,
     contents = vim.fn.split(content, "\n"),
   })
 
   if not ft then
-    local base_name = vim.fs.basename(filepath)
+    local base_name = vim.fs.basename(path)
     local split_name = vim.split(base_name, "%.")
     if #split_name > 1 then
       local ext = split_name[#split_name]

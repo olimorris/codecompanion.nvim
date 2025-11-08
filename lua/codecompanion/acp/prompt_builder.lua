@@ -2,7 +2,7 @@
 -- PromptBuilder - Fluidly build the prompt which is sent to the agent
 --=============================================================================
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.ACP.PromptBuilder
 ---@field connection CodeCompanion.ACP.Connection
@@ -98,7 +98,7 @@ function PromptBuilder:send()
 
     -- Fire request started
     if not self.options.silent then
-      util.fire("RequestStarted", self.options)
+      utils.fire("RequestStarted", self.options)
     end
   end
 
@@ -113,8 +113,9 @@ function PromptBuilder:send()
   self.connection:write_message(self.connection.methods.encode(req) .. "\n")
 
   self._streaming_started = false
+
   return {
-    shutdown = function()
+    cancel = function()
       self:cancel()
     end,
   }
@@ -159,7 +160,7 @@ function PromptBuilder:handle_session_update(params)
   if self.options and not self._streaming_started then
     self._streaming_started = true
     if not self.options.silent then
-      util.fire("RequestStreaming", self.options)
+      utils.fire("RequestStreaming", self.options)
     end
   end
 
@@ -254,7 +255,7 @@ function PromptBuilder:handle_done(stop_reason)
   end
   if self.options and not self.options.silent then
     self.options.status = status
-    util.fire("RequestFinished", self.options)
+    utils.fire("RequestFinished", self.options)
   end
   self.connection._active_prompt = nil
 end
@@ -269,7 +270,7 @@ function PromptBuilder:cancel()
     )
     if self.options and not self.options.silent then
       self.options.status = "cancelled"
-      util.fire("RequestFinished", self.options)
+      utils.fire("RequestFinished", self.options)
     end
   end
   self.connection._active_prompt = nil

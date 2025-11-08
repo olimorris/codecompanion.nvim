@@ -12,7 +12,7 @@ local CONSTANTS = {
 local M = {}
 
 ---@class CopilotModels
----@field nice_name string
+---@field formatted_name string
 ---@field vendor string
 ---@field opts {can_stream: boolean, can_use_tools: boolean, has_vision: boolean}
 
@@ -101,14 +101,20 @@ local function fetch_async(adapter, provided_token)
 
         local models = {}
         for _, model in ipairs(json.data) do
+          -- Copilot models can use the "completions" or "responses" endpoint
+          local internal_endpoint = "completions"
           if model.supported_endpoints then
             for _, endpoint in ipairs(model.supported_endpoints) do
               if endpoint == "/responses" then
-                log:debug("[Copilot] Skipping `%s` as it supports the /responses endpoint", model.id)
+                internal_endpoint = "responses"
+                break
+              elseif endpoint ~= "/chat/completions" then
+                log:debug("Copilot Adapter: Skipping unsupported endpoint '%s' for model '%s'", endpoint, model.id)
                 goto continue
               end
             end
           end
+
           if model.model_picker_enabled and model.capabilities and model.capabilities.type == "chat" then
             local choice_opts = {}
 
@@ -122,7 +128,12 @@ local function fetch_async(adapter, provided_token)
               choice_opts.has_vision = true
             end
 
-            models[model.id] = { vendor = model.vendor, nice_name = model.name, opts = choice_opts }
+            models[model.id] = {
+              endpoint = internal_endpoint,
+              vendor = model.vendor,
+              formatted_name = model.name,
+              opts = choice_opts,
+            }
           end
           ::continue::
         end

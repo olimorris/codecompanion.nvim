@@ -36,7 +36,7 @@ local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 local variables = require("codecompanion.strategies.inline.variables")
 
 local api = vim.api
@@ -242,7 +242,7 @@ function Inline:parse_special_syntax(prompt)
       self:set_adapter(adapter_match)
       prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
     else
-      util.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
+      utils.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
     end
   else
     -- Handle legacy first-word adapter detection for backward compatibility
@@ -284,8 +284,10 @@ function Inline:prompt(user_prompt)
       (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT),
       config.opts.language
     ),
-    opts = {
+    _meta = {
       tag = "system_tag",
+    },
+    opts = {
       visible = false,
     },
   })
@@ -376,8 +378,8 @@ function Inline:make_ext_prompts()
           self.buffer_context.filetype,
           self.buffer_context.lines
         ),
+        _meta = { tag = "visual" },
         opts = {
-          tag = "visual",
           visible = false,
         },
       })
@@ -391,9 +393,9 @@ end
 ---@return nil
 function Inline:stop()
   if self.current_request then
-    self.current_request:shutdown()
+    self.current_request.cancel()
     self.current_request = nil
-    self.adapter.handlers.on_exit(self.adapter)
+    adapters.call_handler(self.adapter, "on_exit")
   end
 end
 
@@ -428,7 +430,7 @@ function Inline:submit(prompt)
         end
 
         if data then
-          data = self.adapter.handlers.inline_output(adapter, data, self.buffer_context)
+          data = adapters.call_handler(adapter, "parse_inline", data, self.buffer_context)
           if data.status == CONSTANTS.STATUS_SUCCESS then
             return self:done(data.output)
           else
@@ -447,7 +449,7 @@ end
 ---@param output string The output from the LLM
 ---@return nil
 function Inline:done(output)
-  util.fire("InlineFinished")
+  utils.fire("InlineFinished")
   log:info("[Inline] Request finished")
 
   local adapter_name = self.adapter.formatted_name
@@ -652,8 +654,8 @@ function Inline:place(placement)
       assert(type(bufnr) == "number", "No buffer number returned from the pre_hook function")
     else
       bufnr = api.nvim_create_buf(true, false)
-      local ft = util.safe_filetype(self.buffer_context.filetype)
-      util.set_option(bufnr, "filetype", ft)
+      local ft = utils.safe_filetype(self.buffer_context.filetype)
+      utils.set_option(bufnr, "filetype", ft)
     end
 
     -- TODO: This is duplicated from the chat strategy
@@ -698,11 +700,11 @@ function Inline:to_chat()
 
   for i = #prompt, 1, -1 do
     -- Remove all of the system prompts
-    if prompt[i].opts and prompt[i].opts.tag == "system_tag" then
+    if prompt[i]._meta and prompt[i]._meta.tag == "system_tag" then
       table.remove(prompt, i)
     end
     -- Remove any visual selections as the chat buffer adds these from the context
-    if self.buffer_context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
+    if self.buffer_context.is_visual and (prompt[i]._meta and prompt[i]._meta.tag == "visual") then
       table.remove(prompt, i)
     end
   end

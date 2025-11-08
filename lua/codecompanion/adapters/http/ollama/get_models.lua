@@ -1,7 +1,7 @@
 local Curl = require("plenary.curl")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
 
 local CONSTANTS = {
   TIMEOUT = 3000, -- 3 seconds
@@ -13,11 +13,7 @@ local running = false
 
 M = {}
 
----Structure:
----```lua
----_cached_models[url][model_name] = { opts = { can_reason = true, has_vision = false }, nice_name = 'nice_name' }
----```
----@type table<string, table<string, { nice_name: string?, opts: {can_reason: boolean, has_vision: boolean} }>>
+---@type table<string, table<string, { formatted_name: string?, opts: {can_reason: boolean, has_vision: boolean, can_use_tools: boolean} }>>
 local _cached_models = {}
 
 ---@alias OllamaGetModelsOpts {last?: boolean, async?: boolean}
@@ -87,7 +83,7 @@ local function fetch_async(adapter, opts)
             body = vim.json.encode({ model = model_obj.name }),
             timeout = CONSTANTS.TIMEOUT,
             callback = function(output)
-              _cached_models[url][model_obj.name] = { nice_name = model_obj.name, opts = {} }
+              _cached_models[url][model_obj.name] = { formatted_name = model_obj.name, opts = {} }
               if output.status == 200 then
                 local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
                 if ok then
@@ -95,6 +91,8 @@ local function fetch_async(adapter, opts)
                     vim.list_contains(model_info_json.capabilities or {}, "thinking")
                   _cached_models[url][model_obj.name].opts.has_vision =
                     vim.list_contains(model_info_json.capabilities or {}, "vision")
+                  _cached_models[url][model_obj.name].opts.can_use_tools =
+                    vim.list_contains(model_info_json.capabilities or {}, "tools")
                 end
               end
               jobs[model_obj.name] = nil
@@ -128,11 +126,11 @@ function M.choices(self, opts)
     log:error("Could not resolve Ollama adapter in the `choices` function")
     return {}
   end
-  utils.get_env_vars(adapter)
+  adapter_utils.get_env_vars(adapter)
   local url = adapter.env_replaced.url
   local is_uninitialised = _cached_models[url] == nil
 
-  local should_block = (self.opts.cache_adapter == false) or is_uninitialised or not opts.async
+  local should_block = (adapter.opts.cache_adapter == false) or is_uninitialised or not opts.async
 
   fetch_async(adapter, { async = not should_block }) -- should_block means NO async
 

@@ -15,62 +15,66 @@ local send_response_to_chat = function(exec, llm_message, user_message)
   exec.tools.chat:add_tool_output(exec.tool, llm_message, user_message)
 end
 
+---Execute a shell command with platform-specific handling
+---@param cmd table
+---@param callback function
+local function execute_shell_command(cmd, callback)
+  if vim.fn.has("win32") == 1 then
+    -- See PR #2186
+    local shell_cmd = table.concat(cmd, " ") .. "\r\nEXIT %ERRORLEVEL%\r\n"
+    vim.system({ "cmd.exe", "/Q", "/K" }, {
+      stdin = shell_cmd,
+      env = { PROMPT = "\r\n" },
+    }, callback)
+  else
+    vim.system(tool_utils.build_shell_command(cmd), {}, callback)
+  end
+end
+
 ---Converts a cmd-based tool to a function-based tool.
 ---@param tool CodeCompanion.Tools.Tool
 ---@return CodeCompanion.Tools.Tool
 local function cmd_to_func_tool(tool)
-  --NOTE: The `env` field should be processed in the tool beforehand
-
   tool.cmds = vim
     .iter(tool.cmds)
     :map(function(cmd)
       if type(cmd) == "function" then
-        -- function-based tool
         return cmd
-      else
-        local flag = cmd.flag
-        cmd = cmd.cmd or cmd
-        if type(cmd) == "string" then
-          cmd = vim.split(cmd, " ", { trimempty = true })
-        end
+      end
 
-        ---@param tools CodeCompanion.Tools
-        return function(tools, _, _, cb)
-          cb = vim.schedule_wrap(cb)
-          vim.system(tool_utils.build_shell_command(cmd), {}, function(out)
-            -- Flags can be read higher up in the tool's execution
-            if flag then
-              tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
-              tools.chat.tool_registry.flags[flag] = (out.code == 0)
+      local flag = cmd.flag
+      cmd = cmd.cmd or cmd
+      if type(cmd) == "string" then
+        cmd = vim.split(cmd, " ", { trimempty = true })
+      end
+
+      ---@param tools CodeCompanion.Tools
+      return function(tools, _, _, cb)
+        cb = vim.schedule_wrap(cb)
+        execute_shell_command(cmd, function(out)
+          if flag then
+            tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
+            tools.chat.tool_registry.flags[flag] = (out.code == 0)
+          end
+
+          local eol_pattern = vim.fn.has("win32") == 1 and "\r?\n" or "\n"
+
+          if out.code == 0 then
+            cb({
+              status = "success",
+              data = tool_utils.strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })),
+            })
+          else
+            local combined = {}
+            if out.stderr and out.stderr ~= "" then
+              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stderr, eol_pattern, { trimempty = true })))
             end
-            if out.code == 0 then
-              cb({
-                status = "success",
-                data = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
-              })
-            else
-              local stderr = {}
-              if out.stderr and out.stderr ~= "" then
-                stderr = tool_utils.strip_ansi(vim.split(out.stderr, "\n", { trimempty = true }))
-              end
-
-              -- Some commands may return an error but populate stdout
-              local stdout = {}
-              if out.stdout and out.stdout ~= "" then
-                stdout = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true }))
-              end
-
-              local combined = {}
-              vim.list_extend(combined, stderr)
-              vim.list_extend(combined, stdout)
-
-              cb({
-                status = "error",
-                data = combined,
-              })
+            if out.stdout and out.stdout ~= "" then
+              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })))
             end
-          end)
-        end
+            cb({ status = "error", data = combined })
+          end
+        end)
       end
     end)
     :totable()
@@ -147,16 +151,22 @@ function Orchestrator:setup_handlers()
         return self.tool.output.prompt(self.tool, self.tools)
       end
     end,
-    rejected = function(cmd)
+    rejected = function(cmd, opts)
       if not self.tool then
         return
       end
 
+      opts = opts or {}
+
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.tool, self.tools, cmd)
+        self.tool.output.rejected(self.tool, self.tools, cmd, opts)
       else
+        local rejection = fmt("\nThe user rejected the execution of the %s tool", self.tool.name)
+        if opts.reason then
+          rejection = rejection .. fmt(': "%s"', opts.reason)
+        end
         -- If no handler is set then return a default message
-        send_response_to_chat(self, fmt("User rejected `%s`", self.tool.name))
+        send_response_to_chat(self, rejection)
       end
     end,
     error = function(cmd)
@@ -254,13 +264,19 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Approve", "2 Reject", "3 Cancel" })
-      if choice == 1 then
+      local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
+      if choice == 1 or choice == 2 then
         log:debug("Orchestrator:execute - Tool approved")
+        if choice == 1 then
+          vim.g.codecompanion_yolo_mode = true
+        end
         return self:execute(cmd, input)
-      elseif choice == 2 then
-        self.output.rejected(cmd)
-        return self:setup()
+      elseif choice == 3 then
+        log:debug("Orchestrator:execute - Tool rejected")
+        ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+          self.output.rejected(cmd, { reason = i })
+          return self:setup()
+        end)
       else
         log:debug("Orchestrator:execute - Tool cancelled")
         -- NOTE: Cancel current tool, then cancel all queued tools
@@ -273,6 +289,7 @@ function Orchestrator:setup(input)
       return self:execute(cmd, input)
     end
   else
+    log:debug("Orchestrator:execute - No tool approval required")
     return self:execute(cmd, input)
   end
 end
@@ -282,7 +299,6 @@ end
 function Orchestrator:cancel_pending_tools()
   while not self.queue:is_empty() do
     local pending_tool = self.queue:pop()
-    local previous_tool = self.tool
     self.tool = pending_tool
 
     -- Prepare handlers/output first
@@ -304,8 +320,12 @@ end
 ---@return nil
 function Orchestrator:execute(cmd, input)
   utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
-  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-  self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
+
+  pcall(function()
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
+  end)
+
   return Runner.new(self, cmd, 1):setup(input)
 end
 
@@ -318,10 +338,12 @@ function Orchestrator:error(action, error)
   self.tools.status = self.tools.constants.STATUS_ERROR
   table.insert(self.tools.stderr, error)
 
-  -- Finish tool monitoring with error status
   if self.tool and self.tool.name then
-    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
+    -- Wrap this in error handling to avoid breaking the tool execution
+    pcall(function()
+      local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
+    end)
   end
 
   local ok, err = pcall(function()
@@ -344,11 +366,14 @@ end
 function Orchestrator:success(action, output)
   log:debug("Orchestrator:success")
   self.tools.status = self.tools.constants.STATUS_SUCCESS
-  -- Direct call to finish tool monitoring
+
   if self.tool and self.tool.name then
-    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
-    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
+    pcall(function()
+      local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
+    end)
   end
+
   if output then
     table.insert(self.tools.stdout, output)
   end
