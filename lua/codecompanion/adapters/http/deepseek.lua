@@ -94,73 +94,15 @@ return {
     ---@param tools? table The table to write any tool output to
     ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
     chat_output = function(self, data, tools)
-      local output = {}
-
-      if data and data ~= "" then
-        local data_mod = adapter_utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
-
-        if ok and json.choices and #json.choices > 0 then
-          local choice = json.choices[1]
-          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-
-          if delta then
-            output.role = delta.role
-            output.content = delta.content
-
-            if delta.reasoning_content then
-              output.reasoning = output.reasoning or {}
-              output.reasoning.content = delta.reasoning_content
-            end
-
-            -- Process tools
-            if self.opts.tools and delta.tool_calls and tools then
-              for _, tool in ipairs(delta.tool_calls) do
-                if self.opts.stream then
-                  local index = tool.index
-                  local found = false
-
-                  for i, existing_tool in ipairs(tools) do
-                    if existing_tool._index == index then
-                      tools[i]["function"].arguments = (tools[i]["function"].arguments or "")
-                        .. (tool["function"]["arguments"] or "")
-                      found = true
-                      break
-                    end
-                  end
-
-                  if not found then
-                    table.insert(tools, {
-                      ["function"] = {
-                        name = tool["function"]["name"],
-                        arguments = tool["function"]["arguments"] or "",
-                      },
-                      id = tool.id,
-                      type = "function",
-                      _index = index,
-                    })
-                  end
-                else
-                  table.insert(tools, {
-                    _index = tool.index,
-                    ["function"] = {
-                      name = tool["function"]["name"],
-                      arguments = tool["function"]["arguments"],
-                    },
-                    id = tool.id,
-                    type = "function",
-                  })
-                end
-              end
-            end
-
-            return {
-              status = "success",
-              output = output,
-            }
-          end
-        end
+      return openai.handlers.chat_output(self, data, tools)
+    end,
+    parse_extra = function(self, data)
+      local extra = data.extra
+      if extra.reasoning_content then
+        data.output.reasoning = { content = extra.reasoning_content }
+        data.output.content = nil
       end
+      return data
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)

@@ -200,6 +200,9 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
+    if adapter.handlers.parse_extra and chat_output.extra then
+      chat_output = adapter.handlers.parse_extra(adapter, chat_output)
+    end
     if chat_output then
       if chat_output.output.reasoning and chat_output.output.reasoning.content then
         output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
@@ -277,7 +280,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _index = 0,
+      _index = 1,
       ["function"] = {
         arguments = '{"location": "London", "units": "celsius"}',
         name = "weather",
@@ -286,7 +289,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
       type = "function",
     },
     {
-      _index = 1,
+      _index = 2,
       ["function"] = {
         arguments = '{"location": "Paris", "units": "celsius"}',
         name = "weather",
