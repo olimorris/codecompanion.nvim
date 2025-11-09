@@ -14,7 +14,7 @@ M.form_messages = function(self, messages, capabilities)
     .iter(messages)
     :filter(function(msg)
       -- Ensure we're only sending messages that the agent hasn't seen before
-      return msg.role == self.roles.user and not msg._meta.sent
+      return msg.role == self.roles.user and msg._meta and not msg._meta.sent
     end)
     :map(function(msg)
       if msg._meta and msg._meta.tag == "image" and msg.context and msg.context.mimetype then
