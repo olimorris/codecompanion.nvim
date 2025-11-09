@@ -398,7 +398,9 @@ require("codecompanion").setup({
               local extra = data.extra
               if extra and extra.reasoning then
                 data.output.reasoning = { content = extra.reasoning }
-                data.output.content = nil
+                if data.output.content == "" then
+                  data.output.content = nil
+                end
               end
               return data
             end,

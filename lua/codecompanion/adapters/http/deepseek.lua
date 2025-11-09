@@ -91,8 +91,8 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.HTTPAdapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param tools? table The table to write any tool output to
-    ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
+    ---@param tools table The table to write any tool output to
+    ---@return { status: string, output: { role: string, content: string?, reasoning: {content: string}? } } | nil
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
     end,
@@ -100,7 +100,9 @@ return {
       local extra = data.extra
       if extra.reasoning_content then
         data.output.reasoning = { content = extra.reasoning_content }
-        data.output.content = nil
+        if data.output.content == "" then
+          data.output.content = nil
+        end
       end
       return data
     end,

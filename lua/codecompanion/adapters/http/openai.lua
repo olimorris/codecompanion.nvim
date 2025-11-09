@@ -13,14 +13,16 @@ local CONSTANTS = {
   },
 }
 
----@param obj table?
+---Find the non-standard fields in the `message` or `delta` that are not in the standard OpenAI chat-completion specs.
+---Returns `nil` if not found.
+---@param delta table?
 ---@return table?
-local function find_extra_fields(obj)
-  if obj == nil then
+local function find_extra_fields(delta)
+  if delta == nil then
     return nil
   end
   local extra = {}
-  vim.iter(obj):each(function(k, v)
+  vim.iter(delta):each(function(k, v)
     if not vim.list_contains(CONSTANTS.STANDARD_MESSAGE_FIELDS, k) then
       extra[k] = v
     end
