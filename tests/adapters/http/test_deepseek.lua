@@ -200,8 +200,8 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
-    if adapter.handlers.parse_extra and chat_output.extra then
-      chat_output = adapter.handlers.parse_extra(adapter, chat_output)
+    if adapter.handlers.parse_message_meta and chat_output.extra then
+      chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
     end
     if chat_output then
       if chat_output.output.reasoning and chat_output.output.reasoning.content then

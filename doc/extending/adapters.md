@@ -176,7 +176,7 @@ These handlers parse LLM responses:
 - `response.parse_chat` - Format chat output for the chat buffer
 - `response.parse_inline` - Format output for inline insertion
 - `response.parse_tokens` - Extract token count from the response
-- `response.parse_extra` - Process non-standard fields in the response (currently only supported by OpenAI-based adapters)
+- `response.parse_meta` - Process non-standard fields in the response (currently only supported by OpenAI-based adapters)
 
 ### Tool Handlers
 
@@ -377,13 +377,13 @@ handlers = {
 }
 ```
 
-### `response.parse_extra`
+### `response.parse_meta`
 
 Some OpenAI-compatible API providers like deepseek, Gemini and OpenRouter implement a superset of the standard specification, and provide reasoning tokens/summaries within their response.
 The non-standard fields in the [`message` (non-streaming)](https://platform.openai.com/docs/api-reference/chat/object#chat-object-choices-message) or [`delta` (streaming)](https://platform.openai.com/docs/api-reference/chat-streaming/streaming#chat_streaming-streaming-choices-delta) object are captured by the OpenAI adapter and can be used to extract the reasoning.
 
 For example, the DeepSeek API provides the reasoning tokens in the `delta.reasoning_content` field.
-We can therefore use the following `parse_extra` handler to extract the reasoning tokens and put them into the appropriate output fields: 
+We can therefore use the following `parse_meta` handler to extract the reasoning tokens and put them into the appropriate output fields: 
 
 ```lua
 handlers = {
@@ -392,7 +392,7 @@ handlers = {
     --- `data` is the output of the `parse_chat` handler
     ---@param data {status: string, output: {role: string?, content: string?}, extra: table}
     ---@return {status: string, output: {role: string?, content: string?, reasoning:{content: string?}?}}
-    parse_extra = function(self, data)
+    parse_meta = function(self, data)
       local extra = data.extra
       if extra.reasoning_content then
         -- codecompanion expect the reasoning tokens in this format
@@ -412,6 +412,7 @@ Notes:
 
 1. You don't always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
 2. It's expected that the processed `data` table is returned at the end.
+3. For adapters that are using the legacy flat handler formats, this handler should be named `handlers.parse_message_meta`. The function signature stays the same.
 
 ### `request.build_parameters`
 

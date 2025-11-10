@@ -50,7 +50,7 @@ local function get_handler(adapter, name)
     parse_chat = "chat_output",
     parse_inline = "inline_output",
     parse_tokens = "tokens",
-    parse_extra = "parse_extra",
+    parse_meta = "parse_message_meta",
 
     -- tools
     format_calls = "format_tool_calls",
@@ -85,7 +85,7 @@ end
 ---@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, data: string|table, tools?: table): { status: string, output: table }|nil
 ---@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, data: string|table, context?: table): { status: string, output: string }|nil
 ---@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
----@field parse_extra? fun(self: CodeCompanion.HTTPAdapter, data: {status: string, output: {role: string?, content: string?}, extra: table}):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
+---@field parse_message_meta? fun(self: CodeCompanion.HTTPAdapter, data: {status: string, output: {role: string?, content: string?}, extra: table}):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
 
 ---@class CodeCompanion.HTTPAdapter.Handlers.Tools
 ---@field format_calls? fun(self: CodeCompanion.HTTPAdapter, tools: table): table

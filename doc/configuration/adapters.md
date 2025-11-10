@@ -394,7 +394,7 @@ require("codecompanion").setup({
             chat_url = "/v1/chat/completions",
           },
           handlers = {
-            parse_extra = function(self, data)
+            parse_message_meta = function(self, data)
               local extra = data.extra
               if extra and extra.reasoning then
                 data.output.reasoning = { content = extra.reasoning }
