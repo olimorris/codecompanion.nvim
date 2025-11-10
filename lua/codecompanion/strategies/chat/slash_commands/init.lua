@@ -12,7 +12,14 @@ local function resolve(callback)
     return slash_command
   end
 
-  -- Try loading the tool from the user's config
+  -- Try loading the tool from the user's config using a module path
+  ok, slash_command = pcall(require, callback)
+  if ok then
+    log:debug("Calling slash command: %s", callback)
+    return slash_command
+  end
+
+  -- Try loading the tool from the user's config using a file path
   local err
   slash_command, err = loadfile(callback)
   if err then
