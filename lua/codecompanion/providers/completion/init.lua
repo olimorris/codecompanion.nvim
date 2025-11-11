@@ -187,12 +187,6 @@ end
 function M.acp_commands(bufnr)
   bufnr = bufnr or api.nvim_get_current_buf()
 
-  -- Only show ACP commands if this buffer is using an ACP adapter
-  local adapter_info = adapter_cache[bufnr]
-  if not adapter_info or adapter_info.type ~= "acp" then
-    return {}
-  end
-
   local acp_commands = require("codecompanion.strategies.chat.acp.commands")
   local commands = acp_commands.get_commands_for_buffer(bufnr)
   local acp_trigger = get_acp_trigger()
