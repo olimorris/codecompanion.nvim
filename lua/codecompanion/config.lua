@@ -46,6 +46,29 @@ local defaults = {
     },
   },
   constants = constants,
+  interactions = {
+    -- BACKGROUND INTERACTION -------------------------------------------------
+    background = {
+      adapter = {
+        name = "copilot",
+        model = "gpt-4.1",
+      },
+      -- Callbacks within the plugin that you can attach background actions to
+      callbacks = {
+        chat = {
+          ["on_ready"] = {
+            actions = {
+              "interactions.background.catalog.chat_make_title",
+            },
+            enabled = true,
+          },
+          opts = {
+            enabled = true, -- Enable ALL background interactions?
+          },
+        },
+      },
+    },
+  },
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
