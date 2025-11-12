@@ -40,6 +40,7 @@ function Background.new(args)
   end
 
   self.settings = schema.get_default(self.adapter, args.settings)
+  self.adapter:map_schema_to_params(self.settings)
 
   return self ---@type CodeCompanion.Background
 end
@@ -121,8 +122,7 @@ function Background:ask_sync(messages, opts)
     return nil, err
   end
 
-  local result = adapters.call_handler(self.adapter, "parse_chat", response)
-  return result, nil
+  return response, nil
 end
 
 ---Ask the LLM asynchronously with provided messages

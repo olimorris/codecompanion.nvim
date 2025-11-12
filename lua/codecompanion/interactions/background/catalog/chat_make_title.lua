@@ -33,6 +33,7 @@ function M.request(background, chat)
       ),
     },
   }, {
+    stream = false,
     silent = true,
   })
 
