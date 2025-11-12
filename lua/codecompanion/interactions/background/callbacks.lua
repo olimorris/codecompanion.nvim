@@ -3,35 +3,44 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
----Execute an action
----@param action_path string The path to the module
----@param chat CodeCompanion.Chat The chat instance
----@return nil
-local function execute_action(action_path, chat)
-  local ok, action = pcall(require, "codecompanion." .. action_path)
-  if not ok then
-    return log:error("[background::callbacks] Failed to load action module: %s", action_path)
+---Resolve a callback module from a given path
+---@param path string The path to the module
+---@return table|nil The loaded action module or nil on failure
+local function resolve(path)
+  local ok, action = pcall(require, "codecompanion." .. path)
+  if ok then
+    return action
   end
 
   -- Load the tool from the user's config using a module path
-  ok, action = pcall(require, action_path)
-  if not ok then
-    return log:error("[background::callbacks] Failed to load user's module path", action_path)
+  ok, action = pcall(require, path)
+  if ok then
+    return action
   end
 
   -- Try loading the tool from the user's config using a file path
   local err
-  action, err = loadfile(action_path)
+  action, err = loadfile(path)
   if err then
-    return log:error("[background::callbacks] Failed to load user's module from file path", action_path)
-  end
-  if not action then
-    return log:error("[background::callbacks] Action module %s could not be loaded", action_path)
+    return log:error("[background::callbacks] Failed to load user's module from file path", path)
   end
 
-  action = action()
+  if action then
+    return action()
+  end
+end
+
+---Execute an action
+---@param path string The path to the module
+---@param chat CodeCompanion.Chat The chat instance
+---@return nil
+local function execute_action(path, chat)
+  local action = resolve(path)
+  if not action then
+    return
+  end
   if not action.request then
-    return log:error("[background::callbacks] Action module %s does not have a request function", action_path)
+    return log:error("[background::callbacks] File `%s` does not have a request function", path)
   end
 
   -- Create a background instance using the configured adapter
@@ -42,18 +51,17 @@ local function execute_action(action_path, chat)
   })
 
   if not background then
-    log:error("[background::callbacks] Failed to create instance for action: %s", action_path)
+    log:error("[background::callbacks] Failed to create instance for action: %s", path)
     return
   end
 
   -- Execute the action asynchronously to avoid blocking the UI
   vim.schedule(function()
-    local result
-    ok, result = pcall(action.request, background, chat)
+    local ok, result = pcall(action.request, background, chat)
     if not ok then
-      log:error("[background::callbacks] Error executing action %s: %s", action_path, result)
+      log:error("[background::callbacks] Error executing action %s: %s", path, result)
     else
-      log:debug("[background::callbacks] Action %s completed successfully", action_path)
+      log:debug("[background::callbacks] Action %s completed successfully", path)
     end
   end)
 end
@@ -79,8 +87,8 @@ function M.register_chat_callbacks(chat)
         log:debug("[background::callbacks] Executing %d actions for event: %s", #event_config.actions, event)
 
         -- Execute each action for this event
-        for _, action_path in ipairs(event_config.actions) do
-          execute_action(action_path, c)
+        for _, path in ipairs(event_config.actions) do
+          execute_action(path, c)
         end
       end)
 
