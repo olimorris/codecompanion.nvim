@@ -51,7 +51,7 @@ To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion
 <img src="https://github.com/user-attachments/assets/28b70ba1-6fd2-4431-9905-c60c83286e4c">
 4. Back in your CLI, copy the OAuth token (in yellow):
 <img src="https://github.com/user-attachments/assets/73992480-20a6-4858-a9fe-93a4e49004ff">
-5. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on [environment variables](#environment-variables) for other ways to do this):
+5. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on [environment variables](/configuration/adapters#environment-variables) for other ways to do this):
 ```lua
 require("codecompanion").setup({
   adapters = {
