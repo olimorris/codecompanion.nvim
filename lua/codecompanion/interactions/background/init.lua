@@ -1,3 +1,27 @@
+--[[
+===============================================================================
+    File:       codecompanion/interactions/background/init.lua
+    Author:     Oli Morris
+-------------------------------------------------------------------------------
+    Description:
+      This module implements background interactions for the chat buffer.
+      These work on the basis of non-blocking requests which attach to
+      callbacks on the chat instance.
+
+      The interactions can self-destruct after running or persist for the
+      lifetime of the chat session.
+
+      Background interactions must log or error silently so as not to impact
+      the user experience.
+
+      This code is licensed under the MIT License.
+-------------------------------------------------------------------------------
+    Attribution:
+      If you use or distribute this code, please credit:
+      Oli Morris (https://github.com/olimorris)
+===============================================================================
+--]]
+
 local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local http = require("codecompanion.http")
@@ -46,7 +70,7 @@ function Background.new(args)
   return self ---@type CodeCompanion.Background
 end
 
----Ask the LLM synchronously with provided messages
+---Ask the LLM, synchronously
 ---@param background CodeCompanion.Background
 ---@param messages CodeCompanion.Chat.Messages
 ---@param opts? { silent?: boolean, parse_handler?: string }
@@ -76,7 +100,7 @@ local function ask_sync(background, messages, opts)
   return result, nil
 end
 
----Ask the LLM asynchronously with provided messages
+---Ask the LLM asynchronously
 ---@param background CodeCompanion.Background
 ---@param messages CodeCompanion.Chat.Messages
 ---@param opts { on_done: function, on_error?: function, on_chunk?: function, silent?: boolean, parse_handler?: string }
