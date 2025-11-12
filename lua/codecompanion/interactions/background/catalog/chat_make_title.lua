@@ -1,7 +1,10 @@
+local log = require("codecompanion.utils.log")
+
 local fmt = string.format
 
 local M = {}
 
+---Format the messages from a chat buffer
 ---@param messages CodeCompanion.Chat.Messages
 local function format_messages(messages)
   local chat_messages = {}
@@ -11,49 +14,48 @@ local function format_messages(messages)
   return table.concat(chat_messages, "\n")
 end
 
+---Make the request to generate a title for the chat
 ---@param background CodeCompanion.Background
 ---@param chat CodeCompanion.Chat
----@return table|nil, table|nil -- response, error
 function M.request(background, chat)
   if chat.title and chat.title ~= "" then
     return
   end
 
-  -- Send the messages to the LLM to generate a title
-  local output, err = background:ask_sync({
+  background:ask({
     {
       role = "system",
-      content = "You are an AI assistant that generates concise and relevant titles for conversations based on their content. The title should be brief, ideally under 10 words, and should accurately reflect the main topic or theme of the conversation. You output only the title without any additional text and formatting",
+      content = [[You are an expert at summarising conversations. Your task is to generate a concise and relevant title for the conversation provided in the user's message.
+
+Constraints:
+- The title must be brief, ideally under 5 words.
+- It must accurately reflect the main topic of the conversation.
+- You must only output the title, with no additional text, quotation marks, or formatting.]],
     },
     {
       role = "user",
-      content = fmt(
-        [[Generate a concise and relevant title for the following conversation:\n\n%s]],
-        format_messages(chat.messages)
-      ),
+      content = fmt([[<conversation>%s</conversation]], format_messages(chat.messages)),
     },
   }, {
-    stream = false,
+    method = "async",
     silent = true,
+    on_done = function(result)
+      if not result or (result.status and result.status == "error") then
+        return
+      end
+
+      local title = result and result.output and result.output.content
+      if title then
+        title = title:gsub("^[\"']", ""):gsub("[\"']$", ""):gsub("^%s*", ""):gsub("%s*$", "")
+        chat:set_title(title)
+
+        -- Remove the callback from the chat buffer
+      end
+    end,
+    on_error = function(err)
+      log:debug("[Background] Chat title generation failed: %s", err)
+    end,
   })
-
-  print(vim.inspect(output))
-
-  if err then
-    return nil, err
-  end
-
-  -- Parse the output and extract the title
-  local title = output and output.content
-  if title then
-    -- Clean up the output
-    title = title:gsub("^[\"']", ""):gsub("[\"']$", ""):gsub("^%s*", ""):gsub("%s*$", "")
-
-    chat.title = title
-    return title, nil
-  end
-
-  return nil, { message = "No title generated" }
 end
 
 return M

@@ -1667,6 +1667,18 @@ function Chat:update_metadata()
   }
 end
 
+---Set the title of the chat buffer
+---@param title string
+---@return CodeCompanion.Chat
+function Chat:set_title(title)
+  assert(type(title) == "string", "title must be a string")
+
+  self.title = title
+  chatmap[self.bufnr].description = title
+
+  return self
+end
+
 ---Returns the chat object(s) based on the buffer number
 ---@param bufnr? number
 ---@return CodeCompanion.Chat|table

@@ -3,20 +3,35 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
----Execute a background action
----@param action_path string The path to the action module (e.g., "interactions.background.catalog.chat_make_title")
+---Execute an action
+---@param action_path string The path to the module
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
 local function execute_action(action_path, chat)
   local ok, action = pcall(require, "codecompanion." .. action_path)
   if not ok then
-    log:error("[Background] Failed to load action module: %s", action_path)
-    return
+    return log:error("[background::callbacks] Failed to load action module: %s", action_path)
   end
 
+  -- Load the tool from the user's config using a module path
+  ok, action = pcall(require, action_path)
+  if not ok then
+    return log:error("[background::callbacks] Failed to load user's module path", action_path)
+  end
+
+  -- Try loading the tool from the user's config using a file path
+  local err
+  action, err = loadfile(action_path)
+  if err then
+    return log:error("[background::callbacks] Failed to load user's module from file path", action_path)
+  end
+  if not action then
+    return log:error("[background::callbacks] Action module %s could not be loaded", action_path)
+  end
+
+  action = action()
   if not action.request then
-    log:error("[Background] Action module %s does not have a request function", action_path)
-    return
+    return log:error("[background::callbacks] Action module %s does not have a request function", action_path)
   end
 
   -- Create a background instance using the configured adapter
@@ -27,17 +42,18 @@ local function execute_action(action_path, chat)
   })
 
   if not background then
-    log:error("[Background] Failed to create background instance for action: %s", action_path)
+    log:error("[background::callbacks] Failed to create instance for action: %s", action_path)
     return
   end
 
   -- Execute the action asynchronously to avoid blocking the UI
   vim.schedule(function()
-    local ok, result = pcall(action.request, background, chat)
+    local result
+    ok, result = pcall(action.request, background, chat)
     if not ok then
-      log:error("[Background] Error executing action %s: %s", action_path, result)
+      log:error("[background::callbacks] Error executing action %s: %s", action_path, result)
     else
-      log:debug("[Background] Action %s completed successfully", action_path)
+      log:debug("[background::callbacks] Action %s completed successfully", action_path)
     end
   end)
 end
@@ -60,7 +76,7 @@ function M.register_chat_callbacks(chat)
     if event_config.enabled and event_config.actions then
       -- Register a callback for this event
       chat:add_callback(event, function(c)
-        log:debug("[Background] Executing %d actions for event: %s", #event_config.actions, event)
+        log:debug("[background::callbacks] Executing %d actions for event: %s", #event_config.actions, event)
 
         -- Execute each action for this event
         for _, action_path in ipairs(event_config.actions) do
@@ -68,7 +84,7 @@ function M.register_chat_callbacks(chat)
         end
       end)
 
-      log:debug("[Background] Registered %d actions for chat event: %s", #event_config.actions, event)
+      log:debug("[background::callbacks] Registered %d actions for chat event: %s", #event_config.actions, event)
     end
   end
 end
