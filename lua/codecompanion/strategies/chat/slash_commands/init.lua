@@ -15,7 +15,7 @@ local function resolve(callback)
   -- Try loading the tool from the user's config using a module path
   ok, slash_command = pcall(require, callback)
   if ok then
-    log:debug("Calling slash command: %s", callback)
+    log:debug("Calling slash command using a module path: %s", callback)
     return slash_command
   end
 
@@ -27,7 +27,7 @@ local function resolve(callback)
   end
 
   if slash_command then
-    log:debug("Calling slash command: %s", callback)
+    log:debug("Calling slash command from a file path: %s", callback)
     return slash_command()
   end
 end
