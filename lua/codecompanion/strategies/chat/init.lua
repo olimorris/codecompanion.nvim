@@ -618,9 +618,7 @@ function Chat.new(args)
     c.subscribers:stop()
   end)
 
-  -- Register background interaction callbacks
-  local background_callbacks = require("codecompanion.interactions.background.callbacks")
-  background_callbacks.register_chat_callbacks(self)
+  require("codecompanion.interactions.background.callbacks").register_chat_callbacks(self)
 
   self:dispatch("on_created")
 

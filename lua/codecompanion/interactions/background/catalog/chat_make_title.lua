@@ -49,7 +49,7 @@ Constraints:
         title = title:gsub("^[\"']", ""):gsub("[\"']$", ""):gsub("^%s*", ""):gsub("%s*$", "")
         chat:set_title(title)
 
-        -- Remove the callback from the chat buffer
+        -- TODO: Remove the callback from the chat buffer
       end
     end,
     on_error = function(err)

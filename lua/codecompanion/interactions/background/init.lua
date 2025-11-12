@@ -32,11 +32,12 @@ function Background.new(args)
     self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
   end
 
+  -- Silence errors
   if self.adapter.type ~= "http" then
-    return log:error("[background::init] Only HTTP adapters are supported for background interactions")
+    return log:debug("[background::init] Only HTTP adapters are supported for background interactions")
   end
   if not self.adapter then
-    return log:error("[background::init] No adapter assigned for background interactions")
+    return log:debug("[background::init] No adapter assigned for background interactions")
   end
 
   self.settings = schema.get_default(self.adapter, args.settings)
@@ -66,7 +67,7 @@ local function ask_sync(background, messages, opts)
   local response, err = client:send_sync(payload, { silent = opts.silent })
 
   if err then
-    log:error("[background::init] ask_sync failed: %s", err.stderr or err.message)
+    log:debug("[background::init] ask_sync failed: %s", err.stderr or err.message)
     return nil, err
   end
 

@@ -19,10 +19,9 @@ local function resolve(path)
   end
 
   -- Try loading the tool from the user's config using a file path
-  local err
-  action, err = loadfile(path)
+  local action, err = loadfile(path)
   if err then
-    return log:error("[background::callbacks] Failed to load user's module from file path", path)
+    return
   end
 
   if action then
@@ -37,7 +36,7 @@ end
 local function execute_action(path, chat)
   local action = resolve(path)
   if not action then
-    return
+    return log:error("[background::callbacks] File `%s` could not be found", path)
   end
   if not action.request then
     return log:error("[background::callbacks] File `%s` does not have a request function", path)
@@ -51,15 +50,14 @@ local function execute_action(path, chat)
   })
 
   if not background then
-    log:error("[background::callbacks] Failed to create instance for action: %s", path)
-    return
+    return log:debug("[background::callbacks] Failed to create instance for action: %s", path)
   end
 
-  -- Execute the action asynchronously to avoid blocking the UI
+  -- Don't block the main thread
   vim.schedule(function()
     local ok, result = pcall(action.request, background, chat)
     if not ok then
-      log:error("[background::callbacks] Error executing action %s: %s", path, result)
+      log:debug("[background::callbacks] Error executing action %s: %s", path, result)
     else
       log:debug("[background::callbacks] Action %s completed successfully", path)
     end
@@ -82,11 +80,9 @@ function M.register_chat_callbacks(chat)
   -- Register callbacks for each configured event
   for event, event_config in pairs(callbacks_config.chat) do
     if event_config.enabled and event_config.actions then
-      -- Register a callback for this event
       chat:add_callback(event, function(c)
         log:debug("[background::callbacks] Executing %d actions for event: %s", #event_config.actions, event)
 
-        -- Execute each action for this event
         for _, path in ipairs(event_config.actions) do
           execute_action(path, c)
         end
