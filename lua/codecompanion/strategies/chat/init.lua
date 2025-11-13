@@ -15,7 +15,6 @@
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
----@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field fs_monitor? CodeCompanion.FSMonitor File system monitor instance for tracking file changes
 ---@field fs_monitor_watch_id? string Active watch ID for workspace monitoring
 ---@field fs_changes? CodeCompanion.FSMonitor.Change[] Accumulated file changes detected by fs_monitor
@@ -62,7 +61,6 @@
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local im_utils = require("codecompanion.utils.images")
@@ -1533,9 +1531,6 @@ function Chat:close()
   end
 
   self:dispatch("on_closed")
-
-  edit_tracker.handle_chat_close(self)
-  edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
