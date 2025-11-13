@@ -14,20 +14,19 @@ Architecture:
 Key Design:
 - Changes are registered via async file reads (non-blocking)
 - stop_monitoring_async() waits for all pending operations before calling back
-- Uses uv.fs_scandir() for efficient directory scanning
+- Uses uv.fs_opendir/readdir for efficient directory scanning
 - Timestamp-based attribution links changes to specific tools
+- Respects .gitignore patterns for intelligent file filtering
 
 API Overview:
-  Core Monitoring (Tool-initiated):
+  Core Monitoring:
     - start_monitoring(tool_name, target_path, opts) -> watch_id
     - stop_monitoring_async(watch_id, callback)
     - tag_changes_in_range(start_time, end_time, tool_name, tool_args)
 
-  Manual Watching (User-initiated):
-    - watch_cwd(opts) -> watch_id
-    - watch_open_buffers(opts) -> table<bufnr, watch_id>
-    - watch_manual(target_path, opts) -> watch_id
-    - unwatch_buffers(watch_ids, callback)
+  Checkpoints:
+    - create_checkpoint() -> checkpoint
+    - get_changes_since_checkpoint(checkpoint) -> Change[]
 
   Change Retrieval:
     - get_all_changes() -> Change[]
@@ -35,21 +34,21 @@ API Overview:
     - get_stats() -> stats
     - clear_changes()
 
-Usage (Tool execution):
+Usage (Chat lifecycle):
+  -- On user submit
   local monitor = FSMonitor.new(chat)
-  local watch_id = monitor:start_monitoring("edit_tool", "/path/to/file")
-  -- Tool executes, files change, monitor tracks them in real-time
-  monitor:tag_changes_in_range(start_time, end_time, "edit_tool", { filepath = "/path/to/file" })
-  monitor:stop_monitoring_async(watch_id, function(changes)
-    -- Handle changes here
-  end)
+  local watch_id = monitor:start_monitoring("workspace", cwd, {
+    prepopulate = true,
+    recursive = true,
+    on_ready = function(stats)
+      print("Ready! Cached " .. stats.files_cached .. " files in " .. stats.elapsed_ms .. "ms")
+    end
+  })
 
-Usage (Manual watching):
-  local monitor = FSMonitor.new(chat)
-  local watch_ids = monitor:watch_open_buffers()
-  -- User edits files...
-  monitor:unwatch_buffers(watch_ids, function(count)
-    print("Stopped watching " .. count .. " buffers")
+  -- On chat done
+  monitor:stop_monitoring_async(watch_id, function(changes)
+    chat.fs_changes = changes
+    local checkpoint = monitor:create_checkpoint()
   end)
 ]]
 
@@ -57,7 +56,6 @@ local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
 local uv = vim.uv or vim.loop
-local api = vim.api
 local fmt = string.format
 
 ---@class CodeCompanion.FSMonitor.Change
@@ -83,8 +81,20 @@ local fmt = string.format
 ---@field pending_events table<string, boolean> Files with pending events to process
 ---@field tool_name string Name of tool being monitored (e.g., "workspace", "edit_tool_exp")
 ---@field enabled boolean Whether this watch is active
----@field buffer_snapshot? string Initial buffer content for unsaved change detection
----@field monitored_bufnr? number Buffer number being monitored (if watching a single buffer)
+
+---@class CodeCompanion.FSMonitor.Checkpoint
+---@field timestamp number High-resolution timestamp (nanoseconds)
+---@field change_count number Number of changes at checkpoint time
+---@field cycle? number Chat cycle number when checkpoint was created
+---@field label? string Human-readable label for the checkpoint
+
+---@class CodeCompanion.FSMonitor.PrepopulateStats
+---@field files_scanned number Total files encountered
+---@field files_cached number Files successfully cached
+---@field bytes_cached number Total bytes cached
+---@field errors number Number of errors
+---@field directories_scanned number Directories traversed
+---@field elapsed_ms number Time taken in milliseconds
 
 ---@class CodeCompanion.FSMonitor
 ---@field chat CodeCompanion.Chat Reference to chat session
@@ -93,6 +103,8 @@ local fmt = string.format
 ---@field debounce_ms number Debounce delay in milliseconds
 ---@field max_file_size number Maximum file size to track (bytes)
 ---@field watch_counter number Counter for generating unique watch IDs
+---@field ignore_patterns string[] Compiled ignore patterns from .gitignore
+---@field gitignore_loaded boolean Whether .gitignore has been loaded
 local FSMonitor = {}
 FSMonitor.__index = FSMonitor
 
@@ -113,7 +125,12 @@ function FSMonitor.new(chat)
     debounce_ms = DEBOUNCE_MS,
     max_file_size = MAX_FILE_SIZE,
     watch_counter = 0,
+    ignore_patterns = {},
+    gitignore_loaded = false,
   }, FSMonitor)
+
+  -- Load .gitignore patterns once
+  monitor:_load_gitignore()
 
   log:trace("[FSMonitor] Created new monitor for chat %d", chat.id)
   return monitor
@@ -129,11 +146,11 @@ function FSMonitor:_generate_watch_id(tool_name, root_path)
 end
 
 ---Get relative path from root
----@param filepath string
+---@param path string
 ---@param root_path string
 ---@return string Relative path
-function FSMonitor:_get_relative_path(filepath, root_path)
-  local normalized_file = vim.fs.normalize(filepath)
+function FSMonitor:_get_relative_path(path, root_path)
+  local normalized_file = vim.fs.normalize(path)
   local normalized_root = vim.fs.normalize(root_path)
 
   -- Try to strip the root prefix
@@ -149,13 +166,75 @@ function FSMonitor:_get_relative_path(filepath, root_path)
   return normalized_file
 end
 
+---Load .gitignore patterns (called once on monitor creation)
+function FSMonitor:_load_gitignore()
+  if self.gitignore_loaded then
+    return
+  end
+
+  local cwd = vim.fn.getcwd()
+  local gitignore_path = vim.fs.joinpath(cwd, ".gitignore")
+
+  -- Check if .gitignore exists
+  local stat = uv.fs_stat(gitignore_path)
+  if not stat then
+    self.gitignore_loaded = true
+    log:trace("[FSMonitor] No .gitignore found at: %s", gitignore_path)
+    return
+  end
+
+  -- Read .gitignore synchronously (only happens once)
+  local fd = uv.fs_open(gitignore_path, "r", 438)
+  if not fd then
+    self.gitignore_loaded = true
+    return
+  end
+
+  local fstat = uv.fs_fstat(fd)
+  if not fstat then
+    uv.fs_close(fd)
+    self.gitignore_loaded = true
+    return
+  end
+
+  local data = uv.fs_read(fd, fstat.size, 0)
+  uv.fs_close(fd)
+
+  if not data then
+    self.gitignore_loaded = true
+    return
+  end
+
+  -- Parse .gitignore patterns
+  for line in data:gmatch("[^\r\n]+") do
+    line = line:match("^%s*(.-)%s*$") -- Trim whitespace
+    if line ~= "" and not line:match("^#") then
+      -- Convert gitignore pattern to Lua pattern
+      local pattern = line
+      -- Escape special Lua pattern characters except *
+      pattern = pattern:gsub("([%.%+%-%?%[%]%^%$%(%)%%])", "%%%1")
+      -- Convert * to .*
+      pattern = pattern:gsub("%*", ".*")
+      -- Add anchors if pattern doesn't start with /
+      if not pattern:match("^/") then
+        pattern = "/" .. pattern
+      end
+      table.insert(self.ignore_patterns, pattern)
+    end
+  end
+
+  self.gitignore_loaded = true
+  log:debug("[FSMonitor] Loaded %d patterns from .gitignore", #self.ignore_patterns)
+end
+
 ---Check if file should be ignored based on patterns
 ---@param filepath string
 ---@return boolean should_ignore
 function FSMonitor:_should_ignore_file(filepath)
-  local ignored_patterns = {
-    "%.git/",
-    "node_modules/",
+  -- Built-in ignore patterns
+  local builtin_patterns = {
+    "/%.git/",
+    "/node_modules/",
     "%.DS_Store$",
     "%.swp$",
     "%.swo$",
@@ -164,11 +243,25 @@ function FSMonitor:_should_ignore_file(filepath)
     "~$",
   }
 
-  for _, pattern in ipairs(ignored_patterns) do
+  for _, pattern in ipairs(builtin_patterns) do
     if filepath:match(pattern) then
-      log:trace("[FSMonitor] Ignoring file: %s (matched pattern: %s)", filepath, pattern)
+      log:trace("[FSMonitor] Ignoring file: %s (matched built-in: %s)", filepath, pattern)
       return true
     end
+  end
+
+  -- Check .gitignore patterns
+  for _, pattern in ipairs(self.ignore_patterns) do
+    if filepath:match(pattern) then
+      log:trace("[FSMonitor] Ignoring file: %s (matched .gitignore: %s)", filepath, pattern)
+      return true
+    end
+  end
+
+  -- Check if basename is ignored directory
+  local basename = vim.fs.basename(filepath)
+  if basename == ".git" or basename == "node_modules" then
+    return true
   end
 
   return false
@@ -235,7 +328,7 @@ function FSMonitor:_register_change(change)
     local existing = self.changes[i]
     if existing.path == change.path and existing.kind == change.kind then
       local time_diff = current_time - existing.timestamp
-      -- Within 1 second (1 billion nanoseconds)
+      -- Within 1 second
       if time_diff < 1000000000 then
         duplicate = true
         log:trace("[FSMonitor] Skipping duplicate change for: %s", change.path)
@@ -265,23 +358,22 @@ end
 
 ---Process a single file change
 ---@param watch_id string
----@param filepath string Full path to changed file
-function FSMonitor:_process_file_change(watch_id, filepath)
+---@param path string Full path to changed file
+function FSMonitor:_process_file_change(watch_id, path)
   local watch = self.watches[watch_id]
   if not watch or not watch.enabled then
     return
   end
 
-  -- Ignore certain files
-  if self:_should_ignore_file(filepath) then
+  if self:_should_ignore_file(path) then
     return
   end
 
-  local relative_path = self:_get_relative_path(filepath, watch.root_path)
+  local relative_path = self:_get_relative_path(path, watch.root_path)
   local cached_content = watch.cache[relative_path]
 
   -- Read current file content
-  self:_read_file_async(filepath, function(new_content, err)
+  self:_read_file_async(path, function(new_content, err)
     vim.schedule(function()
       -- Check if watch is still active
       if not self.watches[watch_id] or not self.watches[watch_id].enabled then
@@ -305,13 +397,11 @@ function FSMonitor:_process_file_change(watch_id, filepath)
         return
       end
 
-      -- Error reading file
       if err then
-        log:warn("[FSMonitor] Failed to read file: %s, error: %s", filepath, err)
+        log:warn("[FSMonitor] Failed to read file: %s, error: %s", path, err)
         return
       end
 
-      -- File exists and we read it successfully
       if cached_content then
         -- File was modified - compare contents
         if cached_content ~= new_content then
@@ -350,7 +440,7 @@ function FSMonitor:_process_file_change(watch_id, filepath)
   end)
 end
 
----Handle a file system event (debounced)
+---Handle a file system event
 ---@param watch_id string
 ---@param filename string Relative filename that changed
 ---@param events table Event info from uv
@@ -360,15 +450,12 @@ function FSMonitor:_handle_fs_event(watch_id, filename, events)
     return
   end
 
-  -- Build full path
   local full_path = vim.fs.joinpath(watch.root_path, filename)
 
   log:trace("[FSMonitor] FS event for: %s (events: %s)", full_path, vim.inspect(events))
 
-  -- Mark as pending
   watch.pending_events[full_path] = true
 
-  -- Debounce: reset timer each time we get an event
   if watch.debounce_timer then
     watch.debounce_timer:stop()
   else
@@ -395,12 +482,43 @@ function FSMonitor:_handle_fs_event(watch_id, filename, events)
   end)
 end
 
----Prepopulate cache with existing file contents (async using fs_scandir)
+---Prepopulate cache with existing file contents
 ---@param watch CodeCompanion.FSMonitor.Watch Watch structure
 ---@param target_path string File or directory path
 ---@param is_dir boolean
-function FSMonitor:_prepopulate_cache(watch, target_path, is_dir)
-  log:debug("[FSMonitor] Prepopulating cache for: %s", target_path)
+---@param on_complete? fun(stats: CodeCompanion.FSMonitor.PrepopulateStats)
+function FSMonitor:_prepopulate_cache(watch, target_path, is_dir, on_complete)
+  local start_time = uv.hrtime()
+  local stats = {
+    files_scanned = 0,
+    files_cached = 0,
+    bytes_cached = 0,
+    errors = 0,
+    directories_scanned = 0,
+    elapsed_ms = 0,
+  }
+
+  -- Track pending async operations
+  local pending = 1
+
+  local function done()
+    pending = pending - 1
+    if pending == 0 then
+      stats.elapsed_ms = (uv.hrtime() - start_time) / 1000000
+      log:info(
+        "[FSMonitor] Prepopulation complete: %d/%d files cached (%d bytes) in %.2fms",
+        stats.files_cached,
+        stats.files_scanned,
+        stats.bytes_cached,
+        stats.elapsed_ms
+      )
+      if on_complete then
+        vim.schedule(function()
+          on_complete(stats)
+        end)
+      end
+    end
+  end
 
   if not is_dir then
     -- Single file
@@ -409,78 +527,113 @@ function FSMonitor:_prepopulate_cache(watch, target_path, is_dir)
       vim.schedule(function()
         if not err and content then
           watch.cache[relative_path] = content
-          log:trace("[FSMonitor] Cached file: %s (%d bytes)", relative_path, #content)
+          stats.files_cached = 1
+          stats.bytes_cached = #content
+        else
+          stats.errors = 1
         end
+        done()
       end)
     end)
     return
   end
 
-  -- Directory: scan for files
-  local count = 0
+  log:debug("[FSMonitor] Starting prepopulation for: %s", target_path)
+
+  -- Directory: scan recursively using fs_opendir/readdir
+  local count = { value = 0 } -- Wrap in table for reference sharing
+
   local function scan_dir(dir, depth)
-    if count >= MAX_PREPOPULATE_FILES then
-      log:warn("[FSMonitor] Prepopulation limit reached: %d files", MAX_PREPOPULATE_FILES)
+    if count.value >= MAX_PREPOPULATE_FILES or depth > MAX_DEPTH then
+      done()
       return
     end
 
-    if depth > MAX_DEPTH then
-      return
-    end
+    stats.directories_scanned = stats.directories_scanned + 1
 
-    uv.fs_scandir(dir, function(err, handle)
-      if err or not handle then
+    uv.fs_opendir(dir, function(err_open, dir_handle)
+      if err_open or not dir_handle then
+        stats.errors = stats.errors + 1
+        done()
         return
       end
 
-      -- REVIEW: we might not need vim.schedule here anymore
-      vim.schedule(function()
-        while true do
-          local name, type = uv.fs_scandir_next(handle)
-          if not name then
-            break
+      local function read_batch()
+        dir_handle:readdir(function(err_read, entries)
+          if err_read then
+            stats.errors = stats.errors + 1
+            dir_handle:closedir()
+            done()
+            return
           end
 
-          if count >= MAX_PREPOPULATE_FILES then
-            break
+          if not entries then
+            -- No more entries, close directory
+            dir_handle:closedir()
+            done()
+            return
           end
 
-          local full_path = vim.fs.joinpath(dir, name)
+          -- Process batch of entries
+          for _, entry in ipairs(entries) do
+            if count.value >= MAX_PREPOPULATE_FILES then
+              dir_handle:closedir()
+              done()
+              return
+            end
 
-          if not self:_should_ignore_file(full_path) then
-            if type == "file" then
-              local relative_path = self:_get_relative_path(full_path, watch.root_path)
-              self:_read_file_async(full_path, function(content, read_err)
-                vim.schedule(function()
-                  if not read_err and content then
-                    watch.cache[relative_path] = content
-                    log:trace("[FSMonitor] Cached file: %s", relative_path)
-                  end
+            local full_path = vim.fs.joinpath(dir, entry.name)
+
+            if not self:_should_ignore_file(full_path) then
+              if entry.type == "file" then
+                stats.files_scanned = stats.files_scanned + 1
+                local relative_path = self:_get_relative_path(full_path, watch.root_path)
+
+                pending = pending + 1
+
+                self:_read_file_async(full_path, function(content, read_err)
+                  vim.schedule(function()
+                    if not read_err and content then
+                      watch.cache[relative_path] = content
+                      stats.files_cached = stats.files_cached + 1
+                      stats.bytes_cached = stats.bytes_cached + #content
+                    else
+                      stats.errors = stats.errors + 1
+                    end
+                    done()
+                  end)
                 end)
-              end)
-              count = count + 1
-            elseif type == "directory" then
-              scan_dir(full_path, depth + 1)
+
+                count.value = count.value + 1
+              elseif entry.type == "directory" then
+                pending = pending + 1
+                scan_dir(full_path, depth + 1)
+              end
             end
           end
-        end
-      end)
+
+          -- Read next batch
+          read_batch()
+        end)
+      end
+
+      read_batch()
     end)
   end
 
   scan_dir(target_path, 0)
-  log:debug("[FSMonitor] Initiated prepopulation scan (limit: %d files)", MAX_PREPOPULATE_FILES)
 end
 
 ---Start monitoring a file or directory for changes
 ---@param tool_name string
 ---@param target_path string File or directory to watch
----@param opts? table Options: { prepopulate = true, recursive = false }
+---@param opts? table Options: { prepopulate = true, recursive = false, on_ready = function(stats) }
 ---@return string watch_id
 function FSMonitor:start_monitoring(tool_name, target_path, opts)
   opts = opts or {}
   local prepopulate = opts.prepopulate ~= false -- Default true
   local recursive = opts.recursive or false
+  local on_ready = opts.on_ready
 
   local normalized_path = vim.fs.normalize(target_path)
   local stat = uv.fs_stat(normalized_path)
@@ -523,10 +676,12 @@ function FSMonitor:start_monitoring(tool_name, target_path, opts)
 
   local watch = self.watches[watch_id]
 
+  -- Start prepopulation if requested
   if prepopulate then
-    self:_prepopulate_cache(watch, normalized_path, is_dir)
+    self:_prepopulate_cache(watch, normalized_path, is_dir, on_ready)
   end
 
+  -- Start file system watch
   watch.handle = uv.new_fs_event()
   if not watch.handle then
     log:error("[FSMonitor] Failed to create fs_event handle")
@@ -558,7 +713,7 @@ function FSMonitor:start_monitoring(tool_name, target_path, opts)
   return watch_id
 end
 
----Stop monitoring and return changes via callback (async, waits for all operations)
+---Stop monitoring and return changes via callback
 ---@param watch_id string
 ---@param callback fun(changes: CodeCompanion.FSMonitor.Change[])
 function FSMonitor:stop_monitoring_async(watch_id, callback)
@@ -697,15 +852,12 @@ function FSMonitor:stop_all_async(callback)
 end
 
 ---Get all changes detected across all watches
----Returns a deep copy of all accumulated changes. Changes persist across
----stop/start cycles until explicitly cleared with clear_changes().
 ---@return CodeCompanion.FSMonitor.Change[] changes
 function FSMonitor:get_all_changes()
   return vim.deepcopy(self.changes)
 end
 
 ---Get changes for a specific tool
----Filters accumulated changes to only those tagged with the specified tool name.
 ---@param tool_name string
 ---@return CodeCompanion.FSMonitor.Change[] changes
 function FSMonitor:get_changes_by_tool(tool_name)
@@ -724,9 +876,31 @@ function FSMonitor:clear_changes()
   self.changes = {}
 end
 
+---Create a checkpoint for resuming monitoring
+---@return CodeCompanion.FSMonitor.Checkpoint
+function FSMonitor:create_checkpoint()
+  local checkpoint = {
+    timestamp = uv.hrtime(),
+    change_count = #self.changes,
+  }
+  log:debug("[FSMonitor] Created checkpoint at change #%d", checkpoint.change_count)
+  return checkpoint
+end
+
+---Get changes since a checkpoint
+---@param checkpoint CodeCompanion.FSMonitor.Checkpoint
+---@return CodeCompanion.FSMonitor.Change[]
+function FSMonitor:get_changes_since_checkpoint(checkpoint)
+  local changes = {}
+  for i = checkpoint.change_count + 1, #self.changes do
+    table.insert(changes, self.changes[i])
+  end
+  log:debug("[FSMonitor] Retrieved %d changes since checkpoint", #changes)
+  return changes
+end
+
 ---Get statistics about tracked changes
----Returns summary statistics including counts by change type, tools used, and active watches.
----@return table stats Statistics with fields: total_changes, created, modified, deleted, renamed, tools, active_watches
+---@return table stats
 function FSMonitor:get_stats()
   local stats = {
     total_changes = #self.changes,
@@ -745,7 +919,7 @@ function FSMonitor:get_stats()
       stats.modified = stats.modified + 1
     elseif change.kind == "deleted" then
       stats.deleted = stats.deleted + 1
-    elseif change.kind == "renamed" then
+    elseif change.kind == "rename" then
       stats.renamed = stats.renamed + 1
     end
 
@@ -757,133 +931,11 @@ function FSMonitor:get_stats()
   return stats
 end
 
----Enable manual watching mode for chat session
----Manual mode is a flag that can be used to keep monitoring active even when no tools are running.
----This is useful for user-initiated file watching outside of tool execution.
----@return boolean success
-function FSMonitor:enable_manual_mode()
-  if not self.chat.fs_monitor_manual_mode then
-    self.chat.fs_monitor_manual_mode = true
-    log:info("[FSMonitor] Manual mode enabled for chat %d", self.chat.id)
-    return true
-  end
-  return false
-end
-
----Disable manual watching mode
----Clears the manual mode flag from the chat session.
----@return boolean success
-function FSMonitor:disable_manual_mode()
-  if self.chat.fs_monitor_manual_mode then
-    self.chat.fs_monitor_manual_mode = false
-    log:info("[FSMonitor] Manual mode disabled for chat %d", self.chat.id)
-    return true
-  end
-  return false
-end
-
----Check if manual mode is enabled
----@return boolean is_enabled
-function FSMonitor:is_manual_mode()
-  return self.chat.fs_monitor_manual_mode or false
-end
-
----Start watching current working directory manually
----This is a convenience wrapper for user-initiated monitoring of the entire workspace.
----By default, watches recursively without prepopulating the cache.
----@param opts? table Options: { prepopulate = false, recursive = true }
----@return string watch_id
-function FSMonitor:watch_cwd(opts)
-  opts = opts or {}
-  opts.prepopulate = opts.prepopulate ~= nil and opts.prepopulate or false
-  opts.recursive = opts.recursive ~= nil and opts.recursive or true
-
-  local cwd = vim.fn.getcwd()
-  log:info("[FSMonitor] Manually watching CWD: %s", cwd)
-  return self:start_monitoring("manual", cwd, opts)
-end
-
----Start watching all currently open buffer files manually
----Creates individual watches for each loaded buffer with a readable file.
----Returns a map that can be passed to unwatch_buffers() to stop all watches.
----By default, prepopulates cache but doesn't watch recursively.
----@param opts? table Options: { prepopulate = true, recursive = false }
----@return table<number, string> watch_ids Map of bufnr to watch_id
-function FSMonitor:watch_open_buffers(opts)
-  opts = opts or {}
-  opts.prepopulate = opts.prepopulate ~= nil and opts.prepopulate or true
-  opts.recursive = opts.recursive or false
-
-  local watch_ids = {}
-  local buffers = api.nvim_list_bufs()
-
-  for _, bufnr in ipairs(buffers) do
-    if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
-      local filepath = api.nvim_buf_get_name(bufnr)
-      if filepath ~= "" and vim.fn.filereadable(filepath) == 1 then
-        log:debug("[FSMonitor] Manually watching buffer %d: %s", bufnr, filepath)
-        local watch_id = self:start_monitoring("manual", filepath, opts)
-        if watch_id ~= "" then
-          watch_ids[bufnr] = watch_id
-        end
-      end
-    end
-  end
-
-  log:info("[FSMonitor] Started watching %d open buffers", vim.tbl_count(watch_ids))
-  return watch_ids
-end
-
----Start watching a path manually (user-initiated or external tools)
----This is a convenience wrapper for start_monitoring() with "manual" as the tool_name.
----Useful for user-initiated watching of specific files or directories.
----@param target_path string File or directory to watch
----@param opts? table Options: { prepopulate = true, recursive = false }
----@return string watch_id
-function FSMonitor:watch_manual(target_path, opts)
-  log:info("[FSMonitor] Manually watching: %s", target_path)
-  return self:start_monitoring("manual", target_path, opts)
-end
-
----Stop watching open buffers that were started with watch_open_buffers
----Stops all watches in the provided map asynchronously. The callback is invoked
----after all watches have been stopped, with the count of stopped watches.
----@param watch_ids table<number, string> Map from watch_open_buffers()
----@param callback? fun(count: number) Optional callback when all watches are stopped
-function FSMonitor:unwatch_buffers(watch_ids, callback)
-  local watch_id_list = vim.tbl_values(watch_ids)
-  if #watch_id_list == 0 then
-    if callback then
-      callback(0)
-    end
-    log:info("[FSMonitor] No buffers to unwatch")
-    return
-  end
-
-  local remaining = #watch_id_list
-  local count = 0
-
-  for bufnr, watch_id in pairs(watch_ids) do
-    self:stop_monitoring_async(watch_id, function()
-      count = count + 1
-      remaining = remaining - 1
-      if remaining == 0 then
-        log:info("[FSMonitor] Stopped watching %d buffers", count)
-        if callback then
-          callback(count)
-        end
-      end
-    end)
-  end
-end
-
 ---Tag changes in a time range with a tool name and validate against tool paths
----This method attributes file changes to specific tools based on timestamps and path validation.
----Changes are marked as "confirmed" if they match the tool's declared filepath, or "ambiguous" otherwise.
 ---@param start_time number
 ---@param end_time number
----@param tool_name string Tool name to tag changes with (e.g., "edit_tool_exp", "create_file")
----@param tool_args? table Tool arguments (may contain filepath for path validation)
+---@param tool_name string
+---@param tool_args? table
 function FSMonitor:tag_changes_in_range(start_time, end_time, tool_name, tool_args)
   tool_args = tool_args or {}
 
@@ -917,7 +969,7 @@ function FSMonitor:tag_changes_in_range(start_time, end_time, tool_name, tool_ar
           end
         end
       else
-        -- Tool didn't declare a filepath (e.g., cmd_runner) - assume it might affect anything
+        -- Tool didn't declare a filepath - assume it safe only tool (eg grep_search)
         matches_declared_path = true
       end
 
@@ -931,10 +983,9 @@ function FSMonitor:tag_changes_in_range(start_time, end_time, tool_name, tool_ar
         tagged_count = tagged_count + 1
         log:trace("[FSMonitor] Tagged change %s with tool %s (confirmed)", change.path, tool_name)
       else
-        -- Change happened during tool execution but doesn't match declared paths
         change.metadata.attribution = "ambiguous"
         ambiguous_count = ambiguous_count + 1
-        log:trace("[FSMonitor] Tagged change %s with tool %s (ambiguous - path not declared)", change.path, tool_name)
+        log:trace("[FSMonitor] Tagged change %s with tool %s (ambiguous)", change.path, tool_name)
       end
     end
   end

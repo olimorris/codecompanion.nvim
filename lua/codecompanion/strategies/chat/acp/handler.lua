@@ -318,6 +318,9 @@ function ACPHandler:handle_tool_call(tool_call)
       self.chat.fs_monitor_watch_id = self.chat.fs_monitor:start_monitoring("acp_workspace", cwd, {
         prepopulate = true,
         recursive = true,
+        on_ready = function(stats)
+          log:info("[ACP] FS monitoring ready: %d files cached in %.2fms", stats.files_cached, stats.elapsed_ms)
+        end,
       })
     end
 

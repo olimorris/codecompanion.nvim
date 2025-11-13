@@ -694,6 +694,13 @@ M.clear_memory = {
   end,
 }
 
+M.show_fs_diff = {
+  desc = "Show file system diff",
+  callback = function(chat)
+    chat:show_fs_diff()
+  end,
+}
+
 M.yolo_mode = {
   desc = "Toggle YOLO mode",
   callback = function(chat)

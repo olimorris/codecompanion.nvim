@@ -531,7 +531,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Fold code",
         },
         debug = {
-          modes = { n = "gd" },
+          modes = { n = "gdd" },
           index = 16,
           callback = "keymaps.debug",
           description = "View debug info",
@@ -547,6 +547,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           index = 18,
           callback = "keymaps.clear_memory",
           description = "Clear memory",
+        },
+        fs_diff = {
+          modes = { n = "gdm" },
+          index = 19,
+          callback = "keymaps.show_fs_diff",
+          description = "Show file system diff",
         },
         yolo_mode = {
           modes = { n = "gty" },
@@ -567,7 +573,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Show Copilot statistics",
         },
         super_diff = {
-          modes = { n = "gD" },
+          modes = { n = "gds" },
           index = 22,
           callback = "keymaps.super_diff",
           description = "Show Super Diff",
