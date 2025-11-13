@@ -224,15 +224,15 @@ local function on_user_response(request, diff, opts)
         vim.wo[opts.winnr].winbar = ""
       end)
 
-      if not opts.keep_win_open then
-        pcall(api.nvim_win_close, opts.winnr, true)
-      else
+      if opts.keep_win_open then
         -- Prevents the window from closing when we delete the temp buffer
         pcall(function()
           api.nvim_win_call(opts.winnr, function()
             vim.cmd("buffer #")
           end)
         end)
+      else
+        pcall(api.nvim_win_close, opts.winnr, true)
       end
     end
 
@@ -388,7 +388,7 @@ local function show_diff(chat, request)
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
   local is_floating = provider == "inline" and layout == "float"
-  local keep_win_open = provider == "inline" and layout == "buffer"
+  local keep_win_open = provider == "inline" and layout == "buffer" or provider == "split"
 
   local diff = diff_module.new({
     bufnr = bufnr,
