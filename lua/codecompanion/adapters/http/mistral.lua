@@ -146,8 +146,12 @@ return {
         else
           output.reasoning = output.reasoning or {}
           output.reasoning.content = ""
-          if content[1].type == "thinking" then
-            output.reasoning.content = content[1].thinking[1].text
+          for _,c in ipairs(content) do
+            if c.type == "thinking" then
+              for _,thinking in ipairs(c.thinking) do
+                output.reasoning.content = output.reasoning.content .. thinking.text
+              end
+            end
           end
         end
       else
