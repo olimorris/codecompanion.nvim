@@ -332,7 +332,7 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat.context:add({
        id = "<file>tests/stubs/file.txt</file>",
        path = path,
-       source = "codecompanion.strategies.chat.slash_commands.file",
+       source = "codecompanion.strategies.chat.slash_commands.catalog.file",
        opts = {
          pinned = true,
        },
@@ -341,11 +341,14 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat:submit()
    ]])
 
-  h.expect_starts_with(
-    '<attachment filepath="tests/stubs/file.txt">Here is the content from the file',
-    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
+  h.expect_match(
+    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]),
+    [[^<attachment filepath="tests[\\/]stubs[\\/]file.txt">Here is the content from the file]]
   )
-  h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]]))
+  h.expect_match(
+    child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]]),
+    [[^<file>tests[\\/]stubs[\\/]file.txt</file>$]]
+  )
 end
 
 T["Context"]["Correctly removes tool schema and usage flag on context deletion"] = function()

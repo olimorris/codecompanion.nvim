@@ -1,5 +1,24 @@
 # Changelog
 
+## [17.31.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.30.0...v17.31.0) (2025-11-07)
+
+
+### Features
+
+* **acp:** add augment code (auggie) adapter ([#2352](https://github.com/olimorris/codecompanion.nvim/issues/2352)) ([7ca4e49](https://github.com/olimorris/codecompanion.nvim/commit/7ca4e4928cc14187abfc2144c9d7bfcf531bcf15))
+* **acp:** add session modes ([#2331](https://github.com/olimorris/codecompanion.nvim/issues/2331)) ([1d98b9e](https://github.com/olimorris/codecompanion.nvim/commit/1d98b9e91107898b055ea54b4f24dad9a24d84ed))
+* **tools:** add delete tool ([#2345](https://github.com/olimorris/codecompanion.nvim/issues/2345)) ([ae93605](https://github.com/olimorris/codecompanion.nvim/commit/ae936052d74454e941c39201a6d9aeaf55675c21))
+* **ui:** streamline ACP output in the chat ([#2353](https://github.com/olimorris/codecompanion.nvim/issues/2353)) ([78ab53d](https://github.com/olimorris/codecompanion.nvim/commit/78ab53dc17ef5d158e06377fe34fc91e8e2f0dba))
+
+
+### Bug Fixes
+
+* **chat:** conditionals for slash commands and tools ([#2336](https://github.com/olimorris/codecompanion.nvim/issues/2336)) ([8719211](https://github.com/olimorris/codecompanion.nvim/commit/8719211b896c48ffd9c288efaf0d4a47fb17cd71))
+* invalid buffer causing errors in markdown files ([#2362](https://github.com/olimorris/codecompanion.nvim/issues/2362)) ([3e02000](https://github.com/olimorris/codecompanion.nvim/commit/3e02000a14847aa49a90c297633d4be2f03702bc)), closes [#2344](https://github.com/olimorris/codecompanion.nvim/issues/2344)
+* **tools:** adjust strict mode and make `insert_edit_into_file` adhere to OpenAI schema ([#2357](https://github.com/olimorris/codecompanion.nvim/issues/2357)) ([2bd958b](https://github.com/olimorris/codecompanion.nvim/commit/2bd958b58237e42fb8b4e5ec98e5d44e24221b32)), closes [#2356](https://github.com/olimorris/codecompanion.nvim/issues/2356)
+* **tools:** show diff in `insert_edit_into_file` when file is not open ([#2350](https://github.com/olimorris/codecompanion.nvim/issues/2350)) ([6ca8768](https://github.com/olimorris/codecompanion.nvim/commit/6ca8768ad9aff0d6f46dcf8db576843e519e2035))
+* **tools:** Support nested objects in enforce_strictness for OpenAI strict mode ([#2334](https://github.com/olimorris/codecompanion.nvim/issues/2334)) ([88ddc28](https://github.com/olimorris/codecompanion.nvim/commit/88ddc28101ca771f99b3ba7489b5abe831de9a17))
+
 ## [17.30.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.29.0...v17.30.0) (2025-11-02)
 
 

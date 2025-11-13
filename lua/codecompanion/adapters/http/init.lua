@@ -366,6 +366,7 @@ end
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
+    type = adapter.type,
     model = adapter.model,
     available_tools = adapter.available_tools,
     formatted_name = adapter.formatted_name,

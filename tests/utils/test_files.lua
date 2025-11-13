@@ -159,4 +159,48 @@ T["Files utils"]["create_dir_recursive"]["logs errors properly"] = function()
   h.expect_contains("create_dir_recursive:", logged_messages[1] or "")
 end
 
+T["Files utils"]["get_mimetype"] = new_set()
+T["Files utils"]["get_mimetype"]["can invoke `file`"] = function()
+  local orig_system = vim.system
+  local _cmd, _opts, _cb = nil, nil, nil
+  ---@diagnostic disable-next-line: duplicate-set-field
+  vim.system = function(cmds, opts, cb)
+    _cmd = cmds
+    _opts = opts
+    _cb = cb
+    return {
+      wait = function()
+        return { code = 0, stdout = "some_file.txt: text/plain\n" }
+      end,
+    }
+  end
+
+  local _type = files.get_mimetype("some_file.txt")
+  h.eq({ "file", "--mime-type", "some_file.txt" }, _cmd)
+  h.eq("text/plain", _type)
+  vim.system = orig_system
+end
+
+T["Files utils"]["get_mimetype"]["works without `file`"] = function()
+  local orig_system = vim.system
+
+  local _cmd, _opts, _cb = nil, nil, nil
+  ---@diagnostic disable-next-line: duplicate-set-field
+  vim.system = function(cmds, opts, cb)
+    _cmd = cmds
+    _opts = opts
+    _cb = cb
+    return {
+      wait = function()
+        return { code = 1 }
+      end,
+    }
+  end
+
+  local _type = files.get_mimetype("some_file.png")
+  h.eq({ "file", "--mime-type", "some_file.png" }, _cmd)
+  h.eq("image/png", _type)
+  vim.system = orig_system
+end
+
 return T

@@ -100,4 +100,97 @@ T["Transformers"]["can enforce strictness with a partially strict schema"] = fun
   h.eq(expected, transform.enforce_strictness(updated_schema))
 end
 
+T["Transformers"]["can enforce strictness with nested objects in arrays"] = function()
+  local nested_schema = {
+    type = "function",
+    ["function"] = {
+      name = "insert_edit_into_file",
+      description = "Edit a file",
+      parameters = {
+        type = "object",
+        properties = {
+          filepath = {
+            type = "string",
+            description = "The file path",
+          },
+          edits = {
+            type = "array",
+            description = "Array of edit operations",
+            items = {
+              type = "object",
+              properties = {
+                oldText = {
+                  type = "string",
+                  description = "Text to find",
+                },
+                newText = {
+                  type = "string",
+                  description = "Text to replace with",
+                },
+                replaceAll = {
+                  type = "boolean",
+                  default = false,
+                  description = "Replace all occurrences",
+                },
+              },
+              required = { "oldText", "newText" },
+            },
+          },
+        },
+        required = { "filepath", "edits" },
+      },
+    },
+  }
+
+  local result = transform.enforce_strictness(vim.deepcopy(nested_schema))
+
+  -- Check that top-level properties have null types
+  h.eq({ "string", "null" }, result["function"].parameters.properties.filepath.type)
+  h.eq({ "array", "null" }, result["function"].parameters.properties.edits.type)
+
+  -- Check that nested items have all properties in required array (including previously optional ones)
+  h.eq({ "newText", "oldText", "replaceAll" }, result["function"].parameters.properties.edits.items.required)
+
+  -- Check that nested properties have null types
+  h.eq({ "string", "null" }, result["function"].parameters.properties.edits.items.properties.oldText.type)
+  h.eq({ "string", "null" }, result["function"].parameters.properties.edits.items.properties.newText.type)
+  h.eq({ "boolean", "null" }, result["function"].parameters.properties.edits.items.properties.replaceAll.type)
+
+  -- Check that strict mode is enabled
+  h.eq(true, result["function"].parameters.strict)
+end
+
+T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has no strict field"] = function()
+  local schema_without_strict = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      description = "A test tool",
+      -- No strict field
+      parameters = {
+        type = "object",
+        properties = {
+          query = {
+            type = "string",
+            description = "Query parameter",
+          },
+        },
+        required = { "query" },
+        additionalProperties = false,
+      },
+    },
+  }
+
+  -- With strict_mode = false, strict should be false/nil
+  local result1 = transform.transform_schema_if_needed(vim.deepcopy(schema_without_strict), { strict_mode = false })
+  h.eq(false, result1.strict)
+  h.eq("string", result1.parameters.properties.query.type) -- No null type
+
+  -- With strict_mode = true, strict should be true and strictness enforced
+  local result2 = transform.transform_schema_if_needed(vim.deepcopy(schema_without_strict), { strict_mode = true })
+  h.eq(true, result2.strict)
+  h.eq({ "string", "null" }, result2.parameters.properties.query.type) -- Has null type
+  h.eq({ "query" }, result2.parameters.required) -- All properties required
+end
+
 return T

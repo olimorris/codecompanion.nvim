@@ -5,6 +5,7 @@ description: Learn how tools can aid your code, in CodeCompanion
 # Using Tools
 
 > [!IMPORTANT]
+> Tools are not supported for ACP adapters as they have their own set.
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
@@ -76,6 +77,20 @@ Can you create some test fixtures using @{create_file}?
 
 **Options:**
 - `requires_approval` require approval before creating a file? (Default: true)
+
+### delete_file
+
+> [!NOTE]
+> By default, this tool requires user approval before it can be executed
+
+Delete a file within the current working directory:
+
+```md
+Can you use @{delete_file} to delete the quotes.lua file?
+```
+
+**Options:**
+- `requires_approval` require approval before deleting a file? (Default: true)
 
 ### fetch_webpage
 
@@ -341,9 +356,6 @@ When using CodeCompanion's in-built tools, there are three choices:
 3. **Cancel** - All tools in the queue will **NOT** be executed
 
 ## Compatibility
-
-> [!NOTE]
-> Tools are not supported for ACP adapters as they have their own set.
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 

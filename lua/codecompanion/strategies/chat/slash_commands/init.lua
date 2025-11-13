@@ -12,7 +12,14 @@ local function resolve(callback)
     return slash_command
   end
 
-  -- Try loading the tool from the user's config
+  -- Try loading the tool from the user's config using a module path
+  ok, slash_command = pcall(require, callback)
+  if ok then
+    log:debug("Calling slash command using a module path: %s", callback)
+    return slash_command
+  end
+
+  -- Try loading the tool from the user's config using a file path
   local err
   slash_command, err = loadfile(callback)
   if err then
@@ -20,7 +27,7 @@ local function resolve(callback)
   end
 
   if slash_command then
-    log:debug("Calling slash command: %s", callback)
+    log:debug("Calling slash command from a file path: %s", callback)
     return slash_command()
   end
 end
@@ -91,17 +98,17 @@ end
 ---@return nil
 function SlashCommands.context(chat, slash_command, opts)
   local slash_commands = {
-    buffer = require("codecompanion.strategies.chat.slash_commands.buffer").new({
+    buffer = require("codecompanion.strategies.chat.slash_commands.catalog.buffer").new({
       Chat = chat,
       config = config.strategies.chat.slash_commands["buffer"],
     }),
-    file = require("codecompanion.strategies.chat.slash_commands.file").new({
+    file = require("codecompanion.strategies.chat.slash_commands.catalog.file").new({
       Chat = chat,
     }),
-    symbols = require("codecompanion.strategies.chat.slash_commands.symbols").new({
+    symbols = require("codecompanion.strategies.chat.slash_commands.catalog.symbols").new({
       Chat = chat,
     }),
-    url = require("codecompanion.strategies.chat.slash_commands.fetch").new({
+    url = require("codecompanion.strategies.chat.slash_commands.catalog.fetch").new({
       Chat = chat,
       config = config.strategies.chat.slash_commands["fetch"],
     }),

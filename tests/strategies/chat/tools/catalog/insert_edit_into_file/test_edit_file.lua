@@ -1371,4 +1371,64 @@ T["Comprehensive Real-World Tests"]["Go language: block edits then block replace
   h.eq(fetch_count, 2, "Should have exactly 2 fetchUserByID (definition + call)")
 end
 
+T["Diff edit_file function"] = new_set()
+
+T["Diff edit_file function"]["diff shows changes correctly after file write"] = function()
+  child.lua([[
+    -- Create initial file
+    local initial = "function getName() {\n  return 'John';\n}"
+    local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    assert(ok == 0)
+
+    -- Disable yolo mode so diff is created
+    vim.g.codecompanion_yolo_mode = false
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "insert_edit_into_file",
+          arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function getName() {\\n  return \'John\';\\n}", "newText": "function getFullName() {\\n  return \'John Doe\';\\n}"}]}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+
+    -- Execute the tool
+    tools:execute(chat, tool)
+    vim.wait(100)
+
+    -- Check that file was written to disk BEFORE diff creation
+    -- This is the fix - file should have new content
+    local file_content = vim.fn.readfile(_G.TEST_TMPFILE)
+    local file_has_new_content = vim.tbl_contains(file_content, "function getFullName() {")
+
+    -- Get buffer for the file (should be loaded by diff.create)
+    local bufnr = vim.fn.bufnr(_G.TEST_TMPFILE)
+    local buffer_loaded = bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr)
+
+    -- If buffer exists, check it has new content (from checktime after write)
+    local buffer_has_new_content = false
+    if buffer_loaded then
+      local buf_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      buffer_has_new_content = vim.tbl_contains(buf_lines, "function getFullName() {")
+    end
+
+    _G.test_results = {
+      file_has_new_content = file_has_new_content,
+      buffer_loaded = buffer_loaded,
+      buffer_has_new_content = buffer_has_new_content,
+    }
+  ]])
+
+  local results = child.lua_get("_G.test_results")
+
+  -- The fix ensures:
+  -- 1. File is written to disk BEFORE diff creation
+  h.eq(results.file_has_new_content, true, "File should have new content written to disk")
+
+  -- 2. If buffer was loaded for diff, it should have new content (via checktime)
+  if results.buffer_loaded then
+    h.eq(results.buffer_has_new_content, true, "Buffer should have new content from disk after checktime")
+  end
+end
+
 return T

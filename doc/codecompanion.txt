@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 31
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -120,7 +120,7 @@ REQUIREMENTS                         *codecompanion-installation-requirements*
 - The `curl` library
 - Neovim 0.11.0 or greater
 - `(Optional)` An API key for your chosen LLM
-- `(Optional)` The `base64` library for image/vision support
+- `(Optional)` The file <https://man7.org/linux/man-pages/man1/file.1.html> command for detecting image mimetype
 - `(Optional)` The ripgrep <https://github.com/BurntSushi/ripgrep> library for the `grep_search` tool
 
 
@@ -675,15 +675,17 @@ interface that allows data to be sent, received and processed. There are a
 multitude of ways to customize them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which
-connect you to an LLM and **ACP** adapters which leverage the Agent Client
-Protocol <https://agentclientprotocol.com> to connect you to an agent.
+connect you to an LLM and |codecompanion-configuration-acp| adapters which
+leverage the Agent Client Protocol <https://agentclientprotocol.com> to connect
+you to an agent.
 
 The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
 `commands` to allow users to customize their interaction with agents (e.g.�
-enabling `yolo` mode).
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -804,40 +806,6 @@ To change the default model on an adapter you can modify the
         },
       },
     }),
-<
-
-
-CHANGING AUTH METHOD OF AN ACP ADAPTER ~
-
-
-  [!NOTE] The auth methods for each ACP adapter are output in the
-  |codecompanion-configuration-others-log-level| when the `log_level` is set to
-  `DEBUG`.
-It’s important to note that each agent adapter handles authentication
-differently. CodeCompanion endeavours to share the available options in the
-agent’s adapter as a comment. However, it’s recommended to consult the
-documentation of the agent you’re working with.
-
-An example of changing the Gemini CLI’s auth method to use the API key and a
-1Password vault:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              defaults = {
-                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
-              },
-              env = {
-                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
-              },
-            })
-          end,
-        },
-      },
-    })
 <
 
 
@@ -1061,92 +1029,6 @@ via the API. This is standard behaviour across all http adapters within the
 plugin.
 
 
-SETUP: CLAUDE CODE VIA ACP ~
-
-To use Claude Code <https://www.anthropic.com/claude-code> within
-CodeCompanion, you’ll need to take the following steps:
-
-1. Install <https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code> Claude Code
-2. Install <https://github.com/zed-industries/claude-code-acp> the Zed ACP adapter for Claude Code
-
-
-CLAUDE PRO SUBSCRIPTION
-
-1. In your CLI, run `claude setup-token`. You’ll be redirected to the Claude.ai website for authorization:
-
-2. Back in your CLI, copy the OAuth token (in yellow):
-
-3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on |codecompanion--environment-variables| for other ways to do this):
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          claude_code = function()
-            return require("codecompanion.adapters").extend("claude_code", {
-              env = {
-                CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
-AN API KEY
-
-1. Create <https://console.anthropic.com/settings/keys> an API key in your Anthropic console.
-2. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          claude_code = function()
-            return require("codecompanion.adapters").extend("claude_code", {
-              env = {
-                ANTHROPIC_API_KEY = "my-api-key",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
-SETUP: CODEX ~
-
-To use OpenAI’s Codex <https://openai.com/codex/>, install an ACP-compatible
-adapter like this <https://github.com/zed-industries/codex-acp> one from Zed
-<https://zed.dev>.
-
-By default, the adapter will look for an `OPENAI_API_KEY` in your shell,
-however you can also authenticate via ChatGPT. This can be customized in the
-plugin configuration:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          codex = function()
-            return require("codecompanion.adapters").extend("codex", {
-              defaults = {
-                auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
-              },
-              env = {
-                OPENAI_API_KEY = "my-api-key",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
 SETUP: USING OLLAMA REMOTELY ~
 
 To use Ollama remotely, change the URL in the env table, set an API key and
@@ -1353,6 +1235,29 @@ You can configure Slash Commands with:
     })
 <
 
+It’s also possible to conditionally enable a slash command by including
+`enabled` in the config:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          slash_commands = {
+            ["image"] = {
+              callback = "strategies.chat.slash_commands.catalog.image",
+              description = "Insert an image",
+              ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+              ---@return boolean
+              enabled = function(opts)
+                return opts.adapter.opts and opts.adapter.opts.vision == true
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
 
   [!IMPORTANT] Each slash command may have their own unique configuration so be
   sure to check out the config.lua
@@ -1468,7 +1373,7 @@ function or a string that points to a luafile that return the table.
 
 TOOL CONDITIONALS
 
-Tools can also be conditionally enabled:
+Built-in tools can also be conditionally enabled:
 
 >lua
     require("codecompanion").setup({
@@ -1476,8 +1381,9 @@ Tools can also be conditionally enabled:
         chat = {
           tools = {
             ["grep_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
               ---@return boolean
-              enabled = function()
+              enabled = function(adapter)
                 return vim.fn.executable("rg") == 1
               end,
             },
@@ -1490,6 +1396,26 @@ Tools can also be conditionally enabled:
 This is useful to ensure that a particular dependency is installed on the
 machine. After the user has installed the dependency, the `:CodeCompanionChat
 RefreshCache` command can be used to refresh the cache’s across chat buffers.
+
+If you wish to conditionally enable an adapter’s own tools, you can do so
+with:
+
+>lua
+    require("codecompanion").setup({
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          available_tools = {
+            ["web_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
+              enabled = function(adapter)
+                return false
+              end,
+            },
+          },
+        })
+      end,
+    })
+<
 
 
 APPROVALS
@@ -3039,9 +2965,10 @@ To disable a keymap, you can set it to `false` in your configuration:
 
 AGENTS                                            *codecompanion-usage-agents*
 
-CodeCompanion enables you to work with agents such as Gemini
-<https://github.com/google-gemini/gemini-cli> by leveraging the Agent Client
-Protocol <https://agentclientprotocol.com>.
+CodeCompanion implements the Agent Client Protocol
+<https://agentclientprotocol.com> to enable you to work with coding agents from
+within Neovim. Please refer to the |codecompanion-configuration-acp| if
+you’ve not setup an ACP adapter.
 
 
 GETTING STARTED ~
@@ -3071,7 +2998,10 @@ with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
 |codecompanion-usage-chat-buffer-variables| are available to share additional
 context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
 disabled as the agent has their own tool set and the autonomy to decide what to
-run and when.
+run and when. CodeCompanion also supports an agent’s own slash commands
+<https://agentclientprotocol.com/protocol/slash-commands> however these are
+invoked with `\` instead of `/` which is reserved for CodeCompanion’s
+built-in ones.
 
 As outlined in the Agent Client Protocol documentation
 <https://agentclientprotocol.com/protocol/initialization>, there are a number
@@ -3227,8 +3157,9 @@ note, this will remove `ALL` context that’s been designated as `memory`.
 TOOLS                                              *codecompanion-usage-tools*
 
 
-  [!IMPORTANT] Not all LLMs support function calling and the use of tools. Please
-  see the |codecompanion--compatibility| section for more information.
+  [!IMPORTANT] Tools are not supported for ACP adapters as they have their own
+  set. Not all LLMs support function calling and the use of tools. Please see the
+  |codecompanion--compatibility| section for more information.
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,
 LLMs can act as agents by leveraging external tools. Andrew notes some common
@@ -3324,6 +3255,20 @@ Create a file within the current working directory:
 <
 
 **Options:** - `requires_approval` require approval before creating a file?
+(Default: true)
+
+
+DELETE_FILE
+
+
+  [!NOTE] By default, this tool requires user approval before it can be executed
+Delete a file within the current working directory:
+
+>md
+    Can you use @{delete_file} to delete the quotes.lua file?
+<
+
+**Options:** - `requires_approval` require approval before deleting a file?
 (Default: true)
 
 
@@ -3614,7 +3559,7 @@ built-in tool in the event of a name clash.
 
 ANTHROPIC
 
-The `anthropic` adapter the following tools are available:
+In the `anthropic` adapter, the following tools are available:
 
 - `code_execution` - The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
 - `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
@@ -3624,7 +3569,7 @@ The `anthropic` adapter the following tools are available:
 
 OPENAI
 
-Using the `openai_responses` adapter the following tools are available:
+In the `openai_responses` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
@@ -3668,8 +3613,6 @@ When using CodeCompanion’s in-built tools, there are three choices:
 
 COMPATIBILITY ~
 
-
-  [!NOTE] Tools are not supported for ACP adapters as they have their own set.
 Below is the tool use status of various adapters and models in CodeCompanion:
 
   ------------------------------------------------------------------------
@@ -3783,6 +3726,13 @@ image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 The `memory` slash command allows you to add
 |codecompanion-usage-chat-buffer-memory| groups to the chat buffer.
+
+
+/MODE ~
+
+The `mode` slash command is specific to |codecompanion-configuration-acp|
+adapters allows users to switch between different agent operating modes, as per
+the protocol <https://agentclientprotocol.com/protocol/session-modes> docs.
 
 
 /NOW ~
@@ -3930,6 +3880,7 @@ LIST OF EVENTS ~
 
 The events that are fired from within the plugin are:
 
+- `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden

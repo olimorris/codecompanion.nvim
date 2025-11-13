@@ -61,6 +61,7 @@ local config = require("codecompanion.config")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
+local im_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
@@ -358,6 +359,18 @@ local function set_autocmds(chat)
       end,
     })
   end
+
+  -- Update metadata when ACP mode changes
+  api.nvim_create_autocmd("User", {
+    group = chat.aug,
+    pattern = "CodeCompanionChatACPModeChanged",
+    desc = "Update chat metadata when ACP mode changes",
+    callback = function(args)
+      if chat.acp_connection and args.data and args.data.session_id == chat.acp_connection.session_id then
+        chat:update_metadata()
+      end
+    end,
+  })
 end
 
 --=============================================================================
@@ -929,6 +942,36 @@ function Chat:add_message(data, opts)
   return self
 end
 
+---Add an image to the chat buffer
+---@param image CodeCompanion.Image The image object containing the path and other metadata
+---@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@return nil
+function Chat:add_image_message(image, opts)
+  opts = vim.tbl_deep_extend("force", {
+    role = config.constants.USER_ROLE,
+    source = "codecompanion.strategies.chat.slash_commands.image",
+    bufnr = image.bufnr,
+  }, opts or {})
+
+  local id = "<image>" .. (image.id or image.path) .. "</image>"
+
+  self:add_message({
+    role = opts.role,
+    content = image.base64,
+  }, {
+    context = { id = id, mimetype = image.mimetype, path = image.path or image.id },
+    _meta = { tag = "image" },
+    visible = false,
+  })
+
+  self.context:add({
+    bufnr = opts.bufnr,
+    id = id,
+    path = image.path,
+    source = opts.source,
+  })
+end
+
 ---Apply any tools or variables that a user has tagged in their message
 ---@param message table
 ---@return nil
@@ -1248,11 +1291,11 @@ function Chat:check_images(message)
   end
 
   for _, image in ipairs(images) do
-    local encoded_image = helpers.encode_image(image)
+    local encoded_image = im_utils.encode_image(image)
     if type(encoded_image) == "string" then
       log:warn("Could not encode image: %s", encoded_image)
     else
-      helpers.add_image(self, encoded_image)
+      self:add_image_message(encoded_image)
 
       -- Replace the image link in the message with "image"
       local to_remove = fmt("[Image](%s)", image.path)
@@ -1474,11 +1517,24 @@ end
 ---This will NOT form part of the message stack that is sent to the LLM
 ---@param data table
 ---@param opts? table
+---@return number|nil The last line number of the added message, or nil on failure
 function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
   opts = opts or {}
 
-  self.builder:add_message(data, opts)
+  return self.builder:add_message(data, opts)
+end
+
+---Update a specific line in the chat buffer
+---@param line_number number The line number to update (1-based)
+---@param content string The new content for the line
+---@param opts? table Optional parameters
+---@return boolean success Whether the update was successful
+function Chat:update_buf_line(line_number, content, opts)
+  assert(type(content) == "string", "content must be a string")
+  opts = opts or {}
+
+  return self.builder:update_line(line_number, content, opts)
 end
 
 ---Add the output from a tool to the message history and a message to the UI
@@ -1573,6 +1629,23 @@ function Chat:update_metadata()
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
   end
 
+  local mode_info
+  if self.adapter.type == "acp" and self.acp_connection then
+    local modes = self.acp_connection:get_modes()
+    if modes and modes.currentModeId then
+      mode_info = {
+        current = modes.currentModeId,
+      }
+      -- Get the mode name for display
+      for _, mode in ipairs(modes.availableModes or {}) do
+        if mode.id == modes.currentModeId then
+          mode_info.name = mode.name
+          break
+        end
+      end
+    end
+  end
+
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
       name = self.adapter.formatted_name,
@@ -1581,6 +1654,7 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
+    mode = mode_info,
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
