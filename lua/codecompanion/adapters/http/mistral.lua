@@ -135,12 +135,28 @@ return {
         return nil
       end
 
+      local output = {
+        role = delta.role,
+      }
+
+      if delta.content then
+        local content = delta.content
+        if type(content) == "string" then
+          output.content = content
+        else
+          output.reasoning = output.reasoning or {}
+          output.reasoning.content = ""
+          if content[1].type == "thinking" then
+            output.reasoning.content = content[1].thinking[1].text
+          end
+        end
+      else
+        output.content = ""
+      end
+
       return {
         status = "success",
-        output = {
-          role = delta.role,
-          content = delta.content,
-        },
+        output = output,
       }
     end,
     tools = {
