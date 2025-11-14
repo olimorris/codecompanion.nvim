@@ -531,7 +531,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Fold code",
         },
         debug = {
-          modes = { n = "gdd" },
+          modes = { n = "gd" },
           index = 16,
           callback = "keymaps.debug",
           description = "View debug info",
@@ -549,34 +549,28 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Clear memory",
         },
         fs_diff = {
-          modes = { n = "gdm" },
+          modes = { n = "gD" },
           index = 19,
           callback = "keymaps.show_fs_diff",
           description = "Show file system diff",
         },
         yolo_mode = {
           modes = { n = "gty" },
-          index = 19,
+          index = 20,
           callback = "keymaps.yolo_mode",
           description = "YOLO mode toggle",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
-          index = 20,
+          index = 21,
           callback = "keymaps.goto_file_under_cursor",
           description = "Open file under cursor",
         },
         copilot_stats = {
           modes = { n = "gS" },
-          index = 21,
+          index = 22,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot statistics",
-        },
-        super_diff = {
-          modes = { n = "gds" },
-          index = 22,
-          callback = "keymaps.super_diff",
-          description = "Show Super Diff",
         },
         -- Keymaps for ACP permission requests
         _acp_allow_always = {
