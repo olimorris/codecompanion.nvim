@@ -300,31 +300,5 @@ return {
       default = false,
       desc = "Whether to inject a safety prompt before all conversations.",
     },
-    ---@type CodeCompanion.Schema
-    reasoning_effort = {
-      order = 5,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
-        local model = self.schema.model.default
-        if type(model) == "function" then
-          model = model()
-        end
-        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
-          return self.schema.model.choices[model].opts.can_reason
-        end
-        return false
-      end,
-      default = "medium",
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
-      choices = {
-        "high",
-        "medium",
-        "low",
-        "none",
-      },
-    },
   },
 }
