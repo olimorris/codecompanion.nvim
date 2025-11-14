@@ -778,4 +778,129 @@ T["InlineDiff Screenshots"]["Shows floating window diff for complex file changes
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["InlineDiff"]["new - initializes hunk tracking fields"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = { "line 1", "old line 2", "line 3" }
+  local current_contents = { "line 1", "new line 2", "line 3" }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, current_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "test_hunk_tracking",
+  })
+
+  h.eq(type(diff.hunk_start_lines), "table")
+  h.eq(type(diff.hunk_count), "number")
+  h.expect_truthy(diff.hunk_count > 0)
+  h.expect_truthy(#diff.hunk_start_lines > 0)
+end
+
+T["InlineDiff"]["clear_highlights - clears hunk tracking"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = { "line 1", "old line", "line 3" }
+  local current_contents = { "line 1", "new line", "line 3" }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, current_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "test_clear_hunks",
+  })
+
+  h.expect_truthy(diff.hunk_count > 0)
+  diff:clear_highlights()
+
+  h.eq(diff.hunk_count, 0)
+  h.eq(#diff.hunk_start_lines, 0)
+end
+
+T["InlineDiff"]["jump_to_next_hunk - navigates to next hunk"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = { "line 1", "line 2", "line 3", "line 4", "line 5", "line 6" }
+  local current_contents = { "line 1", "changed 2", "line 3", "changed 4", "line 5", "line 6" }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, current_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "test_next_nav",
+  })
+
+  h.expect_truthy(diff.hunk_count >= 2)
+
+  -- Set cursor to line 1 and jump
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  diff:jump_to_next_hunk()
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  h.expect_truthy(cursor[1] > 1)
+end
+
+T["InlineDiff"]["jump_to_next_hunk - handles no hunks"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local contents = { "line 1", "line 2", "line 3" }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = contents,
+    id = "test_no_hunks",
+  })
+
+  h.eq(diff.hunk_count, 0)
+
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  local before_cursor = vim.api.nvim_win_get_cursor(0)
+
+  diff:jump_to_next_hunk()
+
+  local after_cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(before_cursor[1], after_cursor[1])
+end
+
+T["InlineDiff"]["jump_to_prev_hunk - navigates to previous hunk"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local original_contents = { "line 1", "line 2", "line 3", "line 4", "line 5", "line 6" }
+  local current_contents = { "line 1", "changed 2", "line 3", "changed 4", "line 5", "line 6" }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, current_contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = original_contents,
+    id = "test_prev_nav",
+  })
+
+  h.expect_truthy(diff.hunk_count >= 2)
+
+  -- Set cursor to end and jump back
+  vim.api.nvim_win_set_cursor(0, { 6, 0 })
+  diff:jump_to_prev_hunk()
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  h.expect_truthy(cursor[1] < 6)
+end
+
+T["InlineDiff"]["jump_to_prev_hunk - handles no hunks"] = function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local contents = { "line 1", "line 2", "line 3" }
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
+
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = contents,
+    id = "test_no_hunks_prev",
+  })
+
+  h.eq(diff.hunk_count, 0)
+
+  vim.api.nvim_win_set_cursor(0, { 3, 0 })
+  local before_cursor = vim.api.nvim_win_get_cursor(0)
+
+  diff:jump_to_prev_hunk()
+
+  local after_cursor = vim.api.nvim_win_get_cursor(0)
+  h.eq(before_cursor[1], after_cursor[1])
+end
+
 return T

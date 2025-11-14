@@ -495,13 +495,23 @@ end
 ---@param winnr number
 ---@param text string Text to set in the winbar
 ---@param hl string Highlight group to use for the winbar
+---@param escape? boolean Whether to escape % characters (default: true).
 ---@return nil
-function M.set_winbar(winnr, text, hl)
+function M.set_winbar(winnr, text, hl, escape)
   if not vim.api.nvim_win_is_valid(winnr) then
     return
   end
 
-  local centered = "%=" .. (text or ""):gsub("%%", "%%%%") .. "%="
+  if escape == nil then
+    escape = true
+  end
+
+  local processed_text = text or ""
+  if escape then
+    processed_text = processed_text:gsub("%%", "%%%%")
+  end
+
+  local centered = "%=" .. processed_text .. "%="
   local existing_hl = vim.wo[winnr].winhighlight or ""
   existing_hl = #existing_hl > 0 and existing_hl .. "," or existing_hl
   vim.wo[winnr].winhighlight = existing_hl .. "WinBar:" .. hl .. ",WinBarNC:" .. hl
