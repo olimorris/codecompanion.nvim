@@ -190,8 +190,8 @@ return {
         -- Premier models
         "mistral-large-latest",
         ["pixtral-large-latest"] = { opts = { has_vision = true } },
-        ["magistral-large-latest"] = { opts = { can_reason = true, has_function_calling = true } },
-        ["magistral-medium-latest"] = { opts = { can_reason = true, has_function_calling = true, max_tokens = 131072 } },
+        ["magistral-medium-latest"] = { opts = { can_reason = true } },
+        ["magistral-small-latest"] = { opts = { can_reason = true } },
         ["mistral-medium-latest"] = { opts = { has_vision = true } },
         ["mistral-saba-latest"] = { opts = { has_function_calling = false } },
         "codestral-latest",
