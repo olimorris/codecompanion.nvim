@@ -146,9 +146,9 @@ return {
         else
           output.reasoning = output.reasoning or {}
           output.reasoning.content = ""
-          for _,c in ipairs(content) do
+          for _, c in ipairs(content) do
             if c.type == "thinking" then
-              for _,thinking in ipairs(c.thinking) do
+              for _, thinking in ipairs(c.thinking) do
                 output.reasoning.content = output.reasoning.content .. thinking.text
               end
             end
@@ -190,8 +190,8 @@ return {
         -- Premier models
         "mistral-large-latest",
         ["pixtral-large-latest"] = { opts = { has_vision = true } },
-        ["magistral-large-latest"] = { opts = { can_reason = true } },
-        ["magistral-medium-latest"] = { opts = { can_reason = true } },
+        ["magistral-large-latest"] = { opts = { can_reason = true, has_function_calling = true } },
+        ["magistral-medium-latest"] = { opts = { can_reason = true, has_function_calling = true, max_tokens = 131072 } },
         ["mistral-medium-latest"] = { opts = { has_vision = true } },
         ["mistral-saba-latest"] = { opts = { has_function_calling = false } },
         "codestral-latest",

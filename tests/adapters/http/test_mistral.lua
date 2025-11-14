@@ -164,13 +164,13 @@ T["Mistral adapter"]["Streaming"]["can process thinking"] = function()
   h.eq(output, {
     {
       status = "success",
-      output = { reasoning = { content = "Okay" }}
+      output = { reasoning = { content = "Okay" } },
     },
     {
       status = "success",
-      output = { reasoning = { content = ", that works" }}
+      output = { reasoning = { content = ", that works" } },
     },
-  });
+  })
 end
 
 -- No streaming ---------------------------------------------------------------
