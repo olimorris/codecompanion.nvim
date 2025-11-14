@@ -46,6 +46,13 @@ return {
           self.opts.tools = false
         end
       end
+      -- If using the codestral model, force using the codestral API key and endpoint
+      if model == "codestral-latest" then
+        self.env = {
+          url = "https://codestral.mistral.ai/",
+          api_key = "CODESTRAL_API_KEY",
+        }
+      end
 
       return true
     end,
