@@ -193,7 +193,7 @@ end
 ---Function to call when the user has provided a response
 ---@param request table
 ---@param diff table
----@param opts { bufnr: number, mapped_lhs: string[], winnr: number }
+---@param opts { bufnr: number, mapped_lhs: string[], winnr: number, keep_win_open: boolean }
 ---@return fun(accepted: boolean, timed_out: boolean, kind: string|nil)
 local function on_user_response(request, diff, opts)
   local done = false
@@ -217,13 +217,25 @@ local function on_user_response(request, diff, opts)
     end
   end
 
-  -- Close floating window and delete buffer
-  local function close_float()
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if api.nvim_win_is_valid(win) and api.nvim_win_get_buf(win) == opts.bufnr then
-        pcall(api.nvim_win_close, win, true)
+  -- Cleanup: clear winbar, close window, and delete buffer
+  local function cleanup()
+    if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
+      pcall(function()
+        vim.wo[opts.winnr].winbar = ""
+      end)
+
+      if opts.keep_win_open then
+        -- Prevents the window from closing when we delete the temp buffer
+        pcall(function()
+          api.nvim_win_call(opts.winnr, function()
+            vim.cmd("buffer #")
+          end)
+        end)
+      else
+        pcall(api.nvim_win_close, opts.winnr, true)
       end
     end
+
     if api.nvim_buf_is_valid(opts.bufnr) then
       pcall(api.nvim_buf_delete, opts.bufnr, { force = true })
     end
@@ -253,7 +265,7 @@ local function on_user_response(request, diff, opts)
         end)
       end
       cleanup_mappings(opts.bufnr, opts.mapped_lhs)
-      close_float()
+      cleanup()
       return request.respond(nil, true)
     end
 
@@ -272,7 +284,7 @@ local function on_user_response(request, diff, opts)
     end
 
     cleanup_mappings(opts.bufnr, opts.mapped_lhs)
-    close_float()
+    cleanup()
     request.respond(option_id, false)
   end
 end
@@ -341,47 +353,60 @@ local function show_diff(chat, request)
   local old_lines = vim.split(d.old or "", "\n", { plain = true })
   local new_lines = vim.split(d.new or "", "\n", { plain = true })
 
-  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
+  require("codecompanion.strategies.chat.helpers").hide_chat_for_floating_diff(chat)
 
-  local provider = config.display.diff.provider
-  local provider_config = config.display.diff.provider_opts[provider] or {}
-  local show_dim = provider_config.opts and provider_config.opts.show_dim
+  local bufnr = api.nvim_create_buf(true, false)
+  local diff_id = math.random(10000000)
+  api.nvim_buf_set_name(bufnr, d.path .. "_diff_" .. diff_id)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
 
-  local bufnr, winnr = ui_utils.create_float(new_lines, {
-    window = { width = window_config.width, height = window_config.height },
-    row = window_config.row or "center",
-    col = window_config.col or "center",
-    relative = window_config.relative or "editor",
-    filetype = vim.filetype.match({ filename = d.path }),
-    title = ui_utils.build_float_title({
-      title_prefix = "Edit Requested",
-      path = d.path,
-    }),
-    lock = true,
-    ignore_keymaps = true,
-    opts = window_config.opts,
-    show_dim = show_dim,
-  })
+  local ft = vim.filetype.match({ filename = d.path })
+  if ft then
+    api.nvim_set_option_value("filetype", ft, { buf = bufnr })
+  end
+
+  -- Open buffer and window with correct provider handling
+  local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+  local _, winnr = diff_helper.open_buffer_and_window(bufnr)
+  if not winnr then
+    log:error("[chat::acp::request_permission] Failed to open buffer and window")
+    return request.respond(nil, true)
+  end
 
   -- Build present kinds and normalize keymaps from config, then setup winbar
   local kind_map = build_kind_map(request.options)
   local normalized = normalize_maps(config.strategies.chat.keymaps)
   place_banner(winnr, normalized, kind_map)
 
-  local diff_id = math.random(10000000)
-  -- Force users to use the inline diff
-  -- TODO: Possibly allow mini.diff in this scenario?
-  local InlineDiff = require("codecompanion.providers.diff.inline")
-  local diff = InlineDiff.new({
+  local provider = config.display.diff.provider
+  local ok, diff_module = pcall(require, "codecompanion.providers.diff." .. provider)
+  if not ok then
+    log:error("[chat::acp::request_permission] Failed to load provider '%s'", provider)
+    return request.respond(nil, true)
+  end
+
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local layout = provider_config.layout
+  local is_floating = provider == "inline" and layout == "float"
+  local keep_win_open = provider == "inline" and layout == "buffer" or provider == "split"
+
+  local diff = diff_module.new({
     bufnr = bufnr,
     contents = old_lines,
+    filetype = ft or "",
     id = diff_id,
     winnr = winnr,
-    is_floating = true, -- so we don't show inline keymap hints
+    is_floating = is_floating,
+    show_hints = false, -- ACP shows keymaps in winbar instead
   })
   if not diff then
     log:debug("[chat::acp::interactions] Failed to create diff; auto-canceling permission")
     return request.respond(nil, true)
+  end
+
+  -- For split provider, place banner on both diff windows
+  if provider == "split" and diff.diff and diff.diff.win then
+    place_banner(diff.diff.win, normalized, kind_map)
   end
 
   local mapped_lhs = {}
@@ -389,6 +414,7 @@ local function show_diff(chat, request)
     bufnr = bufnr,
     mapped_lhs = mapped_lhs,
     winnr = winnr,
+    keep_win_open = keep_win_open,
   })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
@@ -400,6 +426,10 @@ local function show_diff(chat, request)
     else
       finish(false, result.timeout == true, nil)
     end
+    vim.schedule(function()
+      local codecompanion = require("codecompanion")
+      codecompanion.restore(chat.bufnr)
+    end)
   end, {
     chat_bufnr = chat.bufnr,
     notify = config.display.icons.warning .. " Waiting for decision ...",
