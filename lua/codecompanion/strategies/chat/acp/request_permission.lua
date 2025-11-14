@@ -388,7 +388,7 @@ local function show_diff(chat, request)
   local provider_config = config.display.diff.provider_opts[provider] or {}
   local layout = provider_config.layout
   local is_floating = provider == "inline" and layout == "float"
-  local keep_win_open = provider == "inline" and layout == "buffer" or provider == "split"
+  local keep_win_open = provider == "inline" and layout == "buffer" or provider == "split" or provider == "mini_diff"
 
   local diff = diff_module.new({
     bufnr = bufnr,
