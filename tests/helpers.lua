@@ -26,6 +26,126 @@ Helpers.setup_plugin = function()
   return codecompanion
 end
 
+---Create a mock adapter for testing
+---@param child table The child Neovim instance
+---@param adapter? string|table Adapter name (e.g., "openai"), config table, or nil for default
+---@param opts? { var_name?: string, handlers?: table } Options to customize adapter
+---@return string var_name The variable name where adapter is stored
+Helpers.create_mock_adapter = function(child, adapter, opts)
+  opts = opts or {}
+  local var_name = opts.var_name or "_G.mock_adapter"
+
+  child.lua(
+    string.format(
+      [[
+    local adapter_config
+    local adapter_input = ...
+
+    if adapter_input == nil then
+      -- Default test adapter
+      adapter_config = {
+        name = "test_adapter",
+        type = "http",
+        url = "https://api.openai.com/v1/chat/completions",
+        roles = {
+          llm = "assistant",
+          user = "user",
+        },
+        opts = {
+          stream = true,
+        },
+        headers = {
+          content_type = "application/json",
+        },
+        schema = {
+          model = {
+            default = "gpt-3.5-turbo",
+          },
+        },
+        handlers = {
+          response = {
+            parse_chat = function(self, data)
+              local ok, body = pcall(vim.json.decode, data)
+              if not ok then
+                return nil
+              end
+
+              if body.choices and body.choices[1] and body.choices[1].message then
+                return {
+                  status = "success",
+                  output = body.choices[1].message,
+                }
+              end
+              return nil
+            end,
+          },
+        },
+      }
+    elseif type(adapter_input) == "string" then
+      -- Load real adapter by name
+      local adapters = require("codecompanion.adapters")
+      adapter_config = adapters.resolve(adapter_input)
+    else
+      -- Use provided config
+      adapter_config = adapter_input
+    end
+
+    -- Make it a proper adapter instance
+    local Adapter = require("codecompanion.adapters.http")
+    %s = Adapter.new(adapter_config)
+  ]],
+      var_name
+    ),
+    { adapter }
+  )
+
+  return var_name
+end
+
+---Setup mock HTTP client
+---@param child table The child Neovim instance
+---@param adapter? string Name of the adapter variable in child process (default: "_G.mock_adapter")
+---@return nil
+Helpers.mock_http = function(child, adapter)
+  adapter = adapter or "_G.mock_adapter"
+
+  child.lua(string.format(
+    [[
+    -- Create and store the mock client globally
+    local mock_client = require("tests.mocks.http").new({ adapter = %s })
+    _G.mock_client = mock_client
+
+    -- Replace the http module
+    package.loaded["codecompanion.http"] = {
+      new = function()
+        return _G.mock_client
+      end,
+    }
+  ]],
+    adapter
+  ))
+end
+
+---Queue a response in the mock HTTP client
+---@param child table The child Neovim instance
+---@param response table The response to queue
+---@return nil
+Helpers.queue_mock_http_response = function(child, response)
+  child.lua([[_G.mock_client:queue_response(...)]], { response })
+end
+
+---Get requests captured by mock HTTP client
+---@param child table The child Neovim instance
+---@return table
+Helpers.get_mock_http_requests = function(child)
+  return child.lua([[
+    if not _G.mock_client then
+      error("Mock client not initialized. Did you call setup_mock_http?")
+    end
+    return _G.mock_client:get_requests()
+  ]])
+end
+
 ---Mock the submit function of a chat to avoid actual API calls
 ---@param response string The mocked response content
 ---@param status? string The status to set (default: "success")
