@@ -21,7 +21,7 @@ local function resolve(callback)
 
   -- Try loading the tool from the user's config using a file path
   local err
-  slash_command, err = loadfile(callback)
+  slash_command, err = loadfile(vim.fs.normalize(callback))
   if err then
     return log:error("Could not load the slash command: %s", callback)
   end
