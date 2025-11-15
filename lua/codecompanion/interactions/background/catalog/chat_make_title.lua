@@ -6,12 +6,27 @@ local M = {}
 
 ---Format the messages from a chat buffer
 ---@param messages CodeCompanion.Chat.Messages
-local function format_messages(messages)
+function M.format_messages(messages)
   local chat_messages = {}
   for _, message in ipairs(messages or {}) do
     table.insert(chat_messages, fmt("## %s\n%s", message.role, message.content))
   end
   return table.concat(chat_messages, "\n")
+end
+
+---Handle the result from the title generation request
+---@param result table
+---@return string|nil
+function M.on_done(result)
+  if not result or (result.status and result.status == "error") then
+    return
+  end
+
+  local title = result and result.output and result.output.content
+  if title then
+    title = title:match("^%s*[\"']?(.-)[\"']?%s*$")
+    return title and title ~= "" and title or nil
+  end
 end
 
 ---Make the request to generate a title for the chat
@@ -34,22 +49,17 @@ Constraints:
     },
     {
       role = "user",
-      content = fmt([[<conversation>%s</conversation]], format_messages(chat.messages)),
+      content = fmt([[<conversation>%s</conversation]], M.format_messages(chat.messages)),
     },
   }, {
     method = "async",
     silent = true,
     on_done = function(result)
-      if not result or (result.status and result.status == "error") then
-        return
-      end
-
-      local title = result and result.output and result.output.content
+      local title = M.on_done(result)
       if title then
-        title = title:gsub("^[\"']", ""):gsub("[\"']$", ""):gsub("^%s*", ""):gsub("%s*$", "")
         chat:set_title(title)
-
         -- TODO: Remove the callback from the chat buffer
+        log:debug("[Background] Chat title generated: %s", title)
       end
     end,
     on_error = function(err)
