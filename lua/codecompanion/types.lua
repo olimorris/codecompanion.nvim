@@ -174,3 +174,29 @@
 ---@field validate table Validate an item
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
+
+---@class CodeCompanion.ActionOptions
+---@field index? number Ordering position for display
+---@field stop_context_insertion? boolean Prevents auto-added context on open
+---@field modes? string[] Optional list of modes where the action is visible (e.g. {"n","v"})
+---@field is_default? boolean Marks prompt as part of default library
+---@field user_prompt? boolean Ask user for additional input before executing
+---@field auto_submit? boolean Auto-submit the resulting prompt to the LLM
+---@field short_name? string Short alias used for command-line invocation
+
+---@class CodeCompanion.ActionPicker
+---@field prompt? string Optional prompt/title shown by providers
+---@field items table|fun(context: table): table Items to show or a function returning items
+---@field columns? any Optional provider-specific column config
+
+---@class CodeCompanion.ActionItem
+---@field name string Display name in the Action Palette
+---@field description? string Description or preview text
+---@field strategy? string Strategy to execute (e.g. "chat")
+---@field type? string Optional type hint used by some providers
+---@field opts? CodeCompanion.ActionOptions Additional behavior/config flags
+---@field prompts? table Optional initial prompts specification
+---@field picker? CodeCompanion.ActionPicker Optional nested picker spec
+---@field callback? fun(context: table): any Optional direct action callback
+---@field context? table Optional context forwarded to execution
+---@field bufnr? integer Optional buffer number for open chats preview
