@@ -7,6 +7,7 @@
 local api = vim.api
 local diff_utils = require("codecompanion.providers.diff.utils")
 local log = require("codecompanion.utils.log")
+local set_option = vim.api.nvim_set_option_value
 
 local M = {}
 
@@ -223,6 +224,7 @@ local function render_diff(buf, ns, hunks, old_lines, new_lines)
           line_hl_group = "FSDiffContext",
           virt_text = { { line_nr_text, "FSDiffContextLineNr" } },
           virt_text_pos = "inline",
+          hl_mode = "replace",
           sign_text = sign_text,
           sign_hl_group = "FSDiffContextLineNr",
         },
@@ -496,15 +498,15 @@ local function update_preview(state, idx)
   local hunks = diff_utils.calculate_hunks(old_lines, new_lines, 3)
   local ft = vim.filetype.match({ filename = filepath }) or ""
 
-  api.nvim_set_option_value("modifiable", true, { buf = state.right_buf })
+  set_option("modifiable", true, { buf = state.right_buf })
   api.nvim_buf_clear_namespace(state.right_buf, state.ns, 0, -1)
   render_diff(state.right_buf, state.ns, hunks, old_lines, new_lines)
-  api.nvim_set_option_value("modifiable", false, { buf = state.right_buf })
+  set_option("modifiable", false, { buf = state.right_buf })
 
   -- Set filetype for syntax highlighting AFTER making read-only
   -- This prevents ftplugin from interfering with buffer-local keymaps
   if ft and ft ~= "" then
-    api.nvim_set_option_value("filetype", ft, { buf = state.right_buf })
+    set_option("filetype", ft, { buf = state.right_buf })
     -- Reapply keymaps after setting filetype (ftplugin might override them)
     reapply_right_keymaps(state)
   end
@@ -584,9 +586,9 @@ local function apply_checkpoint_filter(state, checkpoint_idx)
     update_preview(state, 1)
   else
     -- Clear preview if no files
-    api.nvim_set_option_value("modifiable", true, { buf = state.right_buf })
+    set_option("modifiable", true, { buf = state.right_buf })
     api.nvim_buf_set_lines(state.right_buf, 0, -1, false, { "", "No changes at this checkpoint", "" })
-    api.nvim_set_option_value("modifiable", false, { buf = state.right_buf })
+    set_option("modifiable", false, { buf = state.right_buf })
   end
 
   log:info("[FSDiff] Applied checkpoint filter: %d changes shown", #filtered)
@@ -655,8 +657,8 @@ local function toggle_help(state)
   local help_row = geom.row + geom.height + 1
 
   state.help_buf = api.nvim_create_buf(false, true)
-  api.nvim_set_option_value("buftype", "nofile", { buf = state.help_buf })
-  api.nvim_set_option_value("bufhidden", "wipe", { buf = state.help_buf })
+  set_option("buftype", "nofile", { buf = state.help_buf })
+  set_option("bufhidden", "wipe", { buf = state.help_buf })
 
   local help_text =
     " q/Esc: Close  |  ]f/[f: Next/Prev  |  Enter: Select checkpoint  |  r: Reset  |  Tab: Focus  |  ?: Toggle help "
@@ -808,21 +810,21 @@ function M.show(changes, checkpoints)
 
   -- Create files buffer (top left)
   state.files_buf = api.nvim_create_buf(false, true)
-  api.nvim_set_option_value("buftype", "nofile", { buf = state.files_buf })
-  api.nvim_set_option_value("bufhidden", "wipe", { buf = state.files_buf })
-  api.nvim_set_option_value("filetype", "codecompanion-fs-diff-files", { buf = state.files_buf })
+  set_option("buftype", "nofile", { buf = state.files_buf })
+  set_option("bufhidden", "wipe", { buf = state.files_buf })
+  set_option("filetype", "codecompanion-fs-diff-files", { buf = state.files_buf })
 
   -- Create checkpoints buffer (bottom left)
   state.checkpoints_buf = api.nvim_create_buf(false, true)
-  api.nvim_set_option_value("buftype", "nofile", { buf = state.checkpoints_buf })
-  api.nvim_set_option_value("bufhidden", "wipe", { buf = state.checkpoints_buf })
-  api.nvim_set_option_value("filetype", "codecompanion-fs-diff-checkpoints", { buf = state.checkpoints_buf })
+  set_option("buftype", "nofile", { buf = state.checkpoints_buf })
+  set_option("bufhidden", "wipe", { buf = state.checkpoints_buf })
+  set_option("filetype", "codecompanion-fs-diff-checkpoints", { buf = state.checkpoints_buf })
 
   -- Create right buffer (diff preview)
   state.right_buf = api.nvim_create_buf(false, true)
-  api.nvim_set_option_value("buftype", "nofile", { buf = state.right_buf })
-  api.nvim_set_option_value("bufhidden", "wipe", { buf = state.right_buf })
-  api.nvim_set_option_value("modifiable", false, { buf = state.right_buf })
+  set_option("buftype", "nofile", { buf = state.right_buf })
+  set_option("bufhidden", "wipe", { buf = state.right_buf })
+  set_option("modifiable", false, { buf = state.right_buf })
   api.nvim_buf_set_name(state.right_buf, "codecompanion-fs-diff")
 
   -- Open files window (top left)

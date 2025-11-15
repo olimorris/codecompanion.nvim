@@ -1298,16 +1298,20 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
     self.fs_monitor:stop_monitoring_async(self.fs_monitor_watch_id, function(changes)
       self.fs_changes = self.fs_changes or {}
+      local prev_change_count = #self.fs_changes
       vim.list_extend(self.fs_changes, changes)
 
-      -- Create checkpoint for this response cycle (only if there were changes)
-      if #changes > 0 then
+      -- Create checkpoint only if there are NEW changes since last checkpoint
+      local new_changes = #self.fs_changes - prev_change_count
+      if new_changes > 0 then
         self.fs_checkpoints = self.fs_checkpoints or {}
         local checkpoint = self.fs_monitor:create_checkpoint()
         checkpoint.cycle = self.cycle
         checkpoint.label = string.format("Response #%d", self.cycle)
         table.insert(self.fs_checkpoints, checkpoint)
-        log:info("[Chat] Created checkpoint for cycle %d with %d changes", self.cycle, #changes)
+        log:info("[Chat] Created checkpoint for cycle %d with %d new changes", self.cycle, new_changes)
+      else
+        log:info("[Chat] No new changes in cycle %d, skipping checkpoint", self.cycle)
       end
 
       log:info("[Chat] FS monitoring stopped, total changes: %d", #changes)
