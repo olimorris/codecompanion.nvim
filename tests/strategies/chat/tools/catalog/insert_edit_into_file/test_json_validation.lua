@@ -395,7 +395,7 @@ T["JSON Validation"]["rejects oldText as array"] = function()
   local output = child.lua_get("chat.messages[#chat.messages].content")
   h.expect_contains("oldText", output)
   h.expect_contains("must be a string", output)
-  h.expect_contains("table", output)  -- Lua reports it as 'table'
+  h.expect_contains("table", output) -- Lua reports it as 'table'
 end
 
 T["JSON Validation"]["handles unescaped newline causing parse failure"] = function()

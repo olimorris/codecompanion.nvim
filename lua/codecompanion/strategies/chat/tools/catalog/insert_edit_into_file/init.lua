@@ -199,8 +199,7 @@ local function validate_json_arguments(args)
       error_path
     )
     return false,
-      fmt(
-        [[JSON argument validation failed: Invalid value type detected
+      fmt([[JSON argument validation failed: Invalid value type detected
 
 Your JSON arguments contain invalid values. Please ensure all values are valid JSON types:
 - Strings (text)
@@ -210,8 +209,7 @@ Your JSON arguments contain invalid values. Please ensure all values are valid J
 - Objects {}
 - null
 
-Do not include any code references, variables, or computed values - only literal JSON values.]]
-      )
+Do not include any code references, variables, or computed values - only literal JSON values.]])
   end
 
   -- Try to serialize to catch other JSON encoding issues (like circular references)
