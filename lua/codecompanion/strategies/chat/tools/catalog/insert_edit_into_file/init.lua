@@ -143,6 +143,139 @@ local function parse_python_like_edits(edits)
   return table.concat(result)
 end
 
+---Check if a value contains non-serializable types (function, userdata, thread)
+---@param value any The value to check
+---@param path string The path to this value (for error reporting)
+---@return boolean is_valid, string|nil error_path
+local function check_serializable(value, path)
+  local value_type = type(value)
+
+  -- Check for non-serializable types
+  if value_type == "function" or value_type == "thread" then
+    return false, path
+  end
+
+  if value_type == "userdata" then
+    if value == vim.NIL then
+      return true, nil
+    end
+    return false, path
+  end
+
+  -- Recursively check tables
+  if value_type == "table" then
+    for k, v in pairs(value) do
+      local key_path = path .. "." .. tostring(k)
+      local is_valid, error_path = check_serializable(v, key_path)
+      if not is_valid then
+        return false, error_path
+      end
+    end
+  end
+
+  return true, nil
+end
+
+---Validate that all fields in args can be properly serialized to JSON
+---This catches issues like unescaped quotes that would cause problems
+---@param args table The arguments to validate
+---@return boolean success, string|nil error_message
+local function validate_json_arguments(args)
+  if not args.edits then
+    return false, "Missing required 'edits' field"
+  end
+
+  -- Check if edits is a table (in Lua, arrays are tables)
+  if type(args.edits) ~= "table" then
+    return false, "'edits' must be an array (got " .. type(args.edits) .. ")"
+  end
+
+  -- Check for non-serializable types before attempting JSON encoding
+  local is_valid, error_path = check_serializable(args, "args")
+  if not is_valid then
+    -- Log the internal error for debugging
+    log:error(
+      "[Insert Edit Tool] Non-serializable type detected at %s. This may indicate an internal plugin issue.",
+      error_path
+    )
+    return false,
+      fmt(
+        [[JSON argument validation failed: Invalid value type detected
+
+Your JSON arguments contain invalid values. Please ensure all values are valid JSON types:
+- Strings (text)
+- Numbers (integers or decimals)
+- Booleans (true/false)
+- Arrays []
+- Objects {}
+- null
+
+Do not include any code references, variables, or computed values - only literal JSON values.]]
+      )
+  end
+
+  -- Try to serialize to catch other JSON encoding issues (like circular references)
+  local ok, err = pcall(vim.json.encode, args)
+  if not ok then
+    return false,
+      fmt(
+        [[JSON argument validation failed: %s
+
+Common issues:
+1. Double quotes in code must be escaped as \" 
+2. Backslashes must be escaped as \\
+3. Use \n for newlines instead of actual line breaks
+4. Circular table references are not allowed
+
+Original error: %s]],
+        "JSON encoding failed",
+        err
+      )
+  end
+
+  -- Validate each edit has required fields and can be serialized
+  for i, edit in ipairs(args.edits) do
+    if type(edit) ~= "table" then
+      return false, fmt("Edit #%d is not a valid object", i)
+    end
+
+    -- Check for required fields
+    if edit.oldText == nil then
+      return false, fmt("Edit #%d is missing required 'oldText' field", i)
+    end
+
+    if edit.newText == nil then
+      return false, fmt("Edit #%d is missing required 'newText' field", i)
+    end
+
+    -- Validate oldText and newText are strings
+    if type(edit.oldText) ~= "string" then
+      return false,
+        fmt(
+          "Edit #%d 'oldText' must be a string (got %s). Please ensure you're sending text, not a number or other type.",
+          i,
+          type(edit.oldText)
+        )
+    end
+
+    if type(edit.newText) ~= "string" then
+      return false,
+        fmt(
+          "Edit #%d 'newText' must be a string (got %s). Please ensure you're sending text, not a number or other type.",
+          i,
+          type(edit.newText)
+        )
+    end
+
+    -- Validate replaceAll field
+    if edit.replaceAll ~= nil and type(edit.replaceAll) ~= "boolean" then
+      return false, fmt("Edit #%d 'replaceAll' must be a boolean (true/false)", i)
+    end
+  end
+
+  return true, nil
+end
+
 ---Fix edits field if it's a string instead of a table (handles LLM JSON formatting issues)
 ---@param args table The arguments containing edits to fix
 ---@return table|nil, string|nil The fixed arguments and error message
@@ -956,14 +1089,24 @@ return {
     function(self, args, input, output_handler)
       -- Only check edits if we need to - zero overhead for good JSON
       if args.edits then
-        local fixed_args, error_msg = fix_edits_if_needed(args)
+        -- Step 1: Try to fix common LLM JSON issues
+        local fixed_args, fix_error = fix_edits_if_needed(args)
         if not fixed_args then
           return output_handler({
             status = "error",
-            data = fmt("Invalid edits format: %s", error_msg),
+            data = fmt("Invalid edits format: %s", fix_error),
           })
         end
         args = fixed_args
+
+        -- Step 2: Perform strict JSON validation
+        local valid, validation_error = validate_json_arguments(args)
+        if not valid then
+          return output_handler({
+            status = "error",
+            data = fmt("JSON argument validation failed:\n%s", validation_error),
+          })
+        end
       end
 
       -- Check if file is currently open in buffer
