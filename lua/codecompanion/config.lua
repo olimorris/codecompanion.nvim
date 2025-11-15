@@ -332,6 +332,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["compact"] = {
+          callback = "strategies.chat.slash_commands.catalog.compact",
+          description = "Reduces the size of your conversation history by summarizing older messages while preserving important context",
+          opts = {
+            contains_code = false,
+          },
+        },
         ["fetch"] = {
           callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
