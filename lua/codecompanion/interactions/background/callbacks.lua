@@ -68,17 +68,14 @@ end
 ---@param chat CodeCompanion.Chat The chat instance to register callbacks for
 ---@return nil
 function M.register_chat_callbacks(chat)
-  local callbacks_config = config.interactions.background.callbacks
+  local background_config = config.interactions.background.chat
 
-  if not callbacks_config or not callbacks_config.chat.opts.enabled then
-    return
-  end
-  if not callbacks_config.chat then
+  if not background_config or not background_config.opts.enabled then
     return
   end
 
   -- Register callbacks for each configured event
-  for event, event_config in pairs(callbacks_config.chat) do
+  for event, event_config in pairs(background_config.callbacks) do
     if event_config.enabled and event_config.actions then
       chat:add_callback(event, function(c)
         log:debug("[background::callbacks] Executing %d actions for event: %s", #event_config.actions, event)
