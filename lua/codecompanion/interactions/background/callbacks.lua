@@ -19,7 +19,7 @@ local function resolve(path)
   end
 
   -- Try loading the tool from the user's config using a file path
-  local action, err = loadfile(path)
+  local action, err = loadfile(vim.fs.normalize(path))
   if err then
     return
   end

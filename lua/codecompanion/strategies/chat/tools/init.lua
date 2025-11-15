@@ -494,7 +494,7 @@ function Tools.resolve(tool)
 
   -- Try loading the tool from the user's config using a file path
   local err
-  module, err = loadfile(callback)
+  module, err = loadfile(vim.fs.normalize(callback))
   if err then
     return log:error("[Tools] Failed to load tool from %s: %s", callback, err)
   end
