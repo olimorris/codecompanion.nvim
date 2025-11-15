@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 07
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -683,9 +683,10 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents (e.g.�
-enabling `yolo` mode). As there is a lot of shared functionality between the
-two adapters, it is recommend that you read this page alongside the ACP one.
+`commands` to allow users to customize their interaction with agents
+(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
+the two adapters, it is recommend that you read this page alongside the ACP
+one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -709,9 +710,23 @@ You can change the default adapter for each strategy as follows:
 <
 
 
-SETTING AN API KEY ~
+ENVIRONMENT VARIABLES / SETTING AN API KEY ~
 
-Extend a base adapter to set options like `api_key` or `model`:
+Setting environment variables within adapters is a key part of configuration.
+The adapter `env` table lets you define values that will be interpolated into
+the adapter’s URL, headers, parameters and other fields at runtime.
+
+Supported `env` value types: - **Plain environment variable name (string)**: if
+the value is the name of an environment variable that has already been set
+(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
+be executed via the shell. Example: `"cmd:op read
+op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
+a Lua function which returns a string and will be called with the adapter as
+its sole argument. - **Schema reference (dot notation)**: you can reference
+values from the adapter table (for example `"schema.model.default"`).
+
+Below are some examples showing this in practice:
 
 >lua
     require("codecompanion").setup({
@@ -751,23 +766,6 @@ If you do not want to store secrets in plain text, prefix commands with `cmd:`:
   [!NOTE] In this example, we’re using the 1Password CLI to extract the Gemini
   API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
-
-ENVIRONMENT VARIABLES ~
-
-Setting environment variables within adapters is a key part of configuration.
-The adapter `env` table lets you define values that will be interpolated into
-the adapter’s URL, headers, parameters and other fields at runtime.
-
-Supported `env` value types: - **Plain environment variable name (string)**: if
-the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
-**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
-be executed via the shell. Example: `"cmd:op read
-op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
-a Lua function which returns a string and will be called with the adapter as
-its sole argument. - **Schema reference (dot notation)**: you can reference
-values from the adapter table (for example `"schema.model.default"`).
-
 
 CHANGING A MODEL ~
 
@@ -2677,7 +2675,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-tools-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -4510,7 +4508,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -6370,7 +6368,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e.� a
+they’re an adapter tool that requires a client-side component (i.e. a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-tools-memory| tool from Anthropic. To allow
 for this, ensure that the tool definition in `available_tools` has
