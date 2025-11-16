@@ -1530,6 +1530,11 @@ function Chat:add_buf_message(data, opts)
   return self.builder:add_message(data, opts)
 end
 
+---Add a new header to the chat buffer
+---@param role "user"|"llm"
+---@param opts? table Options for the header
+function Chat:add_new_header(role, opts) end
+
 ---Update a specific line in the chat buffer
 ---@param line_number number The line number to update (1-based)
 ---@param content string The new content for the line
