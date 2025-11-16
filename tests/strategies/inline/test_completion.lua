@@ -6,44 +6,48 @@ local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
+      if vim.fn.has("nvim-0.12") ~= 0 then
+        MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+      end
+
       h.child_start(child)
       -- Set up a buffer with some content
       child.o.lines = 20
       child.o.columns = 80
       child.bo.readonly = false
 
-      if vim.fn.has("nvim-0.12") ~= 0 then
-        -- Load the completion module and set up mocking
-        child.lua([[
-          -- Mock vim.lsp.inline_completion.get before loading the module
-          _G.mock_get_called = false
-          _G.mock_get_opts = nil
-          _G.original_get = vim.lsp.inline_completion.get
+      -- Load the completion module and set up mocking
+      child.lua([[
+        -- Mock vim.lsp.inline_completion.get before loading the module
+        _G.mock_get_called = false
+        _G.mock_get_opts = nil
+        _G.original_get = vim.lsp.inline_completion.get
 
-          vim.lsp.inline_completion.get = function(opts)
-            _G.mock_get_called = true
-            _G.mock_get_opts = opts
+        vim.lsp.inline_completion.get = function(opts)
+          _G.mock_get_called = true
+          _G.mock_get_opts = opts
 
-            -- The mock will be set per-test
-            if _G.mock_completion_item and opts.on_accept then
-              opts.on_accept(_G.mock_completion_item)
-            end
+          -- The mock will be set per-test
+          if _G.mock_completion_item and opts.on_accept then
+            opts.on_accept(_G.mock_completion_item)
           end
+        end
 
-          -- Now load the module
-          _G.completion = require("codecompanion.strategies.inline.completion")
-        ]])
-      end
+        -- Now load the module
+        _G.completion = require("codecompanion.strategies.inline.completion")
+      ]])
     end,
     post_case = function()
       if vim.fn.has("nvim-0.12") ~= 0 then
-        child.lua([[
-          vim.lsp.inline_completion.get = _G.original_get
-          _G.mock_completion_item = nil
-          _G.mock_get_called = false
-          _G.mock_get_opts = nil
-        ]])
+        MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
       end
+
+      child.lua([[
+        vim.lsp.inline_completion.get = _G.original_get
+        _G.mock_completion_item = nil
+        _G.mock_get_called = false
+        _G.mock_get_opts = nil
+      ]])
     end,
     post_once = child.stop,
   },
