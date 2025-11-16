@@ -110,27 +110,19 @@ function SlashCommand:execute(SlashCommands)
           if result then
             local content = result.output and result.output.content
             local ok, json = pcall(vim.json.decode, content, { luanil = { object = true } })
-            if not ok then
+            if not ok or not json.summary then
               return log:error("[Compact] Error parsing the JSON: %s", json)
             end
 
-            if json.analysis and json.summary then
-              -- Output the summary to the chat buffer so the user can understand what the LLM has summarised
-              self.Chat:add_buf_message({
-                role = config.constants.LLM_ROLE,
-                content = fmt("### Conversation Analysis\n\n%s", json.analysis),
-              })
+            self.Chat:add_buf_message({
+              role = config.constants.USER_ROLE,
+              content = fmt(
+                "Below is a summary of our conversation so far:\n<summary>\n%s\n</summary>\n\n",
+                json.summary
+              ),
+            })
 
-              -- Turnover the header so it's back to the user
-              self.Chat:add_buf_message({
-                role = config.constants.USER_ROLE,
-                content = "",
-              })
-
-              -- Remove all of the previous LLM and user messages
-
-              -- Add the summary as a new user prompt
-            end
+            -- TODO: Clear the chat history
 
             log:debug("[Compact] Compacted the chat history")
           end
