@@ -6,7 +6,7 @@ local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
-      if vim.fn.has("nvim-0.12") ~= 0 then
+      if vim.fn.has("nvim-0.12") == 0 then
         return
       end
 
@@ -38,7 +38,7 @@ local T = new_set({
       ]])
     end,
     post_case = function()
-      if vim.fn.has("nvim-0.12") ~= 0 then
+      if vim.fn.has("nvim-0.12") == 0 then
         return
       end
 
