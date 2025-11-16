@@ -4,16 +4,19 @@ local log = require("codecompanion.utils.log")
 ---@field orchestrator CodeCompanion.Tools.Orchestrator
 ---@field runner fun(self: CodeCompanion.Tools, actions: table, input: any)
 ---@field index number
+---@field tool CodeCompanion.Tools.Tool Captured tool reference for this execution
 local Runner = {}
 
 ---@param orchestrator CodeCompanion.Tools.Orchestrator
 ---@param runner fun()
 ---@param index number
-function Runner.new(orchestrator, runner, index)
+---@param tool? CodeCompanion.Tools.Tool Optional tool reference to capture
+function Runner.new(orchestrator, runner, index, tool)
   return setmetatable({
     orchestrator = orchestrator,
     runner = runner,
     index = index,
+    tool = tool or orchestrator.tool,
   }, { __index = Runner })
 end
 
@@ -23,7 +26,7 @@ end
 function Runner:setup(input)
   log:debug("Runner:setup %s", self.index)
 
-  local args = self.orchestrator.tool.args
+  local args = self.tool.args
   log:debug("Args: %s", args)
 
   self:run(self.runner, args, input, function(output)
@@ -35,26 +38,26 @@ end
 ---@param output any The output from the previous function
 ---@return nil
 function Runner:proceed_to_next(output)
-  local current_tool = self.orchestrator.tool
+  local current_tool = self.tool
   if not current_tool then
     self.orchestrator:close()
     return self.orchestrator:setup(output)
   end
 
-  if self.index < #self.orchestrator.tool.cmds then
-    local next_func = self.orchestrator.tool.cmds[self.index + 1]
-    local next_executor = Runner.new(self.orchestrator, next_func, self.index + 1)
+  if self.index < #self.tool.cmds then
+    local next_func = self.tool.cmds[self.index + 1]
+    local next_executor = Runner.new(self.orchestrator, next_func, self.index + 1, self.tool)
     return next_executor:setup(output)
   else
     if not self.orchestrator.queue:is_empty() then
       local next_tool = self.orchestrator.queue:peek()
-      local current_name = self.orchestrator.tool.name
+      local current_name = self.tool.name
 
       -- Option to only use the handlers once for successive executions of the same tool
       if next_tool and next_tool.name == current_name and next_tool.opts and next_tool.opts.use_handlers_once then
         self.orchestrator.tool = self.orchestrator.queue:pop()
         local next_func = self.orchestrator.tool.cmds[1]
-        local next_executor = Runner.new(self.orchestrator, next_func, 1)
+        local next_executor = Runner.new(self.orchestrator, next_func, 1, self.orchestrator.tool)
         return next_executor:setup(output)
       end
     end
@@ -81,12 +84,19 @@ function Runner:run(runner, action, input, callback)
       return
     end
     tool_finished = true
+
+    -- Temporarily set orchestrator.tool to captured tool for proper attribution
+    local original_tool = self.orchestrator.tool
+    self.orchestrator.tool = self.tool
+
     if msg.status == self.orchestrator.tools.constants.STATUS_ERROR then
       self.orchestrator:error(action, msg.data or "An error occurred")
+      self.orchestrator.tool = original_tool
       return self.orchestrator:close()
     end
 
     self.orchestrator:success(action, msg.data)
+    self.orchestrator.tool = original_tool
 
     if callback then
       callback(msg)
