@@ -12,34 +12,38 @@ local T = new_set({
       child.o.columns = 80
       child.bo.readonly = false
 
-      -- Load the completion module and set up mocking
-      child.lua([[
-        -- Mock vim.lsp.inline_completion.get before loading the module
-        _G.mock_get_called = false
-        _G.mock_get_opts = nil
-        _G.original_get = vim.lsp.inline_completion.get
+      if vim.fn.has("nvim-0.12") ~= 0 then
+        -- Load the completion module and set up mocking
+        child.lua([[
+          -- Mock vim.lsp.inline_completion.get before loading the module
+          _G.mock_get_called = false
+          _G.mock_get_opts = nil
+          _G.original_get = vim.lsp.inline_completion.get
 
-        vim.lsp.inline_completion.get = function(opts)
-          _G.mock_get_called = true
-          _G.mock_get_opts = opts
+          vim.lsp.inline_completion.get = function(opts)
+            _G.mock_get_called = true
+            _G.mock_get_opts = opts
 
-          -- The mock will be set per-test
-          if _G.mock_completion_item and opts.on_accept then
-            opts.on_accept(_G.mock_completion_item)
+            -- The mock will be set per-test
+            if _G.mock_completion_item and opts.on_accept then
+              opts.on_accept(_G.mock_completion_item)
+            end
           end
-        end
 
-        -- Now load the module
-        _G.completion = require("codecompanion.strategies.inline.completion")
-      ]])
+          -- Now load the module
+          _G.completion = require("codecompanion.strategies.inline.completion")
+        ]])
+      end
     end,
     post_case = function()
-      child.lua([[
-        vim.lsp.inline_completion.get = _G.original_get
-        _G.mock_completion_item = nil
-        _G.mock_get_called = false
-        _G.mock_get_opts = nil
-      ]])
+      if vim.fn.has("nvim-0.12") ~= 0 then
+        child.lua([[
+          vim.lsp.inline_completion.get = _G.original_get
+          _G.mock_completion_item = nil
+          _G.mock_get_called = false
+          _G.mock_get_opts = nil
+        ]])
+      end
     end,
     post_once = child.stop,
   },
