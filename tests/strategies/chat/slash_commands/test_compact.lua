@@ -15,7 +15,8 @@ T = new_set({
 
         _G.chat.messages = {
           { role = "system", content = "You are a helpful assistant." },
-          { role = "user", content = "Some file share", _meta = { tag = "file" } },
+          { role = "user", content = "FILE", _meta = { tag = "file" } },
+          { role = "user", content = "BUFFER", _meta = { tag = "variable" } },
           { role = "user", content = "Hello!" },
           { role = "assistant", content = "Hi there! How can I assist you today?" },
           { role = "user", content = "Can you help me with Lua?" },
@@ -45,7 +46,8 @@ T["Compact"]["Creates conversations from a chat buffer"] = function()
 
   h.eq(
     table.concat({
-      '<message role="user">Some file share</message>',
+      '<message role="user">FILE</message>',
+      '<message role="user">BUFFER</message>',
       '<message role="user">Hello!</message>',
       '<message role="assistant">Hi there! How can I assist you today?</message>',
       '<message role="user">Can you help me with Lua?</message>',
@@ -64,7 +66,7 @@ T["Compact"]["compacts chat messages"] = function()
     return msg.content
   end, result)
 
-  h.eq({ "You are a helpful assistant.", "Some file share" }, messages)
+  h.eq({ "You are a helpful assistant.", "FILE", "BUFFER" }, messages)
 end
 
 return T
