@@ -91,11 +91,14 @@ function Runner:run(runner, action, input, callback)
 
     if msg.status == self.orchestrator.tools.constants.STATUS_ERROR then
       self.orchestrator:error(action, msg.data or "An error occurred")
+      self.orchestrator:close()
+      -- Restore after close completes
       self.orchestrator.tool = original_tool
-      return self.orchestrator:close()
+      return
     end
 
     self.orchestrator:success(action, msg.data)
+    -- Restore after success
     self.orchestrator.tool = original_tool
 
     if callback then
@@ -107,8 +110,14 @@ function Runner:run(runner, action, input, callback)
     return runner(self.orchestrator.tools, action, input, output_handler)
   end)
   if not ok then
+    -- Swap tool for error attribution
+    local original_tool = self.orchestrator.tool
+    self.orchestrator.tool = self.tool
     self.orchestrator:error(action, output)
-    return self.orchestrator:close()
+    self.orchestrator:close()
+    -- Restore after close completes
+    self.orchestrator.tool = original_tool
+    return
   end
 
   if output ~= nil then
