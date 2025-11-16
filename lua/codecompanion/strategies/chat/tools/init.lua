@@ -116,7 +116,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   prepared_tool.name = name
   prepared_tool.function_call = tool
 
-  -- Parse and set arguments - handle JSON errors specially like the original code
+  -- Parse and set arguments - handle JSON errors gracefully
   if tool["function"].arguments then
     local args = tool["function"].arguments
     -- For some adapter's that aren't streaming, the args are strings rather than tables
@@ -124,21 +124,30 @@ function Tools:_resolve_and_prepare_tool(tool)
       if args == "" then
         args = "{}"
       end
-      local decoded
-      local json_ok = xpcall(function()
-        decoded = vim.json.decode(args)
-      end, function(err)
-        log:error("Couldn't decode the tool arguments: %s", args)
-        self.chat:add_tool_output(
-          prepared_tool,
-          string.format('You made an error in calling the %s tool: "%s"', name, err),
-          ""
-        )
-        return utils.fire("ToolsFinished", { bufnr = self.bufnr })
-      end)
 
+      local json_ok, decoded = pcall(vim.json.decode, args)
       if not json_ok then
-        return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
+        -- Log the full error for debugging
+        log:error("Couldn't decode the tool arguments for '%s': %s", name, args:sub(1, 500))
+
+        -- Helpful feedback to the LLM
+        local error_msg = string.format(
+          "Error calling the `%s` tool: Invalid JSON format in arguments.\n\n"
+            .. "The arguments you provided could not be parsed as valid JSON. "
+            .. "Please ensure:\n"
+            .. '1. All string values use double quotes ("), not single quotes\n'
+            .. "2. Boolean values are lowercase: true/false (not True/False)\n"
+            .. "3. All braces and brackets are properly closed\n"
+            .. "4. No trailing commas in objects or arrays\n\n"
+            .. "First 200 characters of malformed arguments: %s",
+          name,
+          args:sub(1, 200)
+        )
+
+        self.chat:add_tool_output(prepared_tool, error_msg, "")
+
+        -- Return error flag so orchestrator can handle it gracefully
+        return nil, "JSON parsing failed", true
       end
 
       args = decoded
@@ -297,6 +306,21 @@ function Tools:execute(chat, tools)
       if not resolved_tool then
         if is_json_error then
           -- JSON error was already handled by _resolve_and_prepare_tool
+          -- Remove the malformed assistant message from history to prevent HTTP 400 on next request
+          -- The assistant message with tool_calls was added by Chat:done() before tools:execute()
+          if
+            #self.chat.messages > 0
+            and self.chat.messages[#self.chat.messages].role == config.constants.LLM_ROLE
+            and self.chat.messages[#self.chat.messages].tools
+            and self.chat.messages[#self.chat.messages].tools.calls
+          then
+            log:debug("Removing malformed assistant message with tool calls from history")
+            table.remove(self.chat.messages, #self.chat.messages)
+          end
+
+          -- Fire ToolsFinished to keep chat functional
+          self.status = CONSTANTS.STATUS_ERROR
+          utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
           return
         else
           return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
