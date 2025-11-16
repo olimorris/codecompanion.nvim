@@ -119,7 +119,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   -- Parse and set arguments - handle JSON errors gracefully
   if tool["function"].arguments then
     local args = tool["function"].arguments
-    -- For some adapter's that aren't streaming, the args are strings rather than tables
+    -- For some adapters that aren't streaming, the args are strings rather than tables
     if type(args) == "string" then
       if args == "" then
         args = "{}"
