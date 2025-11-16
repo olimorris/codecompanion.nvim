@@ -74,7 +74,8 @@ local T = new_set({
       child.lua([[
         local LH = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.lsp_handler")
 
-        LH.execute_request_async = function(_, method, cb)
+        -- mock signature for headless implementation: (filepath, line, col, method, callback)
+        LH.execute_request_async = function(filepath, line, col, method, cb)
           local function uri(p) return vim.uri_from_fname(p) end
 
           if method == "textDocument/references" then
