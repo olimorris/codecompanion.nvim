@@ -3,13 +3,15 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
 
+local function check_nvim_version()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+  end
+end
+
 local T = new_set({
   hooks = {
     pre_case = function()
-      if vim.fn.has("nvim-0.12") == 0 then
-        return MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
-      end
-
       h.child_start(child)
       -- Set up a buffer with some content
       child.o.lines = 20
@@ -58,6 +60,8 @@ end
 T["accept_word()"] = new_set()
 
 T["accept_word()"]["works with simple word completion"] = function()
+  check_nvim_version()
+
   -- Set up: buffer has "-- Create a fib" and cursor is at end
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "-- Create a fib" })
   set_cursor_insert(1, 15) -- After "-- Create a fib"
@@ -82,6 +86,8 @@ T["accept_word()"]["works with simple word completion"] = function()
 end
 
 T["accept_word()"]["works with punctuation in completion"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "local x" })
   set_cursor_insert(1, 7)
 
@@ -102,6 +108,8 @@ T["accept_word()"]["works with punctuation in completion"] = function()
 end
 
 T["accept_word()"]["works with newline in word"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "function test()" })
   set_cursor_insert(1, 15)
 
@@ -123,6 +131,8 @@ T["accept_word()"]["works with newline in word"] = function()
 end
 
 T["accept_word()"]["ignores stale completion (cursor before range end)"] = function()
+  check_nvim_version()
+
   -- Make a longer buffer so cursor doesn't get clamped
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "test some long text here" })
   set_cursor_insert(1, 10) -- Cursor at position 10
@@ -144,6 +154,8 @@ T["accept_word()"]["ignores stale completion (cursor before range end)"] = funct
 end
 
 T["accept_word()"]["handles empty buffer"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "" })
   set_cursor_insert(1, 0)
 
@@ -164,6 +176,8 @@ T["accept_word()"]["handles empty buffer"] = function()
 end
 
 T["accept_word()"]["handles completion that doesn't start with existing text"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "foo bar" })
   set_cursor_insert(1, 7)
 
@@ -186,6 +200,8 @@ end
 T["accept_line()"] = new_set()
 
 T["accept_line()"]["works with single line completion"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "-- Comment" })
   set_cursor_insert(1, 10)
 
@@ -206,6 +222,8 @@ T["accept_line()"]["works with single line completion"] = function()
 end
 
 T["accept_line()"]["works with multi-line completion"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "function test()" })
   set_cursor_insert(1, 15)
 
@@ -227,6 +245,8 @@ T["accept_line()"]["works with multi-line completion"] = function()
 end
 
 T["accept_line()"]["ignores stale completion"] = function()
+  check_nvim_version()
+
   -- Make a longer buffer so cursor doesn't get clamped
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "test some long text here" })
   set_cursor_insert(1, 10)
@@ -248,6 +268,8 @@ T["accept_line()"]["ignores stale completion"] = function()
 end
 
 T["accept_line()"]["handles completion without newline"] = function()
+  check_nvim_version()
+
   child.api.nvim_buf_set_lines(0, 0, -1, true, { "hello" })
   set_cursor_insert(1, 5)
 
