@@ -212,7 +212,128 @@ T["Tools"][":execute"]["a malformed response from the LLM is handled"] = functio
 
   local output = child.lua_get([[chat.messages[#chat.messages].content]])
 
-  h.expect_starts_with("You made an error in calling the weather tool:", output)
+  h.expect_starts_with("Error calling the `weather` tool: Invalid JSON format", output)
+end
+
+T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"] = function()
+  child.lua([[
+    -- Track events to ensure proper lifecycle
+    _G.events_fired = {}
+
+    local aug = vim.api.nvim_create_augroup("test_tool_events", { clear = true })
+    vim.api.nvim_create_autocmd("User", {
+      group = aug,
+      pattern = "CodeCompanionTools*",
+      callback = function(event)
+        table.insert(_G.events_fired, event.match)
+      end,
+    })
+
+    -- Simulate real malformed JSON that crashed the chat
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "insert_edit_into_file",
+          -- This mimics actual LLM error: incomplete boolean, missing opening brace
+          arguments = 'alse{"dryRun": f, "edits": [{"newText":"test","oldText":"old"}], "filepath": "test.lua"}'
+        },
+      },
+    }
+
+    local chat = _G.chat
+    _G.tools:execute(chat, tools)
+
+    -- Give time for async events
+    vim.wait(100)
+  ]])
+
+  -- Verify error message was added to chat
+  local output = child.lua_get([[chat.messages[#chat.messages].content]])
+  h.expect_starts_with("Error calling the `insert_edit_into_file` tool: Invalid JSON format", output)
+
+  -- Verify helpful guidance is provided
+  h.eq(true, output:find("double quotes") ~= nil)
+  h.eq(true, output:find("true/false") ~= nil)
+
+  -- Verify ToolsFinished was fired (critical for chat to remain functional)
+  local events = child.lua_get("_G.events_fired")
+  h.eq(true, vim.tbl_contains(events, "CodeCompanionToolsFinished"))
+
+  -- Verify ToolsStarted was NOT fired (since we failed before orchestrator setup)
+  h.eq(false, vim.tbl_contains(events, "CodeCompanionToolsStarted"))
+
+  -- Verify tools status is set to error
+  h.eq("error", child.lua_get("_G.tools.status"))
+
+  -- CRITICAL: Verify the malformed assistant message was removed from history
+  -- This prevents HTTP 400 on subsequent requests
+  child.lua([[
+    _G.last_message_in_history = _G.chat.messages[#_G.chat.messages]
+    _G.has_malformed_tool_calls = false
+
+    -- Check if any message in history has malformed tool calls
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.tools and msg.tools.calls then
+        for _, call in ipairs(msg.tools.calls) do
+          if call["function"] and call["function"].arguments then
+            local args = call["function"].arguments
+            if type(args) == "string" and args:find("^alse") then
+              _G.has_malformed_tool_calls = true
+              break
+            end
+          end
+        end
+      end
+    end
+  ]])
+
+  -- The malformed assistant message should NOT be in history
+  h.eq(false, child.lua_get("_G.has_malformed_tool_calls"))
+
+  -- The last message should be the tool error output, not the malformed assistant message
+  local last_msg = child.lua_get("_G.last_message_in_history")
+  h.eq("tool", last_msg.role)
+  h.eq(true, last_msg.content:find("Invalid JSON format") ~= nil)
+
+  -- Verify chat can continue
+  child.lua([[
+    -- Try to submit another message - this should work
+    _G.chat:add_buf_message({
+      role = "user",
+      content = "Can you try again?",
+    })
+    _G.can_continue = true
+  ]])
+
+  h.eq(true, child.lua_get("_G.can_continue"))
+end
+
+T["Tools"][":execute"]["malformed JSON with Python-style booleans"] = function()
+  child.lua([[
+    -- Test another common malformation: Python True/False
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "weather",
+          arguments = '{"location": "London", "units": "celsius", "forecast": True}'
+        },
+      },
+    }
+
+    local chat = _G.chat
+    _G.tools:execute(chat, tools)
+  ]])
+
+  local output = child.lua_get([[chat.messages[#chat.messages].content]])
+  h.expect_starts_with("Error calling the `weather` tool: Invalid JSON format", output)
+
+  -- Should still fire ToolsFinished
+  child.lua([[vim.wait(10)]])
+  h.eq("error", child.lua_get("_G.tools.status"))
 end
 
 T["Tools"][":execute"]["a missing tool is handled"] = function()
