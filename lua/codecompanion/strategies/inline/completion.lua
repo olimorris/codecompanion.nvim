@@ -1,3 +1,24 @@
+--[[
+===============================================================================
+    File:       codecompanion/strategies/inline/completion.lua
+    Author:     Oli Morris
+-------------------------------------------------------------------------------
+    Description:
+      This module provides some helper functions for the Neovim 0.12+ feature
+      of inline completions. It allows users to accept inline completions
+      by extracting the next word or line from the completion text.
+
+      Inspired by Copilot.lua's equivalent functionality.
+      Use at your own risk. Not supported by the CodeCompanion project.
+
+      This code is licensed under the MIT License.
+-------------------------------------------------------------------------------
+    Attribution:
+      If you use or distribute this code, please credit:
+      Oli Morris (https://github.com/olimorris)
+===============================================================================
+--]]
+
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -5,7 +26,7 @@ local api = vim.api
 local M = {}
 
 ---Extract the next word from text starting at the beginning
----Uses the same pattern as copilot.lua for consistency
+---Uses the same pattern as Copilot.lua
 ---@param text string The completion text
 ---@return string|nil word The extracted word, or nil if no word found
 local function extract_next_word(text)
@@ -22,7 +43,6 @@ local function extract_next_word(text)
 end
 
 ---Extract text up to and including the next newline
----If the text starts with a newline, include content up to the next newline
 ---@param text string The completion text
 ---@return string|nil line The extracted line, or nil if empty
 local function extract_next_line(text)
@@ -30,11 +50,9 @@ local function extract_next_line(text)
     return nil
   end
 
-  -- Find the first newline
   local newline_pos = string.find(text, "\n")
 
   if not newline_pos then
-    -- No newline found, return entire text
     return text
   end
 
@@ -42,15 +60,11 @@ local function extract_next_line(text)
   if newline_pos == 1 then
     local second_newline = string.find(text, "\n", 2)
     if second_newline then
-      -- Return from start through the second newline
       return string.sub(text, 1, second_newline)
-    else
-      -- Only one newline, return everything
-      return text
     end
+    return text
   end
 
-  -- Normal case: return up to and including first newline
   return string.sub(text, 1, newline_pos)
 end
 
@@ -153,30 +167,24 @@ local function accept_partial(extract_fn)
       local cursor_row = cursor[1] - 1 -- Convert to 0-indexed
       local cursor_col = cursor[2]
 
-      -- Validate completion is not stale
       if not validate_completion(item, cursor_row, cursor_col) then
         return
       end
 
-      -- Get the insert text
       local text = get_insert_text(item)
       if not text then
         return
       end
 
-      -- Get only the new text (remove existing prefix)
       local new_text = get_new_text(item, text)
 
-      -- Extract the desired portion (word, line, etc.)
       local extracted = extract_fn(new_text)
       if not extracted then
         log:debug("No text could be extracted from completion")
         return
       end
 
-      -- Insert and move cursor
       insert_and_move_cursor(extracted, cursor_row, cursor_col)
-
       accepted = true
     end,
   })
@@ -191,7 +199,6 @@ function M.accept_word()
 end
 
 ---Accept the next line from the current inline completion
----This accepts text up to and including the next newline
 ---@return boolean success Whether a line was accepted
 function M.accept_line()
   return accept_partial(extract_next_line)

@@ -35,12 +35,18 @@ end
 ---Accept the next word
 ---@return nil
 CodeCompanion.inline_accept_word = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
   return require("codecompanion.strategies.inline.completion").accept_word()
 end
 
 ---Accept the next line
 ---@return nil
 CodeCompanion.inline_accept_line = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
   return require("codecompanion.strategies.inline.completion").accept_line()
 end
 
