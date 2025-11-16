@@ -41,7 +41,11 @@ Here's an example of how your JSON output should be structured:
 ```
 
 Please provide your summary based on the conversation so far, following this JSON structure and ensuring precision and thoroughness in your response.
-Include the JSON object only, without any additional commentary or explanation and no markdown formatting.
+Include the JSON object only, without any additional commentary or explanation and no markdown formatting. If you're referencing any code in your summary, ensure that is wrapped in FOUR backticks followed by the appropriate language identifier for syntax highlighting. For example:
+````python
+def example_function():
+    pass
+````
 
 The conversation and corresponding messages to summarize, is as follows:
 
@@ -79,8 +83,34 @@ function SlashCommand:create_conversation(messages)
   return conversation
 end
 
-function SlashCommand:update_messages()
-  -- self.Chat = chat
+---Compact the messages, removing user and llm roles
+---@return nil
+function SlashCommand:compact_messages()
+  --Rules:
+  --1. Keep ALL system messages even if they come from tools
+  --2. Remove ALL llm messages
+  --3. Keep SOME user messages - If it has a "variable", "memory" or "file" tag
+  local ok_tags = { "variable", "memory", "file" }
+
+  local messages = vim.iter(self.Chat.messages):filter(function(message)
+    if message.role == config.constants.SYSTEM_ROLE then
+      return true
+    elseif message.role == config.constants.LLM_ROLE then
+      return false
+    elseif message.role == config.constants.USER_ROLE then
+      if message._meta and message._meta.tag then
+        if vim.tbl_contains(ok_tags, message._meta.tag) then
+          return true
+        else
+          return false
+        end
+      end
+    end
+
+    return false
+  end)
+
+  self.Chat.messages = messages:totable()
 end
 
 ---Execute the slash command
@@ -114,15 +144,13 @@ function SlashCommand:execute(SlashCommands)
               return log:error("[Compact] Error parsing the JSON: %s", json)
             end
 
+            -- I don't care about the analysis field. I include that in the
+            -- prompt to guide the model's thinking process.
             self.Chat:add_buf_message({
               role = config.constants.USER_ROLE,
-              content = fmt(
-                "Below is a summary of our conversation so far:\n<summary>\n%s\n</summary>\n\n",
-                json.summary
-              ),
+              content = fmt("Below is a summary of a conversation we've previously had:\n\n%s\n\n", json.summary),
             })
-
-            -- TODO: Clear the chat history
+            self:compact_messages()
 
             log:debug("[Compact] Compacted the chat history")
           end
