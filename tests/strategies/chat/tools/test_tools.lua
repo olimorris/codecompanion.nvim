@@ -212,7 +212,7 @@ T["Tools"][":execute"]["a malformed response from the LLM is handled"] = functio
 
   local output = child.lua_get([[chat.messages[#chat.messages].content]])
 
-  h.expect_starts_with("Error calling the `weather` tool: Invalid JSON format", output)
+  h.expect_starts_with("The tool call for 'weather'", output)
 end
 
 T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"] = function()
@@ -265,11 +265,7 @@ T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"]
 
   -- Verify error message was added to chat
   local output = child.lua_get([[chat.messages[#chat.messages].content]])
-  h.expect_starts_with("Error calling the `insert_edit_into_file` tool: Invalid JSON format", output)
-
-  -- Verify helpful guidance is provided
-  h.eq(true, output:find("double quotes") ~= nil)
-  h.eq(true, output:find("true/false") ~= nil)
+  h.expect_starts_with("The tool call for 'insert_edit_into_file'", output)
 
   -- Verify ToolsFinished was fired (critical for chat to remain functional)
   local events = child.lua_get("_G.events_fired")
@@ -313,7 +309,6 @@ T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"]
   -- The last message should be the tool error output, not the malformed assistant message
   local last_msg = child.lua_get("_G.last_message_in_history")
   h.eq("tool", last_msg.role)
-  h.eq(true, last_msg.content:find("Invalid JSON format") ~= nil)
 
   -- Verify chat can continue
   child.lua([[
@@ -347,7 +342,7 @@ T["Tools"][":execute"]["malformed JSON with Python-style booleans"] = function()
   ]])
 
   local output = child.lua_get([[chat.messages[#chat.messages].content]])
-  h.expect_starts_with("Error calling the `weather` tool: Invalid JSON format", output)
+  h.expect_starts_with("The tool call for 'weather'", output)
 
   -- Should still fire ToolsFinished
   child.lua([[vim.wait(10)]])

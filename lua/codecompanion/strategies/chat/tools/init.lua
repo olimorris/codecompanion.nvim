@@ -24,6 +24,7 @@ local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
+local fmt = string.format
 
 local show_tools_processing = config.display.chat.show_tools_processing
 
@@ -81,7 +82,7 @@ function Tools:_handle_tool_error(tool, error_message)
     available_tools_msg = "No tools available"
   end
 
-  self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
+  self.chat:add_tool_output(tool_call, fmt("Tool `%s` not found. %s", name, available_tools_msg), "")
   return utils.fire("ToolsFinished", { bufnr = self.bufnr })
 end
 
@@ -100,7 +101,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   end
 
   if not tool_config then
-    return nil, string.format("Couldn't find the tool `%s`", name), false
+    return nil, fmt("Couldn't find the tool `%s`", name), false
   end
 
   local ok, resolved_tool = pcall(function()
@@ -109,7 +110,7 @@ function Tools:_resolve_and_prepare_tool(tool)
 
   if not ok or not resolved_tool then
     log:debug("Tool resolution failed for `%s`: %s", name, resolved_tool)
-    return nil, string.format("Couldn't resolve the tool `%s`", name), false
+    return nil, fmt("Couldn't resolve the tool `%s`", name), false
   end
 
   local prepared_tool = vim.deepcopy(resolved_tool)
@@ -126,10 +127,9 @@ function Tools:_resolve_and_prepare_tool(tool)
       end
 
       local json_ok, decoded = pcall(vim.json.decode, args)
-      if not json_ok then
-        -- Log the full error for debugging
-        log:error("Couldn't decode the tool arguments for '%s': %s", name, args:sub(1, 500))
 
+      -- Some LLMs may return malformed JSON which we need to handle gracefully
+      if not json_ok then
         -- Remove the malformed assistant message from history BEFORE adding tool output
         -- The assistant message with tool_calls was added by Chat:done() before tools:execute()
         if
@@ -142,21 +142,25 @@ function Tools:_resolve_and_prepare_tool(tool)
           table.remove(self.chat.messages, #self.chat.messages)
         end
 
-        -- Helpful feedback to the LLM
-        local error_msg = string.format(
-          "Error calling the `%s` tool: Invalid JSON format in arguments.\n\n"
-            .. "The arguments you provided could not be parsed as valid JSON. "
-            .. "Please ensure:\n"
-            .. '1. All string values use double quotes ("), not single quotes\n'
-            .. "2. Boolean values are lowercase: true/false (not True/False)\n"
-            .. "3. All braces and brackets are properly closed\n"
-            .. "4. No trailing commas in objects or arrays\n\n"
-            .. "First 200 characters of malformed arguments: %s",
+        local error_msg = fmt(
+          [[The tool call for '%s' failed due to malformed JSON arguments. Correct the format and retry.
+
+JSON Formatting Rules:
+1. Use double quotes (") for all keys and string values.
+2. Do not use trailing commas in objects or arrays.
+3. Ensure all braces `{}` and brackets `[]` are correctly matched and closed.
+4. Boolean values must be lowercase `true` or `false`.
+5. Escape special characters within strings (e.g., `\"`, `\\`, `\n`).
+
+First 200 characters of malformed arguments:
+%s]],
           name,
           args:sub(1, 200)
         )
 
         self.chat:add_tool_output(prepared_tool, error_msg, "")
+
+        log:error("[Tools::Init] Malformed JSON in '%s' tool: %s", name, args:sub(1, 500))
 
         -- Return error flag so orchestrator can handle it gracefully
         return nil, "JSON parsing failed", true
@@ -164,6 +168,7 @@ function Tools:_resolve_and_prepare_tool(tool)
 
       args = decoded
     end
+
     prepared_tool.args = args
   end
 
@@ -317,13 +322,10 @@ function Tools:execute(chat, tools)
 
       if not resolved_tool then
         if is_json_error then
-          -- Fire ToolsFinished to keep chat functional
           self.status = CONSTANTS.STATUS_ERROR
-          utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
-          return
-        else
-          return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
+          return utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
         end
+        return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
       end
 
       self.tool = resolved_tool
