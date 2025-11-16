@@ -6,6 +6,10 @@ local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
+      if vim.fn.has("nvim-0.12") == 0 then
+        return MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+      end
+
       h.child_start(child)
       -- Set up a buffer with some content
       child.o.lines = 20
