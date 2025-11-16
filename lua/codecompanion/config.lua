@@ -40,6 +40,8 @@ local defaults = {
       claude_code = "claude_code",
       codex = "codex",
       gemini_cli = "gemini_cli",
+      goose = "goose",
+      opencode = "opencode",
       opts = {
         show_defaults = true, -- Show default adapters
       },

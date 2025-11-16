@@ -113,4 +113,11 @@ require("codecompanion").setup({
 })
 ```
 
+## Setup: Goose CLI
+
+To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've followed their [documentation](https://block.github.io/goose/docs/getting-started/installation/) to setup and install Goose CLI.
+
+## Setup: opencode
+
+To use [opencode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it.
 

@@ -69,7 +69,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex> and Gemini CLI <https://github.com/google-gemini/gemini-cli>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -761,6 +761,21 @@ plugin configuration:
       },
     })
 <
+
+
+SETUP: GOOSE CLI ~
+
+To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you’ve
+followed their documentation
+<https://block.github.io/goose/docs/getting-started/installation/> to setup and
+install Goose CLI.
+
+
+SETUP: OPENCODE ~
+
+To use opencode <https://opencode.ai> in CodeCompanion, ensure you’ve
+followed their documentation to install <https://opencode.ai/docs/#install> and
+configure <https://opencode.ai/docs/#configure> it.
 
 
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
