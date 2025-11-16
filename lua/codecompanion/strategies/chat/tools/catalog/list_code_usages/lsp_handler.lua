@@ -47,14 +47,16 @@ end
 --- This function handles the complex process of:
 --- 1. Finding all LSP clients that support the requested method
 --- 2. Ensuring clients are attached to the target buffer
---- 3. Executing the request with proper position parameters
+--- 3. Executing the request with explicit position parameters (no window manipulation)
 --- 4. Collecting and processing results from all clients
 --- 5. Handling special cases like hover documentation and references
 ---
----@param bufnr number The buffer number to execute the request on
----@param method string The LSP method to execute (e.g., textDocument_references)
+---@param filepath string The file path to execute the request on
+---@param line number The line number (1-indexed)
+---@param col number The column number (0-indexed)
+---@param method string The LSP method to execute (e.g., textDocument/references)
 ---@param callback function Callback called with collected results from all clients
-function LspHandler.execute_request_async(bufnr, method, callback)
+function LspHandler.execute_request_async(filepath, line, col, method, callback)
   local clients = vim.lsp.get_clients({ method = method })
   local lsp_results = {}
   local completed_clients = 0
@@ -63,6 +65,15 @@ function LspHandler.execute_request_async(bufnr, method, callback)
   if total_clients == 0 then
     callback({})
     return
+  end
+
+  -- Get or create buffer for the file (hidden, not displayed)
+  local bufnr = vim.fn.bufnr(filepath)
+  if bufnr == -1 then
+    bufnr = vim.fn.bufadd(filepath)
+    vim.fn.bufload(bufnr)
+  elseif not vim.api.nvim_buf_is_loaded(bufnr) then
+    vim.fn.bufload(bufnr)
   end
 
   for _, client in ipairs(clients) do
@@ -76,8 +87,13 @@ function LspHandler.execute_request_async(bufnr, method, callback)
       vim.lsp.buf_attach_client(bufnr, client.id)
     end
 
-    local position_params = vim.lsp.util.make_position_params(0, client.offset_encoding)
-    position_params.context = { includeDeclaration = false }
+    -- Build position parameters manually (no window required)
+    local uri = vim.uri_from_fname(filepath)
+    local position_params = {
+      textDocument = { uri = uri },
+      position = { line = line - 1, character = col }, -- LSP uses 0-indexed line numbers
+      context = { includeDeclaration = false },
+    }
 
     client:request(method, position_params, function(_, result, _, _)
       if result then
