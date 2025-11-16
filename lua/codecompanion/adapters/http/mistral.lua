@@ -61,6 +61,33 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
+      local pending_messages = self.pending_messages or {}
+      local is_previous_tool = false
+      for k, msg in ipairs(messages) do
+        local is_tool = msg.role == "tool"
+        local is_user = msg.role == "user"
+        -- Mistral does not like user after tool messages, those should always be assistant
+        if is_previous_tool and is_user then
+          table.insert(pending_messages, msg)
+          messages[k] = nil
+          -- message was dropped, so for the next message, the previous one
+          -- is still a tool
+          is_tool = true
+        else
+          if not is_previous_tool then
+            -- Flush pending messages whenever we can
+            for i, m in ipairs(pending_messages) do
+              table.insert(messages, m)
+            end
+            pending_messages = {}
+          end
+        end
+        is_previous_tool = is_tool
+      end
+
+      -- Keep the pending messages for next round
+      self.pending_messages = pending_messages
+
       return openai.handlers.form_messages(self, messages)
     end,
     chat_output = function(self, data, tools)
