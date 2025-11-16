@@ -232,7 +232,7 @@ T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"]
     -- Simulate real malformed JSON that crashed the chat
     local tools = {
       {
-        id = 1,
+        id = "call_malformed_123",
         type = "function",
         ["function"] = {
           name = "insert_edit_into_file",
@@ -243,6 +243,20 @@ T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"]
     }
 
     local chat = _G.chat
+
+    -- Simulate the assistant message being added to history first
+    -- This is what Chat:done() does before calling tools:execute()
+    table.insert(chat.messages, {
+      role = require("codecompanion.config").constants.LLM_ROLE,
+      content = "",
+      tools = {
+        calls = tools
+      }
+    })
+
+    -- Store the count of messages before execution
+    _G.message_count_before = #chat.messages
+
     _G.tools:execute(chat, tools)
 
     -- Give time for async events
@@ -271,26 +285,30 @@ T["Tools"][":execute"]["severely malformed JSON from LLM is handled gracefully"]
   -- This prevents HTTP 400 on subsequent requests
   child.lua([[
     _G.last_message_in_history = _G.chat.messages[#_G.chat.messages]
-    _G.has_malformed_tool_calls = false
+    _G.message_count_after = #_G.chat.messages
+    _G.has_malformed_assistant_message = false
 
-    -- Check if any message in history has malformed tool calls
+    -- Check if the malformed assistant message with tool_calls is still in history
     for _, msg in ipairs(_G.chat.messages) do
-      if msg.tools and msg.tools.calls then
+      if msg.role == require("codecompanion.config").constants.LLM_ROLE
+         and msg.tools
+         and msg.tools.calls then
+        -- Found an assistant message with tool_calls - check if it's the malformed one
         for _, call in ipairs(msg.tools.calls) do
-          if call["function"] and call["function"].arguments then
-            local args = call["function"].arguments
-            if type(args) == "string" and args:find("^alse") then
-              _G.has_malformed_tool_calls = true
-              break
-            end
+          if call.id == "call_malformed_123" then
+            _G.has_malformed_assistant_message = true
+            break
           end
         end
       end
     end
   ]])
 
-  -- The malformed assistant message should NOT be in history
-  h.eq(false, child.lua_get("_G.has_malformed_tool_calls"))
+  -- The malformed assistant message should have been removed
+  h.eq(false, child.lua_get("_G.has_malformed_assistant_message"))
+
+  -- Message count should be the same (removed assistant, added tool error)
+  h.eq(child.lua_get("_G.message_count_before"), child.lua_get("_G.message_count_after"))
 
   -- The last message should be the tool error output, not the malformed assistant message
   local last_msg = child.lua_get("_G.last_message_in_history")

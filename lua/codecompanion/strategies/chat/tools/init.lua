@@ -130,6 +130,18 @@ function Tools:_resolve_and_prepare_tool(tool)
         -- Log the full error for debugging
         log:error("Couldn't decode the tool arguments for '%s': %s", name, args:sub(1, 500))
 
+        -- Remove the malformed assistant message from history BEFORE adding tool output
+        -- The assistant message with tool_calls was added by Chat:done() before tools:execute()
+        if
+          #self.chat.messages > 0
+          and self.chat.messages[#self.chat.messages].role == config.constants.LLM_ROLE
+          and self.chat.messages[#self.chat.messages].tools
+          and self.chat.messages[#self.chat.messages].tools.calls
+        then
+          log:debug("Removing malformed assistant message with tool calls from history")
+          table.remove(self.chat.messages, #self.chat.messages)
+        end
+
         -- Helpful feedback to the LLM
         local error_msg = string.format(
           "Error calling the `%s` tool: Invalid JSON format in arguments.\n\n"
@@ -305,19 +317,6 @@ function Tools:execute(chat, tools)
 
       if not resolved_tool then
         if is_json_error then
-          -- JSON error was already handled by _resolve_and_prepare_tool
-          -- Remove the malformed assistant message from history to prevent HTTP 400 on next request
-          -- The assistant message with tool_calls was added by Chat:done() before tools:execute()
-          if
-            #self.chat.messages > 0
-            and self.chat.messages[#self.chat.messages].role == config.constants.LLM_ROLE
-            and self.chat.messages[#self.chat.messages].tools
-            and self.chat.messages[#self.chat.messages].tools.calls
-          then
-            log:debug("Removing malformed assistant message with tool calls from history")
-            table.remove(self.chat.messages, #self.chat.messages)
-          end
-
           -- Fire ToolsFinished to keep chat functional
           self.status = CONSTANTS.STATUS_ERROR
           utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
