@@ -7,7 +7,7 @@ local T = new_set({
   hooks = {
     pre_case = function()
       if vim.fn.has("nvim-0.12") ~= 0 then
-        MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+        return
       end
 
       h.child_start(child)
@@ -39,7 +39,7 @@ local T = new_set({
     end,
     post_case = function()
       if vim.fn.has("nvim-0.12") ~= 0 then
-        MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+        return
       end
 
       child.lua([[
