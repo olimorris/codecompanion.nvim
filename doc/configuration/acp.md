@@ -88,7 +88,12 @@ require("codecompanion").setup({
 ## Setup: Gemini CLI
 
 1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-2. Update your CodeCompanion config. As there are three authentication methods available (`oauth-personal`, `gemini-api-key` and `vertex-ai`), you can choose which one to use. The example below uses the `gemini-api-key` method, pulling the API key from [1Password CLI](https://developer.1password.com/docs/cli/get-started/) as an example:
+2. Update your CodeCompanion config and select which authentication methods you'd like to use. Currently there are:
+  - `oauth-personal` which uses your Google Login
+  - `gemini-api-key`
+  - `vertex-ai`)
+
+The example below uses the `gemini-api-key` method, pulling the API key from [1Password CLI](https://developer.1password.com/docs/cli/get-started/):
 
 ```lua
 require("codecompanion").setup({
@@ -111,9 +116,9 @@ require("codecompanion").setup({
 
 ## Setup: Goose CLI
 
-To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've followed their [documentation](https://block.github.io/goose/docs/getting-started/installation/) to setup and install Goose CLI.
+To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've followed their [documentation](https://block.github.io/goose/docs/getting-started/installation/) to setup and install Goose CLI. Then ensure that in your chat buffer you select the `goose` adapter.
 
 ## Setup: opencode
 
-To use [opencode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it.
+To use [opencode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
 
