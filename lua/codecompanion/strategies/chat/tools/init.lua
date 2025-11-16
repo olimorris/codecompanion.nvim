@@ -13,7 +13,6 @@
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
 ---@field tools_ns number The namespace for the virtual text that appears in the header
 
-local EditTracker = require("codecompanion.strategies.chat.edit_tracker")
 local Orchestrator = require("codecompanion.strategies.chat.tools.orchestrator")
 local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
@@ -175,8 +174,6 @@ function Tools:_start_edit_tracking(tools)
         tool_args = nil
       end
     end
-
-    EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
   end
 end
 

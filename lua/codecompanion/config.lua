@@ -568,29 +568,29 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.clear_memory",
           description = "Clear memory",
         },
+        fs_diff = {
+          modes = { n = "gD" },
+          index = 19,
+          callback = "keymaps.show_fs_diff",
+          description = "Show file system diff",
+        },
         yolo_mode = {
           modes = { n = "gty" },
-          index = 19,
+          index = 20,
           callback = "keymaps.yolo_mode",
           description = "YOLO mode toggle",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
-          index = 20,
+          index = 21,
           callback = "keymaps.goto_file_under_cursor",
           description = "Open file under cursor",
         },
         copilot_stats = {
           modes = { n = "gS" },
-          index = 21,
+          index = 22,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot statistics",
-        },
-        super_diff = {
-          modes = { n = "gD" },
-          index = 22,
-          callback = "keymaps.super_diff",
-          description = "Show Super Diff",
         },
         -- Keymaps for ACP permission requests
         _acp_allow_always = {
@@ -670,6 +670,20 @@ The user is working on a %s machine. Please respond with system specific command
           index = 3,
           callback = "keymaps.always_accept",
           description = "Accept and enable auto mode",
+        },
+        next_hunk = {
+          modes = { n = "]h" },
+          opts = { nowait = true, noremap = true },
+          index = 4,
+          callback = "keymaps.next_hunk",
+          description = "Jump to next hunk",
+        },
+        prev_hunk = {
+          modes = { n = "[h" },
+          opts = { nowait = true, noremap = true },
+          index = 5,
+          callback = "keymaps.prev_hunk",
+          description = "Jump to previous hunk",
         },
       },
       variables = {
