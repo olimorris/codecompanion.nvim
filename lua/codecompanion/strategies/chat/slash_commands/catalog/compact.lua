@@ -1,7 +1,5 @@
-local chat_helpers = require("codecompanion.strategies.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -43,7 +41,11 @@ Here's an example of how your JSON output should be structured:
 ```
 
 Please provide your summary based on the conversation so far, following this JSON structure and ensuring precision and thoroughness in your response.
-Include the JSON object only, without any additional commentary or explanation and no markdown formatting.]],
+Include the JSON object only, without any additional commentary or explanation and no markdown formatting.
+
+The conversation and corresponding messages to summarize, is as follows:
+
+<conversation>%s</conversation>]],
 }
 
 ---@class CodeCompanion.SlashCommand.Compact: CodeCompanion.SlashCommand
@@ -60,15 +62,84 @@ function SlashCommand.new(args)
   return self
 end
 
+---Create the conversation string from messages
+---@param messages CodeCompanion.Chat.Messages
+---@return string
+function SlashCommand:create_conversation(messages)
+  --Rules:
+  --1. We only care about user and assistant messages
+  local conversation = ""
+
+  for _, message in ipairs(messages or {}) do
+    if message.role == "user" or message.role == "assistant" then
+      conversation = conversation .. fmt('<message role="%s">%s</message>', message.role, message.content)
+    end
+  end
+
+  return conversation
+end
+
+function SlashCommand:update_messages()
+  -- self.Chat = chat
+end
+
 ---Execute the slash command
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
-function SlashCommand:execute(SlashCommands) end
+function SlashCommand:execute(SlashCommands)
+  return vim.ui.select({ "Yes", "No" }, {
+    kind = "codecompanion.nvim",
+    prompt = "Generate a compact summary of the conversation so far?",
+  }, function(selected)
+    if not selected or selected == "No" then
+      return
+    end
 
----Output from the slash command in the chat buffer
----@param selected table The selected item from the provider { relative_path = string, path = string }
----@param opts? table
----@return nil
-function SlashCommand:output(selected, opts) end
+    local request = require("codecompanion.interactions.background")
+      .new({
+        adapter = self.Chat.adapter,
+      })
+      :ask({
+        {
+          role = "user",
+          content = fmt(CONSTANTS.PROMPT, self:create_conversation(self.Chat.messages)),
+        },
+      }, {
+        method = "async",
+        on_done = function(result)
+          if result then
+            local content = result.output and result.output.content
+            local ok, json = pcall(vim.json.decode, content, { luanil = { object = true } })
+            if not ok then
+              return log:error("[Compact] Error parsing the JSON: %s", json)
+            end
+
+            if json.analysis and json.summary then
+              -- Output the summary to the chat buffer so the user can understand what the LLM has summarised
+              self.Chat:add_buf_message({
+                role = config.constants.LLM_ROLE,
+                content = fmt("### Conversation Analysis\n\n%s", json.analysis),
+              })
+
+              -- Turnover the header so it's back to the user
+              self.Chat:add_buf_message({
+                role = config.constants.USER_ROLE,
+                content = "",
+              })
+
+              -- Remove all of the previous LLM and user messages
+
+              -- Add the summary as a new user prompt
+            end
+
+            log:debug("[Compact] Compacted the chat history")
+          end
+        end,
+        on_error = function(err)
+          return log:error("[Compact] Error compacting the conversation: %s", err)
+        end,
+      })
+  end)
+end
 
 return SlashCommand
