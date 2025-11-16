@@ -6,34 +6,6 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to ACP adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters) adapters. Therefore it's recommended you read the two pages together.
 
-## Changing Auth Method
-
-> [!NOTE]
-> The auth methods for each ACP adapter are output in the [logs](/configuration/others#log-level) when the `log_level` is set to `DEBUG`.
-
-It's important to note that each agent adapter handles authentication differently. CodeCompanion endeavours to share the available options in the agent's adapter as a comment. However, it's recommended to consult the documentation of the agent you're working with.
-
-An example of changing the Gemini CLI's auth method to use the API key and a 1Password vault:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    acp = {
-      gemini_cli = function()
-        return require("codecompanion.adapters").extend("gemini_cli", {
-          defaults = {
-            auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
-          },
-          env = {
-            GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
-          },
-        })
-      end,
-    },
-  },
-})
-```
-
 ## Setup: Auggie CLI from Augment Code
 
 To use [Auggie CLI](https://docs.augmentcode.com/cli/overview) within CodeCompanion, you simply need to follow their [Getting Started](https://docs.augmentcode.com/cli/overview#getting-started) guide.
@@ -105,6 +77,30 @@ require("codecompanion").setup({
           },
           env = {
             OPENAI_API_KEY = "my-api-key",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+## Setup: Gemini CLI
+
+1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+2. Update your CodeCompanion config. As there are three authentication methods available (`oauth-personal`, `gemini-api-key` and `vertex-ai`), you can choose which one to use. The example below uses the `gemini-api-key` method, pulling the API key from [1Password CLI](https://developer.1password.com/docs/cli/get-started/) as an example:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      gemini_cli = function()
+        return require("codecompanion.adapters").extend("gemini_cli", {
+          defaults = {
+            auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+          },
+          env = {
+            GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
           },
         })
       end,

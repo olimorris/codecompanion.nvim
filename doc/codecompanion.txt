@@ -69,7 +69,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, opencode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -636,40 +636,6 @@ There is a lot of shared functionality between ACP and
 you read the two pages together.
 
 
-CHANGING AUTH METHOD ~
-
-
-  [!NOTE] The auth methods for each ACP adapter are output in the
-  |codecompanion-configuration-others-log-level| when the `log_level` is set to
-  `DEBUG`.
-It’s important to note that each agent adapter handles authentication
-differently. CodeCompanion endeavours to share the available options in the
-agent’s adapter as a comment. However, it’s recommended to consult the
-documentation of the agent you’re working with.
-
-An example of changing the Gemini CLI’s auth method to use the API key and a
-1Password vault:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              defaults = {
-                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
-              },
-              env = {
-                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
 SETUP: AUGGIE CLI FROM AUGMENT CODE ~
 
 To use Auggie CLI <https://docs.augmentcode.com/cli/overview> within
@@ -754,6 +720,31 @@ plugin configuration:
               },
               env = {
                 OPENAI_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: GEMINI CLI ~
+
+1. Install Gemini CLI <https://github.com/google-gemini/gemini-cli>
+2. Update your CodeCompanion config. As there are three authentication methods available (`oauth-personal`, `gemini-api-key` and `vertex-ai`), you can choose which one to use. The example below uses the `gemini-api-key` method, pulling the API key from 1Password CLI <https://developer.1password.com/docs/cli/get-started/> as an example:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              defaults = {
+                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+              },
+              env = {
+                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
               },
             })
           end,
