@@ -1,9 +1,9 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.KimiCLI: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.Cagent: CodeCompanion.ACPAdapter
 return {
-  name = "kimi_cli",
-  formatted_name = "Kimi CLI",
+  name = "cagent",
+  formatted_name = "Cagent",
   type = "acp",
   roles = {
     llm = "assistant",
@@ -14,8 +14,9 @@ return {
   },
   commands = {
     default = {
-      "kimi",
-      "--acp",
+      "cagent",
+      "acp",
+      "basic_agent.yaml",
     },
   },
   defaults = {

@@ -10,6 +10,37 @@ This section contains configuration which is specific to ACP adapters only. Ther
 
 To use [Auggie CLI](https://docs.augmentcode.com/cli/overview) within CodeCompanion, you simply need to follow their [Getting Started](https://docs.augmentcode.com/cli/overview#getting-started) guide.
 
+## Setup: Docker Cagent
+
+To use Docker's [Cagent](https://github.com/docker/cagent) within CodeCompanion, you need to follow these steps:
+
+1. [Install](https://github.com/docker/cagent?tab=readme-ov-file#installation) Cagent as per their instructions
+2. [Create an agent](https://github.com/docker/cagent?tab=readme-ov-file#run-agents) in the repository you're working from
+3. Test the agent by running `cagent run your_agent.yaml` in the CLI
+4. In your CodeCompanion config, extend the `cagent` adapter to include the agent:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      cagent = function()
+        return require("codecompanion.adapters").extend("cagent", {
+          commands = {
+            default = {
+              "cagent",
+              "acp",
+              "your_agent.yaml",
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+If you have multiple agent files that you like to run separately, you can create multiple commands for each agent.
+
 ## Setup: Claude Code
 
 To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion, you'll need to take the following steps:
