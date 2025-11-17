@@ -53,10 +53,45 @@ local T = new_set({
   },
 })
 
--- Helper to enter insert mode and set cursor
-local function set_cursor_insert(row, col)
-  child.cmd("startinsert!")
-  child.api.nvim_win_set_cursor(0, { row, col })
+---Helper to set buffer with cursor marker and enter insert mode
+---Accepts string "text|" or table {"line1", "line|2"} where | marks cursor position
+---@param text string|table
+local function set_buffer_text(text)
+  if type(text) == "string" then
+    local cursor_pos = text:find("|", 1, true)
+    if not cursor_pos then
+      error("No cursor marker '|' found in text")
+    end
+
+    local line = text:sub(1, cursor_pos - 1) .. text:sub(cursor_pos + 1)
+    child.api.nvim_buf_set_lines(0, 0, -1, true, { line })
+    child.cmd("startinsert!")
+    child.api.nvim_win_set_cursor(0, { 1, cursor_pos - 1 })
+  elseif type(text) == "table" then
+    local cursor_row, cursor_col
+    local lines = {}
+
+    for i, line in ipairs(text) do
+      local pos = line:find("|", 1, true)
+      if pos then
+        cursor_row = i
+        cursor_col = pos - 1
+        table.insert(lines, line:sub(1, pos - 1) .. line:sub(pos + 1))
+      else
+        table.insert(lines, line)
+      end
+    end
+
+    if not cursor_row then
+      error("No cursor marker '|' found in text")
+    end
+
+    child.api.nvim_buf_set_lines(0, 0, -1, true, lines)
+    child.cmd("startinsert!")
+    child.api.nvim_win_set_cursor(0, { cursor_row, cursor_col })
+  else
+    error("Expected string or table")
+  end
 end
 
 T["accept_word()"] = new_set()
@@ -66,9 +101,7 @@ T["accept_word()"]["works with simple word completion"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  -- Set up: buffer has "-- Create a fib" and cursor is at end
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "-- Create a fib" })
-  set_cursor_insert(1, 15) -- After "-- Create a fib"
+  set_buffer_text("-- Create a fib|")
 
   -- Set up the mock completion
   child.lua([[
@@ -94,8 +127,7 @@ T["accept_word()"]["works with punctuation in completion"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "local x" })
-  set_cursor_insert(1, 7)
+  set_buffer_text("local x|")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -118,8 +150,7 @@ T["accept_word()"]["works with newline in word"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "function test()" })
-  set_cursor_insert(1, 15)
+  set_buffer_text("function test()|")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -143,9 +174,7 @@ T["accept_word()"]["ignores stale completion (cursor before range end)"] = funct
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  -- Make a longer buffer so cursor doesn't get clamped
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "test some long text here" })
-  set_cursor_insert(1, 10) -- Cursor at position 10
+  set_buffer_text("test some |long text here")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -168,8 +197,7 @@ T["accept_word()"]["handles empty buffer"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "" })
-  set_cursor_insert(1, 0)
+  set_buffer_text("|")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -187,13 +215,59 @@ T["accept_word()"]["handles empty buffer"] = function()
   h.eq(child.api.nvim_win_get_cursor(0), { 1, 6 })
 end
 
+T["accept_word()"]["handles auto-pairs with cursor inside brackets"] = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+  end
+
+  set_buffer_text("local function hello_world(|)")
+
+  child.lua([[
+    _G.mock_completion_item = {
+      insert_text = "local function hello_world(arg)",
+      range = {
+        start = { row = 0, col = 0 },
+        end_ = { row = 0, col = 27 }
+      }
+    }
+
+    _G.completion.accept_word()
+  ]])
+
+  -- Should insert "arg" without being confused by the trailing ")"
+  h.eq(child.api.nvim_buf_get_lines(0, 0, -1, true), { "local function hello_world(arg)" })
+  h.eq(child.api.nvim_win_get_cursor(0), { 1, 30 })
+end
+
+T["accept_word()"]["handles auto-pairs with cursor inside quotes"] = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
+  end
+
+  set_buffer_text('print("|")') -- print("|")
+
+  child.lua([[
+    _G.mock_completion_item = {
+      insert_text = "print(\"hello world\")",
+      range = {
+        start = { row = 0, col = 0 },
+        end_ = { row = 0, col = 7 }
+      }
+    }
+
+    _G.completion.accept_word()
+  ]])
+
+  h.eq(child.api.nvim_buf_get_lines(0, 0, -1, true), { 'print("hello ")' })
+  h.eq(child.api.nvim_win_get_cursor(0), { 1, 13 })
+end
+
 T["accept_word()"]["handles completion that doesn't start with existing text"] = function()
   if vim.fn.has("nvim-0.12") == 0 then
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "foo bar" })
-  set_cursor_insert(1, 7)
+  set_buffer_text("foo bar|")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -218,8 +292,7 @@ T["accept_line()"]["works with single line completion"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "-- Comment" })
-  set_cursor_insert(1, 10)
+  set_buffer_text("-- Comment|")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -242,8 +315,7 @@ T["accept_line()"]["works with multi-line completion"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "function test()" })
-  set_cursor_insert(1, 15)
+  set_buffer_text("function test()|")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -257,7 +329,6 @@ T["accept_line()"]["works with multi-line completion"] = function()
     _G.completion.accept_line()
   ]])
 
-  -- Should insert newline + next line content + newline (avoiding the double-press issue)
   h.eq(child.api.nvim_buf_get_lines(0, 0, -1, true), { "function test()", "  return 42", "" })
   h.eq(child.api.nvim_win_get_cursor(0), { 3, 0 })
 end
@@ -267,9 +338,7 @@ T["accept_line()"]["ignores stale completion"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  -- Make a longer buffer so cursor doesn't get clamped
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "test some long text here" })
-  set_cursor_insert(1, 10)
+  set_buffer_text("test some |long text here")
 
   child.lua([[
     _G.mock_completion_item = {
@@ -292,8 +361,7 @@ T["accept_line()"]["handles completion without newline"] = function()
     MiniTest.skip("Requires Neovim 0.12+ for vim.lsp.inline_completion")
   end
 
-  child.api.nvim_buf_set_lines(0, 0, -1, true, { "hello" })
-  set_cursor_insert(1, 5)
+  set_buffer_text("hello|")
 
   child.lua([[
     _G.mock_completion_item = {
