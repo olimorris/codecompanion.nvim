@@ -222,6 +222,7 @@ local function on_user_response(request, diff, opts)
     if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
       pcall(function()
         vim.wo[opts.winnr].winbar = ""
+        vim.wo[opts.winnr].winhighlight = ""
       end)
 
       if opts.keep_win_open then
