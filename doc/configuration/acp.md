@@ -118,6 +118,10 @@ require("codecompanion").setup({
 
 To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've followed their [documentation](https://block.github.io/goose/docs/getting-started/installation/) to setup and install Goose CLI. Then ensure that in your chat buffer you select the `goose` adapter.
 
+## Setup: Kimi CLI
+
+Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/setup` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
+
 ## Setup: opencode
 
 To use [opencode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.

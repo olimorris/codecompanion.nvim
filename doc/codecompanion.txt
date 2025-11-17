@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 16
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -732,11 +732,11 @@ plugin configuration:
 SETUP: GEMINI CLI ~
 
 1. Install Gemini CLI <https://github.com/google-gemini/gemini-cli>
-2. Update your CodeCompanion config and select which authentication methods you’d like to use. Currently there are:
-
-- `oauth-personal` which uses your Google Login
+2. Update your CodeCompanion config and select which authentication methods you’d like to use. Currently there are:- `oauth-personal` which uses your Google login
 - `gemini-api-key`
 - `vertex-ai`)
+
+
 
 The example below uses the `gemini-api-key` method, pulling the API key from
 1Password CLI <https://developer.1password.com/docs/cli/get-started/>:
@@ -768,6 +768,15 @@ followed their documentation
 <https://block.github.io/goose/docs/getting-started/installation/> to setup and
 install Goose CLI. Then ensure that in your chat buffer you select the `goose`
 adapter.
+
+
+SETUP: KIMI CLI ~
+
+Install Kimi CLI
+<https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation> as per
+their instructions. Then in the CLI, run `kimi` followed by `/setup` to
+configure your API key. Then ensure that in your chat buffer you select the
+`kimi_cli` adapter.
 
 
 SETUP: OPENCODE ~
