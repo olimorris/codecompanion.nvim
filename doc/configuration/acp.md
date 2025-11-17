@@ -89,9 +89,9 @@ require("codecompanion").setup({
 
 1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
 2. Update your CodeCompanion config and select which authentication methods you'd like to use. Currently there are:
-  - `oauth-personal` which uses your Google Login
-  - `gemini-api-key`
-  - `vertex-ai`)
+    - `oauth-personal` which uses your Google login
+    - `gemini-api-key`
+    - `vertex-ai`)
 
 The example below uses the `gemini-api-key` method, pulling the API key from [1Password CLI](https://developer.1password.com/docs/cli/get-started/):
 
