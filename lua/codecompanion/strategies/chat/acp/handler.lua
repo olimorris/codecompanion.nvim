@@ -298,7 +298,7 @@ end
 ---@param error string
 function ACPHandler:handle_error(error)
   self.chat.status = "error"
-  log:error("[ACP::Handler] Error: %s", error)
+  log:error("[ACP::Handler] %s", error)
   self.chat:done(self.output)
 end
 
