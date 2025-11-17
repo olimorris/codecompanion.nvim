@@ -41,6 +41,7 @@ local defaults = {
       codex = "codex",
       gemini_cli = "gemini_cli",
       goose = "goose",
+      kimi_cli = "kimi_cli",
       opencode = "opencode",
       opts = {
         show_defaults = true, -- Show default adapters
