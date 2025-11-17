@@ -229,7 +229,7 @@ function InlineDiff:reject(opts)
   self:teardown()
 end
 
----Clear winbar from the diff window
+---Clear winbar and winhighlight from the diff window
 ---@return nil
 function InlineDiff:clear_winbar()
   if self.winnr and api.nvim_win_is_valid(self.winnr) then
