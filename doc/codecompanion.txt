@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 16
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -69,7 +69,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex> and Gemini CLI <https://github.com/google-gemini/gemini-cli>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli> and opencode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -636,31 +636,35 @@ There is a lot of shared functionality between ACP and
 you read the two pages together.
 
 
-CHANGING AUTH METHOD ~
+SETUP: AUGGIE CLI FROM AUGMENT CODE ~
+
+To use Auggie CLI <https://docs.augmentcode.com/cli/overview> within
+CodeCompanion, you simply need to follow their Getting Started
+<https://docs.augmentcode.com/cli/overview#getting-started> guide.
 
 
-  [!NOTE] The auth methods for each ACP adapter are output in the
-  |codecompanion-configuration-others-log-level| when the `log_level` is set to
-  `DEBUG`.
-It’s important to note that each agent adapter handles authentication
-differently. CodeCompanion endeavours to share the available options in the
-agent’s adapter as a comment. However, it’s recommended to consult the
-documentation of the agent you’re working with.
+SETUP: DOCKER CAGENT ~
 
-An example of changing the Gemini CLI’s auth method to use the API key and a
-1Password vault:
+To use Docker’s Cagent <https://github.com/docker/cagent> within
+CodeCompanion, you need to follow these steps:
+
+1. Install <https://github.com/docker/cagent?tab=readme-ov-file#installation> Cagent as per their instructions
+2. Create an agent <https://github.com/docker/cagent?tab=readme-ov-file#run-agents> in the repository you’re working from
+3. Test the agent by running `cagent run your_agent.yaml` in the CLI
+4. In your CodeCompanion config, extend the `cagent` adapter to include the agent:
 
 >lua
     require("codecompanion").setup({
       adapters = {
         acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              defaults = {
-                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
-              },
-              env = {
-                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+          cagent = function()
+            return require("codecompanion.adapters").extend("cagent", {
+              commands = {
+                default = {
+                  "cagent",
+                  "acp",
+                  "your_agent.yaml",
+                },
               },
             })
           end,
@@ -669,12 +673,8 @@ An example of changing the Gemini CLI’s auth method to use the API key and a
     })
 <
 
-
-SETUP: AUGGIE CLI FROM AUGMENT CODE ~
-
-To use Auggie CLI <https://docs.augmentcode.com/cli/overview> within
-CodeCompanion, you simply need to follow their Getting Started
-<https://docs.augmentcode.com/cli/overview#getting-started> guide.
+If you have multiple agent files that you like to run separately, you can
+create multiple commands for each agent.
 
 
 SETUP: CLAUDE CODE ~
@@ -761,6 +761,64 @@ plugin configuration:
       },
     })
 <
+
+
+SETUP: GEMINI CLI ~
+
+1. Install Gemini CLI <https://github.com/google-gemini/gemini-cli>
+2. Update your CodeCompanion config and select which authentication methods you’d like to use. Currently there are:- `oauth-personal` which uses your Google login
+- `gemini-api-key`
+- `vertex-ai`)
+
+
+
+The example below uses the `gemini-api-key` method, pulling the API key from
+1Password CLI <https://developer.1password.com/docs/cli/get-started/>:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              defaults = {
+                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+              },
+              env = {
+                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: GOOSE CLI ~
+
+To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you’ve
+followed their documentation
+<https://block.github.io/goose/docs/getting-started/installation/> to setup and
+install Goose CLI. Then ensure that in your chat buffer you select the `goose`
+adapter.
+
+
+SETUP: KIMI CLI ~
+
+Install Kimi CLI
+<https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation> as per
+their instructions. Then in the CLI, run `kimi` followed by `/setup` to
+configure your API key. Then ensure that in your chat buffer you select the
+`kimi_cli` adapter.
+
+
+SETUP: OPENCODE ~
+
+To use opencode <https://opencode.ai> in CodeCompanion, ensure you’ve
+followed their documentation to install <https://opencode.ai/docs/#install> and
+configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
+chat buffer you select the `opencode` adapter.
 
 
 ACTION PALETTE                    *codecompanion-configuration-action-palette*

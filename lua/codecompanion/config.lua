@@ -37,9 +37,13 @@ local defaults = {
     },
     acp = {
       auggie_cli = "auggie_cli",
+      cagent = "cagent",
       claude_code = "claude_code",
       codex = "codex",
       gemini_cli = "gemini_cli",
+      goose = "goose",
+      kimi_cli = "kimi_cli",
+      opencode = "opencode",
       opts = {
         show_defaults = true, -- Show default adapters
       },
