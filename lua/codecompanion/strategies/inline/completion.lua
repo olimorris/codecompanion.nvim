@@ -68,7 +68,7 @@ local function extract_next_line(text)
   return string.sub(text, 1, newline_pos)
 end
 
----Validate that the completion is not stale (cursor matches range end)
+---Validate that cursor is within the completion range
 ---@param item table The completion item
 ---@param cursor_row number The current cursor row (0-indexed)
 ---@param cursor_col number The current cursor column (0-indexed)
@@ -78,11 +78,19 @@ local function validate_completion(item, cursor_row, cursor_col)
     return true
   end
 
+  local start_row = item.range.start.row
+  local start_col = item.range.start.col
   local end_row = item.range.end_.row
   local end_col = item.range.end_.col
 
-  if end_row ~= cursor_row or end_col ~= cursor_col then
-    log:debug("Ignoring stale completion (cursor: %d,%d; range end: %d,%d)", cursor_row, cursor_col, end_row, end_col)
+  -- Allow cursor anywhere within range to support auto-pairs
+  if cursor_row < start_row or cursor_row > end_row then
+    return false
+  end
+  if cursor_row == start_row and cursor_col < start_col then
+    return false
+  end
+  if cursor_row == end_row and cursor_col > end_col then
     return false
   end
 
@@ -110,34 +118,34 @@ end
 ---Get the new text by removing the existing buffer text prefix
 ---@param item table The completion item
 ---@param text string The full completion text
+---@param cursor_row number The current cursor row (0-indexed)
+---@param cursor_col number The current cursor column (0-indexed)
 ---@return string new_text The text after removing existing prefix
-local function get_new_text(item, text)
+local function get_new_text(item, text, cursor_row, cursor_col)
   local bufnr = api.nvim_get_current_buf()
   local start_row = item.range.start.row
   local start_col = item.range.start.col
-  local end_row = item.range.end_.row
-  local end_col = item.range.end_.col
 
-  local existing_lines = api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col, {})
+  -- Use cursor position instead of range.end_ to handle auto-pairs
+  local existing_lines = api.nvim_buf_get_text(bufnr, start_row, start_col, cursor_row, cursor_col, {})
   local existing_text = table.concat(existing_lines, "\n")
 
-  -- Remove existing text prefix to get only new text
   if vim.startswith(text, existing_text) then
     return text:sub(#existing_text + 1)
   else
-    log:warn("Suggestion doesn't start with existing text")
     return text
   end
 end
 
----Insert text at cursor and move cursor to the end
+---Insert text at cursor (replacing to range end) and move cursor to the end
 ---@param text string The text to insert
 ---@param cursor_row number The current cursor row (0-indexed)
 ---@param cursor_col number The current cursor column (0-indexed)
-local function insert_and_move_cursor(text, cursor_row, cursor_col)
-  -- Split the text if it contains newlines
+---@param end_row number The range end row (0-indexed)
+---@param end_col number The range end column (0-indexed)
+local function insert_and_move_cursor(text, cursor_row, cursor_col, end_row, end_col)
   local lines = vim.split(text, "\n", { plain = true })
-  api.nvim_buf_set_text(0, cursor_row, cursor_col, cursor_row, cursor_col, lines)
+  api.nvim_buf_set_text(0, cursor_row, cursor_col, end_row, end_col, lines)
 
   -- Move cursor to the end of the inserted text
   local new_row, new_col
@@ -176,7 +184,7 @@ local function accept_partial(extract_fn)
         return
       end
 
-      local new_text = get_new_text(item, text)
+      local new_text = get_new_text(item, text, cursor_row, cursor_col)
 
       local extracted = extract_fn(new_text)
       if not extracted then
@@ -184,7 +192,9 @@ local function accept_partial(extract_fn)
         return
       end
 
-      insert_and_move_cursor(extracted, cursor_row, cursor_col)
+      local end_row = item.range.end_.row
+      local end_col = item.range.end_.col
+      insert_and_move_cursor(extracted, cursor_row, cursor_col, end_row, end_col)
       accepted = true
     end,
   })
