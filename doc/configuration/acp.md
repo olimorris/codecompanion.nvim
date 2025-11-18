@@ -10,7 +10,7 @@ This section contains configuration which is specific to ACP adapters only. Ther
 
 To use [Auggie CLI](https://docs.augmentcode.com/cli/overview) within CodeCompanion, you simply need to follow their [Getting Started](https://docs.augmentcode.com/cli/overview#getting-started) guide.
 
-## Setup: Docker Cagent
+## Setup: Cagent
 
 To use Docker's [Cagent](https://github.com/docker/cagent) within CodeCompanion, you need to follow these steps:
 
