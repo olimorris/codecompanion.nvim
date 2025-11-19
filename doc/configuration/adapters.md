@@ -34,9 +34,17 @@ require("codecompanion").setup({
 }),
 ```
 
-## Setting an API Key
+## Environment Variables / Setting an API Key
 
-Extend a base adapter to set options like `api_key` or `model`:
+Setting environment variables within adapters is a key part of configuration. The adapter `env` table lets you define values that will be interpolated into the adapter's URL, headers, parameters and other fields at runtime.
+
+Supported `env` value types:
+- **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
+- **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
+- **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
+- **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
+
+Below are some examples showing this in practice:
 
 ```lua
 require("codecompanion").setup({
@@ -74,16 +82,6 @@ require("codecompanion").setup({
 
 > [!NOTE]
 > In this example, we're using the 1Password CLI to extract the Gemini API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
-
-## Environment Variables
-
-Setting environment variables within adapters is a key part of configuration. The adapter `env` table lets you define values that will be interpolated into the adapter's URL, headers, parameters and other fields at runtime.
-
-Supported `env` value types:
-- **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
-- **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
-- **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
-- **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
 
 ## Changing a Model
 

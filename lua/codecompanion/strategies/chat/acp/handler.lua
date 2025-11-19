@@ -298,7 +298,13 @@ end
 ---@param error string
 function ACPHandler:handle_error(error)
   self.chat.status = "error"
-  log:error("[ACP::Handler] Error: %s", error)
+  log:error("[ACP::Handler] %s", error)
+
+  self.chat:add_buf_message(
+    { role = require("codecompanion.config").constants.LLM_ROLE, content = string.format("````txt\n%s\n````", error) },
+    { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
+  )
+
   self.chat:done(self.output)
 end
 

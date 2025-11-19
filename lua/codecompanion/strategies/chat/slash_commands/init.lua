@@ -12,15 +12,22 @@ local function resolve(callback)
     return slash_command
   end
 
-  -- Try loading the tool from the user's config
+  -- Try loading the tool from the user's config using a module path
+  ok, slash_command = pcall(require, callback)
+  if ok then
+    log:debug("Calling slash command using a module path: %s", callback)
+    return slash_command
+  end
+
+  -- Try loading the tool from the user's config using a file path
   local err
-  slash_command, err = loadfile(callback)
+  slash_command, err = loadfile(vim.fs.normalize(callback))
   if err then
     return log:error("Could not load the slash command: %s", callback)
   end
 
   if slash_command then
-    log:debug("Calling slash command: %s", callback)
+    log:debug("Calling slash command from a file path: %s", callback)
     return slash_command()
   end
 end

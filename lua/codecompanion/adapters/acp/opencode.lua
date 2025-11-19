@@ -1,9 +1,9 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.ClaudeCode: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.OpenCode: CodeCompanion.ACPAdapter
 return {
-  name = "claude_code",
-  formatted_name = "Claude Code",
+  name = "opencode",
+  formatted_name = "OpenCode",
   type = "acp",
   roles = {
     llm = "assistant",
@@ -14,15 +14,13 @@ return {
   },
   commands = {
     default = {
-      "claude-code-acp",
+      "opencode",
+      "acp",
     },
   },
   defaults = {
     mcpServers = {},
     timeout = 20000, -- 20 seconds
-  },
-  env = {
-    CLAUDE_CODE_OAUTH_TOKEN = "CLAUDE_CODE_OAUTH_TOKEN",
   },
   parameters = {
     protocolVersion = 1,
@@ -45,12 +43,9 @@ return {
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     auth = function(self)
-      local token = self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN
-      if token and token ~= "" then
-        vim.env.CLAUDE_CODE_OAUTH_TOKEN = token
-        return true
-      end
-      return false
+      -- opencode emits "opencode-login" as an authMethod which seems to be an
+      -- invalid command. So work around this by declaring auth a success
+      return true
     end,
 
     ---@param self CodeCompanion.ACPAdapter
