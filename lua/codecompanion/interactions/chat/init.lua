@@ -1219,12 +1219,23 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   local reasoning_content = nil
   if reasoning and not vim.tbl_isempty(reasoning) then
-    if vim.iter(reasoning):any(function(item)
-      return item and type(item) ~= "string"
-    end) then
-      reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
+    local build_reasoning_handler = adapters.get_handler(self.adapter, "build_reasoning")
+    if type(build_reasoning_handler) == "function" then
+      reasoning_content = build_reasoning_handler(self.adapter, reasoning)
     else
-      reasoning_content = table.concat(reasoning, "")
+      -- Assume trivial `reasoning` structure: string or `{content: string}`
+      reasoning_content = {
+        content = vim
+          .iter(reasoning)
+          :map(function(item)
+            if type(item) == "string" then
+              return item
+            elseif type(item) == "table" and item.content then
+              return item.content
+            end
+          end)
+          :join(""),
+      }
     end
   end
 

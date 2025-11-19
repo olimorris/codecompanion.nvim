@@ -160,34 +160,6 @@ return {
       return data
     end,
 
-    ---@param self CodeCompanion.HTTPAdapter.Gemini
-    ---@param data table The reasoning output from the LLM
-    ---@return nil|{ content: string, _data: table }
-    form_reasoning = function(self, data)
-      if data == nil or not vim.iter(data):any(function(item)
-        return item ~= nil
-      end) then
-        return
-      end
-
-      local content = vim
-        .iter(data)
-        :map(function(item)
-          local val = item.content or item
-          if type(val) == "string" then
-            return val
-          end
-        end)
-        :filter(function(content)
-          return content ~= nil
-        end)
-        :join("")
-
-      return {
-        content = content,
-      }
-    end,
-
     tools = {
       format_tool_calls = function(self, tools)
         return openai.handlers.tools.format_tool_calls(self, tools)
