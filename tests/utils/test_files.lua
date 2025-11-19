@@ -162,6 +162,7 @@ end
 T["Files utils"]["get_mimetype"] = new_set()
 T["Files utils"]["get_mimetype"]["can invoke `file`"] = function()
   local orig_system = vim.system
+  local orig_executable = vim.fn.executable
   local _cmd, _opts, _cb = nil, nil, nil
   ---@diagnostic disable-next-line: duplicate-set-field
   vim.system = function(cmds, opts, cb)
@@ -175,14 +176,24 @@ T["Files utils"]["get_mimetype"]["can invoke `file`"] = function()
     }
   end
 
+  vim.fn.executable = function(s)
+    if s == "file" then
+      return 1
+    else
+      return orig_executable(s)
+    end
+  end
+
   local _type = files.get_mimetype("some_file.txt")
   h.eq({ "file", "--mime-type", "some_file.txt" }, _cmd)
   h.eq("text/plain", _type)
   vim.system = orig_system
+  vim.fn.executable = orig_executable
 end
 
-T["Files utils"]["get_mimetype"]["works without `file`"] = function()
+T["Files utils"]["get_mimetype"]["works with fallback"] = function()
   local orig_system = vim.system
+  local orig_executable = vim.fn.executable
 
   local _cmd, _opts, _cb = nil, nil, nil
   ---@diagnostic disable-next-line: duplicate-set-field
@@ -197,10 +208,19 @@ T["Files utils"]["get_mimetype"]["works without `file`"] = function()
     }
   end
 
+  vim.fn.executable = function(s)
+    if s == "file" then
+      return 0
+    else
+      return orig_executable(s)
+    end
+  end
+
   local _type = files.get_mimetype("some_file.png")
-  h.eq({ "file", "--mime-type", "some_file.png" }, _cmd)
+  h.eq(nil, _cmd)
   h.eq("image/png", _type)
   vim.system = orig_system
+  vim.fn.executable = orig_executable
 end
 
 return T
