@@ -20,7 +20,7 @@
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -40,14 +40,16 @@ function Diff.new(args)
 
   log:trace("Using default diff")
 
-  -- Set the diff properties
-  vim.cmd("set diffopt=" .. table.concat(config.display.diff.opts, ","))
+  local split_opts = config.display.diff.provider_opts.split
 
-  local vertical = (config.display.diff.layout == "vertical")
+  -- Set the diff properties
+  vim.cmd("set diffopt=" .. table.concat(split_opts.opts, ","))
+
+  local vertical = (split_opts.layout == "vertical")
 
   -- Get current properties
   local buf_opts = {
-    ft = util.safe_filetype(self.filetype),
+    ft = utils.safe_filetype(self.filetype),
   }
   local win_opts = {
     wrap = vim.wo.wrap,
@@ -57,7 +59,7 @@ function Diff.new(args)
 
   --- Minimize the chat buffer window if there's not enough screen estate
   local last_chat = require("codecompanion").last_chat()
-  if last_chat and last_chat.ui:is_visible() and config.display.diff.close_chat_at > vim.o.columns then
+  if last_chat and last_chat.ui:is_visible() and split_opts.close_chat_at > vim.o.columns then
     last_chat.ui:hide()
   end
 
@@ -83,7 +85,7 @@ function Diff.new(args)
   end
 
   -- Begin diffing
-  util.fire("DiffAttached", { diff = "default", bufnr = self.bufnr, id = self.id, winnr = self.winnr })
+  utils.fire("DiffAttached", { diff = "default", bufnr = self.bufnr, id = self.id, winnr = self.winnr })
   api.nvim_set_current_win(diff.win)
   vim.cmd("diffthis")
   api.nvim_set_current_win(self.winnr)
@@ -98,14 +100,14 @@ end
 ---Accept the diff
 ---@return nil
 function Diff:accept()
-  util.fire("DiffAccepted", { diff = "default", bufnr = self.bufnr, id = self.id, accept = true })
+  utils.fire("DiffAccepted", { diff = "default", bufnr = self.bufnr, id = self.id, accept = true })
   return self:teardown()
 end
 
 ---Reject the diff
 ---@return nil
 function Diff:reject()
-  util.fire("DiffRejected", { diff = "default", bufnr = self.bufnr, id = self.id, accept = false })
+  utils.fire("DiffRejected", { diff = "default", bufnr = self.bufnr, id = self.id, accept = false })
   self:teardown()
   return api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
 end
@@ -115,7 +117,7 @@ end
 function Diff:teardown()
   vim.cmd("diffoff")
   api.nvim_buf_delete(self.diff.buf, {})
-  util.fire("DiffDetached", { diff = "default", bufnr = self.bufnr, id = self.id, winnr = self.diff.win })
+  utils.fire("DiffDetached", { diff = "default", bufnr = self.bufnr, id = self.id, winnr = self.diff.win })
 end
 
 return Diff

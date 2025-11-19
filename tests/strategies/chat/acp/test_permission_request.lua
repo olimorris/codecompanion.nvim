@@ -29,6 +29,8 @@ T = new_set({
         package.loaded["codecompanion.strategies.chat.acp.request_permission"] = nil
         package.loaded["codecompanion.providers.diff.inline"] = nil
         package.loaded["codecompanion.strategies.chat.helpers.wait"] = nil
+        package.loaded["codecompanion.strategies.chat.helpers.diff"] = nil
+        package.loaded["codecompanion.strategies.chat.helpers"] = nil
         package.loaded["codecompanion.utils.ui"] = nil
       ]])
     end,
@@ -57,6 +59,28 @@ local function with_mocks(opts)
       end
     }
 
+    -- Mock diff helper
+    package.loaded["codecompanion.strategies.chat.helpers.diff"] = {
+      open_buffer_and_window = function(bufnr)
+        -- Return the buffer and create a window for it
+        local winnr = vim.fn.bufwinid(bufnr)
+        if winnr == -1 then
+          winnr = vim.api.nvim_open_win(bufnr, true, {
+            relative = "editor",
+            width = 60, height = 12,
+            row = 1, col = 1,
+            style = "minimal", border = "single",
+          })
+        end
+        return bufnr, winnr
+      end
+    }
+
+    -- Mock helpers
+    package.loaded["codecompanion.strategies.chat.helpers"] = {
+      hide_chat_for_floating_diff = function(_chat) end
+    }
+
     -- Mock UI float creator: create real scratch buffer + floating window
     package.loaded["codecompanion.utils.ui"] = {
       create_float = function(lines, _opts)
@@ -71,6 +95,36 @@ local function with_mocks(opts)
           style = "minimal", border = "single",
         })
         return bufnr, w
+      end,
+      create_basic_floating_window = function(bufnr, _opts)
+        local w = vim.api.nvim_open_win(bufnr, true, {
+          relative = "editor",
+          width = 60, height = 12,
+          row = 1, col = 1,
+          style = "minimal", border = "single",
+        })
+        return w
+      end,
+      create_background_window = function() return nil end,
+      close_background_window = function() end,
+      set_winbar = function(_winnr, _text, _hl) end,
+      create_floating_window = function(bufnr, _opts)
+        local w = vim.api.nvim_open_win(bufnr, true, {
+          relative = "editor",
+          width = 60, height = 12,
+          row = 1, col = 1,
+          style = "minimal", border = "single",
+          title = _opts and _opts.title or "Diff",
+          title_pos = "center",
+        })
+        return w
+      end,
+      build_float_title = function(opts)
+        opts = opts or {}
+        if opts.path then
+          return (opts.title_prefix or "Test") .. ": " .. vim.fn.fnamemodify(opts.path, ":t")
+        end
+        return opts.title or opts.title_prefix or "Test"
       end
     }
 

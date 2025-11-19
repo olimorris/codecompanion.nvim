@@ -1,7 +1,7 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
 local transform = require("codecompanion.utils.tool_transformers")
-local utils = require("codecompanion.utils.adapters")
 
 local input_tokens = 0
 local output_tokens = 0
@@ -36,6 +36,65 @@ return {
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
   temp = {},
+  available_tools = {
+    ["code_execution"] = {
+      description = "The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "code-execution-2025-08-25"
+
+        table.insert(tools, {
+          type = "code_execution_20250825",
+          name = "code_execution",
+        })
+      end,
+    },
+    ["memory"] = {
+      description = "Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "")
+          .. "context-management-2025-06-27"
+
+        table.insert(tools, {
+          type = "memory_20250818",
+          name = "memory",
+        })
+      end,
+      opts = {
+        -- Allow a hybrid tool -> One that also has a client side implementation
+        client_tool = "strategies.chat.tools.memory",
+      },
+    },
+    ["web_fetch"] = {
+      description = "The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "web-fetch-2025-09-10"
+
+        table.insert(tools, {
+          type = "web_fetch_20250910",
+          name = "web_fetch",
+          max_uses = 5,
+        })
+      end,
+    },
+    ["web_search"] = {
+      description = "The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff",
+      ---@param self CodeCompanion.HTTPAdapter.Anthropic
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        table.insert(tools, {
+          type = "web_search_20250305",
+          name = "web_search",
+          max_uses = 5,
+        })
+      end,
+    },
+  },
   handlers = {
     ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
@@ -119,17 +178,17 @@ return {
         :totable()
 
       -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
-      messages = vim.tbl_map(function(message)
+      messages = vim.tbl_map(function(m)
         -- 3. Account for any images
-        if message.opts and message.opts.tag == "image" and message.opts.mimetype then
+        if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
           if self.opts and self.opts.vision then
-            message.content = {
+            m.content = {
               {
                 type = "image",
                 source = {
                   type = "base64",
-                  media_type = message.opts.mimetype,
-                  data = message.content,
+                  media_type = m.context.mimetype,
+                  data = m.content,
                 },
               },
             }
@@ -140,79 +199,98 @@ return {
         end
 
         -- 4. Remove disallowed keys
-        message = utils.filter_out_messages({
-          message = message,
+        m = adapter_utils.filter_out_messages({
+          message = m,
           allowed_words = {
             "content",
             "role",
             "reasoning",
-            "tool_calls",
+            "tools",
           },
         })
 
         -- 5. Turn string content into { { type = "text", text } } and add in the reasoning
-        if message.role == self.roles.user or message.role == self.roles.llm then
+        if m.role == self.roles.user or m.role == self.roles.llm then
           -- Anthropic doesn't allow the user to submit an empty prompt. But
           -- this can be necessary to prompt the LLM to analyze any tool
           -- calls and their output
-          if message.role == self.roles.user and message.content == "" then
-            message.content = "<prompt></prompt>"
+          if m.role == self.roles.user and m.content == "" then
+            m.content = "<prompt></prompt>"
           end
 
-          if type(message.content) == "string" then
-            message.content = {
-              { type = "text", text = message.content },
+          if type(m.content) == "string" then
+            m.content = {
+              { type = "text", text = m.content },
             }
           end
         end
 
-        if message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+        if m.tools and m.tools.calls and vim.tbl_count(m.tools.calls) > 0 then
           has_tools = true
         end
 
-        -- 6. Treat 'tool' role as user
-        if message.role == "tool" then
-          message.role = self.roles.user
+        -- 6. Treat 'tool' role as user and convert tool results to Anthropic format
+        if m.role == "tool" then
+          m.role = self.roles.user
+          -- Convert tool result from CodeCompanion format to Anthropic format
+          if m.tools and m.tools.type == "tool_result" then
+            -- Handle content that might already be in Anthropic's format
+            if type(m.content) == "table" and m.content.type == "tool_result" then
+              -- Already in Anthropic format, keep it as-is but ensure it's in an array
+              m.content = { m.content }
+            else
+              -- Convert from CodeCompanion format to Anthropic format
+              m.content = {
+                {
+                  type = "tool_result",
+                  tool_use_id = m.tools.call_id,
+                  content = m.content,
+                  is_error = m.tools.is_error or false,
+                },
+              }
+            end
+            m.tools = nil
+          end
         end
 
         -- 7. Convert any LLM tool_calls into content blocks
-        if has_tools and message.role == self.roles.llm and message.tool_calls then
-          message.content = message.content or {}
-          for _, call in ipairs(message.tool_calls) do
+        if has_tools and m.role == self.roles.llm and m.tools and m.tools.calls then
+          m.content = m.content or {}
+          for _, call in ipairs(m.tools.calls) do
             local args = call["function"].arguments
-            table.insert(message.content, {
+            table.insert(m.content, {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
               input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
             })
           end
-          message.tool_calls = nil
+          m.tools = nil
         end
 
         -- 8. If reasoning is present, format it as a content block
-        if message.reasoning and type(message.content) == "table" then
+        if m.reasoning and type(m.content) == "table" then
           -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#how-extended-thinking-works
-          table.insert(message.content, 1, {
+          table.insert(m.content, 1, {
             type = "thinking",
-            thinking = message.reasoning.content,
-            signature = message.reasoning._data.signature,
+            thinking = m.reasoning.content,
+            signature = m.reasoning._data.signature,
           })
         end
 
-        return message
+        return m
       end, messages)
 
       -- 9. Merge consecutive messages with the same role
-      messages = utils.merge_messages(messages)
+      messages = adapter_utils.merge_messages(messages)
 
-      -- 10. Ensure that any consecutive tool results are merged
+      -- 10. Ensure that any consecutive tool results are merged and text messages are included
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content and m.content ~= "" then
             -- Check if content is already an array of blocks
             if type(m.content) == "table" and m.content.type then
-              -- If it's a single content block, like a tool_result), make it an array
+              -- If it's a single content block (like a tool_result), make it an array
               m.content = { m.content }
             end
 
@@ -223,6 +301,7 @@ return {
                 if block.type == "tool_result" then
                   local prev = consolidated[#consolidated]
                   if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
+                    -- Merge consecutive tool results with the same tool_use_id
                     prev.content = prev.content .. block.content
                   else
                     table.insert(consolidated, block)
@@ -306,7 +385,13 @@ return {
       local transformed = {}
       for _, tool in pairs(tools) do
         for _, schema in pairs(tool) do
-          table.insert(transformed, transform.to_anthropic(schema))
+          if schema._meta and schema._meta.adapter_tool then
+            if self.available_tools[schema.name] then
+              self.available_tools[schema.name].callback(self, transformed)
+            end
+          else
+            table.insert(transformed, transform.to_anthropic(schema))
+          end
         end
       end
 
@@ -320,7 +405,7 @@ return {
     tokens = function(self, data)
       if data then
         if self.opts.stream then
-          data = utils.clean_streamed_data(data)
+          data = adapter_utils.clean_streamed_data(data)
         else
           data = data.body
         end
@@ -357,7 +442,7 @@ return {
 
       if data and data ~= "" then
         if self.opts.stream then
-          data = utils.clean_streamed_data(data)
+          data = adapter_utils.clean_streamed_data(data)
         else
           data = data.body
         end
@@ -492,10 +577,10 @@ return {
           -- in the form_messages handler it's easier to identify and merge
           -- with other user messages.
           role = "tool",
-          content = {
+          content = output,
+          tools = {
             type = "tool_result",
-            tool_use_id = tool_call.id,
-            content = output,
+            call_id = tool_call.id,
             is_error = false,
           },
           -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
@@ -523,28 +608,41 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-4-20250514",
       choices = {
-        ["claude-opus-4-20250514"] = {
-          nice_name = "Claude Opus 4",
+        ["claude-sonnet-4-5-20250929"] = {
+          formatted_name = "Claude Sonnet 4.5",
           opts = { can_reason = true, has_vision = true },
         },
+        ["claude-haiku-4-5-20251001"] = {
+          formatted_name = "Claude Haiku 4.5",
+          opts = { can_reason = true, has_vision = true },
+        },
+
         ["claude-sonnet-4-20250514"] = {
-          nice_name = "Claude Sonnet 4",
+          formatted_name = "Claude Sonnet 4",
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-3-7-sonnet-20250219"] = {
-          nice_name = "Claude 3.7 Sonnet",
+          formatted_name = "Claude 3.7 Sonnet",
           opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
         },
         ["claude-3-5-sonnet-20241022"] = {
-          nice_name = "Claude Sonnet 3.5",
+          formatted_name = "Claude Sonnet 3.5",
           opts = { has_vision = true },
         },
+        ["claude-opus-4-1-20250805"] = {
+          formatted_name = "Claude Opus 4.1",
+          opts = { can_reason = true, has_vision = true },
+        },
+        ["claude-opus-4-20250514"] = {
+          formatted_name = "Claude Opus 4",
+          opts = { can_reason = true, has_vision = true },
+        },
         ["claude-3-5-haiku-20241022"] = {
-          nice_name = "Claude Haiku 3.5",
+          formatted_name = "Claude Haiku 3.5",
           opts = { has_vision = true },
         },
         ["claude-3-opus-20240229"] = {
-          nice_name = "Claude Opus 3",
+          formatted_name = "Claude Opus 3",
           opts = { has_vision = true },
         },
         "claude-2.1",

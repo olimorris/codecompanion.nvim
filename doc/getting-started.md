@@ -1,3 +1,7 @@
+---
+description: Getting started with CodeCompanion
+---
+
 # Getting Started
 
 Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup the plugin.
@@ -7,20 +11,34 @@ Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/
 
 ## Using the Documentation
 
-Throughout the documentation you will see examples that are wrapped in a `require("codecompanion").setup({})` block. This is purposefully done so that users can apply them to their own Neovim configuration.
+Throughout the documentation you will see examples that are wrapped in a `require("codecompanion").setup({ })` block. This is purposefully done so that users can apply them to their own Neovim configuration.
 
-If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply the examples that you see in this documentation in the `opts` table, without the need for `require("codecompanion").setup({})`:
+If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can simply apply the examples that you see in this documentation in the `opts` table. For example, the following code snippet from these docs:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      adapter = "anthropic",
+      model = "claude-sonnet-4-20250514"
+    },
+  },
+  opts = {
+    log_level = "DEBUG",
+  },
+})
+```
+
+can be used in a _lazy.nvim_ configuration like so:
 
 ```lua
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
+    "nvim-lua/plenary.nvim"
   },
   opts = {
     strategies = {
-      -- Change the default chat adapter and model
       chat = {
         adapter = "anthropic",
         model = "claude-sonnet-4-20250514"

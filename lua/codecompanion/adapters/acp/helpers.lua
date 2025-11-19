@@ -14,22 +14,22 @@ M.form_messages = function(self, messages, capabilities)
     .iter(messages)
     :filter(function(msg)
       -- Ensure we're only sending messages that the agent hasn't seen before
-      return msg.role == self.roles.user and not msg._meta.sent
+      return msg.role == self.roles.user and msg._meta and not msg._meta.sent
     end)
     :map(function(msg)
-      if msg.opts and msg.opts.tag == "image" then
+      if msg._meta and msg._meta.tag == "image" and msg.context and msg.context.mimetype then
         if not has.image then
           log:warn("The %s agent does not support receiving images", self.formatted_name)
         else
           return {
             type = "image",
             data = msg.content,
-            mimeType = msg.opts.mimetype,
+            mimeType = msg.context.mimetype,
           }
         end
       end
       if msg.content and msg.content ~= "" then
-        if msg.opts and msg.opts.tag == "file" then
+        if msg._meta and msg._meta.tag == "file" then
           -- If we can't send the file as a resource, send as text
           if not has.embeddedContext then
             log:debug(
@@ -46,12 +46,12 @@ M.form_messages = function(self, messages, capabilities)
           -- the context is wrapped in <attachment> tags so it's clearer
           -- to the LLM what we're sending. But this doesn't make much
           -- sense for ACP clients, hence the file utils read here.
-          local ok, file_content = pcall(file_utils.read, msg.opts.path)
+          local ok, file_content = pcall(file_utils.read, msg.context.path)
           if ok then
             return {
               type = "resource",
               resource = {
-                uri = "file://" .. msg.opts.path,
+                uri = "file://" .. msg.context.path,
                 text = file_content,
               },
             }

@@ -41,13 +41,13 @@ local T = new_set({
         function create_test_tracked_files()
           return {
             ["file:test.lua"] = {
-              filepath = "test.lua",
+              path = "test.lua",
               bufnr = 1,
               type = "file",
               edit_operations = {
                 {
                   id = "op1",
-                  tool_name = "edit_file",
+                  tool_name = "insert_edit_into_file",
                   status = "accepted",
                   timestamp = 1000000000000000000,
                   original_content = { "local x = 1", "print(x)" },
@@ -57,7 +57,7 @@ local T = new_set({
               }
             },
             ["file:example.py"] = {
-              filepath = "example.py",
+              path = "example.py",
               bufnr = 2,
               type = "file",
               edit_operations = {
@@ -310,13 +310,13 @@ T["handles mixed operation statuses"] = function()
     -- Create tracked files with mixed statuses
     chat.edit_tracker.tracked_files = {
       ["file:mixed.lua"] = {
-        filepath = "mixed.lua",
+        path = "mixed.lua",
         bufnr = 1,
         type = "file",
         edit_operations = {
           {
             id = "accepted_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "accepted",
             timestamp = 1000000000000000000,
             original_content = { "print('old')" },
@@ -325,7 +325,7 @@ T["handles mixed operation statuses"] = function()
           },
           {
             id = "pending_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "pending",
             timestamp = 2000000000000000000,
             original_content = { "print('new')" },
@@ -334,7 +334,7 @@ T["handles mixed operation statuses"] = function()
           },
           {
             id = "rejected_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "rejected",
             timestamp = 3000000000000000000,
             original_content = { "print('newer')" },
@@ -398,13 +398,13 @@ T["integration - complete workflow"] = function()
     -- Setup comprehensive mock data
     chat.edit_tracker.tracked_files = {
       ["file:workflow.lua"] = {
-        filepath = "workflow.lua",
+        path = "workflow.lua",
         bufnr = 1,
         type = "file",
         edit_operations = {
           {
             id = "workflow_op",
-            tool_name = "edit_file",
+            tool_name = "insert_edit_into_file",
             status = "accepted",
             timestamp = 1000000000000000000,
             original_content = { "local x = 1" },
@@ -468,7 +468,7 @@ T["reject then accept workflow - operations can be reapplied"] = function()
     edit_tracker.init(chat)
     local edit_info = {
       tool_name = "test_tool",
-      filepath = "/test/reapply.lua",
+      path = "/test/reapply.lua",
       original_content = { "local x = 1" },
       new_content = { "local x = 2" },
       status = "accepted" -- This will be normalized to accepted

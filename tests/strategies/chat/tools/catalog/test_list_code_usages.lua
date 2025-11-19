@@ -73,25 +73,24 @@ local T = new_set({
       -- Mock LspHandler: synthesize results for definition, references, documentation
       child.lua([[
         local LH = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.lsp_handler")
-        local Methods = vim.lsp.protocol.Methods
 
         LH.execute_request_async = function(_, method, cb)
           local function uri(p) return vim.uri_from_fname(p) end
 
-          if method == Methods.textDocument_references then
+          if method == "textDocument/references" then
             cb({
               mock = {
                 { uri = uri(_G.USAGE_PATH), range = { start = { line = 2, character = 10 }, ["end"] = { line = 2, character = 17 } } },
                 { uri = uri(_G.USAGE_PATH), range = { start = { line = 3, character = 7  }, ["end"] = { line = 3, character = 14 } } },
               },
             })
-          elseif method == Methods.textDocument_definition then
+          elseif method == "textDocument/definition" then
             cb({
               mock = {
                 { uri = uri(_G.MODULE_PATH), range = { start = { line = 3, character = 0 }, ["end"] = { line = 5, character = 3 } } },
               },
             })
-          elseif method == Methods.textDocument_hover then
+          elseif method == "textDocument/hover" then
             cb({ mock = { contents = "My function docs" } })
           else
             cb({ mock = {} })

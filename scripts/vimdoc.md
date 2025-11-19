@@ -6,6 +6,7 @@ doc/getting-started.md
 
 # Configuration
 ```{.include shift-heading-level-by=1}
+doc/configuration/acp.md
 doc/configuration/action-palette.md
 doc/configuration/adapters.md
 doc/configuration/chat-buffer.md
@@ -20,6 +21,7 @@ doc/configuration/others.md
 # Usage
 ```{.include shift-heading-level-by=1}
 doc/usage/introduction.md
+doc/usage/acp-protocol.md
 doc/usage/action-palette.md
 doc/usage/chat-buffer/index.md
 doc/usage/chat-buffer/agents.md

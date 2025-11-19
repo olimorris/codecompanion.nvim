@@ -691,4 +691,49 @@ T["ACP Responses"]["ignores notifications for other sessions"] = function()
   h.eq(result.last, "seen")
 end
 
+T["ACP Responses"]["error response notifies active prompt"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        schedule_wrap = function(fn) return fn end,
+        schedule = function(fn) fn() end,
+      }
+    })
+
+    local error_handled = false
+    local captured_error = nil
+
+    connection._active_prompt = {
+      handle_error = function(self, err)
+        error_handled = true
+        captured_error = err
+      end
+    }
+
+    -- Simulate error response with nested error data
+    local error_response = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 5,
+      error = {
+        code = -32603,
+        message = "Internal error",
+        data = {
+          error = "LLM provider error: quota exceeded"
+        }
+      }
+    })
+
+    connection:handle_rpc_message(error_response)
+
+    return {
+      error_handled = error_handled,
+      error_message = captured_error,
+    }
+  ]])
+
+  h.eq(result.error_handled, true)
+  h.eq(result.error_message, "LLM provider error: quota exceeded")
+end
+
 return T

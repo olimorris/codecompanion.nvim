@@ -65,22 +65,20 @@ T["Context"]["Can be deleted"] = function()
       {
         role = "user",
         content = "Message with some context",
-        opts = {
-          context_id = "<buf>test.lua</buf>",
+        context = {
+          id = "<buf>test.lua</buf>",
         },
       },
       {
         role = "user",
         content = "Message with some more context",
-        opts = {
-          context_id = "<buf>test2.lua</buf>",
+        context = {
+          id = "<buf>test2.lua</buf>",
         },
       },
-
       {
         role = "user",
         content = "Message without context",
-        opts = {},
       },
     }
   ]])
@@ -112,12 +110,12 @@ T["Context"]["Can be deleted"] = function()
 
   -- Verify the message with context was removed
   local has_context = vim.iter(messages):any(function(msg)
-    return msg.opts.context_id == "<buf>test.lua</buf>"
+    return msg.context and msg.context.id == "<buf>test.lua</buf>"
   end)
   h.eq(has_context, false, "Message with first context item should be gone")
 
   has_context = vim.iter(messages):any(function(msg)
-    return msg.opts.context_id == "<buf>test2.lua</buf>"
+    return msg.context and msg.context.id == "<buf>test2.lua</buf>"
   end)
   h.eq(has_context, true, "Message with second context item should still be present")
 end
@@ -178,15 +176,15 @@ T["Context"]["Can be pinned"] = function()
        {
          role = "user",
          content = "Pinned context",
-         opts = {
-           context_id = "<buf>pinned example</buf>",
+         context = {
+           id = "<buf>pinned example</buf>",
          },
        },
        {
          role = "user",
          content = "Unpinned context",
-         opts = {
-           context_id = "<buf>unpinned example</buf>",
+         context = {
+           id = "<buf>unpinned example</buf>",
          },
        },
      }
@@ -334,7 +332,7 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat.context:add({
        id = "<file>tests/stubs/file.txt</file>",
        path = path,
-       source = "codecompanion.strategies.chat.slash_commands.file",
+       source = "codecompanion.strategies.chat.slash_commands.catalog.file",
        opts = {
          pinned = true,
        },
@@ -343,11 +341,14 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat:submit()
    ]])
 
-  h.expect_starts_with(
-    '<attachment filepath="tests/stubs/file.txt">Here is the content from the file',
-    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
+  h.expect_match(
+    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]),
+    [[^<attachment filepath="tests[\\/]stubs[\\/]file.txt">Here is the content from the file]]
   )
-  h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages].opts.context_id]]))
+  h.expect_match(
+    child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]]),
+    [[^<file>tests[\\/]stubs[\\/]file.txt</file>$]]
+  )
 end
 
 T["Context"]["Correctly removes tool schema and usage flag on context deletion"] = function()
@@ -474,8 +475,8 @@ T["Context"]["Tool group with collapse_tools shows single group context"] = func
   child.lua([[
      _G.system_msg = nil
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>test_group</group>" then
-         _G.system_msg = { content = msg.content, context_id = msg.opts.context_id }
+       if msg.role == "system" and msg.context and msg.context.id == "<group>test_group</group>" then
+         _G.system_msg = { content = msg.content, context = { id = msg.context.id } }
          break
        end
      end
@@ -483,7 +484,7 @@ T["Context"]["Tool group with collapse_tools shows single group context"] = func
 
   local system_msg = child.lua_get("_G.system_msg")
   h.eq("Test group system prompt", system_msg.content)
-  h.eq("<group>test_group</group>", system_msg.context_id)
+  h.eq("<group>test_group</group>", system_msg.context.id)
 end
 
 T["Context"]["Tool group without collapse_tools shows individual tools"] = function()
@@ -501,7 +502,7 @@ T["Context"]["Tool group without collapse_tools shows individual tools"] = funct
   child.lua([[
      _G.system_msg_content = nil
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>test_group2</group>" then
+       if msg.role == "system" and msg.context and msg.context.id == "<group>test_group2</group>" then
          _G.system_msg_content = msg.content
          break
        end
@@ -523,7 +524,7 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   child.lua([[
      _G.initial_system_msg_found = false
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>remove_group</group>" then
+       if msg.role == "system" and msg.context and msg.context.id == "<group>remove_group</group>" then
          _G.initial_system_msg_found = true
          break
        end
@@ -548,7 +549,7 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   child.lua([[
      _G.system_msg_exists = false
      for _, msg in ipairs(_G.chat.messages) do
-       if msg.role == "system" and msg.opts and msg.opts.context_id == "<group>remove_group</group>" then
+       if msg.role == "system" and msg.context and msg.context.id == "<group>remove_group</group>" then
          _G.system_msg_exists = true
          break
        end

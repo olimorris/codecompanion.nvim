@@ -99,9 +99,10 @@ body:
         value: |
           ## Reproduce the issue
 
-          - Please provide a `minimal.lua` file that reproduces the issue
-          - I'm a solo maintainer, so making my life easy means a lot
-          - Preferably use the one [here](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)
+          > [!IMPORTANT]
+          > If you don't provide a working `minimal.lua` file, the triage agent will likely close your issue automatically. I'm a solo maintainer, so making my life easy means a lot
+
+          - Use the one [here](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)
           - Save it as `minimal.lua` and run with `nvim -u minimal.lua`
           - All files will be downloaded to a `.repro` folder in your current working directory
 

@@ -16,11 +16,11 @@ local CONSTANTS = {
 --- if provided and sorts them by symbol kind to prioritize definitions.
 ---
 ---@param symbolName string The name of the symbol to search for
----@param filepaths string[]|nil Optional array of file paths to filter results
+---@param paths string[]|nil Optional array of file paths to filter results
 ---@param callback function Callback function called with array of found symbols
-function SymbolFinder.find_with_lsp_async(symbolName, filepaths, callback)
+function SymbolFinder.find_with_lsp_async(symbolName, paths, callback)
   local clients = vim.lsp.get_clients({
-    method = vim.lsp.protocol.Methods.workspace_symbol,
+    method = "workspace/symbol",
   })
 
   if #clients == 0 then
@@ -35,17 +35,17 @@ function SymbolFinder.find_with_lsp_async(symbolName, filepaths, callback)
   for _, client in ipairs(clients) do
     local params = { query = symbolName }
 
-    client:request(vim.lsp.protocol.Methods.workspace_symbol, params, function(err, result, _, _)
+    client:request("workspace/symbol", params, function(err, result, _, _)
       if result then
         for _, symbol in ipairs(result) do
           if symbol.name == symbolName then
-            local filepath = Utils.uri_to_filepath(symbol.location.uri)
+            local path = Utils.uri_to_path(symbol.location.uri)
 
-            -- Filter by filepaths if specified
-            if filepaths and #filepaths > 0 then
+            -- Filter by paths if specified
+            if paths and #paths > 0 then
               local match = false
-              for _, pattern in ipairs(filepaths) do
-                if filepath:find(pattern) then
+              for _, pattern in ipairs(paths) do
+                if path:find(pattern) then
                   match = true
                   break
                 end
@@ -60,7 +60,7 @@ function SymbolFinder.find_with_lsp_async(symbolName, filepaths, callback)
               range = symbol.location.range,
               name = symbol.name,
               kind = symbol.kind,
-              file = filepath,
+              file = path,
             })
 
             ::continue::
@@ -90,9 +90,9 @@ end
 ---
 ---@param symbolName string The name of the symbol to search for
 ---@param file_extension string|nil Optional file extension to limit search scope
----@param filepaths string[]|nil Optional array of file paths to search within
+---@param paths string[]|nil Optional array of file paths to search within
 ---@param callback function Callback called with grep result object or nil if no matches
-function SymbolFinder.find_with_grep_async(symbolName, file_extension, filepaths, callback)
+function SymbolFinder.find_with_grep_async(symbolName, file_extension, paths, callback)
   vim.schedule(function()
     local search_pattern = vim.fn.escape(symbolName, "\\")
     local cmd = "silent! grep! -w"
@@ -110,8 +110,8 @@ function SymbolFinder.find_with_grep_async(symbolName, file_extension, filepaths
     cmd = cmd .. vim.fn.shellescape(search_pattern)
 
     -- Add file paths if provided
-    if filepaths and type(filepaths) == "table" and #filepaths > 0 then
-      cmd = cmd .. " " .. table.concat(filepaths, " ")
+    if paths and type(paths) == "table" and #paths > 0 then
+      cmd = cmd .. " " .. table.concat(paths, " ")
     end
 
     log:debug("[SymbolFinder:find_with_grep_async] Executing grep command: %s", cmd)

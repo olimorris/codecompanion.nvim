@@ -1,0 +1,39 @@
+{
+  "id": "resp_0a10a8c968d594670168e91d0170388195949117cf743bfd61",
+  "object": "response",
+  "created_at": 1760107777,
+  "status": "completed",
+  "background": false,
+  "error": null,
+  "incomplete_details": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5-2025-08-07",
+  "output": [
+    {
+      "id": "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
+      "type": "reasoning",
+      "encrypted_content": "gAAAAABo6",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "**Choosing descriptive terms**\nI\\u2019ve decided on the final answer: \\u201cDynamic, expressive.\\u201d I need to make sure it\\u2019s exactly two words, not three. I think that should work fine, but some people might nitpick about character counts, including spaces. I considered \\u201cExpressive elegant\\u201d, but that feels a bit awkward. So I\\u2019ll go with \\u201cDynamic expressive\\u201d instead. It strikes me as a more natural choice. I\\u2019ll return it as plain text."
+        }
+      ]
+    },
+    {
+      "id": "msg_0a10a8c968d594670168e91d0b8c908195bcacf8707ecbd2f2",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Dynamic expressive"
+        }
+      ],
+      "role": "assistant"
+    }
+  ]
+}

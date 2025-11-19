@@ -1,5 +1,4 @@
-local config = require("codecompanion.config")
-local utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.utils.adapters")
 
 local M = {}
 
@@ -8,7 +7,7 @@ local M = {}
 ---@param messages table
 ---@return table
 function M.map_roles(adapter, messages)
-  return utils.map_roles(adapter.roles, messages)
+  return adapter_utils.map_roles(adapter.roles, messages)
 end
 
 return M

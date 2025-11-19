@@ -1,3 +1,7 @@
+---
+description: Learn how to create your own agentic workflows with CodeCompanion
+---
+
 # Creating Workflows
 
 Workflows in CodeCompanion, are successive prompts which can be automatically sent to the LLM in a turn-based manner. This allows for actions such as reflection and planning to be easily implemented into your workflow. They can be combined with tools to create agentic workflows, which could be used to automate common activities like editing files and then running a test suite.
@@ -158,7 +162,7 @@ There are also a number of options which haven't been covered in the example pro
 
 **Specifying an Adapter**
 
-You can specify a specific adapter for a workflow prompt:
+You can specify a specific adapter for a workflow:
 
 ```lua
 ["Workflow"] = {
@@ -174,7 +178,52 @@ You can specify a specific adapter for a workflow prompt:
 },
 ```
 
+You can even specify an adapter and model on each workflow prompt:
+
+> [!NOTE]
+> The adapter name is required however model is optional.
+
+
+```lua
+-- ... Workflow config goes above this
+opts = {
+  adapter = {
+    name = "copilot",
+    model = "gpt-5",
+  },
+},
+prompts = {
+  {
+    {
+      role = constants.USER_ROLE,
+      content = "Do not write any code. Let's brainstorm ideas first. Come up with a plan for ___",
+      opts = {
+        auto_submit = false,
+      },
+    },
+  },
+  {
+    {
+      role = constants.USER_ROLE,
+      content = "Plan looks good. Let's implement it.",
+      opts = {
+        adapter = {
+          name = "copilot",
+          -- Use a more cost effective cheaper model for token intensive activities
+          -- This model will persist for the duration of the chat unless changed
+          model = "gpt-4.1",
+        },
+        auto_submit = false,
+      },
+    },
+  },
+},
+```
+
 **Persistent Prompts**
+
+> [!NOTE]
+> Persistent prompts are not available for the first prompt group.
 
 By default, all workflow prompts are of the type `once`. That is, they are consumed once and then removed. However, this can be changed:
 
@@ -199,6 +248,4 @@ By default, all workflow prompts are of the type `once`. That is, they are consu
   },
 },
 ```
-
-Note that persistent prompts are not available for the first prompt group.
 

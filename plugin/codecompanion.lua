@@ -8,7 +8,7 @@ if vim.fn.has("nvim-0.11") == 0 then
 end
 
 local config = require("codecompanion.config")
-local util = require("codecompanion.utils")
+
 local api = vim.api
 
 api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
@@ -37,27 +37,34 @@ pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, de
 
 -- Setup syntax highlighting for the chat buffer
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
+
+---@param bufnr? integer
+local make_hl_syntax = vim.schedule_wrap(function(bufnr)
+  -- Ref: #2344 - schedule_wrap defers execution to the next event loop cycle.
+  -- By that time, the buffer may have been deleted (e.g. user closed the
+  -- chat before the callback), so guard against this race condition.
+  if bufnr and not api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+
+  vim.bo[bufnr or 0].syntax = "ON"
+
+  -- As tools can now be created from outside of the config, apply a general pattern
+  vim.cmd.syntax('match CodeCompanionChatTool "@{[^}]*}"')
+
+  vim.iter(config.strategies.chat.variables):each(function(name)
+    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
+    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
+    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
+  end)
+end)
+
 api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
   group = syntax_group,
-  callback = vim.schedule_wrap(function()
-    vim.iter(config.strategies.chat.variables):each(function(name)
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
-    end)
-    vim
-      .iter(config.strategies.chat.tools)
-      :filter(function(name)
-        return name ~= "groups" and name ~= "opts"
-      end)
-      :each(function(name, _)
-        vim.cmd.syntax('match CodeCompanionChatTool "@{' .. name .. '}"')
-      end)
-    vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
-      vim.cmd.syntax('match CodeCompanionChatToolGroup "@{' .. name .. '}"')
-    end)
-  end),
+  callback = function(args)
+    make_hl_syntax(args.buf)
+  end,
 })
 
 -- Set the diagnostic namespace for the chat buffer settings
@@ -83,6 +90,10 @@ api.nvim_create_autocmd("TermEnter", {
   desc = "Capture the last terminal buffer",
   callback = function(args)
     local bufnr = args.buf
+    if not api.nvim_buf_is_valid(bufnr) then
+      return
+    end
+
     if vim.bo[bufnr].buftype == "terminal" then
       _G.codecompanion_last_terminal = bufnr
     end
@@ -109,7 +120,7 @@ api.nvim_create_autocmd("BufEnter", {
       and not vim.tbl_contains(excluded_buftypes, vim.bo[bufnr].buftype)
     then
       _G.codecompanion_current_context = bufnr
-      util.fire("ContextChanged", { bufnr = bufnr })
+      require("codecompanion.utils").fire("ContextChanged", { bufnr = bufnr })
     end
   end,
 })

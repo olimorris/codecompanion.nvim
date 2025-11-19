@@ -90,9 +90,9 @@ function Memory:extract()
       local matches = vim.fn.glob(path, false, true) or {}
       for _, m in ipairs(matches) do
         local p = vim.fs.normalize(m)
-        local filepath = Path:new(p)
-        if filepath:exists() then
-          if filepath:is_dir() then
+        local path = Path:new(p)
+        if path:exists() then
+          if path:is_dir() then
             walk_dir(p, file_parser)
           else
             add_file(p, file_parser)
@@ -103,10 +103,10 @@ function Memory:extract()
     end
 
     local normalized = vim.fs.normalize(path)
-    local filepath = Path:new(normalized)
+    local path = Path:new(normalized)
 
-    if filepath:exists() then
-      if filepath:is_dir() then
+    if path:exists() then
+      if path:is_dir() then
         walk_dir(normalized, file_parser)
       else
         add_file(normalized, file_parser)
@@ -152,15 +152,18 @@ end
 
 ---Make the memory message
 ---@param chat CodeCompanion.Chat
+---@param opts? { force: boolean } Additional options
 ---@return nil
-function Memory:make(chat)
+function Memory:make(chat, opts)
+  opts = vim.tbl_extend("force", { force = false }, opts or {})
+
   local condition = config
     and config.memory
     and config.memory.opts
     and config.memory.opts.chat
     and config.memory.opts.chat.condition
 
-  if condition ~= nil then
+  if condition ~= nil and opts.force == false then
     local ctype = type(condition)
 
     if ctype == "function" then

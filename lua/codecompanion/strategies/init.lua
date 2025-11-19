@@ -188,7 +188,7 @@ function Strategies:workflow()
             p.content = p.content(self.buffer_context)
           end
           if p.role == config.constants.SYSTEM_ROLE and not p.opts then
-            p.opts = { visible = false, tag = "from_custom_prompt" }
+            p.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
           end
           return p
         end)
@@ -198,7 +198,7 @@ function Strategies:workflow()
 
   local messages = prompts[1]
 
-  -- Set the workflow adapter if one is specified (Single adapter for entire workflow)
+  -- Set the workflow adapter if one is specified
   add_adapter(self, workflow.opts or {})
 
   -- We send the first batch of prompts to the chat buffer as messages
@@ -221,14 +221,17 @@ function Strategies:workflow()
     local order = 1
     vim.iter(prompts):each(function(prompt)
       for _, val in ipairs(prompt) do
-        local event_data = vim.tbl_deep_extend("keep", {}, val, { type = "once" })
-
+        local event_type = (type(val.repeat_until) == "function") and "repeat" or "once"
+        local event_data = vim.tbl_deep_extend("keep", {}, val, { type = event_type })
         local event = {
           callback = function()
             if type(val.content) == "function" then
               val.content = val.content(self.buffer_context)
             end
             chat:add_buf_message(val)
+            if val.opts and val.opts.adapter and val.opts.adapter.name then
+              chat:change_adapter(val.opts.adapter.name, val.opts.adapter.model)
+            end
           end,
           data = event_data,
           order = order,
@@ -290,7 +293,7 @@ function Strategies.evaluate_prompts(prompts, context)
     :map(function(prompt)
       local content = type(prompt.content) == "function" and prompt.content(context) or prompt.content
       if prompt.role == config.constants.SYSTEM_ROLE and not prompt.opts then
-        prompt.opts = { visible = false, tag = "from_custom_prompt" }
+        prompt.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
       end
       return {
         role = prompt.role or "",
