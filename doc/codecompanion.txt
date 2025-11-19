@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 07
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -23,6 +23,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - List of Commands          |codecompanion-getting-started-list-of-commands|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Configuration                                 |codecompanion-configuration|
+  - Agent Client Protocol (ACP)|codecompanion-configuration-agent-client-protocol-(acp)|
   - Action Palette                |codecompanion-configuration-action-palette|
   - Adapters                            |codecompanion-configuration-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
@@ -34,6 +35,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Other Options                  |codecompanion-configuration-other-options|
 5. Usage                                                 |codecompanion-usage|
   - General                                      |codecompanion-usage-general|
+  - ACP Protocol Reference        |codecompanion-usage-acp-protocol-reference|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
@@ -67,7 +69,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex> and Gemini CLI <https://github.com/google-gemini/gemini-cli>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli> and opencode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -626,6 +628,199 @@ For an optimum plugin workflow, I recommend the following:
 4. Configuration                                 *codecompanion-configuration*
 
 
+AGENT CLIENT PROTOCOL (ACP)*codecompanion-configuration-agent-client-protocol-(acp)*
+
+This section contains configuration which is specific to ACP adapters only.
+There is a lot of shared functionality between ACP and
+|codecompanion-configuration-adapters| adapters. Therefore it’s recommended
+you read the two pages together.
+
+
+SETUP: AUGGIE CLI FROM AUGMENT CODE ~
+
+To use Auggie CLI <https://docs.augmentcode.com/cli/overview> within
+CodeCompanion, you simply need to follow their Getting Started
+<https://docs.augmentcode.com/cli/overview#getting-started> guide.
+
+
+SETUP: DOCKER CAGENT ~
+
+To use Docker’s Cagent <https://github.com/docker/cagent> within
+CodeCompanion, you need to follow these steps:
+
+1. Install <https://github.com/docker/cagent?tab=readme-ov-file#installation> Cagent as per their instructions
+2. Create an agent <https://github.com/docker/cagent?tab=readme-ov-file#run-agents> in the repository you’re working from
+3. Test the agent by running `cagent run your_agent.yaml` in the CLI
+4. In your CodeCompanion config, extend the `cagent` adapter to include the agent:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          cagent = function()
+            return require("codecompanion.adapters").extend("cagent", {
+              commands = {
+                default = {
+                  "cagent",
+                  "acp",
+                  "your_agent.yaml",
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+If you have multiple agent files that you like to run separately, you can
+create multiple commands for each agent.
+
+
+SETUP: CLAUDE CODE ~
+
+To use Claude Code <https://www.anthropic.com/claude-code> within
+CodeCompanion, you’ll need to take the following steps:
+
+1. Install <https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code> Claude Code
+2. Install <https://github.com/zed-industries/claude-code-acp> the Zed ACP adapter for Claude Code
+
+
+CLAUDE PRO SUBSCRIPTION
+
+1. In your CLI, run `claude setup-token`. You’ll be redirected to the Claude.ai website for authorization:
+
+2. Back in your CLI, copy the OAuth token (in yellow):
+
+3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on |codecompanion-configuration-adapters-environment-variables-setting-an-api-key| for other ways to do this):
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              env = {
+                CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+AN API KEY
+
+1. Create <https://console.anthropic.com/settings/keys> an API key in your Anthropic console.
+2. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              env = {
+                ANTHROPIC_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: CODEX ~
+
+To use OpenAI’s Codex <https://openai.com/codex/>, install an ACP-compatible
+adapter like this <https://github.com/zed-industries/codex-acp> one from Zed
+<https://zed.dev>.
+
+By default, the adapter will look for an `OPENAI_API_KEY` in your shell,
+however you can also authenticate via ChatGPT. This can be customized in the
+plugin configuration:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          codex = function()
+            return require("codecompanion.adapters").extend("codex", {
+              defaults = {
+                auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+              },
+              env = {
+                OPENAI_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: GEMINI CLI ~
+
+1. Install Gemini CLI <https://github.com/google-gemini/gemini-cli>
+2. Update your CodeCompanion config and select which authentication methods you’d like to use. Currently there are:- `oauth-personal` which uses your Google login
+- `gemini-api-key`
+- `vertex-ai`)
+
+
+
+The example below uses the `gemini-api-key` method, pulling the API key from
+1Password CLI <https://developer.1password.com/docs/cli/get-started/>:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              defaults = {
+                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+              },
+              env = {
+                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: GOOSE CLI ~
+
+To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you’ve
+followed their documentation
+<https://block.github.io/goose/docs/getting-started/installation/> to setup and
+install Goose CLI. Then ensure that in your chat buffer you select the `goose`
+adapter.
+
+
+SETUP: KIMI CLI ~
+
+Install Kimi CLI
+<https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation> as per
+their instructions. Then in the CLI, run `kimi` followed by `/setup` to
+configure your API key. Then ensure that in your chat buffer you select the
+`kimi_cli` adapter.
+
+
+SETUP: OPENCODE ~
+
+To use opencode <https://opencode.ai> in CodeCompanion, ensure you’ve
+followed their documentation to install <https://opencode.ai/docs/#install> and
+configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
+chat buffer you select the `opencode` adapter.
+
+
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
 
 The Action Palette holds plugin specific items like the ability to launch a
@@ -709,9 +904,23 @@ You can change the default adapter for each strategy as follows:
 <
 
 
-SETTING AN API KEY ~
+ENVIRONMENT VARIABLES / SETTING AN API KEY ~
 
-Extend a base adapter to set options like `api_key` or `model`:
+Setting environment variables within adapters is a key part of configuration.
+The adapter `env` table lets you define values that will be interpolated into
+the adapter’s URL, headers, parameters and other fields at runtime.
+
+Supported `env` value types: - **Plain environment variable name (string)**: if
+the value is the name of an environment variable that has already been set
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
+be executed via the shell. Example: `"cmd:op read
+op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
+a Lua function which returns a string and will be called with the adapter as
+its sole argument. - **Schema reference (dot notation)**: you can reference
+values from the adapter table (for example `"schema.model.default"`).
+
+Below are some examples showing this in practice:
 
 >lua
     require("codecompanion").setup({
@@ -751,23 +960,6 @@ If you do not want to store secrets in plain text, prefix commands with `cmd:`:
   [!NOTE] In this example, we’re using the 1Password CLI to extract the Gemini
   API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
-
-ENVIRONMENT VARIABLES ~
-
-Setting environment variables within adapters is a key part of configuration.
-The adapter `env` table lets you define values that will be interpolated into
-the adapter’s URL, headers, parameters and other fields at runtime.
-
-Supported `env` value types: - **Plain environment variable name (string)**: if
-the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
-**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
-be executed via the shell. Example: `"cmd:op read
-op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
-a Lua function which returns a string and will be called with the adapter as
-its sole argument. - **Schema reference (dot notation)**: you can reference
-values from the adapter table (for example `"schema.model.default"`).
-
 
 CHANGING A MODEL ~
 
@@ -2710,6 +2902,228 @@ When in a chat buffer, you can cycle between other chat buffers with `{` or
 `}`.
 
 
+ACP PROTOCOL REFERENCE            *codecompanion-usage-acp-protocol-reference*
+
+CodeCompanion implements the Agent Client Protocol (ACP)
+<https://agentclientprotocol.com/> to enable you to work with coding agents
+from within Neovim. ACP is an open standard that enables structured interaction
+between clients (like CodeCompanion) and AI agents, providing capabilities such
+as session management, file system operations, tool execution, and permission
+handling.
+
+This page provides a technical reference for what’s supported in
+CodeCompanion and how it’s been implemented.
+
+
+PROTOCOL SUPPORT ~
+
+CodeCompanion provides comprehensive support for the ACP specification:
+
+  ------------------------------------------------------------------------
+  Feature Category               Support Level             Details
+  ------------------------------ ------------------------- ---------------
+  Core Protocol                  ✅ Full                   JSON-RPC 2.0,
+                                                           streaming
+                                                           responses,
+                                                           message
+                                                           buffering
+
+  Session Management             ✅ Full                   Create, load,
+                                                           and persist
+                                                           sessions with
+                                                           state tracking
+
+  Authentication                 ✅ Full                   Multiple auth
+                                                           methods,
+                                                           adapter-level
+                                                           hooks
+
+  File System                    ✅ Full                   Read/write text
+                                                           files with line
+                                                           ranges
+
+  Permissions                    ✅ Full                   Interactive UI
+                                                           with diff
+                                                           preview for
+                                                           tool approval
+
+  Content Types                  ✅ Full                   Text, images,
+                                                           embedded
+                                                           resources
+
+  Tool Calls                     ✅ Full                   Content blocks,
+                                                           file diffs,
+                                                           status updates
+
+  Session Modes                  ✅ Full                   Mode switching
+                                                           and state
+                                                           management
+
+  MCP Integration                ✅ Full                   Stdio, HTTP,
+                                                           and SSE
+                                                           transports
+
+  Agent Plans                    ❌                        Visual display
+                                                           of an agent’s
+                                                           execution plan
+
+  Terminal Operations            ❌                        Terminal
+                                                           capabilities
+                                                           not implemented
+  ------------------------------------------------------------------------
+
+SUPPORTED ADAPTERS
+
+  -----------------------------------------------------------------------
+  Adapter         Description             Special Features
+  --------------- ----------------------- -------------------------------
+  Claude Code     Anthropic’s Claude Code OAuth authentication, tool
+                  CLI                     output trimming
+
+  Gemini CLI      Google’s Gemini CLI     Multiple auth methods (OAuth,
+                                          API key, Vertex AI), YOLO mode
+
+  Auggie CLI      Augment Code CLI        Standard ACP support
+
+  Codex           OpenAI Codex            Full ACP implementation
+  -----------------------------------------------------------------------
+
+CLIENT CAPABILITIES
+
+CodeCompanion advertises the following capabilities to ACP agents:
+
+>lua
+    {
+      fs = {
+        readTextFile = true,   -- Read files with optional line ranges
+        writeTextFile = true   -- Write/create files
+      },
+      terminal = false         -- Terminal operations not supported
+    }
+<
+
+
+CONTENT SUPPORT
+
+  Content Type         Send to Agent   Receive from Agent
+  -------------------- --------------- --------------------
+  Text                 ✅              ✅
+  Images               ✅              ✅
+  Embedded Resources   ✅              ✅
+  Audio                ❌              ❌
+  File Diffs           N/A             ✅
+
+SESSION UPDATES HANDLED
+
+CodeCompanion processes the following session update types:
+
+- **Message chunks**: Streamed text from agent responses
+- **Thought chunks**: Agent reasoning displayed separately
+- **Tool calls**: Full execution lifecycle with status tracking
+- **Mode changes**: Automatic UI updates when modes switch
+- **Available commands**: Dynamic command registration for completion
+
+
+IMPLEMENTATION NOTES ~
+
+
+MESSAGE BUFFERING
+
+JSON-RPC message boundaries don’t always align with I/O boundaries.
+CodeCompanion buffers stdout from the agent process and extracts complete
+JSON-RPC messages line-by-line, ensuring robust parsing even with partial
+reads.
+
+
+STATE MANAGEMENT
+
+Unlike HTTP adapters which are stateless (sending the full conversation history
+with each request), ACP adapters are stateful. The agent maintains the
+conversation context, so CodeCompanion only sends new messages with each
+prompt. Session IDs are tracked throughout the conversation lifecycle.
+
+
+TOOL CALL CACHING
+
+Tool call state is maintained in memory to support permission requests. When an
+agent requests permission for a tool call, the cached details enable features
+like the diff preview UI for file edits.
+
+
+FILE CONTEXT HANDLING
+
+When sending files as embedded resources to agents, CodeCompanion re-reads the
+file content rather than using the chat buffer representation. This avoids
+HTTP-style `<attachment>` tags that are used for LLM adapters but don’t make
+sense for ACP agents.
+
+
+SLASH COMMANDS
+
+ACP agents can advertise their own slash commands dynamically. You can access
+them with `\command` in the chat buffer. CodeCompanion transforms this to
+`/command` before sending your prompt to the agent.
+
+
+GRACEFUL DEGRADATION
+
+CodeCompanion checks an agent’s capabilities during initialization and
+gracefully falls back to supported content types. For example, if an agent
+doesn’t support embedded context, files are sent as plain text instead.
+
+
+CLEANUP AND LIFECYCLE
+
+CodeCompanion ensures clean disconnection from ACP agents by hooking into
+Neovim’s `VimLeavePre` autocmd. This guarantees that agent processes are
+properly terminated even if Neovim exits unexpectedly.
+
+
+KEY FEATURES ~
+
+- **Streaming**: Real-time response streaming with chunk-by-chunk rendering
+- **Permission System**: Interactive approval for file operations with diff preview
+- **Session Persistence**: Resume previous conversations across Neovim sessions
+- **Mode Management**: Switch between agent modes (e.g. ask, architect, code)
+- **MCP Servers**: Connect agents to external tools via the Model Context Protocol
+- **Slash Command Completion**: Auto-complete agent-specific commands with `\command` syntax
+- **Error Handling**: Comprehensive error messages and graceful degradation
+
+
+PROTOCOL VERSION ~
+
+CodeCompanion currently implements **ACP Protocol Version 1**.
+
+The protocol version is negotiated during initialization. If an agent selects a
+different version, CodeCompanion will log a warning but continue to operate,
+following the agent’s selected version.
+
+
+KNOWN LIMITATIONS ~
+
+- **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
+    `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
+    doesn’t advertise terminal capabilities to agents.
+- **Agent Plan Rendering**: Plan
+    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+    received and logged, but they’re not currently rendered in the chat buffer
+    UI.
+- **Cancellation**: The `session/cancel` notification isn’t currently sent by
+    the client, though CodeCompanion properly handles cancelled states when agents
+    report them.
+- **Model Selection**: The `session/set_model` method isn’t implemented, as
+    this feature is currently marked as unstable in the ACP specification.
+- **Audio Content**: Audio content blocks aren’t sent in prompts, despite
+    capability detection.
+
+
+SEE ALSO ~
+
+- |codecompanion-configuration-acp| - Setup instructions for specific agents
+- |codecompanion-usage-chat-buffer-agents| - How to interact with agents in chat
+- Agent Client Protocol Specification <https://agentclientprotocol.com/> - Official ACP documentation
+
+
 ACTION PALETTE                            *codecompanion-usage-action-palette*
 
 The `Action Palette` has been designed to be your entry point for the many
@@ -3669,6 +4083,18 @@ in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 selected and added to the chat buffer as per the video above.
 
 
+/COMPACT ~
+
+The `compact` slash command, based on Claude Code’s
+<https://code.claude.com/docs/en/slash-commands#built-in-slash-commands>
+corresponding feature, clears the chat buffer’s message history whilst
+preserving a summary, in context.
+
+System prompts, memory and file/buffer shares will be preserved but all user,
+assistant and tool messages will be removed. The summary is generated by
+prompting the same LLM to summarize the chat history into a concise format.
+
+
 /FETCH ~
 
 
@@ -3693,15 +4119,6 @@ Also, multiple files can be selected and added to the chat buffer:
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
-
-
-/QUICKFIX ~
-
-The `quickfix` slash command adds entries from the Neovim quickfix list to the
-chat buffer.
-
-- For search patterns or file entries, the whole file is shared.
-- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
 
 
 /HELP ~
@@ -3739,6 +4156,15 @@ the protocol <https://agentclientprotocol.com/protocol/session-modes> docs.
 
 The `now` slash command simply inserts the current datetime stamp into the chat
 buffer.
+
+
+/QUICKFIX ~
+
+The `quickfix` slash command adds entries from the Neovim quickfix list to the
+chat buffer.
+
+- For search patterns or file entries, the whole file is shared.
+- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
 
 
 /SYMBOLS ~

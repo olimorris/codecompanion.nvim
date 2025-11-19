@@ -1,9 +1,9 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.ClaudeCode: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.Cagent: CodeCompanion.ACPAdapter
 return {
-  name = "claude_code",
-  formatted_name = "Claude Code",
+  name = "cagent",
+  formatted_name = "Cagent",
   type = "acp",
   roles = {
     llm = "assistant",
@@ -14,15 +14,14 @@ return {
   },
   commands = {
     default = {
-      "claude-code-acp",
+      "cagent",
+      "acp",
+      "basic_agent.yaml",
     },
   },
   defaults = {
     mcpServers = {},
     timeout = 20000, -- 20 seconds
-  },
-  env = {
-    CLAUDE_CODE_OAUTH_TOKEN = "CLAUDE_CODE_OAUTH_TOKEN",
   },
   parameters = {
     protocolVersion = 1,
@@ -39,18 +38,6 @@ return {
     ---@return boolean
     setup = function(self)
       return true
-    end,
-
-    ---Manually handle authentication
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    auth = function(self)
-      local token = self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN
-      if token and token ~= "" then
-        vim.env.CLAUDE_CODE_OAUTH_TOKEN = token
-        return true
-      end
-      return false
     end,
 
     ---@param self CodeCompanion.ACPAdapter

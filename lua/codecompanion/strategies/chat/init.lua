@@ -29,6 +29,7 @@
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
+---@field title? string The title of the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
@@ -54,6 +55,7 @@
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
+---@field title? string The title of the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
@@ -429,10 +431,11 @@ function Chat.new(args)
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
+    intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
     opts = args,
     status = "",
-    intro_message = args.intro_message or config.display.chat.intro_message,
+    title = args.title or nil,
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
@@ -630,6 +633,8 @@ function Chat.new(args)
   self:add_callback("on_closed", function(c)
     c.subscribers:stop()
   end)
+
+  require("codecompanion.interactions.background.callbacks").register_chat_callbacks(self)
 
   self:dispatch("on_created")
 
@@ -1579,6 +1584,11 @@ function Chat:add_buf_message(data, opts)
   return self.builder:add_message(data, opts)
 end
 
+---Add a new header to the chat buffer
+---@param role "user"|"llm"
+---@param opts? table Options for the header
+function Chat:add_new_header(role, opts) end
+
 ---Update a specific line in the chat buffer
 ---@param line_number number The line number to update (1-based)
 ---@param content string The new content for the line
@@ -1712,6 +1722,18 @@ function Chat:update_metadata()
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
+end
+
+---Set the title of the chat buffer
+---@param title string
+---@return CodeCompanion.Chat
+function Chat:set_title(title)
+  assert(type(title) == "string", "title must be a string")
+
+  self.title = title
+  chatmap[self.bufnr].description = title
+
+  return self
 end
 
 ---Returns the chat object(s) based on the buffer number
