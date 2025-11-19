@@ -140,10 +140,15 @@ local function extract_operation(title)
   title = title:gsub("%s*=>.*$", "")
   title = title:gsub("%s*—.*$", "")
 
-  -- If "name: something", keep the name only for some cases
+  -- If "name: something", keep the full thing if it looks like a URL
+  -- Otherwise, for short prefixes, keep just the prefix
   local before_colon = title:match("^%s*([^:]+)%s*:")
   if before_colon and #before_colon < 40 then
-    title = before_colon
+    -- Don't strip if the part after colon looks like a URL
+    local after_colon = title:match("^%s*[^:]+%s*:%s*(.+)")
+    if not (after_colon and (after_colon:match("^//") or after_colon:match("^https?://"))) then
+      title = before_colon
+    end
   end
 
   -- Clean up trailing whitespace
