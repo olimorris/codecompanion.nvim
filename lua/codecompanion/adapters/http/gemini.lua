@@ -117,42 +117,47 @@ return {
       return result
     end,
     chat_output = function(self, data, tools)
-      local openai_output = openai.handlers.chat_output(self, data, tools)
-      if openai_output == nil then
-        return
+      local _data = openai.handlers.chat_output(self, data, tools)
+      if _data then
+        if _data.output and _data.output.content and _data.output.content:find("^" .. CONSTANTS.thinking_end) then
+          -- The first non-thinking delta in a streamed response following the reasoning delta will have the thinking tag.
+          -- strip it.
+          _data.output.content = strip_thinking_tags(_data.output.content)
+        end
       end
+      return _data
+    end,
 
-      local extra_content = openai_output.extra_content
+    parse_message_meta = function(self, data)
+      -- https://ai.google.dev/gemini-api/docs/openai#thinking
+      local extra_content = data.extra.extra_content
       local has_thinking = extra_content and extra_content.google and extra_content.google.thought
 
       if not has_thinking then
         -- this delta is either the actual answer after a reasoning sequence, or with reasoning off.
         -- in the former case, the sequence might start with a `</thought>` tag. strip it.
         return {
-          status = openai_output.status,
-          output = { content = strip_thinking_tags(openai_output.output.content), role = openai_output.output.role },
+          status = data.status,
+          output = { content = strip_thinking_tags(data.output.content), role = data.output.role },
         }
       end
 
       if self.opts.stream then
-        -- the `content` field actually contains the reasoning summary.
+        -- the `content` field contains the reasoning summary.
         -- put it in the `reasoning` field and erase `content` so that it's not mistaken as the response
-        local reasoning = strip_thinking_tags(openai_output.output.content)
-        openai_output.output.reasoning = { content = reasoning }
-        openai_output.output.content = nil
-        openai_output.extra_content = nil -- maybe not needed?
+        local reasoning = strip_thinking_tags(data.output.content)
+        data.output.reasoning = { content = reasoning }
+        data.output.content = nil
       else
         -- when not streaming, the reasoning summary and final answer are sent in one big chunk,
-        -- with the reasoning wrapped in the `<thought>` tags.
-        openai_output.output.reasoning = {
-          content = openai_output.output.content:match(
-            string.format("^%s(.*)%s", CONSTANTS.thinking_start, CONSTANTS.thinking_end)
-          ),
-        }
-        openai_output.output.content = openai_output.output.content:gsub(".*" .. CONSTANTS.thinking_end, "")
+        -- with the reasoning wrapped in the `<thought></thought>` tags.
+        local reasoning =
+          data.output.content:match(string.format("^%s(.*)%s", CONSTANTS.thinking_start, CONSTANTS.thinking_end))
+        data.output.reasoning = { content = reasoning }
+        data.output.content = data.output.content:gsub(".*" .. CONSTANTS.thinking_end, "")
       end
 
-      return openai_output
+      return data
     end,
 
     ---@param self CodeCompanion.HTTPAdapter.Gemini

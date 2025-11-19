@@ -77,6 +77,9 @@ T["Gemini adapter"]["Streaming"]["can output streamed data with reasoning into t
   local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.extra then
+      chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
+    end
     if chat_output then
       if chat_output.output.content then
         output = output .. chat_output.output.content
@@ -223,6 +226,9 @@ T["Gemini adapter"]["No Streaming"]["can output for the chat buffer with reasoni
   local json = { body = data }
 
   local chat_output = adapter.handlers.chat_output(adapter, json)
+  if chat_output and chat_output.extra then
+    chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
+  end
   h.expect_starts_with("Elegant, dynamic.", chat_output.output.content)
   h.expect_starts_with("This is a dummy thinking summary", chat_output.output.reasoning.content)
 end
