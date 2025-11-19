@@ -69,7 +69,7 @@ return {
           table.insert(open_chats, {
             name = data.name,
             strategy = "chat",
-            description = data.description,
+            description = data.title or data.description,
             bufnr = data.chat.bufnr,
             callback = function()
               codecompanion.close_last_chat()
@@ -107,7 +107,7 @@ return {
               codecompanion.chat({
                 buffer_context = context,
                 callbacks = {
-                  on_creation = function(chat)
+                  on_created = function(chat)
                     memory
                       .init({
                         name = item.name,

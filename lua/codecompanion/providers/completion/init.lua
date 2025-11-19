@@ -1,15 +1,23 @@
-local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
-local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
 local strategy = require("codecompanion.strategies")
+local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
 local api = vim.api
+
+local function get_acp_trigger()
+  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
+    return config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+  end
+  return "\\"
+end
 
 local trigger = {
   tools = "@",
   variables = "#",
   slash_commands = "/",
+  acp_commands = get_acp_trigger(),
 }
 
 local _vars_aug = nil
@@ -43,32 +51,65 @@ end
 
 local M = {}
 
--- Cache adapter types per buffer so we can conditionally enable completions
-local adapter_types = {}
+-- Cache adapter info per buffer (type + evaluated tools)
+local adapter_cache = {}
 
+local aug = api.nvim_create_augroup("codecompanion.completion", { clear = true })
+
+-- Listen to both ChatAdapter and ChatModel events to keep cache in sync
+-- ChatAdapter fires when the adapter changes
+-- ChatModel fires when the model changes (primarily for HTTP adapters)
 api.nvim_create_autocmd("User", {
-  pattern = "CodeCompanionChatAdapter",
+  group = aug,
+  pattern = { "CodeCompanionChatAdapter", "CodeCompanionChatModel" },
   callback = function(args)
     local bufnr = args.data.bufnr
-    if args.data.adapter then
-      adapter_types[bufnr] = args.data.adapter.type
-    else
-      adapter_types[bufnr] = nil
+
+    -- Only update adapter cache if the event explicitly includes adapter data
+    local has_adapter_field = false
+    for k, _ in pairs(args.data) do
+      if k == "adapter" then
+        has_adapter_field = true
+        break
+      end
     end
+
+    if has_adapter_field then
+      if args.data.adapter then
+        tool_filter.refresh_cache()
+        slash_command_filter.refresh_cache()
+        adapter_cache[bufnr] = args.data.adapter
+      else
+        adapter_cache[bufnr] = nil
+      end
+    end
+
+    -- If adapter field is not present in the event then we don't update the cache
   end,
 })
 
-api.nvim_create_autocmd("BufDelete", {
+api.nvim_create_autocmd("User", {
+  group = aug,
+  pattern = "CodeCompanionChatClosed",
   callback = function(args)
-    adapter_types[args.buf] = nil
+    local bufnr = args.data.bufnr
+    adapter_cache[bufnr] = nil
   end,
 })
 
 ---Return the slash commands to be used for completion
 ---@return table
 function M.slash_commands()
+  local bufnr = api.nvim_get_current_buf()
+  local adapter_info = adapter_cache[bufnr]
+
+  local filtered_slash_commands = slash_command_filter.filter_enabled_slash_commands(
+    config.strategies.chat.slash_commands,
+    { adapter = adapter_info }
+  )
+
   local slash_commands = vim
-    .iter(config.strategies.chat.slash_commands)
+    .iter(filtered_slash_commands)
     :filter(function(name)
       return name ~= "opts"
     end)
@@ -82,10 +123,25 @@ function M.slash_commands()
     end)
     :totable()
 
+  -- Slash commands from prompt library
   vim
     .iter(pairs(config.prompt_library))
     :filter(function(_, v)
-      return v.opts and v.opts.is_slash_cmd and v.strategy == "chat"
+      if not (v.opts and v.opts.is_slash_cmd and v.strategy == "chat") then
+        return false
+      end
+
+      -- Check if this prompt library slash command should be enabled
+      if v.enabled ~= nil then
+        if type(v.enabled) == "function" then
+          local ok, result = pcall(v.enabled, { adapter = adapter_info })
+          return ok and result
+        elseif type(v.enabled) == "boolean" then
+          return v.enabled
+        end
+      end
+
+      return true
     end)
     :each(function(_, v)
       table.insert(slash_commands, {
@@ -121,21 +177,77 @@ function M.slash_commands_execute(selected, chat)
       end
     end)
   else
-    SlashCommands:execute(selected, chat)
+    require("codecompanion.strategies.chat.slash_commands"):execute(selected, chat)
   end
+end
+
+---Return the ACP commands to be used for completion
+---@param bufnr? number Buffer number (defaults to current buffer)
+---@return table
+function M.acp_commands(bufnr)
+  bufnr = bufnr or api.nvim_get_current_buf()
+
+  -- Only show ACP commands if this buffer is using an ACP adapter
+  local adapter_info = adapter_cache[bufnr]
+  if not adapter_info or adapter_info.type ~= "acp" then
+    return {}
+  end
+
+  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local commands = acp_commands.get_commands_for_buffer(bufnr)
+  local acp_trigger = get_acp_trigger()
+
+  return vim
+    .iter(commands)
+    :map(function(cmd)
+      local detail = cmd.description
+      if cmd.input and cmd.input ~= vim.NIL and type(cmd.input) == "table" and cmd.input.hint then
+        detail = detail .. " " .. cmd.input.hint
+      end
+
+      return {
+        label = acp_trigger .. cmd.name,
+        detail = detail,
+        command = cmd,
+        type = "acp_command",
+      }
+    end)
+    :totable()
+end
+
+---Execute selected ACP command (insert as text, no auto-submit)
+---@param selected table The selected item from the completion menu
+---@return string The text to insert
+function M.acp_commands_execute(selected)
+  -- Return the command text with backslash trigger (will be transformed to forward slash on send)
+  local text = get_acp_trigger() .. selected.command.name
+
+  -- Add a space if the command accepts arguments
+  if
+    selected.command.input
+    and selected.command.input ~= vim.NIL
+    and type(selected.command.input) == "table"
+    and selected.command.input.hint
+  then
+    text = text .. " "
+  end
+
+  return text
 end
 
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
-  -- Tools are not available to ACP adapters
   local bufnr = api.nvim_get_current_buf()
-  if adapter_types[bufnr] == "acp" then
+  local adapter_info = adapter_cache[bufnr]
+
+  -- Only show tools for HTTP adapters
+  if not adapter_info or adapter_info.type == "acp" then
     return {}
   end
 
   -- Get filtered tools configuration (this uses the cache!)
-  local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
+  local tools = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
 
   -- Add groups
   local items = vim
@@ -154,19 +266,24 @@ function M.tools()
     end)
     :totable()
 
-  -- Add tools
+  -- Add config tools
   vim
     .iter(tools)
     :filter(function(label, value)
       return label ~= "opts" and label ~= "groups" and value.visible ~= false
     end)
     :each(function(label, v)
+      local description = v.description
+      if v._adapter_tool then
+        description = string.format("**%s** %s", adapter_info.name, description)
+      end
+
       table.insert(items, {
         label = trigger.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,
-        detail = v.description,
+        detail = description,
       })
     end)
 

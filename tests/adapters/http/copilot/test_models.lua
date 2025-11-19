@@ -92,12 +92,14 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
   local expected = {
     model1 = {
       vendor = "copilot",
-      nice_name = "Model One",
+      endpoint = "completions",
+      formatted_name = "Model One",
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
     },
     model2 = {
       vendor = "copilot",
-      nice_name = "Model Two",
+      endpoint = "completions",
+      formatted_name = "Model Two",
       opts = {},
     },
   }
@@ -171,12 +173,14 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
   local expected = {
     model1 = {
       vendor = "copilot",
-      nice_name = "Model One",
+      endpoint = "completions",
+      formatted_name = "Model One",
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
     },
     model2 = {
       vendor = "copilot",
-      nice_name = "Model Two",
+      endpoint = "completions",
+      formatted_name = "Model Two",
       opts = {},
     },
   }

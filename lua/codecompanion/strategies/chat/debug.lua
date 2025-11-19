@@ -1,8 +1,8 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
+local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -111,6 +111,21 @@ function Debug:render()
       command = adapter.commands.default
     end
     table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
+
+    -- Show current mode if available
+    if self.chat.acp_connection then
+      local modes = self.chat.acp_connection:get_modes()
+      if modes and modes.currentModeId then
+        local mode_name = modes.currentModeId
+        for _, mode in ipairs(modes.availableModes or {}) do
+          if mode.id == modes.currentModeId then
+            mode_name = mode.name .. " (" .. mode.id .. ")"
+            break
+          end
+        end
+        table.insert(lines, '-- Mode: "' .. mode_name .. '"')
+      end
+    end
   end
   table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
   if bufname then
@@ -118,13 +133,15 @@ function Debug:render()
   end
 
   -- Add settings
-  if not config.display.chat.show_settings then
+  if not config.display.chat.show_settings and adapter.type ~= "acp" then
     table.insert(lines, "")
     local keys = {}
 
     -- Collect all settings keys including those with nil defaults
-    for key, _ in pairs(self.settings) do
-      table.insert(keys, key)
+    if self.settings then
+      for key, _ in pairs(self.settings) do
+        table.insert(keys, key)
+      end
     end
 
     -- Add any schema keys that have an explicit nil default
@@ -178,6 +195,9 @@ function Debug:render()
         elseif type(val) == "number" or type(val) == "boolean" then
           table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
         elseif type(val) == "string" then
+          if key:find("%.") then
+            key = '["' .. key .. '"]'
+          end
           table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
         elseif type(val) == "function" then
           local expanded_val = val(self.adapter)
@@ -238,7 +258,7 @@ function Debug:render()
 
   local window_config = config.display.chat.child_window
 
-  ui.create_float(lines, {
+  ui_utils.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
     title = "Debug Chat",
@@ -322,7 +342,7 @@ function Debug:save()
     self.chat.messages = messages
   end
 
-  util.notify("Updated the settings and messages")
+  utils.notify("Updated the settings and messages")
 end
 
 ---Function to run when the debug chat is closed

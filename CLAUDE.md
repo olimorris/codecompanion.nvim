@@ -1,250 +1,172 @@
-# CodeCompanion.nvim
+# CLAUDE.md - CodeCompanion.nvim Development Guide
 
-## What is CodeCompanion?
+## Overview
 
-CodeCompanion.nvim is a sophisticated Neovim plugin that brings LLM-powered coding assistance directly into your editor. Think of it as "Copilot Chat meets Zed AI, in Neovim" - it provides an integrated chat interface for conversing with large language models while maintaining full context of your codebase.
+This document provides guidance for Claude Code when working with the CodeCompanion.nvim repository. CodeCompanion.nvim is a Neovim plugin written in Lua that provides LLM-powered coding assistance with chat interface, inline code transformation, and extensible tools.
 
-### Core Features
+## Essential Guidelines
 
-- **Chat Interface**: Interactive chat buffer for conversing with LLMs from Anthropic, OpenAI, GitHub Copilot, Gemini, and many others
-- **Agent Client Protocol (ACP)**: Support for agents like Claude Code and Gemini CLI
-- **Inline Assistant**: Transform code directly in your buffer with LLM suggestions
-- **Tools & Workflows**: Extensible system for LLMs to read files, search code, run commands, and modify your codebase
-- **Variables & Slash Commands**: Context injection system to share buffers, LSP info, and more with LLMs
-- **Prompt Library**: Built-in prompts for common tasks like code explanation, unit tests, and bug fixes
-- **Multi-Chat Support**: Have multiple chat sessions open simultaneously
-- **Vision Support**: Share images and screenshots with vision-capable models
+**Development Commands:**
+- Always use `make format` before committing changes
+- Run `make test` to execute the full test suite
+- Use `make test_file FILE=path` for targeted test execution
+- Generate documentation with `make docs`
 
-### Architecture
+**Testing Requirements:**
+- Use Mini.Test framework for all tests
+- Mock external dependencies appropriately
+- Ensure tests pass locally before pushing
 
-CodeCompanion follows a modular architecture with clear separation of concerns:
+**Code Quality:**
+- Format all code with StyLua (120 column width, 2 spaces)
+- Use LuaCATS type annotations for all public APIs
+- Keep functions under 50 lines for maintainability
 
-- **Strategies**: Different interaction modes (chat, inline, cmd)
-- **Adapters**: LLM provider integrations (HTTP and ACP based)
-- **Providers**: UI integrations (Telescope, fzf-lua, mini.pick, etc.)
-- **Tools**: LLM-executable functions for file operations, searches, etc.
-- **Variables**: Dynamic content injection (buffers, LSP diagnostics, etc.)
-- **Slash Commands**: User-triggered context addition
+## Architecture
 
-## Coding Standards
+**Core Location:** `lua/codecompanion/`
 
-### General Principles
+### Strategies (Interaction Modes)
 
-- **Modularity**: Each component has a single, well-defined responsibility
-- **Configuration-Driven**: Extensive customization through structured configuration
-- **Performance-First**: Async execution, lazy loading, and efficient Tree-sitter parsing
-- **User Experience**: Intuitive keymaps, visual feedback, and error handling
-- **Extensibility**: Plugin system for custom tools, variables, and slash commands
+Located in `lua/codecompanion/strategies/`:
 
-### Function and Variable Naming
+**Chat Strategy** (`strategies/chat/`)
+- Primary interactive mode with buffer-based interface
+- Key components: `ui/`, `tools/`, `slash_commands/`, `memory/`, `variables/`, `edit_tracker.lua`, `parser.lua`
 
-- Favour being explicit over being overly concise.
-  - For example: use `pattern` instead of `pat` for a variable holding a specific filepath pattern
-- Function names should describe what they do, concisely.
-  - For example: `should_include` instead of `include_ok` when determining if something should be added to a table
-- When used in conditionals, variables and functions should make the conditional human readable.
-  - For example: `if should_include(pattern) then`
-- When working in `for` loops, it's okay to shorten an item's config values to `cfg` so as not to clash with any imports that may be named `config`.
+**Inline Strategy** (`strategies/inline/`)
+- Direct code transformation in Neovim buffers
+- Supports multiple placement modes (buffer, replace, new file)
 
-### Lua Code Style
+**Cmd Strategy** (`strategies/cmd.lua`)
+- Command-line style lightweight query-response interface
 
-CodeCompanion follows strict Lua formatting standards enforced by StyLua:
+**Workflow Strategy** (`strategies/init.lua`)
+- Multi-stage prompts with subscribers for complex interactions
 
-```lua
--- Configuration (stylua.toml)
-column_width = 120
-indent_type = "Spaces"
-indent_width = 2
-line_endings = "Unix"
-quote_style = "AutoPreferDouble"
-no_call_parentheses = false
-sort_requires = true
-```
+### Adapters (LLM Providers)
 
-### Key Conventions
+Located in `lua/codecompanion/adapters/`:
 
-#### File Organization
+**HTTP Adapters** (`adapters/http/`): Anthropic, OpenAI, Copilot, Ollama, Gemini, Mistral, Deepseek, Azure OpenAI, GitHub Models, HuggingFace, XAI, Jina, Tavily, Novita, and OpenAI-compatible servers.
 
-```
-lua/codecompanion/
-├── adapters/           # LLM provider integrations
-├── strategies/         # Chat, inline, and cmd interaction modes
-│   ├── chat/          # Chat buffer implementation
-│   └── inline/        # Inline code transformation
-├── providers/          # UI provider integrations
-├── utils/             # Shared utilities
-└── config.lua         # Central configuration
-```
+**ACP Adapters** (`adapters/acp/`): Claude Code, Auggie CLI, Codex, Gemini CLI (Agent Client Protocol).
 
-#### Type Annotations
+### Tools System (Function Calling)
 
-CodeCompanion uses extensive LuaCATS type annotations for better IDE support and documentation:
+Located in `lua/codecompanion/strategies/chat/tools/catalog/`:
 
-```lua
----@class CodeCompanion.Chat
----@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
----@field bufnr number The buffer number of the chat
----@field messages CodeCompanion.Chat.Messages
----@field tools CodeCompanion.Tools
+**File Operations:** `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/` (advanced editing with multiple matching strategies)
 
----@param args CodeCompanion.ChatArgs
----@return CodeCompanion.Chat
-function Chat.new(args)
-```
+**Code Analysis:** `list_code_usages/` (LSP-based), `grep_search`, `file_search`
 
-#### Configuration Pattern
+**Execution & Web:** `cmd_runner`, `web_search`, `fetch_webpage`
 
-All components use a consistent configuration pattern:
+**Utilities:** `memory`, `next_edit_suggestion`, `get_changed_files`
 
-```lua
-local defaults = {
-  strategies = {
-    chat = {
-      adapter = "copilot",
-      tools = {},
-      variables = {},
-      slash_commands = {},
-      keymaps = {},
-      opts = {}
-    }
-  }
-}
+Tool groups (e.g., `full_stack_dev`) defined in config. Orchestration via `tools/init.lua`.
 
-local M = {
-  config = vim.deepcopy(defaults),
-}
+### Slash Commands (Context Injection)
 
-M.setup = function(args)
-  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args or {})
-end
-```
+Located in `lua/codecompanion/strategies/chat/slash_commands/catalog/`:
 
-#### Error Handling
+`/buffer`, `/file`, `/fetch`, `/symbols`, `/workspace`, `/help`, `/image`, `/quickfix`, `/terminal`, `/mode`, `/memory`, `/now`
 
-Consistent error handling with proper logging:
+Dynamic context ingestion via `/command` syntax in chat.
 
-```lua
+### Variables & Interactions
+
+**Variables** (`strategies/chat/variables/`): `buffer`, `lsp`, `user`, `viewport` - expanded in system prompts and messages.
+
+**Background Interactions** (`interactions/background/`): Auto-run LLM tasks with event hooks (e.g., `chat_make_title` auto-generates chat titles).
+
+### Providers & Extensions
+
+**Providers** (`providers/`): Completion (blink, cmp, coc), actions, diff, slash_commands.
+
+**Extensions** (`_extensions/`): Third-party extension registration system.
+
+## Technology Stack
+
+Lua + Neovim API. Testing with Mini.Test. Dependencies: plenary.nvim, nvim-treesitter, mini.nvim. Docs via panvimdoc.
+
+## Development Patterns
+
+**Lua Standards:**
+- Use explicit names (`pattern` not `pat`)
+- Functions describe action (`should_include` not `include_ok`)
+- Make conditionals readable
+- Avoid globals; use module-local state
+
+**Error Handling:**
+````lua
 local log = require("codecompanion.utils.log")
-
 local ok, result = pcall(some_function)
 if not ok then
   log:error("Operation failed: %s", result)
   return nil
 end
-```
+````
 
-#### Async Patterns
-
-CodeCompanion uses Plenary.nvim async patterns for HTTP requests and tool execution:
-
-```lua
--- HTTP requests are non-blocking
-local client = require("codecompanion.http").new({ adapter = settings })
-client:request(payload, {
-  callback = function(err, data) end,
-  done = function() end
-})
-```
-
-### Testing Standards
-
-CodeCompanion uses Mini.Test for all testing:
-
-```lua
--- File: tests/adapters/test_openai.lua
-local T = MiniTest.new_set({
-  hooks = {
-    pre_case = function()
-      -- Setup for each test
-    end,
-  },
-})
-
-T["can handle errors"] = function()
-  -- Test implementation
+**Configuration Pattern:**
+````lua
+local defaults = { strategies = { chat = { adapter = "copilot" } } }
+local M = { config = vim.deepcopy(defaults) }
+M.setup = function(args)
+  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args or {})
 end
+````
 
-return T
-```
+**Testing:**
+- Place tests in `tests/` mirroring source structure
+- Use descriptive test names
+- Mock external dependencies
+- Ensure test isolation
 
-Run tests with:
-```bash
-make test                    # All tests
-make test_file FILE=path     # Specific test file
-```
+## Key Architectural Patterns
 
-### Documentation Standards
+**Message Flow:**
+````
+User Input → Strategy → Adapter → LLM
+LLM Response → Parser → Tools (optional) → Chat Buffer Display
+````
 
-- **LuaCATS Annotations**: All public functions and classes must be documented
-- **README**: Comprehensive user-facing documentation
-- **CONTRIBUTING.md**: Developer documentation for contributors
-- **Inline Comments**: Explain complex logic, not obvious code
-- **Type Safety**: Extensive use of type annotations for IDE support
+**Tool Execution:**
+1. LLM returns tool calls
+2. Orchestrator extracts and validates
+3. Tools execute with LLM arguments
+4. Results sent back to LLM
 
-### Performance Considerations
+**Context Injection:**
+- Variables: Expanded in system prompt
+- Slash Commands: User-triggered context
+- Buffer Watching: Automatic tracking
 
-- **Lazy Loading**: Modules are loaded on-demand
-- **Tree-sitter Parsing**: Efficient parsing for chat buffer formatting
-- **Async Execution**: Non-blocking operations for HTTP requests and tool execution
-- **Memory Management**: Proper cleanup of autocmds, buffers, and connections
-- **Caching**: Model and adapter information cached appropriately
+## File Organization
 
-### Extension Points
+**Key Files:**
+- `plugin/codecompanion.lua` - Plugin entry point
+- `lua/codecompanion/init.lua` - Main module and public API
+- `lua/codecompanion/config.lua` - Configuration management
+- `lua/codecompanion/types.lua` - LuaCATS type definitions
+- `lua/codecompanion/http.lua` - HTTP client
 
-CodeCompanion provides several extension mechanisms:
+**Utilities** (`utils/`): `adapters`, `buffers`, `files`, `log`, `keymaps`, `context`, `images`, `async`, `tokens`, `treesitter`, `tool_transformers`
 
-1. **Custom Adapters**: Create adapters for new LLM providers
-2. **Custom Tools**: Add new tools for LLMs to execute
-3. **Custom Variables**: Add new context variables
-4. **Custom Slash Commands**: Add new chat commands
-5. **Custom Prompts**: Add prompts to the prompt library
+**Naming Conventions:**
+- snake_case for files and functions
+- PascalCase for classes/objects
+- Underscore prefix for private functions
 
-### Development Workflow
-
-1. **Format Code**: `make format` (StyLua)
-2. **Run Tests**: `make test`
-3. **Generate Docs**: `make docs` (panvimdoc)
-4. **Use Minimal Config**: Test with `minimal.lua` for debugging
-
-### Code Quality
-
-- **No Magic Numbers**: Use named constants
-- **Descriptive Names**: Variables and functions should be self-documenting
-- **Small Functions**: Keep functions focused and under 50 lines when possible
-- **Consistent Naming**: Use consistent patterns across the codebase
-- **Error Messages**: Provide helpful, actionable error messages
-
-## Development Guidelines
-
-### Contributing
-
-Before contributing:
-1. Open a discussion to propose your idea
-2. Follow the existing code patterns and style
-3. Add comprehensive tests for new functionality
-4. Update documentation and type annotations
-5. Ensure all tests pass and code is formatted
-
-### Architecture Decisions
-
-- **Configuration First**: All behavior should be configurable
-- **Provider Agnostic**: Support multiple UI providers (Telescope, fzf-lua, etc.)
-- **Backward Compatibility**: Maintain API stability with deprecation warnings
-- **Resource Management**: Proper cleanup of resources (buffers, autocmds, connections)
-
-## Test
-
-# important-instruction-reminders
+## Important Instructions
 
 Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-
-## IMPORTANT
-
-- If returning markdown code blocks, use four backticks (````) to open and close the code block, and specify the language (e.g., `lua`, `markdown`):
+- NEVER create files unless absolutely necessary
+- ALWAYS prefer editing existing files
+- NEVER proactively create documentation files
+- Use four backticks for code blocks with language specification
 
 ````lua
 -- Your code here
 ````
+

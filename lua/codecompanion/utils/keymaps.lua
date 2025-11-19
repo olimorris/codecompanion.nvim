@@ -65,13 +65,17 @@ end
 ---@return nil
 function Keymaps:set()
   for _, map in pairs(self.keymaps) do
+    if map == false then
+      goto continue
+    end
+
     local callback
     local rhs, action_opts = self:resolve(map.callback)
     if type(map.condition) == "function" and not map.condition() then
       goto continue
     end
 
-    local default_opts = { desc = map.description or action_opts.desc, buffer = self.bufnr }
+    local default_opts = { desc = map.description or action_opts.desc, buffer = self.bufnr, nowait = true }
     local opts = vim.tbl_deep_extend("force", default_opts, map.opts or {})
 
     if type(rhs) == "function" then

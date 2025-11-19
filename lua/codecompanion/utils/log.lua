@@ -62,7 +62,7 @@ local function create_file_handler(opts)
   if not ok then
     stdpath = vim.fn.stdpath("cache")
   end
-  local filepath = vim.fs.joinpath(stdpath, opts.filename)
+  local path = vim.fs.joinpath(stdpath, opts.filename)
   --
   local write_queue = {}
   local is_writing = false
@@ -77,7 +77,7 @@ local function create_file_handler(opts)
     write_queue = {}
 
     a.run(function()
-      local err, fd = a.uv.fs_open(filepath, "a", 438)
+      local err, fd = a.uv.fs_open(path, "a", 438)
       if err then
         vim.notify(string.format("Failed to open log file: %s", err), vim.log.levels.ERROR, { title = "CodeCompanion" })
         is_writing = false

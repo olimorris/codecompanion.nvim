@@ -1,24 +1,30 @@
 local diff_utils = require("codecompanion.providers.diff.utils")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
 ---@class CodeCompanion.Diff.Inline
 ---@field bufnr number
 ---@field contents string[]
----@field id string
+---@field id number
 ---@field ns_id number
 ---@field extmark_ids number[]
 ---@field has_changes boolean
 ---@field winnr number|nil
+---@field is_floating boolean
+---@field show_hints boolean
+
+---@class CodeCompanion.Diff.Inline
 local InlineDiff = {}
 
 ---@class CodeCompanion.Diff.InlineArgs
 ---@field bufnr number Buffer number to apply diff to
 ---@field contents string[] Original content lines
----@field id string Unique identifier for this diff
+---@field id number|string Unique identifier for this diff
 ---@field winnr? number Window number (optional)
+---@field is_floating boolean|nil Whether this diff is in a floating window
+---@field show_hints? boolean Whether to show keymap hints (default: true)
 
 ---Creates a new InlineDiff instance and applies diff highlights
 ---@param args CodeCompanion.Diff.InlineArgs
@@ -28,19 +34,21 @@ function InlineDiff.new(args)
     bufnr = args.bufnr,
     contents = args.contents,
     id = args.id,
+    winnr = args.winnr,
+    is_floating = args.is_floating or false,
+    show_hints = args.show_hints == nil and true or args.show_hints,
     ns_id = api.nvim_create_namespace(
       "codecompanion_inline_diff_" .. (args.id ~= nil and args.id or math.random(1, 100000))
     ),
     extmark_ids = {},
     has_changes = false,
-    winnr = args.winnr,
   }, { __index = InlineDiff })
   ---@cast self CodeCompanion.Diff.Inline
 
   local current_content = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
-  if self:contents_equal(self.contents, current_content) then
+  if self:are_contents_equal(self.contents, current_content) then
     log:trace("[providers::diff::inline::new] No changes detected")
-    util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+    utils.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
     return self
   end
 
@@ -53,11 +61,15 @@ function InlineDiff.new(args)
       self.winnr = self.winnr and self.winnr or vim.fn.bufwinid(self.bufnr)
       if self.winnr ~= -1 then
         pcall(api.nvim_win_set_cursor, self.winnr, { first_diff_line, 0 })
+
+        if api.nvim_get_mode().mode ~= "n" then
+          api.nvim_input("<ESC>")
+        end
       end
     end)
   end
 
-  util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+  utils.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 
   return self
 end
@@ -87,8 +99,8 @@ end
 ---@param content1 string[] First content array
 ---@param content2 string[] Second content array
 ---@return boolean equal True if contents are identical
-function InlineDiff:contents_equal(content1, content2)
-  return diff_utils.contents_equal(content1, content2)
+function InlineDiff:are_contents_equal(content1, content2)
+  return diff_utils.are_contents_equal(content1, content2)
 end
 
 ---Apply diff highlights to this instance
@@ -100,25 +112,26 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
 
   -- WARN: We need to lazy load the config here to avoid a circular dependency issue
   local config = require("codecompanion.config")
-  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local context_lines = inline_config.context_lines or 3
+  local inline_config = config.display.diff.provider_opts.inline
+  local context_lines = inline_config.opts.context_lines or 3
   local hunks = InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
   local first_diff_line = nil
 
   -- Add keymap hint above the first hunk if there are changes
   if #hunks > 0 then
     local first_hunk = hunks[1]
-    first_diff_line = math.max(1, first_hunk.new_start) -- Store for cursor positioning
-    -- Only show keymap hints if config allows it and not in test mode
-    local show_keymap_hints = inline_config.show_keymap_hints
+    first_diff_line = math.max(1, first_hunk.updated_start) -- Store for cursor positioning
+    -- Only show keymap hints if config allows it, not in test mode, and not floating
+    local show_keymap_hints = inline_config.opts.show_keymap_hints
     if show_keymap_hints == nil then
       show_keymap_hints = true -- Default to true
     end
     -- Check if we're in a test environment
     ---@diagnostic disable-next-line: undefined-field
     local is_testing = _G.MiniTest ~= nil
-    if show_keymap_hints and not is_testing then
-      local attach_line = math.max(0, first_hunk.new_start - 2)
+    -- Don't show hints for floating windows since they use winbar instead
+    if show_keymap_hints and not is_testing and not self.is_floating and self.show_hints then
+      local attach_line = math.max(0, first_hunk.updated_start - 2)
       if first_diff_line == 1 then
         attach_line = attach_line + 1
       end
@@ -126,10 +139,9 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
       local keymaps_config = config.strategies.inline.keymaps
       if keymaps_config then
         local hint_parts = {}
+        table.insert(hint_parts, keymaps_config.always_accept.modes.n .. ": always accept")
         table.insert(hint_parts, keymaps_config.accept_change.modes.n .. ": accept")
         table.insert(hint_parts, keymaps_config.reject_change.modes.n .. ": reject")
-        table.insert(hint_parts, keymaps_config.always_accept.modes.n .. ": always accept")
-
         local hint_text = table.concat(hint_parts, " | ")
         local success, keymap_extmark_id = pcall(api.nvim_buf_set_extmark, self.bufnr, self.ns_id, attach_line, 0, {
           virt_text = { { hint_text, "CodeCompanionInlineDiffHint" } },
@@ -145,8 +157,9 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   end
 
   local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
-    show_removed = inline_config.show_removed ~= false,
-    full_width_removed = inline_config.full_width_removed ~= false,
+    show_removed = inline_config.opts.show_removed ~= false,
+    full_width_removed = inline_config.opts.full_width_removed ~= false,
+    is_floating = self.is_floating,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)
   log:trace(
@@ -177,7 +190,7 @@ function InlineDiff:accept(opts)
 
   log:debug("[providers::diff::inline::accept] Called")
 
-  util.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
+  utils.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
   if opts.save then
     pcall(function()
       api.nvim_buf_call(self.bufnr, function()
@@ -186,7 +199,7 @@ function InlineDiff:accept(opts)
     end)
   end
 
-  self:clear_highlights()
+  self:teardown()
 end
 
 ---Rejects the diff changes, restores original content, and clears highlights
@@ -200,7 +213,7 @@ function InlineDiff:reject(opts)
 
   log:debug("[providers::diff::inline::reject] Called")
 
-  util.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
+  utils.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
   if api.nvim_buf_is_valid(self.bufnr) then
     api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
   end
@@ -213,7 +226,29 @@ function InlineDiff:reject(opts)
     end)
   end
 
-  self:clear_highlights()
+  self:teardown()
+end
+
+---Clear winbar and winhighlight from the diff window
+---@return nil
+function InlineDiff:clear_winbar()
+  if self.winnr and api.nvim_win_is_valid(self.winnr) then
+    pcall(function()
+      vim.wo[self.winnr].winbar = ""
+      vim.wo[self.winnr].winhighlight = ""
+    end)
+  end
+end
+
+---Close floating window if this diff is in a floating window
+---@return nil
+function InlineDiff:close_floating_window()
+  if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
+    log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
+    pcall(api.nvim_win_close, self.winnr, true)
+    self.winnr = nil
+    require("codecompanion.utils.ui").close_background_window()
+  end
 end
 
 ---Cleans up the diff instance and fires detachment event
@@ -226,7 +261,9 @@ function InlineDiff:teardown()
     end)
   end)
   self:clear_highlights()
-  util.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+  self:clear_winbar()
+  self:close_floating_window()
+  utils.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 end
 
 return InlineDiff

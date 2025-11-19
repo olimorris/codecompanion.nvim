@@ -88,18 +88,18 @@ T["InlineDiff"]["new - handles missing id parameter"] = function()
 end
 
 T["InlineDiff"]["calculate_hunks - delegates to DiffUtils"] = function()
-  local old_lines = { "line 1", "old line", "line 3" }
-  local new_lines = { "line 1", "new line", "line 3" }
-  local hunks = InlineDiff.calculate_hunks(old_lines, new_lines)
+  local removed_lines = { "line 1", "old line", "line 3" }
+  local added_lines = { "line 1", "new line", "line 3" }
+  local hunks = InlineDiff.calculate_hunks(removed_lines, added_lines)
 
   h.eq(type(hunks), "table")
 end
 
 T["InlineDiff"]["calculate_hunks - respects context parameter"] = function()
-  local old_lines = { "line 1", "line 2", "old line", "line 4", "line 5" }
-  local new_lines = { "line 1", "line 2", "new line", "line 4", "line 5" }
-  local hunks_default = InlineDiff.calculate_hunks(old_lines, new_lines)
-  local hunks_context_1 = InlineDiff.calculate_hunks(old_lines, new_lines, 1)
+  local removed_lines = { "line 1", "line 2", "old line", "line 4", "line 5" }
+  local added_lines = { "line 1", "line 2", "new line", "line 4", "line 5" }
+  local hunks_default = InlineDiff.calculate_hunks(removed_lines, added_lines)
+  local hunks_context_1 = InlineDiff.calculate_hunks(removed_lines, added_lines, 1)
 
   h.eq(type(hunks_default), "table")
   h.eq(type(hunks_context_1), "table")
@@ -112,12 +112,12 @@ T["InlineDiff"]["apply_hunk_highlights - delegates to DiffUtils"] = function()
 
   local hunks = {
     {
-      old_start = 2,
-      old_count = 1,
-      new_start = 2,
-      new_count = 1,
-      old_lines = { "old line" },
-      new_lines = { "new line" },
+      original_start = 2,
+      original_count = 1,
+      updated_start = 2,
+      updated_count = 1,
+      removed_lines = { "old line" },
+      added_lines = { "new line" },
       context_before = { "line 1" },
       context_after = { "line 3" },
     },
@@ -136,12 +136,12 @@ T["InlineDiff"]["apply_hunk_highlights - handles options"] = function()
 
   local hunks = {
     {
-      old_start = 1,
-      old_count = 0,
-      new_start = 1,
-      new_count = 1,
-      old_lines = {},
-      new_lines = { "line 1" },
+      original_start = 1,
+      original_count = 0,
+      updated_start = 1,
+      updated_count = 1,
+      removed_lines = {},
+      added_lines = { "line 1" },
       context_before = {},
       context_after = {},
     },
@@ -169,8 +169,8 @@ T["InlineDiff"]["contents_equal - delegates to DiffUtils"] = function()
   local content2 = { "line 1", "line 2" }
   local content3 = { "line 1", "different line 2" }
 
-  h.eq(diff:contents_equal(content1, content2), true)
-  h.eq(diff:contents_equal(content1, content3), false)
+  h.eq(diff:are_contents_equal(content1, content2), true)
+  h.eq(diff:are_contents_equal(content1, content3), false)
 end
 
 T["InlineDiff"]["apply_diff_highlights - applies highlights for changes"] = function()
@@ -184,12 +184,13 @@ T["InlineDiff"]["apply_diff_highlights - applies highlights for changes"] = func
     id = "test_highlights",
   })
 
-  local old_lines = { "line 1", "old line", "line 3" }
-  local new_lines = { "line 1", "new line", "line 3" }
+  local removed_lines = { "line 1", "old line", "line 3" }
+  local added_lines = { "line 1", "new line", "line 3" }
   local initial_extmarks = #diff.extmark_ids
-  diff:apply_diff_highlights(old_lines, new_lines)
+  diff:apply_diff_highlights(removed_lines, added_lines)
 
   h.expect_truthy(#diff.extmark_ids >= initial_extmarks)
+  h.eq(vim.api.nvim_get_mode().mode, "n")
 end
 
 T["InlineDiff"]["clear_highlights - removes all extmarks"] = function()
@@ -653,6 +654,124 @@ T["InlineDiff Screenshots"]["Shows complex mixed changes"] = function()
       contents = original_content,
       id = "screenshot_test_4",
     })
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["InlineDiff Screenshots"]["Shows floating window diff for simple changes"] = function()
+  child.lua([[
+    -- Configure inline diff to use float layout
+    local config = require("codecompanion.config")
+    config.display.diff.provider_opts.inline.layout = "float"
+
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "python"
+
+    local original_content = {
+      "def calculate_area(radius):",
+      "    return 3.14 * radius * radius",
+      "",
+      "def main():",
+      "    area = calculate_area(5)",
+      "    print(f'Area: {area}')"
+    }
+
+    local new_content = {
+      "def calculate_area(radius):",
+      "    import math",
+      "    return math.pi * radius ** 2",
+      "",
+      "def main():",
+      "    area = calculate_area(5)",
+      "    print(f'Circle area: {area:.2f}')"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+    local diff = diff_helper.create(bufnr, "float_test_1", {
+      original_content = original_content
+    })
+
+    -- Wait a bit for the floating window to be created
+    vim.wait(100)
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["InlineDiff Screenshots"]["Shows floating window diff for complex file changes"] = function()
+  child.lua([[
+    -- Configure inline diff to use float layout
+    local config = require("codecompanion.config")
+    config.display.diff.provider_opts.inline.layout = "float"
+
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "javascript"
+
+    local original_content = {
+      "class UserManager {",
+      "  constructor() {",
+      "    this.users = [];",
+      "  }",
+      "",
+      "  addUser(name, email) {",
+      "    this.users.push({ name, email });",
+      "  }",
+      "",
+      "  getUser(name) {",
+      "    return this.users.find(u => u.name === name);",
+      "  }",
+      "}"
+    }
+
+    local new_content = {
+      "class UserManager {",
+      "  constructor() {",
+      "    this.users = [];",
+      "    this.nextId = 1;",
+      "  }",
+      "",
+      "  addUser(name, email) {",
+      "    if (!name || !email) {",
+      "      throw new Error('Name and email are required');",
+      "    }",
+      "    const user = { id: this.nextId++, name, email, active: true };",
+      "    this.users.push(user);",
+      "    return user;",
+      "  }",
+      "",
+      "  getUser(identifier) {",
+      "    if (typeof identifier === 'number') {",
+      "      return this.users.find(u => u.id === identifier);",
+      "    }",
+      "    return this.users.find(u => u.name === identifier);",
+      "  }",
+      "",
+      "  deactivateUser(id) {",
+      "    const user = this.getUser(id);",
+      "    if (user) {",
+      "      user.active = false;",
+      "    }",
+      "    return user;",
+      "  }",
+      "}"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+    local diff = diff_helper.create(bufnr, "float_test_2", {
+      original_content = original_content
+    })
+
+    -- Wait a bit for the floating window to be created
+    vim.wait(100)
   ]])
 
   local expect = MiniTest.expect

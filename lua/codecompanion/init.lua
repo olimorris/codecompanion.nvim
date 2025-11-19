@@ -32,6 +32,24 @@ CodeCompanion.inline = function(args)
   return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
+---Accept the next word
+---@return nil
+CodeCompanion.inline_accept_word = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
+  return require("codecompanion.strategies.inline.completion").accept_word()
+end
+
+---Accept the next line
+---@return nil
+CodeCompanion.inline_accept_line = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
+  return require("codecompanion.strategies.inline.completion").accept_line()
+end
+
 ---Initiate a prompt from the prompt library
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
@@ -117,7 +135,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages }
+---@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, window_opts: table }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -137,7 +155,7 @@ CodeCompanion.chat = function(args)
       if prompt == "add" then
         return CodeCompanion.add(args)
       elseif prompt == "toggle" then
-        return CodeCompanion.toggle()
+        return CodeCompanion.toggle(args)
       elseif prompt == "refreshcache" then
         return CodeCompanion.refresh_cache()
       else
@@ -150,7 +168,7 @@ CodeCompanion.chat = function(args)
   end
 
   local has_messages = not vim.tbl_isempty(messages)
-  local auto_submit = has_messages
+  local auto_submit = has_messages -- Don't auto submit if there are no messages
   if args.auto_submit ~= nil then
     auto_submit = args.auto_submit
   end
@@ -162,11 +180,12 @@ CodeCompanion.chat = function(args)
   end
 
   return require("codecompanion.strategies.chat").new({
-    auto_submit = auto_submit,
     adapter = adapter,
+    auto_submit = auto_submit,
     buffer_context = context,
     callbacks = args.callbacks,
     messages = has_messages and messages or nil,
+    window_opts = args and args.window_opts,
   })
 end
 
@@ -207,12 +226,14 @@ CodeCompanion.cmd = function(args)
 end
 
 ---Toggle the chat buffer
+---@param opts? table
 ---@return nil
-CodeCompanion.toggle = function()
-  local chat = CodeCompanion.last_chat()
+CodeCompanion.toggle = function(opts)
+  local window_opts = opts and opts.window_opts
 
+  local chat = CodeCompanion.last_chat()
   if not chat then
-    return CodeCompanion.chat()
+    return CodeCompanion.chat(window_opts and { window_opts = window_opts })
   end
 
   if chat.ui:is_visible_non_curtab() then
@@ -223,7 +244,12 @@ CodeCompanion.toggle = function()
 
   chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
-  chat.ui:open({ toggled = true })
+
+  opts = { toggled = true }
+  if window_opts then
+    opts.window_opts = window_opts
+  end
+  chat.ui:open(opts)
 end
 
 ---Make a previously hidden chat buffer, visible again
@@ -240,6 +266,9 @@ CodeCompanion.restore = function(bufnr)
   end
 
   if chat.ui:is_visible() then
+    if chat.ui.winnr and api.nvim_win_is_valid(chat.ui.winnr) then
+      pcall(api.nvim_set_current_win, chat.ui.winnr)
+    end
     return
   end
   chat.ui:open()
@@ -275,8 +304,8 @@ end
 ---Refresh any of the caches used by the plugin
 ---@return nil
 CodeCompanion.refresh_cache = function()
-  local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
-  ToolFilter.refresh_cache()
+  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
+  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
   utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 

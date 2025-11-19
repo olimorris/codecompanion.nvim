@@ -1,4 +1,5 @@
 ---
+description: How to use the chat buffer in CodeCompanion.nvim
 prev:
   text: 'Action Palette'
   link: '/usage/action-palette'
@@ -10,9 +11,17 @@ next:
 # Using the Chat Buffer
 
 > [!NOTE]
-> The chat buffer has a filetype of `codecompanion` and a buftype of `nofile`
+> The chat buffer has a filetype of `codecompanion` and a buftype of `nofile`.
 
-You can open a chat buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()`. You can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
+You can open a chat buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()` and you can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
+
+You can even customize the chat buffer's window options:
+
+```lua
+require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 }})
+-- or:
+require("codecompanion").toggle({ window_opts = { layout = "float", width = 0.6 }})
+```
 
 The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
 
@@ -60,7 +69,7 @@ Buffer context items can be _watched_ via the `gw` keymap (when your cursor is o
 
 If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
 
-Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always have that it to refer to.
+Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
 
 ## Super Diff
 
@@ -85,6 +94,15 @@ When conversing with an LLM, it can be useful to tweak model settings in between
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 
 You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
+
+When using an ACP adapter (such as claude-code), you can also type `\` (backslash, by default) to get completions for ACP commands. These are agent-specific commands like `/compact` (compact chat history) that are dynamically discovered from the agent itself.
+
+> [!NOTE]
+> It typically takes 1-5 seconds after opening a chat buffer for ACP commands to become available. The agent needs to initialize and scan for both built-in and custom commands. If you define a new custom command mid-session, the same delay applies before it appears in the completion list.
+
+The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `strategies.chat.slash_commands.opts.acp.trigger` in your config.
+
+It's worth noting that not all commands available in ACP CLI tools are exposed via the SDK. Only a subset of built-in commands are supported, though this is constantly evolving as the underlying SDKs mature.
 
 ## Keymaps
 
@@ -115,3 +133,17 @@ The keymaps available to the user in normal mode are:
 - `]]` to move to the next header
 - `{` to move to the previous chat
 - `}` to move to the next chat
+
+To disable a keymap, you can set it to `false` in your configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      keymaps = {
+        clear = false,
+      }
+    }
+  }
+})
+```

@@ -5,9 +5,10 @@ local log = require("codecompanion.utils.log")
 local LspHandler = {}
 
 local CONSTANTS = {
+  --- @type table<string, vim.lsp.protocol.Method>
   LSP_METHODS = {
-    references = vim.lsp.protocol.Methods.textDocument_references,
-    documentation = vim.lsp.protocol.Methods.textDocument_hover,
+    references = "textDocument/references",
+    documentation = "textDocument/hover",
   },
 }
 
@@ -25,8 +26,8 @@ function LspHandler.filter_project_references(references)
   for _, reference in ipairs(references) do
     local uri = reference.uri
     if uri then
-      local filepath = Utils.uri_to_filepath(uri)
-      if Utils.is_in_project(filepath) then
+      local path = Utils.uri_to_path(uri)
+      if Utils.is_in_project(path) then
         table.insert(filtered_results, reference)
       end
     end

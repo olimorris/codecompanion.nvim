@@ -40,9 +40,12 @@ return {
             output_response = function(self, tool_call, output)
               return {
                 role = "tool",
-                tool_call_id = tool_call.id,
+                tools = {
+                  call_id = tool_call.id,
+                },
                 content = output,
-                opts = { tag = tool_call.id, visible = false },
+                _meta = { tag = tool_call.id },
+                opts = { visible = false },
               }
             end,
           },
@@ -67,6 +70,9 @@ return {
       },
     },
   },
+  interactions = {
+    background = {},
+  },
   strategies = {
     chat = {
       adapter = "test_adapter",
@@ -88,16 +94,28 @@ return {
           callback = "strategies.chat.tools.catalog.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+        },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
+          description = "Robustly edit files with multiple automatic fallback strategies",
           opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
+            requires_approval = {
+              buffer = false,
+              file = false,
+            },
+            user_confirmation = false,
           },
         },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
+        },
+        ["delete_file"] = {
+          callback = "strategies.chat.tools.catalog.delete_file",
+          description = "Delete a file in the current working directory",
         },
         ["fetch_webpage"] = {
           callback = "strategies.chat.tools.catalog.fetch_webpage",
@@ -106,8 +124,8 @@ return {
             adapter = "jina",
           },
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Searches the web for a given query",
           opts = {
             adapter = "tavily",
@@ -311,7 +329,7 @@ return {
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.catalog.buffer",
           description = "Insert open buffers",
           keymaps = {
             modes = {
@@ -325,7 +343,7 @@ return {
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina|tavily
@@ -334,7 +352,7 @@ return {
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.file",
+          callback = "strategies.chat.slash_commands.catalog.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -462,7 +480,60 @@ return {
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
       show_tools_processing = false, -- Show the loading message when tools are being executed?
     },
-    diff = { enabled = false },
+    diff = {
+      enabled = false,
+      provider = "inline",
+      provider_opts = {
+        -- Options for inline diff provider
+        inline = {
+          layout = "float", -- float|buffer - Where to display the diff
+
+          diff_signs = {
+            signs = {
+              text = "▌", -- Sign text for normal changes
+              reject = "✗", -- Sign text for rejected changes in super_diff
+              highlight_groups = {
+                addition = "DiagnosticOk",
+                deletion = "DiagnosticError",
+                modification = "DiagnosticWarn",
+              },
+            },
+            -- Super Diff options
+            icons = {
+              accepted = " ",
+              rejected = " ",
+            },
+            colors = {
+              accepted = "DiagnosticOk",
+              rejected = "DiagnosticError",
+            },
+          },
+
+          opts = {
+            context_lines = 3, -- Number of context lines in hunks
+            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+            full_width_removed = true, -- Make removed lines span full width
+            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+            show_removed = true, -- Show removed lines as virtual text
+          },
+        },
+
+        -- Options for the split provider
+        split = {
+          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+          layout = "vertical", -- vertical|horizontal split
+          opts = {
+            "internal",
+            "filler",
+            "closeoff",
+            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "followwrap",
+            "linematch:120",
+          },
+        },
+      },
+    },
     icons = {
       loading = " ",
       warning = " ",
