@@ -1,5 +1,36 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
+local CONSTANTS = {
+  STANDARD_MESSAGE_FIELDS = {
+    -- fields that are defined in the standard openai chat-completion API (inc. streaming and non-streaming)
+    "content",
+    "function_call",
+    "refusal",
+    "role",
+    "tool_calls",
+    "annotations",
+    "audio",
+  },
+}
+
+---Find the non-standard fields in the `message` or `delta` that are not in the standard OpenAI chat-completion specs.
+---Returns `nil` if not found.
+---@param delta table?
+---@return table?
+local function find_extra_fields(delta)
+  if delta == nil then
+    return nil
+  end
+  local extra = {}
+  vim.iter(delta):each(function(k, v)
+    if not vim.list_contains(CONSTANTS.STANDARD_MESSAGE_FIELDS, k) then
+      extra[k] = v
+    end
+  end)
+  if not vim.tbl_isempty(extra) then
+    return extra
+  end
+end
 
 ---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
 return {
@@ -257,6 +288,7 @@ return {
           role = delta.role,
           content = delta.content,
         },
+        extra = find_extra_fields(delta),
       }
     end,
 
