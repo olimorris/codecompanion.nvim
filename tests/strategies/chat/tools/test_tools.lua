@@ -141,6 +141,7 @@ T["Tools"][":parse"]["adds a tool's schema"] = function()
 end
 
 T["Tools"][":execute"] = new_set()
+
 T["Tools"][":execute"]["a response from the LLM"] = function()
   child.lua([[
     --require("tests.log")
@@ -239,8 +240,6 @@ T["Tools"][":execute"]["a missing tool is handled"] = function()
   h.expect_starts_with("Tool `missing_tool` not found", output)
   h.eq(true, output:find("`weather`") ~= nil)
 end
-
-T["Tools"][":execute"]["a nested response from the LLM"] = function() end
 
 T["Tools"][":replace"] = new_set()
 T["Tools"][":replace"]["should replace the tool in the message"] = function()

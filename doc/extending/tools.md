@@ -61,7 +61,7 @@ sequenceDiagram
     TS->>C: tools_done()
 ```
 
-## Building Your First Tool
+## Building Your First Built-in Tool
 
 Before we begin, it's important to familiarise yourself with the directory structure of the tools implementation:
 
@@ -616,6 +616,69 @@ output = {
   cancelled = function(self, tools, cmd)
     tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
   end,
+},
+```
+
+## Supporting an Adapter Tool
+
+Many LLM providers such as [Anthropic](https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool) and [OpenAI](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses) provide their own tools that clients like CodeCompanion can hook into.
+
+Thankfully, adding support for adapter tools is trivial. The [#2307](https://github.com/olimorris/codecompanion.nvim/pull/2307) PR showed how this can be accomplished for both Anthropic and the OpenAI responses adapters.
+
+1. Add the tool to the structure of the adapter:
+
+```lua
+-- openai_responses.lua
+-- ... existing code ...
+available_tools = {
+  ["web_search"] = {
+    description = "Allow models to search the web for the latest information before generating a response.",
+    enabled = true,
+    ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
+    ---@param tools table The transformed tools table
+    callback = function(self, tools)
+      table.insert(tools, {
+        type = "web_search",
+      })
+    end,
+  },
+},
+-- ... existing code ...
+```
+
+Within the `callback` function, which will be executed in step 2, it can be useful to carry out modifications to the adapter which may be required for the tool to function. In the case of Anthropic, we insert additional headers.
+
+2. Within `build_tools` or `form_tools` (depending on your adapter), ensure that when looping through a tool's schema, you detect if the tool is an adapter tool and execute the `callback` from step 1:
+
+```lua
+-- build_tools = function(self, tools)
+-- OR
+-- form_tools = function(self, tools)
+local transformed = {}
+for _, tool in pairs(tools) do
+  for _, schema in pairs(tool) do
+    -- // Add this logic
+    if schema._meta and schema._meta.adapter_tool then
+      if self.available_tools[schema.name] then
+        self.available_tools[schema.name].callback(self, transformed)
+      end
+    else
+    -- //
+      -- Previous loop logic goes here
+    end
+  end
+end
+```
+
+Some adapter tools can be a _hybrid_ in terms of their implementation. That is, they're an adapter tool that requires a client-side component (i.e. a built-in tool). This is the case for the [memory](/usage/chat-buffer/tools#memory) tool from Anthropic. To allow for this, ensure that the tool definition in `available_tools` has `client_tool` defined:
+
+```lua
+["memory"] = {
+  -- ...existing code here
+  opts = {
+    -- Allow a hybrid tool -> One that also has a client side implementation
+    client_tool = "strategies.chat.tools.memory",
+  },
 },
 ```
 

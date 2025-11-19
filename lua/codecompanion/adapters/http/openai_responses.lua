@@ -46,6 +46,19 @@ return {
   parameters = {
     store = false,
   },
+  available_tools = {
+    ["web_search"] = {
+      description = "Allow models to search the web for the latest information before generating a response.",
+      enabled = true,
+      ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
+      ---@param tools table The transformed tools table
+      callback = function(self, tools)
+        table.insert(tools, {
+          type = "web_search",
+        })
+      end,
+    },
+  },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
@@ -237,12 +250,18 @@ return {
         local transformed = {}
         for _, tool in pairs(tools) do
           for _, schema in pairs(tool) do
-            table.insert(
-              transformed,
-              tool_utils.transform_schema_if_needed(schema, {
-                strict_mode = true,
-              })
-            )
+            if schema._meta and schema._meta.adapter_tool then
+              if self.available_tools[schema.name] then
+                self.available_tools[schema.name].callback(self, transformed)
+              end
+            else
+              table.insert(
+                transformed,
+                tool_utils.transform_schema_if_needed(schema, {
+                  strict_mode = true,
+                })
+              )
+            end
           end
         end
 

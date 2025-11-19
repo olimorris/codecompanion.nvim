@@ -25,7 +25,7 @@ return {
   handlers = {},
   methods = {
     tools = {
-      search_web = {
+      web_search = {
         ---Setup the adapter for the fetch webpage tool
         ---@param self CodeCompanion.HTTPAdapter
         ---@param opts table Tool options

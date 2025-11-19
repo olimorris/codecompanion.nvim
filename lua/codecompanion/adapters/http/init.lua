@@ -50,6 +50,7 @@ local function get_handler(adapter, name)
     parse_chat = "chat_output",
     parse_inline = "inline_output",
     parse_tokens = "tokens",
+    parse_meta = "parse_message_meta",
 
     -- tools
     format_calls = "format_tool_calls",
@@ -84,6 +85,7 @@ end
 ---@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, data: string|table, tools?: table): { status: string, output: table }|nil
 ---@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, data: string|table, context?: table): { status: string, output: string }|nil
 ---@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
+---@field parse_message_meta? fun(self: CodeCompanion.HTTPAdapter, data: {status: string, output: {role: string?, content: string?}, extra: table}):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
 
 ---@class CodeCompanion.HTTPAdapter.Handlers.Tools
 ---@field format_calls? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
@@ -111,6 +113,7 @@ end
 ---@field name string The name of the adapter
 ---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
+---@field available_tools? table The tools that are available for the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
@@ -126,6 +129,19 @@ end
 ---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
+
+---@class CodeCompanion.HTTPAdapter.Safe
+---@field name string The name of the adapter
+---@field model string The current model name
+---@field available_tools? table The tools that are available for the adapter
+---@field formatted_name string The formatted name of the adapter
+---@field features table The features that the adapter supports
+---@field url string The URL of the generative AI service to connect to
+---@field headers table The headers to pass to the request
+---@field parameters table The parameters to pass to the request
+---@field opts? table Additional options for the adapter
+---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
+---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
 ---@class CodeCompanion.HTTPAdapter
 local Adapter = {}
@@ -345,18 +361,21 @@ function Adapter.resolved(adapter)
   return false
 end
 
----Make an adapter safe for serialization
+---Make an adapter safe for serialization and prevent any recursive issues.
+---Adapters have become complex, making API calls to get models etc.
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table
+---@return CodeCompanion.HTTPAdapter.Safe
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
+    type = adapter.type,
     model = adapter.model,
+    available_tools = adapter.available_tools,
     formatted_name = adapter.formatted_name,
     features = adapter.features,
     url = adapter.url,
     headers = adapter.headers,
-    params = adapter.parameters,
+    parameters = adapter.parameters,
     opts = adapter.opts,
     handlers = adapter.handlers,
     schema = vim

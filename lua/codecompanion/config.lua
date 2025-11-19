@@ -36,15 +36,40 @@ local defaults = {
       },
     },
     acp = {
+      auggie_cli = "auggie_cli",
+      cagent = "cagent",
       claude_code = "claude_code",
       codex = "codex",
       gemini_cli = "gemini_cli",
+      goose = "goose",
+      kimi_cli = "kimi_cli",
+      opencode = "opencode",
       opts = {
         show_defaults = true, -- Show default adapters
       },
     },
   },
   constants = constants,
+  interactions = {
+    -- BACKGROUND INTERACTION -------------------------------------------------
+    background = {
+      adapter = "copilot",
+      -- Callbacks within the plugin that you can attach background actions to
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              "interactions.background.catalog.chat_make_title",
+            },
+            enabled = true,
+          },
+        },
+        opts = {
+          enabled = false, -- Enable ALL background chat interactions?
+        },
+      },
+    },
+  },
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
@@ -68,6 +93,7 @@ local defaults = {
             tools = {
               "cmd_runner",
               "create_file",
+              "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
@@ -84,6 +110,7 @@ local defaults = {
             prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
               "create_file",
+              "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
@@ -103,9 +130,28 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          description = "Robustly edit existing files with multiple automatic fallback strategies",
+          opts = {
+            requires_approval = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Maximum file size in MB
+          },
+        },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["delete_file"] = {
+          callback = "strategies.chat.tools.catalog.delete_file",
+          description = "Delete a file in the current working directory",
           opts = {
             requires_approval = true,
           },
@@ -143,16 +189,11 @@ local defaults = {
             respect_gitignore = true,
           },
         },
-        ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
-            requires_approval = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = true, -- For editing files in the current working directory
-            },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            requires_approval = true,
           },
         },
         ["next_edit_suggestion"] = {
@@ -163,8 +204,8 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -182,7 +223,7 @@ local defaults = {
           description = "Find code symbol context",
         },
         opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
+          auto_submit_errors = true, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           folds = {
             enabled = true, -- Fold tool output in the buffer?
@@ -287,7 +328,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.catalog.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -295,8 +336,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["compact"] = {
+          callback = "strategies.chat.slash_commands.catalog.compact",
+          description = "Clears some of the chat history, keeping a summary in context",
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -305,14 +359,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["quickfix"] = {
-          callback = "strategies.chat.slash_commands.quickfix",
+          callback = "strategies.chat.slash_commands.catalog.quickfix",
           description = "Insert quickfix list entries",
           opts = {
             contains_code = true,
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.file",
+          callback = "strategies.chat.slash_commands.catalog.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -321,7 +375,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "strategies.chat.slash_commands.help",
+          callback = "strategies.chat.slash_commands.catalog.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -330,8 +384,16 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "strategies.chat.slash_commands.image",
+          callback = "strategies.chat.slash_commands.catalog.image",
           description = "Insert an image",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.opts then
+              return opts.adapter.opts.vision == true
+            end
+            return false
+          end,
           opts = {
             dirs = {}, -- Directories to search for images
             filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
@@ -339,22 +401,36 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["memory"] = {
-          callback = "strategies.chat.slash_commands.memory",
+          callback = "strategies.chat.slash_commands.catalog.memory",
           description = "Insert a memory into the chat buffer",
           opts = {
             contains_code = true,
           },
         },
+        ["mode"] = {
+          callback = "strategies.chat.slash_commands.catalog.mode",
+          description = "Change the ACP session mode",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["now"] = {
-          callback = "strategies.chat.slash_commands.now",
+          callback = "strategies.chat.slash_commands.catalog.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
-
         ["symbols"] = {
-          callback = "strategies.chat.slash_commands.symbols",
+          callback = "strategies.chat.slash_commands.catalog.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -362,14 +438,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["terminal"] = {
-          callback = "strategies.chat.slash_commands.terminal",
+          callback = "strategies.chat.slash_commands.catalog.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
           },
         },
         ["workspace"] = {
-          callback = "strategies.chat.slash_commands.workspace",
+          callback = "strategies.chat.slash_commands.catalog.workspace",
           description = "Load a workspace file",
           opts = {
             contains_code = true,
@@ -1162,6 +1238,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/acp/acp.md",
           },
         },
+        ["acp-json-rpc"] = {
+          description = "The JSON-RPC output for various ACP adapters",
+          files = {
+            ".codecompanion/acp/claude_code_acp.md",
+          },
+        },
         ["tests"] = {
           description = "Testing in the plugin",
           files = {
@@ -1230,10 +1312,10 @@ You must create or modify a workspace file through a series of prompts over mult
         buffer_watch = "󰂥 ",
         --chat_context = " ",
         chat_fold = " ",
-        tool_pending = " ",
-        tool_in_progress = " ",
-        tool_failure = " ",
-        tool_success = " ",
+        tool_pending = "  ",
+        tool_in_progress = "  ",
+        tool_failure = "  ",
+        tool_success = "  ",
       },
       -- Window options for the chat buffer
       window = {

@@ -2,7 +2,7 @@ return {
   name = "cmd_queue",
   system_prompt = "my cmd system prompt",
   cmds = {
-    { "sleep", "0.5" },
+    vim.fn.has("win32") == 1 and { "ping", "-n", "1", "127.0.0.1" } or { "sleep", "0.5" },
   },
   handlers = {
     -- Should only be called once

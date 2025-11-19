@@ -1,4 +1,5 @@
 local helpers = require("codecompanion.strategies.chat.tools.catalog.helpers")
+local os_utils = require("codecompanion.utils.os")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -80,7 +81,7 @@ return {
 - Neovim Version: %s]],
     vim.fn.getcwd(),
     vim.o.shell,
-    utils.os(),
+    utils.capitalize(os_utils.get_os()),
     vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
   ),
   handlers = {

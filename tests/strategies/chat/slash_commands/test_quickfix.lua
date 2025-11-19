@@ -12,7 +12,7 @@ T = new_set({
         h = require('tests.helpers')
         _G.chat, _ = h.setup_chat_buffer()
 
-        _G.qflist = require("codecompanion.strategies.chat.slash_commands.quickfix").new({
+        _G.qflist = require("codecompanion.strategies.chat.slash_commands.catalog.quickfix").new({
           Chat = chat,
           config = {
             opts = {
@@ -33,18 +33,18 @@ T = new_set({
 
         function _G.cleanup_test_files()
           vim.fn.delete("test_file.lua")
-          vim.fn.delete("another_file.js") 
+          vim.fn.delete("another_file.js")
           vim.fn.delete("pure_file.txt")
         end
 
         -- Helper function to setup quickfix list with file entries
         function _G.setup_qflist_with_files()
           _G.create_test_files()
-          
+
           -- Load files into buffers first
           local buf1 = vim.fn.bufadd("test_file.lua")
           local buf2 = vim.fn.bufadd("another_file.js")
-          
+
           vim.fn.setqflist({
             { bufnr = buf1, lnum = 1, text = "test_file.lua" },
             { bufnr = buf2, lnum = 1, text = "another_file.js" },
@@ -53,10 +53,10 @@ T = new_set({
 
         function _G.setup_qflist_with_diagnostics()
           _G.create_test_files()
-          
+
           local buf1 = vim.fn.bufadd("test_file.lua")
           local buf2 = vim.fn.bufadd("another_file.js")
-          
+
           vim.fn.setqflist({
             { bufnr = buf1, lnum = 10, text = "undefined variable 'foo'" },
             { bufnr = buf1, lnum = 15, text = "unused variable 'bar'" },
@@ -66,10 +66,10 @@ T = new_set({
 
         function _G.setup_qflist_mixed()
           _G.create_test_files()
-          
+
           local buf1 = vim.fn.bufadd("test_file.lua")
           local buf3 = vim.fn.bufadd("pure_file.txt")
-          
+
           vim.fn.setqflist({
             { bufnr = buf1, lnum = 10, text = "undefined variable 'foo'" },
             { bufnr = buf1, lnum = 12, text = "unused variable 'bar'" },
@@ -82,25 +82,25 @@ T = new_set({
           return #vim.fn.getqflist()
         end
 
-        -- Helper to test file detection 
+        -- Helper to test file detection
         function _G.test_file_detection()
           local qflist = vim.fn.getqflist()
           local file_entries = 0
-          
+
           for _, item in ipairs(qflist) do
             local filename = vim.fn.bufname(item.bufnr)
             local text = item.text or ""
-            
+
             if filename ~= "" then
               local escaped_filename = vim.pesc(filename)
               local is_file_entry = text:match(escaped_filename .. "$") ~= nil
-              
+
               if is_file_entry then
                 file_entries = file_entries + 1
               end
             end
           end
-          
+
           return file_entries
         end
 
@@ -108,21 +108,21 @@ T = new_set({
         function _G.test_diagnostic_detection()
           local qflist = vim.fn.getqflist()
           local diagnostic_entries = 0
-          
+
           for _, item in ipairs(qflist) do
             local filename = vim.fn.bufname(item.bufnr)
             local text = item.text or ""
-            
+
             if filename ~= "" then
               local escaped_filename = vim.pesc(filename)
               local is_file_entry = text:match(escaped_filename .. "$") ~= nil
-              
+
               if not is_file_entry then
                 diagnostic_entries = diagnostic_entries + 1
               end
             end
           end
-          
+
           return diagnostic_entries
         end
 
@@ -130,26 +130,26 @@ T = new_set({
         function _G.test_file_grouping()
           local qflist = vim.fn.getqflist()
           local files = {}
-          
+
           for _, item in ipairs(qflist) do
             local filename = vim.fn.bufname(item.bufnr)
             local text = item.text or ""
-            
+
             if filename ~= "" then
               if not files[filename] then
                 files[filename] = { diagnostics = 0, has_diagnostics = false }
               end
-              
+
               local escaped_filename = vim.pesc(filename)
               local is_file_entry = text:match(escaped_filename .. "$") ~= nil
-              
+
               if not is_file_entry then
                 files[filename].diagnostics = files[filename].diagnostics + 1
                 files[filename].has_diagnostics = true
               end
             end
           end
-          
+
           return files
         end
       ]])

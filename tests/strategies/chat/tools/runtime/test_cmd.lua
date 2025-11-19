@@ -6,6 +6,8 @@ local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
 
+local sleep_time = vim.fn.has("win32") == 1 and 1000 or 100
+
 local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
@@ -35,7 +37,8 @@ T["Tools"] = new_set()
 T["Tools"]["cmds"] = new_set()
 
 T["Tools"]["cmds"]["handlers and outputs are called"] = function()
-  child.lua([[
+  child.lua(string.format(
+    [[
     local tool_call = {
       {
         ["function"] = {
@@ -44,8 +47,10 @@ T["Tools"]["cmds"]["handlers and outputs are called"] = function()
       },
     }
     tools:execute(chat, tool_call)
-    vim.wait(100)
-  ]])
+    vim.wait(%d)
+  ]],
+    sleep_time
+  ))
 
   -- handlers.setup
   h.eq("Setup", child.lua_get("_G._test_setup"))
@@ -59,7 +64,8 @@ T["Tools"]["cmds"]["handlers and outputs are called"] = function()
 end
 
 T["Tools"]["cmds"]["output.errors is called"] = function()
-  child.lua([[
+  child.lua(string.format(
+    [[
     local tool_call = {
       {
         ["function"] = {
@@ -68,8 +74,10 @@ T["Tools"]["cmds"]["output.errors is called"] = function()
       },
     }
     tools:execute(chat, tool_call)
-    vim.wait(100)
-  ]])
+    vim.wait(%d)
+  ]],
+    sleep_time
+  ))
 
   -- output.error
   h.eq("Error", child.lua_get("_G._test_output"))
@@ -79,7 +87,8 @@ T["Tools"]["cmds"]["output.errors is called"] = function()
 end
 
 T["Tools"]["cmds"]["can run multiple commands"] = function()
-  child.lua([[
+  child.lua(string.format(
+    [[
     local tool_call = {
       {
         ["function"] = {
@@ -88,8 +97,10 @@ T["Tools"]["cmds"]["can run multiple commands"] = function()
       },
     }
     tools:execute(chat, tool_call)
-    vim.wait(100)
-  ]])
+    vim.wait(%d)
+  ]],
+    sleep_time
+  ))
 
   -- on_exit should only be called at the end
   h.eq("Setup->Success->Success->Exit", child.lua_get("_G._test_order"))
@@ -101,18 +112,21 @@ T["Tools"]["cmds"]["can run multiple commands"] = function()
 end
 
 T["Tools"]["cmds"]["can set test flags on the chat object"] = function()
-  child.lua([[
+  child.lua(string.format(
+    [[
     local tool_call = {
       {
         ["function"] = {
           name = "mock_cmd_runner",
-          arguments = '{"cmds": "ls", "flag": "testing"}',
+          arguments = '{"cmds": "echo .", "flag": "testing"}',
         }
       },
     }
     tools:execute(chat, tool_call)
-    vim.wait(100)
-  ]])
+    vim.wait(%d)
+  ]],
+    sleep_time
+  ))
 
   h.eq({ testing = true }, child.lua_get("tools.chat.tool_registry.flags"))
 end

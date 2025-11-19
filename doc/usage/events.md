@@ -10,6 +10,7 @@ In order to enable a tighter integration between CodeCompanion and your Neovim c
 
 The events that are fired from within the plugin are:
 
+- `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden

@@ -128,6 +128,7 @@ function Adapter.make_safe(adapter)
     command = adapter.command,
     defaults = adapter.defaults,
     params = adapter.parameters,
+    opts = adapter.opts,
     handlers = adapter.handlers,
   }
 end

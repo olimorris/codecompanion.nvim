@@ -1,9 +1,0 @@
-*** Begin Patch
-@@
-two
--three
-+3
-@@
--seven
-+7
-*** End Patch
