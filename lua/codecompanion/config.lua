@@ -37,15 +37,39 @@ local defaults = {
     },
     acp = {
       auggie_cli = "auggie_cli",
+      cagent = "cagent",
       claude_code = "claude_code",
       codex = "codex",
       gemini_cli = "gemini_cli",
+      goose = "goose",
+      kimi_cli = "kimi_cli",
+      opencode = "opencode",
       opts = {
         show_defaults = true, -- Show default adapters
       },
     },
   },
   constants = constants,
+  interactions = {
+    -- BACKGROUND INTERACTION -------------------------------------------------
+    background = {
+      adapter = "copilot",
+      -- Callbacks within the plugin that you can attach background actions to
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              "interactions.background.catalog.chat_make_title",
+            },
+            enabled = true,
+          },
+        },
+        opts = {
+          enabled = false, -- Enable ALL background chat interactions?
+        },
+      },
+    },
+  },
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
@@ -314,6 +338,19 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
             default_params = "watch", -- watch|pin
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
+          },
+        },
+        ["compact"] = {
+          callback = "strategies.chat.slash_commands.catalog.compact",
+          description = "Clears some of the chat history, keeping a summary in context",
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
           },
         },
         ["fetch"] = {
@@ -1205,6 +1242,12 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/acp/acp.md",
           },
         },
+        ["acp-json-rpc"] = {
+          description = "The JSON-RPC output for various ACP adapters",
+          files = {
+            ".codecompanion/acp/claude_code_acp.md",
+          },
+        },
         ["tests"] = {
           description = "Testing in the plugin",
           files = {
@@ -1276,7 +1319,7 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_pending = " ",
         tool_in_progress = " ",
         tool_failure = " ",
-        tool_success = " ",
+        tool_success = "  ",
       },
       -- Window options for the chat buffer
       window = {

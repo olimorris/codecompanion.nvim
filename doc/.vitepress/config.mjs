@@ -132,6 +132,7 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: "Introduction", link: "/usage/introduction" },
+            { text: "ACP Protocol", link: "/usage/acp-protocol" },
             { text: "Action Palette", link: "/usage/action-palette" },
             {
               text: "Chat Buffer",

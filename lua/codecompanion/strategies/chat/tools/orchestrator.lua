@@ -1,11 +1,21 @@
 local Queue = require("codecompanion.strategies.chat.tools.runtime.queue")
 local Runner = require("codecompanion.strategies.chat.tools.runtime.runner")
 local log = require("codecompanion.utils.log")
-local tool_utils = require("codecompanion.utils.tools")
+local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
+
+---Strip any ANSI color codes which don't render in the chat buffer
+---@param tbl table
+---@return table
+local function strip_ansi(tbl)
+  for i, v in ipairs(tbl) do
+    tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
+  end
+  return tbl
+end
 
 ---Add a response to the chat buffer regarding a tool's execution
 ---@param exec CodeCompanion.Tools.Orchestrator
@@ -27,7 +37,7 @@ local function execute_shell_command(cmd, callback)
       env = { PROMPT = "\r\n" },
     }, callback)
   else
-    vim.system(tool_utils.build_shell_command(cmd), {}, callback)
+    vim.system(os_utils.build_shell_command(cmd), {}, callback)
   end
 end
 
@@ -62,15 +72,15 @@ local function cmd_to_func_tool(tool)
           if out.code == 0 then
             cb({
               status = "success",
-              data = tool_utils.strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })),
+              data = strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })),
             })
           else
             local combined = {}
             if out.stderr and out.stderr ~= "" then
-              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stderr, eol_pattern, { trimempty = true })))
+              vim.list_extend(combined, strip_ansi(vim.split(out.stderr, eol_pattern, { trimempty = true })))
             end
             if out.stdout and out.stdout ~= "" then
-              vim.list_extend(combined, tool_utils.strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })))
+              vim.list_extend(combined, strip_ansi(vim.split(out.stdout, eol_pattern, { trimempty = true })))
             end
             cb({ status = "error", data = combined })
           end

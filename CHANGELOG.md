@@ -1,5 +1,44 @@
 # Changelog
 
+## [17.32.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.31.0...v17.32.0) (2025-11-18)
+
+
+### Features
+
+* **acp:** add more adapters ([#2394](https://github.com/olimorris/codecompanion.nvim/issues/2394)) ([6dd3236](https://github.com/olimorris/codecompanion.nvim/commit/6dd32360a76dca98e62514be70b42607e6fadac8))
+* **acp:** support all plugin diff providers ([#2311](https://github.com/olimorris/codecompanion.nvim/issues/2311)) ([ee7f44c](https://github.com/olimorris/codecompanion.nvim/commit/ee7f44ca9c2f22a7b82139719856a2f3d68efd49))
+* add background interaction ([#2184](https://github.com/olimorris/codecompanion.nvim/issues/2184)) ([f746584](https://github.com/olimorris/codecompanion.nvim/commit/f7465847dc23c81d2fb3d0d1f366191ed799fae9))
+* **slash_cmd:** add `/compact` ([#2385](https://github.com/olimorris/codecompanion.nvim/issues/2385)) ([dbc54cb](https://github.com/olimorris/codecompanion.nvim/commit/dbc54cb86bc169ab49a510786ef8cc4d10293c3b))
+
+
+### Bug Fixes
+
+* **acp:** better error handling ([#2399](https://github.com/olimorris/codecompanion.nvim/issues/2399)) ([ceaca96](https://github.com/olimorris/codecompanion.nvim/commit/ceaca960b8404f6d9ff758b77c8f1df01557656b))
+* **acp:** prevent auto-close of mini_diff provider ([#2379](https://github.com/olimorris/codecompanion.nvim/issues/2379)) ([a8c696d](https://github.com/olimorris/codecompanion.nvim/commit/a8c696d1fc4268085e4306d54af39b07be884b17))
+* **acp:** protect against msg._meta being nil ([#2366](https://github.com/olimorris/codecompanion.nvim/issues/2366)) ([ca87f13](https://github.com/olimorris/codecompanion.nvim/commit/ca87f13b7559257f5aa91e4fcd1326a61311be13))
+* **adapters:** copilot stats when using free account ([#2388](https://github.com/olimorris/codecompanion.nvim/issues/2388)) ([3d533fa](https://github.com/olimorris/codecompanion.nvim/commit/3d533fa987dc73f39aba02b8f043caf36380f78a))
+* **diff:** clear winhighlight properly when cleanup diff ([#2396](https://github.com/olimorris/codecompanion.nvim/issues/2396)) ([c33f6c0](https://github.com/olimorris/codecompanion.nvim/commit/c33f6c0aa187054806ad7db43978d6bdef91f9e7))
+* **slash_commands:** can load from a module path ([#2370](https://github.com/olimorris/codecompanion.nvim/issues/2370)) ([47e6e1d](https://github.com/olimorris/codecompanion.nvim/commit/47e6e1d24864d2bf8ace8904eff7a41bdf1d3126))
+
+## [17.31.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.30.0...v17.31.0) (2025-11-07)
+
+
+### Features
+
+* **acp:** add augment code (auggie) adapter ([#2352](https://github.com/olimorris/codecompanion.nvim/issues/2352)) ([7ca4e49](https://github.com/olimorris/codecompanion.nvim/commit/7ca4e4928cc14187abfc2144c9d7bfcf531bcf15))
+* **acp:** add session modes ([#2331](https://github.com/olimorris/codecompanion.nvim/issues/2331)) ([1d98b9e](https://github.com/olimorris/codecompanion.nvim/commit/1d98b9e91107898b055ea54b4f24dad9a24d84ed))
+* **tools:** add delete tool ([#2345](https://github.com/olimorris/codecompanion.nvim/issues/2345)) ([ae93605](https://github.com/olimorris/codecompanion.nvim/commit/ae936052d74454e941c39201a6d9aeaf55675c21))
+* **ui:** streamline ACP output in the chat ([#2353](https://github.com/olimorris/codecompanion.nvim/issues/2353)) ([78ab53d](https://github.com/olimorris/codecompanion.nvim/commit/78ab53dc17ef5d158e06377fe34fc91e8e2f0dba))
+
+
+### Bug Fixes
+
+* **chat:** conditionals for slash commands and tools ([#2336](https://github.com/olimorris/codecompanion.nvim/issues/2336)) ([8719211](https://github.com/olimorris/codecompanion.nvim/commit/8719211b896c48ffd9c288efaf0d4a47fb17cd71))
+* invalid buffer causing errors in markdown files ([#2362](https://github.com/olimorris/codecompanion.nvim/issues/2362)) ([3e02000](https://github.com/olimorris/codecompanion.nvim/commit/3e02000a14847aa49a90c297633d4be2f03702bc)), closes [#2344](https://github.com/olimorris/codecompanion.nvim/issues/2344)
+* **tools:** adjust strict mode and make `insert_edit_into_file` adhere to OpenAI schema ([#2357](https://github.com/olimorris/codecompanion.nvim/issues/2357)) ([2bd958b](https://github.com/olimorris/codecompanion.nvim/commit/2bd958b58237e42fb8b4e5ec98e5d44e24221b32)), closes [#2356](https://github.com/olimorris/codecompanion.nvim/issues/2356)
+* **tools:** show diff in `insert_edit_into_file` when file is not open ([#2350](https://github.com/olimorris/codecompanion.nvim/issues/2350)) ([6ca8768](https://github.com/olimorris/codecompanion.nvim/commit/6ca8768ad9aff0d6f46dcf8db576843e519e2035))
+* **tools:** Support nested objects in enforce_strictness for OpenAI strict mode ([#2334](https://github.com/olimorris/codecompanion.nvim/issues/2334)) ([88ddc28](https://github.com/olimorris/codecompanion.nvim/commit/88ddc28101ca771f99b3ba7489b5abe831de9a17))
+
 ## [17.30.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.29.0...v17.30.0) (2025-11-02)
 
 

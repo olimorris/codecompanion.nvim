@@ -40,9 +40,16 @@ local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = t
 
 ---@param bufnr? integer
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
+  -- Ref: #2344 - schedule_wrap defers execution to the next event loop cycle.
+  -- By that time, the buffer may have been deleted (e.g. user closed the
+  -- chat before the callback), so guard against this race condition.
+  if bufnr and not api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+
   vim.bo[bufnr or 0].syntax = "ON"
 
-  -- As tools can now be created from outside of the config, apply a general pattern for tools
+  -- As tools can now be created from outside of the config, apply a general pattern
   vim.cmd.syntax('match CodeCompanionChatTool "@{[^}]*}"')
 
   vim.iter(config.strategies.chat.variables):each(function(name)
@@ -83,6 +90,10 @@ api.nvim_create_autocmd("TermEnter", {
   desc = "Capture the last terminal buffer",
   callback = function(args)
     local bufnr = args.buf
+    if not api.nvim_buf_is_valid(bufnr) then
+      return
+    end
+
     if vim.bo[bufnr].buftype == "terminal" then
       _G.codecompanion_last_terminal = bufnr
     end

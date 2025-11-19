@@ -459,6 +459,18 @@ end
 function Connection:store_rpc_response(response)
   if response.error then
     self.pending_responses[response.id] = { nil, response.error }
+
+    -- Sometimes errors are passed as part of the response so we need to handle them
+    if self._active_prompt and self._active_prompt.handle_error then
+      self.methods.schedule(function()
+        local error_msg = response.error.message or "Unknown error"
+        if response.error.data and response.error.data.error then
+          error_msg = response.error.data.error
+        end
+
+        self._active_prompt:handle_error(error_msg)
+      end)
+    end
     return
   end
   self.pending_responses[response.id] = { response.result, nil }

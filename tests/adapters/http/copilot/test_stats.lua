@@ -193,4 +193,34 @@ T["show: works without premium_interactions"] = function()
   h.eq(true, res, "Expected no highlights and Chat section present without premium stats")
 end
 
+T["show: displays limited account stats"] = function()
+  local res = child.lua([[
+    -- Simulate limited account
+    _G.mock_stats.access_type_sku = "free_limited_copilot"
+    _G.mock_stats.monthly_quotas = { chat = 10, completions = 20 }
+    _G.mock_stats.limited_user_quotas = { chat = 3, completions = 5 }
+    _G.mock_stats.limited_user_reset_date = "2099-11-30"
+    _G.captured_lines = {}
+    _G.captured_matchadds = {}
+
+    stats.show()
+
+    local found_header = false
+    local found_chat = false
+    local found_completions = false
+    local found_reset = false
+    for _, line in ipairs(_G.captured_lines or {}) do
+      if line:match("Limited Copilot") then found_header = true end
+      if line:match("Chat") then found_chat = true end
+      if line:match("Completions") then found_completions = true end
+      if line:match("2099%-11%-30") then found_reset = true end
+    end
+    -- Should not highlight anything for limited
+    local no_highlights = (#_G.captured_matchadds == 0)
+    return found_header and found_chat and found_completions and found_reset and no_highlights
+  ]])
+
+  h.eq(true, res, "Expected limited account stats to be displayed with no highlights")
+end
+
 return T

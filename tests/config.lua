@@ -71,6 +71,9 @@ return {
       },
     },
   },
+  interactions = {
+    background = {},
+  },
   strategies = {
     chat = {
       adapter = "test_adapter",

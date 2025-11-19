@@ -255,7 +255,7 @@ return {
       if command == "view" then
         local ok, output = pcall(view, args.path, args.view_range)
         if not ok then
-          log:error("[Memory Tool] View error: %s", output)
+          log:debug("[Memory Tool] View error: %s", output)
           return output_msg("error", output)
         end
         return output_msg("success", output)
@@ -264,7 +264,7 @@ return {
       if command == "create" then
         local ok, output = pcall(create, args.path, args.file_text)
         if not ok then
-          log:error("[Memory Tool] Create error: %s", output)
+          log:debug("[Memory Tool] Create error: %s", output)
           return output_msg("error", output)
         end
         return output_msg("success", fmt("Created file: %s", args.path))
@@ -273,7 +273,7 @@ return {
       if command == "str_replace" then
         local ok, output = pcall(str_replace, args.path, args.old_str, args.new_str)
         if not ok then
-          log:error("[Memory Tool] String replace error: %s", output)
+          log:debug("[Memory Tool] String replace error: %s", output)
           return output_msg("error", output)
         end
         return output_msg("success", fmt("Replaced text in file: %s", args.path))
@@ -282,7 +282,7 @@ return {
       if command == "insert" then
         local ok, output = pcall(insert, args.path, args.insert_line, args.insert_text)
         if not ok then
-          log:error("[Memory Tool] Insert error: %s", output)
+          log:debug("[Memory Tool] Insert error: %s", output)
           return output_msg("error", output)
         end
         return output_msg("success", fmt("Inserted text in file: %s", args.path))
@@ -291,7 +291,7 @@ return {
       if command == "delete" then
         local ok, output = pcall(delete, args.path)
         if not ok then
-          log:error("[Memory Tool] Delete error: %s", output)
+          log:debug("[Memory Tool] Delete error: %s", output)
           return output_msg("error", output)
         end
         return output_msg("success", fmt("Deleted: %s", args.path))
@@ -300,7 +300,7 @@ return {
       if command == "rename" then
         local ok, output = pcall(rename, args.old_path, args.new_path)
         if not ok then
-          log:error("[Memory Tool] Rename error: %s", output)
+          log:debug("[Memory Tool] Rename error: %s", output)
           return output_msg("error", output)
         end
         return output_msg("success", fmt("Renamed %s to %s", args.old_path, args.new_path))
