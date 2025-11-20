@@ -27,8 +27,9 @@ local function get_statistics()
 
   local oauth_token = token.fetch().oauth_token
 
+  local endpoint = string.format("https://api.%s/copilot_internal/user", vim.env.GH_HOST or "github.com")
   local ok, response = pcall(function()
-    return Curl.get("https://api.github.com/copilot_internal/user", {
+    return Curl.get(endpoint, {
       sync = true,
       headers = {
         Authorization = "Bearer " .. oauth_token,
