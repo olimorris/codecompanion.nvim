@@ -1,5 +1,20 @@
 # Changelog
 
+## [17.33.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.32.0...v17.33.0) (2025-11-20)
+
+
+### Features
+
+* **adapters:** add support for gemini-3 ([b7dc2b1](https://github.com/olimorris/codecompanion.nvim/commit/b7dc2b19371fa20913b4cc5f7867741b35d3467e))
+* **adapters:** add support for gemini-3 in the gemini adapter ([#2411](https://github.com/olimorris/codecompanion.nvim/issues/2411)) ([b7dc2b1](https://github.com/olimorris/codecompanion.nvim/commit/b7dc2b19371fa20913b4cc5f7867741b35d3467e))
+* **adapters:** support extra fields in OpenAI adapter ([#2359](https://github.com/olimorris/codecompanion.nvim/issues/2359)) ([9cc2933](https://github.com/olimorris/codecompanion.nvim/commit/9cc2933a735a238c586c267e07f4992f039c1027))
+
+
+### Bug Fixes
+
+* **acp:** show urls in tool output ([#2403](https://github.com/olimorris/codecompanion.nvim/issues/2403)) ([32dd2da](https://github.com/olimorris/codecompanion.nvim/commit/32dd2da2bc1b360676c32ef741d8d63052a8edbd))
+* **chat:** watched buffer diffs should have context id ([#2410](https://github.com/olimorris/codecompanion.nvim/issues/2410)) ([9b38615](https://github.com/olimorris/codecompanion.nvim/commit/9b38615913835c19c82c0296f53cdb1533dc5640))
+
 ## [17.32.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.31.0...v17.32.0) (2025-11-18)
 
 
