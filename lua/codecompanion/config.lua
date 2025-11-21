@@ -163,6 +163,10 @@ local defaults = {
             adapter = "jina",
           },
         },
+        ["fetch_images"] = {
+          callback = "strategies.chat.tools.catalog.fetch_images",
+          description = "Fetches images from the given URL(s).",
+        },
         ["file_search"] = {
           callback = "strategies.chat.tools.catalog.file_search",
           description = "Search for files in the current working directory by glob pattern",
