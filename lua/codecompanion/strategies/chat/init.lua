@@ -15,7 +15,10 @@
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
----@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
+---@field fs_monitor? CodeCompanion.FSMonitor File system monitor instance for tracking file changes
+---@field fs_monitor_watch_id? string Active watch ID for workspace monitoring
+---@field fs_changes? CodeCompanion.FSMonitor.Change[] Accumulated file changes detected by fs_monitor
+---@field fs_checkpoints? CodeCompanion.FSMonitor.Checkpoint[] Array of checkpoints created after each response cycle
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
@@ -60,7 +63,6 @@
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local im_utils = require("codecompanion.utils.images")
@@ -271,6 +273,20 @@ local function set_autocmds(chat)
     desc = "Log the most recent chat buffer",
     callback = function()
       last_chat = chat
+    end,
+  })
+
+  -- Clean up fs_monitor on buffer unload
+  api.nvim_create_autocmd("BufUnload", {
+    group = chat.aug,
+    buffer = bufnr,
+    desc = "Clean up file system monitor on buffer unload",
+    callback = function()
+      if chat.fs_monitor then
+        chat.fs_monitor:stop_all_async(function()
+          log:info("[Chat] FS monitor cleaned up on buffer unload for chat %d", chat.id)
+        end)
+      end
     end,
   })
 
@@ -1098,6 +1114,23 @@ function Chat:submit(opts)
     opts.callback()
   end
 
+  -- Start FS monitoring on submit (HTTP adapters)
+  if self.adapter.type == "http" and not self.fs_monitor then
+    local FSMonitor = require("codecompanion.strategies.chat.fs_monitor")
+    self.fs_monitor = FSMonitor.new(self)
+  end
+
+  if self.adapter.type == "http" and not self.fs_monitor_watch_id then
+    local cwd = vim.fn.getcwd()
+    self.fs_monitor_watch_id = self.fs_monitor:start_monitoring("workspace", cwd, {
+      prepopulate = true,
+      recursive = true,
+      on_ready = function(stats)
+        log:info("[Chat] FS monitoring ready: %d files cached in %.2fms", stats.files_cached, stats.elapsed_ms)
+      end,
+    })
+  end
+
   -- Refresh tools before submitting to pick up any dynamically added tools
   if self.adapter.type == "http" then
     self.tools:refresh({ adapter = self.adapter })
@@ -1257,6 +1290,34 @@ function Chat:done(output, reasoning, tools, meta, opts)
       })
       return self.tools:execute(self, tools)
     end
+  end
+
+  -- Stop FS monitoring and create checkpoint
+  if self.fs_monitor and self.fs_monitor_watch_id then
+    log:info("[Chat] Stopping FS monitoring on chat done")
+
+    self.fs_monitor:stop_monitoring_async(self.fs_monitor_watch_id, function(changes)
+      self.fs_changes = self.fs_changes or {}
+      local prev_change_count = #self.fs_changes
+      vim.list_extend(self.fs_changes, changes)
+
+      -- Create checkpoint only if there are NEW changes since last checkpoint
+      local new_changes = #self.fs_changes - prev_change_count
+      if new_changes > 0 then
+        self.fs_checkpoints = self.fs_checkpoints or {}
+        local checkpoint = self.fs_monitor:create_checkpoint()
+        checkpoint.cycle = self.cycle
+        checkpoint.label = string.format("Response #%d", self.cycle)
+        table.insert(self.fs_checkpoints, checkpoint)
+        log:info("[Chat] Created checkpoint for cycle %d with %d new changes", self.cycle, new_changes)
+      else
+        log:info("[Chat] No new changes in cycle %d, skipping checkpoint", self.cycle)
+      end
+
+      log:info("[Chat] FS monitoring stopped, total changes: %d", #changes)
+    end)
+
+    self.fs_monitor_watch_id = nil
   end
 
   ready_chat_buffer(self)
@@ -1493,9 +1554,6 @@ function Chat:close()
   end
 
   self:dispatch("on_closed")
-
-  edit_tracker.handle_chat_close(self)
-  edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
@@ -1738,6 +1796,24 @@ function Chat.close_last_chat()
       last_chat.ui:hide()
     end
   end
+end
+
+---Show file system diff viewer for changes tracked by fs_monitor
+---@return nil
+function Chat:show_fs_diff()
+  if not self.fs_monitor then
+    vim.notify("No file system monitor active for this chat", vim.log.levels.WARN)
+    return
+  end
+
+  local changes = self.fs_monitor:get_all_changes()
+  if not changes or #changes == 0 then
+    vim.notify("No file changes tracked yet", vim.log.levels.INFO)
+    return
+  end
+
+  local fs_diff = require("codecompanion.strategies.chat.fs_diff")
+  fs_diff.show(changes, self.fs_checkpoints or {})
 end
 
 return Chat
