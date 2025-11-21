@@ -164,7 +164,19 @@ return {
         self.headers["X-Initiator"] = "agent"
       end
 
-      return handlers(self).form_messages(self, messages)
+      local result = handlers(self).form_messages(self, messages)
+
+      -- Gemini has some odd reasoning.opaque fields that we MUST include
+      for _, msg in ipairs(result.messages) do
+        if msg.reasoning then
+          for key, value in pairs(msg.reasoning) do
+            msg["reasoning_" .. key] = value
+          end
+          msg.reasoning = nil
+        end
+      end
+
+      return result
     end,
     form_tools = function(self, tools)
       return handlers(self).form_tools(self, tools)

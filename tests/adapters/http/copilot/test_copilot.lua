@@ -214,7 +214,7 @@ T["Copilot adapter"]["Streaming"] = new_set()
 
 T["Copilot adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/copilot_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output and chat_output.output.content then
@@ -227,7 +227,7 @@ end
 
 T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/copilot_tools_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_streaming.txt")
   for _, line in ipairs(lines) do
     adapter.handlers.chat_output(adapter, line, tools)
   end
@@ -247,6 +247,58 @@ T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["Copilot adapter"]["Streaming"]["can extract reasoning opaque from streamed data"] = function()
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_streaming_signatures.txt")
+
+  local output = {}
+  for _, line in ipairs(lines) do
+    table.insert(output, adapter.handlers.chat_output(adapter, line).output)
+  end
+
+  h.expect_starts_with("lgxMQq0m/", output[#output].reasoning.opaque)
+end
+
+T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] = function()
+  local messages = {
+    {
+      content = "Search for quotes.lua",
+      role = "user",
+    },
+    {
+      role = "assistant",
+      reasoning = {
+        opaque = "lgxMQq0m/J6cVjsaH8bbf...",
+      },
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            id = "call_MHxoeW9qWnVicVd6R0FkMFZ3UWw",
+            type = "function",
+            ["function"] = {
+              name = "file_search",
+              arguments = '{"query":"**/quotes.lua"}',
+            },
+          },
+        },
+      },
+    },
+    {
+      role = "user",
+      tools = {
+        call_id = "call_MHxoeW9qWnVicVd6R0FkMFZ3UWw",
+      },
+      content = '{"file":"quotes.lua","contents":"..."}',
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages)
+  local assistant_message = output.messages[2]
+
+  h.eq("lgxMQq0m/J6cVjsaH8bbf...", assistant_message.reasoning_opaque)
+  h.eq(nil, assistant_message.reasoning)
+end
+
 T["Copilot adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
@@ -260,7 +312,7 @@ T["Copilot adapter"]["No Streaming"] = new_set({
 })
 
 T["Copilot adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/copilot_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
@@ -273,7 +325,7 @@ T["Copilot adapter"]["No Streaming"]["can output for the chat buffer"] = functio
 end
 
 T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/copilot_tools_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
@@ -297,7 +349,7 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
 end
 
 T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/copilot_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request

@@ -148,12 +148,19 @@ return {
             end
           end
 
-          return {
+          local result = {
             role = m.role,
             content = m.content,
             tool_calls = tool_calls,
             tool_call_id = m.tools and m.tools.call_id or nil,
           }
+
+          -- Preserve reasoning object
+          if m.reasoning then
+            result.reasoning = m.reasoning
+          end
+
+          return result
         end)
         :totable()
 
@@ -301,13 +308,23 @@ return {
         return nil
       end
 
+      -- Extract reasoning fields (reasoning_opaque, reasoning_text, etc.)
+      local reasoning = {}
+      for key, value in pairs(delta) do
+        if key:match("^reasoning_") then
+          local reasoning_key = key:gsub("^reasoning_", "")
+          reasoning[reasoning_key] = value
+        end
+      end
+
       return {
-        extra = find_extra_fields(delta),
+        status = "success",
         output = {
           role = delta.role,
           content = delta.content,
+          reasoning = vim.tbl_count(reasoning) > 0 and reasoning or nil,
         },
-        status = "success",
+        extra = find_extra_fields(delta),
       }
     end,
 
