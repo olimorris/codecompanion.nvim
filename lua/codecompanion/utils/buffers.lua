@@ -51,7 +51,7 @@ function M.get_info(bufnr)
 
   return {
     bufnr = bufnr,
-    filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+    filetype = api.nvim_get_option_value("filetype", { buf = bufnr }),
     number = bufnr,
     name = vim.fn.fnamemodify(bufname, ":t"),
     path = bufname,
