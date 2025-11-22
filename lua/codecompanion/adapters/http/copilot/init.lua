@@ -164,7 +164,46 @@ return {
         self.headers["X-Initiator"] = "agent"
       end
 
-      return handlers(self).form_messages(self, messages)
+      local result = handlers(self).form_messages(self, messages)
+
+      -- Transform reasoning data and merge consecutive LLM messages for Copilot API
+      if result.messages then
+        local merged = {}
+        local i = 1
+        while i <= #result.messages do
+          local current = result.messages[i]
+
+          -- Transform reasoning data
+          if current.reasoning then
+            if current.reasoning.content then
+              current.reasoning_text = current.reasoning.content
+            end
+            if current.reasoning.opaque then
+              current.reasoning_opaque = current.reasoning.opaque
+            end
+            current.reasoning = nil
+          end
+
+          -- Check if next message is also from LLM and has tool_calls but no content
+          -- This indicates tool calls that should be merged with the previous message
+          if
+            i < #result.messages
+            and result.messages[i + 1].role == current.role
+            and result.messages[i + 1].tool_calls
+            and not result.messages[i + 1].content
+          then
+            -- Merge tool_calls from next message into current
+            current.tools_calls = result.messages[i + 1].tool_calls
+            i = i + 1 -- Skip the next message since we merged it
+          end
+
+          table.insert(merged, current)
+          i = i + 1
+        end
+        result.messages = merged
+      end
+
+      return result
     end,
     form_tools = function(self, tools)
       return handlers(self).form_tools(self, tools)
@@ -193,6 +232,10 @@ return {
         opaque = opaque,
       }
     end,
+    ---Copilot with Gemini 3 provides reasoning data that must be sent back in responses
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table
+    ---@return table
     parse_message_meta = function(self, data)
       local extra = data.extra
       if not extra then

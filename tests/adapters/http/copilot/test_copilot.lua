@@ -283,55 +283,65 @@ T["Copilot adapter"]["Streaming"]["stores reasoning_opaque in extra"] = function
   h.expect_starts_with("lgxMQq0m/J6cVjsaH8bbfhxHtAvK4Y", output[#output].output.reasoning.opaque)
 end
 
--- T["Copilot adapter"]["Streaming"]["can extract reasoning opaque from streamed data"] = function()
---   local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_streaming_signatures.txt")
---
---   local output = {}
---   for _, line in ipairs(lines) do
---     table.insert(output, adapter.handlers.chat_output(adapter, line).output)
---   end
---
---   h.expect_starts_with("lgxMQq0m/", output[#output].reasoning.opaque)
--- end
+T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] = function()
+  local input = {
+    {
+      content = "Search for quotes.lua",
+      role = "user",
+    },
+    {
+      content = "LLM's response here",
+      reasoning = {
+        content = "Some reasoning here",
+        opaque = "SzZZSfDxyWB",
+      },
+      role = "llm",
+    },
+    {
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            ["function"] = {
+              arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
+              name = "insert_edit_into_file",
+            },
+            id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
+            type = "function",
+          },
+        },
+      },
+    },
+  }
 
--- T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] = function()
---   local messages = {
---     {
---       content = "Search for quotes.lua",
---       role = "user",
---     },
---     {
---       role = "assistant",
---       reasoning_opaque = "lgxMQq0m/J6cVjsaH8bbf...",
---       tools = {
---         calls = {
---           {
---             _index = 0,
---             id = "call_MHxoeW9qWnVicVd6R0FkMFZ3UWw",
---             type = "function",
---             ["function"] = {
---               name = "file_search",
---               arguments = '{"query":"**/quotes.lua"}',
---             },
---           },
---         },
---       },
---     },
---     {
---       role = "user",
---       tools = {
---         call_id = "call_MHxoeW9qWnVicVd6R0FkMFZ3UWw",
---       },
---       content = '{"file":"quotes.lua","contents":"..."}',
---     },
---   }
---
---   local output = adapter.handlers.form_messages(adapter, messages)
---   local assistant_message = output.messages[2]
---
---   h.eq("lgxMQq0m/J6cVjsaH8bbf...", assistant_message.reasoning_opaque)
---   h.eq(nil, assistant_message.reasoning)
--- end
+  local expected = {
+    {
+      content = "Search for quotes.lua",
+      role = "user",
+    },
+    {
+      content = "LLM's response here",
+      role = "llm",
+      reasoning_opaque = "SzZZSfDxyWB",
+      reasoning_text = "Some reasoning here",
+      tools_calls = {
+        {
+          ["function"] = {
+            arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
+            name = "insert_edit_into_file",
+          },
+          id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
+          type = "function",
+        },
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, input)
+
+  h.eq({ messages = expected }, output)
+end
 
 T["Copilot adapter"]["No Streaming"] = new_set({
   hooks = {
