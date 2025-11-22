@@ -148,12 +148,19 @@ return {
             end
           end
 
-          return {
+          local result = {
             role = m.role,
             content = m.content,
             tool_calls = tool_calls,
             tool_call_id = m.tools and m.tools.call_id or nil,
           }
+
+          -- Preserve reasoning data if present
+          if m.reasoning then
+            result.reasoning = m.reasoning
+          end
+
+          return result
         end)
         :totable()
 
@@ -302,12 +309,12 @@ return {
       end
 
       return {
-        extra = find_extra_fields(delta),
+        status = "success",
         output = {
           role = delta.role,
           content = delta.content,
         },
-        status = "success",
+        extra = find_extra_fields(delta),
       }
     end,
 
