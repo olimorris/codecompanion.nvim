@@ -169,6 +169,30 @@ return {
     form_tools = function(self, tools)
       return handlers(self).form_tools(self, tools)
     end,
+    form_reasoning = function(self, data)
+      local content = vim
+        .iter(data)
+        :map(function(item)
+          return item.content
+        end)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      local opaque
+      for _, item in ipairs(data) do
+        if item.opaque then
+          opaque = item.opaque
+          break
+        end
+      end
+
+      return {
+        content = content,
+        opaque = opaque,
+      }
+    end,
     parse_message_meta = function(self, data)
       local extra = data.extra
       if not extra then

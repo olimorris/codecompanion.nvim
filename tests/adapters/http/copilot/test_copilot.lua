@@ -210,6 +210,28 @@ T["Copilot adapter"]["it can form tools to be sent to the API"] = function()
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
+T["Copilot adapter"]["forms reasoning output"] = function()
+  local messages = {
+    {
+      content = "Content 1\n",
+    },
+    {
+      content = "Content 2\n",
+    },
+    {
+      content = "Content 3\n",
+    },
+    {
+      opaque = "gj5HGhYVIOT",
+    },
+  }
+
+  local form_reasoning = adapter.handlers.form_reasoning(adapter, messages)
+
+  h.eq("Content 1\nContent 2\nContent 3\n", form_reasoning.content)
+  h.eq("gj5HGhYVIOT", form_reasoning.opaque)
+end
+
 T["Copilot adapter"]["Streaming"] = new_set()
 
 T["Copilot adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
