@@ -6,7 +6,7 @@ local M = {}
 ---@return string
 M.get_filetype = function(bufnr)
   bufnr = bufnr or 0
-  local ft = api.nvim_get_option_value("filetype", { bufnr = bufnr })
+  local ft = api.nvim_get_option_value("filetype", { buf = bufnr })
 
   if ft == "cpp" then
     return "C++"
