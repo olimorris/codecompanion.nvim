@@ -7,6 +7,15 @@ local utils = require("codecompanion.utils")
 
 local api = vim.api
 
+local CONSTANTS = {
+  icons = {
+    tools = config.display.chat.icons.can_use_tools or " ", -- nf-cod-tools
+    vision = config.display.chat.icons.has_vision or "󰡼 ", -- nf-md-image_plus
+    stream = config.display.chat.icons.can_stream or " ", -- nf-fa-arrow_right_arrow_left
+    reason = config.display.chat.icons.can_reason or "󰟷 ", -- nf-md-thought_bubble_outline
+  },
+}
+
 local M = {}
 
 -- CHAT MAPPINGS --------------------------------------------------------------
@@ -561,7 +570,24 @@ M.change_adapter = {
     table.sort(adapters_list)
     table.insert(adapters_list, 1, current_adapter)
 
-    vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected_adapter)
+    local function select_adapter(prompt, conditional)
+      return {
+        prompt = prompt,
+        kind = "codecompanion.nvim",
+        format_item = function(item)
+          local adapter = require("codecompanion.adapters").resolve(item)
+          local select = conditional == item and "*" or ""
+          local tools = adapter.opts.tools and CONSTANTS.icons.tools or ""
+          local vision = adapter.opts.vision and CONSTANTS.icons.vision or ""
+          local stream = adapter.opts.stream and CONSTANTS.icons.stream or ""
+          local reason = adapter.opts.reason and CONSTANTS.icons.reason or ""
+
+          return string.format("%-2s%-30s %2s%2s%2s%2s", select, item, tools, vision, stream, reason)
+        end,
+      }
+    end
+
+    vim.ui.select(adapters_list, select_adapter("Select Adapter", current_adapter), function(selected_adapter)
       if not selected_adapter then
         return
       end
@@ -597,7 +623,7 @@ M.change_adapter = {
           new_model = new_model(chat.adapter)
         end
 
-        models = vim
+        local model_list = vim
           .iter(models)
           :map(function(model, value)
             if type(model) == "string" then
@@ -610,10 +636,36 @@ M.change_adapter = {
             return model ~= new_model
           end)
           :totable()
-        table.sort(models)
-        table.insert(models, 1, new_model)
+        table.sort(model_list)
+        table.insert(model_list, 1, new_model)
 
-        vim.ui.select(models, select_opts("Select Model", new_model), function(selected_model)
+        local function select_model(prompt, conditional)
+          return {
+            prompt = prompt,
+            kind = "codecompanion.nvim",
+            format_item = function(item)
+              local select = conditional == item and "*" or ""
+              local tools = ""
+              local vision = ""
+              local stream = ""
+              local reason = ""
+              if models[item] and models[item].opts ~= nil then
+                local model = models[item]
+
+                --  TODO If you want to be complete. You probably also take the opts from the adapter in consideration.
+                --       Because all model support a capability, there no really a reason to store that for the model
+                tools = model.opts.can_use_tools and CONSTANTS.icons.tools or ""
+                vision = model.opts.has_vision and CONSTANTS.icons.vision or ""
+                stream = model.opts.can_stream and CONSTANTS.icons.stream or ""
+                reason = model.opts.can_reason and CONSTANTS.icons.reason or ""
+              end
+
+              return string.format("%-2s%-30s %2s%2s%2s%2s", select, item, tools, vision, stream, reason)
+            end,
+          }
+        end
+
+        vim.ui.select(model_list, select_model("Select Model", new_model), function(selected_model)
           if not selected_model then
             return
           end
