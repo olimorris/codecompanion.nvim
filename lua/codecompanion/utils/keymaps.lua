@@ -101,11 +101,9 @@ function Keymaps:set(opts)
       if mode ~= "" then
         if type(key) == "table" then
           for _, v in ipairs(key) do
-            print("Setting keymap:", v)
             vim.keymap.set(mode, v, callback, key_opts)
           end
         else
-          print("Setting keymap:", key)
           vim.keymap.set(mode, key, callback, key_opts)
         end
       end
