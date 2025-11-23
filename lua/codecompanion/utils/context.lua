@@ -6,7 +6,7 @@ local M = {}
 ---@return string
 M.get_filetype = function(bufnr)
   bufnr = bufnr or 0
-  local ft = api.nvim_buf_get_option(bufnr, "filetype")
+  local ft = api.nvim_get_option_value("filetype", { buf = bufnr })
 
   if ft == "cpp" then
     return "C++"
@@ -122,7 +122,7 @@ function M.get(bufnr, args)
     mode = mode,
     is_visual = is_visual,
     is_normal = is_normal,
-    buftype = api.nvim_buf_get_option(bufnr, "buftype") or "",
+    buftype = api.nvim_get_option_value("buftype", { buf = bufnr }) or "",
     filetype = M.get_filetype(bufnr),
     filename = api.nvim_buf_get_name(bufnr),
     cursor_pos = cursor_pos,
