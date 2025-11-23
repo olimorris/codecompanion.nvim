@@ -51,8 +51,8 @@ function M.get_adapters_list(current_adapter)
 end
 
 ---Get list of available models for an adapter
----@param adapter CodeCompanion.HTTPAdapter The adapter to get models for
----@return table|nil List of model names with current model first, or nil if < 2 models
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table|nil
 function M.get_models_list(adapter)
   local models = adapter.schema.model.choices
 
@@ -77,10 +77,8 @@ function M.get_models_list(adapter)
     current_model_id = current_model_id(adapter)
   end
 
-  -- Find the current model (check both array and dict parts)
   local current_model = nil
 
-  -- Check array part
   for _, model_str in ipairs(models) do
     if model_str == current_model_id then
       current_model = model_str
@@ -88,20 +86,17 @@ function M.get_models_list(adapter)
     end
   end
 
-  -- Check dict part if not found in array
   if not current_model and models[current_model_id] then
     current_model = models[current_model_id]
-    -- If it's a table without an id, use the key as the id
+    -- If it's a table without an id, create one
     if type(current_model) == "table" and not current_model.id then
       current_model.id = current_model_id
     end
   end
 
-  -- Build the list (excluding current model)
   local models_list = vim
     .iter(models)
     :map(function(key, value)
-      -- If value is a table and doesn't have an id, use the key as the id
       if type(value) == "table" and not value.id then
         value.id = key
       end
@@ -127,8 +122,8 @@ function M.get_models_list(adapter)
 end
 
 ---Get list of available commands for an ACP adapter
----@param adapter CodeCompanion.ACPAdapter The adapter to get commands for
----@return table|nil List of command names, or nil if < 2 commands
+---@param adapter CodeCompanion.ACPAdapter
+---@return table|nil
 function M.get_commands_list(adapter)
   local commands = adapter.commands
   if not commands or vim.tbl_count(commands) < 2 then
@@ -165,6 +160,7 @@ end
 
 ---Handle model selection for HTTP adapters
 ---@param chat CodeCompanion.Chat
+---@return nil
 function M.select_model(chat)
   local models_list = M.get_models_list(chat.adapter)
   if not models_list then
@@ -173,7 +169,6 @@ function M.select_model(chat)
 
   local current_model = models_list[1]
 
-  -- Extract the ID for comparison (handle both string and object models)
   local function get_model_id(model)
     return type(model) == "table" and model.id or model
   end
@@ -215,6 +210,7 @@ end
 
 ---Handle command selection for ACP adapters
 ---@param chat CodeCompanion.Chat
+---@return nil
 function M.select_command(chat)
   local commands_list = M.get_commands_list(chat.adapter)
   if not commands_list then
@@ -234,6 +230,7 @@ end
 
 ---Main callback for the change_adapter keymap
 ---@param chat CodeCompanion.Chat
+---@return nil
 function M.callback(chat)
   if config.display.chat.show_settings then
     return utils.notify("Adapter can't be changed when `display.chat.show_settings = true`", vim.log.levels.WARN)
