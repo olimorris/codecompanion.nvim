@@ -1014,7 +1014,7 @@ function Chat:_submit_http(payload)
     end
 
     local result = adapters.call_handler(adapter, "parse_chat", data, tools)
-
+    -- TODO: Rename this to be `parse_extra` for clarity
     local parse_meta = adapters.get_handler(adapter, "parse_meta")
     if result and result.extra and type(parse_meta) == "function" then
       result = parse_meta(adapter, result)
@@ -1029,7 +1029,7 @@ function Chat:_submit_http(payload)
         end
         if result.output.reasoning then
           table.insert(reasoning, result.output.reasoning)
-          if config.display.chat.show_reasoning then
+          if config.display.chat.show_reasoning and result.output.reasoning.content then
             self:add_buf_message({
               role = config.constants.LLM_ROLE,
               content = result.output.reasoning.content,
@@ -1218,10 +1218,8 @@ function Chat:done(output, reasoning, tools, meta, opts)
     if vim.iter(reasoning):any(function(item)
       return item and type(item) ~= "string"
     end) then
-      -- `reasoning` contains non-trivial data structure (table, etc.). Invoke the corresponding handler.
       reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
     else
-      -- reasoning is all string. Simply concat them.
       reasoning_content = table.concat(reasoning, "")
     end
   end

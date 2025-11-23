@@ -210,11 +210,33 @@ T["Copilot adapter"]["it can form tools to be sent to the API"] = function()
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
+T["Copilot adapter"]["forms reasoning output"] = function()
+  local messages = {
+    {
+      content = "Content 1\n",
+    },
+    {
+      content = "Content 2\n",
+    },
+    {
+      content = "Content 3\n",
+    },
+    {
+      opaque = "gj5HGhYVIOT",
+    },
+  }
+
+  local form_reasoning = adapter.handlers.form_reasoning(adapter, messages)
+
+  h.eq("Content 1\nContent 2\nContent 3\n", form_reasoning.content)
+  h.eq("gj5HGhYVIOT", form_reasoning.opaque)
+end
+
 T["Copilot adapter"]["Streaming"] = new_set()
 
 T["Copilot adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/copilot_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output and chat_output.output.content then
@@ -227,7 +249,7 @@ end
 
 T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/copilot_tools_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_streaming.txt")
   for _, line in ipairs(lines) do
     adapter.handlers.chat_output(adapter, line, tools)
   end
@@ -247,6 +269,80 @@ T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["Copilot adapter"]["Streaming"]["stores reasoning_opaque in extra"] = function()
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_streaming_reasoning.txt")
+
+  local output = {}
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      table.insert(output, adapter.handlers.parse_message_meta(adapter, chat_output))
+    end
+  end
+
+  h.expect_starts_with("lgxMQq0m/J6cVjsaH8bbfhxHtAvK4Y", output[#output].output.reasoning.opaque)
+end
+
+T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] = function()
+  local input = {
+    {
+      content = "Search for quotes.lua",
+      role = "user",
+    },
+    {
+      content = "LLM's response here",
+      reasoning = {
+        content = "Some reasoning here",
+        opaque = "SzZZSfDxyWB",
+      },
+      role = "llm",
+    },
+    {
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            ["function"] = {
+              arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
+              name = "insert_edit_into_file",
+            },
+            id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
+            type = "function",
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      content = "Search for quotes.lua",
+      role = "user",
+    },
+    {
+      content = "LLM's response here",
+      role = "llm",
+      reasoning_opaque = "SzZZSfDxyWB",
+      reasoning_text = "Some reasoning here",
+      tool_calls = {
+        {
+          ["function"] = {
+            arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
+            name = "insert_edit_into_file",
+          },
+          id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
+          type = "function",
+        },
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, input)
+
+  h.eq({ messages = expected }, output)
+end
+
 T["Copilot adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
@@ -260,7 +356,7 @@ T["Copilot adapter"]["No Streaming"] = new_set({
 })
 
 T["Copilot adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/copilot_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
@@ -273,7 +369,7 @@ T["Copilot adapter"]["No Streaming"]["can output for the chat buffer"] = functio
 end
 
 T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/copilot_tools_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
@@ -297,7 +393,7 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
 end
 
 T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/copilot_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
