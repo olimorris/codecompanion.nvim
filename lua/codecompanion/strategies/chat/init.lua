@@ -1218,10 +1218,8 @@ function Chat:done(output, reasoning, tools, meta, opts)
     if vim.iter(reasoning):any(function(item)
       return item and type(item) ~= "string"
     end) then
-      -- `reasoning` contains non-trivial data structure (table, etc.). Invoke the corresponding handler.
       reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
     else
-      -- reasoning is all string. Simply concat them.
       reasoning_content = table.concat(reasoning, "")
     end
   end

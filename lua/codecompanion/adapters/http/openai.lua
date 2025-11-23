@@ -155,7 +155,7 @@ return {
             tool_call_id = m.tools and m.tools.call_id or nil,
           }
 
-          -- Preserve reasoning data if present
+          -- Adapter's like Copilot have reasoning fields that must be preserved
           if m.reasoning then
             result.reasoning = m.reasoning
           end

@@ -325,7 +325,7 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
       role = "llm",
       reasoning_opaque = "SzZZSfDxyWB",
       reasoning_text = "Some reasoning here",
-      tools_calls = {
+      tool_calls = {
         {
           ["function"] = {
             arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',

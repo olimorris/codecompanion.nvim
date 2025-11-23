@@ -193,7 +193,7 @@ return {
             and not result.messages[i + 1].content
           then
             -- Merge tool_calls from next message into current
-            current.tools_calls = result.messages[i + 1].tool_calls
+            current.tool_calls = result.messages[i + 1].tool_calls
             i = i + 1 -- Skip the next message since we merged it
           end
 
