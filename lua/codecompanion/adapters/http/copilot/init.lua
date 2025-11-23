@@ -166,14 +166,15 @@ return {
 
       local result = handlers(self).form_messages(self, messages)
 
-      -- Transform reasoning data and merge consecutive LLM messages for Copilot API
+      -- For gemini-3, merge consecutive LLM messages and ensure that reasoning
+      -- data is transformed. This enables consecutive tool calls to be made
       if result.messages then
         local merged = {}
         local i = 1
         while i <= #result.messages do
           local current = result.messages[i]
 
-          -- Transform reasoning data
+          -- gemini-3 requires reasoning_text and reasoning_opaque fields
           if current.reasoning then
             if current.reasoning.content then
               current.reasoning_text = current.reasoning.content
@@ -184,15 +185,14 @@ return {
             current.reasoning = nil
           end
 
-          -- Check if next message is also from LLM and has tool_calls but no content
-          -- This indicates tool calls that should be merged with the previous message
+          -- From investigating Copilot Chat's output, tool_calls are merged
+          -- into a single message per role with reasoning data
           if
             i < #result.messages
             and result.messages[i + 1].role == current.role
             and result.messages[i + 1].tool_calls
             and not result.messages[i + 1].content
           then
-            -- Merge tool_calls from next message into current
             current.tool_calls = result.messages[i + 1].tool_calls
             i = i + 1 -- Skip the next message since we merged it
           end

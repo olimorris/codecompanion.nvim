@@ -76,8 +76,10 @@ local function fetch_async(adapter, provided_token)
 
   local base_url = (fresh_token.endpoints and fresh_token.endpoints.api) or "https://api.githubcopilot.com"
   local url = base_url .. "/models"
+
   local headers = vim.deepcopy(_cached_adapter.headers or {})
   headers["Authorization"] = "Bearer " .. fresh_token.copilot_token
+  headers["X-Github-Api-Version"] = "2025-10-01"
 
   -- Async request via plenary.curl with a callback
   local ok, err = pcall(function()
@@ -115,26 +117,50 @@ local function fetch_async(adapter, provided_token)
             end
           end
 
-          if model.model_picker_enabled and model.capabilities and model.capabilities.type == "chat" then
+          if model.model_picker_enabled then
             local choice_opts = {}
+            local limits = {}
+            local billing = {}
 
-            if model.capabilities.supports and model.capabilities.supports.streaming then
-              choice_opts.can_stream = true
+            if model.capabilities then
+              if type(model.capabilities.type) == "string" and model.capabilities.type ~= "chat" then
+                log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
+                goto continue
+              end
+              if type(model.capabilities.type) == "table" and not vim.tbl_contains(model.capabilities.type, "chat") then
+                log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
+                goto continue
+              end
+              if model.capabilities.supports and model.capabilities.supports.streaming then
+                choice_opts.can_stream = true
+              end
+              if model.capabilities.supports and model.capabilities.supports.tool_calls then
+                choice_opts.can_use_tools = true
+              end
+              if model.capabilities.supports and model.capabilities.supports.vision then
+                choice_opts.has_vision = true
+              end
+              if model.capabilities.limits then
+                limits.max_output_tokens = model.capabilities.limits.max_output_tokens
+                limits.max_prompt_tokens = model.capabilities.limits.max_prompt_tokens
+              end
             end
-            if model.capabilities.supports and model.capabilities.supports.tool_calls then
-              choice_opts.can_use_tools = true
-            end
-            if model.capabilities.supports and model.capabilities.supports.vision then
-              choice_opts.has_vision = true
+
+            if model.billing then
+              billing.is_premium = model.billing.is_premium
+              billing.multiplier = model.billing.multiplier
             end
 
             models[model.id] = {
+              billing = billing,
               endpoint = internal_endpoint,
-              vendor = model.vendor,
               formatted_name = model.name,
+              limits = limits,
               opts = choice_opts,
+              vendor = model.vendor,
             }
           end
+
           ::continue::
         end
 
