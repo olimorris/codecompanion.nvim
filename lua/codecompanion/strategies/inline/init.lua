@@ -258,6 +258,21 @@ function Inline:parse_special_syntax(prompt)
   return vim.trim(prompt)
 end
 
+---Set keymaps for the inline strategy
+---@param bufnr? number
+---@param opts? table
+---@return nil
+function Inline:set_keymaps(bufnr, opts)
+  keymaps
+    .new({
+      bufnr = bufnr,
+      callbacks = require("codecompanion.strategies.inline.keymaps"),
+      data = self,
+      keymaps = config.strategies.inline.keymaps,
+    })
+    :set(opts)
+end
+
 ---Prompt the LLM
 ---@param user_prompt? string The prompt supplied by the user
 ---@return nil
@@ -411,8 +426,7 @@ function Inline:submit(prompt)
   _streaming = self.adapter.opts.stream
   self.adapter.opts.stream = false
 
-  -- Set keymaps and start diffing
-  self:setup_buffer()
+  self:set_keymaps(self.buffer_context.bufnr, { keymaps = { "stop" } })
 
   self.current_request = client
     .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineStarted" } })
@@ -505,27 +519,11 @@ function Inline:done(output)
   end)
 end
 
----Setup the buffer prior to sending the request to the LLM
----@return nil
-function Inline:setup_buffer()
-  -- Add a keymap to cancel the request
-  api.nvim_buf_set_keymap(self.buffer_context.bufnr, "n", "q", "", {
-    desc = "Stop the request",
-    callback = function()
-      log:trace("[Inline] Cancelling the request")
-      if self.current_request then
-        self:stop()
-      end
-    end,
-  })
-end
-
 ---Reset the inline prompt class
 ---@return nil
 function Inline:reset()
   self.adapter.opts.stream = _streaming
   self.current_request = nil
-  api.nvim_buf_del_keymap(self.bufnr, "n", "q")
   api.nvim_clear_autocmds({ group = self.aug })
 end
 
@@ -733,14 +731,7 @@ function Inline:start_diff(original_content)
     return self:reset()
   end
 
-  keymaps
-    .new({
-      bufnr = self.buffer_context.bufnr,
-      callbacks = require("codecompanion.strategies.inline.keymaps"),
-      data = self,
-      keymaps = config.strategies.inline.keymaps,
-    })
-    :set()
+  self:set_keymaps(self.buffer_context.bufnr, { exclude_keymaps = { "stop" } })
 
   local provider = config.display.diff.provider
   local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
