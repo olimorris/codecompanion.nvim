@@ -249,15 +249,12 @@ function M.callback(chat)
       chat:change_adapter(selected_adapter)
     end
 
-    -- Update the system prompt
     M.update_system_prompt(chat)
 
-    -- Select a model for HTTP adapters
     if chat.adapter.type == "http" then
       M.select_model(chat)
     end
 
-    -- Select a command for ACP adapters
     if chat.adapter.type == "acp" then
       M.select_command(chat)
     end
