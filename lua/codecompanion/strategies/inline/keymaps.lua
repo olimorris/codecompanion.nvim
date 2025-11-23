@@ -52,4 +52,12 @@ M.always_accept = {
   end,
 }
 
+M.stop = {
+  callback = function(inline)
+    inline:stop()
+    clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+    log:trace("[Inline] Cancelling the request")
+  end,
+}
+
 return M

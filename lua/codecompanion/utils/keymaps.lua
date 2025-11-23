@@ -62,21 +62,30 @@ function Keymaps:resolve(rhs)
 end
 
 ---Set the keymaps
+---@param opts? table
 ---@return nil
-function Keymaps:set()
-  for _, map in pairs(self.keymaps) do
+function Keymaps:set(opts)
+  opts = opts or {}
+
+  for name, map in pairs(self.keymaps) do
+    if opts.keymaps and not vim.tbl_contains(opts.keymaps, name) then
+      goto continue
+    end
+    if opts.exclude_keymaps and vim.tbl_contains(opts.exclude_keymaps, name) then
+      goto continue
+    end
     if map == false then
       goto continue
     end
 
     local callback
     local rhs, action_opts = self:resolve(map.callback)
-    if type(map.condition) == "function" and not map.condition() then
+    if type(map.condition) == "function" and not map.condition(opts) then
       goto continue
     end
 
     local default_opts = { desc = map.description or action_opts.desc, buffer = self.bufnr, nowait = true }
-    local opts = vim.tbl_deep_extend("force", default_opts, map.opts or {})
+    local key_opts = vim.tbl_deep_extend("force", default_opts, map.opts or {})
 
     if type(rhs) == "function" then
       callback = function()
@@ -92,10 +101,12 @@ function Keymaps:set()
       if mode ~= "" then
         if type(key) == "table" then
           for _, v in ipairs(key) do
-            vim.keymap.set(mode, v, callback, opts)
+            print("Setting keymap:", v)
+            vim.keymap.set(mode, v, callback, key_opts)
           end
         else
-          vim.keymap.set(mode, key, callback, opts)
+          print("Setting keymap:", key)
+          vim.keymap.set(mode, key, callback, key_opts)
         end
       end
     end
