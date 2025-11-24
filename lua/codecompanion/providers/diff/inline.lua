@@ -7,13 +7,14 @@ local api = vim.api
 ---@class CodeCompanion.Diff.Inline
 ---@field bufnr number
 ---@field contents string[]
----@field id number
----@field ns_id number
 ---@field extmark_ids number[]
 ---@field has_changes boolean
----@field winnr number|nil
+---@field id number
 ---@field is_floating boolean
+---@field ns_id number
 ---@field show_hints boolean
+---@field winnr number|nil
+---@field winbar {content: string, winhighlight: string}|nil Original winbar state
 
 ---@class CodeCompanion.Diff.Inline
 local InlineDiff = {}
@@ -22,9 +23,9 @@ local InlineDiff = {}
 ---@field bufnr number Buffer number to apply diff to
 ---@field contents string[] Original content lines
 ---@field id number|string Unique identifier for this diff
----@field winnr? number Window number (optional)
 ---@field is_floating boolean|nil Whether this diff is in a floating window
 ---@field show_hints? boolean Whether to show keymap hints (default: true)
+---@field winnr? number Window number (optional)
 
 ---Creates a new InlineDiff instance and applies diff highlights
 ---@param args CodeCompanion.Diff.InlineArgs
@@ -33,15 +34,19 @@ function InlineDiff.new(args)
   local self = setmetatable({
     bufnr = args.bufnr,
     contents = args.contents,
+    extmark_ids = {},
+    has_changes = false,
     id = args.id,
-    winnr = args.winnr,
     is_floating = args.is_floating or false,
-    show_hints = args.show_hints == nil and true or args.show_hints,
     ns_id = api.nvim_create_namespace(
       "codecompanion_inline_diff_" .. (args.id ~= nil and args.id or math.random(1, 100000))
     ),
-    extmark_ids = {},
-    has_changes = false,
+    show_hints = args.show_hints == nil and true or args.show_hints,
+    winnr = args.winnr,
+    winbar = {
+      content = vim.wo[args.winnr or 0].winbar or "",
+      winhighlight = vim.wo[args.winnr or 0].winhighlight or "",
+    },
   }, { __index = InlineDiff })
   ---@cast self CodeCompanion.Diff.Inline
 
@@ -231,11 +236,11 @@ end
 
 ---Clear winbar and winhighlight from the diff window
 ---@return nil
-function InlineDiff:clear_winbar()
+function InlineDiff:restore_winbar()
   if self.winnr and api.nvim_win_is_valid(self.winnr) then
     pcall(function()
-      vim.wo[self.winnr].winbar = ""
-      vim.wo[self.winnr].winhighlight = ""
+      vim.wo[self.winnr].winbar = self.winbar.content
+      vim.wo[self.winnr].winhighlight = self.winbar.winhighlight
     end)
   end
 end
@@ -261,7 +266,7 @@ function InlineDiff:teardown()
     end)
   end)
   self:clear_highlights()
-  self:clear_winbar()
+  self:restore_winbar()
   self:close_floating_window()
   utils.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 end

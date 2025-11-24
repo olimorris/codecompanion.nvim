@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 23
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1866,69 +1866,9 @@ utilize the `insert_edit_into_file` tool, then the plugin can update files and
 buffers and a diff will be created so you can see the changes made by the LLM.
 The `inline` is the default diff.
 
-There are a number of diff settings available to you:
+Depending on which provider you choose, there are different configuration
+options available to you:
 
->lua
-    require("codecompanion").setup({
-      display = {
-        diff = {
-          enabled = true,
-          provider = providers.diff, -- mini_diff|split|inline
-    
-          provider_opts = {
-            -- Options for inline diff provider
-            inline = {
-              layout = "float", -- float|buffer - Where to display the diff
-    
-              diff_signs = {
-                signs = {
-                  text = "▌", -- Sign text for normal changes
-                  reject = "✗", -- Sign text for rejected changes in super_diff
-                  highlight_groups = {
-                    addition = "DiagnosticOk",
-                    deletion = "DiagnosticError",
-                    modification = "DiagnosticWarn",
-                  },
-                },
-                -- Super Diff options
-                icons = {
-                  accepted = " ",
-                  rejected = " ",
-                },
-                colors = {
-                  accepted = "DiagnosticOk",
-                  rejected = "DiagnosticError",
-                },
-              },
-    
-              opts = {
-                context_lines = 3, -- Number of context lines in hunks
-                dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-                full_width_removed = true, -- Make removed lines span full width
-                show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-                show_removed = true, -- Show removed lines as virtual text
-              },
-            },
-    
-            -- Options for the split provider
-            split = {
-              close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-              layout = "vertical", -- vertical|horizontal split
-              opts = {
-                "internal",
-                "filler",
-                "closeoff",
-                "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-                "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-                "followwrap",
-                "linematch:120",
-              },
-            },
-          },
-        },
-      },
-    })
-<
 
 You can also customize the window that the diff appears in (taking precedence
 over `child_window`):
