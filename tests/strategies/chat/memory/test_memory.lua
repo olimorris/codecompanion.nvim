@@ -182,6 +182,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
   child.lua(string.format(
     [[
     local h = require("tests.helpers")
+
     -- Initialize plugin with test config (h.setup_plugin returns the codecompanion module)
     local cc = h.setup_plugin()
 
