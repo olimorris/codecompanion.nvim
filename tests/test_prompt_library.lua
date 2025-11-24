@@ -8,7 +8,8 @@ T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        codecompanion = require("codecompanion")
+        h = require('tests.helpers')
+        codecompanion = h.setup_plugin()
       ]])
     end,
     post_once = child.stop,

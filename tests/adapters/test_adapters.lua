@@ -8,6 +8,7 @@ T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
+        h = require('tests.helpers')
         utils = require("codecompanion.utils.adapters")
 
         _G.test_adapter = {
@@ -290,7 +291,7 @@ end
 
 T["Adapter"]["can pass in the name of the model"] = function()
   local result = child.lua([[
-    require("codecompanion").setup({
+    h.setup_plugin({
       strategies = {
         chat = {
           adapter = {
