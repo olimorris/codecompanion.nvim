@@ -332,7 +332,13 @@ return {
       order = 4,
       mapping = "parameters",
       type = "integer",
-      default = 16384,
+      default = function(self)
+        local model_opts = resolve_model_opts(self)
+        if model_opts.limits and model_opts.limits.max_output_tokens then
+          return tonumber(model_opts.limits.max_output_tokens)
+        end
+        return 16384
+      end,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     ---@type CodeCompanion.Schema

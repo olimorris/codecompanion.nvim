@@ -29,7 +29,11 @@ M.get_default = function(adapter, defaults)
         ret[k] = defaults[k]
       else
         -- Use the default value in the schema
-        ret[k] = v.default
+        if type(v.default) == "function" then
+          ret[k] = v.default(adapter)
+        else
+          ret[k] = v.default
+        end
       end
     end
     ::continue::
