@@ -429,41 +429,32 @@ require("codecompanion").setup({
 
 CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
 
-There are a number of diff settings available to you:
+Depending on which provider you choose, there are different configuration options available to you:
+
+:::tabs
+
+== Select Provider
 
 ```lua
 require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|split|inline
+      provider = providers.diff, -- inline|split|mini.diff
+    },
+  },
+})
+```
 
+== Inline Provider
+
+```lua
+require("codecompanion").setup({
+  display = {
+    diff = {
       provider_opts = {
-        -- Options for inline diff provider
         inline = {
           layout = "float", -- float|buffer - Where to display the diff
-
-          diff_signs = {
-            signs = {
-              text = "▌", -- Sign text for normal changes
-              reject = "✗", -- Sign text for rejected changes in super_diff
-              highlight_groups = {
-                addition = "DiagnosticOk",
-                deletion = "DiagnosticError",
-                modification = "DiagnosticWarn",
-              },
-            },
-            -- Super Diff options
-            icons = {
-              accepted = " ",
-              rejected = " ",
-            },
-            colors = {
-              accepted = "DiagnosticOk",
-              rejected = "DiagnosticError",
-            },
-          },
-
           opts = {
             context_lines = 3, -- Number of context lines in hunks
             dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
@@ -472,8 +463,19 @@ require("codecompanion").setup({
             show_removed = true, -- Show removed lines as virtual text
           },
         },
+      },
+    },
+  },
+})
+```
 
-        -- Options for the split provider
+== Split Provider
+
+```lua
+require("codecompanion").setup({
+  display = {
+    diff = {
+      provider_opts = {
         split = {
           close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
           layout = "vertical", -- vertical|horizontal split
@@ -492,6 +494,9 @@ require("codecompanion").setup({
   },
 })
 ```
+
+
+:::
 
 You can also customize the window that the diff appears in (taking precedence over `child_window`):
 
