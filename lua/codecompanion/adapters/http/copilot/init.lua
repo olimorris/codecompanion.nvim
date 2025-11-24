@@ -275,7 +275,16 @@ return {
       end
     end,
     chat_output = function(self, data, tools)
-      return handlers(self).chat_output(self, data, tools)
+      if type(data) == "string" then
+        if data and data:match("quota") and data:match("exceeded") then
+          return {
+            status = "error",
+            output = "Your Copilot quota has been exceeded for this conversation",
+          }
+        end
+      end
+
+      return handlers(self).chat_output(self, data, tools, { adapter = "copilot" })
     end,
     tools = {
       format_tool_calls = function(self, tools)

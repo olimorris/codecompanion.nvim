@@ -247,6 +247,22 @@ T["Copilot adapter"]["Streaming"]["can output streamed data into the chat buffer
   h.expect_starts_with("**Elegant simplicity.**", output)
 end
 
+T["Copilot adapter"]["Streaming"]["can handle quota exceeded"] = function()
+  local output = ""
+  local status = ""
+  local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_quota_exceeded.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    status = chat_output and chat_output.status
+    if chat_output and chat_output.output then
+      output = output .. chat_output.output
+    end
+  end
+
+  h.eq("error", status)
+  h.expect_starts_with("Your Copilot quota", output)
+end
+
 T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_tools_streaming.txt")

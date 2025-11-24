@@ -173,10 +173,10 @@ return {
     ---@return table|nil
     form_tools = function(self, tools)
       if not self.opts.tools or not tools then
-        return
+        return nil
       end
       if vim.tbl_count(tools) == 0 then
-        return
+        return nil
       end
 
       local transformed = {}
