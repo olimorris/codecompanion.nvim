@@ -246,7 +246,11 @@ function M.callback(chat)
       chat:change_adapter(selected_adapter)
     end
 
-    M.update_system_prompt(chat)
+    -- Only force a system prompt update if the user isn't ignoring it. This
+    -- occurs when a user has initiated a chat from the prompt library
+    if not chat.opts.ignore_system_prompt then
+      M.update_system_prompt(chat)
+    end
 
     if chat.adapter.type == "http" then
       M.select_model(chat)
