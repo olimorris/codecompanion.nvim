@@ -183,10 +183,7 @@ function M.select_model(chat)
       local display
 
       if type(model) == "table" then
-        display = model.formatted_name or model.id or "Unknown"
-        if model.billing and model.billing.multiplier then
-          display = string.format("%-30s │ %sx", display, model.billing.multiplier)
-        end
+        display = model.description or model.formatted_name or model.id or "Unknown"
       else
         display = model
       end
