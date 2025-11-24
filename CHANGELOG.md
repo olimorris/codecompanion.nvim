@@ -1,5 +1,26 @@
 # Changelog
 
+## [17.33.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.32.0...v17.33.0) (2025-11-24)
+
+
+### Features
+
+* **adapters:** add support for Gemini 3 in Copilot ([#2419](https://github.com/olimorris/codecompanion.nvim/issues/2419)) ([7686e3a](https://github.com/olimorris/codecompanion.nvim/commit/7686e3aa5edfc7ab03487239a9c1fa757e81cc97)), closes [#2413](https://github.com/olimorris/codecompanion.nvim/issues/2413)
+* **adapters:** add support for gemini-3 ([b7dc2b1](https://github.com/olimorris/codecompanion.nvim/commit/b7dc2b19371fa20913b4cc5f7867741b35d3467e))
+* **adapters:** add support for gemini-3 in the gemini adapter ([#2411](https://github.com/olimorris/codecompanion.nvim/issues/2411)) ([b7dc2b1](https://github.com/olimorris/codecompanion.nvim/commit/b7dc2b19371fa20913b4cc5f7867741b35d3467e))
+* **adapters:** copilot can dynamically set max tokens ([#2429](https://github.com/olimorris/codecompanion.nvim/issues/2429)) ([d348080](https://github.com/olimorris/codecompanion.nvim/commit/d348080e39d5f184a83cdd5a549ad6037be4172b))
+* **adapters:** show copilot multipliers and refactor changing adapters ([#2427](https://github.com/olimorris/codecompanion.nvim/issues/2427)) ([e400396](https://github.com/olimorris/codecompanion.nvim/commit/e40039647faf9eba740fa0656dceeb14fb91a725))
+* **adapters:** support extra fields in OpenAI adapter ([#2359](https://github.com/olimorris/codecompanion.nvim/issues/2359)) ([9cc2933](https://github.com/olimorris/codecompanion.nvim/commit/9cc2933a735a238c586c267e07f4992f039c1027))
+* **inline:** add keymap to stop request ([#2426](https://github.com/olimorris/codecompanion.nvim/issues/2426)) ([723ca0e](https://github.com/olimorris/codecompanion.nvim/commit/723ca0eaa13b0e4c87c30c1416f6ff81b87aeae4)), closes [#2420](https://github.com/olimorris/codecompanion.nvim/issues/2420)
+
+
+### Bug Fixes
+
+* **acp:** show urls in tool output ([#2403](https://github.com/olimorris/codecompanion.nvim/issues/2403)) ([32dd2da](https://github.com/olimorris/codecompanion.nvim/commit/32dd2da2bc1b360676c32ef741d8d63052a8edbd))
+* **chat:** preserve prompt library system prompts ([#2433](https://github.com/olimorris/codecompanion.nvim/issues/2433)) ([ccfdc47](https://github.com/olimorris/codecompanion.nvim/commit/ccfdc473c375a926c47923bf251ce9fc0f817843))
+* **chat:** watched buffer diffs should have context id ([#2410](https://github.com/olimorris/codecompanion.nvim/issues/2410)) ([9b38615](https://github.com/olimorris/codecompanion.nvim/commit/9b38615913835c19c82c0296f53cdb1533dc5640))
+* **copilot:** handle "quota exceeded" error ([#2430](https://github.com/olimorris/codecompanion.nvim/issues/2430)) ([d8fbcfe](https://github.com/olimorris/codecompanion.nvim/commit/d8fbcfe21925c2e3a7215fbcb7eb98a7de48fa7c)), closes [#2416](https://github.com/olimorris/codecompanion.nvim/issues/2416)
+
 ## [17.32.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.31.0...v17.32.0) (2025-11-18)
 
 
