@@ -1225,11 +1225,12 @@ function Chat:done(output, reasoning, tools, meta, opts)
   end
 
   if content and content ~= "" then
-    self:add_message({
+    local message = {
       role = config.constants.LLM_ROLE,
       content = content,
       reasoning = reasoning_content,
-    }, {
+    }
+    self:add_message(message, {
       _meta = has_meta and meta or nil,
     })
     reasoning_content = nil
@@ -1245,12 +1246,13 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if has_tools then
     tools = adapters.call_handler(self.adapter, "format_calls", tools)
     if tools then
-      self:add_message({
+      local message = {
         role = config.constants.LLM_ROLE,
         reasoning = reasoning_content,
         tool_calls = tools,
         _meta = has_meta and meta or nil,
-      }, {
+      }
+      self:add_message(message, {
         visible = false,
       })
       return self.tools:execute(self, tools)
@@ -1271,13 +1273,14 @@ end
 function Chat:add_context(data, source, id, opts)
   opts = vim.tbl_extend("force", { visible = false }, opts or {})
 
-  if not data.role then
-    data.role = config.constants.USER_ROLE
-  end
+  local message = {
+    role = data.role or config.constants.USER_ROLE,
+    content = data.content,
+  }
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
+  self:add_message(message, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1541,11 +1544,6 @@ function Chat:add_buf_message(data, opts)
 
   return self.builder:add_message(data, opts)
 end
-
----Add a new header to the chat buffer
----@param role "user"|"llm"
----@param opts? table Options for the header
-function Chat:add_new_header(role, opts) end
 
 ---Update a specific line in the chat buffer
 ---@param line_number number The line number to update (1-based)
