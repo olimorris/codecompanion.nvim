@@ -151,8 +151,11 @@ local function fetch_async(adapter, provided_token)
               billing.multiplier = model.billing.multiplier
             end
 
+            local description = model.name .. (billing.multiplier and (" (" .. billing.multiplier .. "x)") or "")
+
             models[model.id] = {
               billing = billing,
+              description = description,
               endpoint = internal_endpoint,
               formatted_name = model.name,
               limits = limits,
