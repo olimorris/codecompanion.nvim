@@ -199,7 +199,7 @@ nmake FILE=tests/strategies/chat/tools/runtime/tests_cmd.lua test_file
 
 ### Testing Tips
 
-Trying to understand the CodeCompanion codebase and then having to learn how to create tests can feel onerous. So to make this process easier, it's recommended to load the `test` workspace into your chat buffer to give your LLM knowledge of how Mini.Test works.
+Trying to understand the CodeCompanion codebase and then having to learn how to create tests can feel onerous. So to make this process easier, it's recommended to load the `test` rules into your chat buffer to give your LLM knowledge of how Mini.Test works.
 
 It can also be useful to share an example [test file](https://github.com/olimorris/codecompanion.nvim/blob/main/tests/adapters/test_openai.lua) with an LLM too.
 

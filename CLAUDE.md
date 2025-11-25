@@ -70,7 +70,7 @@ Tool groups (e.g., `full_stack_dev`) defined in config. Orchestration via `tools
 
 Located in `lua/codecompanion/strategies/chat/slash_commands/catalog/`:
 
-`/buffer`, `/file`, `/fetch`, `/symbols`, `/workspace`, `/help`, `/image`, `/quickfix`, `/terminal`, `/mode`, `/memory`, `/now`
+`/buffer`, `/file`, `/fetch`, `/symbols`, `/help`, `/image`, `/quickfix`, `/terminal`, `/mode`, `/memory`, `/now`
 
 Dynamic context ingestion via `/command` syntax in chat.
 
