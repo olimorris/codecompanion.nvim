@@ -111,6 +111,21 @@ function Debug:render()
       command = adapter.commands.default
     end
     table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
+
+    -- Show current mode if available
+    if self.chat.acp_connection then
+      local modes = self.chat.acp_connection:get_modes()
+      if modes and modes.currentModeId then
+        local mode_name = modes.currentModeId
+        for _, mode in ipairs(modes.availableModes or {}) do
+          if mode.id == modes.currentModeId then
+            mode_name = mode.name .. " (" .. mode.id .. ")"
+            break
+          end
+        end
+        table.insert(lines, '-- Mode: "' .. mode_name .. '"')
+      end
+    end
   end
   table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
   if bufname then
@@ -118,7 +133,7 @@ function Debug:render()
   end
 
   -- Add settings
-  if not config.display.chat.show_settings then
+  if not config.display.chat.show_settings and adapter.type ~= "acp" then
     table.insert(lines, "")
     local keys = {}
 

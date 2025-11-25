@@ -114,6 +114,28 @@ require("codecompanion").setup({
 })
 ```
 
+It's also possible to conditionally enable a slash command by including `enabled` in the config:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      slash_commands = {
+        ["image"] = {
+          callback = "strategies.chat.slash_commands.catalog.image",
+          description = "Insert an image",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            return opts.adapter.opts and opts.adapter.opts.vision == true
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
 > [!IMPORTANT]
 > Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
@@ -215,7 +237,7 @@ A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys th
 
 ### Tool Conditionals
 
-Tools can also be conditionally enabled:
+Built-in tools can also be conditionally enabled:
 
 ```lua
 require("codecompanion").setup({
@@ -223,8 +245,9 @@ require("codecompanion").setup({
     chat = {
       tools = {
         ["grep_search"] = {
+          ---@param adapter CodeCompanion.HTTPAdapter
           ---@return boolean
-          enabled = function()
+          enabled = function(adapter)
             return vim.fn.executable("rg") == 1
           end,
         },
@@ -235,6 +258,25 @@ require("codecompanion").setup({
 ```
 
 This is useful to ensure that a particular dependency is installed on the machine. After the user has installed the dependency, the `:CodeCompanionChat RefreshCache` command can be used to refresh the cache's across chat buffers.
+
+If you wish to conditionally enable an adapter's own tools, you can do so with:
+
+```lua
+require("codecompanion").setup({
+  openai_responses = function()
+    return require("codecompanion.adapters").extend("openai_responses", {
+      available_tools = {
+        ["web_search"] = {
+          ---@param adapter CodeCompanion.HTTPAdapter
+          enabled = function(adapter)
+            return false
+          end,
+        },
+      },
+    })
+  end,
+})
+```
 
 ### Approvals
 
@@ -387,41 +429,32 @@ require("codecompanion").setup({
 
 CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
 
-There are a number of diff settings available to you:
+Depending on which provider you choose, there are different configuration options available to you:
+
+:::tabs
+
+== Select Provider
 
 ```lua
 require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|split|inline
+      provider = providers.diff, -- inline|split|mini.diff
+    },
+  },
+})
+```
 
+== Inline Provider
+
+```lua
+require("codecompanion").setup({
+  display = {
+    diff = {
       provider_opts = {
-        -- Options for inline diff provider
         inline = {
           layout = "float", -- float|buffer - Where to display the diff
-
-          diff_signs = {
-            signs = {
-              text = "▌", -- Sign text for normal changes
-              reject = "✗", -- Sign text for rejected changes in super_diff
-              highlight_groups = {
-                addition = "DiagnosticOk",
-                deletion = "DiagnosticError",
-                modification = "DiagnosticWarn",
-              },
-            },
-            -- Super Diff options
-            icons = {
-              accepted = " ",
-              rejected = " ",
-            },
-            colors = {
-              accepted = "DiagnosticOk",
-              rejected = "DiagnosticError",
-            },
-          },
-
           opts = {
             context_lines = 3, -- Number of context lines in hunks
             dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
@@ -430,8 +463,19 @@ require("codecompanion").setup({
             show_removed = true, -- Show removed lines as virtual text
           },
         },
+      },
+    },
+  },
+})
+```
 
-        -- Options for the split provider
+== Split Provider
+
+```lua
+require("codecompanion").setup({
+  display = {
+    diff = {
+      provider_opts = {
         split = {
           close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
           layout = "vertical", -- vertical|horizontal split
@@ -450,6 +494,9 @@ require("codecompanion").setup({
   },
 })
 ```
+
+
+:::
 
 You can also customize the window that the diff appears in (taking precedence over `child_window`):
 
@@ -574,7 +621,7 @@ require("codecompanion").setup({
 })
 ```
 
-### Folding
+### Context
 
 It's not uncommon for users to share many items, as context, with an LLM. This can impact the chat buffer's UI significantly, leaving a large space between the LLM's last response and the user's input. To minimize this impact, the context can be folded:
 
@@ -591,7 +638,9 @@ require("codecompanion").setup({
 })
 ```
 
-Reasoning content is also folded by default:
+### Reasoning
+
+An adapter's reasoning is streamed into the chat buffer by default, under a `h3` heading. By default, this output will be folded once streaming has been completed. You can turn off folding and hide reasoning output altogether:
 
 ```lua
 require("codecompanion").setup({
@@ -600,7 +649,8 @@ require("codecompanion").setup({
       icons = {
         chat_fold = " ",
       },
-      fold_reasoning = true,
+      fold_reasoning = false,
+      show_reasoning = false,
     },
   },
 })

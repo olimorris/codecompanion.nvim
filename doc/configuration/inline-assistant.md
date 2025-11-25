@@ -36,7 +36,26 @@ require("codecompanion").setup({
 })
 ```
 
-In this example, `<leader>a` (or `ga` on some keyboards) accepts inline changes, while `gr` rejects them.
+In this example, `ga` accepts inline changes, while `gr` rejects them.
+
+You can also cancel an inline request with:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    inline = {
+      keymaps = {
+        stop = {
+          modes = { n = "q" },
+          index = 4,
+          callback = "keymaps.stop",
+          description = "Stop request",
+        },
+      },
+    },
+  },
+})
+```
 
 ## Variables
 

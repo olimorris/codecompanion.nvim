@@ -182,6 +182,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
   child.lua(string.format(
     [[
     local h = require("tests.helpers")
+
     -- Initialize plugin with test config (h.setup_plugin returns the codecompanion module)
     local cc = h.setup_plugin()
 
@@ -217,7 +218,7 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
 
   h.eq(#messages, 2) -- System prompt + memory
   h.eq(last_message._meta.tag, "memory")
-  h.eq(last_message.context.id, "<memory>" .. tmp .. "</memory>")
+  h.eq(last_message.context.id, "<memory>" .. vim.fs.normalize(tmp) .. "</memory>")
   h.eq(last_message.content, content .. "\n")
 end
 
@@ -276,9 +277,9 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
       if path then
         -- Convert to absolute path for comparison
         local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
-        if abs_path == tmp1 then
+        if abs_path == vim.fs.normalize(tmp1) then
           has_tmp1 = true
-        elseif abs_path == tmp2 then
+        elseif abs_path == vim.fs.normalize(tmp2) then
           has_tmp2 = true
         end
       end

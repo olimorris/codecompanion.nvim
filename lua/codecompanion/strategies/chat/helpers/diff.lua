@@ -133,8 +133,9 @@ end
 ---@param winnr number Window number to set up winbar for
 ---@return nil
 local function place_diff_winbar(winnr)
-  local inline_config = config.display.diff.provider_opts.inline or {}
-  local show_keymap_hints = inline_config.opts and inline_config.opts.show_keymap_hints
+  local provider = config.display.diff.provider
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local show_keymap_hints = provider_config.opts and provider_config.opts.show_keymap_hints
 
   if not show_keymap_hints then
     return
@@ -167,8 +168,9 @@ end
 local function create_diff_floating_window(bufnr, path)
   local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
 
-  local inline_config = config.display.diff.provider_opts.inline or {}
-  local show_dim = inline_config.opts and inline_config.opts.show_dim
+  local provider = config.display.diff.provider
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local show_dim = provider_config.opts and provider_config.opts.show_dim
 
   local filetype = api.nvim_get_option_value("filetype", { buf = bufnr })
   local content = {} -- Dummy content for create_float function
@@ -217,9 +219,10 @@ end
 ---Open buffer or file and return buffer number and window
 ---@param bufnr_or_path number|string
 ---@return number|nil bufnr, number|nil winnr
-local function open_buffer_and_window(bufnr_or_path)
-  local inline_config = config.display.diff.provider_opts.inline
-  local layout = inline_config.layout
+function M.open_buffer_and_window(bufnr_or_path)
+  local provider = config.display.diff.provider
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local layout = provider_config.layout
   local is_path = type(bufnr_or_path) == "string"
   local bufnr
 
@@ -303,7 +306,7 @@ end
 ---Create a diff for a buffer or file and set up keymaps
 ---@param bufnr_or_path number|string The buffer number or file path to create diff for
 ---@param diff_id number|string Unique identifier for this diff
----@param opts? { original_content: string[], set_keymaps: boolean }
+---@param opts? { original_content: string[], set_keymaps?: boolean }
 ---@return table|nil diff The diff object, or nil if no diff was created
 function M.create(bufnr_or_path, diff_id, opts)
   opts = opts or {}
@@ -324,7 +327,7 @@ function M.create(bufnr_or_path, diff_id, opts)
     return nil
   end
 
-  local bufnr, winnr = open_buffer_and_window(bufnr_or_path)
+  local bufnr, winnr = M.open_buffer_and_window(bufnr_or_path)
   if not bufnr then
     log:warn("[catalog::helpers::diff::create] Failed to open buffer/file")
     return nil
@@ -335,8 +338,8 @@ function M.create(bufnr_or_path, diff_id, opts)
     return nil
   end
 
-  local inline_config = config.display.diff.provider_opts.inline
-  local layout = inline_config.layout
+  local provider_config = config.display.diff.provider_opts[provider] or {}
+  local layout = provider_config.layout
 
   local diff_args = {
     bufnr = bufnr,

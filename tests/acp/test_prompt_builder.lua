@@ -310,4 +310,94 @@ T["Prompt Builder"]["Auto-cancels when no handler is registered"] = function()
   h.eq(false, result.has_optionId)
 end
 
+T["Prompt Builder"]["handle_error calls error handler and fires event"] = function()
+  local result = child.lua([[
+    local error_handler_called = false
+    local error_msg = nil
+    local events_fired = {}
+
+    -- Mock utils.fire to capture events BEFORE loading modules
+    package.loaded["codecompanion.utils"] = {
+      fire = function(event, data)
+        table.insert(events_fired, { event = event, data = data })
+      end,
+      capitalize = function(s) return s end,
+    }
+
+    -- Force reload of ACP modules to pick up mocked utils
+    package.loaded["codecompanion.acp.prompt_builder"] = nil
+    package.loaded["codecompanion.acp"] = nil
+
+    local Connection = require("codecompanion.acp")
+
+    local adapter = {
+      handlers = { form_messages = function(_, msgs) return msgs end },
+      defaults = {},
+      commands = { default = "noop" },
+    }
+
+    local connection = Connection.new({ adapter = adapter })
+    connection.session_id = "test-session-4"
+    connection._agent_info = agent_info
+
+    local pb = connection:session_prompt({ { type = "text", text = "test" } })
+      :on_error(function(msg)
+        error_handler_called = true
+        error_msg = msg
+      end)
+      :with_options({ bufnr = 1, strategy = "chat" })
+
+    -- Simulate error - pass error message as string
+    pb:handle_error("LLM provider error: quota exceeded")
+
+    return {
+      error_handler_called = error_handler_called,
+      error_msg = error_msg,
+      event_count = #events_fired,
+      last_event = events_fired[#events_fired],
+    }
+  ]])
+
+  h.eq(result.error_handler_called, true)
+  h.eq(result.error_msg, "LLM provider error: quota exceeded")
+  h.eq(result.event_count, 1)
+  h.eq(result.last_event.event, "RequestFinished")
+  h.eq(result.last_event.data.status, "error")
+  h.eq(result.last_event.data.error, "LLM provider error: quota exceeded")
+end
+
+T["Prompt Builder"]["handle_error accepts error object with message field"] = function()
+  local result = child.lua([[
+    local Connection = require("codecompanion.acp")
+
+    local adapter = {
+      handlers = { form_messages = function(_, msgs) return msgs end },
+      defaults = {},
+      commands = { default = "noop" },
+    }
+
+    local connection = Connection.new({ adapter = adapter })
+    connection.session_id = "test-session-5"
+    connection._agent_info = agent_info
+
+    local captured_msg = nil
+
+    local pb = connection:session_prompt({ { type = "text", text = "test" } })
+      :on_error(function(msg)
+        captured_msg = msg
+      end)
+      :with_options({ silent = true })
+
+    -- Simulate error with error object (backward compatibility)
+    pb:handle_error({
+      code = -32603,
+      message = "LLM provider error: Error code: 429 - account suspended"
+    })
+
+    return captured_msg
+  ]])
+
+  h.eq(result, "LLM provider error: Error code: 429 - account suspended")
+end
+
 return T

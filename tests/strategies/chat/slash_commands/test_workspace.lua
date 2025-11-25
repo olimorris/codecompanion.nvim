@@ -15,7 +15,7 @@ T = new_set({
         h = require('tests.helpers')
         _G.chat, _ = h.setup_chat_buffer()
 
-        _G.wks = require("codecompanion.strategies.chat.slash_commands.workspace").new({
+        _G.wks = require("codecompanion.strategies.chat.slash_commands.catalog.workspace").new({
           Chat = chat,
           context = {},
           opts = {},

@@ -13,7 +13,7 @@ T = new_set({
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
         _G.chat, _G.tools = h.setup_chat_buffer()
-        ]])
+      ]])
     end,
     post_case = function()
       child.lua([[h.teardown_chat_buffer()]])
@@ -116,7 +116,8 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
 end
 
 T["Chat"]["images are replaced in text and base64 encoded"] = function()
-  local prompt = string.format("What does this [Image](%s) do?", vim.fn.getcwd() .. "/tests/stubs/logo.png")
+  local prompt =
+    string.format("What does this [Image](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
   local message = child.lua(string.format(
     [[
       _G.chat:add_buf_message({
@@ -131,10 +132,6 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
   ))
 
   h.eq("What does this image do?", message)
-
-  if vim.fn.executable("base64") == 0 then
-    MiniTest.skip("base64 is not installed, skipping test")
-  end
 
   message = child.lua([[
     local messages = _G.chat.messages
@@ -153,9 +150,9 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
   }, message._meta)
 
   h.eq({
-    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
+    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fs.normalize(vim.fn.getcwd())),
     mimetype = "image/png",
-    path = string.format("%s/tests/stubs/logo.png", vim.fn.getcwd()),
+    path = string.format("%s/tests/stubs/logo.png", vim.fs.normalize(vim.fn.getcwd())),
   }, message.context)
 
   h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
@@ -236,11 +233,11 @@ T["Chat"]["ftplugin window options override plugin defaults"] = function()
     _G.test_temp_dir = temp_dir
     _G.test_ftplugin_path = ftplugin_path
 
-    -- Setup codecompanion
-    codecompanion = require("codecompanion")
-    codecompanion.setup()
+    h = require('tests.helpers')
 
-    -- Open a new chat
+    -- Setup codecompanion
+    local codecompanion = h.setup_plugin()
+    codecompanion.setup()
     codecompanion.chat()
 
     -- Manually source the ftplugin file to simulate user's after/ftplugin

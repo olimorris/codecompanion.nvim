@@ -34,7 +34,12 @@ end
 ---@param bufnr number
 ---@return table
 function M.name_from_bufnr(bufnr)
-  return vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
+  local bufname = api.nvim_buf_get_name(bufnr)
+  if vim.fn.has("win32") == 1 then
+    -- On Windows, slashes need to be consistent with getcwd, which uses backslashes
+    bufname = bufname:gsub("/", "\\")
+  end
+  return vim.fn.fnamemodify(bufname, ":.")
 end
 
 ---Get the information of a given buffer
@@ -46,7 +51,7 @@ function M.get_info(bufnr)
 
   return {
     bufnr = bufnr,
-    filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+    filetype = api.nvim_get_option_value("filetype", { buf = bufnr }),
     number = bufnr,
     name = vim.fn.fnamemodify(bufname, ":t"),
     path = bufname,

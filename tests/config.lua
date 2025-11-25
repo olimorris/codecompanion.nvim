@@ -70,6 +70,9 @@ return {
       },
     },
   },
+  interactions = {
+    background = {},
+  },
   strategies = {
     chat = {
       adapter = "test_adapter",
@@ -91,16 +94,28 @@ return {
           callback = "strategies.chat.tools.catalog.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
+        ["memory"] = {
+          callback = "strategies.chat.tools.catalog.memory",
+          description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+        },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Insert code into an existing file",
+          description = "Robustly edit files with multiple automatic fallback strategies",
           opts = {
-            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
+            requires_approval = {
+              buffer = false,
+              file = false,
+            },
+            user_confirmation = false,
           },
         },
         ["create_file"] = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
+        },
+        ["delete_file"] = {
+          callback = "strategies.chat.tools.catalog.delete_file",
+          description = "Delete a file in the current working directory",
         },
         ["fetch_webpage"] = {
           callback = "strategies.chat.tools.catalog.fetch_webpage",
@@ -109,8 +124,8 @@ return {
             adapter = "jina",
           },
         },
-        ["search_web"] = {
-          callback = "strategies.chat.tools.catalog.search_web",
+        ["web_search"] = {
+          callback = "strategies.chat.tools.catalog.web_search",
           description = "Searches the web for a given query",
           opts = {
             adapter = "tavily",
@@ -314,7 +329,7 @@ return {
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.catalog.buffer",
           description = "Insert open buffers",
           keymaps = {
             modes = {
@@ -328,7 +343,7 @@ return {
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.catalog.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina|tavily
@@ -337,7 +352,7 @@ return {
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.file",
+          callback = "strategies.chat.slash_commands.catalog.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -354,6 +369,7 @@ return {
     },
     inline = {
       adapter = "test_adapter",
+      keymaps = og_config.strategies.inline.keymaps,
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

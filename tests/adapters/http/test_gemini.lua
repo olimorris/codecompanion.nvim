@@ -106,6 +106,76 @@ T["Gemini adapter"]["Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["Gemini adapter"]["Streaming"]["can preserve thought signatures in tool calls"] = function()
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_tools_thought_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.chat_output(adapter, line, tools)
+  end
+
+  local tool_output = {
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"query":"README.md"}',
+        name = "file_search",
+      },
+      id = "function-call-13802169321809035407",
+      type = "function",
+      extra_content = {
+        google = {
+          thought_signature = "Eo123",
+        },
+      },
+    },
+  }
+
+  h.eq(tool_output, tools)
+end
+
+T["Gemini adapter"]["Streaming"]["can send thought signatures back in messages"] = function()
+  local messages = {
+    {
+      content = "Search for README.md",
+      role = "user",
+    },
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            id = "function-call-13802169321809035407",
+            type = "function",
+            ["function"] = {
+              name = "file_search",
+              arguments = '{"query":"README.md"}',
+            },
+            extra_content = {
+              google = {
+                thought_signature = "Eo123",
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      role = "user",
+      tools = {
+        call_id = "function-call-13802169321809035407",
+      },
+      content = '{"file":"README.md","contents":"..."}',
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages)
+
+  -- Verify the thought signature is preserved in the tool_calls
+  local assistant_message = output.messages[2]
+  h.eq("Eo123", assistant_message.tool_calls[1].extra_content.google.thought_signature)
+end
+
 T["Gemini adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()

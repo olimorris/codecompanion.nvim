@@ -98,7 +98,7 @@ function Variables:output()
 
     do
       local err
-      module, err = loadfile(callback)
+      module, err = loadfile(vim.fs.normalize(callback))
       if err then
         log:error("[Variables] %s could not be resolved", var)
         goto skip

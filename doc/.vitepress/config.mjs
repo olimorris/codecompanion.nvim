@@ -1,5 +1,6 @@
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { defineConfig } from "vitepress";
+import { tabsMarkdownPlugin } from "vitepress-plugin-tabs";
 import { execSync } from "node:child_process";
 import { withMermaid } from "vitepress-plugin-mermaid";
 
@@ -74,6 +75,11 @@ const headers = inProd ? [...baseHeaders, umamiScript] : baseHeaders;
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
   defineConfig({
+    markdown: {
+      config(md) {
+        md.use(tabsMarkdownPlugin);
+      },
+    },
     mermaid: {
       securityLevel: "loose", // Allows more flexibility
       theme: "base", // Use base theme to allow CSS variables to take effect
@@ -113,6 +119,7 @@ export default withMermaid(
           collapsed: true,
           items: [
             { text: "Action Palette", link: "/configuration/action-palette" },
+            { text: "ACP", link: "/configuration/acp" },
             { text: "Adapters", link: "/configuration/adapters" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
             { text: "Extensions", link: "/configuration/extensions" },
@@ -131,6 +138,7 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: "Introduction", link: "/usage/introduction" },
+            { text: "ACP Protocol", link: "/usage/acp-protocol" },
             { text: "Action Palette", link: "/usage/action-palette" },
             {
               text: "Chat Buffer",

@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2025 October 22
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -23,6 +23,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - List of Commands          |codecompanion-getting-started-list-of-commands|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Configuration                                 |codecompanion-configuration|
+  - Agent Client Protocol (ACP)|codecompanion-configuration-agent-client-protocol-(acp)|
   - Action Palette                |codecompanion-configuration-action-palette|
   - Adapters                            |codecompanion-configuration-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
@@ -34,6 +35,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Other Options                  |codecompanion-configuration-other-options|
 5. Usage                                                 |codecompanion-usage|
   - General                                      |codecompanion-usage-general|
+  - ACP Protocol Reference        |codecompanion-usage-acp-protocol-reference|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
@@ -67,7 +69,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview> and Gemini CLI <https://github.com/google-gemini/gemini-cli>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli> and opencode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -120,7 +122,7 @@ REQUIREMENTS                         *codecompanion-installation-requirements*
 - The `curl` library
 - Neovim 0.11.0 or greater
 - `(Optional)` An API key for your chosen LLM
-- `(Optional)` The `base64` library for image/vision support
+- `(Optional)` The file <https://man7.org/linux/man-pages/man1/file.1.html> command for detecting image mimetype
 - `(Optional)` The ripgrep <https://github.com/BurntSushi/ripgrep> library for the `grep_search` tool
 
 
@@ -626,6 +628,199 @@ For an optimum plugin workflow, I recommend the following:
 4. Configuration                                 *codecompanion-configuration*
 
 
+AGENT CLIENT PROTOCOL (ACP)*codecompanion-configuration-agent-client-protocol-(acp)*
+
+This section contains configuration which is specific to ACP adapters only.
+There is a lot of shared functionality between ACP and
+|codecompanion-configuration-adapters| adapters. Therefore it’s recommended
+you read the two pages together.
+
+
+SETUP: AUGGIE CLI FROM AUGMENT CODE ~
+
+To use Auggie CLI <https://docs.augmentcode.com/cli/overview> within
+CodeCompanion, you simply need to follow their Getting Started
+<https://docs.augmentcode.com/cli/overview#getting-started> guide.
+
+
+SETUP: CAGENT ~
+
+To use Docker’s Cagent <https://github.com/docker/cagent> within
+CodeCompanion, you need to follow these steps:
+
+1. Install <https://github.com/docker/cagent?tab=readme-ov-file#installation> Cagent as per their instructions
+2. Create an agent <https://github.com/docker/cagent?tab=readme-ov-file#run-agents> in the repository you’re working from
+3. Test the agent by running `cagent run your_agent.yaml` in the CLI
+4. In your CodeCompanion config, extend the `cagent` adapter to include the agent:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          cagent = function()
+            return require("codecompanion.adapters").extend("cagent", {
+              commands = {
+                default = {
+                  "cagent",
+                  "acp",
+                  "your_agent.yaml",
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+If you have multiple agent files that you like to run separately, you can
+create multiple commands for each agent.
+
+
+SETUP: CLAUDE CODE ~
+
+To use Claude Code <https://www.anthropic.com/claude-code> within
+CodeCompanion, you’ll need to take the following steps:
+
+1. Install <https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code> Claude Code
+2. Install <https://github.com/zed-industries/claude-code-acp> the Zed ACP adapter for Claude Code
+
+
+CLAUDE PRO SUBSCRIPTION
+
+1. In your CLI, run `claude setup-token`. You’ll be redirected to the Claude.ai website for authorization:
+
+2. Back in your CLI, copy the OAuth token (in yellow):
+
+3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on |codecompanion-configuration-adapters-environment-variables-setting-an-api-key| for other ways to do this):
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              env = {
+                CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+AN API KEY
+
+1. Create <https://console.anthropic.com/settings/keys> an API key in your Anthropic console.
+2. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              env = {
+                ANTHROPIC_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: CODEX ~
+
+To use OpenAI’s Codex <https://openai.com/codex/>, install an ACP-compatible
+adapter like this <https://github.com/zed-industries/codex-acp> one from Zed
+<https://zed.dev>.
+
+By default, the adapter will look for an `OPENAI_API_KEY` in your shell,
+however you can also authenticate via ChatGPT. This can be customized in the
+plugin configuration:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          codex = function()
+            return require("codecompanion.adapters").extend("codex", {
+              defaults = {
+                auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+              },
+              env = {
+                OPENAI_API_KEY = "my-api-key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: GEMINI CLI ~
+
+1. Install Gemini CLI <https://github.com/google-gemini/gemini-cli>
+2. Update your CodeCompanion config and select which authentication methods you’d like to use. Currently there are:- `oauth-personal` which uses your Google login
+- `gemini-api-key`
+- `vertex-ai`)
+
+
+
+The example below uses the `gemini-api-key` method, pulling the API key from
+1Password CLI <https://developer.1password.com/docs/cli/get-started/>:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              defaults = {
+                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+              },
+              env = {
+                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+SETUP: GOOSE CLI ~
+
+To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you’ve
+followed their documentation
+<https://block.github.io/goose/docs/getting-started/installation/> to setup and
+install Goose CLI. Then ensure that in your chat buffer you select the `goose`
+adapter.
+
+
+SETUP: KIMI CLI ~
+
+Install Kimi CLI
+<https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation> as per
+their instructions. Then in the CLI, run `kimi` followed by `/setup` to
+configure your API key. Then ensure that in your chat buffer you select the
+`kimi_cli` adapter.
+
+
+SETUP: OPENCODE ~
+
+To use opencode <https://opencode.ai> in CodeCompanion, ensure you’ve
+followed their documentation to install <https://opencode.ai/docs/#install> and
+configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
+chat buffer you select the `opencode` adapter.
+
+
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
 
 The Action Palette holds plugin specific items like the ability to launch a
@@ -675,15 +870,17 @@ interface that allows data to be sent, received and processed. There are a
 multitude of ways to customize them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which
-connect you to an LLM and **ACP** adapters which leverage the Agent Client
-Protocol <https://agentclientprotocol.com> to connect you to an agent.
+connect you to an LLM and |codecompanion-configuration-acp| adapters which
+leverage the Agent Client Protocol <https://agentclientprotocol.com> to connect
+you to an agent.
 
 The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
 `commands` to allow users to customize their interaction with agents (e.g.�
-enabling `yolo` mode).
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -707,9 +904,23 @@ You can change the default adapter for each strategy as follows:
 <
 
 
-SETTING AN API KEY ~
+ENVIRONMENT VARIABLES / SETTING AN API KEY ~
 
-Extend a base adapter to set options like `api_key` or `model`:
+Setting environment variables within adapters is a key part of configuration.
+The adapter `env` table lets you define values that will be interpolated into
+the adapter’s URL, headers, parameters and other fields at runtime.
+
+Supported `env` value types: - **Plain environment variable name (string)**: if
+the value is the name of an environment variable that has already been set
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
+be executed via the shell. Example: `"cmd:op read
+op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
+a Lua function which returns a string and will be called with the adapter as
+its sole argument. - **Schema reference (dot notation)**: you can reference
+values from the adapter table (for example `"schema.model.default"`).
+
+Below are some examples showing this in practice:
 
 >lua
     require("codecompanion").setup({
@@ -750,23 +961,6 @@ If you do not want to store secrets in plain text, prefix commands with `cmd:`:
   API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 
-ENVIRONMENT VARIABLES ~
-
-Setting environment variables within adapters is a key part of configuration.
-The adapter `env` table lets you define values that will be interpolated into
-the adapter’s URL, headers, parameters and other fields at runtime.
-
-Supported `env` value types: - **Plain environment variable name (string)**: if
-the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
-**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
-be executed via the shell. Example: `"cmd:op read
-op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
-a Lua function which returns a string and will be called with the adapter as
-its sole argument. - **Schema reference (dot notation)**: you can reference
-values from the adapter table (for example `"schema.model.default"`).
-
-
 CHANGING A MODEL ~
 
 To more easily change a model for a HTTP adapter, you can pass in the `name`
@@ -791,51 +985,19 @@ To change the default model on an adapter you can modify the
 >lua
     require("codecompanion").setup({
       adapters = {
-        openai = function()
-          return require("codecompanion.adapters").extend("openai", {
-            schema = {
-              model = {
-                default = "gpt-4.1",
-              },
-            },
-          })
-        end,
-      },
-    }),
-<
-
-
-CHANGING AUTH METHOD OF AN ACP ADAPTER ~
-
-
-  [!NOTE] The auth methods for each ACP adapter are output in the
-  |codecompanion-configuration-others-log-level| when the `log_level` is set to
-  `DEBUG`.
-It’s important to note that each agent adapter handles authentication
-differently. CodeCompanion endeavours to share the available options in the
-agent’s adapter as a comment. However, it’s recommended to consult the
-documentation of the agent you’re working with.
-
-An example of changing the Gemini CLI’s auth method to use the API key and a
-1Password vault:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              defaults = {
-                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
-              },
-              env = {
-                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+        http = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai", {
+              schema = {
+                model = {
+                  default = "gpt-4.1",
+                },
               },
             })
           end,
         },
       },
-    })
+    }),
 <
 
 
@@ -919,8 +1081,8 @@ Custom adapters can be added to the plugin as follows:
 
 >lua
     require("codecompanion").setup({
-      http = {
-        adapters = {
+      adapters = {
+        http = {
           my_custom_adapter = function()
             return {} -- My adapter logic
           end,
@@ -937,9 +1099,11 @@ A proxy can be configured by utilising the `adapters.opts` table in the config:
 >lua
     require("codecompanion").setup({
       adapters = {
-        opts = {
-          allow_insecure = true,
-          proxy = "socks5://127.0.0.1:9999",
+        http = {
+          opts = {
+            allow_insecure = true,
+            proxy = "socks5://127.0.0.1:9999",
+          },
         },
       },
     }),
@@ -953,6 +1117,7 @@ Thanks to the community for building the following adapters:
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
 - OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
+- DashScope <https://github.com/olimorris/codecompanion.nvim/discussions/2239>
 
 The section of the discussion forums which is dedicated to user created
 adapters can be found here
@@ -997,10 +1162,12 @@ selection UI), you can set the `show_model_choices` option to `false`:
 >lua
     require("codecompanion").setup({
       adapters = {
-        opts = {
-          show_model_choices = false,
+        http = {
+          -- Define your custom adapters here
+          opts = {
+            show_model_choices = false,
+          },
         },
-        -- Define your custom adapters here
       },
     })
 <
@@ -1034,13 +1201,15 @@ and it can be configured as with any other adapter:
 >lua
     require("codecompanion").setup({
       adapters = {
-        openai_responses = function()
-          return require("codecompanion.adapters").extend("openai_responses", {
-            env = {
-              api_key = "OPENAI_API_KEY",
-            },
-          })
-        end,
+        http = {
+          openai_responses = function()
+            return require("codecompanion.adapters").extend("openai_responses", {
+              env = {
+                api_key = "OPENAI_API_KEY",
+              },
+            })
+          end,
+        },
       },
     },
 <
@@ -1052,62 +1221,6 @@ via the API. This is standard behaviour across all http adapters within the
 plugin.
 
 
-SETUP: CLAUDE CODE VIA ACP ~
-
-To use Claude Code <https://www.anthropic.com/claude-code> within
-CodeCompanion, you’ll need to take the following steps:
-
-1. Install <https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code> Claude Code
-2. Install <https://github.com/zed-industries/claude-code-acp> the Zed ACP adapter for Claude Code
-
-
-CLAUDE PRO SUBSCRIPTION
-
-1. In your CLI, run `claude setup-token`. You’ll be redirected to the Claude.ai website for authorization:
-
-2. Back in your CLI, copy the OAuth token (in yellow):
-
-3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on |codecompanion--environment-variables| for other ways to do this):
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          claude_code = function()
-            return require("codecompanion.adapters").extend("claude_code", {
-              env = {
-                CLAUDE_CODE_OAUTH_TOKEN = "my-oauth-token",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
-AN API KEY
-
-1. Create <https://console.anthropic.com/settings/keys> an API key in your Anthropic console.
-2. In your CodeCompanion config, extend the `claude_code` adapter and set the `ANTHROPIC_API_KEY`:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          claude_code = function()
-            return require("codecompanion.adapters").extend("claude_code", {
-              env = {
-                ANTHROPIC_API_KEY = "my-api-key",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
 SETUP: USING OLLAMA REMOTELY ~
 
 To use Ollama remotely, change the URL in the env table, set an API key and
@@ -1116,21 +1229,23 @@ pass it via an "Authorization" header:
 >lua
     require("codecompanion").setup({
       adapters = {
-        ollama = function()
-          return require("codecompanion.adapters").extend("ollama", {
-            env = {
-              url = "https://my_ollama_url",
-              api_key = "OLLAMA_API_KEY",
-            },
-            headers = {
-              ["Content-Type"] = "application/json",
-              ["Authorization"] = "Bearer ${api_key}",
-            },
-            parameters = {
-              sync = true,
-            },
-          })
-        end,
+        http = {
+          ollama = function()
+            return require("codecompanion.adapters").extend("ollama", {
+              env = {
+                url = "https://my_ollama_url",
+                api_key = "OLLAMA_API_KEY",
+              },
+              headers = {
+                ["Content-Type"] = "application/json",
+                ["Authorization"] = "Bearer ${api_key}",
+              },
+              parameters = {
+                sync = true,
+              },
+            })
+          end,
+        },
       },
     })
 <
@@ -1144,19 +1259,21 @@ the plugin:
 >lua
     require("codecompanion").setup({
       adapters = {
-        azure_openai = function()
-          return require("codecompanion.adapters").extend("azure_openai", {
-            env = {
-              api_key = "YOUR_AZURE_OPENAI_API_KEY",
-              endpoint = "YOUR_AZURE_OPENAI_ENDPOINT",
-            },
-            schema = {
-              model = {
-                default = "YOUR_DEPLOYMENT_NAME",
+        http = {
+          azure_openai = function()
+            return require("codecompanion.adapters").extend("azure_openai", {
+              env = {
+                api_key = "YOUR_AZURE_OPENAI_API_KEY",
+                endpoint = "YOUR_AZURE_OPENAI_ENDPOINT",
               },
-            },
-          })
-        end,
+              schema = {
+                model = {
+                  default = "YOUR_DEPLOYMENT_NAME",
+                },
+              },
+            })
+          end,
+        },
       },
       strategies = {
         chat = {
@@ -1167,6 +1284,88 @@ the plugin:
         },
       },
     }),
+<
+
+
+SETUP: OPENROUTER WITH REASONING OUTPUT ~
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          openrouter = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              env = {
+                url = "https://openrouter.ai/api",
+                api_key = "OPENROUTER_API_KEY",
+                chat_url = "/v1/chat/completions",
+              },
+              handlers = {
+                parse_message_meta = function(self, data)
+                  local extra = data.extra
+                  if extra and extra.reasoning then
+                    data.output.reasoning = { content = extra.reasoning }
+                    if data.output.content == "" then
+                      data.output.content = nil
+                    end
+                  end
+                  return data
+                end,
+              },
+            })
+          end,
+        },
+      },
+      strategies = {
+        chat = {
+          adapter = "openrouter",
+        },
+        inline = {
+          adapter = "openrouter",
+        },
+      },
+    })
+<
+
+
+SETUP: LLAMA.CPP WITH --REASONING-FORMAT DEEPSEEK ~
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          ["llama.cpp"] = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              env = {
+                url = "http://127.0.0.1:8080", -- replace with your llama.cpp instance
+                api_key = "TERM",
+                chat_url = "/v1/chat/completions",
+              },
+              handlers = {
+                parse_message_meta = function(self, data)
+                  local extra = data.extra
+                  if extra and extra.reasoning_content then
+                    data.output.reasoning = { content = extra.reasoning_content }
+                    if data.output.content == "" then
+                      data.output.content = nil
+                    end
+                  end
+                  return data
+                end,
+              },
+            })
+          end,
+        },
+      },
+      strategies = {
+        chat = {
+          adapter = "llama.cpp",
+        },
+        inline = {
+          adapter = "llama.cpp",
+        },
+      },
+    })
 <
 
 
@@ -1310,6 +1509,29 @@ You can configure Slash Commands with:
     })
 <
 
+It’s also possible to conditionally enable a slash command by including
+`enabled` in the config:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          slash_commands = {
+            ["image"] = {
+              callback = "strategies.chat.slash_commands.catalog.image",
+              description = "Insert an image",
+              ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+              ---@return boolean
+              enabled = function(opts)
+                return opts.adapter.opts and opts.adapter.opts.vision == true
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
 
   [!IMPORTANT] Each slash command may have their own unique configuration so be
   sure to check out the config.lua
@@ -1425,7 +1647,7 @@ function or a string that points to a luafile that return the table.
 
 TOOL CONDITIONALS
 
-Tools can also be conditionally enabled:
+Built-in tools can also be conditionally enabled:
 
 >lua
     require("codecompanion").setup({
@@ -1433,8 +1655,9 @@ Tools can also be conditionally enabled:
         chat = {
           tools = {
             ["grep_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
               ---@return boolean
-              enabled = function()
+              enabled = function(adapter)
                 return vim.fn.executable("rg") == 1
               end,
             },
@@ -1447,6 +1670,26 @@ Tools can also be conditionally enabled:
 This is useful to ensure that a particular dependency is installed on the
 machine. After the user has installed the dependency, the `:CodeCompanionChat
 RefreshCache` command can be used to refresh the cache’s across chat buffers.
+
+If you wish to conditionally enable an adapter’s own tools, you can do so
+with:
+
+>lua
+    require("codecompanion").setup({
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          available_tools = {
+            ["web_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
+              enabled = function(adapter)
+                return false
+              end,
+            },
+          },
+        })
+      end,
+    })
+<
 
 
 APPROVALS
@@ -1623,69 +1866,9 @@ utilize the `insert_edit_into_file` tool, then the plugin can update files and
 buffers and a diff will be created so you can see the changes made by the LLM.
 The `inline` is the default diff.
 
-There are a number of diff settings available to you:
+Depending on which provider you choose, there are different configuration
+options available to you:
 
->lua
-    require("codecompanion").setup({
-      display = {
-        diff = {
-          enabled = true,
-          provider = providers.diff, -- mini_diff|split|inline
-    
-          provider_opts = {
-            -- Options for inline diff provider
-            inline = {
-              layout = "float", -- float|buffer - Where to display the diff
-    
-              diff_signs = {
-                signs = {
-                  text = "▌", -- Sign text for normal changes
-                  reject = "✗", -- Sign text for rejected changes in super_diff
-                  highlight_groups = {
-                    addition = "DiagnosticOk",
-                    deletion = "DiagnosticError",
-                    modification = "DiagnosticWarn",
-                  },
-                },
-                -- Super Diff options
-                icons = {
-                  accepted = " ",
-                  rejected = " ",
-                },
-                colors = {
-                  accepted = "DiagnosticOk",
-                  rejected = "DiagnosticError",
-                },
-              },
-    
-              opts = {
-                context_lines = 3, -- Number of context lines in hunks
-                dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-                full_width_removed = true, -- Make removed lines span full width
-                show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-                show_removed = true, -- Show removed lines as virtual text
-              },
-            },
-    
-            -- Options for the split provider
-            split = {
-              close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-              layout = "vertical", -- vertical|horizontal split
-              opts = {
-                "internal",
-                "filler",
-                "closeoff",
-                "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-                "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-                "followwrap",
-                "linematch:120",
-              },
-            },
-          },
-        },
-      },
-    })
-<
 
 You can also customize the window that the diff appears in (taking precedence
 over `child_window`):
@@ -1826,7 +2009,7 @@ can disable this behavior using a flag:
 <
 
 
-FOLDING
+CONTEXT
 
 It’s not uncommon for users to share many items, as context, with an LLM.
 This can impact the chat buffer’s UI significantly, leaving a large space
@@ -1846,7 +2029,12 @@ impact, the context can be folded:
     })
 <
 
-Reasoning content is also folded by default:
+
+REASONING
+
+An adapter’s reasoning is streamed into the chat buffer by default, under a
+`h3` heading. By default, this output will be folded once streaming has been
+completed. You can turn off folding and hide reasoning output altogether:
 
 >lua
     require("codecompanion").setup({
@@ -1855,7 +2043,8 @@ Reasoning content is also folded by default:
           icons = {
             chat_fold = " ",
           },
-          fold_reasoning = true,
+          fold_reasoning = false,
+          show_reasoning = false,
         },
       },
     })
@@ -1964,8 +2153,26 @@ The inline assistant supports keymaps for accepting or rejecting changes:
     })
 <
 
-In this example, `<leader>a` (or `ga` on some keyboards) accepts inline
-changes, while `gr` rejects them.
+In this example, `ga` accepts inline changes, while `gr` rejects them.
+
+You can also cancel an inline request with:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        inline = {
+          keymaps = {
+            stop = {
+              modes = { n = "q" },
+              index = 4,
+              callback = "keymaps.stop",
+              description = "Stop request",
+            },
+          },
+        },
+      },
+    })
+<
 
 
 VARIABLES ~
@@ -2372,7 +2579,6 @@ The plugin comes with the following system prompt:
     Follow the user's requirements carefully and to the letter.
     Use the context and attachments the user provides.
     Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
-    All non-code text responses must be written in the ${language} language.
     Use Markdown formatting in your answers.
     Do not use H1 or H2 markdown headers.
     When suggesting code changes or new content, use Markdown code blocks.
@@ -2403,6 +2609,7 @@ The plugin comes with the following system prompt:
     3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
     
     Additional context:
+    All non-code text responses must be written in the ${language} language.
     The current date is ${date}.
     The user's Neovim version is ${version}.
     The user is working on a ${os} machine. Please respond with system specific commands if applicable.
@@ -2472,25 +2679,47 @@ The chat system prompt can be changed with:
 <
 
 Alternatively, the system prompt can be a function. The `opts` parameter
-contains the default adapter for the chat strategy (`opts.adapter`) alongside
-the language (`opts.language`) that the LLM should respond with:
+contains several pieces of information related to the chat, which you can use
+to build the system prompt:
 
 >lua
-    require("codecompanion").setup({
-      opts = {
-        ---@param opts { adapter: CodeCompanion.HTTPAdapter, language: string }
-        ---@return string
-        system_prompt = function(opts)
-          local machine = vim.uv.os_uname().sysname
-          if machine == "Darwin" then
-            machine = "Mac"
-          end
-          if machine:find("Windows") then
-            machine = "Windows"
-          end
+    ---@class CodeCompanion.SystemPrompt.Context
+    ---@field language string
+    ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+    ---@field date string
+    ---@field nvim_version string
+    ---@field os string the operating system that the user is using
+    ---@field default_system_prompt string
+    ---@field cwd string current working directory
+    ---The closest parent directory that contains one of the following VCS markers:
+    --- - `.git`
+    --- - `.svn`
+    --- - `.hg`
+    ---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
     
-          return string.format("I'm working on my %s machine", machine)
-        end,
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          opts = {
+            ---@param ctx CodeCompanion.SystemPrompt.Context
+            ---@return string
+            system_prompt = function(ctx)
+              return ctx.default_system_prompt
+                .. fmt(
+                  [[Additional context:
+    All non-code text responses must be written in the %s language.
+    The current date is %s.
+    The user's Neovim version is %s.
+    The user is working on a %s machine. Please respond with system specific commands if applicable.
+    ]],
+                  ctx.language,
+                  ctx.date,
+                  ctx.nvim_version,
+                  ctx.os
+                )
+            end,
+          },
+        },
       },
     })
 <
@@ -2711,6 +2940,228 @@ buffer.
 
 When in a chat buffer, you can cycle between other chat buffers with `{` or
 `}`.
+
+
+ACP PROTOCOL REFERENCE            *codecompanion-usage-acp-protocol-reference*
+
+CodeCompanion implements the Agent Client Protocol (ACP)
+<https://agentclientprotocol.com/> to enable you to work with coding agents
+from within Neovim. ACP is an open standard that enables structured interaction
+between clients (like CodeCompanion) and AI agents, providing capabilities such
+as session management, file system operations, tool execution, and permission
+handling.
+
+This page provides a technical reference for what’s supported in
+CodeCompanion and how it’s been implemented.
+
+
+PROTOCOL SUPPORT ~
+
+CodeCompanion provides comprehensive support for the ACP specification:
+
+  ------------------------------------------------------------------------
+  Feature Category               Support Level             Details
+  ------------------------------ ------------------------- ---------------
+  Core Protocol                  ✅ Full                   JSON-RPC 2.0,
+                                                           streaming
+                                                           responses,
+                                                           message
+                                                           buffering
+
+  Session Management             ✅ Full                   Create, load,
+                                                           and persist
+                                                           sessions with
+                                                           state tracking
+
+  Authentication                 ✅ Full                   Multiple auth
+                                                           methods,
+                                                           adapter-level
+                                                           hooks
+
+  File System                    ✅ Full                   Read/write text
+                                                           files with line
+                                                           ranges
+
+  Permissions                    ✅ Full                   Interactive UI
+                                                           with diff
+                                                           preview for
+                                                           tool approval
+
+  Content Types                  ✅ Full                   Text, images,
+                                                           embedded
+                                                           resources
+
+  Tool Calls                     ✅ Full                   Content blocks,
+                                                           file diffs,
+                                                           status updates
+
+  Session Modes                  ✅ Full                   Mode switching
+                                                           and state
+                                                           management
+
+  MCP Integration                ✅ Full                   Stdio, HTTP,
+                                                           and SSE
+                                                           transports
+
+  Agent Plans                    ❌                        Visual display
+                                                           of an agent’s
+                                                           execution plan
+
+  Terminal Operations            ❌                        Terminal
+                                                           capabilities
+                                                           not implemented
+  ------------------------------------------------------------------------
+
+SUPPORTED ADAPTERS
+
+  -----------------------------------------------------------------------
+  Adapter         Description             Special Features
+  --------------- ----------------------- -------------------------------
+  Claude Code     Anthropic’s Claude Code OAuth authentication, tool
+                  CLI                     output trimming
+
+  Gemini CLI      Google’s Gemini CLI     Multiple auth methods (OAuth,
+                                          API key, Vertex AI), YOLO mode
+
+  Auggie CLI      Augment Code CLI        Standard ACP support
+
+  Codex           OpenAI Codex            Full ACP implementation
+  -----------------------------------------------------------------------
+
+CLIENT CAPABILITIES
+
+CodeCompanion advertises the following capabilities to ACP agents:
+
+>lua
+    {
+      fs = {
+        readTextFile = true,   -- Read files with optional line ranges
+        writeTextFile = true   -- Write/create files
+      },
+      terminal = false         -- Terminal operations not supported
+    }
+<
+
+
+CONTENT SUPPORT
+
+  Content Type         Send to Agent   Receive from Agent
+  -------------------- --------------- --------------------
+  Text                 ✅              ✅
+  Images               ✅              ✅
+  Embedded Resources   ✅              ✅
+  Audio                ❌              ❌
+  File Diffs           N/A             ✅
+
+SESSION UPDATES HANDLED
+
+CodeCompanion processes the following session update types:
+
+- **Message chunks**: Streamed text from agent responses
+- **Thought chunks**: Agent reasoning displayed separately
+- **Tool calls**: Full execution lifecycle with status tracking
+- **Mode changes**: Automatic UI updates when modes switch
+- **Available commands**: Dynamic command registration for completion
+
+
+IMPLEMENTATION NOTES ~
+
+
+MESSAGE BUFFERING
+
+JSON-RPC message boundaries don’t always align with I/O boundaries.
+CodeCompanion buffers stdout from the agent process and extracts complete
+JSON-RPC messages line-by-line, ensuring robust parsing even with partial
+reads.
+
+
+STATE MANAGEMENT
+
+Unlike HTTP adapters which are stateless (sending the full conversation history
+with each request), ACP adapters are stateful. The agent maintains the
+conversation context, so CodeCompanion only sends new messages with each
+prompt. Session IDs are tracked throughout the conversation lifecycle.
+
+
+TOOL CALL CACHING
+
+Tool call state is maintained in memory to support permission requests. When an
+agent requests permission for a tool call, the cached details enable features
+like the diff preview UI for file edits.
+
+
+FILE CONTEXT HANDLING
+
+When sending files as embedded resources to agents, CodeCompanion re-reads the
+file content rather than using the chat buffer representation. This avoids
+HTTP-style `<attachment>` tags that are used for LLM adapters but don’t make
+sense for ACP agents.
+
+
+SLASH COMMANDS
+
+ACP agents can advertise their own slash commands dynamically. You can access
+them with `\command` in the chat buffer. CodeCompanion transforms this to
+`/command` before sending your prompt to the agent.
+
+
+GRACEFUL DEGRADATION
+
+CodeCompanion checks an agent’s capabilities during initialization and
+gracefully falls back to supported content types. For example, if an agent
+doesn’t support embedded context, files are sent as plain text instead.
+
+
+CLEANUP AND LIFECYCLE
+
+CodeCompanion ensures clean disconnection from ACP agents by hooking into
+Neovim’s `VimLeavePre` autocmd. This guarantees that agent processes are
+properly terminated even if Neovim exits unexpectedly.
+
+
+KEY FEATURES ~
+
+- **Streaming**: Real-time response streaming with chunk-by-chunk rendering
+- **Permission System**: Interactive approval for file operations with diff preview
+- **Session Persistence**: Resume previous conversations across Neovim sessions
+- **Mode Management**: Switch between agent modes (e.g. ask, architect, code)
+- **MCP Servers**: Connect agents to external tools via the Model Context Protocol
+- **Slash Command Completion**: Auto-complete agent-specific commands with `\command` syntax
+- **Error Handling**: Comprehensive error messages and graceful degradation
+
+
+PROTOCOL VERSION ~
+
+CodeCompanion currently implements **ACP Protocol Version 1**.
+
+The protocol version is negotiated during initialization. If an agent selects a
+different version, CodeCompanion will log a warning but continue to operate,
+following the agent’s selected version.
+
+
+KNOWN LIMITATIONS ~
+
+- **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
+    `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
+    doesn’t advertise terminal capabilities to agents.
+- **Agent Plan Rendering**: Plan
+    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+    received and logged, but they’re not currently rendered in the chat buffer
+    UI.
+- **Cancellation**: The `session/cancel` notification isn’t currently sent by
+    the client, though CodeCompanion properly handles cancelled states when agents
+    report them.
+- **Model Selection**: The `session/set_model` method isn’t implemented, as
+    this feature is currently marked as unstable in the ACP specification.
+- **Audio Content**: Audio content blocks aren’t sent in prompts, despite
+    capability detection.
+
+
+SEE ALSO ~
+
+- |codecompanion-configuration-acp| - Setup instructions for specific agents
+- |codecompanion-usage-chat-buffer-agents| - How to interact with agents in chat
+- Agent Client Protocol Specification <https://agentclientprotocol.com/> - Official ACP documentation
 
 
 ACTION PALETTE                            *codecompanion-usage-action-palette*
@@ -2968,9 +3419,10 @@ To disable a keymap, you can set it to `false` in your configuration:
 
 AGENTS                                            *codecompanion-usage-agents*
 
-CodeCompanion enables you to work with agents such as Gemini
-<https://github.com/google-gemini/gemini-cli> by leveraging the Agent Client
-Protocol <https://agentclientprotocol.com>.
+CodeCompanion implements the Agent Client Protocol
+<https://agentclientprotocol.com> to enable you to work with coding agents from
+within Neovim. Please refer to the |codecompanion-configuration-acp| if
+you’ve not setup an ACP adapter.
 
 
 GETTING STARTED ~
@@ -3000,7 +3452,10 @@ with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
 |codecompanion-usage-chat-buffer-variables| are available to share additional
 context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
 disabled as the agent has their own tool set and the autonomy to decide what to
-run and when.
+run and when. CodeCompanion also supports an agent’s own slash commands
+<https://agentclientprotocol.com/protocol/slash-commands> however these are
+invoked with `\` instead of `/` which is reserved for CodeCompanion’s
+built-in ones.
 
 As outlined in the Agent Client Protocol documentation
 <https://agentclientprotocol.com/protocol/initialization>, there are a number
@@ -3156,18 +3611,19 @@ note, this will remove `ALL` context that’s been designated as `memory`.
 TOOLS                                              *codecompanion-usage-tools*
 
 
-  [!IMPORTANT] Not all LLMs support function calling and the use of tools. Please
-  see the |codecompanion--compatibility| section for more information.
+  [!IMPORTANT] Tools are not supported for ACP adapters as they have their own
+  set. Not all LLMs support function calling and the use of tools. Please see the
+  |codecompanion--compatibility| section for more information.
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,
 LLMs can act as agents by leveraging external tools. Andrew notes some common
 examples such as web searching or code execution that have obvious benefits
 when using LLMs.
 
-In the plugin, tools are simply context and actions that are shared with an LLM
-via a `system` prompt. The LLM can act as an agent by requesting tools via the
-chat buffer which in turn orchestrates their use within Neovim. Tools can be
-added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context and actions that are shared with an
+LLM. The LLM can act as an agent by executing tools via the chat buffer which
+in turn orchestrates their use within Neovim. Tools can be added as a
+participant to the chat buffer by using the `@` key.
 
 
   [!IMPORTANT] The use of some tools in the plugin results in you, the developer,
@@ -3192,11 +3648,15 @@ An outline of the architecture can be seen
 |codecompanion-extending-tools-architecture|.
 
 
-TOOLS ~
+BUILT-IN TOOLS ~
 
-CodeCompanion replaces the tool call in any prompt you send to the LLM with the
-value of `opts.tool_replacement_message`. This is to ensure that you can call a
-tool efficiently whilst making the prompt readable to the LLM.
+CodeCompanion comes with a number of built-in tools which you can leverage, as
+long as your adapter and model are |codecompanion--compatibility|.
+
+When calling a tool, CodeCompanion replaces the tool call in any prompt you
+send to the LLM with the value of a tool’s `opts.tool_replacement_message`
+string. This is to ensure that you can call a tool efficiently whilst making
+the prompt readable to the LLM.
 
 So calling a tool with:
 
@@ -3249,6 +3709,20 @@ Create a file within the current working directory:
 <
 
 **Options:** - `requires_approval` require approval before creating a file?
+(Default: true)
+
+
+DELETE_FILE
+
+
+  [!NOTE] By default, this tool requires user approval before it can be executed
+Delete a file within the current working directory:
+
+>md
+    Can you use @{delete_file} to delete the quotes.lua file?
+<
+
+**Options:** - `requires_approval` require approval before deleting a file?
 (Default: true)
 
 
@@ -3361,6 +3835,39 @@ The tool provides comprehensive information about symbols including:
 <
 
 
+MEMORY
+
+
+  [!IMPORTANT] For security, all memory operations are restricted to the
+  `/memories` directory
+
+  [!NOTE] This tool is separate to CodeCompanion’s
+  |codecompanion-usage-chat-buffer-memory| implementation but the two can be
+  combined by giving a memory group knowledge of the `/memories` directory
+The memory tool enables LLMs to store and retrieve information across
+conversations through a memory file directory (`/memories`).
+
+If you’re using the `Anthropic` adapter, then this tool will act as its
+client implementation. Please refer to their documentation
+<https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool> for
+more information.
+
+The tool has the following commands that an LLM can use:
+
+- **view** - Lists the contents in the `/memories` directory or displays file content with optional line ranges
+- **create** - Creates a new file or overwrites an existing file with specified content
+- **str_replace** - Replaces the first exact match of text in a file with new text
+- **insert** - Inserts text at a specific line number in a file
+- **delete** - Removes a file or recursively deletes a directory and all its contents
+- **rename** - Moves or renames a file or directory to a new path
+
+To use the tool:
+
+>md
+    Use @{memory} to carry on our conversation about streamlining my dotfiles
+<
+
+
 NEXT_EDIT_SUGGESTION
 
 Inspired by Copilot Next Edit Suggestion
@@ -3380,17 +3887,17 @@ directory. This can be useful for an LLM to gain wider context of files that
 haven’t been shared with it.
 
 
-SEARCH_WEB
+WEB_SEARCH
 
 This tool enables an LLM to search the web for a specific query, enabling it to
 receive up to date information:
 
 >md
-    Use @{search_web} to find the latest version of Neovim?
+    Use @{web_search} to find the latest version of Neovim?
 <
 
 >md
-    Use @{search_web} to search neovim.io and explain how I can configure a new language server
+    Use @{web_search} to search neovim.io and explain how I can configure a new language server
 <
 
 Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
@@ -3400,9 +3907,9 @@ ensure that an API key has been set accordingly, as per the adapter
 
 TOOL GROUPS ~
 
-Tool Groups are a convenient way to combine multiple tools together in the chat
-buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and
-`@{files}`.
+Tool Groups are a convenient way to combine multiple built-in tools together in
+the chat buffer. CodeCompanion comes with two built-in ones,
+`@{full_stack_dev}` and `@{files}`.
 
 When you include a tool group in the chat, all tools within that group become
 available to the LLM. By default, all the tools in the group will be shown as a
@@ -3483,6 +3990,44 @@ You can use it with:
 <
 
 
+ADAPTER TOOLS ~
+
+
+  [!NOTE] Adapter tools are configured via the `available_tools` dictionary on
+  the adapter itself
+Prior to v17.30.0
+<https://github.com/olimorris/codecompanion.nvim/releases/tag/v17.30.0>, tool
+use in CodeCompanion was only possible with the built-in tools. However, that
+release unlocked `adapter` tools. That is, tools that are owned by LLM
+providers such as Anthropic
+<https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool>
+and OpenAI
+<https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses>.
+This allows for remote tool execution of common tasks such as web searching and
+computer use.
+
+From a UX perspective, there is no difference in using the built-in and adapter
+tools. However, please note that an adapter tool takes precedence over a
+built-in tool in the event of a name clash.
+
+
+ANTHROPIC
+
+In the `anthropic` adapter, the following tools are available:
+
+- `code_execution` - The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
+- `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
+- `web_fetch` - The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.
+- `web_search` - The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff
+
+
+OPENAI
+
+In the `openai_responses` adapter, the following tools are available:
+
+- `web_search` - Allow models to search the web for the latest information before generating a response.
+
+
 USEFUL TIPS ~
 
 
@@ -3522,8 +4067,6 @@ When using CodeCompanion’s in-built tools, there are three choices:
 
 COMPATIBILITY ~
 
-
-  [!NOTE] Tools are not supported for ACP adapters as they have their own set.
 Below is the tool use status of various adapters and models in CodeCompanion:
 
   ------------------------------------------------------------------------
@@ -3543,7 +4086,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Huggingface    All                          Not supported yet
 
-  Mistral        All                          Not supported yet
+  Mistral                                     Dependent on the model
 
   Novita                                      Dependent on the model
 
@@ -3554,6 +4097,11 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   xAI            All                          Not supported yet
   ------------------------------------------------------------------------
+
+  [!IMPORTANT] When using Mistral, you will need to set
+  `strategies.chat.tools.opts.auto_submit_errors` to `true`. See #2278
+  <https://github.com/olimorris/codecompanion.nvim/pull/2278> for more
+  information.
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
 
@@ -3573,6 +4121,18 @@ The `buffer` slash command enables you to add the contents of any open buffers
 in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 `fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
 selected and added to the chat buffer as per the video above.
+
+
+/COMPACT ~
+
+The `compact` slash command, based on Claude Code’s
+<https://code.claude.com/docs/en/slash-commands#built-in-slash-commands>
+corresponding feature, clears the chat buffer’s message history whilst
+preserving a summary, in context.
+
+System prompts, memory and file/buffer shares will be preserved but all user,
+assistant and tool messages will be removed. The summary is generated by
+prompting the same LLM to summarize the chat history into a concise format.
 
 
 /FETCH ~
@@ -3601,15 +4161,6 @@ Also, multiple files can be selected and added to the chat buffer:
 Please note that these mappings may be different depending on your provider.
 
 
-/QUICKFIX ~
-
-The `quickfix` slash command adds entries from the Neovim quickfix list to the
-chat buffer.
-
-- For search patterns or file entries, the whole file is shared.
-- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
-
-
 /HELP ~
 
 The `help` slash command allows you to add content from a vim help file
@@ -3634,10 +4185,26 @@ The `memory` slash command allows you to add
 |codecompanion-usage-chat-buffer-memory| groups to the chat buffer.
 
 
+/MODE ~
+
+The `mode` slash command is specific to |codecompanion-configuration-acp|
+adapters allows users to switch between different agent operating modes, as per
+the protocol <https://agentclientprotocol.com/protocol/session-modes> docs.
+
+
 /NOW ~
 
 The `now` slash command simply inserts the current datetime stamp into the chat
 buffer.
+
+
+/QUICKFIX ~
+
+The `quickfix` slash command adds entries from the Neovim quickfix list to the
+chat buffer.
+
+- For search patterns or file entries, the whole file is shared.
+- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
 
 
 /SYMBOLS ~
@@ -3779,6 +4346,7 @@ LIST OF EVENTS ~
 
 The events that are fired from within the plugin are:
 
+- `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden
@@ -4394,6 +4962,7 @@ These handlers parse LLM responses:
 - `response.parse_chat` - Format chat output for the chat buffer
 - `response.parse_inline` - Format output for inline insertion
 - `response.parse_tokens` - Extract token count from the response
+- `response.parse_meta` - Process non-standard fields in the response (currently only supported by OpenAI-based adapters)
 
 
 TOOL HANDLERS
@@ -4611,6 +5180,53 @@ we have data in our response:
       },
     }
 <
+
+
+RESPONSE.PARSE_META
+
+Some OpenAI-compatible API providers like deepseek, Gemini and OpenRouter
+implement a superset of the standard specification, and provide reasoning
+tokens/summaries within their response. The non-standard fields in the
+`message` (non-streaming)
+<https://platform.openai.com/docs/api-reference/chat/object#chat-object-choices-message>
+or `delta` (streaming)
+<https://platform.openai.com/docs/api-reference/chat-streaming/streaming#chat_streaming-streaming-choices-delta>
+object are captured by the OpenAI adapter and can be used to extract the
+reasoning.
+
+For example, the DeepSeek API provides the reasoning tokens in the
+`delta.reasoning_content` field. We can therefore use the following
+`parse_meta` handler to extract the reasoning tokens and put them into the
+appropriate output fields:
+
+>lua
+    handlers = {
+      response = {
+        ---@param self CodeCompanion.HTTPAdapter
+        --- `data` is the output of the `parse_chat` handler
+        ---@param data {status: string, output: {role: string?, content: string?}, extra: table}
+        ---@return {status: string, output: {role: string?, content: string?, reasoning:{content: string?}?}}
+        parse_meta = function(self, data)
+          local extra = data.extra
+          if extra.reasoning_content then
+            -- codecompanion expect the reasoning tokens in this format
+            data.output.reasoning = { content = extra.reasoning_content } 
+            -- so that codecompanion doesn't mistake this as a normal response with empty string as the content
+            if data.output.content == "" then
+              data.output.content = nil
+            end
+          end
+          return data
+        end
+      }
+    }
+<
+
+Notes:
+
+1. You don’t always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
+2. It’s expected that the processed `data` table is returned at the end.
+3. For adapters that are using the legacy flat handler formats, this handler should be named `handlers.parse_message_meta`. The function signature stays the same.
 
 
 REQUEST.BUILD_PARAMETERS
@@ -5588,7 +6204,7 @@ please see the diagram below:
 <
 
 
-BUILDING YOUR FIRST TOOL ~
+BUILDING YOUR FIRST BUILT-IN TOOL ~
 
 Before we begin, it’s important to familiarise yourself with the directory
 structure of the tools implementation:
@@ -6204,6 +6820,83 @@ tool execution:
       cancelled = function(self, tools, cmd)
         tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
       end,
+    },
+<
+
+
+SUPPORTING AN ADAPTER TOOL ~
+
+Many LLM providers such as Anthropic
+<https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool>
+and OpenAI
+<https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses>
+provide their own tools that clients like CodeCompanion can hook into.
+
+Thankfully, adding support for adapter tools is trivial. The #2307
+<https://github.com/olimorris/codecompanion.nvim/pull/2307> PR showed how this
+can be accomplished for both Anthropic and the OpenAI responses adapters.
+
+1. Add the tool to the structure of the adapter:
+
+>lua
+    -- openai_responses.lua
+    -- ... existing code ...
+    available_tools = {
+      ["web_search"] = {
+        description = "Allow models to search the web for the latest information before generating a response.",
+        enabled = true,
+        ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
+        ---@param tools table The transformed tools table
+        callback = function(self, tools)
+          table.insert(tools, {
+            type = "web_search",
+          })
+        end,
+      },
+    },
+    -- ... existing code ...
+<
+
+Within the `callback` function, which will be executed in step 2, it can be
+useful to carry out modifications to the adapter which may be required for the
+tool to function. In the case of Anthropic, we insert additional headers.
+
+1. Within `build_tools` or `form_tools` (depending on your adapter), ensure that when looping through a tool’s schema, you detect if the tool is an adapter tool and execute the `callback` from step 1:
+
+>lua
+    -- build_tools = function(self, tools)
+    -- OR
+    -- form_tools = function(self, tools)
+    local transformed = {}
+    for _, tool in pairs(tools) do
+      for _, schema in pairs(tool) do
+        -- // Add this logic
+        if schema._meta and schema._meta.adapter_tool then
+          if self.available_tools[schema.name] then
+            self.available_tools[schema.name].callback(self, transformed)
+          end
+        else
+        -- //
+          -- Previous loop logic goes here
+        end
+      end
+    end
+<
+
+Some adapter tools can be a `hybrid` in terms of their implementation. That is,
+they’re an adapter tool that requires a client-side component (i.e.� a
+built-in tool). This is the case for the
+|codecompanion-usage-chat-buffer-tools-memory| tool from Anthropic. To allow
+for this, ensure that the tool definition in `available_tools` has
+`client_tool` defined:
+
+>lua
+    ["memory"] = {
+      -- ...existing code here
+      opts = {
+        -- Allow a hybrid tool -> One that also has a client side implementation
+        client_tool = "strategies.chat.tools.memory",
+      },
     },
 <
 

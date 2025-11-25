@@ -32,6 +32,24 @@ CodeCompanion.inline = function(args)
   return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
+---Accept the next word
+---@return nil
+CodeCompanion.inline_accept_word = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
+  return require("codecompanion.strategies.inline.completion").accept_word()
+end
+
+---Accept the next line
+---@return nil
+CodeCompanion.inline_accept_line = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
+  return require("codecompanion.strategies.inline.completion").accept_line()
+end
+
 ---Initiate a prompt from the prompt library
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
@@ -292,8 +310,8 @@ end
 ---Refresh any of the caches used by the plugin
 ---@return nil
 CodeCompanion.refresh_cache = function()
-  local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
-  ToolFilter.refresh_cache()
+  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
+  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
   utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 

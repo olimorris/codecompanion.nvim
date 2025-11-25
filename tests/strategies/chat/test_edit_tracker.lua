@@ -757,7 +757,7 @@ T["start_tool_monitoring - processes files normally while skipping directories"]
     -- Create test file (this should work)
     local test_dir = vim.fn.tempname()
     vim.fn.mkdir(test_dir, "p")
-    local test_file = test_dir .. "/file.lua"
+    local test_file = vim.fs.normalize(test_dir .. "/file.lua")
     vim.fn.writefile({"-- File content"}, test_file)
 
     -- Start monitoring with file path (should work)
@@ -772,7 +772,7 @@ T["start_tool_monitoring - processes files normally while skipping directories"]
     local file_has_content = target_files[test_file] and #target_files[test_file].content > 0
 
     -- Now test directory (should be skipped but not crash)
-    local test_subdir = test_dir .. "/subdir"
+    local test_subdir = vim.fs.normalize(test_dir .. "/subdir")
     vim.fn.mkdir(test_subdir, "p")
 
     local success = pcall(function()

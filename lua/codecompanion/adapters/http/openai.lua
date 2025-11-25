@@ -1,6 +1,37 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 
+local CONSTANTS = {
+  STANDARD_MESSAGE_FIELDS = {
+    -- fields that are defined in the standard openai chat-completion API (inc. streaming and non-streaming)
+    "content",
+    "function_call",
+    "refusal",
+    "role",
+    "tool_calls",
+    "annotations",
+    "audio",
+  },
+}
+
+---Find the non-standard fields in the `message` or `delta` that are not in the standard OpenAI chat-completion specs.
+---@param delta table?
+---@return table|nil
+local function find_extra_fields(delta)
+  if delta == nil then
+    return nil
+  end
+  local extra = {}
+  vim.iter(delta):each(function(k, v)
+    if not vim.list_contains(CONSTANTS.STANDARD_MESSAGE_FIELDS, k) then
+      extra[k] = v
+    end
+  end)
+  if not vim.tbl_isempty(extra) then
+    return extra
+  end
+end
+
 ---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
 return {
   name = "openai",
@@ -94,6 +125,7 @@ return {
                   id = tool_call.id,
                   ["function"] = tool_call["function"],
                   type = tool_call.type,
+                  -- Include a _meta field to hold everything else
                 }
               end)
               :totable()
@@ -116,12 +148,19 @@ return {
             end
           end
 
-          return {
+          local result = {
             role = m.role,
             content = m.content,
             tool_calls = tool_calls,
             tool_call_id = m.tools and m.tools.call_id or nil,
           }
+
+          -- Adapter's like Copilot have reasoning fields that must be preserved
+          if m.reasoning then
+            result.reasoning = m.reasoning
+          end
+
+          return result
         end)
         :totable()
 
@@ -134,10 +173,10 @@ return {
     ---@return table|nil
     form_tools = function(self, tools)
       if not self.opts.tools or not tools then
-        return
+        return nil
       end
       if vim.tbl_count(tools) == 0 then
-        return
+        return nil
       end
 
       local transformed = {}
@@ -187,6 +226,40 @@ return {
         return nil
       end
 
+      -- Define standard tool_call fields
+      local STANDARD_TOOL_CALL_FIELDS = {
+        "id",
+        "type",
+        "function",
+        "index",
+      }
+
+      ---Helper to create any tool data
+      ---@param tool table
+      ---@param index number
+      ---@param id string
+      ---@return table
+      local function create_tool_data(tool, index, id)
+        local tool_data = {
+          _index = index,
+          id = id,
+          type = tool.type,
+          ["function"] = {
+            name = tool["function"]["name"],
+            arguments = tool["function"]["arguments"] or "",
+          },
+        }
+
+        -- Preserve any non-standard fields as-is
+        for key, value in pairs(tool) do
+          if not vim.tbl_contains(STANDARD_TOOL_CALL_FIELDS, key) then
+            tool_data[key] = value
+          end
+        end
+
+        return tool_data
+      end
+
       -- Process tool calls from all choices
       if self.opts.tools and tools then
         for _, choice in ipairs(json.choices) do
@@ -217,26 +290,10 @@ return {
                 end
 
                 if not found then
-                  table.insert(tools, {
-                    _index = tool_index,
-                    id = id,
-                    type = tool.type,
-                    ["function"] = {
-                      name = tool["function"]["name"],
-                      arguments = tool["function"]["arguments"] or "",
-                    },
-                  })
+                  table.insert(tools, create_tool_data(tool, tool_index, id))
                 end
               else
-                table.insert(tools, {
-                  _index = i,
-                  id = id,
-                  type = tool.type,
-                  ["function"] = {
-                    name = tool["function"]["name"],
-                    arguments = tool["function"]["arguments"],
-                  },
-                })
+                table.insert(tools, create_tool_data(tool, i, id))
               end
             end
           end
@@ -257,6 +314,7 @@ return {
           role = delta.role,
           content = delta.content,
         },
+        extra = find_extra_fields(delta),
       }
     end,
 
