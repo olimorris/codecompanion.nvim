@@ -135,7 +135,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, window_opts: table }
+---@param args? { auto_submit: boolean, params: table, subcommand: table,  callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, user_prompt: table, window_opts: table }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -144,27 +144,33 @@ CodeCompanion.chat = function(args)
   local messages = args.messages or {}
   local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
 
-  if args.fargs and #args.fargs > 0 then
-    local prompt = args.fargs[1]:lower()
-
-    -- Check if the adapter is available
-    --TODO: Remove `config.adapters[prompt]` in V18.0.0
-    adapter = config.adapters[prompt] or config.adapters.http[prompt] or config.adapters.acp[prompt]
+  -- Extract the adapter if it's provided
+  if args.params and args.params.adapter then
+    local adapter_name = args.params.adapter
+    adapter = config.adapters[adapter_name] or config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
 
     if not adapter then
-      if prompt == "add" then
-        return CodeCompanion.add(args)
-      elseif prompt == "toggle" then
-        return CodeCompanion.toggle(args)
-      elseif prompt == "refreshcache" then
-        return CodeCompanion.refresh_cache()
-      else
-        table.insert(messages, {
-          role = config.constants.USER_ROLE,
-          content = args.args,
-        })
-      end
+      return log:warn("Adapter '%s' not found", adapter_name)
     end
+  end
+
+  -- Handle subcommands
+  if args.subcommand then
+    if args.subcommand == "add" then
+      return CodeCompanion.add(args)
+    elseif args.subcommand == "toggle" then
+      return CodeCompanion.toggle(args)
+    elseif args.subcommand == "refreshcache" then
+      return CodeCompanion.refresh_cache()
+    end
+  end
+
+  -- Handle user prompt/message
+  if args.user_prompt and #args.user_prompt > 0 then
+    table.insert(messages, {
+      role = config.constants.USER_ROLE,
+      content = args.user_prompt,
+    })
   end
 
   local has_messages = not vim.tbl_isempty(messages)

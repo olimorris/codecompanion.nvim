@@ -29,7 +29,7 @@ You can also have multiple variables a part of a prompt, for example: `:CodeComp
 
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`strategies.inline.adapter`) when sending an inline prompt. Simply include the adapter name within `<>`. For example `:<','>CodeCompanion <deepseek> can you refactor this?`. This approach can also be combined with variables.
+You can specify a different adapter to that in the configuration (`strategies.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with variables.
 
 ## Classification
 
