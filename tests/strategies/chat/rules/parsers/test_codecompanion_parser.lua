@@ -65,7 +65,7 @@ T["Claude parser"] = function()
     }, "\n"),
     parsed.system_prompt
   )
-  h.eq("## My other header\n\nIf this works then this file should be returned as a path", parsed.content)
+  h.eq("## My other header\n\n\nIf this works then this file should be returned as a path", parsed.content)
   h.eq(included, parsed.included[1])
 end
 
