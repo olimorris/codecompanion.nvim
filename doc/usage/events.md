@@ -21,7 +21,6 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
-- `CodeCompanionChatPin` - Fired after a pinned context item has been updated in the messages table
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools

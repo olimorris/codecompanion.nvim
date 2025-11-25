@@ -7,16 +7,16 @@ local get_node_text = vim.treesitter.get_node_text --[[@as function]]
 local query_get = vim.treesitter.query.get --[[@as function]]
 
 local user_role = config.strategies.chat.roles.user
-local icons_path = config.display.chat.icons
 local icons = {
-  pinned = icons_path.pinned_buffer or icons_path.buffer_pin,
-  watched = icons_path.watched_buffer or icons_path.buffer_watch,
+  sync_all = config.display.chat.icons.buffer_sync_all,
+  sync_diff = config.display.chat.icons.buffer_sync_diff,
 }
-local allowed_pins = {
+
+local allowed__all = {
   "<buf>",
   "<file>",
 }
-local allowed_watchers = {
+local allowed__diff = {
   "<buf>",
 }
 local context_header = "> Context:"
@@ -83,10 +83,10 @@ local function add(chat, context, row)
 
   -- Check if this context has special options and format accordingly
   local context_text
-  if context.opts and context.opts.pinned then
-    context_text = string.format("> - %s%s", icons.pinned, context.id)
-  elseif context.opts and context.opts.watched then
-    context_text = string.format("> - %s%s", icons.watched, context.id)
+  if context.opts and context.opts.sync_all then
+    context_text = string.format("> - %s%s", icons.sync_all, context.id)
+  elseif context.opts and context.opts.sync_diff then
+    context_text = string.format("> - %s%s", icons.sync_diff, context.id)
   else
     context_text = string.format("> - %s", context.id)
   end
@@ -113,8 +113,8 @@ end
 ---@field id string The unique ID of the context which links it to a message in the chat buffer and is displayed to the user
 ---@field source string The source of the context e.g. slash_command
 ---@field opts? table
----@field opts.pinned? boolean Whether this context item is pinned
----@field opts.watched? boolean Whether this context item is being watched for changes
+---@field opts.sync_all? boolean When synced, whether the entire buffer is shared
+---@field opts.sync_diff? boolean When synced, whether only buffer diffs are shared
 ---@field opts.visible? boolean Whether this context item should be shown in the chat UI
 
 ---@class CodeCompanion.Chat.Context
@@ -145,17 +145,16 @@ function Context:add(context)
     context.opts = context.opts or {}
 
     -- Ensure both properties exist with defaults
-    context.opts.pinned = context.opts.pinned or false
-    context.opts.watched = context.opts.watched or false
+    context.opts.sync_all = context.opts.sync_all or false
+    context.opts.sync_diff = context.opts.sync_diff or false
     context.opts.visible = context.opts.visible
 
     if context.opts.visible == nil then
       context.opts.visible = config.display.chat.show_context
     end
     table.insert(self.Chat.context_items, context)
-    -- If it's buffer context and it's being watched, start watching
-    if context.bufnr and context.opts.watched then
-      self.Chat.watched_buffers:watch(context.bufnr)
+    if context.bufnr and context.opts.sync_diff then
+      self.Chat.buffer_diffs:sync(context.bufnr)
     end
   end
 
@@ -166,6 +165,7 @@ function Context:add(context)
     if parsed_buffer.capture == "context" then
       add(self.Chat, context, parsed_buffer.end_row - 1)
       self:create_folds()
+
     -- If there are no context items then add a new block below the heading
     elseif parsed_buffer.capture == "role" then
       add(self.Chat, context, parsed_buffer.end_row + 1)
@@ -243,10 +243,10 @@ function Context:render()
     if not context or (context.opts and context.opts.visible == false) then
       goto continue
     end
-    if context.opts and context.opts.pinned then
-      table.insert(lines, string.format("> - %s%s", icons.pinned, context.id))
-    elseif context.opts and context.opts.watched then
-      table.insert(lines, string.format("> - %s%s", icons.watched, context.id))
+    if context.opts and context.opts.sync_all then
+      table.insert(lines, string.format("> - %s%s", icons.sync_all, context.id))
+    elseif context.opts and context.opts.sync_diff then
+      table.insert(lines, string.format("> - %s%s", icons.sync_diff, context.id))
     else
       table.insert(lines, string.format("> - %s", context.id))
     end
@@ -297,24 +297,24 @@ function Context:make_id_from_buf(bufnr)
   return vim.fn.fnamemodify(bufname, ":.")
 end
 
----Determine if a context item can be pinned
+---Determine if a context item can be synced and all of its content shared
 ---@param item string
 ---@return boolean
-function Context:can_be_pinned(item)
-  for _, pin in ipairs(allowed_pins) do
-    if item:find(pin) then
+function Context:can_be_synced__all(item)
+  for _, sync in ipairs(allowed__all) do
+    if item:find(sync) then
       return true
     end
   end
   return false
 end
 
----Determine if a context item can be watched
+---Determine if a context item can be synced and its diff shared
 ---@param item string
 ---@return boolean
-function Context:can_be_watched(item)
-  for _, watch in ipairs(allowed_watchers) do
-    if item:find(watch) then
+function Context:can_be_synced__diff(item)
+  for _, sync in ipairs(allowed__diff) do
+    if item:find(sync) then
       return true
     end
   end
@@ -339,7 +339,7 @@ function Context:get_from_chat()
       role = helpers.format_role(get_node_text(node, chat.bufnr))
     elseif role == user_role and query.captures[id] == "context_item" then
       local context = get_node_text(node, chat.bufnr)
-      -- Clean both pinned and watched icons
+      -- Clean both icons
       context = vim.iter(vim.tbl_values(icons)):fold(select(1, context:gsub("^> %- ", "")), function(acc, icon)
         return select(1, acc:gsub(icon, ""))
       end)

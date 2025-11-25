@@ -450,8 +450,8 @@ return {
   display = {
     chat = {
       icons = {
-        buffer_pin = " ",
-        buffer_watch = "👀 ",
+        buffer_sync_all = "󰪴 ",
+        buffer_sync_diff = " ",
         tool_success = "!! ",
         tool_failure = "xx ",
       },

@@ -65,9 +65,9 @@ require("codecompanion").setup({
 })
 ```
 
-### Pinning and Watching
+### Syncing
 
-To [pin or watch](/usage/chat-buffer/variables#with-parameters) buffers by default, you can add this configuration:
+To [sync](/usage/chat-buffer/variables#with-parameters) buffers by default, you can add this configuration:
 
 ```lua
 require("codecompanion").setup({
@@ -76,7 +76,8 @@ require("codecompanion").setup({
       variables = {
         ["buffer"] = {
           opts = {
-            default_params = 'pin', -- or 'watch'
+            -- Always sync the buffer by sharing its diff. Or choose "all" to share the entire buffer
+            default_params = 'diff',
           },
         },
       },
@@ -371,34 +372,46 @@ The decorator function also has access to the adapter in the chat buffer alongsi
 
 You can change the [appearance](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L903) of the chat buffer by changing the `display.chat.window` table in your configuration:
 
+::: tabs
+
+== Icons
+
 ```lua
 require("codecompanion").setup({
   display = {
     chat = {
       -- Change the default icons
       icons = {
-        buffer_pin = " ",
-        buffer_watch = "👀 ",
+        buffer_sync_all = "󰪴 ",
+        buffer_sync_diff = " ",
+        chat_context = " ",
+        chat_fold = " ",
+        tool_pending = "  ",
+        tool_in_progress = "  ",
+        tool_failure = "  ",
+        tool_success = "  ",
       },
+    },
+  },
+})
+```
 
-      -- Alter the sizing of the debug window
-      debug_window = {
-        ---@return number|fun(): number
-        width = vim.o.columns - 5,
-        ---@return number|fun(): number
-        height = vim.o.lines - 2,
-      },
+== Main Window
 
-      -- Options to customize the UI of the chat buffer
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
+        ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
         width = 0.45,
         relative = "editor",
-        full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
-        sticky = false, -- when set to true and `layout` is not `"buffer"`, the chat buffer will remain opened when switching tabs
+        full_height = true,
+        sticky = false, -- chat buffer remains open when switching tabs
         opts = {
           breakindent = true,
           cursorcolumn = false,
@@ -412,18 +425,83 @@ require("codecompanion").setup({
           wrap = true,
         },
       },
-
-      ---Customize how tokens are displayed
-      ---@param tokens number
-      ---@param adapter CodeCompanion.Adapter
-      ---@return string
-      token_count = function(tokens, adapter)
-        return " (" .. tokens .. " tokens)"
-      end,
     },
   },
-}),
+})
 ```
+
+== Debug Window
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      -- Alter the sizing of the debug window
+      debug_window = {
+        ---@return number|fun(): number
+        width = vim.o.columns - 5,
+        ---@return number|fun(): number
+        height = vim.o.lines - 2,
+      },
+    },
+  },
+})
+```
+
+== Child Windows
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      child_window = {
+        ---@return number|fun(): number
+        width = function()
+          return vim.o.columns - 5
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 2
+        end,
+        row = "center",
+        col = "center",
+        relative = "editor",
+        opts = {
+          wrap = false,
+          number = false,
+          relativenumber = false,
+        },
+      },
+    },
+  },
+})
+```
+
+== Diff Windows
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      diff_window = {
+        ---@return number|fun(): number
+        width = function()
+          return math.min(120, vim.o.columns - 10)
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 4
+        end,
+        opts = {
+          number = true,
+        },
+      },
+    },
+  },
+})
+```
+
+:::
 
 ## Diff
 

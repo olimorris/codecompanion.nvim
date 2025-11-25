@@ -4,8 +4,8 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local reserved_params = {
-  "pin",
-  "watch",
+  "all",
+  "diff",
 }
 
 ---@class CodeCompanion.Variable.Buffer: CodeCompanion.Variable
@@ -81,7 +81,7 @@ function Variable:output(selected, opts)
   end
 
   local message = "User's current visible code in a file (including line numbers). This should be the main focus"
-  if opts.pin then
+  if opts.sync_all then
     message = "Here is the updated file content (including line numbers)"
   end
 
@@ -96,7 +96,7 @@ function Variable:output(selected, opts)
     content = content,
   }, { _meta = { tag = "variable" }, context = { id = id }, visible = false })
 
-  if opts.pin then
+  if opts.sync_all then
     return
   end
 
@@ -105,8 +105,8 @@ function Variable:output(selected, opts)
     params = params,
     id = id,
     opts = {
-      pinned = (params and params == "pin"),
-      watched = (params and params == "watch"),
+      sync_all = (params and params == "all"),
+      sync_diff = (params and params == "diff"),
     },
     source = "codecompanion.strategies.chat.variables.buffer",
   })

@@ -294,7 +294,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
-            default_params = "watch", -- watch|pin
+            default_params = "diff", -- all|diff
             has_params = true,
             excluded = {
               buftypes = {
@@ -332,7 +332,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            default_params = "watch", -- watch|pin
+            default_params = "diff", -- all|diff
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -519,17 +519,17 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.yank_code",
           description = "Yank code",
         },
-        pin = {
-          modes = { n = "gp" },
+        buffer_sync_all = {
+          modes = { n = "gba" },
           index = 9,
-          callback = "keymaps.pin_context",
-          description = "Pin context",
+          callback = "keymaps.buffer_sync_all",
+          description = "Toggle the syncing of the entire buffer",
         },
-        watch = {
-          modes = { n = "gw" },
+        buffer_sync_diff = {
+          modes = { n = "gbd" },
           index = 10,
-          callback = "keymaps.toggle_watch",
-          description = "Watch buffer",
+          callback = "keymaps.buffer_sync_diff",
+          description = "Toggle the syncing of the buffer to share it's diffs",
         },
         next_chat = {
           modes = { n = "}" },
@@ -1295,7 +1295,7 @@ You must create or modify a workspace file through a series of prompts over mult
         end,
 
         default_rules = "default", -- The rule groups to load
-        default_params = "watch", -- watch|pin - when adding a buffer to the chat
+        default_params = "diff", -- all|diff
       },
       show_defaults = true, -- Show the default rules files in the action palette?
     },
@@ -1315,8 +1315,8 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     chat = {
       icons = {
-        buffer_pin = " ",
-        buffer_watch = "󰂥 ",
+        buffer_sync_all = "󰪴 ",
+        buffer_sync_diff = " ",
         --chat_context = " ",
         chat_fold = " ",
         tool_pending = "  ",

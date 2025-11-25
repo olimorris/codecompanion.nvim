@@ -155,18 +155,18 @@ T["Context"]["Tools and their schema can be deleted"] = function()
   }, child.lua_get([[chat.tool_registry.schemas]]))
 end
 
-T["Context"]["Can be pinned"] = function()
+T["Context"]["Can share all of a buffer"] = function()
   child.lua([[
      _G.chat.context:add({
-       id = "<buf>pinned example</buf>",
+       id = "<buf>sync_all example</buf>",
        path = "tests.stubs.file.txt",
        source = "tests.strategies.chat.slash_commands.basic",
        opts = {
-         pinned = true,
+         sync_all = true,
        },
      })
      _G.chat.context:add({
-       id = "<buf>unpinned example</buf>",
+       id = "<buf>sync_all example</buf>",
        path = "test2",
        source = "test",
      })
@@ -175,16 +175,16 @@ T["Context"]["Can be pinned"] = function()
      _G.chat.messages = {
        {
          role = "user",
-         content = "Pinned context",
+         content = "sync_all context",
          context = {
-           id = "<buf>pinned example</buf>",
+           id = "<buf>sync_all example</buf>",
          },
        },
        {
          role = "user",
-         content = "Unpinned context",
+         content = "sync_all context",
          context = {
-           id = "<buf>unpinned example</buf>",
+           id = "<buf>sync_all example</buf>",
          },
        },
      }
@@ -196,7 +196,7 @@ T["Context"]["Can be pinned"] = function()
 
   h.eq(child.lua_get([[#_G.chat.context_items]]), 2, "There are two context_items")
   h.eq(child.lua_get([[#_G.chat.messages]]), 2, "There are three messages")
-  h.eq(child.lua_get([[_G.chat.context_items[1].opts.pinned]]), true, "Context is pinned")
+  h.eq(child.lua_get([[_G.chat.context_items[1].opts.sync_all]]), true, "All of the buffer is shared")
 
   child.lua([[
      -- Mock the submit
@@ -216,28 +216,28 @@ T["Context"]["Can be pinned"] = function()
 
   h.eq("> Context:", buffer[15])
   h.eq(
-    string.format("> - %s<buf>pinned example</buf>", child.lua_get([[config.display.chat.icons.buffer_pin]])),
+    string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
     buffer[16]
   )
-  h.eq("> - <buf>unpinned example</buf>", buffer[17])
+  h.eq("> - <buf>sync_all example</buf>", buffer[17])
 
   h.eq({
     {
-      id = "<buf>pinned example</buf>",
+      id = "<buf>sync_all example</buf>",
       opts = {
-        pinned = true,
+        sync_all = true,
         visible = true,
-        watched = false,
+        sync_diff = false,
       },
       path = "tests.stubs.file.txt",
       source = "tests.strategies.chat.slash_commands.basic",
     },
     {
-      id = "<buf>unpinned example</buf>",
+      id = "<buf>sync_all example</buf>",
       opts = {
-        pinned = false,
+        sync_all = false,
         visible = true,
-        watched = false,
+        sync_diff = false,
       },
       path = "test2",
       source = "test",
@@ -248,49 +248,53 @@ end
 T["Context"]["Tree-sitter test"] = function()
   child.lua([[
      _G.chat.context:add({
-       id = "<buf>pinned example</buf>",
+       id = "<buf>sync_all example</buf>",
        path = "tests.stubs.file.txt",
        source = "tests.strategies.chat.slash_commands.basic",
        opts = {
-         pinned = true,
+         sync_all = true,
        },
      })
    ]])
 
-  h.eq({ "<buf>pinned example</buf>" }, child.lua_get([[_G.chat.context:get_from_chat()]]))
+  h.eq({ "<buf>sync_all example</buf>" }, child.lua_get([[_G.chat.context:get_from_chat()]]))
 end
 
 T["Context"]["Render"] = function()
   child.lua([[
      _G.chat.context_items = {
        {
-         id = "<buf>pinned example</buf>",
+         id = "<buf>sync_all example</buf>",
          path = "tests.stubs.file.txt",
          source = "tests.strategies.chat.slash_commands.basic",
          opts = {
-           pinned = true,
+           sync_all = true,
          },
        },
      }
      _G.chat.context:render()
    ]])
 
-  h.eq(
-    { "## foo", "", "> Context:", "> -  <buf>pinned example</buf>", "", "" },
-    child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]])
-  )
+  h.eq({
+    "## foo",
+    "",
+    "> Context:",
+    string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
+    "",
+    "",
+  }, child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]]))
 end
 
 T["Context"]["Render invisible"] = function()
   child.lua([[
      _G.chat.context_items = {
        {
-         id = "<buf>pinned example</buf>",
+         id = "<buf>sync_all example</buf>",
          path = "tests.stubs.file.txt",
          source = "tests.strategies.chat.slash_commands.basic",
          opts = {
            visible = false,
-           pinned = true,
+           sync_all = true,
          },
        },
      }
@@ -303,11 +307,11 @@ end
 T["Context"]["can be cleared from messages"] = function()
   child.lua([[
      _G.chat.context:add({
-       id = "<buf>pinned example</buf>",
+       id = "<buf>sync_all example</buf>",
        path = "tests.stubs.file.txt",
        source = "tests.strategies.chat.slash_commands.basic",
        opts = {
-         pinned = true,
+         sync_all = true,
        },
      })
    ]])
@@ -315,7 +319,7 @@ T["Context"]["can be cleared from messages"] = function()
   local content = child.lua([[
      local message = {
        role = "user",
-       content = "> Context:\n> -  <buf>pinned example</buf>\n\nHello, World",
+       content = "> Context:\n> -  <buf>sync_all example</buf>\n\nHello, World",
      }
      return _G.chat.context:remove(message).content
    ]])
@@ -334,7 +338,7 @@ T["Context"]["file context_items always have a relative id"] = function()
        path = path,
        source = "codecompanion.strategies.chat.slash_commands.catalog.file",
        opts = {
-         pinned = true,
+         sync_all = true,
        },
      })
      _G.chat:add_buf_message({ role = "user", content = "Can you see the updated content?" })
@@ -412,23 +416,23 @@ end
 
 T["Context"]["Show icons immediately when added with default parameters"] = function()
   child.lua([[
-     -- Test watched context with default parameters
+     -- Test sync_diff context with default parameters
      _G.chat.context:add({
-       id = "<buf>watched_file.lua</buf>",
-       path = "test_watched.lua",
+       id = "<buf>synced_diff_file.lua</buf>",
+       path = "test_synced_diff.lua",
        source = "codecompanion.strategies.chat.slash_commands.buffer",
        opts = {
-         watched = true,
+         sync_diff = true,
        },
      })
 
-     -- Test pinned context with default parameters
+     -- Test sync_all context with default parameters
      _G.chat.context:add({
-       id = "<buf>pinned_file.lua</buf>",
-       path = "test_pinned.lua",
+       id = "<buf>synced_all_file.lua</buf>",
+       path = "test_synced_all.lua",
        source = "codecompanion.strategies.chat.slash_commands.buffer",
        opts = {
-         pinned = true,
+         sync_all = true,
        },
      })
 
@@ -445,15 +449,18 @@ T["Context"]["Show icons immediately when added with default parameters"] = func
   -- Check that the context header appears
   h.eq("> Context:", lines[3])
 
-  -- Check that watched context shows with icon immediately
+  -- Check that sync_diff context shows with icon immediately
   h.eq(
-    string.format("> - %s<buf>watched_file.lua</buf>", child.lua_get([[config.display.chat.icons.buffer_watch]])),
+    string.format(
+      "> - %s<buf>synced_diff_file.lua</buf>",
+      child.lua_get([[config.display.chat.icons.buffer_sync_diff]])
+    ),
     lines[4]
   )
 
-  -- Check that pinned context shows with icon immediately
+  -- Check that sync_all context shows with icon immediately
   h.eq(
-    string.format("> - %s<buf>pinned_file.lua</buf>", child.lua_get([[config.display.chat.icons.buffer_pin]])),
+    string.format("> - %s<buf>synced_all_file.lua</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
     lines[5]
   )
 

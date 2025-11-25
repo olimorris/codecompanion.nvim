@@ -185,10 +185,10 @@ function M.add_files_or_buffers(included_files, chat)
 
       local buffer_opts = config.rules.opts.chat and config.rules.opts.chat.default_params
       if buffer_opts then
-        if buffer_opts == "pin" then
-          opts.pinned = true
-        elseif buffer_opts == "watch" then
-          opts.watched = true
+        if buffer_opts == "all" then
+          opts.sync_all = true
+        elseif buffer_opts == "diff" then
+          opts.sync_diff = true
         end
       end
 
