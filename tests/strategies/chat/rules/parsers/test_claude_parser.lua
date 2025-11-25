@@ -16,7 +16,7 @@ T["Claude parser"] = function()
   -- Ensure resolve() would be able to find the built-in claude parser by name
   child.lua([[
     package.loaded['codecompanion.config'] = {
-      memory = { parsers = { claude = "claude" } }
+      rules = { parsers = { claude = "claude" } }
     }
   ]])
 
@@ -37,7 +37,7 @@ T["Claude parser"] = function()
   -- Run the claude parser on the markdown content and return parsed result
   local parsed = child.lua(string.format(
     [[
-    local p = require("codecompanion.strategies.chat.memory.parsers.claude")
+    local p = require("codecompanion.strategies.chat.rules.parsers.claude")
     local md = table.concat(vim.fn.readfile(%q), "\n") .. "\n"
 
     -- Send the content to the parser

@@ -25,15 +25,15 @@ The best way to contribute to CodeCompanion is to use CodeCompanion to help you 
 
 They're located [here](https://codecompanion.olimorris.dev) and are regularly updated.
 
-### Use Memory
+### Use Rules
 
-When working inside the CodeCompanion repository, you have access to the built-in [memory](https://codecompanion.olimorris.dev/usage/chat-buffer/memory#whilst-in-the-chat-buffer) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
+When working inside the CodeCompanion repository, you have access to the built-in [rule](https://codecompanion.olimorris.dev/usage/chat-buffer/rules) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
 
 You can load memory into the chat via the Action Palette:
 
 <img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c">
 
-Or, via the `/memory` slash command. Currently, the memory files that have been added are:
+Or, via the `/rules` slash command. Currently, the memory files that have been added are:
 
 - ACP
 - Adapters
@@ -44,7 +44,7 @@ Or, via the `/memory` slash command. Currently, the memory files that have been 
 
 ### Refer to the Tests
 
-CodeCompanion has [c. 500 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
+CodeCompanion has [c. 800 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
 
 ## Project Structure
 

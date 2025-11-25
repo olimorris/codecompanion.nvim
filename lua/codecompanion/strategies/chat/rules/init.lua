@@ -2,31 +2,32 @@ local Path = require("plenary.path")
 local Scandir = require("plenary.scandir")
 
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.strategies.chat.memory.helpers")
-local parsers = require("codecompanion.strategies.chat.memory.parsers")
+local helpers = require("codecompanion.strategies.chat.rules.helpers")
+local parsers = require("codecompanion.strategies.chat.rules.parsers")
 
----@class CodeCompanion.Chat.Memory.ProcessedFile
----@field name string The name of the memory file
----@field content string The content of the memory file
----@field filename string The filename of the memory file
----@field meta? {included_files: string[]} Additional metadata about the memory file
----@field parser string|nil The parser to use for the memory file
----@field path string The full, normalized file path of the memory file
+---@class CodeCompanion.Chat.Rules.ProcessedFile
+---@field name string The name of the rules file
+---@field content string The content of the rules file
+---@field filename string The filename of the rules file
+---@field meta? {included_files: string[]} Additional metadata about the rules file
+---@field parser string|nil The parser to use for the rules file
+---@field path string The full, normalized file path of the rules file
+---@field system_prompt? string The extracted system prompt from the rules file
 
----@class CodeCompanion.Chat.Memory
----@field name string The name of the memory group
----@field opts table Additional options for the memory instance
----@field parser string|table|function|nil The parser to use for the memory group
----@field processed CodeCompanion.Chat.Memory.ProcessedFile[] The processed files
----@field files string[]|{ path: string, parser: string} The memory files as an array of strings
-local Memory = {}
+---@class CodeCompanion.Chat.Rules
+---@field name string The name of the rules group
+---@field opts table Additional options for the rules instance
+---@field parser string|table|function|nil The parser to use for the rules group
+---@field processed CodeCompanion.Chat.Rules.ProcessedFile[] The processed files
+---@field files string[]|{ path: string, parser: string} The rules files as an array of strings
+local Rules = {}
 
----@class CodeCompanion.Chat.MemoryArgs
----@field name string The name of the memory instance
----@field opts table Additional options for the memory instance
----@field parser string|function|nil The parser to use for the memory group
----@field files table The memory files as an array of strings
-function Memory.init(args)
+---@class CodeCompanion.Chat.RulesArgs
+---@field name string The name of the rules instance
+---@field opts table Additional options for the rules instance
+---@field parser string|function|nil The parser to use for the rules group
+---@field files table The rules files as an array of strings
+function Rules.init(args)
   local self = setmetatable({
     name = args.name,
     opts = args.opts,
@@ -35,15 +36,15 @@ function Memory.init(args)
 
     -- Internal use
     processed = {},
-  }, { __index = Memory })
-  ---@cast self CodeCompanion.Chat.Memory
+  }, { __index = Rules })
+  ---@cast self CodeCompanion.Chat.Rules
 
   return self
 end
 
----Extract the memory from the files file
----@return CodeCompanion.Chat.Memory
-function Memory:extract()
+---Extract the rules from the files file
+---@return CodeCompanion.Chat.Rules
+function Rules:extract()
   local function add_file(fullpath, file_parser)
     local normalized_file = vim.fs.normalize(fullpath)
     local p = Path:new(normalized_file)
@@ -118,12 +119,13 @@ function Memory:extract()
   return self
 end
 
----Parse the memory contents
----@return CodeCompanion.Chat.Memory
-function Memory:parse()
+---Parse the rules contents
+---@return CodeCompanion.Chat.Rules
+function Rules:parse()
   vim.iter(self.processed):each(function(file)
     local parsed = parsers.parse(file, self.parser)
     if parsed then
+      file.system_prompt = parsed.system_prompt
       file.content = parsed.content
       file.meta = parsed.meta
     end
@@ -132,9 +134,9 @@ function Memory:parse()
   return self
 end
 
----Memory should be added as context
+---Rules should be added as context
 ---@param chat CodeCompanion.Chat
-function Memory:add(chat)
+function Rules:add(chat)
   local included_files = {}
   for _, file in ipairs(self.processed) do
     if file.meta and file.meta.included_files then
@@ -150,18 +152,18 @@ function Memory:add(chat)
   end
 end
 
----Make the memory message
+---Make the rules message
 ---@param chat CodeCompanion.Chat
 ---@param opts? { force: boolean } Additional options
 ---@return nil
-function Memory:make(chat, opts)
+function Rules:make(chat, opts)
   opts = vim.tbl_extend("force", { force = false }, opts or {})
 
   local condition = config
-    and config.memory
-    and config.memory.opts
-    and config.memory.opts.chat
-    and config.memory.opts.chat.condition
+    and config.rules
+    and config.rules.opts
+    and config.rules.opts.chat
+    and config.rules.opts.chat.condition
 
   if condition ~= nil and opts.force == false then
     local ctype = type(condition)
@@ -181,13 +183,13 @@ function Memory:make(chat, opts)
   return self:extract():parse():add(chat)
 end
 
----Add memory to the chat based on the provided options (external API)
----@param opts CodeCompanion.Chat.MemoryArgs The memory options
+---Add rules to the chat based on the provided options (external API)
+---@param opts CodeCompanion.Chat.RulesArgs The rules options
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
-function Memory.add_to_chat(opts, chat)
-  local memory = Memory.init(opts)
-  return memory:make(chat)
+function Rules.add_to_chat(opts, chat)
+  local rules = Rules.init(opts)
+  return rules:make(chat)
 end
 
-return Memory
+return Rules

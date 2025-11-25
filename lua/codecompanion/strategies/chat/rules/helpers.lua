@@ -8,13 +8,13 @@ local utils = require("codecompanion.utils")
 
 local M = {}
 
----Recursively expand memory groups (supports groups of groups)
+---Recursively expand rules groups (supports groups of groups)
 ---@param picker_items string[] Flat output list to mutate
 ---@param group_path string Display name path (e.g. "parent/child")
 ---@param group_cfg table Group config to expand
 ---@param parent_cfg? { parser?: any, opts?: table, description?: string } Inherited values from parent
 ---@return nil
-local function expand_memory_group(picker_items, group_path, group_cfg, parent_cfg)
+local function expand_rules_group(picker_items, group_path, group_cfg, parent_cfg)
   local inherited = {
     parser = group_cfg.parser or (parent_cfg and parent_cfg.parser or nil),
     opts = vim.tbl_extend("force", parent_cfg and parent_cfg.opts or {}, group_cfg.opts or {}),
@@ -39,19 +39,19 @@ local function expand_memory_group(picker_items, group_path, group_cfg, parent_c
   for subgroup_name, subgroup_config in pairs(files) do
     if type(subgroup_config) == "table" then
       local child_path = group_path .. "/" .. subgroup_name
-      expand_memory_group(picker_items, child_path, subgroup_config, inherited)
+      expand_rules_group(picker_items, child_path, subgroup_config, inherited)
     end
   end
 end
 
----List all of the memory from the config (flattened)
+---List all of the rules from the config (flattened)
 ---@return table
 function M.list()
   local picker_items = {}
   local exclusions = { "opts", "parsers" }
 
-  for name, cfg in pairs(config.memory or {}) do
-    if cfg.is_default and config.memory.opts.show_defaults == false then
+  for name, cfg in pairs(config.rules or {}) do
+    if cfg.is_default and config.rules.opts.show_defaults == false then
       goto continue
     end
     if cfg.enabled == false then
@@ -65,7 +65,7 @@ function M.list()
     if not vim.tbl_contains(exclusions, name) and type(cfg) == "table" then
       local files = cfg.files or {}
       if utils.is_array(files) then
-        -- Memory is a singular group
+        -- Rules is a singular group
         table.insert(picker_items, {
           name = name,
           description = cfg.description,
@@ -74,8 +74,8 @@ function M.list()
           files = files,
         })
       else
-        -- If the memory contains multiple groups
-        expand_memory_group(picker_items, name, cfg, nil)
+        -- If the rules contains multiple groups
+        expand_rules_group(picker_items, name, cfg, nil)
       end
     end
     ::continue::
@@ -90,15 +90,15 @@ end
 
 ---Add callbacks to a chat creation request
 ---@param args table
----@param memory_name? string The name of the memory instance to use (if any)
+---@param rules_name? string The name of the rules instance to use (if any)
 ---@return table|nil
-function M.add_callbacks(args, memory_name)
-  local memory = config.memory and config.memory.opts and config.memory.opts.chat
-  if not memory_name and not (memory and memory.enabled and memory.default_memory) then
+function M.add_callbacks(args, rules_name)
+  local rules = config.rules and config.rules.opts and config.rules.opts.chat
+  if not rules_name and not (rules and rules.enabled and rules.default_rules) then
     return args.callbacks
   end
 
-  local defaults = memory_name or memory.default_memory
+  local defaults = rules_name or rules.default_rules
   local memories = {}
   if type(defaults) == "string" then
     memories = { defaults }
@@ -109,11 +109,11 @@ function M.add_callbacks(args, memory_name)
   end
 
   for _, name in ipairs(memories) do
-    local current = config.memory[name]
+    local current = config.rules[name]
     if current then
       -- Ensure that we extend any existing callbacks
       args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
-        require("codecompanion.strategies.chat.memory").add_to_chat({
+        require("codecompanion.strategies.chat.rules").add_to_chat({
           name = name,
           opts = current.opts,
           parser = current.parser,
@@ -121,23 +121,29 @@ function M.add_callbacks(args, memory_name)
         }, chat)
       end)
     else
-      log:warn("Could not find `%s` memory", name)
+      log:warn("Could not find `%s` rules", name)
     end
   end
 
   return args.callbacks
 end
 
----Add context to the chat based on the memory files
----@param files CodeCompanion.Chat.Memory.ProcessedFile
+---Add context to the chat based on the rules files
+---@param files CodeCompanion.Chat.Rules.ProcessedFile
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function M.add_context(files, chat)
   for _, file in ipairs(files) do
-    local id = "<memory>" .. file.name .. "</memory>"
+    local id = "<rules>" .. file.name .. "</rules>"
     local context_exists = chat_helpers.has_context(id, chat.messages)
     if not context_exists then
-      chat:add_context({ content = file.content }, "memory", id, {
+      if file.system_prompt and file.system_prompt ~= "" then
+        chat:add_message(
+          { role = "system", content = file.system_prompt },
+          { visible = false, context = { id = id }, _meta = { tag = "rules" } }
+        )
+      end
+      chat:add_context({ content = file.content }, "rules", id, {
         path = file.path,
       })
     end
@@ -160,7 +166,7 @@ function M.add_files_or_buffers(included_files, chat)
     else
       -- Otherwise, check the wider filesystem
       if not file_utils.exists(path) then
-        return log:warn("Could not find the memory file `%s`", path)
+        return log:warn("Could not find the rules file `%s`", path)
       end
     end
 
@@ -169,7 +175,7 @@ function M.add_files_or_buffers(included_files, chat)
     if bufnr then
       local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
       if not ok then
-        return log:debug("[Memory] Could not add buffer %d to chat buffer", bufnr)
+        return log:debug("[Rules] Could not add buffer %d to chat buffer", bufnr)
       end
 
       local context_exists = chat_helpers.has_context(id, chat.messages)
@@ -177,7 +183,7 @@ function M.add_files_or_buffers(included_files, chat)
         return
       end
 
-      local buffer_opts = config.memory.opts.chat and config.memory.opts.chat.default_params
+      local buffer_opts = config.rules.opts.chat and config.rules.opts.chat.default_params
       if buffer_opts then
         if buffer_opts == "pin" then
           opts.pinned = true
@@ -186,7 +192,7 @@ function M.add_files_or_buffers(included_files, chat)
         end
       end
 
-      return chat:add_context({ content = content }, "memory", id, {
+      return chat:add_context({ content = content }, "rules", id, {
         bufnr = bufnr,
         path = path,
         context_opts = opts,
@@ -198,7 +204,7 @@ function M.add_files_or_buffers(included_files, chat)
     if ok then
       local context_exists = chat_helpers.has_context(id, chat.messages)
       if not context_exists then
-        chat:add_context({ content = content }, "memory", id, {
+        chat:add_context({ content = content }, "rules", id, {
           path = path,
         })
       end

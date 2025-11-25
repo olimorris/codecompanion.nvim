@@ -127,8 +127,8 @@ export default withMermaid(
               text: "Inline Assistant",
               link: "/configuration/inline-assistant",
             },
-            { text: "Memory", link: "/configuration/memory" },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
+            { text: "Rules", link: "/configuration/rules" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
             { text: "Others", link: "/configuration/others" },
           ],
@@ -146,7 +146,7 @@ export default withMermaid(
               collapsed: true,
               items: [
                 { text: "Agents", link: "/usage/chat-buffer/agents" },
-                { text: "Memory", link: "/usage/chat-buffer/memory" },
+                { text: "Rules", link: "/usage/chat-buffer/rules" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
@@ -167,7 +167,7 @@ export default withMermaid(
           items: [
             { text: "Creating Adapters", link: "/extending/adapters" },
             { text: "Creating Extensions", link: "/extending/extensions" },
-            { text: "Creating Memory Parsers", link: "/extending/parsers" },
+            { text: "Creating Rules Parsers", link: "/extending/parsers" },
             { text: "Creating Prompts", link: "/extending/prompts" },
             { text: "Creating Tools", link: "/extending/tools" },
             { text: "Creating Workflows", link: "/extending/workflows" },

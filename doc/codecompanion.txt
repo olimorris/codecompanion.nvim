@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 24
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -28,7 +28,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Adapters                            |codecompanion-configuration-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
   - Inline Assistant            |codecompanion-configuration-inline-assistant|
-  - Memory                                |codecompanion-configuration-memory|
+  - Rules                                  |codecompanion-configuration-rules|
   - Prompt Library                |codecompanion-configuration-prompt-library|
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
@@ -39,7 +39,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
-  - Memory                                        |codecompanion-usage-memory|
+  - Rules                                          |codecompanion-usage-rules|
   - Tools                                          |codecompanion-usage-tools|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Variables                                  |codecompanion-usage-variables|
@@ -49,7 +49,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Workflows                                  |codecompanion-usage-workflows|
 6. Extending                                         |codecompanion-extending|
   - Creating Adapters              |codecompanion-extending-creating-adapters|
-  - Creating Memory Parsers  |codecompanion-extending-creating-memory-parsers|
+  - Creating Rules Parsers    |codecompanion-extending-creating-rules-parsers|
   - Creating Prompts                |codecompanion-extending-creating-prompts|
   - Creating Tools                    |codecompanion-extending-creating-tools|
   - Creating Workflows            |codecompanion-extending-creating-workflows|
@@ -73,7 +73,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
--  Support for |codecompanion-usage-chat-buffer-memory| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
+-  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-extending-prompts|, Variables and Slash Commands
@@ -2224,149 +2224,58 @@ Please see the |codecompanion-chat-buffer-diff| on the Chat Buffer page for
 configuration options.
 
 
-MEMORY                                    *codecompanion-configuration-memory*
+RULES                                      *codecompanion-configuration-rules*
 
-Fundamentally, memory is a way of adding persistent context to a chat buffer.
-CodeCompanion uses `groups` to create a collection of files that can be added
-to chats. Groups can also be linked to a `parser` which can offer
-post-processing customization such as parsing file paths and adding them as
-buffers or files to the chat buffer.
+Within CodeCompanion, rules fulfil two main purposes within a chat buffer:
+
+1. To provide system-level instructions to your LLM
+2. To provide persistent context via files in your project
+
+Similar to Cursor’s Rules <https://cursor.com/docs/context/rules>, they
+provide a way to guide the behavior of your LLM within a chat. Why? LLMs
+don’t retain memory between sessions so preferences and context need to be
+re-applied each time a new chat is started.
 
 
-ENABLING MEMORY ~
+ENABLING RULES ~
 
-By default, memory is not enabled in the chat buffer. To enable it:
 
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            enabled = true,
-          },
-        },
-      },
-    })
-<
-
-Once enabled, the plugin will look to load a common, or default, set of files
+Once enabled, the plugin will look to load a common, or default, set of rules
 every time a chat buffer is created.
 
 
   [!INFO] Refer to the config.lua
   <https://github.com/olimorris/codecompanion.nvim/blob/5807e0457111f0de267fc9a6543b41fae0f5c2b1/lua/codecompanion/config.lua#L1167-L1179>
   file for the full set of files included in the default group.
-You can also conditionally determine if memory should be added to a chat
-buffer:
 
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            ---Function to determine if memory should be added to a chat buffer
-            ---This requires `enabled` to be true
-            ---@param chat CodeCompanion.Chat
-            ---@return boolean
-            condition = function(chat)
-              return chat.adapter.type ~= "acp"
-            end,
-          },
-        },
-      },
-    })
-<
+RULE GROUPS ~
 
-The example above is taken from the config itself, as by default, the plugin
-will not add memory to |codecompanion-usage-chat-buffer-agents| adapters.
+In the plugin, rule groups are a collection of files and/or directories that
+can be loaded into the chat buffer.
 
 
-WORKING WITH GROUPS ~
-
-In the plugin, memory groups are a collection of files and/or directories.
-Below is an example of what a `claude` group might look like:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        claude = {
-          description = "Memory files for Claude Code users",
-          files = {
-            "~/.claude/CLAUDE.md",
-            "CLAUDE.md",
-            "CLAUDE.local.md",
-          },
-        },
-      },
-    })
-<
-
-You’ll notice that the file paths can be local to the current working
-directory or point to an absolute location.
-
-
-CONDITIONALLY ENABLING GROUPS
-
-You can also conditionally enable memory groups. For instance, the default
-`CodeCompanion` group has the following conditional:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        CodeCompanion = {
-          description = "CodeCompanion plugin memory files",
-          ---@return boolean
-          enabled = function()
-            -- Don't show this to users who aren't working on CodeCompanion itself
-            return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
-          end,
-          files = {}, -- removed for brevity
-        },
-      },
-    })
-<
-
-
-NESTING GROUPS
-
-It’s also possible to nest groups within a group. This can be a convenient
-way of applying the same conditional to multiple groups alongside keeping your
-config clean:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        CodeCompanion = {
-          description = "CodeCompanion plugin memory files",
-          parser = "claude",
-          files = {
-            ["acp"] = {
-              description = "The ACP implementation",
-              files = {
-                ".codecompanion/acp/acp.md",
-              },
-            },
-          },
-        },
-      },
-    })
-<
-
-In the example above, the main group is `CodeCompanion` and a sub-group, `acp`,
-sits within the files table. The `claude` parser sits across all of the groups.
+Nested groups allow you to apply the same conditional to multiple groups
+alongside keeping your config clean. In the example above, the main group is
+`CodeCompanion` and a sub-group, `acp`, sits within the files table. The
+`claude` parser sits across all of the groups.
 
 When using the `Action Palette` or the slash command, the plugin will extract
 these nested groups and display them.
 
+You can also set default groups that are automatically applied to all chat
+buffers. This is useful for ensuring that your preferred rules are always
+available.
+
 
 PARSERS ~
 
+Parsers allow CodeCompanion to transform rules, affecting how they are shared
+in the chat buffer. This is particularly useful if you reference files in your
+rules. Currently, the plugin has two in-built parsers:
 
-  [!NOTE] Parsers are an optional addition to memory in the plugin.
-Currently, the plugin has two in-built parsers:
-
-- `claude` - which will import files into the chat buffer in the same way Claude Code does <https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports>. Note, this requires memory to be `markdown` files
-- `none` - a blank parser which can be used to overwrite parsers that have been set on the default memory groups
+- `claude` - which will import files into the chat buffer in the same way Claude Code does <https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports>. Note, this requires rules to be `markdown` files
+- `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
+- `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
 
 Please see the guide on |codecompanion-extending-parsers| to understand how you
 can create and apply your own.
@@ -2375,110 +2284,10 @@ can create and apply your own.
 APPLYING PARSERS
 
 You can apply parsers at a group level, to ensure that all files in the group
-are parsed in the same way:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        claude = {
-          description = "Memory files for Claude Code users",
-          parser = "claude",
-          files = {
-            "CLAUDE.md",
-            "CLAUDE.local.md",
-            "~/.claude/CLAUDE.md",
-          },
-        },
-      },
-    })
-<
-
-In the example above, every file within the group will be sent through the
-`claude` parser before being added to the chat buffer.
-
-Alternatively, you can apply parsers at a file level.
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        default = {
-          description = "Collection of common files for all projects",
-          files = {
-            { path = "CLAUDE.md", parser = "claude" },
-            { path = "CLAUDE.local.md", parser = "claude" },
-            { path = "~/.claude/CLAUDE.md", parser = "claude" },
-          },
-        },
-      },
-    })
-<
-
-Or combine both approaches, whereby the parsers at a file level will take
-precedence.
+are parsed in the same way. Alternatively, you can apply them at a file level
+to have more granular control.
 
 
-DISABLING PARSERS
-
-To disable a parser against a memory group, simply assign it a parser of
-`none`.
-
-
-CHANGING DEFAULTS ~
-
-
-GROUPS
-
-The plugin will look to load the `default` memory group by default. This can be
-changed by:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_memory = "my_new_group",
-          },
-        },
-      },
-    })
-<
-
-Alternatively, you can select multiple groups:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_memory = { "default", "my_new_group" },
-          },
-        },
-      },
-    })
-<
-
-
-BUFFERS AND FILES
-
-If a parsed memory group contains links to files and they are Neovim buffers,
-you can set specific parameters, such as a
-|codecompanion-usage-chat-buffer-variables-with-parameters|:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_params = "watch", -- watch|pin - when adding a buffer to the chat
-          },
-        },
-      },
-    })
-<
-
-
-  [!NOTE] The `claude` parser has been specifically built to output linked files
-  that take advantage of this.
 
 PROMPT LIBRARY                    *codecompanion-configuration-prompt-library*
 
@@ -3386,7 +3195,7 @@ The keymaps available to the user in normal mode are:
 - `gd` to view/debug the chat buffer’s contents
 - `gD` to view the chat buffer’s super diff feature
 - `gf` to fold any codeblocks in the chat buffer
-- `gM` to clear all memory from the chat buffer
+- `gM` to clear all rules from the chat buffer
 - `gp` to pin an item to the context in the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it’ll jump
@@ -3496,17 +3305,21 @@ The |codecompanion-usage-chat-buffer-slash-commands.html-image| slash command
 can be leveraged to share images with the agent.
 
 
-MEMORY                                            *codecompanion-usage-memory*
+RULES                                              *codecompanion-usage-rules*
 
-LLMs don’t retain memory between completions. In CodeCompanion, memory
-provides persistent, reusable context for chat buffers, via the notion of
-groups.
+Ensure that you have read the |codecompanion-configuration-rules| section to
+understand how to create and configure rule groups.
 
-Below is the `default` memory group in the plugin:
+
+DEFAULT RULE GROUP ~
+
+Below is the `default` rule group that, when
+|codecompanion-configuration-rules-enabling-rules|, provides a collection of
+common files to the chat buffer:
 
 >lua
     require("codecompanion").setup({
-      memory = {
+      rules = {
         default = {
           description = "Collection of common files for all projects",
           files = {
@@ -3527,85 +3340,87 @@ Below is the `default` memory group in the plugin:
     })
 <
 
-Once |codecompanion-configuration-memory-enabling-memory|, there are many ways
-that memory can be added to the chat buffer.
 
+CREATING RULES ~
 
-CREATING MEMORY ~
-
-The plugin does not require memory to be in a specific filetype or even format
+The plugin does not require rules to be in a specific filetype or even format
 (unless you’re using the `claude` parser). This allows you to leverage mdc
 <https://docs.cursor.com/en/context/rules#rule-anatomy> files, markdown files
 or good old plain text files.
 
-The location of the memory is also unimportant. The memory files could be local
+The location of the rules is also unimportant. The rules files could be local
 to the project you’re working in. Or, they could reside in a separate
 location on your disk. Just ensure the path is correct when you’re
-|codecompanion-configuration-memory-working-with-groups| the memory group.
+|codecompanion-configuration-rules-rule-groups| the rules group.
 
 
-ADDING MEMORY ~
+EXAMPLE 1: RULE THAT CAN BE PROCESSED WITH THE CODECOMPANION PARSER
+
+>markdown
+    # Example Rules File
+    
+    ## System Prompt
+    
+    What ever goes in this section is used as a system prompt in the chat buffer.
+    
+    So you can specify instructions:
+    - Here
+    - And here
+    
+    ...and anywhere here
+    
+    ## My other header
+    
+    @./lua/codecompanion/strategies/chat/tools/init.lua
+    
+    Anything in this section is added as context to the chat buffer. The file above is also shared
+<
+
+
+EXAMPLE 2: RULE THAT CAN BE PROCESSED WITH THE CLAUDE PARSER
+
+>markdown
+    # Example Claude Rules File
+    
+    @./lua/codecompanion/strategies/chat/tools/init.lua
+    
+    This is a rules file that can be parsed with the Claude parser.
+    
+    Anything in this file is added as context to the chat buffer.
+    
+    Including the file above.
+<
+
+
+ADDING RULES TO A CHAT BUFFER ~
 
 
 WHEN OPENING THE CHAT BUFFER
 
-Memory can automatically be added to a chat buffer when it’s created. Simply
-modify the `memory.opts.chat.default_memory` value to reflect the group(s) you
-wish to add:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_memory = { "default", "claude "}
-          },
-        },
-      },
-    })
-<
-
-Or, edit the group that resides in `memory.opts.chat.default_memory`:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        default = {
-          description = "My default group",
-          files = {
-            "CLAUDE.md",
-            "~/Code/Helpers/my_project_specific_help.md",
-          },
-        },
-        opts = {
-          chat = {
-            default_memory = "default",
-          },
-        },
-      },
-    })
-<
-
-
-WHILST IN THE CHAT BUFFER
-
-To add memory to an existing chat buffer, use the `/memory` slash command. This
-will allow multiple memory groups to be added at a time.
-
-
-FROM THE ACTION PALETTE
+Rules can automatically be added to a chat buffer when it’s created. Just
+specify the default rules to include:
 
 
 
-There is also a `Chat with memory` action in the
-|codecompanion-usage-action-palette|. This lists all of the memory groups in
-the config that can be added to a new chat buffer.
+SLASH COMMAND
+
+To add rules to an existing chat buffer, use the `/rules` slash command. This
+will allow multiple rule groups to be added at a time.
 
 
-CLEARING MEMORY
+ACTION PALETTE
 
-Memory can also be cleared from a chat buffer via the `gM` keymap. Although
-note, this will remove `ALL` context that’s been designated as `memory`.
+
+
+There is also a `Chat with rules` action in the
+|codecompanion-usage-action-palette|. This lists all of the rule groups in the
+config that can be added to a new chat buffer.
+
+
+CLEARING RULES
+
+Rules can also be cleared from a chat buffer via the `gR` keymap. Although
+note, this will remove `ALL` context that’s been designated as `rules`.
 
 
 TOOLS                                              *codecompanion-usage-tools*
@@ -3840,10 +3655,6 @@ MEMORY
 
   [!IMPORTANT] For security, all memory operations are restricted to the
   `/memories` directory
-
-  [!NOTE] This tool is separate to CodeCompanion’s
-  |codecompanion-usage-chat-buffer-memory| implementation but the two can be
-  combined by giving a memory group knowledge of the `/memories` directory
 The memory tool enables LLMs to store and retrieve information across
 conversations through a memory file directory (`/memories`).
 
@@ -4130,7 +3941,7 @@ The `compact` slash command, based on Claude Code’s
 corresponding feature, clears the chat buffer’s message history whilst
 preserving a summary, in context.
 
-System prompts, memory and file/buffer shares will be preserved but all user,
+System prompts, rules and file/buffer shares will be preserved but all user,
 assistant and tool messages will be removed. The summary is generated by
 prompting the same LLM to summarize the chat history into a concise format.
 
@@ -4179,10 +3990,10 @@ will always search in, alongside the current working directory. Currently the
 image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 
-/MEMORY ~
+/RULES ~
 
-The `memory` slash command allows you to add
-|codecompanion-usage-chat-buffer-memory| groups to the chat buffer.
+The `rules` slash command allows you to add
+|codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
 
 
 /MODE ~
@@ -5578,10 +5389,10 @@ structure for better organization:
 <
 
 
-CREATING MEMORY PARSERS      *codecompanion-extending-creating-memory-parsers*
+CREATING RULES PARSERS        *codecompanion-extending-creating-rules-parsers*
 
-In CodeCompanion, parsers act on the contents of a memory file, carrying out
-some post-processing activities and returning the content back to the memory
+In CodeCompanion, parsers act on the contents of a rules file, carrying out
+some post-processing activities and returning the content back to the rules
 class.
 
 Parsers serve as an excellent way to apply modifications and extract metadata
@@ -5591,16 +5402,16 @@ prior to sharing them with an LLM.
 STRUCTURE OF A PARSER ~
 
 A parser has limited restrictions. It is simply required to return a function
-that the `memory` class can execute, passing in the file to be processed as a
+that the `rules` class can execute, passing in the file to be processed as a
 parameter:
 
 >lua
-    ---@class CodeCompanion.Chat.Memory.Parser
-    ---@field content string The content of the memory file
-    ---@field meta? { included_files: string[] } The filename of the memory file
+    ---@class CodeCompanion.Chat.Rules.Parser
+    ---@field content string The content of the rules file
+    ---@field meta? { included_files: string[] } The filename of the rules file
     
-    ---@param file CodeCompanion.Chat.Memory.ProcessedFile
-    ---@return CodeCompanion.Chat.Memory.Parser
+    ---@param file CodeCompanion.Chat.Rules.ProcessedFile
+    ---@return CodeCompanion.Chat.Rules.Parser
     return function(file)
       -- Your logic
     end
@@ -5612,7 +5423,7 @@ As an output, the function must return a table containing a `content` key.
 PROCESSING FILES ~
 
 Parsers may also return a list of files to be shared with the LLM by the
-`memory` class. To enable this, ensure that the parser returns a
+`rules` class. To enable this, ensure that the parser returns a
 `meta.included_files` array in its output:
 
 >lua
@@ -6107,16 +5918,16 @@ This can now accomplished, as per the example below:
 <
 
 
-PROMPTS WITH MEMORY
+PROMPTS WITH RULES
 
-You can specify a default memory group to load with a prompt:
+You can specify a default rule group to load with a prompt:
 
 >lua
     ["Test Context"] = {
       strategy = "chat",
       description = "Add some context",
       opts = {
-        default_memory = "my_custom_memory_group",
+        default_rules = "my_rule_group",
       },
       prompts = {
         -- Prompt go here

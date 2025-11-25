@@ -2,15 +2,15 @@ local config = require("codecompanion.config")
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Chat.Memory.Parser
----@field content string The content of the memory file
----@field meta? { included_files: string[] } The filename of the memory file
+---@class CodeCompanion.Chat.Rules.Parser
+---@field content string The content of the rules file
+---@field meta? { included_files: string[] } The filename of the rules file
 
 local M = {}
 
 ---Resolve the parser from the config
 ---@param parser string
----@return CodeCompanion.Chat.Memory.Parser|nil
+---@return CodeCompanion.Chat.Rules.Parser|nil
 function M.resolve(parser)
   if not parser then
     return nil
@@ -20,17 +20,17 @@ function M.resolve(parser)
 
   assert(type(parser) == "string", "Parser must be a string")
   assert(
-    config and config.memory and config.memory.parsers and config.memory.parsers[parser],
+    config and config.rules and config.rules.parsers and config.rules.parsers[parser],
     "Couldn't find the " .. parser .. " parser in the config"
   )
 
-  parser = config.memory.parsers[parser]
+  parser = config.rules.parsers[parser]
 
   -- If the config entry is a function that returns a parser table, call it.
   if type(parser) == "function" then
     ok, resolved = pcall(parser)
     if not ok then
-      log:error("[Memory] Parser factory error: %s", resolved)
+      log:error("[Rules] Parser factory error: %s", resolved)
       return nil
     end
     return resolved
@@ -38,7 +38,7 @@ function M.resolve(parser)
 
   if type(parser) == "string" then
     -- The parser might be a CodeCompanion default one ...
-    ok, resolved = pcall(require, "codecompanion.strategies.chat.memory.parsers." .. parser)
+    ok, resolved = pcall(require, "codecompanion.strategies.chat.rules.parsers." .. parser)
     if ok then
       return resolved
     end
@@ -46,7 +46,7 @@ function M.resolve(parser)
     -- Or one that exists on the user's disk
     parser = vim.fs.normalize(parser)
     if not file_utils.exists(parser) then
-      return log:error("[Memory] Could not find the file %s", parser)
+      return log:error("[Rules] Could not find the file %s", parser)
     end
 
     ok, resolved = pcall(require, parser)
@@ -56,7 +56,7 @@ function M.resolve(parser)
 
     resolved, err = loadfile(parser)
     if err then
-      return log:error("[Memory] %s", err)
+      return log:error("[Rules] %s", err)
     end
 
     if resolved then
@@ -68,9 +68,9 @@ function M.resolve(parser)
 end
 
 ---Parse the content through the parser and return it
----@param file CodeCompanion.Chat.Memory.ProcessedFile The processed file
+---@param file CodeCompanion.Chat.Rules.ProcessedFile The processed file
 ---@param group_parser? string The parser from the group level
----@return CodeCompanion.Chat.Memory.Parser The parsed content, or a parser object
+---@return CodeCompanion.Chat.Rules.Parser The parsed content, or a parser object
 function M.parse(file, group_parser)
   local parser
 
@@ -80,7 +80,7 @@ function M.parse(file, group_parser)
     if parser then
       local ok, parsed = pcall(parser, file)
       if not ok then
-        log:error("[Memory] Parser error: %s", parsed)
+        log:error("[Rules] Parser error: %s", parsed)
         return { content = file.content }
       end
 
@@ -95,7 +95,7 @@ function M.parse(file, group_parser)
     if parser then
       local ok, parsed = pcall(parser, file)
       if not ok then
-        log:error("[Memory] Parser error: %s", parsed)
+        log:error("[Rules] Parser error: %s", parsed)
         return { content = file.content }
       end
 

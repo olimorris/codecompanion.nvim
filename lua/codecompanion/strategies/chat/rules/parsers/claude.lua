@@ -1,16 +1,16 @@
 --[[
 ===============================================================================
-    File:       codecompanion/strategies/chat/memory/parsers/claude.lua
+    File:       codecompanion/strategies/chat/rules/parsers/claude.lua
     Author:     Oli Morris
 -------------------------------------------------------------------------------
     Description:
       Parses a CLAUDE.md (or similarly formatted) file, extracting any lines
-      that start with "@" as file paths to be included in memory.
+      that start with "@" as file paths to be included in rules.
 ===============================================================================
 --]]
 
----@param file CodeCompanion.Chat.Memory.ProcessedFile
----@return CodeCompanion.Chat.Memory.Parser
+---@param file CodeCompanion.Chat.Rules.ProcessedFile
+---@return CodeCompanion.Chat.Rules.Parser
 return function(file)
   local content = file.content or ""
   local included_files = {}

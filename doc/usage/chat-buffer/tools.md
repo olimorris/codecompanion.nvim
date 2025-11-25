@@ -194,9 +194,6 @@ Can you use @{list_code_usages} to show me how the `Tools` class is implemented 
 > [!IMPORTANT]
 > For security, all memory operations are restricted to the `/memories` directory
 
-> [!NOTE]
-> This tool is separate to CodeCompanion's [memory](/usage/chat-buffer/memory) implementation but the two can be combined by giving a memory group knowledge of the `/memories` directory
-
 The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory (`/memories`).
 
 If you're using the _Anthropic_ adapter, then this tool will act as its client implementation. Please refer to their [documentation](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) for more information.

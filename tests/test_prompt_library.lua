@@ -183,11 +183,11 @@ T["Prompt Library"]["can add context"] = function()
   h.expect_match(items[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
 end
 
--- New: ensure default_memory adds a memory context item
-T["Prompt Library"]["can add memory"] = function()
+-- New: ensure default_rules adds a rules context item
+T["Prompt Library"]["can add rules"] = function()
   local mem_items = child.lua([[
       codecompanion.setup({
-        memory = {
+        rules = {
           default = {
             files = {
               "tests/stubs/file.txt"
@@ -202,7 +202,7 @@ T["Prompt Library"]["can add memory"] = function()
               index = 4,
               short_name = "test_prompt",
               ignore_system_prompt = true,
-              default_memory = "default",
+              default_rules = "default",
             },
             prompts = {
               {
@@ -219,7 +219,7 @@ T["Prompt Library"]["can add memory"] = function()
     ]])
 
   h.eq(1, #mem_items)
-  h.eq("<memory>tests/stubs/file.txt</memory>", mem_items[1].id)
+  h.eq("<rules>tests/stubs/file.txt</rules>", mem_items[1].id)
 end
 
 -- New: ensure ignore_system_prompt prevents adding the configured default system prompt

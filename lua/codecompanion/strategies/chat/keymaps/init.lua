@@ -549,12 +549,12 @@ M.toggle_system_prompt = {
   end,
 }
 
-M.clear_memory = {
-  desc = "Clear memory",
+M.clear_rules = {
+  desc = "Clear rules",
   callback = function(chat)
-    chat:remove_tagged_message("memory")
+    chat:remove_tagged_message("rules")
     chat:refresh_context()
-    return utils.notify("Cleared the memory", vim.log.levels.INFO)
+    return utils.notify("Cleared the rules", vim.log.levels.INFO)
   end,
 }
 
