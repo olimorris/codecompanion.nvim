@@ -16,11 +16,6 @@ local function adapter_type(adapter)
     if config.adapters.http and config.adapters.http[adapter] then
       return "http"
     end
-
-    ---TODO: Remove in v18.0.0
-    if config.adapters[adapter] then
-      return "http"
-    end
   end
 
   -- The fallback

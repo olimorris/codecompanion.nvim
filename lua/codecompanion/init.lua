@@ -365,48 +365,6 @@ end
 CodeCompanion.setup = function(opts)
   opts = opts or {}
 
-  -- TODO: Remove in v18.0.0
-  -- // START -----------------------------------------------------------------
-  if opts.adapters then
-    local has_old_format = false
-    local migrated_adapters = {}
-
-    -- Check if user has the old adapter format
-    for key, value in pairs(opts.adapters) do
-      if key ~= "http" and key ~= "acp" then
-        if type(value) == "function" or type(value) == "table" then
-          has_old_format = true
-          migrated_adapters[key] = value
-        end
-      end
-    end
-
-    if has_old_format then
-      vim.deprecate(
-        "`adapters.<adapter_name>` and `adapters.opts`",
-        "`adapters.http.<adapter_name>` and `adapters.http.opts`",
-        "v18.0.0",
-        "CodeCompanion",
-        false
-      )
-
-      -- Begin the migration to the new format
-      if not opts.adapters.http then
-        opts.adapters.http = {}
-      end
-      for adapter_name, adapter_config in pairs(migrated_adapters) do
-        if not opts.adapters.http[adapter_name] then
-          opts.adapters.http[adapter_name] = adapter_config
-        end
-      end
-      -- Remove the adapters from the old format
-      for adapter_name, _ in pairs(migrated_adapters) do
-        opts.adapters[adapter_name] = nil
-      end
-    end
-  end
-  --// END --------------------------------------------------------------------
-
   -- Setup the plugin's config
   config.setup(opts)
 

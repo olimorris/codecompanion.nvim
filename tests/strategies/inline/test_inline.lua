@@ -10,7 +10,9 @@ T["Inline"] = new_set({
     pre_case = function()
       inline = h.setup_inline({
         adapters = {
-          fake_adapter = { name = "fake_adapter" },
+          http = {
+            fake_adapter = { name = "fake_adapter" },
+          },
         },
       })
     end,

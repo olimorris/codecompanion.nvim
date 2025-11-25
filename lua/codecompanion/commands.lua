@@ -17,8 +17,7 @@ local prompts = vim.iter(config.prompt_library):fold({}, function(acc, _, value)
   return acc
 end)
 
---TODO: Remove `config.adapters` in V18.0.0
-local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http, config.adapters)
+local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
 
 local adapters = vim
   .iter(config_adapters)
