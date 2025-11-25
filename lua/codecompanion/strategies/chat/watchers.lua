@@ -8,6 +8,7 @@ local log = require("codecompanion.utils.log")
 
 local api = vim.api
 local fmt = string.format
+local diff = vim.text.diff or vim.diff
 
 ---@class CodeCompanion.Watchers
 local Watchers = {}
@@ -88,13 +89,17 @@ function Watchers:get_changes(bufnr)
     self:unwatch(bufnr)
     return true, nil
   end
+
   local buffer = self.buffers[bufnr]
+
   local current_content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local current_tick = api.nvim_buf_get_changedtick(bufnr)
   if current_tick == buffer.changedtick then
     return false, nil
   end
+
   local old_content = buffer.last_sent -- Store before updating
+
   local changed = has_changes(old_content, current_content)
   if changed then
     buffer.content = current_content
@@ -114,14 +119,15 @@ local function format_changes_as_diff(old_content, new_content)
   -- Convert line arrays to strings for vim.diff
   local old_str = table.concat(old_content, "\n") .. "\n"
   local new_str = table.concat(new_content, "\n") .. "\n"
-  -- Use vim.diff to generate clean unified diff
-  local diff_result = vim.diff(old_str, new_str, {
+
+  local diff_result = diff(old_str, new_str, {
     result_type = "unified",
-    ctxlen = 3, -- 3 lines of context
+    ctxlen = 3,
     algorithm = "myers",
   })
+
   if diff_result and diff_result ~= "" then
-    return fmt("```diff\n%s```", diff_result)
+    return fmt("````diff\n%s````", diff_result)
   end
 
   return ""
@@ -149,13 +155,12 @@ function Watchers:check_for_changes(chat)
               item.bufnr,
               delta
             ),
-          }, { visible = false })
+          }, { context = { id = item.id }, visible = false })
         end
       elseif has_changed then
-        -- buffer is now invalid
         chat:add_message({
           role = config.constants.USER_ROLE,
-          content = fmt([[buffer %d has been removed.]], item.bufnr),
+          content = fmt([[Buffer %d has been removed.]], item.bufnr),
         }, { visible = false })
       end
     end

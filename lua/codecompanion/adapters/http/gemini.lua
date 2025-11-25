@@ -68,6 +68,7 @@ return {
         vim.tbl_deep_extend("force", processed_params.extra_body or {}, { google = { thinking_config = {} } })
       local thinking_config = processed_params.extra_body.google.thinking_config
       thinking_config.include_thoughts = thinking_config.thinking_budget ~= 0
+        or type(thinking_config.thinking_level) == "string"
 
       return processed_params
     end,
@@ -75,7 +76,42 @@ return {
       return openai.handlers.form_tools(self, tools)
     end,
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      local result = openai.handlers.form_messages(self, messages)
+
+      local STANDARD_TOOL_CALL_FIELDS = {
+        "id",
+        "type",
+        "function",
+        "_index",
+      }
+
+      -- Post-process to preserve extra fields (like thought signatures)
+      -- Ref: https://ai.google.dev/gemini-api/docs/thought-signatures#openai
+      for _, msg in ipairs(result.messages) do
+        local original_msg = nil
+        for _, orig in ipairs(messages) do
+          if orig.role == msg.role and orig.tools and orig.tools.calls then
+            original_msg = orig
+            break
+          end
+        end
+
+        -- If we have tool_calls in the original message then preserve non-standard fields
+        if msg.tool_calls and original_msg and original_msg.tools and original_msg.tools.calls then
+          for i, tool_call in ipairs(msg.tool_calls) do
+            local original_tool = original_msg.tools.calls[i]
+            if original_tool then
+              for key, value in pairs(original_tool) do
+                if not vim.tbl_contains(STANDARD_TOOL_CALL_FIELDS, key) then
+                  tool_call[key] = value
+                end
+              end
+            end
+          end
+        end
+      end
+
+      return result
     end,
     chat_output = function(self, data, tools)
       local _data = openai.handlers.chat_output(self, data, tools)
@@ -149,6 +185,10 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-2.5-flash",
       choices = {
+        ["gemini-3-pro-preview"] = {
+          formatted_name = "Gemini 3 Pro",
+          opts = { can_reason = true, has_vision = true },
+        },
         ["gemini-2.5-pro"] = {
           formatted_name = "Gemini 2.5 Pro",
           opts = { can_reason = true, has_vision = true },
@@ -228,6 +268,26 @@ return {
       default = nil,
       -- TODO: validate requires having `self` in the params.
       desc = "The thinkingBudget parameter guides the model on the number of thinking tokens to use when generating a response.",
+    },
+    ---@type CodeCompanion.Schema
+    thinking_level = {
+      -- https://ai.google.dev/gemini-api/docs/thinking#thinking-levels
+      order = 5,
+      mapping = "parameters.extra_body.google.thinking_config",
+      type = "enum",
+      choices = { "low", "high" },
+      optional = true,
+      ---@param self CodeCompanion.HTTPAdapter
+      condition = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        return vim.list_contains({ "gemini-3-pro-preview" }, model)
+      end,
+      -- for models that supports reasoning, this'll be 'dynamic thinking'
+      default = "low",
+      desc = "The thinkingLevel parameter, recommended for Gemini 3 models and onwards, lets you control reasoning behavior.",
     },
   },
 }

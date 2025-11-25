@@ -369,6 +369,7 @@ return {
     },
     inline = {
       adapter = "test_adapter",
+      keymaps = og_config.strategies.inline.keymaps,
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

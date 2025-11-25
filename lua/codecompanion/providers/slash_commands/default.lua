@@ -52,7 +52,7 @@ function Default:buffers()
   local buffers = vim
     .iter(api.nvim_list_bufs())
     :filter(function(bufnr)
-      return vim.fn.buflisted(bufnr) == 1 and api.nvim_buf_get_option(bufnr, "filetype") ~= "codecompanion"
+      return vim.fn.buflisted(bufnr) == 1 and api.nvim_get_option_value("filetype", { buf = bufnr }) ~= "codecompanion"
     end)
     :map(function(bufnr)
       return buf_utils.get_info(bufnr)

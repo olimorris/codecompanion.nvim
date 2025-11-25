@@ -16,10 +16,29 @@ local function mock_config()
 end
 
 ---Set up the CodeCompanion plugin with test configuration
+---@param config? table
 ---@return nil
-Helpers.setup_plugin = function()
-  local test_config = require("tests.config")
-  test_config.strategies.chat.adapter = "test_adapter"
+Helpers.setup_plugin = function(config)
+  local test_config = config or require("tests.config")
+
+  -- To be safe, ensure that we mock some of the Copilot adapter's features
+  -- that make HTTP requests. This slows tests down and makes them fail
+  -- in GitHub Actions.
+  local function mock_external_calls()
+    local ok, copilot = pcall(require, "codecompanion.adapters.http.copilot")
+    if ok then
+      copilot.schema.max_tokens.default = 16000
+
+      local get_models_ok, get_models = pcall(require, "codecompanion.adapters.http.copilot.get_models")
+      if get_models_ok then
+        get_models.choices = function(adapter, opts, provided_token)
+          return { "gpt-4.1" }
+        end
+      end
+    end
+  end
+
+  mock_external_calls()
 
   local codecompanion = require("codecompanion")
   codecompanion.setup(test_config)
