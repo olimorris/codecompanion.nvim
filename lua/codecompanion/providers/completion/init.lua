@@ -162,8 +162,7 @@ end
 ---@return nil
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
-    --TODO: Remove `selected.config.references` check in v18.0.0
-    local context = selected.config.references or selected.config.context
+    local context = selected.config.context
     if context then
       strategy.add_context(selected.config, chat)
     end

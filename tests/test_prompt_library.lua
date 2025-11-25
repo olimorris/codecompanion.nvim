@@ -54,49 +54,6 @@ T["Prompt Library"]["can specify separate adapter and model"] = function()
   h.eq("gpt-4.1", adapter.model)
 end
 
---TODO: Remove this test in v18.0.0
-T["Prompt Library"]["can add references"] = function()
-  local refs = child.lua([[
-    codecompanion.setup({
-      prompt_library = {
-        ["Test References"] = {
-          strategy = "chat",
-          description = "Add some references",
-          opts = {
-            index = 1,
-            is_default = true,
-            is_slash_cmd = false,
-            short_name = "test_context",
-            auto_submit = false,
-          },
-          references = {
-            {
-              type = "file",
-              path = {
-                "lua/codecompanion/health.lua",
-                "lua/codecompanion/http.lua",
-              },
-            },
-          },
-          prompts = {
-            {
-              role = "foo",
-              content = "I need some references",
-            },
-          },
-        },
-      }
-    })
-    codecompanion.prompt("test_context")
-    local chat = codecompanion.last_chat()
-    return chat.context_items
-  ]])
-
-  h.eq(2, #refs)
-  h.expect_match(refs[1].id, "^<file>lua[\\/]codecompanion[\\/]health.lua</file>$")
-  h.expect_match(refs[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
-end
-
 T["Prompt Library"]["can add context"] = function()
   local items = child.lua([[
     codecompanion.setup({

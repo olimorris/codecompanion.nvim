@@ -43,22 +43,9 @@ end
 ---@param prompt table
 ---@param chat CodeCompanion.Chat
 function Strategies.add_context(prompt, chat)
-  --TODO: remove prompt.references in v18.0.0
-  local context = prompt.references or prompt.context
-
+  local context = prompt.context
   if not context or vim.tbl_isempty(context) then
     return
-  end
-
-  ---TODO: Remove this in v18.0.0
-  if prompt.references then
-    vim.deprecate(
-      "`references` in the prompt library are now deprecated",
-      "Please use `context` instead",
-      "v18.0.0",
-      "CodeCompanion",
-      false
-    )
   end
 
   local slash_commands = require("codecompanion.strategies.chat.slash_commands")
@@ -209,8 +196,7 @@ function Strategies:workflow()
     messages = messages,
   })
 
-  ---TODO: Remove workflow.references in v18.0.0
-  if workflow.references or workflow.context then
+  if workflow.context then
     self.add_context(workflow, chat)
   end
 

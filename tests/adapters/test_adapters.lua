@@ -268,13 +268,15 @@ T["Adapter"]["can resolve custom adapters"] = function()
   local result = child.lua([[
     require("codecompanion").setup({
       adapters = {
-        openai = function()
-          return require("codecompanion.adapters").extend("openai", {
-            env = {
-              api_key = "abc_123"
-            }
-          })
-        end,
+        http = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai", {
+              env = {
+                api_key = "abc_123"
+              }
+            })
+          end,
+        }
       },
       strategies = {
         chat = {
