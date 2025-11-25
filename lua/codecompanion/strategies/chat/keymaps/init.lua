@@ -362,8 +362,8 @@ M.yank_code = {
   end,
 }
 
-M.pin_context = {
-  desc = "Pin Context",
+M.buffer_sync_all = {
+  desc = "Sync the buffer to share all of its content",
   callback = function(chat)
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
     local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
@@ -372,38 +372,38 @@ M.pin_context = {
       return
     end
 
-    local icon = config.display.chat.icons.pinned_buffer or config.display.chat.icons.buffer_pin
+    local icon = config.display.chat.icons.buffer_sync_all
     local id = line:gsub("^> %- ", "")
 
-    if not chat.context:can_be_pinned(id) then
-      return utils.notify("This context type cannot be pinned", vim.log.levels.WARN)
+    if not chat.context:can_be_synced__all(id) then
+      return utils.notify("This context type cannot be sync'd", vim.log.levels.WARN)
     end
 
     local filename = id
-    local state = "unpinned"
+    local state = "unsynced"
     if line:find(icon) then
-      state = "pinned"
+      state = "synced"
       filename = filename:gsub(icon, "")
       id = filename
     end
 
     -- Update the UI
-    local new_line = (state == "pinned") and string.format("> - %s", filename)
+    local new_line = (state == "synced") and string.format("> - %s", filename)
       or string.format("> - %s%s", icon, filename)
     api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
 
     -- Update the context items on the chat buffer
     for _, item in ipairs(chat.context_items) do
       if item.id == id then
-        item.opts.pinned = not item.opts.pinned
+        item.opts.synced = not item.opts.synced
         break
       end
     end
   end,
 }
 
-M.toggle_watch = {
-  desc = "Toggle Watch Buffer",
+M.buffer_sync_diff = {
+  desc = "Sync the buffer to share it's diffs",
   callback = function(chat)
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
     local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
@@ -412,37 +412,36 @@ M.toggle_watch = {
       return
     end
 
-    local icons = config.display.chat.icons
     local id = line:gsub("^> %- ", "")
-    if not chat.context:can_be_watched(id) then
-      return utils.notify("This context type cannot be watched", vim.log.levels.WARN)
+    if not chat.context:can_be_synced__diff(id) then
+      return utils.notify("This context type cannot be sync'd", vim.log.levels.WARN)
     end
 
-    -- Find the context and toggle watch state
+    -- Find the context and toggle diff state
+    local icons = config.display.chat.icons
     for _, item in ipairs(chat.context_items) do
-      local clean_id = id:gsub(icons.pinned_buffer or icons.buffer_pin, "")
-        :gsub(icons.watched_buffer or icons.buffer_watch, "")
+      local clean_id = id:gsub(icons.buffer_sync_all, ""):gsub(icons.buffer_sync_diff, "")
       if item.id == clean_id then
         if not item.opts then
           item.opts = {}
         end
-        item.opts.watched = not item.opts.watched
+        item.opts.sync_diff = not item.opts.sync_diff
 
         -- Update the UI for just this line
         local new_line
-        if item.opts.watched then
-          -- Check if buffer is still valid before watching
+        if item.opts.sync_diff then
+          -- Check if buffer is still valid before syncing
           if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
-            chat.watched_buffers:watch(item.bufnr)
-            new_line = string.format("> - %s%s", icons.watched_buffer or icons.buffer_watch, clean_id)
+            chat.buffer_diffs:sync(item.bufnr)
+            new_line = string.format("> - %s%s", icons.buffer_sync_diff, clean_id)
           else
-            -- Buffer is invalid, can't watch it
-            item.opts.watched = false
+            -- Buffer is invalid, can't sync with it
+            item.opts.sync_diff = false
             new_line = string.format("> - %s", clean_id)
-            utils.notify("Cannot watch invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
+            utils.notify("Cannot sync - Invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
           end
         else
-          chat.watched_buffers:unwatch(item.bufnr)
+          chat.buffer_diffs:unsync(item.bufnr)
           new_line = string.format("> - %s", clean_id)
         end
 
