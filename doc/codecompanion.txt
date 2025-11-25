@@ -2274,6 +2274,7 @@ in the chat buffer. This is particularly useful if you reference files in your
 rules. Currently, the plugin has two in-built parsers:
 
 - `claude` - which will import files into the chat buffer in the same way Claude Code does <https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports>. Note, this requires rules to be `markdown` files
+- `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
 - `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
 
 Please see the guide on |codecompanion-extending-parsers| to understand how you
@@ -3353,12 +3354,51 @@ location on your disk. Just ensure the path is correct when you’re
 |codecompanion-configuration-rules-rule-groups| the rules group.
 
 
+EXAMPLE 1: RULE THAT CAN BE PROCESSED WITH THE CODECOMPANION PARSER
+
+>markdown
+    # Example Rules File
+    
+    ## System Prompt
+    
+    What ever goes in this section is used as a system prompt in the chat buffer.
+    
+    So you can specify instructions:
+    - Here
+    - And here
+    
+    ...and anywhere here
+    
+    ## My other header
+    
+    @./lua/codecompanion/strategies/chat/tools/init.lua
+    
+    Anything in this section is added as context to the chat buffer. The file above is also shared
+<
+
+
+EXAMPLE 2: RULE THAT CAN BE PROCESSED WITH THE CLAUDE PARSER
+
+>markdown
+    # Example Claude Rules File
+    
+    @./lua/codecompanion/strategies/chat/tools/init.lua
+    
+    This is a rules file that can be parsed with the Claude parser.
+    
+    Anything in this file is added as context to the chat buffer.
+    
+    Including the file above.
+<
+
+
 ADDING RULES TO A CHAT BUFFER ~
 
 
 WHEN OPENING THE CHAT BUFFER
 
-Rules can automatically be added to a chat buffer when it’s created:
+Rules can automatically be added to a chat buffer when it’s created. Just
+specify the default rules to include:
 
 
 
@@ -3615,10 +3655,6 @@ MEMORY
 
   [!IMPORTANT] For security, all memory operations are restricted to the
   `/memories` directory
-
-  [!NOTE] This tool is separate to CodeCompanion’s
-  |codecompanion-usage-chat-buffer-memory| implementation but the two can be
-  combined by giving a memory group knowledge of the `/memories` directory
 The memory tool enables LLMs to store and retrieve information across
 conversations through a memory file directory (`/memories`).
 
@@ -3954,10 +3990,10 @@ will always search in, alongside the current working directory. Currently the
 image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 
-/MEMORY ~
+/RULES ~
 
-The `memory` slash command allows you to add
-|codecompanion-usage-chat-buffer-memory| groups to the chat buffer.
+The `rules` slash command allows you to add
+|codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
 
 
 /MODE ~
