@@ -42,6 +42,5 @@ doc/extending/parsers.md
 doc/extending/prompts.md
 doc/extending/tools.md
 doc/extending/workflows.md
-doc/extending/workspace.md
 doc/extending/extensions.md
 ```
