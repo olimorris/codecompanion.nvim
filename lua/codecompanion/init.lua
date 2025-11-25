@@ -2,7 +2,7 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -173,10 +173,10 @@ CodeCompanion.chat = function(args)
     auto_submit = args.auto_submit
   end
 
-  -- Add memory to the chat buffer
-  local memory_cb = memory_helpers.add_callbacks(args)
-  if memory_cb then
-    args.callbacks = memory_cb
+  -- Add rules to the chat buffer
+  local rules_cb = rules_helpers.add_callbacks(args)
+  if rules_cb then
+    args.callbacks = rules_cb
   end
 
   return require("codecompanion.strategies.chat").new({
@@ -336,7 +336,7 @@ CodeCompanion.has = function(feature)
     "function-calling",
     "extensions",
     "acp",
-    "memory",
+    "rules",
   }
 
   if type(feature) == "string" then

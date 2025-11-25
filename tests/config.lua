@@ -438,12 +438,12 @@ return {
       },
     },
   },
-  memory = {
+  rules = {
     default = {
       description = "Default file selection for CodeCompanion",
       files = {
-        "tests/stubs/memory/.rules",
-        "tests/stubs/memory/CLAUDE.md",
+        "tests/stubs/rules/.rules",
+        "tests/stubs/rules/CLAUDE.md",
       },
     },
   },

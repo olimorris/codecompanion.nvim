@@ -89,8 +89,8 @@ function SlashCommand:compact_messages()
   --Rules:
   --1. Keep ALL system messages even if they come from tools
   --2. Remove ALL llm messages
-  --3. Keep SOME user messages - If it has a "variable", "memory" or "file" tag
-  local ok_tags = { "variable", "memory", "file" }
+  --3. Keep SOME user messages - If it has a "variable", "rules" or "file" tag
+  local ok_tags = { "variable", "rules", "file" }
 
   local messages = vim.iter(self.Chat.messages):filter(function(message)
     if message.role == config.constants.SYSTEM_ROLE then

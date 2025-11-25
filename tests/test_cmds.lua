@@ -11,7 +11,7 @@ T = new_set({
       child.lua([[
         h = require('tests.helpers')
         config = require('codecompanion.config')
-        config.memory.opts.chat.enabled = false
+        config.rules.opts.chat.enabled = false
         h.setup_plugin(config)
       ]])
     end,

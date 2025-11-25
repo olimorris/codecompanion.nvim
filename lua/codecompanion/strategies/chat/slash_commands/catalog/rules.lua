@@ -1,7 +1,7 @@
-local helpers = require("codecompanion.strategies.chat.memory.helpers")
-local memory = require("codecompanion.strategies.chat.memory")
+local helpers = require("codecompanion.strategies.chat.rules.helpers")
+local rules = require("codecompanion.strategies.chat.rules")
 
----@class CodeCompanion.SlashCommand.Memory: CodeCompanion.SlashCommand
+---@class CodeCompanion.SlashCommand.Rules: CodeCompanion.SlashCommand
 local SlashCommand = {}
 
 ---@param args CodeCompanion.SlashCommand
@@ -17,7 +17,7 @@ end
 
 function SlashCommand:execute()
   vim.ui.select(helpers.list(), {
-    prompt = "Select a memory",
+    prompt = "Select a rule",
     format_item = function(item)
       return item.name
     end,
@@ -34,7 +34,7 @@ end
 ---@param selected table
 ---@return nil
 function SlashCommand:output(selected)
-  return memory
+  return rules
     .init({
       name = selected.name,
       files = selected.files,

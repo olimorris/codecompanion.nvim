@@ -400,9 +400,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
-        ["memory"] = {
-          callback = "strategies.chat.slash_commands.catalog.memory",
-          description = "Insert a memory into the chat buffer",
+        ["rules"] = {
+          callback = "strategies.chat.slash_commands.catalog.rules",
+          description = "Insert rules into the chat buffer",
           opts = {
             contains_code = true,
           },
@@ -579,11 +579,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle system prompt",
         },
-        memory = {
+        rules = {
           modes = { n = "gM" },
           index = 18,
-          callback = "keymaps.clear_memory",
-          description = "Clear memory",
+          callback = "keymaps.clear_rules",
+          description = "Clear Rules",
         },
         yolo_mode = {
           modes = { n = "gty" },
@@ -1198,8 +1198,8 @@ You must create or modify a workspace file through a series of prompts over mult
       },
     },
   },
-  -- MEMORY -------------------------------------------------------------------
-  memory = {
+  -- RULES -------------------------------------------------------------------
+  rules = {
     default = {
       description = "Collection of common files for all projects",
       files = {
@@ -1218,7 +1218,7 @@ You must create or modify a workspace file through a series of prompts over mult
       is_default = true,
     },
     CodeCompanion = {
-      description = "CodeCompanion plugin memory files",
+      description = "CodeCompanion rules",
       parser = "claude",
       ---@return boolean
       enabled = function()
@@ -1279,13 +1279,14 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
+      codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
       none = "none", -- No parsing, just raw text
     },
     opts = {
       chat = {
-        enabled = false, -- Automatically add memory to new chat buffers?
+        enabled = false, -- Automatically add rules to new chat buffers?
 
-        ---Function to determine if memory should be added to a chat buffer
+        ---Function to determine if rules should be added to a chat buffer
         ---This requires `enabled` to be true
         ---@param chat CodeCompanion.Chat
         ---@return boolean
@@ -1293,10 +1294,10 @@ You must create or modify a workspace file through a series of prompts over mult
           return chat.adapter.type ~= "acp"
         end,
 
-        default_memory = "default", -- The memory groups to load
+        default_rules = "default", -- The rule groups to load
         default_params = "watch", -- watch|pin - when adding a buffer to the chat
       },
-      show_defaults = true, -- Show the default memory files in the action palette?
+      show_defaults = true, -- Show the default rules files in the action palette?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------

@@ -118,7 +118,7 @@ The keymaps available to the user in normal mode are:
 - `gd` to view/debug the chat buffer's contents
 - `gD` to view the chat buffer's super diff feature
 - `gf` to fold any codeblocks in the chat buffer
-- `gM` to clear all memory from the chat buffer
+- `gM` to clear all rules from the chat buffer
 - `gp` to pin an item to the context in the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it'll jump
