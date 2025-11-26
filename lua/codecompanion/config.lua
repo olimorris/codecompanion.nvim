@@ -1273,7 +1273,7 @@ This is the code, for context:
         },
       },
       -- Options for any windows that open within the chat buffer
-      child_window = {
+      floating_window = {
         ---@return number|fun(): number
         width = function()
           return vim.o.columns - 5
@@ -1291,7 +1291,7 @@ This is the code, for context:
           relativenumber = false,
         },
       },
-      -- Extend/override the child_window options for a diff
+      -- Extend/override the floating_window options for a diff
       diff_window = {
         ---@return number|fun(): number
         width = function()
