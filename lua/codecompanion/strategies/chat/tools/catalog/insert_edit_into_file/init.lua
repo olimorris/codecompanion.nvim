@@ -742,7 +742,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     data = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)),
   }
 
-  if should_diff and opts.user_confirmation then
+  if should_diff and opts.require_confirmation_after then
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
@@ -905,7 +905,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     data = fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)),
   }
 
-  if should_diff and opts.user_confirmation then
+  if should_diff and opts.require_confirmation_after then
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
