@@ -359,7 +359,7 @@ end
 CodeCompanion.setup = function(opts)
   opts = opts or {}
 
-  if not opts.opts.ignore_warnings then
+  if not opts.ignore_warnings then
     vim.notify_once(
       [[[WARN] CodeCompanion.nvim will experience breaking changes soon. Pin to version v17.33.0 or earlier to avoid this.
 See: https://github.com/olimorris/codecompanion.nvim/pull/2439]],
