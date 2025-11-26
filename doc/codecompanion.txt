@@ -1857,7 +1857,7 @@ The default sizing of this window can be configured:
     require("codecompanion").setup({
       display = {
         chat = {
-          child_window = {
+          floating_window = {
             width = vim.o.columns - 5,
             height = vim.o.lines - 2,
             row = "center",
