@@ -356,9 +356,11 @@ local function show_diff(chat, request)
 
   require("codecompanion.strategies.chat.helpers").hide_chat_for_floating_diff(chat)
 
-  local bufnr = api.nvim_create_buf(true, false)
+  local bufnr = api.nvim_create_buf(false, true)
   local diff_id = math.random(10000000)
   api.nvim_buf_set_name(bufnr, d.path .. "_diff_" .. diff_id)
+  api.nvim_set_option_value("buftype", "nofile", { buf = bufnr })
+  api.nvim_set_option_value("bufhidden", "wipe", { buf = bufnr })
   api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
 
   local ft = vim.filetype.match({ filename = d.path })
