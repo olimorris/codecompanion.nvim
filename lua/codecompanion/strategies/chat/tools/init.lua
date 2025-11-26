@@ -24,6 +24,7 @@ local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
+local fmt = string.format
 
 local show_tools_processing = config.display.chat.show_tools_processing
 
@@ -81,16 +82,65 @@ function Tools:_handle_tool_error(tool, error_message)
     available_tools_msg = "No tools available"
   end
 
-  self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
+  self.chat:add_tool_output(tool_call, fmt("Tool `%s` not found. %s", name, available_tools_msg), "")
   return utils.fire("ToolsFinished", { bufnr = self.bufnr })
 end
 
----Resolve and prepare a tool for execution
----@param tool table The tool call from the LLM
+---When an LLM sends a tool call with malformed structure or JSON, the assistant message
+---containing tool_calls gets added to chat.messages by Chat:done() before tools:execute().
+---If we don't remove this orphan message (one with tool_calls but no results), subsequent
+---API requests will fail with HTTP 400 errors, making the chat unusable.
+
+---Remove a malformed assistant message from chat history to prevent corruption.
+---@param tool table The malformed tool with an id field used for verification
+---@return nil
+function Tools:_remove_malformed_message(tool)
+  if #self.chat.messages == 0 then
+    return
+  end
+
+  local last_msg = self.chat.messages[#self.chat.messages]
+
+  -- Verify this is the message containing our malformed tool call
+  if last_msg.role == config.constants.LLM_ROLE and last_msg.tools and last_msg.tools.calls then
+    -- Check if THIS specific tool call is in the message
+    local found_malformed_call = false
+    for _, call in ipairs(last_msg.tools.calls) do
+      if call.id == tool.id then
+        found_malformed_call = true
+        break
+      end
+    end
+
+    if found_malformed_call then
+      log:debug("Removing malformed assistant message with tool call %s from history", tool.id)
+      table.remove(self.chat.messages, #self.chat.messages)
+    else
+      log:warn("Expected to find tool call %s in last message but didn't - not removing", tool.id)
+    end
+  else
+    log:debug(
+      "Expected last message to be assistant with tool_calls for tool %s, but found role=%s with tools=%s",
+      tool.id,
+      last_msg.role or "unknown",
+      last_msg.tools and "yes" or "no"
+    )
+  end
+end
+
+---@param tool table The tool to resolve
 ---@return table|nil resolved_tool The resolved tool or nil if failed
 ---@return string|nil error_msg Error message if resolution failed
 ---@return boolean|nil is_json_error Whether this is a JSON parsing error that needs special handling
 function Tools:_resolve_and_prepare_tool(tool)
+  -- CRITICAL: Validate tool structure FIRST before accessing any fields
+  -- In rare cases, LLMs send malformed tool calls where tool["function"] is a string
+  if type(tool["function"]) ~= "table" then
+    log:error("Malformed tool call: 'function' field is not a table, got %s", type(tool["function"]))
+    self:_remove_malformed_message(tool)
+    return nil, "Malformed tool structure", true
+  end
+
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
@@ -100,7 +150,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   end
 
   if not tool_config then
-    return nil, string.format("Couldn't find the tool `%s`", name), false
+    return nil, fmt("Couldn't find the tool `%s`", name), false
   end
 
   local ok, resolved_tool = pcall(function()
@@ -109,40 +159,54 @@ function Tools:_resolve_and_prepare_tool(tool)
 
   if not ok or not resolved_tool then
     log:debug("Tool resolution failed for `%s`: %s", name, resolved_tool)
-    return nil, string.format("Couldn't resolve the tool `%s`", name), false
+    return nil, fmt("Couldn't resolve the tool `%s`", name), false
   end
 
   local prepared_tool = vim.deepcopy(resolved_tool)
   prepared_tool.name = name
   prepared_tool.function_call = tool
 
-  -- Parse and set arguments - handle JSON errors specially like the original code
+  -- Parse and set arguments - handle JSON errors gracefully
   if tool["function"].arguments then
     local args = tool["function"].arguments
-    -- For some adapter's that aren't streaming, the args are strings rather than tables
+    -- For some adapters that aren't streaming, the args are strings rather than tables
     if type(args) == "string" then
       if args == "" then
         args = "{}"
       end
-      local decoded
-      local json_ok = xpcall(function()
-        decoded = vim.json.decode(args)
-      end, function(err)
-        log:error("Couldn't decode the tool arguments: %s", args)
-        self.chat:add_tool_output(
-          prepared_tool,
-          string.format('You made an error in calling the %s tool: "%s"', name, err),
-          ""
-        )
-        return utils.fire("ToolsFinished", { bufnr = self.bufnr })
-      end)
+
+      local json_ok, decoded = pcall(vim.json.decode, args)
 
       if not json_ok then
-        return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
+        self:_remove_malformed_message(tool)
+
+        local error_msg = fmt(
+          [[The tool call for '%s' failed due to malformed JSON arguments. Correct the format and retry.
+
+JSON Formatting Rules:
+1. Use double quotes (") for all keys and string values.
+2. Do not use trailing commas in objects or arrays.
+3. Ensure all braces `{}` and brackets `[]` are correctly matched and closed.
+4. Boolean values must be lowercase `true` or `false`.
+5. Escape special characters within strings (e.g., `\"`, `\\`, `\n`).
+
+First 200 characters of malformed arguments:
+%s]],
+          name,
+          args:sub(1, 200)
+        )
+
+        self.chat:add_tool_output(prepared_tool, error_msg)
+
+        log:error("[Tools::Init] Malformed JSON in '%s' tool: %s", name, args:sub(1, 500))
+
+        -- Return error flag so orchestrator can handle it gracefully
+        return nil, "JSON parsing failed", true
       end
 
       args = decoded
     end
+
     prepared_tool.args = args
   end
 
@@ -163,6 +227,12 @@ end
 ---@return nil
 function Tools:_start_edit_tracking(tools)
   for _, tool in ipairs(tools) do
+    -- Skip tools with malformed structure to prevent accessing nil fields
+    if type(tool["function"]) ~= "table" then
+      log:warn("Skipping edit tracking for malformed tool with id %s", tool.id or "unknown")
+      goto continue
+    end
+
     local tool_name = tool["function"].name
     local tool_args = tool["function"].arguments
 
@@ -177,6 +247,8 @@ function Tools:_start_edit_tracking(tools)
     end
 
     EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
+
+    ::continue::
   end
 end
 
@@ -296,11 +368,10 @@ function Tools:execute(chat, tools)
 
       if not resolved_tool then
         if is_json_error then
-          -- JSON error was already handled by _resolve_and_prepare_tool
-          return
-        else
-          return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
+          self.status = CONSTANTS.STATUS_ERROR
+          return utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
         end
+        return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
       end
 
       self.tool = resolved_tool
