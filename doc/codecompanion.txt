@@ -3501,9 +3501,9 @@ This tool can edit buffers and files for code changes from an LLM:
 use to determine how to edit files and buffers -
 `require_approval_before.buffer` (boolean) Require approval before editng a
 buffer? (Default: false) - `require_approval_before.file` (boolean) Require
-approval before editng a file? (Default: true) - `user_confirmation` (boolean)
-require confirmation from the user before moving on in the chat buffer?
-(Default: true)
+approval before editng a file? (Default: true) - `require_confirmation_after`
+(boolean) require confirmation after the execution and before moving on in the
+chat buffer? (Default: true)
 
 
 LIST_CODE_USAGES

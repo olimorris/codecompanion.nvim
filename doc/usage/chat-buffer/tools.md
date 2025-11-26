@@ -163,7 +163,7 @@ Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
 - `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
 - `require_approval_before.buffer` (boolean) Require approval before editng a buffer? (Default: false)
 - `require_approval_before.file` (boolean) Require approval before editng a file? (Default: true)
-- `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
+- `require_confirmation_after` (boolean) require confirmation after the execution and before moving on in the chat buffer? (Default: true)
 
 ### list_code_usages
 

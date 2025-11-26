@@ -106,7 +106,7 @@ return {
               buffer = false,
               file = false,
             },
-            user_confirmation = false,
+            require_confirmation_after = false,
           },
         },
         ["create_file"] = {

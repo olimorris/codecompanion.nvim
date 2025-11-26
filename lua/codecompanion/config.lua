@@ -138,7 +138,7 @@ local defaults = {
               buffer = false, -- For editing buffers in Neovim
               file = false, -- For editing files in the current working directory
             },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
             file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
