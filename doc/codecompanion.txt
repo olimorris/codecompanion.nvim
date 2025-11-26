@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 25
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 26
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1645,51 +1645,14 @@ the `callback` option. The `callback` option can be a table itself or either a
 function or a string that points to a luafile that return the table.
 
 
-TOOL CONDITIONALS
+ENABLING TOOLS
 
-Built-in tools can also be conditionally enabled:
+Tools can be conditionally enabled using the `enabled` option. This works for
+built-in tools as well as an adapter’s own tools. This is useful to ensure
+that a particular dependency is installed on the machine. You can use the
+`:CodeCompanionChat RefreshCache` command if you’ve installed a new
+dependency and want to refresh the tool availability in the chat buffer.
 
->lua
-    require("codecompanion").setup({
-      strategies = {
-        chat = {
-          tools = {
-            ["grep_search"] = {
-              ---@param adapter CodeCompanion.HTTPAdapter
-              ---@return boolean
-              enabled = function(adapter)
-                return vim.fn.executable("rg") == 1
-              end,
-            },
-          }
-        }
-      }
-    })
-<
-
-This is useful to ensure that a particular dependency is installed on the
-machine. After the user has installed the dependency, the `:CodeCompanionChat
-RefreshCache` command can be used to refresh the cache’s across chat buffers.
-
-If you wish to conditionally enable an adapter’s own tools, you can do so
-with:
-
->lua
-    require("codecompanion").setup({
-      openai_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
-          available_tools = {
-            ["web_search"] = {
-              ---@param adapter CodeCompanion.HTTPAdapter
-              enabled = function(adapter)
-                return false
-              end,
-            },
-          },
-        })
-      end,
-    })
-<
 
 
 APPROVALS
@@ -1705,7 +1668,7 @@ changed by altering the config for each tool:
           tools = {
             ["cmd_runner"] = {
               opts = {
-                requires_approval = false,
+                require_approval_before = false,
               },
             },
           }
@@ -1715,7 +1678,7 @@ changed by altering the config for each tool:
 <
 
 You can also force any tool to require your approval by adding in
-`opts.requires_approval = true`.
+`opts.require_approval_before = true`.
 
 
 AUTO SUBMIT TOOL OUTPUT (RECURSION)
@@ -1768,7 +1731,7 @@ PROMPT DECORATOR ~
 
 It can be useful to decorate your prompt, prior to sending to an LLM, with
 additional information. For example, the GitHub Copilot prompt in VS Code,
-wraps a user’s prompt between `<prompt></prompt>` tags presumably to
+wraps a user’s prompt between `<prompt></prompt>` tags, presumably to
 differentiate the user’s ask from additional context. This can also be
 achieved in CodeCompanion:
 
@@ -1816,32 +1779,6 @@ The `inline` is the default diff.
 Depending on which provider you choose, there are different configuration
 options available to you:
 
-
-You can also customize the window that the diff appears in (taking precedence
-over `child_window`):
-
->lua
-    require("codecompanion").setup({
-      display = {
-        chat = {
-          -- Extend/override the child_window options for a diff
-          diff_window = {
-            ---@return number|fun(): number
-            width = function()
-              return math.min(120, vim.o.columns - 10)
-            end,
-            ---@return number|fun(): number
-            height = function()
-              return vim.o.lines - 4
-            end,
-            opts = {
-              number = true,
-            },
-          },
-        },
-      },
-    })
-<
 
 The keymaps for accepting and rejecting the diff sit within the `inline`
 strategy configuration and can be changed via:
@@ -3453,8 +3390,8 @@ and if so, to insert a flag in its request. This is then detected and the
 outcome of the test is stored in the corresponding flag on the chat buffer.
 This makes it ideal for |codecompanion-extending-workflows| to hook into.
 
-**Options:** - `requires_approval` require approval before running a command?
-(Default: true)
+**Options:** - `require_approval_before` require approval before running a
+command? (Default: true)
 
 
 CREATE_FILE
@@ -3467,8 +3404,8 @@ Create a file within the current working directory:
     Can you create some test fixtures using @{create_file}?
 <
 
-**Options:** - `requires_approval` require approval before creating a file?
-(Default: true)
+**Options:** - `require_approval_before` require approval before creating a
+file? (Default: true)
 
 
 DELETE_FILE
@@ -3481,8 +3418,8 @@ Delete a file within the current working directory:
     Can you use @{delete_file} to delete the quotes.lua file?
 <
 
-**Options:** - `requires_approval` require approval before deleting a file?
-(Default: true)
+**Options:** - `require_approval_before` require approval before deleting a
+file? (Default: true)
 
 
 FETCH_WEBPAGE
@@ -3561,11 +3498,12 @@ This tool can edit buffers and files for code changes from an LLM:
 <
 
 **Options:** - `patching_algorithm` (string|table|function) The algorithm to
-use to determine how to edit files and buffers - `requires_approval.buffer`
-(boolean) Require approval before editng a buffer? (Default: false) -
-`requires_approval.file` (boolean) Require approval before editng a file?
-(Default: true) - `user_confirmation` (boolean) require confirmation from the
-user before moving on in the chat buffer? (Default: true)
+use to determine how to edit files and buffers -
+`require_approval_before.buffer` (boolean) Require approval before editng a
+buffer? (Default: false) - `require_approval_before.file` (boolean) Require
+approval before editng a file? (Default: true) - `user_confirmation` (boolean)
+require confirmation from the user before moving on in the chat buffer?
+(Default: true)
 
 
 LIST_CODE_USAGES
@@ -6480,8 +6418,8 @@ if an LLM does something I’m not aware of or I don’t approve?”`. To that
 end, CodeCompanion tries to make it easy for a user to be the "human in the
 loop" and approve tool use before execution.
 
-To enable this for any tool, simply add the `requires_approval = true` in a
-tool’s `opts` table:
+To enable this for any tool, simply add the `require_approval_before = true` in
+a tool’s `opts` table:
 
 >lua
     require("codecompanion").setup({
@@ -6492,7 +6430,7 @@ tool’s `opts` table:
               description = "Perform calculations",
               callback = "as above",
               opts = {
-                requires_approval = true,
+                require_approval_before = true,
               },
             }
           }
@@ -6502,8 +6440,8 @@ tool’s `opts` table:
 <
 
 
-  [!NOTE] `opts.requires_approval` can also be a function that receives the tool
-  and tool system classes as parameters
+  [!NOTE] `opts.require_approval_before` can also be a function that receives the
+  tool and tool system classes as parameters
 To account for the user being prompted for an approval, we can add a
 `output.prompt` to the tool:
 

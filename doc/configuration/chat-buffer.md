@@ -236,9 +236,13 @@ When users introduce the group, `my_group`, in the chat buffer, it can call the 
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
-### Tool Conditionals
+### Enabling Tools
 
-Built-in tools can also be conditionally enabled:
+Tools can be conditionally enabled using the `enabled` option. This works for built-in tools as well as an adapter's own tools. This is useful to ensure that a particular dependency is installed on the machine. You can use the `:CodeCompanionChat RefreshCache` command if you've installed a new dependency and want to refresh the tool availability in the chat buffer.
+
+::: tabs
+
+== Enable Built-in Tools
 
 ```lua
 require("codecompanion").setup({
@@ -258,9 +262,7 @@ require("codecompanion").setup({
 })
 ```
 
-This is useful to ensure that a particular dependency is installed on the machine. After the user has installed the dependency, the `:CodeCompanionChat RefreshCache` command can be used to refresh the cache's across chat buffers.
-
-If you wish to conditionally enable an adapter's own tools, you can do so with:
+== Enable Adapter Tools
 
 ```lua
 require("codecompanion").setup({
@@ -279,6 +281,8 @@ require("codecompanion").setup({
 })
 ```
 
+:::
+
 ### Approvals
 
 Some tools, such as [cmd_runner](/usage/chat-buffer/tools.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
@@ -290,7 +294,7 @@ require("codecompanion").setup({
       tools = {
         ["cmd_runner"] = {
           opts = {
-            requires_approval = false,
+            require_approval_before = false,
           },
         },
       }
@@ -299,7 +303,7 @@ require("codecompanion").setup({
 })
 ```
 
-You can also force any tool to require your approval by adding in `opts.requires_approval = true`.
+You can also force any tool to require your approval by adding in `opts.require_approval_before = true`.
 
 ### Auto Submit Tool Output (Recursion)
 
@@ -345,7 +349,7 @@ This also works for [extensions](/configuration/extensions).
 
 ## Prompt Decorator
 
-It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
+It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
 
 ```lua
 require("codecompanion").setup({
@@ -477,30 +481,6 @@ require("codecompanion").setup({
 })
 ```
 
-== Diff Windows
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      diff_window = {
-        ---@return number|fun(): number
-        width = function()
-          return math.min(120, vim.o.columns - 10)
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 4
-        end,
-        opts = {
-          number = true,
-        },
-      },
-    },
-  },
-})
-```
-
 :::
 
 ## Diff
@@ -573,16 +553,12 @@ require("codecompanion").setup({
 })
 ```
 
-
-:::
-
-You can also customize the window that the diff appears in (taking precedence over `child_window`):
+== Diff Windows
 
 ```lua
 require("codecompanion").setup({
   display = {
     chat = {
-      -- Extend/override the child_window options for a diff
       diff_window = {
         ---@return number|fun(): number
         width = function()
@@ -601,6 +577,7 @@ require("codecompanion").setup({
 })
 ```
 
+:::
 
 The keymaps for accepting and rejecting the diff sit within the `inline` strategy configuration and can be changed via:
 

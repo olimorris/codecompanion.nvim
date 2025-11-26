@@ -1044,13 +1044,13 @@ return {
       local args = self.args
       local bufnr = buffers.get_bufnr_from_path(args.filepath)
       if bufnr then
-        if self.opts.requires_approval and self.opts.requires_approval.buffer then
+        if self.opts.require_approval_before and self.opts.require_approval_before.buffer then
           return true
         end
         return false
       end
 
-      if self.opts.requires_approval and self.opts.requires_approval.file then
+      if self.opts.require_approval_before and self.opts.require_approval_before.file then
         return true
       end
       return false

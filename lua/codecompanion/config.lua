@@ -127,14 +127,14 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.tools.catalog.insert_edit_into_file",
           description = "Robustly edit existing files with multiple automatic fallback strategies",
           opts = {
-            requires_approval = { -- Require approval before the tool is executed?
+            require_approval_before = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = false, -- For editing files in the current working directory
             },
@@ -146,14 +146,14 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["delete_file"] = {
           callback = "strategies.chat.tools.catalog.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["fetch_webpage"] = {
@@ -193,7 +193,7 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["next_edit_suggestion"] = {

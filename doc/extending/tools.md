@@ -549,7 +549,7 @@ You should see: `5000`, in the chat buffer.
 
 A big concern for users when they create and deploy their own tools is _"what if an LLM does something I'm not aware of or I don't approve?"_. To that end, CodeCompanion tries to make it easy for a user to be the "human in the loop" and approve tool use before execution.
 
-To enable this for any tool, simply add the `requires_approval = true` in a tool's `opts` table:
+To enable this for any tool, simply add the `require_approval_before = true` in a tool's `opts` table:
 
 ```lua
 require("codecompanion").setup({
@@ -560,7 +560,7 @@ require("codecompanion").setup({
           description = "Perform calculations",
           callback = "as above",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         }
       }
@@ -570,7 +570,7 @@ require("codecompanion").setup({
 ```
 
 > [!NOTE]
-> `opts.requires_approval` can also be a function that receives the tool and tool system classes as parameters
+> `opts.require_approval_before` can also be a function that receives the tool and tool system classes as parameters
 
 To account for the user being prompted for an approval, we can add a `output.prompt` to the tool:
 

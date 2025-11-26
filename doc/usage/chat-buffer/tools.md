@@ -62,7 +62,7 @@ Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/St
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
 **Options:**
-- `requires_approval` require approval before running a command? (Default: true)
+- `require_approval_before` require approval before running a command? (Default: true)
 
 ### create_file
 
@@ -76,7 +76,7 @@ Can you create some test fixtures using @{create_file}?
 ```
 
 **Options:**
-- `requires_approval` require approval before creating a file? (Default: true)
+- `require_approval_before` require approval before creating a file? (Default: true)
 
 ### delete_file
 
@@ -90,7 +90,7 @@ Can you use @{delete_file} to delete the quotes.lua file?
 ```
 
 **Options:**
-- `requires_approval` require approval before deleting a file? (Default: true)
+- `require_approval_before` require approval before deleting a file? (Default: true)
 
 ### fetch_webpage
 
@@ -161,8 +161,8 @@ Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
 
 **Options:**
 - `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
-- `requires_approval.buffer` (boolean) Require approval before editng a buffer? (Default: false)
-- `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
+- `require_approval_before.buffer` (boolean) Require approval before editng a buffer? (Default: false)
+- `require_approval_before.file` (boolean) Require approval before editng a file? (Default: true)
 - `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
 
 ### list_code_usages

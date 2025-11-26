@@ -254,19 +254,19 @@ function Orchestrator:setup(input)
 
   -- Check if the tool requires approval
   if self.tool.opts and not vim.g.codecompanion_yolo_mode then
-    local requires_approval = self.tool.opts.requires_approval
+    local require_approval_before = self.tool.opts.require_approval_before
 
     -- Users can set this to be a function if necessary
-    if requires_approval and type(requires_approval) == "function" then
-      requires_approval = requires_approval(self.tool, self.tools)
+    if require_approval_before and type(require_approval_before) == "function" then
+      require_approval_before = require_approval_before(self.tool, self.tools)
     end
 
     -- Anything that isn't a boolean will get evaluated with a prompt condition
-    if requires_approval and type(requires_approval) ~= "boolean" then
-      requires_approval = self.handlers.prompt_condition()
+    if require_approval_before and type(require_approval_before) ~= "boolean" then
+      require_approval_before = self.handlers.prompt_condition()
     end
 
-    if requires_approval then
+    if require_approval_before then
       log:debug("Orchestrator:execute - Asking for approval")
 
       local prompt = self.output.prompt()
