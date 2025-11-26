@@ -84,7 +84,6 @@ M.create_float = function(lines, opts)
 
   local winnr = api.nvim_open_win(bufnr, true, {
     relative = opts.relative or "cursor",
-    -- thanks to @mini.nvim for this, it's for >= 0.11, to respect users winborder style
     border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
     width = width,
     height = height,
@@ -126,11 +125,10 @@ M.create_float = function(lines, opts)
   end
 
   local function close()
-    api.nvim_buf_delete(bufnr, { force = true })
+    pcall(api.nvim_win_close, winnr, true)
   end
 
   vim.keymap.set("n", "q", close, { buffer = bufnr })
-  vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
 
   return bufnr, winnr
 end

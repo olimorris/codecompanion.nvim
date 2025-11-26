@@ -16,8 +16,9 @@ M.options = {
     local float_opts = {
       title = "Options",
       lock = true,
-      window = config.display.chat.window,
+      window = config.display.chat.child_window,
       style = "minimal",
+      filetype = "codecompanion",
     }
 
     if next(_cached_options) ~= nil then
