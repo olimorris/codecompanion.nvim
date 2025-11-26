@@ -161,7 +161,7 @@ function Adapter:make_from_schema()
 
   -- Process regular schema values
   for key, value in pairs(self.schema) do
-    if type(value.condition) == "function" and not value.condition(self) then
+    if type(value.enabled) == "function" and not value.enabled(self) then
       goto continue
     end
 
