@@ -6,6 +6,7 @@ Methods for handling interactions between the chat buffer and tools
 ---@field chat CodeCompanion.Chat
 ---@field flags table Flags that external functions can update and subscribers can interact with
 ---@field in_use table<string, boolean> Tools that are in use on the chat buffer
+---@field groups_in_use table<string, boolean> Tool groups that are in use on the chat buffer
 ---@field schemas table<string, table> The config for the tools in use
 
 ---@class CodeCompanion.Chat.ToolRegistry
@@ -23,6 +24,7 @@ function ToolRegistry.new(args)
     chat = args.chat,
     flags = {},
     in_use = {},
+    groups_in_use = {},
     schemas = {},
   }, { __index = ToolRegistry })
 
@@ -35,12 +37,22 @@ end
 ---@param opts? table Optional parameters for the context_item
 ---@return nil
 local function add_context(chat, id, opts)
-  chat.context:add({
-    source = "tool",
-    name = "tool",
-    id = id,
-    opts = opts,
-  })
+  -- Check if context item already exists to prevent duplicates
+  local context_exists = false
+  for _, ctx in ipairs(chat.context_items) do
+    if ctx.id == id then
+      context_exists = true
+      break
+    end
+  end
+  if not context_exists then
+    chat.context:add({
+      source = "tool",
+      name = "tool",
+      id = id,
+      opts = opts,
+    })
+  end
 end
 
 ---Add the tool's system prompt to the chat buffer
@@ -122,16 +134,30 @@ function ToolRegistry:add_group(group, tools_config)
     return
   end
 
+  -- Check if group is already in use to prevent duplicates
+  if self.groups_in_use[group] then
+    return
+  end
+
   local opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
   local collapse_tools = opts.collapse_tools
 
   local group_id = "<group>" .. group .. "</group>"
 
+  -- Check if system prompt message already exists to prevent duplicates
+  local system_prompt_exists = false
+  for _, msg in ipairs(self.chat.messages) do
+    if msg.context and msg.context.id == group_id and msg.role == config.constants.SYSTEM_ROLE then
+      system_prompt_exists = true
+      break
+    end
+  end
+
   local system_prompt = group_config.system_prompt
   if type(system_prompt) == "function" then
     system_prompt = system_prompt(group_config)
   end
-  if system_prompt then
+  if system_prompt and not system_prompt_exists then
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
@@ -144,6 +170,9 @@ function ToolRegistry:add_group(group, tools_config)
   for _, tool in ipairs(group_config.tools) do
     self:add(tool, tools_config[tool], { visible = not collapse_tools })
   end
+
+  -- Mark group as in use
+  self.groups_in_use[group] = true
 end
 
 ---Add a tool system prompt to the chat buffer, updated for every tool addition
@@ -179,6 +208,7 @@ end
 function ToolRegistry:clear()
   self.flags = {}
   self.in_use = {}
+  self.groups_in_use = {}
   self.schemas = {}
 end
 
