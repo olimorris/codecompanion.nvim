@@ -139,7 +139,7 @@ end
 ---Restore original file content after rejection
 ---@param path string
 ---@param content string
----@param file_info table
+---@param file_info table|nil
 ---@return boolean, string|nil
 local function restore_file_content(path, content, file_info)
   local restore_file_info = {
@@ -668,8 +668,6 @@ local function process_edits_sequentially(content, edits, opts)
     local substring_results, substring_strategies = create_substring_results(substring_edits)
     vim.list_extend(results, substring_results)
     vim.list_extend(strategies_used, substring_strategies)
-
-    log:debug("[Insert Edit Into File::Main] Applied %d substring edits in parallel", #substring_edits)
   end
 
   local block_edits = vim.tbl_map(function(item)
@@ -724,7 +722,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   local current_content, read_err, file_info = read_file_content(path)
   if not current_content then
-    return output_handler(error_response(read_err))
+    return output_handler(error_response(read_err or "Unknown error reading file"))
   end
 
   if type(action.edits) == "string" then
