@@ -43,7 +43,7 @@ function M.request(background, chat)
       content = [[You are an expert at summarising conversations. Your task is to generate a concise and relevant title for the conversation provided in the user's message.
 
 Constraints:
-- The title must be brief, ideally under 5 words.
+- The title must be brief, ideally under 50 characters.
 - It must accurately reflect the main topic of the conversation.
 - You must only output the title, with no additional text, quotation marks, or formatting.]],
     },
