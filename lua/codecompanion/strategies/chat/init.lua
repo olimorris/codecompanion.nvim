@@ -657,7 +657,7 @@ function Chat:dispatch(event, ...)
   for _, callback in ipairs(callbacks) do
     local ok, err = pcall(callback, self, ...)
     if not ok then
-      log:error("Callback error for %s: %s", event, err)
+      log:error("Callback error for %s: %s", event, err, { silent = true })
     end
   end
   return self

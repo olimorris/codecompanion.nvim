@@ -1,14 +1,7 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local rules = require("codecompanion.strategies.chat.rules")
-
 local rules_list = require("codecompanion.strategies.chat.rules.helpers").list()
-
-local function send_code(context)
-  local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
-  return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
-end
 
 return {
   -- Chat
@@ -37,7 +30,8 @@ return {
         {
           role = config.constants.USER_ROLE,
           content = function(context)
-            return send_code(context)
+            local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
+            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
           end,
           opts = {
             contains_code = true,
@@ -60,6 +54,7 @@ return {
     end,
     picker = {
       prompt = "Select a chat",
+      columns = { "description" },
       items = function()
         local loaded_chats = codecompanion.buf_get_chat()
         local open_chats = {}
