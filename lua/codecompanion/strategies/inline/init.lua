@@ -216,7 +216,6 @@ function Inline.new(args)
     self.classification.placement = self.opts.placement
   end
 
-  log:debug("[Inline] Instance created with ID %d", self.id)
   return self
 end
 
@@ -278,7 +277,6 @@ end
 ---@return nil
 function Inline:prompt(user_prompt)
   log:trace("[Inline] Starting")
-  log:debug("[Inline] User prompt: %s", user_prompt)
 
   local prompts = {}
 
@@ -331,7 +329,6 @@ function Inline:prompt(user_prompt)
 
     -- Add the user's prompt
     add_prompt("<prompt>" .. user_prompt .. "</prompt>")
-    log:debug("[Inline] Modified user prompt: %s", user_prompt)
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
@@ -491,8 +488,6 @@ function Inline:done(output)
   end
   placement = string.lower(placement)
 
-  log:debug("[Inline] Placement: %s", placement)
-
   -- An LLM won't send code if it deems the placement should go to a chat buffer
   if json and not json.code and placement ~= "chat" then
     log:error("[%s] Returned no code", adapter_name)
@@ -506,11 +501,9 @@ function Inline:done(output)
 
   vim.schedule(function()
     local original_content = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
-    log:debug("[Inline] Captured %d lines of original content", #original_content)
     self:place(placement)
     pcall(vim.cmd.undojoin)
     self:output(json.code)
-    log:debug("[Inline] Code output applied")
     if config.display.diff.enabled and self.classification.placement ~= "new" then
       self:start_diff(original_content)
     else
@@ -531,8 +524,6 @@ end
 ---@param content string
 ---@return string|nil
 local function parse_with_treesitter(content)
-  log:debug("[Inline] Parsing markdown content with Tree-sitter")
-
   local parser = vim.treesitter.get_string_parser(content, "markdown")
   local syntax_tree = parser:parse()
   local root = syntax_tree[1]:root()
@@ -561,7 +552,6 @@ function Inline:parse_output(output)
   output = output:gsub("^```json", ""):gsub("```$", "")
   local ok, json = pcall(vim.json.decode, output)
   if ok then
-    log:debug("[Inline] Parsed json:\n%s", json)
     return json
   end
 
@@ -570,7 +560,6 @@ function Inline:parse_output(output)
   if markdown_code then
     ok, json = pcall(vim.json.decode, markdown_code)
     if ok then
-      log:debug("[Inline] Parsed markdown JSON:\n%s", json)
       return json
     end
   end
@@ -585,8 +574,6 @@ function Inline:output(output)
   local line = self.classification.pos.line - 1
   local col = self.classification.pos.col
   local bufnr = self.classification.pos.bufnr
-
-  log:debug("[Inline] Writing to buffer %s (row: %s, col: %s)", bufnr, line, col)
 
   local lines = vim.split(output, "\n")
 
@@ -748,8 +735,6 @@ function Inline:start_diff(original_content)
     winnr = self.buffer_context.winnr,
     id = self.id,
   })
-
-  log:debug("[Inline] Diff created with id=%d, provider=%s", self.id, provider)
 end
 
 return Inline
