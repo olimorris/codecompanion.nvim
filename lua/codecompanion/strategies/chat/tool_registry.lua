@@ -37,22 +37,12 @@ end
 ---@param opts? table Optional parameters for the context_item
 ---@return nil
 local function add_context(chat, id, opts)
-  -- Check if context item already exists to prevent duplicates
-  local context_exists = false
-  for _, ctx in ipairs(chat.context_items) do
-    if ctx.id == id then
-      context_exists = true
-      break
-    end
-  end
-  if not context_exists then
-    chat.context:add({
-      source = "tool",
-      name = "tool",
-      id = id,
-      opts = opts,
-    })
-  end
+  chat.context:add({
+    source = "tool",
+    name = "tool",
+    id = id,
+    opts = opts,
+  })
 end
 
 ---Add the tool's system prompt to the chat buffer
@@ -144,20 +134,11 @@ function ToolRegistry:add_group(group, tools_config)
 
   local group_id = "<group>" .. group .. "</group>"
 
-  -- Check if system prompt message already exists to prevent duplicates
-  local system_prompt_exists = false
-  for _, msg in ipairs(self.chat.messages) do
-    if msg.context and msg.context.id == group_id and msg.role == config.constants.SYSTEM_ROLE then
-      system_prompt_exists = true
-      break
-    end
-  end
-
   local system_prompt = group_config.system_prompt
   if type(system_prompt) == "function" then
     system_prompt = system_prompt(group_config)
   end
-  if system_prompt and not system_prompt_exists then
+  if system_prompt then
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
