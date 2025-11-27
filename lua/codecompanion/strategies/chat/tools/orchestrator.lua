@@ -231,11 +231,9 @@ end
 ---@return nil
 function Orchestrator:setup(input)
   if self.queue:is_empty() then
-    log:debug("Orchestrator:execute - Queue empty")
     return finalize_tools(self)
   end
   if self.tools.status == self.tools.constants.STATUS_ERROR then
-    log:debug("Orchestrator:execute - Error")
     self:close()
   end
 
