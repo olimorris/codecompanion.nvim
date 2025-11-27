@@ -40,12 +40,14 @@ function M.request(background, chat)
   background:ask({
     {
       role = "system",
-      content = [[You are an expert at summarising conversations. Your task is to generate a concise and relevant title for the conversation provided in the user's message.
+      content = [[You are a title generator. Review the conversation and generate a concise title.
 
 Constraints:
-- The title must be brief, ideally under 50 characters.
-- It must accurately reflect the main topic of the conversation.
-- You must only output the title, with no additional text, quotation marks, or formatting.]],
+- Max 50 characters.
+- The conversation may be about coding, writing, analysis, or general questions.
+- Focus on the user's core intent.
+- Output ONLY the raw text of the title.
+- Do NOT use quotation marks, markdown, or prefixes like "Title:".]],
     },
     {
       role = "user",
