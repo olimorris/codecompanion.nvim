@@ -209,6 +209,13 @@ function Strategies:workflow()
     messages = messages,
   })
 
+  -- Process initial messages for tools and variables
+  for _, msg in ipairs(chat.messages) do
+    if msg.content then
+      chat:replace_vars_and_tools(msg)
+    end
+  end
+
   ---TODO: Remove workflow.references in v18.0.0
   if workflow.references or workflow.context then
     self.add_context(workflow, chat)
@@ -228,7 +235,14 @@ function Strategies:workflow()
             if type(val.content) == "function" then
               val.content = val.content(self.buffer_context)
             end
-            chat:add_buf_message(val)
+            -- Parse tools and variables from the message content in the following prompts
+            chat:replace_vars_and_tools(val)
+            -- Add to messages table (for LLM) - always needed
+            chat:add_message(val, val.opts)
+            -- Only add to buffer if visible is not false
+            if not (val.opts and val.opts.visible == false) then
+              chat:add_buf_message(val, val.opts)
+            end
             if val.opts and val.opts.adapter and val.opts.adapter.name then
               chat:change_adapter(val.opts.adapter.name, val.opts.adapter.model)
             end
