@@ -23,14 +23,13 @@ local CONSTANTS = {
   },
 }
 
---- Asynchronously processes LSP symbols by navigating to each symbol location
---- and executing all LSP methods to gather comprehensive information.
+--- Asynchronously processes LSP symbols using headless LSP requests
+--- (no window manipulation or cursor positioning required).
 ---
 --- This function handles the complex async flow of:
---- 1. Opening each symbol's file
---- 2. Setting cursor to symbol position
---- 3. Executing all LSP methods (definition, references, implementations, etc.)
---- 4. Collecting and processing results
+--- 1. Loading each symbol's file in a hidden buffer
+--- 2. Executing all LSP methods with explicit position parameters
+--- 3. Collecting and processing results
 ---
 ---@param symbols table[] Array of symbol objects from LSP workspace symbol search
 ---@param state table Shared state containing symbol_data and filetype
@@ -50,59 +49,41 @@ local function process_lsp_symbols_async(symbols, state, callback)
     local line = symbol.range.start.line + 1 -- Convert to 1-indexed
     local col = symbol.range.start.character
 
-    Utils.async_edit_file(path, function(edit_success)
-      if edit_success then
-        Utils.async_set_cursor(line, col, function(cursor_success)
-          if cursor_success then
-            local current_bufnr = api.nvim_get_current_buf()
-            local methods_to_process = {}
+    local methods_to_process = {}
 
-            -- Collect all methods to process
-            for operation, method in pairs(CONSTANTS.LSP_METHODS) do
-              table.insert(methods_to_process, { operation = operation, method = method })
-            end
+    -- Collect all methods to process
+    for operation, method in pairs(CONSTANTS.LSP_METHODS) do
+      table.insert(methods_to_process, { operation = operation, method = method })
+    end
 
-            local completed_methods = 0
-            local total_methods = #methods_to_process
+    local completed_methods = 0
+    local total_methods = #methods_to_process
 
-            -- Process each LSP method
-            for _, method_info in ipairs(methods_to_process) do
-              LspHandler.execute_request_async(current_bufnr, method_info.method, function(lsp_result)
-                results_count = results_count
-                  + ResultProcessor.process_lsp_results(lsp_result, method_info.operation, state.symbol_data)
+    -- Process each LSP method (headless)
+    for _, method_info in ipairs(methods_to_process) do
+      LspHandler.execute_request_async(path, line, col, method_info.method, function(lsp_result)
+        results_count = results_count
+          + ResultProcessor.process_lsp_results(lsp_result, method_info.operation, state.symbol_data)
 
-                completed_methods = completed_methods + 1
-                if completed_methods == total_methods then
-                  -- Save filetype for the output
-                  if results_count > 0 and not state.filetype then
-                    state.filetype = Utils.safe_get_filetype(current_bufnr)
-                  end
-
-                  completed_symbols = completed_symbols + 1
-                  if completed_symbols == total_symbols then
-                    callback(results_count)
-                  end
-                end
-              end)
-            end
-          else
-            completed_symbols = completed_symbols + 1
-            if completed_symbols == total_symbols then
-              callback(results_count)
-            end
+        completed_methods = completed_methods + 1
+        if completed_methods == total_methods then
+          -- Save filetype for the output (extract from filename)
+          if results_count > 0 and not state.filetype then
+            state.filetype = vim.filetype.match({ filename = path }) or ""
           end
-        end)
-      else
-        completed_symbols = completed_symbols + 1
-        if completed_symbols == total_symbols then
-          callback(results_count)
+
+          completed_symbols = completed_symbols + 1
+          if completed_symbols == total_symbols then
+            callback(results_count)
+          end
         end
-      end
-    end)
+      end)
+    end
   end
 end
 
---- Asynchronously processes grep search results to gather symbol information.
+--- Asynchronously processes grep search results using headless LSP requests
+--- (no window manipulation or cursor positioning required).
 ---
 --- When LSP doesn't find all symbol occurrences, this function processes the first
 --- grep match and executes LSP methods from that position to gather additional data.
@@ -119,52 +100,43 @@ local function process_grep_results_async(grep_result, state, callback)
     return
   end
 
-  Utils.async_edit_file(grep_result.file, function(edit_success)
-    if edit_success then
-      Utils.async_set_cursor(grep_result.line, grep_result.col, function(cursor_success)
-        if cursor_success then
-          local current_bufnr = api.nvim_get_current_buf()
-          local methods_to_process = {}
+  local path = grep_result.file
+  local line = grep_result.line
+  local col = grep_result.col
 
-          -- Collect all methods to process
-          for operation, method in pairs(CONSTANTS.LSP_METHODS) do
-            table.insert(methods_to_process, { operation = operation, method = method })
-          end
+  local methods_to_process = {}
 
-          local completed_methods = 0
-          local total_methods = #methods_to_process
+  -- Collect all methods to process
+  for operation, method in pairs(CONSTANTS.LSP_METHODS) do
+    table.insert(methods_to_process, { operation = operation, method = method })
+  end
 
-          -- Process each LSP method
-          for _, method_info in ipairs(methods_to_process) do
-            LspHandler.execute_request_async(current_bufnr, method_info.method, function(lsp_result)
-              results_count = results_count
-                + ResultProcessor.process_lsp_results(lsp_result, method_info.operation, state.symbol_data)
+  local completed_methods = 0
+  local total_methods = #methods_to_process
 
-              completed_methods = completed_methods + 1
-              if completed_methods == total_methods then
-                -- Process quickfix list results
-                if grep_result.qflist then
-                  results_count = results_count
-                    + ResultProcessor.process_quickfix_references(grep_result.qflist, state.symbol_data)
-                end
+  -- Process each LSP method (headless)
+  for _, method_info in ipairs(methods_to_process) do
+    LspHandler.execute_request_async(path, line, col, method_info.method, function(lsp_result)
+      results_count = results_count
+        + ResultProcessor.process_lsp_results(lsp_result, method_info.operation, state.symbol_data)
 
-                -- Save filetype if needed
-                if results_count > 0 and not state.filetype then
-                  state.filetype = Utils.safe_get_filetype(current_bufnr)
-                end
-
-                callback(results_count)
-              end
-            end)
-          end
-        else
-          callback(results_count)
+      completed_methods = completed_methods + 1
+      if completed_methods == total_methods then
+        -- Process quickfix list results
+        if grep_result.qflist then
+          results_count = results_count
+            + ResultProcessor.process_quickfix_references(grep_result.qflist, state.symbol_data)
         end
-      end)
-    else
-      callback(results_count)
-    end
-  end)
+
+        -- Save filetype if needed (extract from filename)
+        if results_count > 0 and not state.filetype then
+          state.filetype = vim.filetype.match({ filename = path }) or ""
+        end
+
+        callback(results_count)
+      end
+    end)
+  end
 end
 
 --- Extracts file extension from the context buffer to help focus search results.
@@ -205,17 +177,9 @@ return {
         return
       end
 
-      -- Save current state of view
-      local context_winnr = self.chat.buffer_context.winnr
-      local context_bufnr = self.chat.buffer_context.bufnr
-      local chat_winnr = api.nvim_get_current_win()
-
       -- Get file extension from context buffer if available
+      local context_bufnr = self.chat.buffer_context.bufnr
       local file_extension = get_file_extension(context_bufnr)
-
-      -- Exit insert mode and switch focus to context window
-      vim.cmd("stopinsert")
-      api.nvim_set_current_win(context_winnr)
 
       -- Start async processing
       SymbolFinder.find_with_lsp_async(symbol_name, file_paths, function(all_lsp_symbols)
@@ -231,7 +195,6 @@ return {
 
             -- Handle case where we have no results
             if total_results == 0 then
-              api.nvim_set_current_win(chat_winnr)
               local filetype_msg = file_extension and (" in " .. file_extension .. " files") or ""
               output_handler(
                 Utils.create_result(
@@ -242,13 +205,6 @@ return {
                 )
               )
               return
-            end
-
-            if Utils.is_valid_buffer(context_bufnr) then
-              pcall(api.nvim_set_current_buf, context_bufnr)
-            end
-            if chat_winnr and api.nvim_win_is_valid(chat_winnr) then
-              pcall(api.nvim_set_current_win, chat_winnr)
             end
 
             -- Store state for output handler
