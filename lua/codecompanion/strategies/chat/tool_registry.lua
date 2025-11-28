@@ -124,7 +124,6 @@ function ToolRegistry:add_group(group, tools_config)
     return
   end
 
-  -- Check if group is already in use to prevent duplicates
   if self.groups_in_use[group] then
     return
   end
@@ -152,7 +151,6 @@ function ToolRegistry:add_group(group, tools_config)
     self:add(tool, tools_config[tool], { visible = not collapse_tools })
   end
 
-  -- Mark group as in use
   self.groups_in_use[group] = true
 end
 

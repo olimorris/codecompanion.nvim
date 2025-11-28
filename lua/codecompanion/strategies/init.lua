@@ -209,7 +209,6 @@ function Strategies:workflow()
     messages = messages,
   })
 
-  -- Process initial messages for tools and variables
   for _, msg in ipairs(chat.messages) do
     if msg.content then
       chat:replace_vars_and_tools(msg)
@@ -235,11 +234,8 @@ function Strategies:workflow()
             if type(val.content) == "function" then
               val.content = val.content(self.buffer_context)
             end
-            -- Parse tools and variables from the message content in the following prompts
             chat:replace_vars_and_tools(val)
-            -- Add to messages table (for LLM) - always needed
             chat:add_message(val, val.opts)
-            -- Only add to buffer if visible is not false
             if not (val.opts and val.opts.visible == false) then
               chat:add_buf_message(val, val.opts)
             end
