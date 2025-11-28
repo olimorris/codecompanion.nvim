@@ -6,6 +6,7 @@ Methods for handling interactions between the chat buffer and tools
 ---@field chat CodeCompanion.Chat
 ---@field flags table Flags that external functions can update and subscribers can interact with
 ---@field in_use table<string, boolean> Tools that are in use on the chat buffer
+---@field groups_in_use table<string, boolean> Tool groups that are in use on the chat buffer
 ---@field schemas table<string, table> The config for the tools in use
 
 ---@class CodeCompanion.Chat.ToolRegistry
@@ -23,6 +24,7 @@ function ToolRegistry.new(args)
     chat = args.chat,
     flags = {},
     in_use = {},
+    groups_in_use = {},
     schemas = {},
   }, { __index = ToolRegistry })
 
@@ -122,6 +124,10 @@ function ToolRegistry:add_group(group, tools_config)
     return
   end
 
+  if self.groups_in_use[group] then
+    return
+  end
+
   local opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
   local collapse_tools = opts.collapse_tools
 
@@ -144,6 +150,8 @@ function ToolRegistry:add_group(group, tools_config)
   for _, tool in ipairs(group_config.tools) do
     self:add(tool, tools_config[tool], { visible = not collapse_tools })
   end
+
+  self.groups_in_use[group] = true
 end
 
 ---Add a tool system prompt to the chat buffer, updated for every tool addition
@@ -179,6 +187,7 @@ end
 function ToolRegistry:clear()
   self.flags = {}
   self.in_use = {}
+  self.groups_in_use = {}
   self.schemas = {}
 end
 
