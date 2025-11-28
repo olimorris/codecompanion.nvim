@@ -34,17 +34,13 @@ require("codecompanion").setup({
 }),
 ```
 
-## Environment Variables / Setting an API Key
+## Environment Variables
 
 Setting environment variables within adapters is a key part of configuration. The adapter `env` table lets you define values that will be interpolated into the adapter's URL, headers, parameters and other fields at runtime.
 
-Supported `env` value types:
-- **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
-- **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
-- **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
-- **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
+::: tabs
 
-Below are some examples showing this in practice:
+== Plain Text
 
 ```lua
 require("codecompanion").setup({
@@ -62,16 +58,16 @@ require("codecompanion").setup({
 })
 ```
 
-If you do not want to store secrets in plain text, prefix commands with `cmd:`:
+== Commands
 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    acp = {
-      gemini_cli = function()
-        return require("codecompanion.adapters").extend("gemini_cli", {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
           env = {
-            api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
+            api_key = "cmd:op read op://personal/Anthropic/credential --no-newline",
           },
         })
       end,
@@ -80,28 +76,77 @@ require("codecompanion").setup({
 })
 ```
 
+== Function
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = {
+            api_key = function()
+              return my_custom_api_key_fetcher()
+            end,
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+== Schema Reference
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = {
+            model_for_url = "schema.model.default",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+:::
+
 > [!NOTE]
-> In this example, we're using the 1Password CLI to extract the Gemini API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
+> In this _command_ example, we're using the 1Password CLI to extract the Gemini API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
+
+Supported `env` value types:
+- **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
+- **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
+- **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
+- **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
 
 ## Changing a Model
 
-To more easily change a model for a HTTP adapter, you can pass in the `name` and `model` to the adapter:
+A core part of working with CodeCompanion is being able to easily switch between adapters and LLMs. Below are two examples of how this can be achieved.
+
+::: tabs
+
+== For Strategies
 
 ```lua
 require("codecompanion").setup({
   strategies = {
     chat = {
       adapter = {
-        name = "copilot",
-        model = "claude-sonnet-4",
+        name = "openai",
+        model = "gpt-4.1",
       },
     },
   },
 }),
-
 ```
 
-To change the default model on an adapter you can modify the `schema.model.default` property:
+== For Adapters
 
 ```lua
 require("codecompanion").setup({
@@ -121,12 +166,18 @@ require("codecompanion").setup({
 }),
 ```
 
-## Configuring Adapter Settings
+:::
+
+## Changing Adapter Settings
 
 > [!NOTE]
-> When extending an adapter with `.extend`, use it's key from the `adapters` dictionary
+> When extending an adapter with `extend`, use it's key from the `adapters` dictionary
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
+
+::: tabs
+
+== For HTTP Adapters
 
 ```lua
 require("codecompanion").setup({
@@ -160,7 +211,7 @@ require("codecompanion").setup({
 })
 ```
 
-Or, in the case of an ACP adapter:
+== For ACP Adapters
 
 ```lua
 require("codecompanion").setup({
@@ -189,6 +240,8 @@ require("codecompanion").setup({
   },
 })
 ```
+
+:::
 
 ## Adding a Custom Adapter
 
@@ -279,7 +332,11 @@ require("codecompanion").setup({
 
 With `show_model_choices = false`, the default model (as defined in the adapter's schema) will be automatically selected when changing adapters, and no model selection will be shown to the user.
 
-## Setup: OpenAI Responses API
+## Setup Examples
+
+Below are some examples of how you can configure various adapters within CodeCompanion. Some merely serve as illustrations and are not actively supported by the plugin.
+
+### Example: OpenAI Responses API
 
 CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
 
@@ -316,7 +373,7 @@ require("codecompanion").setup({
 
 By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
 
-## Setup: Using Ollama Remotely
+### Example: Using Ollama Remotely
 
 To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
 
@@ -344,7 +401,7 @@ require("codecompanion").setup({
 })
 ```
 
-## Setup: Azure OpenAI
+### Example: Azure OpenAI
 
 Below is an example of how you can leverage the `azure_openai` adapter within the plugin:
 
@@ -378,9 +435,9 @@ require("codecompanion").setup({
 }),
 ```
 
-## Setup: OpenRouter with Reasoning Output
+### Example: OpenRouter with Reasoning Output
 
-```lua 
+```lua
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -418,7 +475,7 @@ require("codecompanion").setup({
 })
 ```
 
-## Setup: llama.cpp with `--reasoning-format deepseek`
+### Example: llama.cpp with `--reasoning-format deepseek`
 
 ```lua
 require("codecompanion").setup({

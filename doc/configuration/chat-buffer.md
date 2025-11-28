@@ -67,7 +67,7 @@ require("codecompanion").setup({
 
 ### Syncing
 
-To [sync](/usage/chat-buffer/variables#with-parameters) buffers by default, you can add this configuration:
+To [sync](/usage/chat-buffer/variables#with-parameters) shared buffers by default, you can add this configuration:
 
 ```lua
 require("codecompanion").setup({
