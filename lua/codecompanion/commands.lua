@@ -164,22 +164,61 @@ return {
       nargs = "*",
       -- Reference:
       -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
-      complete = function(arg_lead, cmdline, _)
-        if cmdline:match("^['<,'>]*CodeCompanionChat[!]*%s+%w*$") then
-          local completions = {}
+      complete = function(arg_lead, cmdline, _cursor_pos)
+        -- Check if we're completing a parameter value (e.g., "adapter=" or "model=")
+        local param_key = arg_lead:match("^(%w+)=$")
+        if param_key == "adapter" then
+          return adapters
+        elseif param_key == "model" then
+          -- Extract the adapter from the command line
+          local adapter_name = cmdline:match("adapter=(%S+)")
+          if adapter_name then
+            local adapter_config = config_adapters[adapter_name]
+            if adapter_config then
+              -- Resolve the adapter to get the full schema
+              local ok, adapter = pcall(require("codecompanion.adapters").resolve, adapter_config)
+              if ok and adapter and adapter.schema and adapter.schema.model and adapter.schema.model.choices then
+                local choices = adapter.schema.model.choices
 
-          for _, adapter in ipairs(adapters) do
-            table.insert(completions, "adapter=" .. adapter)
+                -- Handle function choices
+                if type(choices) == "function" then
+                  local ok_fn, result = pcall(choices, adapter, { async = false })
+                  if ok_fn and result then
+                    choices = result
+                  else
+                    -- If the function call fails or returns nil, return empty
+                    return {}
+                  end
+                end
+
+                -- Extract model names from choices (if choices is not nil)
+                if type(choices) == "table" then
+                  if vim.islist(choices) then
+                    return choices
+                  else
+                    return vim.tbl_keys(choices)
+                  end
+                end
+              end
+            end
           end
+          return {}
+        end
 
-          table.insert(completions, "Toggle")
-          table.insert(completions, "Add")
-          table.insert(completions, "RefreshCache")
+        -- Only show general completions when at the start (no partial param typed)
+        if cmdline:match("^['<,'>]*CodeCompanionChat[!]*%s+$") or arg_lead == "" then
+          local completions = {
+            "adapter=",
+            "model=",
+            "Toggle",
+            "Add",
+            "RefreshCache",
+          }
 
           return vim
             .iter(completions)
             :filter(function(key)
-              return key:find(arg_lead) ~= nil
+              return key:find(vim.pesc(arg_lead), 1, true) == 1
             end)
             :totable()
         end
