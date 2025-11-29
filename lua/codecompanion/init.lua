@@ -144,17 +144,16 @@ CodeCompanion.chat = function(args)
   local messages = args.messages or {}
   local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
 
-  -- Extract the adapter if it's provided
+  -- Set the adapter and model if provided
   if args.params and args.params.adapter then
     local adapter_name = args.params.adapter
     adapter = config.adapters[adapter_name] or config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
-
-    if not adapter then
-      return log:warn("Adapter '%s' not found", adapter_name)
+    adapter = require("codecompanion.adapters").resolve(adapter)
+    if args.params.model then
+      adapter.schema.model.default = args.params.model
     end
   end
 
-  -- Handle subcommands
   if args.subcommand then
     if args.subcommand == "add" then
       return CodeCompanion.add(args)
@@ -165,7 +164,7 @@ CodeCompanion.chat = function(args)
     end
   end
 
-  -- Handle user prompt/message
+  -- Manage user prompts
   if args.user_prompt and #args.user_prompt > 0 then
     table.insert(messages, {
       role = config.constants.USER_ROLE,
