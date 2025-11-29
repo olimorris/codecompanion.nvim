@@ -2,7 +2,7 @@ local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
-local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 
 ---A user may specify an adapter for the prompt
 ---@param strategy CodeCompanion.Strategies
@@ -43,22 +43,9 @@ end
 ---@param prompt table
 ---@param chat CodeCompanion.Chat
 function Strategies.add_context(prompt, chat)
-  --TODO: remove prompt.references in v18.0.0
-  local context = prompt.references or prompt.context
-
+  local context = prompt.context
   if not context or vim.tbl_isempty(context) then
     return
-  end
-
-  ---TODO: Remove this in v18.0.0
-  if prompt.references then
-    vim.deprecate(
-      "`references` in the prompt library are now deprecated",
-      "Please use `context` instead",
-      "v18.0.0",
-      "CodeCompanion",
-      false
-    )
   end
 
   local slash_commands = require("codecompanion.strategies.chat.slash_commands")
@@ -118,9 +105,9 @@ function Strategies:chat()
     end
 
     local callbacks = opts and opts.callbacks or {}
-    local memory_cb = memory_helpers.add_callbacks(callbacks, self.selected.opts.default_memory)
-    if memory_cb then
-      callbacks = memory_cb
+    local rules_cb = rules_helpers.add_callbacks(callbacks, self.selected.opts.default_rules)
+    if rules_cb then
+      callbacks = rules_cb
     end
 
     log:info("[Strategy] Chat Initiated")
@@ -209,8 +196,7 @@ function Strategies:workflow()
     messages = messages,
   })
 
-  ---TODO: Remove workflow.references in v18.0.0
-  if workflow.references or workflow.context then
+  if workflow.context then
     self.add_context(workflow, chat)
   end
 

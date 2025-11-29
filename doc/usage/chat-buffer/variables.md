@@ -19,13 +19,13 @@ Variables use the `#{variable_name}` syntax to dynamically insert content into y
 ## #buffer
 
 > [!IMPORTANT]
-> By default, CodeCompanion automatically applies `{watch}` to all buffers
+> By default, CodeCompanion automatically applies `{diff}` to all buffers
 
 The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared with the LLM:
 
-**`{pin}`** - Sends the entire buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
+**`{all}`** - Sends all of the buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
 
-**`{watch}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
+**`{diff}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
 
 
 ### Basic Usage
@@ -40,9 +40,9 @@ The `#{buffer}` variable shares buffer contents with the LLM. It has two special
 
 ### With Parameters
 
-- `#{buffer}{pin}` - Pins the buffer (sends entire buffer on changes)
-- `#{buffer}{watch}` - Watches for changes (sends only changes)
-- `#{buffer:config.lua}{pin}` - Combines targeting with parameters
+- `#{buffer}{all}` - Sends entire buffer on any change
+- `#{buffer}{diff}` - Sends only changed portions of the buffer
+- `#{buffer:config.lua}{all}` - Combines targeting with parameters
 
 ### Multiple Buffers
 

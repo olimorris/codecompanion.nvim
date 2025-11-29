@@ -161,7 +161,7 @@ end
 
 ---Output from the slash command in the chat buffer
 ---@param selected { path: string, relative_path?: string, description?: string }
----@param opts? { message?:string, description?: string, silent: boolean, pin: boolean }
+---@param opts? { message?:string, description?: string, silent: boolean, sync_all: boolean }
 ---@return nil
 function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
@@ -184,7 +184,7 @@ function SlashCommand:output(selected, opts)
     _meta = { tag = "file" },
   })
 
-  if opts.pin then
+  if opts.sync_all then
     return
   end
 

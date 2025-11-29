@@ -12,10 +12,10 @@ end
 
 function LogHandler.new(opts)
   vim.validate({
-    type = { opts.type, "s" },
-    handle = { opts.handle, "f" },
-    formatter = { opts.formatter, "f" },
-    level = { opts.level, "n", true },
+    type = { opts.type, "string" },
+    handle = { opts.handle, "function" },
+    formatter = { opts.formatter, "function" },
+    level = { opts.level, "number", true },
   })
   return setmetatable({
     type = opts.type,
@@ -56,7 +56,7 @@ end
 local function create_file_handler(opts)
   local a = require("plenary.async")
   vim.validate({
-    filename = { opts.filename, "s" },
+    filename = { opts.filename, "string" },
   })
   local ok, stdpath = pcall(vim.fn.stdpath, "log")
   if not ok then
@@ -107,7 +107,7 @@ local function create_file_handler(opts)
     end)
   end
 
-  opts.handle = function(level, text)
+  opts.handle = function(_level, text)
     table.insert(write_queue, text .. "\n")
     vim.schedule(process_queue)
   end
@@ -153,7 +153,7 @@ end
 ---@return CodeCompanion.LogHandler
 local function create_handler(opts)
   vim.validate({
-    type = { opts.type, "s" },
+    type = { opts.type, "string" },
   })
   if not opts.formatter then
     opts.formatter = default_formatter
@@ -181,8 +181,8 @@ local Logger = {}
 ---@param opts CodeCompanion.LoggerArgs
 function Logger.new(opts)
   vim.validate({
-    handlers = { opts.handlers, "t" },
-    level = { opts.level, "n", true },
+    handlers = { opts.handlers, "table" },
+    level = { opts.level, "number", true },
   })
   local handlers = {}
   for _, defn in ipairs(opts.handlers) do
@@ -211,10 +211,26 @@ end
 
 ---@param level number
 ---@param msg string
----@param ... any[]
+---@param ... any
 function Logger:log(level, msg, ...)
+  local args = { ... }
+  local opts = {}
+
+  -- Check if the last argument is an options table with a silent flag
+  if #args > 0 and type(args[#args]) == "table" and args[#args].silent ~= nil then
+    opts = table.remove(args)
+  end
+
   for _, handler in ipairs(self.handlers) do
-    handler:log(level, msg, ...)
+    -- Skip notify and echo handlers if silent is true
+    if opts.silent and (handler.type == "notify" or handler.type == "echo") then
+      -- Only log to file handlers
+      if handler.type == "file" then
+        handler:log(level, msg, unpack(args))
+      end
+    else
+      handler:log(level, msg, unpack(args))
+    end
   end
 end
 

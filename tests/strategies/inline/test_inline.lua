@@ -10,7 +10,9 @@ T["Inline"] = new_set({
     pre_case = function()
       inline = h.setup_inline({
         adapters = {
-          fake_adapter = { name = "fake_adapter" },
+          http = {
+            fake_adapter = { name = "fake_adapter" },
+          },
         },
       })
     end,
@@ -204,7 +206,7 @@ T["Inline"]["can parse adapter syntax"] = function()
   -- Default adapter
   h.eq(inline.adapter.name, "test_adapter")
 
-  inline:prompt("<fake_adapter> #{buffer} print hello world")
+  inline:prompt("adapter=fake_adapter #{buffer} print hello world")
   h.eq("fake_adapter", inline.adapter.name)
 
   -- Should be system + buffer content + user prompt

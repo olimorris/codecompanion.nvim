@@ -411,16 +411,16 @@ It can be useful to pre-load a chat buffer with context from _files_, _symbols_ 
 },
 ```
 
-### Prompts with Memory
+### Prompts with Rules
 
-You can specify a default memory group to load with a prompt:
+You can specify a default rule group to load with a prompt:
 
 ```lua
 ["Test Context"] = {
   strategy = "chat",
   description = "Add some context",
   opts = {
-    default_memory = "my_custom_memory_group",
+    default_rules = "my_rule_group",
   },
   prompts = {
     -- Prompt go here

@@ -126,11 +126,13 @@ M.create_float = function(lines, opts)
   end
 
   local function close()
-    api.nvim_buf_delete(bufnr, { force = true })
+    pcall(function()
+      api.nvim_win_close(winnr, true)
+      api.nvim_buf_delete(bufnr, { force = true })
+    end)
   end
 
   vim.keymap.set("n", "q", close, { buffer = bufnr })
-  vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
 
   return bufnr, winnr
 end

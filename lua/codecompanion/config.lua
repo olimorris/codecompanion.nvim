@@ -53,7 +53,10 @@ local defaults = {
   interactions = {
     -- BACKGROUND INTERACTION -------------------------------------------------
     background = {
-      adapter = "copilot",
+      adapter = {
+        name = "copilot",
+        model = "gpt-4.1",
+      },
       -- Callbacks within the plugin that you can attach background actions to
       chat = {
         callbacks = {
@@ -65,7 +68,7 @@ local defaults = {
           },
         },
         opts = {
-          enabled = false, -- Enable ALL background chat interactions?
+          enabled = true, -- Enable ALL background chat interactions?
         },
       },
     },
@@ -127,18 +130,18 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.tools.catalog.insert_edit_into_file",
           description = "Robustly edit existing files with multiple automatic fallback strategies",
           opts = {
-            requires_approval = { -- Require approval before the tool is executed?
+            require_approval_before = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = false, -- For editing files in the current working directory
             },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
             file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
@@ -146,14 +149,14 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["delete_file"] = {
           callback = "strategies.chat.tools.catalog.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["fetch_webpage"] = {
@@ -193,7 +196,7 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["next_edit_suggestion"] = {
@@ -294,7 +297,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
-            default_params = "watch", -- watch|pin
+            default_params = "diff", -- all|diff
             has_params = true,
             excluded = {
               buftypes = {
@@ -332,7 +335,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            default_params = "watch", -- watch|pin
+            default_params = "diff", -- all|diff
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -400,9 +403,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
-        ["memory"] = {
-          callback = "strategies.chat.slash_commands.catalog.memory",
-          description = "Insert a memory into the chat buffer",
+        ["rules"] = {
+          callback = "strategies.chat.slash_commands.catalog.rules",
+          description = "Insert rules into the chat buffer",
           opts = {
             contains_code = true,
           },
@@ -442,13 +445,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Insert terminal output",
           opts = {
             contains_code = false,
-          },
-        },
-        ["workspace"] = {
-          callback = "strategies.chat.slash_commands.catalog.workspace",
-          description = "Load a workspace file",
-          opts = {
-            contains_code = true,
           },
         },
         opts = {
@@ -519,17 +515,17 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.yank_code",
           description = "Yank code",
         },
-        pin = {
-          modes = { n = "gp" },
+        buffer_sync_all = {
+          modes = { n = "gba" },
           index = 9,
-          callback = "keymaps.pin_context",
-          description = "Pin context",
+          callback = "keymaps.buffer_sync_all",
+          description = "Toggle the syncing of the entire buffer",
         },
-        watch = {
-          modes = { n = "gw" },
+        buffer_sync_diff = {
+          modes = { n = "gbd" },
           index = 10,
-          callback = "keymaps.toggle_watch",
-          description = "Watch buffer",
+          callback = "keymaps.buffer_sync_diff",
+          description = "Toggle the syncing of the buffer to share it's diffs",
         },
         next_chat = {
           modes = { n = "}" },
@@ -579,11 +575,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle system prompt",
         },
-        memory = {
+        rules = {
           modes = { n = "gM" },
           index = 18,
-          callback = "keymaps.clear_memory",
-          description = "Clear memory",
+          callback = "keymaps.clear_rules",
+          description = "Clear Rules",
         },
         yolo_mode = {
           modes = { n = "gty" },
@@ -1128,78 +1124,9 @@ This is the code, for context:
         },
       },
     },
-    ["Workspace File"] = {
-      strategy = "chat",
-      description = "Generate a Workspace file/group",
-      opts = {
-        index = 11,
-        ignore_system_prompt = true,
-        is_default = true,
-        short_name = "workspace",
-      },
-      context = {
-        {
-          type = "file",
-          path = {
-            vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),
-          },
-        },
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = function()
-            local schema = require("codecompanion").workspace_schema()
-            return fmt(
-              [[## CONTEXT
-
-A workspace is a JSON configuration file that organizes your codebase into related groups to help LLMs understand your project structure. Each group contains files, symbols, or URLs that provide context about specific functionality or features.
-
-The workspace file follows this structure:
-
-```json
-%s
-```
-
-## OBJECTIVE
-
-Create or modify a workspace file that effectively organizes the user's codebase to provide optimal context for LLM interactions.
-
-## RESPONSE
-
-You must create or modify a workspace file through a series of prompts over multiple turns:
-
-1. First, ask the user about the project's overall purpose and structure if not already known
-2. Then ask the user to identify key functional groups in your codebase
-3. For each group, ask the user select relevant files, symbols, or URLs to include. Or, use your own knowledge to identify them
-4. Generate the workspace JSON structure based on the input
-5. Review and refine the workspace configuration together with the user]],
-              schema
-            )
-          end,
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function()
-            local prompt = ""
-            if vim.fn.filereadable(vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")) == 1 then
-              prompt = [[Can you help me add a group to an existing workspace file?]]
-            else
-              prompt = [[Can you help me create a workspace file?]]
-            end
-
-            local ok, _ = pcall(require, "vectorcode")
-            if ok then
-              prompt = prompt .. " Use the @{vectorcode_toolbox} tool to help identify groupings of files"
-            end
-            return prompt
-          end,
-        },
-      },
-    },
   },
-  -- MEMORY -------------------------------------------------------------------
-  memory = {
+  -- RULES -------------------------------------------------------------------
+  rules = {
     default = {
       description = "Collection of common files for all projects",
       files = {
@@ -1218,7 +1145,7 @@ You must create or modify a workspace file through a series of prompts over mult
       is_default = true,
     },
     CodeCompanion = {
-      description = "CodeCompanion plugin memory files",
+      description = "CodeCompanion rules",
       parser = "claude",
       ---@return boolean
       enabled = function()
@@ -1279,13 +1206,14 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
+      codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
       none = "none", -- No parsing, just raw text
     },
     opts = {
       chat = {
-        enabled = false, -- Automatically add memory to new chat buffers?
+        enabled = false, -- Automatically add rules to new chat buffers?
 
-        ---Function to determine if memory should be added to a chat buffer
+        ---Function to determine if rules should be added to a chat buffer
         ---This requires `enabled` to be true
         ---@param chat CodeCompanion.Chat
         ---@return boolean
@@ -1293,10 +1221,10 @@ You must create or modify a workspace file through a series of prompts over mult
           return chat.adapter.type ~= "acp"
         end,
 
-        default_memory = "default", -- The memory groups to load
-        default_params = "watch", -- watch|pin - when adding a buffer to the chat
+        default_rules = "default", -- The rule groups to load
+        default_params = "diff", -- all|diff
       },
-      show_defaults = true, -- Show the default memory files in the action palette?
+      show_defaults = true, -- Show the default rules files in the action palette?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------
@@ -1314,8 +1242,8 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     chat = {
       icons = {
-        buffer_pin = " ",
-        buffer_watch = "󰂥 ",
+        buffer_sync_all = "󰪴 ",
+        buffer_sync_diff = " ",
         --chat_context = " ",
         chat_fold = " ",
         tool_pending = "  ",
@@ -1348,7 +1276,7 @@ You must create or modify a workspace file through a series of prompts over mult
         },
       },
       -- Options for any windows that open within the chat buffer
-      child_window = {
+      floating_window = {
         ---@return number|fun(): number
         width = function()
           return vim.o.columns - 5
@@ -1366,7 +1294,7 @@ You must create or modify a workspace file through a series of prompts over mult
           relativenumber = false,
         },
       },
-      -- Extend/override the child_window options for a diff
+      -- Extend/override the floating_window options for a diff
       diff_window = {
         ---@return number|fun(): number
         width = function()

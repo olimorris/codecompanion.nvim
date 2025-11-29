@@ -657,7 +657,7 @@ return {
       default = false,
       desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason
@@ -684,7 +684,7 @@ return {
         return false
       end,
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason
@@ -704,7 +704,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason

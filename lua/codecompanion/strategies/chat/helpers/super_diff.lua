@@ -542,7 +542,7 @@ function M.show_super_diff(chat, opts)
   local lines, file_sections, diff_info = generate_markdown_super_diff(tracked_files)
 
   local ui_utils = require("codecompanion.utils.ui")
-  local window_config = config.display.chat.child_window
+  local window_config = config.display.chat.floating_window
   local inline_config = config.display.diff.provider_opts.inline or {}
   local show_dim = inline_config.opts and inline_config.opts.show_dim
   local title = opts.title

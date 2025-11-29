@@ -328,7 +328,7 @@ return {
       type = "number",
       default = 0.1,
       ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
@@ -357,7 +357,7 @@ return {
       type = "number",
       default = 1,
       ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
@@ -373,7 +373,7 @@ return {
       type = "number",
       default = 1,
       ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()

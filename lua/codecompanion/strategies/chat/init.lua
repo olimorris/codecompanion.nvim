@@ -5,25 +5,27 @@
 ---@class CodeCompanion.Chat
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
----@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field create_buf fun(): number The function that creates a new buffer for the chat
 ---@field aug number The ID for the autocmd group
----@field bufnr number The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
+---@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
+---@field bufnr number The buffer number of the chat
+---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
+---@field context CodeCompanion.Chat.Context
+---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
+---@field create_buf fun(): number The function that creates a new buffer for the chat
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
 ---@field id number The unique identifier for the chat
+---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field context CodeCompanion.Chat.Context
----@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
@@ -32,9 +34,7 @@
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
----@field watched_buffers CodeCompanion.Watchers The buffer watcher instance
 ---@field window_opts? table Window configuration options for the chat buffer
----@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
@@ -63,7 +63,7 @@ local config = require("codecompanion.config")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
-local im_utils = require("codecompanion.utils.images")
+local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local parser = require("codecompanion.strategies.chat.parser")
@@ -143,31 +143,30 @@ local show_settings = config.display.chat.show_settings
 ---Add updated content from the pins to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@return nil
-local function add_pins(chat)
-  local pins = vim
+local function sync_all_buffer_content(chat)
+  local synced = vim
     .iter(chat.context_items)
     :filter(function(ctx)
-      return ctx.opts.pinned
+      return ctx.opts.sync_all
     end)
     :totable()
 
-  if vim.tbl_isempty(pins) then
+  if vim.tbl_isempty(synced) then
     return
   end
 
-  for _, pin in ipairs(pins) do
-    -- Don't add the pin twice in the same cycle
+  for _, item in ipairs(synced) do
+    -- Don't add the item twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if (msg.context and msg.context.id == pin.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
+      if (msg.context and msg.context.id == item.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
         exists = true
       end
     end)
     if not exists then
-      utils.fire("ChatPin", { bufnr = chat.bufnr, id = chat.id, pin_id = pin.id })
-      require(pin.source)
+      require(item.source)
         .new({ Chat = chat })
-        :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })
+        :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { item = true })
     end
   end
 end
@@ -512,7 +511,7 @@ function Chat.new(args)
   })
   self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
   self.variables = require("codecompanion.strategies.chat.variables").new()
-  self.watched_buffers = require("codecompanion.strategies.chat.watchers").new()
+  self.buffer_diffs = require("codecompanion.strategies.chat.buffer_diffs").new()
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -658,7 +657,7 @@ function Chat:dispatch(event, ...)
   for _, callback in ipairs(callbacks) do
     local ok, err = pcall(callback, self, ...)
     if not ok then
-      log:error("Callback error for %s: %s", event, err)
+      log:error("Callback error for %s: %s", event, err, { silent = true })
     end
   end
   return self
@@ -1105,14 +1104,14 @@ function Chat:submit(opts)
   end
 
   if opts.auto_submit then
-    self.watched_buffers:check_for_changes(self)
+    self.buffer_diffs:check_for_changes(self)
   else
     local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
       return log:warn("No messages to submit")
     end
 
-    self.watched_buffers:check_for_changes(self)
+    self.buffer_diffs:check_for_changes(self)
 
     -- Allow users to send a blank message to the LLM
     if not opts.regenerate then
@@ -1135,7 +1134,7 @@ function Chat:submit(opts)
       self:replace_vars_and_tools(message_to_submit)
       self:check_images(message_to_submit)
       self:check_context()
-      add_pins(self)
+      sync_all_buffer_content(self)
     end
 
     -- Check if the user has manually overridden the adapter
@@ -1284,24 +1283,6 @@ function Chat:add_context(data, source, id, opts)
   self:add_message(message, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
 end
 
----TODO: Remove this method in v18.0.0
----Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
----@param data { role: string, content: string }
----@param source string
----@param id string
----@param opts? table Options for the message
-function Chat:add_reference(data, source, id, opts)
-  vim.deprecate(
-    "`Chat:add_reference` is now deprecated.",
-    "Please use `chat:add_context` instead",
-    "v18.0.0",
-    "CodeCompanion",
-    false
-  )
-
-  return self:add_context(data, source, id, opts)
-end
-
 ---Check if there are any images in the chat buffer
 ---@param message table
 ---@return nil
@@ -1312,7 +1293,7 @@ function Chat:check_images(message)
   end
 
   for _, image in ipairs(images) do
-    local encoded_image = im_utils.encode_image(image)
+    local encoded_image = images_utils.encode_image(image)
     if type(encoded_image) == "string" then
       log:warn("Could not encode image: %s", encoded_image)
     else

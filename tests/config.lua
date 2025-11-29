@@ -102,11 +102,11 @@ return {
           callback = "strategies.chat.tools.catalog.insert_edit_into_file",
           description = "Robustly edit files with multiple automatic fallback strategies",
           opts = {
-            requires_approval = {
+            require_approval_before = {
               buffer = false,
               file = false,
             },
-            user_confirmation = false,
+            require_confirmation_after = false,
           },
         },
         ["create_file"] = {
@@ -166,15 +166,15 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_approval.lua",
           description = "Some function tool to test with an approval step",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["func_approval2"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_approval2.lua",
           description = "Some function tool to test with an approval step that's a table",
           opts = {
-            requires_approval = {
-              buffer = true, -- We're not actually testing this. requires_approval being a table triggers the user_approval test
+            require_approval_before = {
+              buffer = true, -- We're not actually testing this
             },
           },
         },
@@ -438,20 +438,20 @@ return {
       },
     },
   },
-  memory = {
+  rules = {
     default = {
       description = "Default file selection for CodeCompanion",
       files = {
-        "tests/stubs/memory/.rules",
-        "tests/stubs/memory/CLAUDE.md",
+        "tests/stubs/rules/.rules",
+        "tests/stubs/rules/CLAUDE.md",
       },
     },
   },
   display = {
     chat = {
       icons = {
-        buffer_pin = " ",
-        buffer_watch = "👀 ",
+        buffer_sync_all = "󰪴 ",
+        buffer_sync_diff = " ",
         tool_success = "!! ",
         tool_failure = "xx ",
       },

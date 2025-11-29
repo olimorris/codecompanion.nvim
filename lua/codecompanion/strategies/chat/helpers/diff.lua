@@ -166,7 +166,8 @@ end
 ---@param path string|nil Optional path for window title
 ---@return number? winnr Window number of the created floating window
 local function create_diff_floating_window(bufnr, path)
-  local window_config = vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window)
+  local window_config =
+    vim.tbl_deep_extend("force", config.display.chat.floating_window, config.display.chat.diff_window)
 
   local provider = config.display.diff.provider
   local provider_config = config.display.diff.provider_opts[provider] or {}

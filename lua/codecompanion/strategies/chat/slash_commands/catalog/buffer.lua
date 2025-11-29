@@ -157,7 +157,7 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local message = "Here is the content from a file (including line numbers)"
-  if opts.pin then
+  if opts.sync_all then
     message = "Here is the updated content from a file (including line numbers)"
   end
 
@@ -176,16 +176,16 @@ function SlashCommand:output(selected, opts)
     content = content,
   }, { context = { id = id, path = selected.path }, visible = false })
 
-  if opts.pin then
+  if opts.sync_all then
     return
   end
 
   local slash_command_opts = self.config.opts and self.config.opts.default_params or nil
   if slash_command_opts then
-    if slash_command_opts == "pin" then
-      opts.pinned = true
-    elseif slash_command_opts == "watch" then
-      opts.watched = true
+    if slash_command_opts == "all" then
+      opts.sync_all = true
+    elseif slash_command_opts == "diff" then
+      opts.sync_diff = true
     end
   end
 

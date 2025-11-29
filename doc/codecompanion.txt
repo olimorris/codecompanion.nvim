@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 24
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -28,7 +28,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Adapters                            |codecompanion-configuration-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
   - Inline Assistant            |codecompanion-configuration-inline-assistant|
-  - Memory                                |codecompanion-configuration-memory|
+  - Rules                                  |codecompanion-configuration-rules|
   - Prompt Library                |codecompanion-configuration-prompt-library|
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
@@ -39,7 +39,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
-  - Memory                                        |codecompanion-usage-memory|
+  - Rules                                          |codecompanion-usage-rules|
   - Tools                                          |codecompanion-usage-tools|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Variables                                  |codecompanion-usage-variables|
@@ -49,11 +49,10 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Workflows                                  |codecompanion-usage-workflows|
 6. Extending                                         |codecompanion-extending|
   - Creating Adapters              |codecompanion-extending-creating-adapters|
-  - Creating Memory Parsers  |codecompanion-extending-creating-memory-parsers|
+  - Creating Rules Parsers    |codecompanion-extending-creating-rules-parsers|
   - Creating Prompts                |codecompanion-extending-creating-prompts|
   - Creating Tools                    |codecompanion-extending-creating-tools|
   - Creating Workflows            |codecompanion-extending-creating-workflows|
-  - Creating Workspaces          |codecompanion-extending-creating-workspaces|
   - Creating Extensions          |codecompanion-extending-creating-extensions|
 
 ==============================================================================
@@ -73,7 +72,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
--  Support for |codecompanion-usage-chat-buffer-memory| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
+-  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-extending-prompts|, Variables and Slash Commands
@@ -597,10 +596,10 @@ The plugin has four core commands:
 However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
-- `CodeCompanion <adapter> <prompt>` - Prompt the inline assistant with a specific adapter
+- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
+- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific adapter and model
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
@@ -1448,7 +1447,7 @@ You can even define your own variables to share specific content:
 <
 
 
-PINNING AND WATCHING
+SYNCING
 
 To |codecompanion-usage-chat-buffer-variables-with-parameters| buffers by
 default, you can add this configuration:
@@ -1460,7 +1459,8 @@ default, you can add this configuration:
           variables = {
             ["buffer"] = {
               opts = {
-                default_params = 'pin', -- or 'watch'
+                -- Always sync the buffer by sharing its diff. Or choose "all" to share the entire buffer
+                default_params = 'diff',
               },
             },
           },
@@ -1645,51 +1645,14 @@ the `callback` option. The `callback` option can be a table itself or either a
 function or a string that points to a luafile that return the table.
 
 
-TOOL CONDITIONALS
+ENABLING TOOLS
 
-Built-in tools can also be conditionally enabled:
+Tools can be conditionally enabled using the `enabled` option. This works for
+built-in tools as well as an adapter’s own tools. This is useful to ensure
+that a particular dependency is installed on the machine. You can use the
+`:CodeCompanionChat RefreshCache` command if you’ve installed a new
+dependency and want to refresh the tool availability in the chat buffer.
 
->lua
-    require("codecompanion").setup({
-      strategies = {
-        chat = {
-          tools = {
-            ["grep_search"] = {
-              ---@param adapter CodeCompanion.HTTPAdapter
-              ---@return boolean
-              enabled = function(adapter)
-                return vim.fn.executable("rg") == 1
-              end,
-            },
-          }
-        }
-      }
-    })
-<
-
-This is useful to ensure that a particular dependency is installed on the
-machine. After the user has installed the dependency, the `:CodeCompanionChat
-RefreshCache` command can be used to refresh the cache’s across chat buffers.
-
-If you wish to conditionally enable an adapter’s own tools, you can do so
-with:
-
->lua
-    require("codecompanion").setup({
-      openai_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
-          available_tools = {
-            ["web_search"] = {
-              ---@param adapter CodeCompanion.HTTPAdapter
-              enabled = function(adapter)
-                return false
-              end,
-            },
-          },
-        })
-      end,
-    })
-<
 
 
 APPROVALS
@@ -1705,7 +1668,7 @@ changed by altering the config for each tool:
           tools = {
             ["cmd_runner"] = {
               opts = {
-                requires_approval = false,
+                require_approval_before = false,
               },
             },
           }
@@ -1715,7 +1678,7 @@ changed by altering the config for each tool:
 <
 
 You can also force any tool to require your approval by adding in
-`opts.requires_approval = true`.
+`opts.require_approval_before = true`.
 
 
 AUTO SUBMIT TOOL OUTPUT (RECURSION)
@@ -1768,7 +1731,7 @@ PROMPT DECORATOR ~
 
 It can be useful to decorate your prompt, prior to sending to an LLM, with
 additional information. For example, the GitHub Copilot prompt in VS Code,
-wraps a user’s prompt between `<prompt></prompt>` tags presumably to
+wraps a user’s prompt between `<prompt></prompt>` tags, presumably to
 differentiate the user’s ask from additional context. This can also be
 achieved in CodeCompanion:
 
@@ -1804,59 +1767,6 @@ You can change the appearance
 of the chat buffer by changing the `display.chat.window` table in your
 configuration:
 
->lua
-    require("codecompanion").setup({
-      display = {
-        chat = {
-          -- Change the default icons
-          icons = {
-            buffer_pin = " ",
-            buffer_watch = "👀 ",
-          },
-    
-          -- Alter the sizing of the debug window
-          debug_window = {
-            ---@return number|fun(): number
-            width = vim.o.columns - 5,
-            ---@return number|fun(): number
-            height = vim.o.lines - 2,
-          },
-    
-          -- Options to customize the UI of the chat buffer
-          window = {
-            layout = "vertical", -- float|vertical|horizontal|buffer
-            position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
-            border = "single",
-            height = 0.8,
-            width = 0.45,
-            relative = "editor",
-            full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
-            sticky = false, -- when set to true and `layout` is not `"buffer"`, the chat buffer will remain opened when switching tabs
-            opts = {
-              breakindent = true,
-              cursorcolumn = false,
-              cursorline = false,
-              foldcolumn = "0",
-              linebreak = true,
-              list = false,
-              numberwidth = 1,
-              signcolumn = "no",
-              spell = false,
-              wrap = true,
-            },
-          },
-    
-          ---Customize how tokens are displayed
-          ---@param tokens number
-          ---@param adapter CodeCompanion.Adapter
-          ---@return string
-          token_count = function(tokens, adapter)
-            return " (" .. tokens .. " tokens)"
-          end,
-        },
-      },
-    }),
-<
 
 
 DIFF ~
@@ -1869,32 +1779,6 @@ The `inline` is the default diff.
 Depending on which provider you choose, there are different configuration
 options available to you:
 
-
-You can also customize the window that the diff appears in (taking precedence
-over `child_window`):
-
->lua
-    require("codecompanion").setup({
-      display = {
-        chat = {
-          -- Extend/override the child_window options for a diff
-          diff_window = {
-            ---@return number|fun(): number
-            width = function()
-              return math.min(120, vim.o.columns - 10)
-            end,
-            ---@return number|fun(): number
-            height = function()
-              return vim.o.lines - 4
-            end,
-            opts = {
-              number = true,
-            },
-          },
-        },
-      },
-    })
-<
 
 The keymaps for accepting and rejecting the diff sit within the `inline`
 strategy configuration and can be changed via:
@@ -1973,7 +1857,7 @@ The default sizing of this window can be configured:
     require("codecompanion").setup({
       display = {
         chat = {
-          child_window = {
+          floating_window = {
             width = vim.o.columns - 5,
             height = vim.o.lines - 2,
             row = "center",
@@ -2224,149 +2108,58 @@ Please see the |codecompanion-chat-buffer-diff| on the Chat Buffer page for
 configuration options.
 
 
-MEMORY                                    *codecompanion-configuration-memory*
+RULES                                      *codecompanion-configuration-rules*
 
-Fundamentally, memory is a way of adding persistent context to a chat buffer.
-CodeCompanion uses `groups` to create a collection of files that can be added
-to chats. Groups can also be linked to a `parser` which can offer
-post-processing customization such as parsing file paths and adding them as
-buffers or files to the chat buffer.
+Within CodeCompanion, rules fulfil two main purposes within a chat buffer:
+
+1. To provide system-level instructions to your LLM
+2. To provide persistent context via files in your project
+
+Similar to Cursor’s Rules <https://cursor.com/docs/context/rules>, they
+provide a way to guide the behavior of your LLM within a chat. Why? LLMs
+don’t retain memory between sessions so preferences and context need to be
+re-applied each time a new chat is started.
 
 
-ENABLING MEMORY ~
+ENABLING RULES ~
 
-By default, memory is not enabled in the chat buffer. To enable it:
 
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            enabled = true,
-          },
-        },
-      },
-    })
-<
-
-Once enabled, the plugin will look to load a common, or default, set of files
+Once enabled, the plugin will look to load a common, or default, set of rules
 every time a chat buffer is created.
 
 
   [!INFO] Refer to the config.lua
   <https://github.com/olimorris/codecompanion.nvim/blob/5807e0457111f0de267fc9a6543b41fae0f5c2b1/lua/codecompanion/config.lua#L1167-L1179>
   file for the full set of files included in the default group.
-You can also conditionally determine if memory should be added to a chat
-buffer:
 
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            ---Function to determine if memory should be added to a chat buffer
-            ---This requires `enabled` to be true
-            ---@param chat CodeCompanion.Chat
-            ---@return boolean
-            condition = function(chat)
-              return chat.adapter.type ~= "acp"
-            end,
-          },
-        },
-      },
-    })
-<
+RULE GROUPS ~
 
-The example above is taken from the config itself, as by default, the plugin
-will not add memory to |codecompanion-usage-chat-buffer-agents| adapters.
+In the plugin, rule groups are a collection of files and/or directories that
+can be loaded into the chat buffer.
 
 
-WORKING WITH GROUPS ~
-
-In the plugin, memory groups are a collection of files and/or directories.
-Below is an example of what a `claude` group might look like:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        claude = {
-          description = "Memory files for Claude Code users",
-          files = {
-            "~/.claude/CLAUDE.md",
-            "CLAUDE.md",
-            "CLAUDE.local.md",
-          },
-        },
-      },
-    })
-<
-
-You’ll notice that the file paths can be local to the current working
-directory or point to an absolute location.
-
-
-CONDITIONALLY ENABLING GROUPS
-
-You can also conditionally enable memory groups. For instance, the default
-`CodeCompanion` group has the following conditional:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        CodeCompanion = {
-          description = "CodeCompanion plugin memory files",
-          ---@return boolean
-          enabled = function()
-            -- Don't show this to users who aren't working on CodeCompanion itself
-            return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
-          end,
-          files = {}, -- removed for brevity
-        },
-      },
-    })
-<
-
-
-NESTING GROUPS
-
-It’s also possible to nest groups within a group. This can be a convenient
-way of applying the same conditional to multiple groups alongside keeping your
-config clean:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        CodeCompanion = {
-          description = "CodeCompanion plugin memory files",
-          parser = "claude",
-          files = {
-            ["acp"] = {
-              description = "The ACP implementation",
-              files = {
-                ".codecompanion/acp/acp.md",
-              },
-            },
-          },
-        },
-      },
-    })
-<
-
-In the example above, the main group is `CodeCompanion` and a sub-group, `acp`,
-sits within the files table. The `claude` parser sits across all of the groups.
+Nested groups allow you to apply the same conditional to multiple groups
+alongside keeping your config clean. In the example above, the main group is
+`CodeCompanion` and a sub-group, `acp`, sits within the files table. The
+`claude` parser sits across all of the groups.
 
 When using the `Action Palette` or the slash command, the plugin will extract
 these nested groups and display them.
 
+You can also set default groups that are automatically applied to all chat
+buffers. This is useful for ensuring that your preferred rules are always
+available.
+
 
 PARSERS ~
 
+Parsers allow CodeCompanion to transform rules, affecting how they are shared
+in the chat buffer. This is particularly useful if you reference files in your
+rules. Currently, the plugin has two in-built parsers:
 
-  [!NOTE] Parsers are an optional addition to memory in the plugin.
-Currently, the plugin has two in-built parsers:
-
-- `claude` - which will import files into the chat buffer in the same way Claude Code does <https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports>. Note, this requires memory to be `markdown` files
-- `none` - a blank parser which can be used to overwrite parsers that have been set on the default memory groups
+- `claude` - which will import files into the chat buffer in the same way Claude Code does <https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports>. Note, this requires rules to be `markdown` files
+- `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
+- `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
 
 Please see the guide on |codecompanion-extending-parsers| to understand how you
 can create and apply your own.
@@ -2375,110 +2168,10 @@ can create and apply your own.
 APPLYING PARSERS
 
 You can apply parsers at a group level, to ensure that all files in the group
-are parsed in the same way:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        claude = {
-          description = "Memory files for Claude Code users",
-          parser = "claude",
-          files = {
-            "CLAUDE.md",
-            "CLAUDE.local.md",
-            "~/.claude/CLAUDE.md",
-          },
-        },
-      },
-    })
-<
-
-In the example above, every file within the group will be sent through the
-`claude` parser before being added to the chat buffer.
-
-Alternatively, you can apply parsers at a file level.
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        default = {
-          description = "Collection of common files for all projects",
-          files = {
-            { path = "CLAUDE.md", parser = "claude" },
-            { path = "CLAUDE.local.md", parser = "claude" },
-            { path = "~/.claude/CLAUDE.md", parser = "claude" },
-          },
-        },
-      },
-    })
-<
-
-Or combine both approaches, whereby the parsers at a file level will take
-precedence.
+are parsed in the same way. Alternatively, you can apply them at a file level
+to have more granular control.
 
 
-DISABLING PARSERS
-
-To disable a parser against a memory group, simply assign it a parser of
-`none`.
-
-
-CHANGING DEFAULTS ~
-
-
-GROUPS
-
-The plugin will look to load the `default` memory group by default. This can be
-changed by:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_memory = "my_new_group",
-          },
-        },
-      },
-    })
-<
-
-Alternatively, you can select multiple groups:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_memory = { "default", "my_new_group" },
-          },
-        },
-      },
-    })
-<
-
-
-BUFFERS AND FILES
-
-If a parsed memory group contains links to files and they are Neovim buffers,
-you can set specific parameters, such as a
-|codecompanion-usage-chat-buffer-variables-with-parameters|:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_params = "watch", -- watch|pin - when adding a buffer to the chat
-          },
-        },
-      },
-    })
-<
-
-
-  [!NOTE] The `claude` parser has been specifically built to output linked files
-  that take advantage of this.
 
 PROMPT LIBRARY                    *codecompanion-configuration-prompt-library*
 
@@ -3185,7 +2878,6 @@ The plugin also defines a number of prompts in the form of the prompt library:
 - `Explain LSP Diagnostics` - Explain the LSP diagnostics for the selected code
 - `Unit Tests` - Generate unit tests for selected code
 - `Generate a Commit Message` - Generate a commit message
-- `Workspace File` - Generating a new workspace file and/or creating a group
 
 
   [!INFO] These can also be called via the cmd line for example `:CodeCompanion
@@ -3280,22 +2972,20 @@ LLM.
 
   [!IMPORTANT] Context items contain the data of an object at a point in time. By
   default, they **are not** self-updating
-In order to allow for context to self-update, they can be `pinned` (for files
-and buffers) or `watched` (for buffers).
+In order to allow for context to self-update, buffers and files can be synced
+to a chat buffer. On every turn, you can determine what is sent to the LLM. For
+buffers, you can choose to send `all` of the content or just the `diff`. For
+files, you only have the choice of sending `all` of the content.
 
-File and buffer context items can be `pinned` to a chat buffer with the `gp`
-keymap (when your cursor is on the line of the shared buffer in the “>
-Context section). Pinning results in the content from the object being reloaded
-and shared with the LLM on every turn. The advantage of this is that the LLM
+The advantage of sending `all` of a file or buffer’s content is that the LLM
 will always receive a fresh copy of the source data regardless of any changes.
 This can be useful if you’re working with tools. However, please note that
 this can consume a lot of tokens.
 
-Buffer context items can be `watched` via the `gw` keymap (when your cursor is
-on the line of the shared buffer in the “> Context section). Watching, whilst
-similar to pinning, is a more token-conscious way of keeping the LLM up to date
-on the contents of a buffer. Watchers track changes (adds, edits, deletes) in
-the underlying buffer and update the LLM on each turn, with only those changes.
+Syncing and sending only a `diff`, is a more token-conscious way of keeping the
+LLM up to date on the contents of a buffer. Buffer diffs track changes (adds,
+edits, deletes) in the underlying buffer and update the LLM on each turn, with
+only those changes.
 
 If a context item is added by mistake, it can be removed from the chat buffer
 by simply deleting it from the `Context` blockquote. On the next turn, all data
@@ -3382,19 +3072,19 @@ The keymaps available to the user in normal mode are:
 - `<C-c>` to close the chat buffer
 - `q` to stop the current request
 - `ga` to change the adapter for the currentchat
+- `gba` to sync the entire buffer on every turn
+- `gbd` to sync only a buffers diff on every turn
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer’s contents
 - `gD` to view the chat buffer’s super diff feature
 - `gf` to fold any codeblocks in the chat buffer
-- `gM` to clear all memory from the chat buffer
-- `gp` to pin an item to the context in the chat buffer
+- `gM` to clear all rules from the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it’ll jump
     to the existing window. Otherwise, it’ll be opened in a new tab.
 - `gs` to toggle the system prompt on/off
 - `gS` to show copilot usage stats
 - `gta` to toggle auto tool mode
-- `gw` to watch a buffer as context in the chat buffer
 - `gx` to clear the chat buffer’s contents
 - `gy` to yank the last codeblock in the chat buffer
 - `[[` to move to the previous header
@@ -3496,17 +3186,21 @@ The |codecompanion-usage-chat-buffer-slash-commands.html-image| slash command
 can be leveraged to share images with the agent.
 
 
-MEMORY                                            *codecompanion-usage-memory*
+RULES                                              *codecompanion-usage-rules*
 
-LLMs don’t retain memory between completions. In CodeCompanion, memory
-provides persistent, reusable context for chat buffers, via the notion of
-groups.
+Ensure that you have read the |codecompanion-configuration-rules| section to
+understand how to create and configure rule groups.
 
-Below is the `default` memory group in the plugin:
+
+DEFAULT RULE GROUP ~
+
+Below is the `default` rule group that, when
+|codecompanion-configuration-rules-enabling-rules|, provides a collection of
+common files to the chat buffer:
 
 >lua
     require("codecompanion").setup({
-      memory = {
+      rules = {
         default = {
           description = "Collection of common files for all projects",
           files = {
@@ -3527,85 +3221,87 @@ Below is the `default` memory group in the plugin:
     })
 <
 
-Once |codecompanion-configuration-memory-enabling-memory|, there are many ways
-that memory can be added to the chat buffer.
 
+CREATING RULES ~
 
-CREATING MEMORY ~
-
-The plugin does not require memory to be in a specific filetype or even format
+The plugin does not require rules to be in a specific filetype or even format
 (unless you’re using the `claude` parser). This allows you to leverage mdc
 <https://docs.cursor.com/en/context/rules#rule-anatomy> files, markdown files
 or good old plain text files.
 
-The location of the memory is also unimportant. The memory files could be local
+The location of the rules is also unimportant. The rules files could be local
 to the project you’re working in. Or, they could reside in a separate
 location on your disk. Just ensure the path is correct when you’re
-|codecompanion-configuration-memory-working-with-groups| the memory group.
+|codecompanion-configuration-rules-rule-groups| the rules group.
 
 
-ADDING MEMORY ~
+EXAMPLE 1: RULE THAT CAN BE PROCESSED WITH THE CODECOMPANION PARSER
+
+>markdown
+    # Example Rules File
+    
+    ## System Prompt
+    
+    What ever goes in this section is used as a system prompt in the chat buffer.
+    
+    So you can specify instructions:
+    - Here
+    - And here
+    
+    ...and anywhere here
+    
+    ## My other header
+    
+    @./lua/codecompanion/strategies/chat/tools/init.lua
+    
+    Anything in this section is added as context to the chat buffer. The file above is also shared
+<
+
+
+EXAMPLE 2: RULE THAT CAN BE PROCESSED WITH THE CLAUDE PARSER
+
+>markdown
+    # Example Claude Rules File
+    
+    @./lua/codecompanion/strategies/chat/tools/init.lua
+    
+    This is a rules file that can be parsed with the Claude parser.
+    
+    Anything in this file is added as context to the chat buffer.
+    
+    Including the file above.
+<
+
+
+ADDING RULES TO A CHAT BUFFER ~
 
 
 WHEN OPENING THE CHAT BUFFER
 
-Memory can automatically be added to a chat buffer when it’s created. Simply
-modify the `memory.opts.chat.default_memory` value to reflect the group(s) you
-wish to add:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        opts = {
-          chat = {
-            default_memory = { "default", "claude "}
-          },
-        },
-      },
-    })
-<
-
-Or, edit the group that resides in `memory.opts.chat.default_memory`:
-
->lua
-    require("codecompanion").setup({
-      memory = {
-        default = {
-          description = "My default group",
-          files = {
-            "CLAUDE.md",
-            "~/Code/Helpers/my_project_specific_help.md",
-          },
-        },
-        opts = {
-          chat = {
-            default_memory = "default",
-          },
-        },
-      },
-    })
-<
-
-
-WHILST IN THE CHAT BUFFER
-
-To add memory to an existing chat buffer, use the `/memory` slash command. This
-will allow multiple memory groups to be added at a time.
-
-
-FROM THE ACTION PALETTE
+Rules can automatically be added to a chat buffer when it’s created. Just
+specify the default rules to include:
 
 
 
-There is also a `Chat with memory` action in the
-|codecompanion-usage-action-palette|. This lists all of the memory groups in
-the config that can be added to a new chat buffer.
+SLASH COMMAND
+
+To add rules to an existing chat buffer, use the `/rules` slash command. This
+will allow multiple rule groups to be added at a time.
 
 
-CLEARING MEMORY
+ACTION PALETTE
 
-Memory can also be cleared from a chat buffer via the `gM` keymap. Although
-note, this will remove `ALL` context that’s been designated as `memory`.
+
+
+There is also a `Chat with rules` action in the
+|codecompanion-usage-action-palette|. This lists all of the rule groups in the
+config that can be added to a new chat buffer.
+
+
+CLEARING RULES
+
+Rules can also be cleared from a chat buffer via the `gR` keymap. Although
+note, this will remove `ALL` context that’s been designated as `rules`.
 
 
 TOOLS                                              *codecompanion-usage-tools*
@@ -3694,8 +3390,8 @@ and if so, to insert a flag in its request. This is then detected and the
 outcome of the test is stored in the corresponding flag on the chat buffer.
 This makes it ideal for |codecompanion-extending-workflows| to hook into.
 
-**Options:** - `requires_approval` require approval before running a command?
-(Default: true)
+**Options:** - `require_approval_before` require approval before running a
+command? (Default: true)
 
 
 CREATE_FILE
@@ -3708,8 +3404,8 @@ Create a file within the current working directory:
     Can you create some test fixtures using @{create_file}?
 <
 
-**Options:** - `requires_approval` require approval before creating a file?
-(Default: true)
+**Options:** - `require_approval_before` require approval before creating a
+file? (Default: true)
 
 
 DELETE_FILE
@@ -3722,8 +3418,8 @@ Delete a file within the current working directory:
     Can you use @{delete_file} to delete the quotes.lua file?
 <
 
-**Options:** - `requires_approval` require approval before deleting a file?
-(Default: true)
+**Options:** - `require_approval_before` require approval before deleting a
+file? (Default: true)
 
 
 FETCH_WEBPAGE
@@ -3802,11 +3498,12 @@ This tool can edit buffers and files for code changes from an LLM:
 <
 
 **Options:** - `patching_algorithm` (string|table|function) The algorithm to
-use to determine how to edit files and buffers - `requires_approval.buffer`
-(boolean) Require approval before editng a buffer? (Default: false) -
-`requires_approval.file` (boolean) Require approval before editng a file?
-(Default: true) - `user_confirmation` (boolean) require confirmation from the
-user before moving on in the chat buffer? (Default: true)
+use to determine how to edit files and buffers -
+`require_approval_before.buffer` (boolean) Require approval before editng a
+buffer? (Default: false) - `require_approval_before.file` (boolean) Require
+approval before editng a file? (Default: true) - `require_confirmation_after`
+(boolean) require confirmation after the execution and before moving on in the
+chat buffer? (Default: true)
 
 
 LIST_CODE_USAGES
@@ -3840,10 +3537,6 @@ MEMORY
 
   [!IMPORTANT] For security, all memory operations are restricted to the
   `/memories` directory
-
-  [!NOTE] This tool is separate to CodeCompanion’s
-  |codecompanion-usage-chat-buffer-memory| implementation but the two can be
-  combined by giving a memory group knowledge of the `/memories` directory
 The memory tool enables LLMs to store and retrieve information across
 conversations through a memory file directory (`/memories`).
 
@@ -4130,7 +3823,7 @@ The `compact` slash command, based on Claude Code’s
 corresponding feature, clears the chat buffer’s message history whilst
 preserving a summary, in context.
 
-System prompts, memory and file/buffer shares will be preserved but all user,
+System prompts, rules and file/buffer shares will be preserved but all user,
 assistant and tool messages will be removed. The summary is generated by
 prompting the same LLM to summarize the chat history into a concise format.
 
@@ -4179,10 +3872,10 @@ will always search in, alongside the current working directory. Currently the
 image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 
-/MEMORY ~
+/RULES ~
 
-The `memory` slash command allows you to add
-|codecompanion-usage-chat-buffer-memory| groups to the chat buffer.
+The `rules` slash command allows you to add
+|codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
 
 
 /MODE ~
@@ -4232,28 +3925,6 @@ buffer with the chat buffer. This can be useful for sharing the outputs of test
 runs with your LLM.
 
 
-/WORKSPACE ~
-
-The `workspace` slash command allows users to share defined groups of files
-and/or symbols with an LLM, alongside some pre-written context. The slash
-command uses a codecompanion-workspace.json
-<https://github.com/olimorris/codecompanion.nvim/blob/main/codecompanion-workspace.json>
-file, stored in the current working directory, to house this context. It is, in
-essence, a context management system for your repository.
-
-Whilst LLMs are incredibly powerful, they have no knowledge of the
-architectural decisions yourself or your team have made on a project. They have
-no context as to why you’ve selected the dependencies that you have. And,
-they can’t see how your codebase has evolved over time. To help you create
-your own workspace file, leverage the
-|codecompanion-usage-action-palette.html-default-prompts| prompt in the action
-palette and install the amazing VectorCode
-<https://github.com/Davidyz/VectorCode/tree/main> tool.
-
-Please see the |codecompanion-extending-workspace| guide to learn how to build
-your own.
-
-
 VARIABLES                                      *codecompanion-usage-variables*
 
 Variables allow you to dynamically insert Neovim context into your chat
@@ -4277,17 +3948,17 @@ message to the LLM.
 #BUFFER ~
 
 
-  [!IMPORTANT] By default, CodeCompanion automatically applies `{watch}` to all
+  [!IMPORTANT] By default, CodeCompanion automatically applies `{diff}` to all
   buffers
 The `#{buffer}` variable shares buffer contents with the LLM. It has two
 special parameters which control how content is shared with the LLM:
 
-**{pin}** - Sends the entire buffer content to the LLM whenever the buffer
+**{all}** - Sends all of the buffer content to the LLM whenever the buffer
 changes. Use this when you want the LLM to always have the complete, up-to-date
 file context.
 
-**{watch}** - Sends only the changed portions of the buffer to the LLM. Use
-this for large files where you only want to share incremental changes to reduce
+**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
+for large files where you only want to share incremental changes to reduce
 token usage.
 
 
@@ -4305,9 +3976,9 @@ TARGET SPECIFIC BUFFERS
 
 WITH PARAMETERS
 
-- `#{buffer}{pin}` - Pins the buffer (sends entire buffer on changes)
-- `#{buffer}{watch}` - Watches for changes (sends only changes)
-- `#{buffer:config.lua}{pin}` - Combines targeting with parameters
+- `#{buffer}{all}` - Sends entire buffer on any change
+- `#{buffer}{diff}` - Sends only changed portions of the buffer
+- `#{buffer:config.lua}{all}` - Combines targeting with parameters
 
 
 MULTIPLE BUFFERS
@@ -4357,7 +4028,6 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
-- `CodeCompanionChatPin` - Fired after a pinned context item has been updated in the messages table
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
@@ -4475,8 +4145,8 @@ ADAPTERS ~
 
 You can specify a different adapter to that in the configuration
 (`strategies.inline.adapter`) when sending an inline prompt. Simply include the
-adapter name within `<>`. For example `:<','>CodeCompanion <deepseek> can you
-refactor this?`. This approach can also be combined with variables.
+adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can
+you refactor this?`. This approach can also be combined with variables.
 
 
 CLASSIFICATION ~
@@ -5578,10 +5248,10 @@ structure for better organization:
 <
 
 
-CREATING MEMORY PARSERS      *codecompanion-extending-creating-memory-parsers*
+CREATING RULES PARSERS        *codecompanion-extending-creating-rules-parsers*
 
-In CodeCompanion, parsers act on the contents of a memory file, carrying out
-some post-processing activities and returning the content back to the memory
+In CodeCompanion, parsers act on the contents of a rules file, carrying out
+some post-processing activities and returning the content back to the rules
 class.
 
 Parsers serve as an excellent way to apply modifications and extract metadata
@@ -5591,16 +5261,16 @@ prior to sharing them with an LLM.
 STRUCTURE OF A PARSER ~
 
 A parser has limited restrictions. It is simply required to return a function
-that the `memory` class can execute, passing in the file to be processed as a
+that the `rules` class can execute, passing in the file to be processed as a
 parameter:
 
 >lua
-    ---@class CodeCompanion.Chat.Memory.Parser
-    ---@field content string The content of the memory file
-    ---@field meta? { included_files: string[] } The filename of the memory file
+    ---@class CodeCompanion.Chat.Rules.Parser
+    ---@field content string The content of the rules file
+    ---@field meta? { included_files: string[] } The filename of the rules file
     
-    ---@param file CodeCompanion.Chat.Memory.ProcessedFile
-    ---@return CodeCompanion.Chat.Memory.Parser
+    ---@param file CodeCompanion.Chat.Rules.ProcessedFile
+    ---@return CodeCompanion.Chat.Rules.Parser
     return function(file)
       -- Your logic
     end
@@ -5612,7 +5282,7 @@ As an output, the function must return a table containing a `content` key.
 PROCESSING FILES ~
 
 Parsers may also return a list of files to be shared with the LLM by the
-`memory` class. To enable this, ensure that the parser returns a
+`rules` class. To enable this, ensure that the parser returns a
 `meta.included_files` array in its output:
 
 >lua
@@ -6107,16 +5777,16 @@ This can now accomplished, as per the example below:
 <
 
 
-PROMPTS WITH MEMORY
+PROMPTS WITH RULES
 
-You can specify a default memory group to load with a prompt:
+You can specify a default rule group to load with a prompt:
 
 >lua
     ["Test Context"] = {
       strategy = "chat",
       description = "Add some context",
       opts = {
-        default_memory = "my_custom_memory_group",
+        default_rules = "my_rule_group",
       },
       prompts = {
         -- Prompt go here
@@ -6748,8 +6418,8 @@ if an LLM does something I’m not aware of or I don’t approve?”`. To that
 end, CodeCompanion tries to make it easy for a user to be the "human in the
 loop" and approve tool use before execution.
 
-To enable this for any tool, simply add the `requires_approval = true` in a
-tool’s `opts` table:
+To enable this for any tool, simply add the `require_approval_before = true` in
+a tool’s `opts` table:
 
 >lua
     require("codecompanion").setup({
@@ -6760,7 +6430,7 @@ tool’s `opts` table:
               description = "Perform calculations",
               callback = "as above",
               opts = {
-                requires_approval = true,
+                require_approval_before = true,
               },
             }
           }
@@ -6770,8 +6440,8 @@ tool’s `opts` table:
 <
 
 
-  [!NOTE] `opts.requires_approval` can also be a function that receives the tool
-  and tool system classes as parameters
+  [!NOTE] `opts.require_approval_before` can also be a function that receives the
+  tool and tool system classes as parameters
 To account for the user being prompted for an approval, we can add a
 `output.prompt` to the tool:
 
@@ -7219,232 +6889,6 @@ consumed once and then removed. However, this can be changed:
       },
     },
 <
-
-
-CREATING WORKSPACES              *codecompanion-extending-creating-workspaces*
-
-Workspaces act as a context management system for your project. This context
-sits in a `codecompanion-workspace.json` file in the root of the current
-working directory. For the purposes of this guide, the file will be referred to
-as the `workspace file`.
-
-For the origin of workspaces in CodeCompanion, and why I settled on this
-design, please see the original
-<https://github.com/olimorris/codecompanion.nvim/discussions/705> announcement.
-
-
-STRUCTURE ~
-
-The workspace file primarily consists of a groups array and data objects. A
-group defines a specific feature or functionality within the code base, which
-is made up of a number of individual data objects. These objects are simply a
-reference to code, which could be in the form of a file, a symbolic outline, or
-a URL.
-
-The exact JSON schema for a workspace file can be seen here
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/workspace-schema.json>
-and below is an extract of CodeCompanion’s own workspace file:
-
->json
-    {
-      "name": "CodeCompanion.nvim",
-      "version": "1.0.0",
-      "description": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor.",
-      "groups": [
-        {
-          "name": "Chat Buffer",
-          "description": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
-          "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
-        },
-      ],
-      "data": {
-        "chat-buffer-init": {
-          "type": "file",
-          "path": "lua/codecompanion/strategies/chat/init.lua",
-          "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
-        },
-        "chat-context": {
-          "type": "symbols",
-          "path": "lua/codecompanion/strategies/chat/context.lua",
-          "description": "Context is files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
-        },
-        "chat-watchers": {
-          "type": "symbols",
-          "path": "lua/codecompanion/strategies/chat/watchers.lua",
-          "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
-        },
-      }
-    }
-<
-
-- The `description` value contains the prompt that will be sent to the LLM as a user.
-- The `groups` array contains the grouping of data that will be shared with the LLM.
-- The `data` object contains the files that will be shared as part of the group.
-
-
-  [!TIP] Use `description` to add a user prompt to the chat buffer or
-  `system_prompt` to add it as a system prompt.
-When a user leverages the workspace slash command in the chat buffer, the
-high-level `description` or `system prompt` is added as a message, followed by
-the `description` or `system prompt` from the group. After that, the individual
-items in the data array on the group are added along with their descriptions as
-a regular user prompt.
-
-
-GROUPS ~
-
-Groups are the core of the workspace file. They are where logical groupings of
-data are defined. Exploring the `Chat Buffer` group in detail:
-
->json
-    {
-      "name": "Chat Buffer",
-      "system_prompt": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
-      "opts": {
-        "remove_config_system_prompt": true
-      },
-      "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
-    }
-<
-
-There’s a lot going on in there:
-
-- Firstly, the `system_prompt` within the group is a way of adding to the main, workspace system prompt
-- The `remove_config_system_prompt` is a way of telling the plugin to exclude its own, default system prompt
-
-Let’s also explore one of the `data` objects in detail:
-
->json
-    {
-      "data": {
-        "chat-buffer-init": {
-          "type": "file",
-          "path": "lua/codecompanion/strategies/chat/init.lua",
-          "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
-        }
-      }
-    }
-<
-
-- We’re specifying a |codecompanion-extending-workspace.html-data-types| of `file` which is explained in more detail below. The type can be one of `file`, `symbols` or `url`
-- We’re outlining the `path` to the file within the current working directory
-- We’re providing description which gets sent alongside the contents of the file as part of a user prompt. We’re also leveraging a `${filename}` variable which is explained in more detail in the |codecompanion-extending-workspace.html-variables| section below
-
-
-DATA TYPES ~
-
-
-FILES
-
-When `files` are defined, their entire content is shared with the LLM alongside
-the description. This is useful for files where a deep understanding of how
-they function is required. Of course, this can consume significant tokens.
-CodeCompanion will automatically detect if a file is open in Neovim, as a
-buffer, and load it as such. This makes it more convenient to leverage watchers
-and pins and keep an LLM updated when you modify the contents.
-
-
-SYMBOLS
-
-The plugin uses Tree-sitter queries
-<https://github.com/olimorris/codecompanion.nvim/tree/main/queries> to create a
-symbolic outline of files, capturing:
-
-- Classes, methods, and interfaces
-- Function names
-- File/library imports
-- Start/end lines for each symbol
-
-Alongside the `@files` tool group, the LLM can request specific line ranges
-from these symbols - a cost-effective alternative to sharing entire files.
-
-
-URLS
-
-Workspace files also support the loading of data from URLs. When loading a URL,
-the `/fetch` slash command adapter retrieves the data. The plugin:
-
-- Caches URL data to disk by default
-- Prompts before restoring from cache
-- Can be configured with:
-    - `"ignore_cache": true` to never use cache
-    - `"auto_restore_cache": true` to always use cache without prompting
-
-An example of using the configuration options:
-
->json
-    {
-      "minitest-docs": {
-        "type": "url",
-        "path": "https://raw.githubusercontent.com/echasnovski/mini.nvim/refs/heads/main/TESTING.md",
-        "description": "Below is the Mini.Test documentation:",
-        "opts": {
-          "auto_restore_cache": true
-        }
-      }
-    }
-<
-
-
-VARIABLES ~
-
-A list of all the variables available in workspace files:
-
-- `${workspace_name}` - The name of the workspace file
-- `${group_name}` - The name of the group that is being processed by the slash command
-- `${filename}` - The name of the current file/symbol that is being processed
-- `${cwd}` - The current working directory
-- `${path}` - The path to the current file/symbol/url
-
-When building your workspace file, you can create a `vars` object which
-contains custom variables for use elsewhere in file. For example:
-
->json
-    {
-      "name": "CodeCompanion.nvim",
-      "version": "1.0.0",
-      "system_prompt": "Workspace system prompt",
-      "vars": {
-        "test_desc": "This is a test description",
-        "stubs": "tests/stubs"
-      },
-      "groups": [
-        {
-          "name": "Test",
-          "description": "${test_desc}",
-          "system_prompt": "Test group system prompt",
-          "data": ["stub-go"]
-        }
-      ],
-      "data": {
-        "stub-go": {
-          "type": "file",
-          "path": "${stubs}/example.go",
-          "description": "An example Go file"
-        },
-      }
-    }
-<
-
-
-GENERATING A WORKSPACE FILE ~
-
-The plugin comes with an
-|codecompanion-usage-action-palette.html-default-prompts| prompt to help you
-generate a workspace file. It will open up a chat buffer and add the workspace
-JSON schema as part of a prompt. It will also determine if you have a workspace
-file in your current working directory, and if you do, the prompts will be
-altered to ask the LLM to help you in adding a group, rather than generating a
-whole workspace file.
-
-Whilst this approach is helpful, you’ll still need to manually share a lot of
-context for the LLM to be able to understand the intricacies of your codebase.
-A more optimal way is to leverage VectorCode
-<https://github.com/Davidyz/VectorCode>. The prompt will determine if you have
-this installed and add it to the chat as a tool.
-
-Remember, the key objective with a workspace file is to rapidly share context
-with an LLM, making it’s response more accurate and more useful.
 
 
 CREATING EXTENSIONS              *codecompanion-extending-creating-extensions*

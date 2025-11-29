@@ -14,7 +14,7 @@ T = new_set({
         cfg.display = cfg.display or {}
         cfg.display.icons = cfg.display.icons or { warning = "!" }
         cfg.display.chat = cfg.display.chat or {}
-        cfg.display.chat.child_window = cfg.display.chat.child_window or {
+        cfg.display.chat.floating_window = cfg.display.chat.floating_window or {
           width = 60, height = 12, row = "center", col = "center", relative = "editor", opts = {},
         }
         -- Sensible default to avoid timeouts during tests

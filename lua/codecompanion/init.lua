@@ -2,7 +2,7 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -135,7 +135,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, args: string, fargs: table, callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, window_opts: table }
+---@param args? { auto_submit: boolean, params: table, subcommand: table,  callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, user_prompt: table, window_opts: table }
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -144,27 +144,32 @@ CodeCompanion.chat = function(args)
   local messages = args.messages or {}
   local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
 
-  if args.fargs and #args.fargs > 0 then
-    local prompt = args.fargs[1]:lower()
-
-    -- Check if the adapter is available
-    --TODO: Remove `config.adapters[prompt]` in V18.0.0
-    adapter = config.adapters[prompt] or config.adapters.http[prompt] or config.adapters.acp[prompt]
-
-    if not adapter then
-      if prompt == "add" then
-        return CodeCompanion.add(args)
-      elseif prompt == "toggle" then
-        return CodeCompanion.toggle(args)
-      elseif prompt == "refreshcache" then
-        return CodeCompanion.refresh_cache()
-      else
-        table.insert(messages, {
-          role = config.constants.USER_ROLE,
-          content = args.args,
-        })
-      end
+  -- Set the adapter and model if provided
+  if args.params and args.params.adapter then
+    local adapter_name = args.params.adapter
+    adapter = config.adapters[adapter_name] or config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
+    adapter = require("codecompanion.adapters").resolve(adapter)
+    if args.params.model then
+      adapter.schema.model.default = args.params.model
     end
+  end
+
+  if args.subcommand then
+    if args.subcommand == "add" then
+      return CodeCompanion.add(args)
+    elseif args.subcommand == "toggle" then
+      return CodeCompanion.toggle(args)
+    elseif args.subcommand == "refreshcache" then
+      return CodeCompanion.refresh_cache()
+    end
+  end
+
+  -- Manage user prompts
+  if args.user_prompt and #args.user_prompt > 0 then
+    table.insert(messages, {
+      role = config.constants.USER_ROLE,
+      content = args.user_prompt,
+    })
   end
 
   local has_messages = not vim.tbl_isempty(messages)
@@ -173,10 +178,10 @@ CodeCompanion.chat = function(args)
     auto_submit = args.auto_submit
   end
 
-  -- Add memory to the chat buffer
-  local memory_cb = memory_helpers.add_callbacks(args)
-  if memory_cb then
-    args.callbacks = memory_cb
+  -- Add rules to the chat buffer
+  local rules_cb = rules_helpers.add_callbacks(args)
+  if rules_cb then
+    args.callbacks = rules_cb
   end
 
   return require("codecompanion.strategies.chat").new({
@@ -309,21 +314,6 @@ CodeCompanion.refresh_cache = function()
   utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
----Return the JSON schema for the workspace file
----@return string|nil
-CodeCompanion.workspace_schema = function()
-  -- Credit: https://github.com/romgrk/fzy-lua-native/blob/master/lua/init.lua
-  local dirname = string.sub(debug.getinfo(1).source, 2, string.len("/init.lua") * -1)
-
-  local ok, file = pcall(function()
-    return require("plenary.path"):new(dirname .. "workspace-schema.json"):read()
-  end)
-
-  if ok then
-    return file
-  end
-end
-
 ---Check if a feature is available in the plugin's current version
 ---@param feature? string|table
 ---@return boolean|table
@@ -336,7 +326,7 @@ CodeCompanion.has = function(feature)
     "function-calling",
     "extensions",
     "acp",
-    "memory",
+    "rules",
   }
 
   if type(feature) == "string" then
@@ -359,63 +349,10 @@ end
 CodeCompanion.setup = function(opts)
   opts = opts or {}
 
-  if not opts.ignore_warnings then
-    vim.notify_once(
-      [[[WARN] CodeCompanion.nvim will experience breaking changes soon. Pin to version v17.33.0 or earlier to avoid this.
-See: https://github.com/olimorris/codecompanion.nvim/pull/2439]],
-      vim.log.levels.WARN,
-      {
-        title = "CodeCompanion",
-      }
-    )
-  end
-
-  -- TODO: Remove in v18.0.0
-  -- // START -----------------------------------------------------------------
-  if opts.adapters then
-    local has_old_format = false
-    local migrated_adapters = {}
-
-    -- Check if user has the old adapter format
-    for key, value in pairs(opts.adapters) do
-      if key ~= "http" and key ~= "acp" then
-        if type(value) == "function" or type(value) == "table" then
-          has_old_format = true
-          migrated_adapters[key] = value
-        end
-      end
-    end
-
-    if has_old_format then
-      vim.deprecate(
-        "`adapters.<adapter_name>` and `adapters.opts`",
-        "`adapters.http.<adapter_name>` and `adapters.http.opts`",
-        "v18.0.0",
-        "CodeCompanion",
-        false
-      )
-
-      -- Begin the migration to the new format
-      if not opts.adapters.http then
-        opts.adapters.http = {}
-      end
-      for adapter_name, adapter_config in pairs(migrated_adapters) do
-        if not opts.adapters.http[adapter_name] then
-          opts.adapters.http[adapter_name] = adapter_config
-        end
-      end
-      -- Remove the adapters from the old format
-      for adapter_name, _ in pairs(migrated_adapters) do
-        opts.adapters[adapter_name] = nil
-      end
-    end
-  end
-  --// END --------------------------------------------------------------------
-
   -- Setup the plugin's config
   config.setup(opts)
 
-  -- handle adapter configuration | acp
+  -- Handle ACP adapter config
   if opts and opts.adapters and opts.adapters.acp then
     if config.adapters.acp.opts.show_defaults then
       require("codecompanion.utils.adapters").extend(config.adapters.acp, opts.adapters.acp)
@@ -425,7 +362,7 @@ See: https://github.com/olimorris/codecompanion.nvim/pull/2439]],
     end
   end
 
-  -- handle adapter configuration | http
+  -- Handle HTTP adapter config
   if opts and opts.adapters and opts.adapters.http then
     if config.adapters.http.opts.show_defaults then
       require("codecompanion.utils.adapters").extend(config.adapters.http, opts.adapters.http)

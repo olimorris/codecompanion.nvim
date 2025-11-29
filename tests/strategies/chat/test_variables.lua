@@ -118,7 +118,7 @@ T["Variables"][":parse"]["buffer vars with params"] = function()
 
   table.insert(chat.messages, {
     role = "user",
-    content = "Look at #{buffer:init.lua}{pin} Isn't it marvellous?",
+    content = "Look at #{buffer:init.lua}{all} Isn't it marvellous?",
   })
 
   vars:parse(chat, chat.messages[#chat.messages])
@@ -128,7 +128,7 @@ T["Variables"][":parse"]["buffer vars with params"] = function()
   end, chat.messages)
 
   h.eq(1, #buffer_messages)
-  h.eq(true, chat.context_items[1].opts.pinned)
+  h.eq(true, chat.context_items[1].opts.sync_all)
 end
 
 T["Variables"][":replace"]["should replace the variable in the message"] = function()

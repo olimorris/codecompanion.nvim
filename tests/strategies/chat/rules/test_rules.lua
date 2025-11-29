@@ -12,27 +12,27 @@ local T = new_set({
   },
 })
 
-T["Memory.make() with string file (no parser)"] = function()
+T["Rules.make() with string file (no parser)"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
-  local content = "plain memory content"
+  local content = "plain rules content"
   child.fn.writefile({ content }, tmp)
 
   -- Monkey-patch helpers to capture processed data and chat
   child.lua([[
-    package.loaded['codecompanion.strategies.chat.memory.helpers'] = {
+    package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.__mem_processed = processed
         _G.__mem_chat = chat
       end
     }
     -- Minimal config to avoid nil in parsers module
-    package.loaded['codecompanion.config'] = { memory = { parsers = {} } }
+    package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
 
   child.lua(string.format(
     [[
-    local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({ name = "t1", files = { %q } }):make({ id = "c-1" })
+    local Rules = require("codecompanion.strategies.chat.rules.init")
+    Rules.init({ name = "t1", files = { %q } }):make({ id = "c-1" })
   ]],
     tmp
   ))
@@ -51,21 +51,21 @@ T["Memory.make() with string file (no parser)"] = function()
   h.eq(chat.id, "c-1")
 end
 
-T["Memory.make() applies parser when provided at file level"] = function()
+T["Rules.make() applies parser when provided at file level"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
   local content = "to be parsed"
   child.fn.writefile({ content }, tmp)
 
   child.lua([[
     package.loaded['codecompanion.config'] = {
-      memory = {
+      rules = {
         parsers = {
           prefix = { content = function(p) return "PFX:" .. (p.content or "") end }
         }
       }
     }
 
-    package.loaded['codecompanion.strategies.chat.memory.helpers'] = {
+    package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.__mem2_processed = processed
         _G.__mem2_chat = chat
@@ -75,8 +75,8 @@ T["Memory.make() applies parser when provided at file level"] = function()
 
   child.lua(string.format(
     [[
-    local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({
+    local Rules = require("codecompanion.strategies.chat.rules.init")
+    Rules.init({
       name = "t2",
       files = { { path = %q, parser = "prefix" } },
     }):make({ id = "c-2" })
@@ -93,7 +93,7 @@ T["Memory.make() applies parser when provided at file level"] = function()
   h.eq(chat.id, "c-2")
 end
 
-T["Memory.make() with directory file (no parser)"] = function()
+T["Rules.make() with directory file (no parser)"] = function()
   local tmpdir = child.lua("return vim.fn.tempname()")
   -- create directory
   child.fn.mkdir(tmpdir)
@@ -103,19 +103,19 @@ T["Memory.make() with directory file (no parser)"] = function()
   child.fn.writefile({ "second file" }, f2)
   -- Monkey-patch helpers to capture processed data and chat
   child.lua([[
-    package.loaded['codecompanion.strategies.chat.memory.helpers'] = {
+    package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.__mem3_processed = processed
         _G.__mem3_chat = chat
       end
     }
     -- Minimal config to avoid nil in parsers module
-    package.loaded['codecompanion.config'] = { memory = { parsers = {} } }
+    package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
   child.lua(string.format(
     [[
-    local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({ name = "t3", files = { %q } }):make({ id = "c-3" })
+    local Rules = require("codecompanion.strategies.chat.rules.init")
+    Rules.init({ name = "t3", files = { %q } }):make({ id = "c-3" })
   ]],
     tmpdir
   ))
@@ -132,7 +132,7 @@ T["Memory.make() with directory file (no parser)"] = function()
   h.eq(chat.id, "c-3")
 end
 
-T["Memory.make() with glob pattern"] = function()
+T["Rules.make() with glob pattern"] = function()
   local tmpdir = child.lua("return vim.fn.tempname()")
   child.fn.mkdir(tmpdir)
   local f1 = tmpdir .. "/alpha.md"
@@ -141,21 +141,21 @@ T["Memory.make() with glob pattern"] = function()
   child.fn.writefile({ "beta" }, f2)
 
   child.lua([[
-    package.loaded['codecompanion.strategies.chat.memory.helpers'] = {
+    package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.__mem5_processed = processed
         _G.__mem5_chat = chat
       end
     }
-    package.loaded['codecompanion.config'] = { memory = { parsers = {} } }
+    package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
 
   -- Use a glob that matches both files in the directory
   local pattern = tmpdir .. "/*"
   child.lua(string.format(
     [[
-    local Memory = require("codecompanion.strategies.chat.memory.init")
-    Memory.init({ name = "t5", files = { %q } }):make({ id = "c-5" })
+    local Rules = require("codecompanion.strategies.chat.rules.init")
+    Rules.init({ name = "t5", files = { %q } }):make({ id = "c-5" })
   ]],
     pattern
   ))
@@ -173,9 +173,9 @@ T["Memory.make() with glob pattern"] = function()
   h.eq(chat.id, "c-5")
 end
 
-T["Memory.make() integration: memory is added to a real chat messages stack"] = function()
+T["Rules.make() integration: rules is added to a real chat messages stack"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
-  local content = "integration memory content"
+  local content = "integration rules content"
   child.fn.writefile({ content }, tmp)
 
   -- Use test helpers to setup the plugin (less brittle than directly mutating package.loaded)
@@ -188,8 +188,8 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
 
     local config = require("codecompanion.config")
 
-    -- Merge our memory settings into the existing test config to avoid overwriting unrelated defaults
-    config.memory = vim.tbl_deep_extend("force", config.memory or {}, {
+    -- Merge our rules settings into the existing test config to avoid overwriting unrelated defaults
+    config.rules = vim.tbl_deep_extend("force", config.rules or {}, {
       default = {
         description = "integration default",
         files = { %q },
@@ -199,14 +199,14 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
       opts = {
         chat = {
           enabled = true,
-          default_memory = "default",
+          default_rules = "default",
           condition = function() return true end,
         },
         show_defaults = true,
       },
     })
 
-    -- Create a chat via the public API (this should trigger the memory callback)
+    -- Create a chat via the public API (this should trigger the rules callback)
     _G.__int_chat = cc.chat()
     _G.__int_messages = _G.__int_chat and _G.__int_chat.messages or nil
   ]],
@@ -216,9 +216,9 @@ T["Memory.make() integration: memory is added to a real chat messages stack"] = 
   local messages = child.lua_get([[_G.__int_messages]])
   local last_message = messages[#messages]
 
-  h.eq(#messages, 2) -- System prompt + memory
-  h.eq(last_message._meta.tag, "memory")
-  h.eq(last_message.context.id, "<memory>" .. vim.fs.normalize(tmp) .. "</memory>")
+  h.eq(#messages, 2) -- System prompt + rules
+  h.eq(last_message._meta.tag, "rules")
+  h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
   h.eq(last_message.content, content .. "\n")
 end
 
@@ -237,7 +237,7 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
     h.setup_plugin()
 
     local chat_helpers = require("codecompanion.strategies.chat.helpers")
-    local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+    local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 
     -- Create a mock chat object
     local chat = {
@@ -253,7 +253,7 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
 
     -- Add the same file multiple times
     local files = { %q, %q, %q }
-    memory_helpers.add_files_or_buffers(files, chat)
+    rules_helpers.add_files_or_buffers(files, chat)
 
     _G.__dup_test_messages = chat.messages
   ]],
@@ -290,13 +290,13 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   h.eq(has_tmp2, true)
 end
 
-T["add_context() prevents duplicate memory context from being added"] = function()
+T["add_context() prevents duplicate rules context from being added"] = function()
   -- Setup the test environment
   child.lua([[
     local h = require("tests.helpers")
     h.setup_plugin()
 
-    local memory_helpers = require("codecompanion.strategies.chat.memory.helpers")
+    local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
     local chat_helpers = require("codecompanion.strategies.chat.helpers")
 
     -- Mock chat_helpers.has_context to track calls
@@ -327,7 +327,7 @@ T["add_context() prevents duplicate memory context from being added"] = function
     }
 
     -- Add context twice with the same file
-    memory_helpers.add_context(files, chat)
+    rules_helpers.add_context(files, chat)
 
     _G.__context_test_messages = chat.messages
     _G.__context_test_calls = has_context_calls

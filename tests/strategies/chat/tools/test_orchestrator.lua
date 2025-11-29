@@ -56,7 +56,7 @@ local function setup_with_tools_and_cancel_stub(n_tools)
             parameters = { type = "object", properties = {} },
           },
         },
-        opts = { requires_approval = true },
+        opts = { require_approval_before = true },
         output = {
           cancelled = function(self, tools, _)
             _G.cancelled = _G.cancelled or {}

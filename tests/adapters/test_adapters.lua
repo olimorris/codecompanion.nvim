@@ -264,17 +264,36 @@ T["Adapter"]["can update a model on the adapter"] = function()
   }, result)
 end
 
+T["Adapter"]["can update schema"] = function()
+  local adapter = require("codecompanion.adapters").extend("openai", {
+    schema = {
+      model = {
+        default = "my-new-adapter",
+        choices = {
+          "my-new-adapter",
+          "my-other-adapter",
+        },
+      },
+    },
+  })
+
+  h.eq("my-new-adapter", adapter.schema.model.default)
+  h.eq("my-new-adapter", adapter.schema.model.choices[1])
+end
+
 T["Adapter"]["can resolve custom adapters"] = function()
   local result = child.lua([[
     require("codecompanion").setup({
       adapters = {
-        openai = function()
-          return require("codecompanion.adapters").extend("openai", {
-            env = {
-              api_key = "abc_123"
-            }
-          })
-        end,
+        http = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai", {
+              env = {
+                api_key = "abc_123"
+              }
+            })
+          end,
+        }
       },
       strategies = {
         chat = {

@@ -585,7 +585,8 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(self)
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
@@ -613,7 +614,8 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(self)
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()

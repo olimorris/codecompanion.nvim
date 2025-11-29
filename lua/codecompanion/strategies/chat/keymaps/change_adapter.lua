@@ -24,14 +24,8 @@ end
 ---@param current_adapter string The currently selected adapter
 ---@return table List of adapter names with current adapter first
 function M.get_adapters_list(current_adapter)
-  --TODO: Remove `config.adapters` in V18.0.0
-  local adapters = vim.tbl_deep_extend(
-    "force",
-    {},
-    vim.deepcopy(config.adapters.acp),
-    vim.deepcopy(config.adapters.http),
-    vim.deepcopy(config.adapters)
-  )
+  local adapters =
+    vim.tbl_deep_extend("force", {}, vim.deepcopy(config.adapters.acp), vim.deepcopy(config.adapters.http))
 
   local adapters_list = vim
     .iter(adapters)

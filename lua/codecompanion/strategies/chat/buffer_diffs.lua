@@ -1,7 +1,6 @@
 --[[
-Watchers track changes in Neovim buffers by comparing buffer content over time. It maintains
-a state for each watched buffer, recording the current content and last sent content. When
-checked, it compares states to detect line additions, deletions, and modifications.
+  Syncs buffer changes by tracking diffs between buffer states.
+  Detects line additions, deletions, and modifications.
 ]]
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -10,30 +9,41 @@ local api = vim.api
 local fmt = string.format
 local diff = vim.text.diff or vim.diff
 
----@class CodeCompanion.Watchers
-local Watchers = {}
+---@class CodeCompanion.BufferDiffs
+---@field buffers table<number, CodeCompanion.BufferDiffs.State> Map of buffer numbers to their states
+---@field augroup integer The autocmd group ID
+---@field sync fun(self: CodeCompanion.BufferDiffs, bufnr: number): nil Start syncing a buffer
+---@field unsync fun(self: CodeCompanion.BufferDiffs, bufnr: number): nil Stop syncing a buffer
+---@field get_changes fun(self: CodeCompanion.BufferDiffs, bufnr: number): boolean, table
 
-function Watchers.new()
+---@class CodeCompanion.BufferDiffs.State
+---@field content string[] Complete buffer content
+---@field changedtick number Last known changedtick
+---@field last_sent string[] Last content sent to LLM
+
+---@class CodeCompanion.BufferDiffs
+local BufferDiffs = {}
+
+function BufferDiffs.new()
   return setmetatable({
     buffers = {},
-    augroup = api.nvim_create_augroup("codecompanion.watchers", { clear = true }),
-  }, { __index = Watchers })
+    augroup = api.nvim_create_augroup("codecompanion.buffer_diffs", { clear = true }),
+  }, { __index = BufferDiffs })
 end
 
----Watch a buffer for changes
+---Sync with a buffer to watch for changes
 ---@param bufnr number
 ---@return nil
-function Watchers:watch(bufnr)
+function BufferDiffs:sync(bufnr)
   if self.buffers[bufnr] then
     return
   end
 
   if not api.nvim_buf_is_valid(bufnr) then
-    log:debug("Cannot watch invalid buffer: %d", bufnr)
-    return
+    return log:debug("Cannot sync invalid buffer: %d", bufnr)
   end
 
-  log:debug("Starting to watch buffer: %d", bufnr)
+  log:debug("Starting to sync buffer: %d", bufnr)
   local initial_content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
   self.buffers[bufnr] = {
@@ -46,17 +56,17 @@ function Watchers:watch(bufnr)
     group = self.augroup,
     buffer = bufnr,
     callback = function()
-      self:unwatch(bufnr)
+      self:unsync(bufnr)
     end,
   })
 end
 
----Stop watching a buffer
+---Stop syncing a buffer
 ---@param bufnr number
 ---@return nil
-function Watchers:unwatch(bufnr)
+function BufferDiffs:unsync(bufnr)
   if self.buffers[bufnr] then
-    log:debug("Unwatching buffer %d", bufnr)
+    log:debug("Unsyncing buffer %d", bufnr)
     self.buffers[bufnr] = nil
   end
 end
@@ -77,16 +87,16 @@ local function has_changes(old_content, new_content)
   return false
 end
 
----Get any changes in a watched buffer
+---Get any changes in a synced buffer
 ---@param bufnr number
 ---@return boolean, table|nil
-function Watchers:get_changes(bufnr)
+function BufferDiffs:get_changes(bufnr)
   if not self.buffers[bufnr] then
     return false, nil
   end
   if not api.nvim_buf_is_valid(bufnr) then
     -- special case for unlisted buffers
-    self:unwatch(bufnr)
+    self:unsync(bufnr)
     return true, nil
   end
 
@@ -133,11 +143,11 @@ local function format_changes_as_diff(old_content, new_content)
   return ""
 end
 
----Check all watched buffers for changes
+---Check all synced buffers for changes
 ---@param chat CodeCompanion.Chat
-function Watchers:check_for_changes(chat)
+function BufferDiffs:check_for_changes(chat)
   for _, item in ipairs(chat.context_items) do
-    if item.bufnr and item.opts and item.opts.watched then
+    if item.bufnr and item.opts and item.opts.sync_diff then
       local has_changed, old_content = self:get_changes(item.bufnr)
 
       if has_changed and old_content then
@@ -167,4 +177,4 @@ function Watchers:check_for_changes(chat)
   end
 end
 
-return Watchers
+return BufferDiffs

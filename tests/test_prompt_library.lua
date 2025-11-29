@@ -54,49 +54,6 @@ T["Prompt Library"]["can specify separate adapter and model"] = function()
   h.eq("gpt-4.1", adapter.model)
 end
 
---TODO: Remove this test in v18.0.0
-T["Prompt Library"]["can add references"] = function()
-  local refs = child.lua([[
-    codecompanion.setup({
-      prompt_library = {
-        ["Test References"] = {
-          strategy = "chat",
-          description = "Add some references",
-          opts = {
-            index = 1,
-            is_default = true,
-            is_slash_cmd = false,
-            short_name = "test_context",
-            auto_submit = false,
-          },
-          references = {
-            {
-              type = "file",
-              path = {
-                "lua/codecompanion/health.lua",
-                "lua/codecompanion/http.lua",
-              },
-            },
-          },
-          prompts = {
-            {
-              role = "foo",
-              content = "I need some references",
-            },
-          },
-        },
-      }
-    })
-    codecompanion.prompt("test_context")
-    local chat = codecompanion.last_chat()
-    return chat.context_items
-  ]])
-
-  h.eq(2, #refs)
-  h.expect_match(refs[1].id, "^<file>lua[\\/]codecompanion[\\/]health.lua</file>$")
-  h.expect_match(refs[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
-end
-
 T["Prompt Library"]["can add context"] = function()
   local items = child.lua([[
     codecompanion.setup({
@@ -183,11 +140,11 @@ T["Prompt Library"]["can add context"] = function()
   h.expect_match(items[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
 end
 
--- New: ensure default_memory adds a memory context item
-T["Prompt Library"]["can add memory"] = function()
+-- New: ensure default_rules adds a rules context item
+T["Prompt Library"]["can add rules"] = function()
   local mem_items = child.lua([[
       codecompanion.setup({
-        memory = {
+        rules = {
           default = {
             files = {
               "tests/stubs/file.txt"
@@ -202,7 +159,7 @@ T["Prompt Library"]["can add memory"] = function()
               index = 4,
               short_name = "test_prompt",
               ignore_system_prompt = true,
-              default_memory = "default",
+              default_rules = "default",
             },
             prompts = {
               {
@@ -219,7 +176,7 @@ T["Prompt Library"]["can add memory"] = function()
     ]])
 
   h.eq(1, #mem_items)
-  h.eq("<memory>tests/stubs/file.txt</memory>", mem_items[1].id)
+  h.eq("<rules>tests/stubs/file.txt</rules>", mem_items[1].id)
 end
 
 -- New: ensure ignore_system_prompt prevents adding the configured default system prompt
