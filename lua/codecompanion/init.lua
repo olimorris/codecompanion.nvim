@@ -148,7 +148,7 @@ CodeCompanion.chat = function(args)
   if args.params and args.params.adapter then
     local adapter_name = args.params.adapter
     adapter = config.adapters[adapter_name] or config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
-    adapter = vim.deepcopy(require("codecompanion.adapters").resolve(adapter))
+    adapter = require("codecompanion.adapters").resolve(adapter)
     if args.params.model then
       adapter.schema.model.default = args.params.model
     end
