@@ -59,7 +59,7 @@ function Actions.items(context)
     local md_loader = require("codecompanion.actions.md_loader")
     if config.display.action_palette.opts.show_default_prompt_library then
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
-      local builtin_prompts = md_loader.load_directory(vim.fs.joinpath(current_dir, "builtins"), context)
+      local builtin_prompts = md_loader.load_dir(vim.fs.joinpath(current_dir, "builtins"), context)
       for _, prompt in ipairs(builtin_prompts) do
         table.insert(_cached_actions, prompt)
       end
@@ -68,7 +68,7 @@ function Actions.items(context)
     -- Load user directories
     if config.prompt_library.opts and config.prompt_library.opts.directories then
       for _, dir in ipairs(config.prompt_library.opts.directories) do
-        local user_prompts = md_loader.load_directory(vim.fn.expand(dir), context)
+        local user_prompts = md_loader.load_dir(vim.fn.expand(dir), context)
         for _, prompt in ipairs(user_prompts) do
           table.insert(_cached_actions, prompt)
         end
