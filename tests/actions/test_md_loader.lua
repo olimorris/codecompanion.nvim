@@ -51,7 +51,6 @@ T["MD Loader"]["parse_frontmatter extracts yaml"] = function()
 
   local result = child.lua(
     [[
-      require("tests.log")
       return md_loader.parse_frontmatter(...)
   ]],
     { frontmatter }
@@ -70,6 +69,41 @@ T["MD Loader"]["parse_frontmatter extracts yaml"] = function()
     },
     strategy = "chat",
   }, result, "Frontmatter should be parsed correctly")
+end
+
+T["MD Loader"]["parse_prompt extracts system and user prompts"] = function()
+  local markdown = [[## system
+
+You are a helpful assistant.
+
+## user
+
+Explain the following code:
+
+```python
+def hello_world():
+    print("Hello, world!")
+```
+]]
+
+  local result = child.lua(
+    [[
+      require("tests.log")
+      return md_loader.parse_prompt(...)
+  ]],
+    { markdown }
+  )
+
+  h.eq({
+    {
+      content = "You are a helpful assistant.",
+      role = "system",
+    },
+    {
+      content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
+      role = "user",
+    },
+  }, result, "Prompts should be parsed correctly")
 end
 
 return T
