@@ -162,3 +162,20 @@
 ---@field validate table Validate an item
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
+
+---@class CodeCompanion.BufferContext
+---@field bufnr number The buffer number
+---@field buftype string The buffer type
+---@field cursor_pos number[] The cursor position as [line, col]
+---@field end_col number The end column of the selection
+---@field end_line number The end line of the selection
+---@field filetype string The filetype of the buffer
+---@field filename string The name of the file
+---@field is_visual boolean Whether the selection is visual
+---@field is_normal boolean Whether the selection is normal
+---@field lines string[] The lines in the buffer
+---@field line_count number The number of lines in the buffer
+---@field mode string The current mode
+---@field start_line number The start line of the selection
+---@field start_col number The start column of the selection
+---@field winnr number The window number

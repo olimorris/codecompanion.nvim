@@ -89,6 +89,13 @@ local function decode(source, node)
       end
     end
     return ret
+  elseif nt == "block_sequence_item" then
+    for child in node:iter_children() do
+      if child:named() then
+        return decode(source, child)
+      end
+    end
+    return nil
   elseif nt == "string_scalar" then
     return vim.treesitter.get_node_text(node, source)
   elseif nt == "single_quote_scalar" or nt == "double_quote_scalar" then

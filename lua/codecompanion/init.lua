@@ -55,12 +55,10 @@ end
 ---@param args table The arguments that were passed to the command
 ---@return nil
 CodeCompanion.prompt_library = function(prompt, args)
-  log:trace("Running inline prompt")
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   -- A user may add a further prompt
   if prompt.opts and prompt.opts.user_prompt and args.user_prompt then
-    log:trace("Adding custom user prompt")
     prompt.opts.user_prompt = args.user_prompt
   end
 
