@@ -359,10 +359,11 @@ end
 CodeCompanion.setup = function(opts)
   opts = opts or {}
 
-  if not opts.ignore_warnings then
+  if not opts.ignore_warnings and os.getenv("CODECOMPANION_SKIP_BREAKING_CHANGES_WARN") ~= "1" then
     vim.notify_once(
-      [[[WARN] CodeCompanion.nvim will experience breaking changes soon. Pin to version v17.33.0 or earlier to avoid this.
-See: https://github.com/olimorris/codecompanion.nvim/pull/2439]],
+      [[[WARN] CodeCompanion.nvim will experience breaking changes soon. Pin to version v17.33.0 or earlier to avoid this,
+      or set an environment variable CODECOMPANION_SKIP_BREAKING_CHANGES_WARN=1.
+      See: https://github.com/olimorris/codecompanion.nvim/pull/2439]],
       vim.log.levels.WARN,
       {
         title = "CodeCompanion",
