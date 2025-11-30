@@ -10,7 +10,6 @@ local _prompts = {}
 function M.resolve(context, config)
   local sort_index = true
 
-  --TODO: Replace with vim.iter()
   for name, prompt in pairs(config.prompt_library) do
     if
       not config.display.action_palette.opts.show_default_prompt_library and (prompt.opts and prompt.opts.is_default)

@@ -33,7 +33,7 @@ return function(file)
   local root = tree:root()
 
   local query = vim.treesitter.query.get("markdown", "chat")
-  local get_text = vim.treesitter.get_node_text
+  local get_text = vim.treesitter.get_node_text --[[@as function]]
 
   -- Track seen files and processed sections
   local seen = {}

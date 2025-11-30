@@ -36,20 +36,42 @@ function Actions.validate(items, context)
 end
 
 ---Resolve the actions to display in the menu
----@param context table The buffer context
+---@param context CodeCompanion.BufferContext
 ---@return table
 function Actions.items(context)
   if not next(_cached_actions) then
+    -- Add static actions
     if config.display.action_palette.opts.show_default_actions then
       for _, action in ipairs(static_actions) do
         table.insert(_cached_actions, action)
       end
     end
 
+    -- Add lua prompts from the prompt library
     if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
       for _, prompt in ipairs(prompts) do
         table.insert(_cached_actions, prompt)
+      end
+    end
+
+    -- Add Markdown prompts from files
+    local md_loader = require("codecompanion.actions.md_loader")
+    if config.display.action_palette.opts.show_default_prompt_library then
+      local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
+      local builtin_prompts = md_loader.load_directory(vim.fs.joinpath(current_dir, "builtins"), context)
+      for _, prompt in ipairs(builtin_prompts) do
+        table.insert(_cached_actions, prompt)
+      end
+    end
+
+    -- Load user directories
+    if config.prompt_library.opts and config.prompt_library.opts.directories then
+      for _, dir in ipairs(config.prompt_library.opts.directories) do
+        local user_prompts = md_loader.load_directory(vim.fn.expand(dir), context)
+        for _, prompt in ipairs(user_prompts) do
+          table.insert(_cached_actions, prompt)
+        end
       end
     end
   end
@@ -59,7 +81,7 @@ end
 
 ---Resolve the selected item into a strategy
 ---@param item table
----@param context table
+---@param context CodeCompanion.BufferContext
 ---@return CodeCompanion.Strategies
 function Actions.resolve(item, context)
   return Strategy.new({
@@ -69,7 +91,7 @@ function Actions.resolve(item, context)
 end
 
 ---Launch the action palette
----@param context table The buffer context
+---@param context CodeCompanion.BufferContext
 ---@param args? { provider: {name: string, opts: table } } The provider to use
 ---@return nil
 function Actions.launch(context, args)
