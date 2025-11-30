@@ -84,6 +84,10 @@ Explain the following code:
 def hello_world():
     print("Hello, world!")
 ```
+
+## user
+
+Here is another user prompt.
 ]]
 
   local result = child.lua(
@@ -96,14 +100,43 @@ def hello_world():
 
   h.eq({
     {
-      content = "You are a helpful assistant.",
-      role = "system",
+      {
+        content = "You are a helpful assistant.",
+        role = "system",
+      },
+      {
+        content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
+        role = "user",
+      },
     },
     {
-      content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
-      role = "user",
+      {
+        content = "Here is another user prompt.",
+        role = "user",
+      },
     },
   }, result, "Prompts should be parsed correctly")
+end
+
+T["MD Loader"]["parse_prompt ignores incorrect roles"] = function()
+  local markdown = [[## foo
+
+You are a helpful assistant.
+
+## bar
+
+No I'm not.
+]]
+
+  local result = child.lua(
+    [[
+      require("tests.log")
+      return md_loader.parse_prompt(...)
+  ]],
+    { markdown }
+  )
+
+  h.eq(vim.NIL, result, "No prompts should be parsed for incorrect roles")
 end
 
 return T

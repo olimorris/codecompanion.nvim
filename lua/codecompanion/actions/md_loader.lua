@@ -5,6 +5,11 @@ local yaml = require("codecompanion.utils.yaml")
 
 local M = {}
 
+local allowed_roles = {
+  config.constants.SYSTEM_ROLE,
+  config.constants.USER_ROLE,
+}
+
 ---Load all markdown prompts from a directory
 ---@param dir string
 ---@param context CodeCompanion.BufferContext
@@ -42,9 +47,6 @@ function M.load_dir(dir, context)
       if ok and prompt then
         prompt.name = prompt.name or vim.fn.fnamemodify(path, ":t:r")
         table.insert(prompts, prompt)
-        log:trace("Loaded markdown prompt: %s from %s", prompt.name, path)
-      else
-        -- log:warn("Failed to parse markdown prompt: %s. Error: %s", path, prompt)
       end
     end
   end
@@ -163,7 +165,7 @@ function M.parse_prompt(content)
   local current_role = nil
   local current_content = {}
 
-  local function save_prompt()
+  local function store_prompt()
     if current_role and #current_content > 0 then
       local prompt_content = vim.trim(table.concat(current_content, "\n"))
       if prompt_content ~= "" then
@@ -179,17 +181,34 @@ function M.parse_prompt(content)
     local capture_name = query.captures[capture_id]
 
     if capture_name == "role" then
-      save_prompt()
+      store_prompt()
       current_role = vim.trim(get_node_text(node, content):lower())
       current_content = {}
-    elseif capture_name == "content" and current_role then
+    elseif capture_name == "content" and current_role and vim.tbl_contains(allowed_roles, current_role) then
       table.insert(current_content, get_node_text(node, content))
     end
   end
 
-  save_prompt()
+  store_prompt()
 
-  return prompts
+  -- Group prompts accordingly
+  local seen_roles = {}
+  local grouped_prompts = { {} }
+
+  for _, prompt in ipairs(prompts) do
+    if seen_roles[prompt.role] then
+      table.insert(grouped_prompts, {})
+      seen_roles = {}
+    end
+    table.insert(grouped_prompts[#grouped_prompts], prompt)
+    seen_roles[prompt.role] = true
+  end
+
+  if vim.tbl_count(grouped_prompts[1]) == 0 then
+    return nil
+  end
+
+  return grouped_prompts
 end
 
 return M
