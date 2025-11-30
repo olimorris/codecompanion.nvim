@@ -79,7 +79,7 @@ CodeCompanion.prompt = function(name, args)
   local prompt = vim
     .iter(config.prompt_library)
     :filter(function(_, v)
-      return v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
+      return v.opts and v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
     end)
     :map(function(_, v)
       return v

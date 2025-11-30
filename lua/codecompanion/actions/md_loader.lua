@@ -23,6 +23,7 @@ function M.load_dir(dir, context)
   if not file_utils.is_dir(dir) then
     -- ...then the relative path
     dir = vim.fs.joinpath(vim.fn.getcwd(), dir)
+    print(vim.inspect(dir))
     log:trace("Directory does not exist or is not a directory: %s", dir)
     return prompts
   end
@@ -66,8 +67,8 @@ function M.parse_file(path, context)
 
   -- Parse the frontmatter
   local frontmatter = M.parse_frontmatter(content)
-  if not frontmatter or not frontmatter.strategy then
-    log:debug("[actions::md_loader] Missing frontmatter or strategy in: %s", path)
+  if not frontmatter or not frontmatter.strategy or not frontmatter.name then
+    log:debug("[actions::md_loader] Missing frontmatter, name or strategy in: %s", path)
     return nil
   end
 
@@ -81,6 +82,7 @@ function M.parse_file(path, context)
     context = frontmatter.context,
     condition = frontmatter.condition,
     picker = frontmatter.picker,
+    name = frontmatter.name,
     name_f = frontmatter.name_f,
   }
 end

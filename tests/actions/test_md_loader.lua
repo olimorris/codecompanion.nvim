@@ -24,17 +24,9 @@ T = new_set({
 
 T["MD Loader"] = new_set()
 
--- T["MD Loader"]["load_dir loads all md files in a directory"] = function()
---   local result = child.lua([[
---     require("tests.log")
---     return md_loader.load_dir("tests/actions/stubs/", context)
---   ]])
---
---   h.eq(result, 2, "Should load two markdown prompts")
--- end
-
 T["MD Loader"]["parse_frontmatter extracts yaml"] = function()
   local frontmatter = [[---
+    name: Explain
     strategy: chat
     description: Explain how code in a buffer works
     opts:
@@ -58,6 +50,7 @@ T["MD Loader"]["parse_frontmatter extracts yaml"] = function()
 
   h.eq({
     description = "Explain how code in a buffer works",
+    name = "Explain",
     opts = {
       auto_submit = true,
       is_default = true,
@@ -137,6 +130,50 @@ No I'm not.
   )
 
   h.eq(vim.NIL, result, "No prompts should be parsed for incorrect roles")
+end
+
+T["MD Loader"]["load_dir loads all md files in a directory"] = function()
+  local result = child.lua([[
+    require("tests.log")
+    return md_loader.load_dir("tests/actions/stubs/", context)
+  ]])
+
+  local expected = {
+    {
+      description = "Explain how code in a buffer works",
+      name = "Test Prompt",
+      opts = {
+        auto_submit = true,
+        is_default = true,
+        is_slash_cmd = true,
+        modes = { "v" },
+        short_name = "explain",
+        stop_context_insertion = true,
+        user_prompt = false,
+      },
+      prompts = {
+        {
+          {
+            content = "You are a helpful assistant.",
+            role = "system",
+          },
+          {
+            content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
+            role = "user",
+          },
+        },
+        {
+          {
+            content = "Here is another user prompt.",
+            role = "user",
+          },
+        },
+      },
+      strategy = "chat",
+    },
+  }
+
+  h.eq(expected, result, "Should load prompts from markdown files in directory")
 end
 
 return T

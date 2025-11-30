@@ -66,9 +66,9 @@ function Actions.items(context)
     end
 
     -- Load user directories
-    if config.prompt_library.opts and config.prompt_library.opts.directories then
-      for _, dir in ipairs(config.prompt_library.opts.directories) do
-        local user_prompts = md_loader.load_dir(vim.fn.expand(dir), context)
+    if config.prompt_library.opts and config.prompt_library.opts.dirs then
+      for _, dir in ipairs(config.prompt_library.opts.dirs) do
+        local user_prompts = md_loader.load_dir(dir, context)
         for _, prompt in ipairs(user_prompts) do
           table.insert(_cached_actions, prompt)
         end
