@@ -65,6 +65,39 @@ T["Keymaps"]["change_adapter"]["get_models_list returns correct list with object
   h.expect_truthy(result.has_formatted_name)
 end
 
+T["Keymaps"]["change_adapter"]["get_models_list returns correct list with string models"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    config.adapters.http.opts.show_model_choices = true
+
+    local mock_adapter = {
+      schema = {
+        model = {
+          default = "gpt-4",
+          choices = {
+            "mistral-large-latest",
+            "pixtral-large-latest",
+            "gpt-4",
+            "gpt-3.5-turbo",
+          }
+        }
+      }
+    }
+
+    local list = change_adapter.get_models_list(mock_adapter)
+    if not list then return nil end
+
+    local names = {}
+    for _, model in ipairs(list) do
+      table.insert(names, model)
+    end
+    return { first_id = names[1], count = #names }
+  ]])
+
+  h.eq(result.first_id, "gpt-4")
+  h.eq(result.count, 4)
+end
+
 T["Keymaps"]["change_adapter"]["get_commands_list returns correct list"] = function()
   local list = child.lua([[
     h.setup_plugin()

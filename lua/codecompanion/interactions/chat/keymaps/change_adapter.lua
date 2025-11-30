@@ -92,6 +92,10 @@ function M.get_models_list(adapter)
   local models_list = vim
     .iter(models)
     :map(function(key, value)
+      if type(key) == "string" and value == nil then
+        -- `models` is already a list
+        return key
+      end
       if type(value) == "table" and not value.id then
         value.id = key
       end
