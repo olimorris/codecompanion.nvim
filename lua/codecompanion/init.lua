@@ -158,7 +158,7 @@ CodeCompanion.chat = function(args)
     elseif args.subcommand == "toggle" then
       return CodeCompanion.toggle(args)
     elseif args.subcommand == "refreshcache" then
-      return CodeCompanion.refresh_cache()
+      return CodeCompanion.chat_refresh_cache()
     end
   end
 
@@ -190,6 +190,14 @@ CodeCompanion.chat = function(args)
     messages = has_messages and messages or nil,
     window_opts = args and args.window_opts,
   })
+end
+
+---Refresh any of the caches used by the plugin
+---@return nil
+CodeCompanion.chat_refresh_cache = function()
+  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
+  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
+  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Create a cmd
@@ -302,14 +310,6 @@ end
 CodeCompanion.actions = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   return require("codecompanion.actions").launch(context, args)
-end
-
----Refresh any of the caches used by the plugin
----@return nil
-CodeCompanion.refresh_cache = function()
-  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
-  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
-  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Check if a feature is available in the plugin's current version

@@ -837,13 +837,8 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       },
     },
     -- Users can define prompt library items in markdown
-    opts = {
-      markdown_prompts = {
-        dirs = {
-          absolute = {},
-          relative = {},
-        },
-      },
+    markdown = {
+      dirs = {},
     },
   },
   -- RULES -------------------------------------------------------------------

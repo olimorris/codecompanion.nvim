@@ -51,13 +51,14 @@ function Actions.items(context)
     if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
       for _, prompt in ipairs(prompts) do
-        if prompt.name ~= "opts" then
+        -- Exclusions....
+        if prompt.name ~= "markdown" then
           table.insert(_cached_actions, prompt)
         end
       end
     end
 
-    -- Add Markdown prompts from files
+    -- Add builtin markdown prompts
     local markdown = require("codecompanion.actions.markdown")
     if config.display.action_palette.opts.show_default_prompt_library then
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
@@ -68,26 +69,14 @@ function Actions.items(context)
     end
 
     -- Add user markdown prompts
-    if config.prompt_library.opts.markdown_prompts and config.prompt_library.opts.markdown_prompts.dirs then
-      -- Relative paths
-      if config.prompt_library.opts.markdown_prompts.dirs.relative then
-        local cwd = vim.fn.getcwd()
-        for _, dir in ipairs(config.prompt_library.opts.markdown_prompts.dirs.relative) do
-          dir = vim.fs.joinpath(cwd, dir)
-          local user_prompts = markdown.load_from_dir(dir, context)
-          for _, prompt in ipairs(user_prompts) do
-            table.insert(_cached_actions, prompt)
-          end
+    if config.prompt_library.markdown and config.prompt_library.markdown.dirs then
+      for _, dir in ipairs(config.prompt_library.markdown.dirs) do
+        if type(dir) == "function" then
+          dir = dir(context)
         end
-      end
-
-      -- Absolute paths
-      if config.prompt_library.opts.markdown_prompts.dirs.absolute then
-        for _, dir in ipairs(config.prompt_library.opts.markdown_prompts.dirs.absolute) do
-          local user_prompts = markdown.load_from_dir(dir, context)
-          for _, prompt in ipairs(user_prompts) do
-            table.insert(_cached_actions, prompt)
-          end
+        local user_prompts = markdown.load_from_dir(dir, context)
+        for _, prompt in ipairs(user_prompts) do
+          table.insert(_cached_actions, prompt)
         end
       end
     end
@@ -138,7 +127,7 @@ end
 
 ---Clear the cached actions so they are reloaded next time
 ---@return nil
-function Actions.clear_cache()
+function Actions.refresh_cache()
   _cached_actions = {}
 end
 
