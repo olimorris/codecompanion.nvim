@@ -148,6 +148,7 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
         stop_context_insertion = true,
         user_prompt = false,
       },
+      path = "tests/actions/stubs/test_prompt.md",
       prompts = {
         {
           content = "You are a helpful assistant.",

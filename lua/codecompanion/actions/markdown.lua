@@ -81,7 +81,6 @@ function M.parse_file(path, context)
     name = frontmatter.name,
     opts = frontmatter.opts or {},
     path = path,
-    path_absolute = vim.fn.fnamemodify(path, ":p"),
     prompts = prompts,
     sidecar = sidecar,
     strategy = frontmatter.strategy,
