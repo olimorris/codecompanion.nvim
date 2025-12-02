@@ -10,7 +10,7 @@ T = new_set({
       child.lua([[
         h = require('tests.helpers')
         codecompanion = h.setup_plugin()
-        md_loader = require('codecompanion.actions.md_loader')
+        markdown = require('codecompanion.actions.markdown')
         context = {
           filetype = "markdown",
           bufnr = vim.api.nvim_create_buf(false, true),
@@ -22,37 +22,41 @@ T = new_set({
   },
 })
 
-T["MD Loader"] = new_set()
+T["Markdown"] = new_set()
 
-T["MD Loader"]["parse_frontmatter extracts yaml"] = function()
+T["Markdown"]["parse_frontmatter extracts yaml"] = function()
   local frontmatter = [[---
-    name: Explain
-    strategy: chat
-    description: Explain how code in a buffer works
-    opts:
-      auto_submit: true
-      is_default: true
-      is_slash_cmd: true
-      modes:
-        - v
-      short_name: explain
-      stop_context_insertion: true
-      user_prompt: false
-    ---
+name: Explain
+strategy: chat
+description: Explain how code in a buffer works
+opts:
+  auto_submit: true
+  is_default: true
+  is_slash_cmd: true
+  adapter:
+    name: copilot
+    model: gpt-4.1
+  modes:
+    - v
+  short_name: explain
+  stop_context_insertion: true
+  user_prompt: false
+---
   ]]
 
   local result = child.lua(
     [[
-      return md_loader.parse_frontmatter(...)
+      return markdown.parse_frontmatter(...)
   ]],
     { frontmatter }
   )
 
-  h.eq({
+  h.eq(result, {
     description = "Explain how code in a buffer works",
     name = "Explain",
     opts = {
       auto_submit = true,
+      adapter = { name = "copilot", model = "gpt-4.1" },
       is_default = true,
       is_slash_cmd = true,
       modes = { "v" },
@@ -61,10 +65,10 @@ T["MD Loader"]["parse_frontmatter extracts yaml"] = function()
       user_prompt = false,
     },
     strategy = "chat",
-  }, result, "Frontmatter should be parsed correctly")
+  }, "Frontmatter should be parsed correctly")
 end
 
-T["MD Loader"]["parse_prompt extracts system and user prompts"] = function()
+T["Markdown"]["parse_prompt extracts system and user prompts"] = function()
   local markdown = [[## system
 
 You are a helpful assistant.
@@ -85,33 +89,28 @@ Here is another user prompt.
 
   local result = child.lua(
     [[
-      require("tests.log")
-      return md_loader.parse_prompt(...)
+      return markdown.parse_prompt(...)
   ]],
     { markdown }
   )
 
-  h.eq({
+  h.eq(result, {
     {
-      {
-        content = "You are a helpful assistant.",
-        role = "system",
-      },
-      {
-        content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
-        role = "user",
-      },
+      content = "You are a helpful assistant.",
+      role = "system",
     },
     {
-      {
-        content = "Here is another user prompt.",
-        role = "user",
-      },
+      content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
+      role = "user",
     },
-  }, result, "Prompts should be parsed correctly")
+    {
+      content = "Here is another user prompt.",
+      role = "user",
+    },
+  }, "Prompts should be parsed correctly")
 end
 
-T["MD Loader"]["parse_prompt ignores incorrect roles"] = function()
+T["Markdown"]["parse_prompt ignores incorrect roles"] = function()
   local markdown = [[## foo
 
 You are a helpful assistant.
@@ -123,8 +122,7 @@ No I'm not.
 
   local result = child.lua(
     [[
-      require("tests.log")
-      return md_loader.parse_prompt(...)
+      return markdown.parse_prompt(...)
   ]],
     { markdown }
   )
@@ -132,10 +130,9 @@ No I'm not.
   h.eq(vim.NIL, result, "No prompts should be parsed for incorrect roles")
 end
 
-T["MD Loader"]["load_dir loads all md files in a directory"] = function()
+T["Markdown"]["load_from_dir loads all markdown files in a directory"] = function()
   local result = child.lua([[
-    require("tests.log")
-    return md_loader.load_dir("tests/actions/stubs/", context)
+    return markdown.load_from_dir("tests/actions/stubs/", context)
   ]])
 
   local expected = {
@@ -153,20 +150,16 @@ T["MD Loader"]["load_dir loads all md files in a directory"] = function()
       },
       prompts = {
         {
-          {
-            content = "You are a helpful assistant.",
-            role = "system",
-          },
-          {
-            content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
-            role = "user",
-          },
+          content = "You are a helpful assistant.",
+          role = "system",
         },
         {
-          {
-            content = "Here is another user prompt.",
-            role = "user",
-          },
+          content = 'Explain the following code:\n\n```python\ndef hello_world():\n    print("Hello, world!")\n```',
+          role = "user",
+        },
+        {
+          content = "Here is another user prompt.",
+          role = "user",
         },
       },
       strategy = "chat",

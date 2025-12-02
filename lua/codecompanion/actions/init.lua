@@ -1,8 +1,5 @@
-local Strategy = require("codecompanion.strategies")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local prompt_library = require("codecompanion.actions.prompt_library")
-local static_actions = require("codecompanion.actions.static")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.Actions
@@ -39,6 +36,9 @@ end
 ---@param context CodeCompanion.BufferContext
 ---@return table
 function Actions.items(context)
+  local prompt_library = require("codecompanion.actions.prompt_library")
+  local static_actions = require("codecompanion.actions.static")
+
   if not next(_cached_actions) then
     -- Add static actions
     if config.display.action_palette.opts.show_default_actions then
@@ -51,26 +51,43 @@ function Actions.items(context)
     if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
       for _, prompt in ipairs(prompts) do
-        table.insert(_cached_actions, prompt)
+        if prompt.name ~= "opts" then
+          table.insert(_cached_actions, prompt)
+        end
       end
     end
 
     -- Add Markdown prompts from files
-    local md_loader = require("codecompanion.actions.md_loader")
+    local markdown = require("codecompanion.actions.markdown")
     if config.display.action_palette.opts.show_default_prompt_library then
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
-      local builtin_prompts = md_loader.load_dir(vim.fs.joinpath(current_dir, "builtins"), context)
+      local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
       for _, prompt in ipairs(builtin_prompts) do
         table.insert(_cached_actions, prompt)
       end
     end
 
-    -- Load user directories
-    if config.prompt_library.opts and config.prompt_library.opts.dirs then
-      for _, dir in ipairs(config.prompt_library.opts.dirs) do
-        local user_prompts = md_loader.load_dir(dir, context)
-        for _, prompt in ipairs(user_prompts) do
-          table.insert(_cached_actions, prompt)
+    -- Add user markdown prompts
+    if config.prompt_library.opts.markdown_prompts and config.prompt_library.opts.markdown_prompts.dirs then
+      -- Relative paths
+      if config.prompt_library.opts.markdown_prompts.dirs.relative then
+        local cwd = vim.fn.getcwd()
+        for _, dir in ipairs(config.prompt_library.opts.markdown_prompts.dirs.relative) do
+          dir = vim.fs.joinpath(cwd, dir)
+          local user_prompts = markdown.load_from_dir(dir, context)
+          for _, prompt in ipairs(user_prompts) do
+            table.insert(_cached_actions, prompt)
+          end
+        end
+      end
+
+      -- Absolute paths
+      if config.prompt_library.opts.markdown_prompts.dirs.absolute then
+        for _, dir in ipairs(config.prompt_library.opts.markdown_prompts.dirs.absolute) do
+          local user_prompts = markdown.load_from_dir(dir, context)
+          for _, prompt in ipairs(user_prompts) do
+            table.insert(_cached_actions, prompt)
+          end
         end
       end
     end
@@ -84,10 +101,15 @@ end
 ---@param context CodeCompanion.BufferContext
 ---@return CodeCompanion.Strategies
 function Actions.resolve(item, context)
-  return Strategy.new({
-    buffer_context = context,
-    selected = item,
-  }):start(item.strategy)
+  item = vim.deepcopy(item)
+  item = require("codecompanion.actions.markdown").resolve_placeholders(item, context)
+
+  return require("codecompanion.strategies")
+    .new({
+      buffer_context = context,
+      selected = item,
+    })
+    :start(item.strategy)
 end
 
 ---Launch the action palette
@@ -112,6 +134,12 @@ function Actions.launch(context, args)
   return require("codecompanion.providers.actions." .. provider)
     .new({ context = context, validate = Actions.validate, resolve = Actions.resolve })
     :picker(items, provider_opts)
+end
+
+---Clear the cached actions so they are reloaded next time
+---@return nil
+function Actions.clear_cache()
+  _cached_actions = {}
 end
 
 return Actions

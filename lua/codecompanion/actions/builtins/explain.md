@@ -10,7 +10,6 @@ opts:
     - v
   short_name: explain
   stop_context_insertion: true
-  user_prompt: false
 ---
 
 ## system
@@ -27,7 +26,7 @@ When asked to explain code, follow these steps:
 
 Please explain this code from buffer ${context.bufnr}:
 
-```${context.filetype}
-${code}
-```
+````${context.filetype}
+${shared.code}
+````
 

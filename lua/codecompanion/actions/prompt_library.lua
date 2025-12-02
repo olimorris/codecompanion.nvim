@@ -2,10 +2,9 @@ local M = {}
 
 local _prompts = {}
 
----Resolve the prompts in the prompt library with a view to displaying them in
----the action palette.
----@param config table
+---Resolve the prompts in the prompt library with a view to displaying them in the action palette.
 ---@param context table
+---@param config table
 ---@return table
 function M.resolve(context, config)
   local sort_index = true
@@ -21,9 +20,8 @@ function M.resolve(context, config)
       sort_index = false
     end
 
-    --TODO: Can we refactor this to name?!
-    if type(prompt.name_f) == "function" then
-      name = prompt.name_f(context)
+    if type(prompt.name) == "function" then
+      name = prompt.name(context)
     end
 
     local description = prompt.description
