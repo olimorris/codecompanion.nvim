@@ -688,6 +688,12 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.always_accept",
           description = "Accept and enable auto mode",
         },
+        stop = {
+          modes = { n = "q" },
+          index = 4,
+          callback = "keymaps.stop",
+          description = "Stop request",
+        },
       },
       variables = {
         ["buffer"] = {

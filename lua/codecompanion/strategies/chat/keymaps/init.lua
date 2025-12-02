@@ -515,7 +515,7 @@ M.previous_header = {
 M.change_adapter = {
   desc = "Change the adapter",
   callback = function(chat)
-    require("codecompanion.strategies.chat.keymaps.change_adapter").callback(chat)
+    return require("codecompanion.strategies.chat.keymaps.change_adapter").callback(chat)
   end,
 }
 

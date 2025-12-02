@@ -94,12 +94,13 @@ You can answer general programming questions and perform the following tasks:
 * Find relevant code to the user's query.
 * Propose fixes for test failures.
 * Answer questions about Neovim.
+* Prefer vim.api* methods where possible.
 
 Follow the user's requirements carefully and to the letter.
 Use the context and attachments the user provides.
 Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
 Use Markdown formatting in your answers.
-Do not use H1 or H2 markdown headers.
+DO NOT use H1 or H2 headers in your response.
 When suggesting code changes or new content, use Markdown code blocks.
 To start a code block, use 4 backticks.
 After the backticks, add the programming language name as the language ID.
@@ -123,7 +124,7 @@ Do not include diff formatting unless explicitly asked.
 Do not include line numbers in code blocks.
 
 When given a task:
-1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
+1. Think step-by-step and, unless the user requests otherwise or the task is very simple. For complex architectural changes, describe your plan in pseudocode first.
 2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
 3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
 
@@ -1014,7 +1015,7 @@ function Chat:_submit_http(payload)
     end
 
     local result = adapters.call_handler(adapter, "parse_chat", data, tools)
-
+    -- TODO: Rename this to be `parse_extra` for clarity
     local parse_meta = adapters.get_handler(adapter, "parse_meta")
     if result and result.extra and type(parse_meta) == "function" then
       result = parse_meta(adapter, result)
@@ -1029,7 +1030,7 @@ function Chat:_submit_http(payload)
         end
         if result.output.reasoning then
           table.insert(reasoning, result.output.reasoning)
-          if config.display.chat.show_reasoning then
+          if config.display.chat.show_reasoning and result.output.reasoning.content then
             self:add_buf_message({
               role = config.constants.LLM_ROLE,
               content = result.output.reasoning.content,
@@ -1218,20 +1219,19 @@ function Chat:done(output, reasoning, tools, meta, opts)
     if vim.iter(reasoning):any(function(item)
       return item and type(item) ~= "string"
     end) then
-      -- `reasoning` contains non-trivial data structure (table, etc.). Invoke the corresponding handler.
       reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
     else
-      -- reasoning is all string. Simply concat them.
       reasoning_content = table.concat(reasoning, "")
     end
   end
 
   if content and content ~= "" then
-    self:add_message({
+    local message = {
       role = config.constants.LLM_ROLE,
       content = content,
       reasoning = reasoning_content,
-    }, {
+    }
+    self:add_message(message, {
       _meta = has_meta and meta or nil,
     })
     reasoning_content = nil
@@ -1247,12 +1247,13 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if has_tools then
     tools = adapters.call_handler(self.adapter, "format_calls", tools)
     if tools then
-      self:add_message({
+      local message = {
         role = config.constants.LLM_ROLE,
         reasoning = reasoning_content,
         tool_calls = tools,
         _meta = has_meta and meta or nil,
-      }, {
+      }
+      self:add_message(message, {
         visible = false,
       })
       return self.tools:execute(self, tools)
@@ -1273,13 +1274,14 @@ end
 function Chat:add_context(data, source, id, opts)
   opts = vim.tbl_extend("force", { visible = false }, opts or {})
 
-  if not data.role then
-    data.role = config.constants.USER_ROLE
-  end
+  local message = {
+    role = data.role or config.constants.USER_ROLE,
+    content = data.content,
+  }
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(data, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
+  self:add_message(message, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1543,11 +1545,6 @@ function Chat:add_buf_message(data, opts)
 
   return self.builder:add_message(data, opts)
 end
-
----Add a new header to the chat buffer
----@param role "user"|"llm"
----@param opts? table Options for the header
-function Chat:add_new_header(role, opts) end
 
 ---Update a specific line in the chat buffer
 ---@param line_number number The line number to update (1-based)

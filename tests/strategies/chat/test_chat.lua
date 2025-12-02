@@ -13,7 +13,7 @@ T = new_set({
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
         _G.chat, _G.tools = h.setup_chat_buffer()
-        ]])
+      ]])
     end,
     post_case = function()
       child.lua([[h.teardown_chat_buffer()]])
@@ -233,11 +233,11 @@ T["Chat"]["ftplugin window options override plugin defaults"] = function()
     _G.test_temp_dir = temp_dir
     _G.test_ftplugin_path = ftplugin_path
 
-    -- Setup codecompanion
-    codecompanion = require("codecompanion")
-    codecompanion.setup()
+    h = require('tests.helpers')
 
-    -- Open a new chat
+    -- Setup codecompanion
+    local codecompanion = h.setup_plugin()
+    codecompanion.setup()
     codecompanion.chat()
 
     -- Manually source the ftplugin file to simulate user's after/ftplugin

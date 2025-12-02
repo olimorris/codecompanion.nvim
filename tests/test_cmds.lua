@@ -12,7 +12,7 @@ T = new_set({
         h = require('tests.helpers')
         config = require('codecompanion.config')
         config.memory.opts.chat.enabled = false
-        h.setup_plugin()
+        h.setup_plugin(config)
       ]])
     end,
     post_once = child.stop,
@@ -22,6 +22,7 @@ T = new_set({
 T["cmds"] = new_set()
 T["cmds"][":CodeCompanionChat"] = function()
   child.lua([[
+
     -- Mock the submit function
     local original = h.mock_submit("This is a mocked response: 1 + 1 = 2")
 
@@ -161,7 +162,7 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     vim.bo[buf].filetype = 'codecompanion'
     vim.cmd('doautocmd FileType codecompanion')
     vim.cmd('doautocmd BufEnter ' .. tostring(buf))
-    
+
     -- wait for some time so that the `vim.schedule`ed :syntax commands are executed
     vim.wait(10)
 
