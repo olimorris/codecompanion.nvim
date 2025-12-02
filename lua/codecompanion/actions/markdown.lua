@@ -62,12 +62,6 @@ function M.parse_file(path, context)
     return nil
   end
 
-  local sidecar = nil
-  local sidecar_path = path:gsub("%.md$", ".lua")
-  if file_utils.exists(sidecar_path) then
-    sidecar = sidecar_path
-  end
-
   local frontmatter = M.parse_frontmatter(content)
   if not frontmatter or not frontmatter.strategy or not frontmatter.name then
     log:warn("[Prompt Library] Missing frontmatter, name or strategy in: %s", path)
@@ -82,7 +76,6 @@ function M.parse_file(path, context)
     opts = frontmatter.opts or {},
     path = path,
     prompts = prompts,
-    sidecar = sidecar,
     strategy = frontmatter.strategy,
   }
 end
@@ -201,7 +194,7 @@ function M.parse_prompt(content)
   return prompts
 end
 
----Execute sidecar functions to resolve placeholders
+---Execute functions to resolve placeholders
 ---@param item table The prompts structure with placeholders
 ---@param context CodeCompanion.BufferContext
 ---@return nil
@@ -215,18 +208,6 @@ function M.resolve_placeholders(item, context)
     context = context,
     item = item,
   }
-
-  local sidecar = {}
-  if item.sidecar then
-    local ok, loaded = pcall(dofile, item.sidecar)
-    if ok and type(loaded) == "table" then
-      sidecar = loaded
-    elseif ok then
-      log:error("[Prompt Library] Sidecar file must return a table: %s", item.sidecar)
-    else
-      log:error("[Prompt Library] Failed to load sidecar file: %s", item.sidecar)
-    end
-  end
 
   local loaded_files = {}
   local dir = vim.fn.fnamemodify(item.path, ":p:h")
@@ -256,42 +237,30 @@ function M.resolve_placeholders(item, context)
 
   local replacements = {}
   for _, placeholder in ipairs(placeholders) do
-    -- Replace sidecar variables first
-    if type(sidecar[placeholder]) == "function" then
-      local success, result = pcall(sidecar[placeholder], args)
-      if success then
-        replacements[placeholder] = tostring(result)
+    -- Check if it's a dot-notation placeholder (e.g., "shared.code", "utils.helper")
+    local dot_placeholder = placeholder:match("^([^.]+)%.")
+    if dot_placeholder then
+      -- Try to load the file from the prompt directory
+      local loaded = load_file_from_dir(dot_placeholder)
+      if loaded then
+        args[dot_placeholder] = loaded
+      end
+    end
+
+    local resolved = utils.resolve_nested_value(args, placeholder)
+    if resolved ~= nil then
+      if type(resolved) == "function" then
+        local success, result = pcall(resolved, args)
+        if success then
+          replacements[placeholder] = tostring(result)
+        else
+          log:error("[Prompt Library] Function `%s` failed: %s", placeholder, result)
+        end
       else
-        log:error("[Prompt Library] Sidecar function '%s' failed: %s", placeholder, result)
+        replacements[placeholder] = tostring(resolved)
       end
     else
-      -- Start resolving context or dot-notation placeholders
-
-      -- Check if it's a dot-notation placeholder (e.g., "shared.code", "utils.helper")
-      local dot_placeholder = placeholder:match("^([^.]+)%.")
-      if dot_placeholder then
-        -- Try to load the file from the prompt directory
-        local loaded = load_file_from_dir(dot_placeholder)
-        if loaded then
-          args[dot_placeholder] = loaded
-        end
-      end
-
-      local resolved = utils.resolve_nested_value(args, placeholder)
-      if resolved ~= nil then
-        if type(resolved) == "function" then
-          local success, result = pcall(resolved, args)
-          if success then
-            replacements[placeholder] = tostring(result)
-          else
-            log:error("[Prompt Library] Function `%s` failed: %s", placeholder, result)
-          end
-        else
-          replacements[placeholder] = tostring(resolved)
-        end
-      else
-        log:warn("[Prompt Library] Could not resolve `${%s}` in %s", placeholder, item.path)
-      end
+      log:warn("[Prompt Library] Could not resolve `${%s}` in %s", placeholder, item.path)
     end
   end
 

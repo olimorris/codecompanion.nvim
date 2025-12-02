@@ -19,4 +19,4 @@ You are an expert coder and helpful assistant who can help debug code diagnostic
 
 The programming language is ${context.filetype}. This is a list of the diagnostic messages:
 
-${diagnostics}
+${lsp.diagnostics}

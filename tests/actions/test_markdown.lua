@@ -170,4 +170,131 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
   h.eq(expected, result, "Should load prompts from markdown files in directory")
 end
 
+T["Markdown"]["resolve_placeholders()"] = new_set()
+
+T["Markdown"]["resolve_placeholders()"]["resolves context placeholders"] = function()
+  child.lua([[
+    _G.test_context = {
+      bufnr = 42,
+      filetype = "lua",
+    }
+  ]])
+
+  local result = child.lua([[
+    local item = {
+      name = "Test",
+      path = "/tmp/test.md",
+      prompts = {
+        { role = "user", content = "Buffer ${context.bufnr} has type ${context.filetype}" },
+      },
+    }
+    return markdown.resolve_placeholders(item, _G.test_context)
+  ]])
+
+  h.eq(result.prompts[1].content, "Buffer 42 has type lua")
+end
+
+T["Markdown"]["resolve_placeholders()"]["loads and resolves from lua files"] = function()
+  child.lua([[
+    _G.test_dir = vim.fn.tempname()
+    vim.fn.mkdir(_G.test_dir, "p")
+
+    vim.fn.writefile({
+      "return {",
+      "  get_name = function(args)",
+      "    return 'Hello from helper'",
+      "  end,",
+      "  static_value = 'Static data',",
+      "}",
+    }, vim.fs.joinpath(_G.test_dir, "helpers.lua"))
+  ]])
+
+  local result = child.lua([[
+    local item = {
+      name = "Test",
+      path = vim.fs.joinpath(_G.test_dir, "test.md"),
+      prompts = {
+        { role = "user", content = "Function: ${helpers.get_name}, Static: ${helpers.static_value}" },
+      },
+    }
+    return markdown.resolve_placeholders(item, context)
+  ]])
+
+  h.eq(result.prompts[1].content, "Function: Hello from helper, Static: Static data")
+end
+
+T["Markdown"]["resolve_placeholders()"]["handles multiple lua files"] = function()
+  child.lua([[
+    _G.test_dir = vim.fn.tempname()
+    vim.fn.mkdir(_G.test_dir, "p")
+
+    vim.fn.writefile({
+      "return { value = 'from shared' }",
+    }, vim.fs.joinpath(_G.test_dir, "shared.lua"))
+    vim.fn.writefile({
+      "return { value = 'from utils' }",
+    }, vim.fs.joinpath(_G.test_dir, "utils.lua"))
+  ]])
+
+  local result = child.lua([[
+    local item = {
+      name = "Test",
+      path = vim.fs.joinpath(_G.test_dir, "test.md"),
+      prompts = {
+        { role = "user", content = "Shared: ${shared.value}, Utils: ${utils.value}" },
+      },
+    }
+    return markdown.resolve_placeholders(item, context)
+  ]])
+
+  h.eq(result.prompts[1].content, "Shared: from shared, Utils: from utils")
+
+  -- Cleanup
+  child.lua([[
+    vim.fn.delete("/tmp/test_multi", "rf")
+  ]])
+end
+
+T["Markdown"]["resolve_placeholders()"]["handles nested prompts"] = function()
+  child.lua([[
+    _G.test_context = {
+      bufnr = 99,
+      filetype = "python",
+    }
+  ]])
+
+  local result = child.lua([[
+    local item = {
+      name = "Test",
+      path = "/tmp/test.md",
+      prompts = {
+        { role = "system", content = "System for buffer ${context.bufnr}" },
+        { role = "user", content = "User prompt with ${context.filetype}" },
+        { role = "user", content = "Another with ${context.bufnr} and ${context.filetype}" },
+      },
+    }
+    return markdown.resolve_placeholders(item, _G.test_context)
+  ]])
+
+  h.eq(result.prompts[1].content, "System for buffer 99")
+  h.eq(result.prompts[2].content, "User prompt with python")
+  h.eq(result.prompts[3].content, "Another with 99 and python")
+end
+
+T["Markdown"]["resolve_placeholders()"]["handles non-existent placeholders gracefully"] = function()
+  local result = child.lua([[
+    local item = {
+      name = "Test",
+      path = "/tmp/test.md",
+      prompts = {
+        { role = "user", content = "Missing: ${nonexistent.value}" },
+      },
+    }
+    return markdown.resolve_placeholders(item, context)
+  ]])
+
+  -- Should remain unchanged when placeholder can't be resolved
+  h.eq(result.prompts[1].content, "Missing: ${nonexistent.value}")
+end
+
 return T
