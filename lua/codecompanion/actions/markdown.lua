@@ -21,7 +21,7 @@ function M.load_from_dir(dir, context)
   dir = vim.fs.normalize(dir)
 
   if not file_utils.is_dir(dir) then
-    log:trace("Directory does not exist or is not a directory: %s", dir)
+    log:trace("Directory `%s` does not exist or is not a directory", dir)
     return prompts
   end
 
@@ -64,11 +64,11 @@ function M.parse_file(path, context)
 
   local frontmatter = M.parse_frontmatter(content)
   if not frontmatter or not frontmatter.strategy or not frontmatter.name then
-    log:warn("[Prompt Library] Missing frontmatter, name or strategy in: %s", path)
+    log:warn("[Prompt Library] Missing frontmatter, name or strategy in `%s`", path)
     return nil
   end
 
-  local prompts = M.parse_prompt(content)
+  local prompts = M.parse_prompt(content, frontmatter)
 
   return {
     description = frontmatter.description or "",
@@ -141,8 +141,9 @@ end
 
 ---Extract prompt definitions from markdown content
 ---@param content string The full markdown file content
+---@param frontmatter table The parsed frontmatter
 ---@return table|nil
-function M.parse_prompt(content)
+function M.parse_prompt(content, frontmatter)
   if not content then
     return nil
   end
@@ -227,9 +228,9 @@ function M.resolve_placeholders(item, context)
         loaded_files[filename] = loaded
         return loaded
       elseif ok then
-        log:error("[Prompt Library] File must return a table: %s", file_path)
+        log:error("[Prompt Library] File `%s` must return a table", file_path)
       else
-        log:error("[Prompt Library] Failed to load file: %s", file_path)
+        log:error("[Prompt Library] Failed to load `%s`", file_path)
       end
     end
     return nil
@@ -260,7 +261,7 @@ function M.resolve_placeholders(item, context)
         replacements[placeholder] = tostring(resolved)
       end
     else
-      log:warn("[Prompt Library] Could not resolve `${%s}` in %s", placeholder, item.path)
+      log:warn("[Prompt Library] Could not resolve `${%s}` in `%s`", placeholder, item.path)
     end
   end
 
