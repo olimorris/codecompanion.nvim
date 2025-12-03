@@ -110,7 +110,7 @@ Here is another user prompt.
   }, "Prompts should be parsed correctly")
 end
 
-T["Markdown"]["parse_prompt formats workflow"] = function()
+T["Markdown"]["parse_prompt formats workflow prompts"] = function()
   local frontmatter = {
     opts = {
       is_workflow = true,
@@ -167,28 +167,43 @@ User prompt 3
   }, "Workflow prompts should be parsed correctly")
 end
 
-T["Markdown"]["parse_prompt extracts opts from header"] = function()
+T["Markdown"]["parse_prompt workflow prompts with options"] = function()
   local frontmatter = {
     opts = {
       is_workflow = true,
     },
   }
 
-  local markdown = [[## system
-
-System prompt
-
+  local markdown = [[
 ## user
+
+```yaml options
+auto_submit: true
+```
 
 User prompt 1
 
 ## user
+
+```yaml options
+auto_submit: false
+```
 
 User prompt 2
 
 ## user
 
 User prompt 3
+
+## user
+
+```yaml options
+adapter:
+  name: copilot
+  model: gpt-4.1
+```
+
+User prompt 4
 ]]
 
   local result = child.lua(
@@ -201,24 +216,38 @@ User prompt 3
   h.eq(result, {
     {
       {
-        content = "System prompt",
-        role = "system",
-      },
-      {
         content = "User prompt 1",
         role = "user",
+        opts = {
+          auto_submit = true,
+        },
       },
     },
     {
       {
         content = "User prompt 2",
         role = "user",
+        opts = {
+          auto_submit = false,
+        },
       },
     },
     {
       {
         content = "User prompt 3",
         role = "user",
+      },
+    },
+    {
+      {
+        content = "User prompt 4",
+        role = "user",
+        opts = {
+          adapter = {
+            name = "copilot",
+            model = "gpt-4.1",
+          },
+        },
       },
     },
   }, "Workflow prompts should be parsed correctly")

@@ -139,6 +139,25 @@ function M.parse_frontmatter(content)
   return frontmatter
 end
 
+---Extract options from a YAML options code block
+---@param code_block_content string The content of the code block
+---@return table|nil
+local function parse_options_block(code_block_content)
+  local ok, parser = pcall(vim.treesitter.get_string_parser, code_block_content, "yaml")
+  if not ok then
+    return nil
+  end
+
+  local tree = parser:parse()
+  local root = tree[1]:root()
+
+  if root:has_error() then
+    return log:warn("[Prompt Library] YAML parse error in options block")
+  end
+
+  return yaml.decode_node(code_block_content, root)
+end
+
 ---Extract prompt definitions from markdown content
 ---@param content string The full markdown file content
 ---@param frontmatter table The parsed frontmatter
@@ -161,15 +180,20 @@ function M.parse_prompt(content, frontmatter)
   local prompts = {}
   local current_role = nil
   local current_content = {}
+  local current_opts = nil
 
   local function store_prompt()
     if current_role and #current_content > 0 then
       local prompt_content = vim.trim(table.concat(current_content, "\n"))
       if prompt_content ~= "" then
-        table.insert(prompts, {
+        local prompt = {
           role = current_role,
           content = prompt_content,
-        })
+        }
+        if current_opts then
+          prompt.opts = current_opts
+        end
+        table.insert(prompts, prompt)
       end
     end
   end
@@ -181,8 +205,29 @@ function M.parse_prompt(content, frontmatter)
       store_prompt()
       current_role = vim.trim(get_node_text(node, content):lower())
       current_content = {}
+      current_opts = nil
     elseif capture_name == "content" and current_role and vim.tbl_contains(allowed_roles, current_role) then
+      -- For workflows: check if the user has a yaml options block
+      if node:type() == "fenced_code_block" then
+        local info_string = nil
+        local code_fence_content = nil
+
+        for child in node:iter_children() do
+          if child:type() == "info_string" then
+            info_string = get_node_text(child, content)
+          elseif child:type() == "code_fence_content" then
+            code_fence_content = get_node_text(child, content)
+          end
+        end
+
+        if info_string and info_string:match("^yaml%s+options?$") and code_fence_content then
+          current_opts = parse_options_block(code_fence_content)
+          goto continue
+        end
+      end
+
       table.insert(current_content, get_node_text(node, content))
+      ::continue::
     end
   end
 
