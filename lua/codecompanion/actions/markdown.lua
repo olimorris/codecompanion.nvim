@@ -192,6 +192,32 @@ function M.parse_prompt(content, frontmatter)
     return nil
   end
 
+  if frontmatter and frontmatter.opts and frontmatter.opts.is_workflow then
+    local workflow = {}
+    local first_prompt = {}
+    local is_first_prompt = true
+
+    for _, prompt in ipairs(prompts) do
+      if prompt.role == config.constants.SYSTEM_ROLE then
+        -- All system prompts get added to the first group
+        table.insert(first_prompt, prompt)
+      elseif prompt.role == config.constants.USER_ROLE then
+        if is_first_prompt then
+          table.insert(first_prompt, prompt)
+          is_first_prompt = false
+        else
+          table.insert(workflow, { prompt })
+        end
+      end
+    end
+
+    if #first_prompt > 0 then
+      table.insert(workflow, 1, first_prompt)
+    end
+
+    return workflow
+  end
+
   return prompts
 end
 

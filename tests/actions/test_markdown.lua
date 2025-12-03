@@ -110,6 +110,120 @@ Here is another user prompt.
   }, "Prompts should be parsed correctly")
 end
 
+T["Markdown"]["parse_prompt formats workflow"] = function()
+  local frontmatter = {
+    opts = {
+      is_workflow = true,
+    },
+  }
+
+  local markdown = [[## system
+
+System prompt
+
+## user
+
+User prompt 1
+
+## user
+
+User prompt 2
+
+## user
+
+User prompt 3
+]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_prompt(...)
+  ]],
+    { markdown, frontmatter }
+  )
+
+  h.eq(result, {
+    {
+      {
+        content = "System prompt",
+        role = "system",
+      },
+      {
+        content = "User prompt 1",
+        role = "user",
+      },
+    },
+    {
+      {
+        content = "User prompt 2",
+        role = "user",
+      },
+    },
+    {
+      {
+        content = "User prompt 3",
+        role = "user",
+      },
+    },
+  }, "Workflow prompts should be parsed correctly")
+end
+
+T["Markdown"]["parse_prompt extracts opts from header"] = function()
+  local frontmatter = {
+    opts = {
+      is_workflow = true,
+    },
+  }
+
+  local markdown = [[## system
+
+System prompt
+
+## user
+
+User prompt 1
+
+## user
+
+User prompt 2
+
+## user
+
+User prompt 3
+]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_prompt(...)
+  ]],
+    { markdown, frontmatter }
+  )
+
+  h.eq(result, {
+    {
+      {
+        content = "System prompt",
+        role = "system",
+      },
+      {
+        content = "User prompt 1",
+        role = "user",
+      },
+    },
+    {
+      {
+        content = "User prompt 2",
+        role = "user",
+      },
+    },
+    {
+      {
+        content = "User prompt 3",
+        role = "user",
+      },
+    },
+  }, "Workflow prompts should be parsed correctly")
+end
+
 T["Markdown"]["parse_prompt ignores incorrect roles"] = function()
   local markdown = [[## foo
 
