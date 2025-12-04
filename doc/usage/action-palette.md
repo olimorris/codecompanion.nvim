@@ -12,19 +12,19 @@ The _Action Palette_ has been designed to be your entry point for the many confi
 
 Once opened, the user can see plugin defined actions such as `Chat` and `Open Chats`. The latter, enabling the user to move between any open chat buffers. These can be turned off in the config by setting `display.action_palette.opts.show_default_actions = false`.
 
-## Default Prompts
+## Builtin Prompts
 
 The plugin also defines a number of prompts in the form of the prompt library:
 
-- `Explain` - Explain how code in a buffer works
-- `Fix Code` - Fix the selected code
-- `Explain LSP Diagnostics`  - Explain the LSP diagnostics for the selected code
-- `Unit Tests` - Generate unit tests for selected code
-- `Generate a Commit Message` - Generate a commit message
+- `Commit message` - Generate a commit message
+- `Explain code` - Explain how code in a buffer works
+- `Explain LSP diagnostics`  - Explain the LSP diagnostics for the selected code
+- `Fix code` - Fix the selected code
+- `Unit tests` - Generate unit tests for selected code
 
 > [!INFO]
 > These can also be called via the cmd line for example `:CodeCompanion /explain`
 
-The plugin also contains an example workflow, `Code Workflow`. See the [workflows section](/usage/workflows) for more information.
+The plugin also contains two built-in workflows, `Code workflow` and `Edit test repeat workflow`. See the [workflows section](/usage/workflows) for more information.
 
 The default prompts can be turned off by setting `display.action_palette.show_default_prompt_library = false`.

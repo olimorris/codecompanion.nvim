@@ -1,6 +1,6 @@
 ---
-strategy: chat
 name: Fix code
+strategy: chat
 description: Fix the selected code
 opts:
   auto_submit: true

@@ -1,6 +1,6 @@
 ---
-strategy: inline
 name: Inline prompt
+strategy: inline
 description: Prompt the LLM from inside a Neovim buffer
 opts:
   is_default: true

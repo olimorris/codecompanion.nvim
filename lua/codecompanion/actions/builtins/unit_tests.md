@@ -1,6 +1,6 @@
 ---
-strategy: inline
 name: Unit tests
+strategy: inline
 description: Generate unit tests for the selected code
 opts:
   auto_submit: true

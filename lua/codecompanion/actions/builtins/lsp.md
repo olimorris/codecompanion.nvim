@@ -1,6 +1,6 @@
 ---
+name: Explain LSP diagnostics
 strategy: chat
-name: Explain LSP Diagnostics
 description: Explain the LSP diagnostics for the selected code
 opts:
   is_default: true

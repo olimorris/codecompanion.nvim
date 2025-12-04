@@ -1,6 +1,6 @@
 ---
+name: Commit message
 strategy: chat
-name: Commit Message
 description: Generate a commit message
 opts:
   auto_submit: false

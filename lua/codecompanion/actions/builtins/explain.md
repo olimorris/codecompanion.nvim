@@ -1,6 +1,6 @@
 ---
+name: Explain code
 strategy: chat
-name: Explain
 description: Explain how code in a buffer works
 opts:
   auto_submit: true

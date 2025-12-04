@@ -1,5 +1,5 @@
 ---
-name: Code Workflow
+name: Code workflow
 strategy: workflow
 description: Use a workflow to guide an LLM in writing code
 opts:
