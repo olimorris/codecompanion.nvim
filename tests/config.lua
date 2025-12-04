@@ -448,6 +448,9 @@ return {
     },
   },
   display = {
+    action_palette = {
+      opts = {},
+    },
     chat = {
       icons = {
         buffer_sync_all = "󰪴 ",
