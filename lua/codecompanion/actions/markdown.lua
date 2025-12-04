@@ -71,6 +71,7 @@ function M.parse_file(path, context)
   local prompts = M.parse_prompt(content, frontmatter)
 
   return {
+    context = frontmatter.context or {},
     description = frontmatter.description or "",
     name = frontmatter.name,
     opts = frontmatter.opts or {},
@@ -116,7 +117,7 @@ function M.parse_frontmatter(content)
         frontmatter[pending_key] = yaml.decode_node(content, node)
         pending_key = nil
       end
-    elseif capture_name == "cc_nested_parent_key" then
+    elseif capture_name == "cc_nested_parent_key" or capture_name == "cc_sequence_parent_key" then
       local key = vim.treesitter.get_node_text(node, content)
       if not processed_parents[key] then
         processed_parents[key] = true
@@ -220,7 +221,7 @@ function M.parse_prompt(content, frontmatter)
           end
         end
 
-        if info_string and info_string:match("^yaml%s+options?$") and code_fence_content then
+        if info_string and info_string:match("^yaml%s+opts?$") and code_fence_content then
           current_opts = parse_options_block(code_fence_content)
           goto continue
         end

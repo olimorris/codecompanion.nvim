@@ -68,6 +68,48 @@ opts:
   }, "Frontmatter should be parsed correctly")
 end
 
+T["Markdown"]["parse_frontmatter extracts context"] = function()
+  local frontmatter = [[---
+name: Explain
+strategy: chat
+description: Explain how code in a buffer works
+context:
+  - type: file
+    path:
+      - lua/codecompanion/health.lua
+      - lua/codecompanion/http.lua
+  - type: file
+    path: lua/codecompanion/schema.lua
+---
+  ]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_frontmatter(...)
+  ]],
+    { frontmatter }
+  )
+
+  h.eq(result, {
+    context = {
+      {
+        type = "file",
+        path = { -- This can be a string or a table of values
+          "lua/codecompanion/health.lua",
+          "lua/codecompanion/http.lua",
+        },
+      },
+      {
+        type = "file",
+        path = "lua/codecompanion/schema.lua",
+      },
+    },
+    description = "Explain how code in a buffer works",
+    name = "Explain",
+    strategy = "chat",
+  }, "Frontmatter with context should be parsed correctly")
+end
+
 T["Markdown"]["parse_prompt extracts system and user prompts"] = function()
   local markdown = [[## system
 
@@ -177,7 +219,7 @@ T["Markdown"]["parse_prompt workflow prompts with options"] = function()
   local markdown = [[
 ## user
 
-```yaml options
+```yaml opts
 auto_submit: true
 ```
 
@@ -185,7 +227,7 @@ User prompt 1
 
 ## user
 
-```yaml options
+```yaml opts
 auto_submit: false
 ```
 
@@ -197,7 +239,7 @@ User prompt 3
 
 ## user
 
-```yaml options
+```yaml opts
 adapter:
   name: copilot
   model: gpt-4.1
