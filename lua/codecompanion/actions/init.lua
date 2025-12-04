@@ -85,6 +85,22 @@ function Actions.items(context)
   return Actions.validate(_cached_actions, context)
 end
 
+---Resolves an item from its short name
+---@param name string The short name of the action
+---@param context CodeCompanion.BufferContext
+---@return table|nil
+function Actions.resolve_from_short_name(name, context)
+  if vim.tbl_isempty(_cached_actions) then
+    Actions.items(context)
+  end
+
+  for _, item in ipairs(_cached_actions) do
+    if item.opts.short_name == name then
+      return item
+    end
+  end
+end
+
 ---Resolve the selected item into a strategy
 ---@param item table
 ---@param context CodeCompanion.BufferContext

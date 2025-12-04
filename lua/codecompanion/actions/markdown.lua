@@ -71,7 +71,7 @@ function M.parse_file(path, context)
   local prompts = M.parse_prompt(content, frontmatter)
 
   return {
-    context = frontmatter.context or {},
+    context = frontmatter.context or nil,
     description = frontmatter.description or "",
     name = frontmatter.name,
     opts = frontmatter.opts or {},

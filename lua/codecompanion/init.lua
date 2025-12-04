@@ -2,7 +2,6 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -75,27 +74,16 @@ end
 ---@param args table?
 ---@return nil
 CodeCompanion.prompt = function(name, args)
+  local actions = require("codecompanion.actions")
+
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local prompt = vim
-    .iter(config.prompt_library)
-    :filter(function(_, v)
-      return v.opts and v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
-    end)
-    :map(function(_, v)
-      return v
-    end)
-    :totable()[1]
+  local prompt = actions.resolve_from_short_name(name, context)
 
   if not prompt then
-    return log:warn("Could not find '%s' in the prompt library", name)
+    return log:warn("Could not find `%s` in the prompt library", name)
   end
 
-  return require("codecompanion.strategies")
-    .new({
-      buffer_context = context,
-      selected = prompt,
-    })
-    :start(prompt.strategy)
+  return actions.resolve(prompt, context)
 end
 
 --Add visually selected code to the current chat buffer
@@ -177,7 +165,7 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add rules to the chat buffer
-  local rules_cb = rules_helpers.add_callbacks(args)
+  local rules_cb = require("codecompanion.strategies.chat.rules.helpers").add_callbacks(args)
   if rules_cb then
     args.callbacks = rules_cb
   end
