@@ -32,10 +32,10 @@ function Actions.validate(items, context)
   return validated_items
 end
 
----Resolve the actions to display in the menu
+---Set the items to display in the action palette
 ---@param context CodeCompanion.BufferContext
 ---@return table
-function Actions.items(context)
+function Actions.set_items(context)
   local prompt_library = require("codecompanion.actions.prompt_library")
   local static_actions = require("codecompanion.actions.static")
 
@@ -47,6 +47,16 @@ function Actions.items(context)
       end
     end
 
+    -- Add builtin markdown prompts
+    local markdown = require("codecompanion.actions.markdown")
+    if config.display.action_palette.opts.show_default_prompt_library then
+      local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
+      local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
+      for _, prompt in ipairs(builtin_prompts) do
+        table.insert(_cached_actions, prompt)
+      end
+    end
+
     -- Add lua prompts from the prompt library
     if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
@@ -55,16 +65,6 @@ function Actions.items(context)
         if prompt.name ~= "markdown" then
           table.insert(_cached_actions, prompt)
         end
-      end
-    end
-
-    -- Add builtin markdown prompts
-    local markdown = require("codecompanion.actions.markdown")
-    if config.display.action_palette.opts.show_default_prompt_library then
-      local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
-      local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
-      for _, prompt in ipairs(builtin_prompts) do
-        table.insert(_cached_actions, prompt)
       end
     end
 
@@ -91,7 +91,7 @@ end
 ---@return table|nil
 function Actions.resolve_from_short_name(name, context)
   if vim.tbl_isempty(_cached_actions) then
-    Actions.items(context)
+    Actions.set_items(context)
   end
 
   for _, item in ipairs(_cached_actions) do
@@ -122,7 +122,7 @@ end
 ---@param args? { provider: {name: string, opts: table } } The provider to use
 ---@return nil
 function Actions.launch(context, args)
-  local items = Actions.items(context)
+  local items = Actions.set_items(context)
 
   if items and #items == 0 then
     return log:warn("No prompts available. Please create some in your config or turn on the prompt library")
