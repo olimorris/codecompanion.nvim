@@ -8,37 +8,55 @@
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+local context_utils = require("codecompanion.utils.context")
 
--- Create the short name prompt library items table
-local prompts = vim.iter(config.prompt_library):fold({}, function(acc, _, value)
-  if value.opts and value.opts.short_name then
-    acc[value.opts.short_name] = value
+-- Cache variables
+local _cached_prompts = nil
+local _cached_short_name_prompts = nil
+local _cached_adapters = nil
+
+---Get the prompt library items
+---@return table
+local function get_prompts()
+  if not _cached_prompts then
+    local context = context_utils.get(vim.api.nvim_get_current_buf())
+    _cached_prompts = require("codecompanion.actions").get_cached_items(context)
   end
-  return acc
-end)
+  return _cached_prompts
+end
 
-local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
-
-local adapters = vim
-  .iter(config_adapters)
-  :filter(function(k, _)
-    return k ~= "acp" and k ~= "http" and k ~= "opts"
-  end)
-  :map(function(k, _)
-    return k
-  end)
-  :totable()
-
-local inline_subcommands = vim.deepcopy(adapters)
-vim.iter(prompts):each(function(k, _)
-  table.insert(inline_subcommands, "/" .. k)
-end)
-
--- Add inline variables
-for key, _ in pairs(config.strategies.inline.variables) do
-  if key ~= "opts" then
-    table.insert(inline_subcommands, "#{" .. key .. "}")
+---Get the short_name of any prompt library items
+---@return string[]
+local function get_short_name_prompts()
+  if not _cached_short_name_prompts then
+    local prompts = get_prompts()
+    _cached_short_name_prompts = {}
+    vim.iter(prompts):each(function(k, _)
+      if k.opts and k.opts.short_name then
+        k = k.opts.short_name
+        table.insert(_cached_short_name_prompts, k)
+      end
+    end)
   end
+  return _cached_short_name_prompts
+end
+
+---Get the available adapters from the config
+---@return string[]
+local function get_adapters()
+  if not _cached_adapters then
+    local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
+    _cached_adapters = vim
+      .iter(config_adapters)
+      :filter(function(k, _)
+        return k ~= "acp" and k ~= "http" and k ~= "opts"
+      end)
+      :map(function(k, _)
+        return k
+      end)
+      :totable()
+  end
+  return _cached_adapters
 end
 
 ---@type CodeCompanion.Command[]
@@ -50,6 +68,7 @@ return {
       if opts.fargs[1] and string.sub(opts.fargs[1], 1, 1) == "/" then
         -- Get the prompt minus the slash
         local prompt = string.sub(opts.fargs[1], 2)
+        local prompts = get_prompts()
 
         if prompts[prompt] then
           if #opts.fargs > 1 then
@@ -81,6 +100,7 @@ return {
       complete = function(arg_lead, cmdline, cursor_pos)
         local param_key = arg_lead:match("^(%w+)=$")
         if param_key == "adapter" then
+          local adapters = get_adapters()
           return vim
             .iter(adapters)
             :map(function(adapter)
@@ -101,6 +121,8 @@ return {
 
         -- Always provide completions for adapters, prompt library, and variables
         local completions = {}
+        local adapters = get_adapters()
+        local short_name_prompts = get_short_name_prompts()
 
         -- Add adapters
         for _, adapter in ipairs(adapters) do
@@ -108,7 +130,7 @@ return {
         end
 
         -- Add prompt library items
-        vim.iter(prompts):each(function(k, _)
+        vim.iter(short_name_prompts):each(function(k)
           table.insert(completions, "/" .. k)
         end)
 
@@ -168,11 +190,12 @@ return {
         -- Check if we're completing a parameter value (e.g., "adapter=" or "model=")
         local param_key = arg_lead:match("^(%w+)=$")
         if param_key == "adapter" then
-          return adapters
+          return get_adapters()
         elseif param_key == "model" then
           -- Extract the adapter from the command line
           local adapter_name = cmdline:match("adapter=(%S+)")
           if adapter_name then
+            local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
             local adapter_config = config_adapters[adapter_name]
             if adapter_config then
               -- Resolve the adapter to get the full schema
@@ -238,7 +261,6 @@ return {
       nargs = "*",
     },
   },
-
   {
     cmd = "CodeCompanionActions",
     callback = function(opts)

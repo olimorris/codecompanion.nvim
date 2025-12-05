@@ -9,7 +9,7 @@ local _cached_actions = {}
 
 ---Validate the items against the context to determine their visibility
 ---@param items table The items to validate
----@param context table The buffer context
+---@param context CodeCompanion.BufferContext The buffer context
 ---@return table
 function Actions.validate(items, context)
   local validated_items = {}
@@ -33,7 +33,7 @@ function Actions.validate(items, context)
 end
 
 ---Set the items to display in the action palette
----@param context CodeCompanion.BufferContext
+---@param context? CodeCompanion.BufferContext
 ---@return table
 function Actions.set_items(context)
   local prompt_library = require("codecompanion.actions.prompt_library")
@@ -43,6 +43,7 @@ function Actions.set_items(context)
     -- Add static actions
     if config.display.action_palette.opts.show_default_actions then
       for _, action in ipairs(static_actions) do
+        action.type = "static"
         table.insert(_cached_actions, action)
       end
     end
@@ -53,6 +54,7 @@ function Actions.set_items(context)
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
       local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
       for _, prompt in ipairs(builtin_prompts) do
+        prompt.type = "prompt"
         table.insert(_cached_actions, prompt)
       end
     end
@@ -63,6 +65,7 @@ function Actions.set_items(context)
       for _, prompt in ipairs(prompts) do
         -- Exclusions....
         if prompt.name ~= "markdown" then
+          prompt.type = "prompt"
           table.insert(_cached_actions, prompt)
         end
       end
@@ -76,6 +79,7 @@ function Actions.set_items(context)
         end
         local user_prompts = markdown.load_from_dir(dir, context)
         for _, prompt in ipairs(user_prompts) do
+          prompt.type = "prompt"
           table.insert(_cached_actions, prompt)
         end
       end
@@ -85,9 +89,20 @@ function Actions.set_items(context)
   return Actions.validate(_cached_actions, context)
 end
 
+---Get the cached action items
+---@param context? CodeCompanion.BufferContext
+---@return table
+function Actions.get_cached_items(context)
+  if vim.tbl_isempty(_cached_actions) then
+    Actions.set_items(context)
+  end
+
+  return _cached_actions
+end
+
 ---Resolves an item from its short name
 ---@param name string The short name of the action
----@param context CodeCompanion.BufferContext
+---@param context? CodeCompanion.BufferContext
 ---@return table|nil
 function Actions.resolve_from_short_name(name, context)
   if vim.tbl_isempty(_cached_actions) then
