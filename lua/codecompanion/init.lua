@@ -113,7 +113,7 @@ CodeCompanion.chat = function(args)
   -- Set the adapter and model if provided
   if args.params and args.params.adapter then
     local adapter_name = args.params.adapter
-    adapter = config.adapters[adapter_name] or config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
+    adapter = config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
     adapter = require("codecompanion.adapters").resolve(adapter)
     if args.params.model then
       adapter.schema.model.default = args.params.model
@@ -210,20 +210,28 @@ end
 CodeCompanion.toggle = function(opts)
   local window_opts = opts and opts.window_opts
 
+  -- Get the most recent chat buffer, or create one
   local chat = CodeCompanion.last_chat()
   if not chat then
     return CodeCompanion.chat(window_opts and { window_opts = window_opts })
   end
 
+  -- If the chat is visible in a different tab, just hide it there
   if chat.ui:is_visible_non_curtab() then
     chat.ui:hide()
+  -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end
 
   chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
+
+  -- At this point, the chat exists but is not visible in the current tab
+
+  -- Close the chat window (if it's open elsewhere)
   CodeCompanion.close_last_chat()
 
+  -- Reopen the chat in the current tab with the toggled flag
   opts = { toggled = true }
   if window_opts then
     opts.window_opts = window_opts
@@ -309,6 +317,20 @@ CodeCompanion.has = function(feature)
   return features
 end
 
+---Handle adapter configuration merging
+---@param adapter_type string
+---@param opts table
+---@return nil
+local function handle_adapter_config(adapter_type, opts)
+  if opts and opts.adapters and opts.adapters[adapter_type] then
+    if config.adapters[adapter_type].opts.show_defaults then
+      require("codecompanion.utils.adapters").extend(config.adapters[adapter_type], opts.adapters[adapter_type])
+    else
+      config.adapters[adapter_type] = vim.deepcopy(opts.adapters[adapter_type])
+    end
+  end
+end
+
 ---Setup the plugin
 ---@param opts? table
 ---@return nil
@@ -318,25 +340,8 @@ CodeCompanion.setup = function(opts)
   -- Setup the plugin's config
   config.setup(opts)
 
-  -- Handle ACP adapter config
-  if opts and opts.adapters and opts.adapters.acp then
-    if config.adapters.acp.opts.show_defaults then
-      require("codecompanion.utils.adapters").extend(config.adapters.acp, opts.adapters.acp)
-    else
-      local copied = vim.deepcopy(opts.adapters.acp)
-      config.adapters.acp = copied
-    end
-  end
-
-  -- Handle HTTP adapter config
-  if opts and opts.adapters and opts.adapters.http then
-    if config.adapters.http.opts.show_defaults then
-      require("codecompanion.utils.adapters").extend(config.adapters.http, opts.adapters.http)
-    else
-      local copied = vim.deepcopy(opts.adapters.http)
-      config.adapters.http = copied
-    end
-  end
+  handle_adapter_config("acp", opts)
+  handle_adapter_config("http", opts)
 
   local cmds = require("codecompanion.commands")
   for _, cmd in ipairs(cmds) do
@@ -345,9 +350,10 @@ CodeCompanion.setup = function(opts)
 
   -- Set up completion
   local completion = config.strategies.chat.opts.completion_provider
-  pcall(function()
-    return require("codecompanion.providers.completion." .. completion .. ".setup")
-  end)
+  local ok, completion_module = pcall(require, "codecompanion.providers.completion." .. completion .. ".setup")
+  if not ok then
+    log:warn("Failed to load completion provider `%s`: %s", completion, completion_module)
+  end
 
   -- Set the log root
   log.set_root(log.new({
