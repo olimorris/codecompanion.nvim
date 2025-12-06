@@ -53,7 +53,7 @@ function Background.new(args)
   if args.adapter and adapters.resolved(args.adapter) then
     self.adapter = args.adapter --[[@as CodeCompanion.HTTPAdapter]]
   else
-    self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+    self.adapter = adapters.resolve(args.adapter or config.interactions.background.adapter)
   end
 
   -- Silence errors
