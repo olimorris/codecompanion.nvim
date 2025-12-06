@@ -123,7 +123,7 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["image"] = {
-          callback = "strategies.chat.slash_commands.catalog.image",
+          callback = "strategies.chat.slash_commands.builtin.image",
           description = "Insert an image",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter }
           ---@return boolean

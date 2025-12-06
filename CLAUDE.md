@@ -54,7 +54,7 @@ Located in `lua/codecompanion/adapters/`:
 
 ### Tools System (Function Calling)
 
-Located in `lua/codecompanion/strategies/chat/tools/catalog/`:
+Located in `lua/codecompanion/strategies/chat/tools/builtin/`:
 
 **File Operations:** `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/` (advanced editing with multiple matching strategies)
 
@@ -68,7 +68,7 @@ Tool groups (e.g., `full_stack_dev`) defined in config. Orchestration via `tools
 
 ### Slash Commands (Context Injection)
 
-Located in `lua/codecompanion/strategies/chat/slash_commands/catalog/`:
+Located in `lua/codecompanion/strategies/chat/slash_commands/builtin/`:
 
 `/buffer`, `/file`, `/fetch`, `/symbols`, `/help`, `/image`, `/quickfix`, `/terminal`, `/mode`, `/memory`, `/now`
 

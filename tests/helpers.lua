@@ -32,7 +32,22 @@ Helpers.setup_plugin = function(config)
       local get_models_ok, get_models = pcall(require, "codecompanion.adapters.http.copilot.get_models")
       if get_models_ok then
         get_models.choices = function(adapter, opts, provided_token)
-          return { "gpt-4.1" }
+          return { ["gpt-4.1"] = { opts = {} } }
+        end
+      end
+
+      -- Mock the token module to prevent HTTP calls
+      local token_ok, token = pcall(require, "codecompanion.adapters.http.copilot.token")
+      if token_ok then
+        token.init = function()
+          return true
+        end
+        token.fetch = function()
+          return {
+            oauth_token = "mock_oauth_token",
+            copilot_token = "mock_copilot_token",
+            endpoints = { api = "https://api.githubcopilot.com" },
+          }
         end
       end
     end

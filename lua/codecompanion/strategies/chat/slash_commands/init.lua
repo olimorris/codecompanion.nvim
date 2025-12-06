@@ -98,17 +98,17 @@ end
 ---@return nil
 function SlashCommands.context(chat, slash_command, opts)
   local slash_commands = {
-    buffer = require("codecompanion.strategies.chat.slash_commands.catalog.buffer").new({
+    buffer = require("codecompanion.strategies.chat.slash_commands.builtin.buffer").new({
       Chat = chat,
       config = config.strategies.chat.slash_commands["buffer"],
     }),
-    file = require("codecompanion.strategies.chat.slash_commands.catalog.file").new({
+    file = require("codecompanion.strategies.chat.slash_commands.builtin.file").new({
       Chat = chat,
     }),
-    symbols = require("codecompanion.strategies.chat.slash_commands.catalog.symbols").new({
+    symbols = require("codecompanion.strategies.chat.slash_commands.builtin.symbols").new({
       Chat = chat,
     }),
-    url = require("codecompanion.strategies.chat.slash_commands.catalog.fetch").new({
+    url = require("codecompanion.strategies.chat.slash_commands.builtin.fetch").new({
       Chat = chat,
       config = config.strategies.chat.slash_commands["fetch"],
     }),

@@ -91,7 +91,7 @@ end
 ---@return number|nil bufnr
 local function create_buffer_in_window(path, winnr)
   if not vim.uv.fs_stat(vim.fs.normalize(path)) then
-    log:debug("[catalog::helpers::diff::create] File not readable: %s", path)
+    log:debug("[builtin::helpers::diff::create] File not readable: %s", path)
     return nil
   end
 
@@ -106,7 +106,7 @@ local function create_buffer_in_window(path, winnr)
     return api.nvim_win_get_buf(winnr)
   end
 
-  log:warn("[catalog::helpers::diff::create] Failed to create buffer for: %s", path)
+  log:warn("[builtin::helpers::diff::create] Failed to create buffer for: %s", path)
   return nil
 end
 
@@ -235,7 +235,7 @@ function M.open_buffer_and_window(bufnr_or_path)
       bufnr = existing_bufnr
     else
       if not vim.uv.fs_stat(vim.fs.normalize(path)) then
-        log:debug("[catalog::helpers::diff::create] File not readable: %s", path)
+        log:debug("[builtin::helpers::diff::create] File not readable: %s", path)
         return nil, nil
       end
       bufnr = vim.fn.bufnr(path, true)
@@ -248,7 +248,7 @@ function M.open_buffer_and_window(bufnr_or_path)
   end
 
   if not api.nvim_buf_is_valid(bufnr) then
-    log:debug("[catalog::helpers::diff::create] Invalid buffer")
+    log:debug("[builtin::helpers::diff::create] Invalid buffer")
     return nil, nil
   end
 
@@ -315,7 +315,7 @@ function M.create(bufnr_or_path, diff_id, opts)
     opts.set_keymaps = true
   end
 
-  log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
+  log:debug("[builtin::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
   if vim.g.codecompanion_yolo_mode or not config.display.diff.enabled then
     return nil
@@ -324,18 +324,18 @@ function M.create(bufnr_or_path, diff_id, opts)
   local provider = config.display.diff.provider
   local ok, diff_module = pcall(require, "codecompanion.providers.diff." .. provider)
   if not ok then
-    log:error("[catalog::helpers::diff::create] Failed to load provider '%s'", provider)
+    log:error("[builtin::helpers::diff::create] Failed to load provider '%s'", provider)
     return nil
   end
 
   local bufnr, winnr = M.open_buffer_and_window(bufnr_or_path)
   if not bufnr then
-    log:warn("[catalog::helpers::diff::create] Failed to open buffer/file")
+    log:warn("[builtin::helpers::diff::create] Failed to open buffer/file")
     return nil
   end
 
   if vim.bo[bufnr].buftype == "terminal" then
-    log:debug("[catalog::helpers::diff::create] Skipping diff - terminal buffer")
+    log:debug("[builtin::helpers::diff::create] Skipping diff - terminal buffer")
     return nil
   end
 
