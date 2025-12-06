@@ -12,7 +12,7 @@ The _Action Palette_ has been designed to be your entry point for the many confi
 
 Once opened, the user can see plugin defined actions such as `Chat` and `Open Chats`. The latter, enabling the user to move between any open chat buffers. These can be turned off in the config by setting `display.action_palette.opts.show_default_actions = false`.
 
-## Builtin Prompts
+## Built-in Prompts
 
 The plugin also defines a number of prompts in the form of the prompt library:
 
@@ -25,8 +25,8 @@ The plugin also defines a number of prompts in the form of the prompt library:
 > [!INFO]
 > These can also be called via the cmd line with their `alias`, for example `:CodeCompanion /explain`
 
-The plugin also contains two builtin workflows, `Code workflow` and `Edit test repeat workflow`. See the [workflows section](/usage/workflows) for more information.
+The plugin also contains two built-in workflows, `Code workflow` and `Edit test repeat workflow`. See the [workflows section](/usage/workflows) for more information.
 
-The builtin prompts can be turned off by setting `display.action_palette.show_prompt_library_builtins = false`.
+The built-in prompts can be turned off by setting `display.action_palette.show_prompt_library_builtins = false`.
 
 You can also refresh the markdown prompts in your prompt library with `:CodeCompanionActions refresh`

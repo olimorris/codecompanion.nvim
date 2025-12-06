@@ -45,12 +45,12 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Variables                                  |codecompanion-usage-variables|
   - Events / Hooks                        |codecompanion-usage-events-/-hooks|
   - Inline Assistant                    |codecompanion-usage-inline-assistant|
+  - Prompt Library                        |codecompanion-usage-prompt-library|
   - User Interface                        |codecompanion-usage-user-interface|
   - Workflows                                  |codecompanion-usage-workflows|
 6. Extending                                         |codecompanion-extending|
   - Creating Adapters              |codecompanion-extending-creating-adapters|
   - Creating Rules Parsers    |codecompanion-extending-creating-rules-parsers|
-  - Creating Prompts                |codecompanion-extending-creating-prompts|
   - Creating Tools                    |codecompanion-extending-creating-tools|
   - Creating Workflows            |codecompanion-extending-creating-workflows|
   - Creating Extensions          |codecompanion-extending-creating-extensions|
@@ -75,7 +75,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
--  Create your own |codecompanion-extending-prompts|, Variables and Slash Commands
+-  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Variables and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
 -  Support for |codecompanion-usage-chat-buffer--images-vision| as input
 -  Async execution for fast performance
@@ -2175,72 +2175,404 @@ to have more granular control.
 
 PROMPT LIBRARY                    *codecompanion-configuration-prompt-library*
 
-The plugin comes with a number of builtin prompts. As per the config
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
-these can be called via keymaps or via the cmdline. These prompts have been
-carefully curated to mimic those in GitHub’s Copilot Chat
-<https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide>.
-Of course, you can create your own prompts and add them to the Action Palette
-or even to the slash command completion menu in the chat buffer.
+CodeCompanion enables you to leverage prompt templates to quickly interact with
+your codebase. These prompts can be the built-in ones or custom-built.
+CodeCompanion uses a prompt library to manage and organize these prompts.
 
+
+  [!IMPORTANT] Prompts can be pure Lua tables, residing in your configuration, or
+  markdown files stored in your filesystem.
 
 ADDING PROMPTS ~
 
 
-  [!NOTE] See the |codecompanion-extending-prompts| guide to learn more on their
-  syntax and how you can create your own
-Custom prompts can be added as follows:
+  [!NOTE] See the |codecompanion--creating-prompts| section to learn how to
+  create your own.
+There are two ways to add prompts to the prompt library. You can either define
+them directly in your configuration file as Lua tables, or you can store them
+as markdown files in your filesystem and reference them in your configuration.
+
+
+
+CREATING PROMPTS ~
+
+As mentioned earlier, prompts can be created in two ways: as Lua tables or as
+markdown files.
+
+
+  [!NOTE] Markdown prompts are new in `v18.0.0`. They provide a cleaner, more
+  maintainable way to define prompts with support for external Lua files for
+  dynamic content.
+
+BASIC STRUCTURE
+
+At their core, prompts define a series of messages sent to an LLM. Let’s
+start with a simple example:
+
+
+
+MARKDOWN FORMAT
+
+Markdown prompts consist of two main parts:
+
+1. **Frontmatter** - YAML metadata between `---` delimiters that defines the prompt’s configuration
+2. **Prompt sections** - Markdown headings (`## system`, `## user`) that define the role and content of each message
+
+**Required frontmatter fields:** - `name` - The display name in the Action
+Palette - `description` - Description shown in the Action Palette - `strategy`
+- The strategy to use (`chat`, `inline`, `workflow`)
+
+**Optional frontmatter fields:** - `opts` - Additional options (see
+|codecompanion--options| section) - `context` - Pre-loaded context (see
+|codecompanion--prompts-with-context| section)
+
+**Prompt sections:** - `## system` - System messages that set the LLM’s
+behaviour - `## user` - User messages containing your requests
+
+
+OPTIONS
+
+Both markdown and Lua prompts support a wide range of options to customise
+behaviour:
+
+
+**Common options:**
+
+- `adapter` - Specify a different adapter/model:
+
+
+- `alias` - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
+- `auto_submit` - Automatically submit the prompt to the LLM
+- `default_rules` - Specify a default rule group to load with the prompt
+- `ignore_system_prompt` - Don’t send the default system prompt with the request
+- `intro_message` - Custom intro message for the chat buffer UI
+- `is_slash_cmd` - Make the prompt available as a slash command in chat
+- `modes` - Only show in specific modes (`{ "v" }` for visual mode)
+- `placement` - For inline strategy: `new`, `replace`, `add`, `before`, `chat`
+- `pre_hook` - Function to run before the prompt is executed (Lua only)
+- `stop_context_insertion` - Prevent automatic context insertion
+- `user_prompt` - Get user input before actioning the response
+
+
+PLACEHOLDERS
+
+Placeholders allow you to inject dynamic content into your prompts. In markdown
+prompts, use `${placeholder.name}` syntax:
+
+
+CONTEXT PLACEHOLDERS
+
+The `context` object contains information about the current buffer:
+
+
+**Available context fields:**
 
 >lua
-    require("codecompanion").setup({
-      prompt_library = {
-        ["Docusaurus"] = {
-          strategy = "chat",
-          description = "Write documentation for me",
-          opts = {
-            alias = "docs",
-            auto_submit = false,
-            is_slash_cmd = false,
-          },
-          context = {
-            {
-              type = "file",
-              path = {
-                "doc/.vitepress/config.mjs",
-                "lua/codecompanion/config.lua",
-                "README.md",
-              },
-            },
-          },
-          prompts = {
-            {
-              role = "user",
-              content = [[I'm rewriting the documentation for my plugin CodeCompanion.nvim, as I'm moving to a vitepress website. Can you help me rewrite it?
+    {
+      bufnr = 7,
+      buftype = "",
+      cursor_pos = { 10, 3 },
+      end_col = 3,
+      end_line = 10,
+      filetype = "lua",
+      is_normal = false,
+      is_visual = true,
+      lines = { "local function fire_autocmd(status)", "..." },
+      mode = "V",
+      start_col = 1,
+      start_line = 8,
+      winnr = 1000
+    }
+<
+
+
+EXTERNAL LUA FILES
+
+For markdown prompts, you can reference functions and values from external Lua
+files placed in the same directory as your prompt. This is useful for complex
+logic or reusable components:
+
+**Example directory structure:**
+
+>
+    .prompts/
+    ├── commit.md
+    ├── commit.lua
+    ├── shared.lua
+    └── utils.lua
+<
+
+**shared.lua:**
+
+>lua
+    return {
+      code = function(args)
+        local actions = require("codecompanion.helpers.actions")
+        return actions.get_code(args.context.start_line, args.context.end_line)
+      end,
+    }
+<
+
+**commit.lua:**
+
+>lua
+    return {
+      diff = function(args)
+        return vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait().stdout
+      end,
+    }
+<
+
+**commit.md:**
+
+>markdown
+    ---
+    name: Commit message
+    strategy: chat
+    description: Generate a commit message
+    opts:
+      alias: commit
+    ---
     
-    I'm sharing my vitepress config file so you have the context of how the documentation website is structured in the `sidebar` section of that file.
+    ## user
     
-    I'm also sharing my `config.lua` file which I'm mapping to the `configuration` section of the sidebar.
-    ]],
-            },
-          },
+    You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
+    
+    ```diff
+    ${commit.diff}
+    ```
+<
+
+In this example, `${commit.diff}` references the `diff` function from
+`commit.lua`. The plugin automatically:
+
+1. Detects the dot notation (`commit.`)
+2. Loads `commit.lua` from the same directory
+3. Calls the `diff` function
+4. Replaces `${commit.diff}` with the result
+
+**Multiple files example:**
+
+>markdown
+    ---
+    name: Code Review
+    strategy: chat
+    description: Review code changes
+    ---
+    
+    ## user
+    
+    Please review this code:
+    
+    ```${context.filetype}
+    ${shared.code}
+    ```
+    
+    Here's the git diff:
+    
+    ```diff
+    ${utils.git_diff}
+    ```
+<
+
+This prompt can reference functions from both `shared.lua` and `utils.lua` in
+the same directory.
+
+**Function signature:**
+
+External Lua functions receive an `args` table:
+
+>lua
+    return {
+      my_function = function(args)
+        -- args.context - Buffer context
+        -- args.item - The full prompt item
+        return "some value"
+      end,
+      static_value = "I'm just a string",
+    }
+<
+
+
+BUILT-IN HELPERS
+
+You can also reference built-in values using dot notation:
+
+- `${context.bufnr}` - Current buffer number
+- `${context.filetype}` - Current filetype
+- `${context.start_line}` - Visual selection start
+- `${context.end_line}` - Visual selection end
+
+And many more from the context object.
+
+
+ADVANCED EXAMPLE
+
+Here’s a complete example showing the power of markdown prompts:
+
+**unit_tests.md:**
+
+>markdown
+    ---
+    name: Unit tests
+    strategy: inline
+    description: Generate unit tests for the selected code
+    opts:
+      alias: tests
+      auto_submit: true
+      modes:
+        - v
+      placement: new
+      stop_context_insertion: true
+    ---
+    
+    ## system
+    
+    When generating unit tests, follow these steps:
+    
+    1. Identify the programming language.
+    2. Identify the purpose of the function or module to be tested.
+    3. List the edge cases and typical use cases that should be covered in the tests and share the plan with the user.
+    4. Generate unit tests using an appropriate testing framework for the identified programming language.
+    5. Ensure the tests cover:
+          - Normal cases
+          - Edge cases
+          - Error handling (if applicable)
+    6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.
+    
+    ## user
+    
+    Please generate unit tests for this code from buffer ${context.bufnr}:
+    
+    ```${context.filetype}
+    ${shared.code}
+    ```
+<
+
+**shared.lua:**
+
+>lua
+    return {
+      code = function(args)
+        local actions = require("codecompanion.helpers.actions")
+        return actions.get_code(args.context.start_line, args.context.end_line)
+      end,
+    }
+<
+
+This prompt: - Only appears in visual mode - Automatically submits to the LLM -
+Places results in a new buffer - Uses a reusable `shared.code` function -
+Includes detailed instructions for the LLM
+
+
+WHY MARKDOWN?
+
+Markdown prompts offer several advantages:
+
+- **Cleaner syntax** - No Lua string escaping or concatenation
+- **Better readability** - Natural formatting with proper indentation
+- **Easier editing** - Edit in any markdown editor with syntax highlighting
+- **Reusability** - Share Lua helper files across multiple prompts
+- **Version control friendly** - Easier to diff and review changes
+
+For complex prompts with multiple messages or dynamic content, markdown files
+are significantly easier to maintain than Lua tables.
+
+
+ADVANCED CONFIGURATION ~
+
+
+CONDITIONALS
+
+**Lua only:**
+
+You can conditionally control when prompts appear in the Action Palette or
+conditionally include specific prompt messages using `condition` functions:
+
+**Item-level conditions** (controls visibility in Action Palette):
+
+>lua
+    ["Open chats ..."] = {
+      name = "Open chats ...",
+      strategy = " ",
+      description = "Your currently open chats",
+      condition = function(context)
+        return #require("codecompanion").buf_get_chat() > 0
+      end,
+      picker = {
+        ---
+      }
+    }
+<
+
+**Prompt-level conditions** (controls individual messages):
+
+>lua
+    ["Visual Only"] = {
+      strategy = "chat",
+      description = "Only appears in visual mode",
+      prompts = {
+        {
+          role = "user",
+          content = "This prompt only appears when you're in visual mode.",
+          condition = function(context)
+            return context.is_visual
+          end,
         },
       },
-    })
+    }
 <
 
 
-KEYMAPS ~
+  [!NOTE] Conditionals are not supported in markdown prompts since they require
+  Lua functions. Use the `modes` option in frontmatter instead to control
+  visibility by mode.
 
-You can assign prompts from the prompt library to a keymap via the `prompt`
-function:
+PROMPTS WITH CONTEXT
+
+Pre-load a chat buffer with context from files, symbols, or URLs:
+
+
+Context items appear at the top of the chat buffer. URLs are automatically
+cached for you.
+
+
+PRE-HOOKS
+
+Pre-hooks allow you to run custom logic before a prompt is executed. This is
+particularly useful for creating new buffers or setting up the environment:
+
+**Lua only:**
 
 >lua
-    vim.keymap.set("n", "<LocalLeader>d", function()
-      require("codecompanion").prompt("docs")
-    end, { noremap = true, silent = true })
+    ["Boilerplate HTML"] = {
+      strategy = "inline",
+      description = "Generate some boilerplate HTML",
+      opts = {
+        ---@return number
+        pre_hook = function()
+          local bufnr = vim.api.nvim_create_buf(true, false)
+          vim.api.nvim_set_current_buf(bufnr)
+          vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr })
+          return bufnr
+        end,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = "You are an expert HTML programmer",
+        },
+        {
+          role = "user",
+          content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
+        },
+      },
+    }
 <
 
-Where `docs` is the `alias` of the prompt.
+For the inline strategy, the plugin will detect a number being returned from
+the `pre_hook` and assume that is the buffer number you wish any code to be
+streamed into.
 
 
 SYSTEM PROMPTS                    *codecompanion-configuration-system-prompts*
@@ -2868,7 +3200,7 @@ These can be turned off in the config by setting
 `display.action_palette.opts.show_default_actions = false`.
 
 
-BUILTIN PROMPTS ~
+BUILT-IN PROMPTS ~
 
 The plugin also defines a number of prompts in the form of the prompt library:
 
@@ -2881,10 +3213,10 @@ The plugin also defines a number of prompts in the form of the prompt library:
 
   [!INFO] These can also be called via the cmd line with their `alias`, for
   example `:CodeCompanion /explain`
-The plugin also contains two builtin workflows, `Code workflow` and `Edit test
+The plugin also contains two built-in workflows, `Code workflow` and `Edit test
 repeat workflow`. See the |codecompanion-usage-workflows| for more information.
 
-The builtin prompts can be turned off by setting
+The built-in prompts can be turned off by setting
 `display.action_palette.show_prompt_library_builtins = false`.
 
 You can also refresh the markdown prompts in your prompt library with
@@ -4183,6 +4515,27 @@ These keymaps can also be changed in your config via the
 `strategies.inline.keymaps` table.
 
 
+PROMPT LIBRARY                            *codecompanion-usage-prompt-library*
+
+There are numerous ways that the prompts defined in your prompt library can be
+used in CodeCompanion. You can invoke them via keymaps, the Action Palette, or
+slash commands in the chat buffer.
+
+
+KEYMAPS ~
+
+You can assign prompts from the prompt library to a keymap via the `prompt`
+function:
+
+>lua
+    vim.keymap.set("n", "<LocalLeader>d", function()
+      require("codecompanion").prompt("docs")
+    end, { noremap = true, silent = true })
+<
+
+Where `docs` is the `alias` of the prompt.
+
+
 USER INTERFACE                            *codecompanion-usage-user-interface*
 
 CodeCompanion aims to keep any changes to the user’s UI to a minimum.
@@ -5305,503 +5658,6 @@ Parsers may also return a list of files to be shared with the LLM by the
 <
 
 
-CREATING PROMPTS                    *codecompanion-extending-creating-prompts*
-
-The purpose of this guide is to showcase how you can extend the functionality
-of CodeCompanion by adding your own prompts to the config that are reflected in
-the `Action Palette`. The `Action Palette` is a lua table which is parsed by
-the plugin and displayed as a `vim.ui.select` component. By specifying certain
-keys, the behaviour of the table can be customised further.
-
-
-ADDING A PROMPT TO THE PALETTE ~
-
-A prompt can be added via the `setup` function:
-
->lua
-    require("codecompanion").setup({
-      prompt_library = {
-        ["My New Prompt"] = {
-          strategy = "chat",
-          description = "Some cool custom prompt you can do",
-          prompts = {
-            {
-              role = "system",
-              content = "You are an experienced developer with Lua and Neovim",
-            },
-            {
-              role = "user",
-              content = "Can you explain why ..."
-            }
-          },
-        }
-      }
-    })
-<
-
-In this example, if you run `:CodeCompanionActions`, you should see "My New
-Prompt" in the bottom of the `Prompts` section of the palette. Clicking on your
-new action will initiate the `chat` strategy and set the value of the chat
-buffer based on the `role` and `content` that’s been specified in the prompt.
-
-In the following sections, we’ll explore how you can customise your prompts
-even more.
-
-
-RECIPE #1: CREATING BOILERPLATE CODE ~
-
-
-BOILERPLATE HTML
-
-As the years go by, I find myself writing less and less HTML. So when it comes
-to quickly scaffolding out a HTML page, I inevitably turn to a search engine.
-It would be great if I could have an action that could quickly generate some
-boilerplate HTML from the `Action Palette`.
-
-Let’s take a look at how we can achieve that:
-
->lua
-    require("codecompanion").setup({
-      prompt_library = {
-        ["Boilerplate HTML"] = {
-          strategy = "inline",
-          description = "Generate some boilerplate HTML",
-          opts = {
-            mapping = "<LocalLeader>ch"
-          },
-          prompts = {
-            {
-              role = "system",
-              content = "You are an expert HTML programmer",
-            },
-            {
-              role = "user",
-              content = "<user_prompt>Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks</user_prompt>",
-            },
-          },
-        },
-      },
-    })
-<
-
-Nice! We’ve used some careful prompting to ensure that we get HTML
-boilerplate back from the LLM. Oh…and notice that I added a key map too! If
-you plan on using the `inline` classification, it’s recommended to put your
-prompt within `<user_prompt></user_prompt>` tags to make it explicit to the LLM
-what your ask is.
-
-
-LEVERAGING PRE-HOOKS
-
-To make this example complete, we can leverage a pre-hook to create a new
-buffer and set the filetype to be html:
-
->lua
-    {
-      ["Boilerplate HTML"] = {
-        strategy = "inline",
-        description = "Generate some boilerplate HTML",
-        opts = {
-          ---@return number
-          pre_hook = function()
-            local bufnr = vim.api.nvim_create_buf(true, false)
-            vim.api.nvim_set_current_buf(bufnr)
-            vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr } )
-            return bufnr
-          end
-        }
-        ---
-      }
-    }
-<
-
-For the inline strategy, the plugin will detect a number being returned from
-the `pre_hook` and assume that is the buffer number you wish any code to be
-streamed into.
-
-
-CONCLUSION
-
-Whilst this example was useful at demonstrating the functionality of the
-`Action Palette` and your custom prompts, it’s not using LLMs to add any real
-value to your workflow (this boilerplate could be a snippet after all!). So
-let’s step things up in the next section.
-
-
-RECIPE #2: USING CONTEXT IN YOUR PROMPTS ~
-
-Now let’s look at how we can use an LLM to advise us on some code that we
-have visually selected in a buffer. Infact, this very example used to be
-builtin to the plugin as the `Code Advisor` action:
-
->lua
-    require("codecompanion").setup({
-      prompt_library = {
-        ["Code Expert"] = {
-          strategy = "chat",
-          description = "Get some special advice from an LLM",
-          opts = {
-            alias = "expert",
-            auto_submit = true,
-            mapping = "<LocalLeader>ce",
-            modes = { "v" },
-            stop_context_insertion = true,
-            user_prompt = true,
-          },
-          prompts = {
-            {
-              role = "system",
-              content = function(context)
-                return "I want you to act as a senior "
-                  .. context.filetype
-                  .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
-              end,
-            },
-            {
-              role = "user",
-              content = function(context)
-                local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-    
-                return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
-              end,
-              opts = {
-                contains_code = true,
-              }
-            },
-          },
-        },
-      },
-    })
-<
-
-At first glance there’s a lot of new stuff in this. Let’s break it down.
-
-
-PALETTE OPTIONS
-
->lua
-    opts = {
-      alias = "expert",
-      auto_submit = true,
-      mapping = "<LocalLeader>ce",
-      modes = { "v" },
-      stop_context_insertion = true,
-      user_prompt = true,
-    },
-<
-
-In the `opts` table we’re specifying that we only want this action to appear
-in the `Action Palette` if we’re in visual mode. We’re also asking the chat
-strategy to automatically submit the prompts to the LLM via the `auto_submit =
-true` value. We’re also telling the picker that we want to get the user’s
-input before we action the response with `user_prompt = true`. With the `alias
-= "expert"` option, the user can run `:CodeCompanion /expert` from the cmdline
-in order to trigger this prompt. Finally, as we define a prompt to add any
-visually selected text to the chat buffer, we need to add the
-`stop_context_insertion = true` option to prevent the chat buffer from
-duplicating this. Remember that visually selecting text and opening a chat
-buffer will result in that selection from being adding as a codeblock.
-
-
-PROMPT OPTIONS AND CONTEXT
-
-In the example below you can see how we’ve structured the prompts to get
-advice on the code:
-
->lua
-    prompts = {
-      {
-        role = "system",
-        content = function(context)
-          return "I want you to act as a senior "
-            .. context.filetype
-            .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
-        end,
-      },
-      {
-        role = "user",
-        content = function(context)
-          local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-    
-          return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
-        end,
-        opts = {
-          contains_code = true,
-        }
-      },
-    },
-<
-
-One of the most useful features of the custom prompts is the ability to receive
-context about the current buffer and any lines of code we’ve selected. An
-example context table looks like:
-
->lua
-    {
-      bufnr = 7,
-      buftype = "",
-      cursor_pos = { 10, 3 },
-      end_col = 3,
-      end_line = 10,
-      filetype = "lua",
-      is_normal = false,
-      is_visual = true,
-      lines = { "local function fire_autocmd(status)", '  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })', "end" },
-      mode = "V",
-      start_col = 1,
-      start_line = 8,
-      winnr = 1000
-    }
-<
-
-Using the context above, our first prompt then makes more sense:
-
->lua
-    {
-      role = "system",
-      content = function(context)
-        return "I want you to act as a senior "
-          .. context.filetype
-          .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
-      end,
-    },
-<
-
-We are telling the LLM to act as a "senior `Lua` developer" based on the
-filetype of the buffer we initiated the action from.
-
-Lets now take a look at the second prompt:
-
->lua
-    {
-      role = "user",
-      content = function(context)
-        local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-    
-        return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
-      end,
-      opts = {
-        contains_code = true,
-      }
-    },
-<
-
-You can see that we’re using a handy helper to get the code between two lines
-and formatting it into a markdown code block.
-
-
-  [!IMPORTANT] We’ve also specified a `contains_code = true` flag. If you’ve
-  turned off the sending of code to LLMs then the plugin will block this from
-  happening.
-
-CONDITIONALS
-
-It’s also possible to conditionally set prompts via a `condition` function
-that returns a boolean:
-
->lua
-    {
-      role = "user",
-      ---
-      condition = function(context)
-        return context.is_visual
-      end,
-      ---
-    },
-<
-
-And to determine the visibility of actions in the palette itself:
-
->lua
-    {
-      name = "Open chats ...",
-      strategy = " ",
-      description = "Your currently open chats",
-      condition = function()
-        return #require("codecompanion").buf_get_chat() > 0
-      end,
-      picker = {
-        ---
-      }
-    }
-<
-
-
-OTHER OPTIONS ~
-
-
-ALLOWING A PROMPT TO APPEAR AS A SLASH COMMAND
-
-It can be useful to have a prompt from the prompt library appear as a slash
-command in the chat buffer, like with the `Generate a Commit Message` action.
-This can be done by specifying a `is_slash_cmd = true` option to the prompt:
-
->lua
-    ["Generate a Commit Message"] = {
-      strategy = "chat",
-      description = "Generate a commit message",
-      opts = {
-        alias = "commit",
-        auto_submit = true,
-        is_slash_cmd = true,
-      },
-      prompts = {
-        -- Prompts go here
-      }
-    }
-<
-
-In the chat buffer, if you type `/` you will see the value of `opts.alias`
-appear in the completion menu for you to expand.
-
-
-SPECIFYING AN ADAPTER AND MODEL
-
->lua
-    ["Your_New_Prompt"] = {
-      strategy = "chat",
-      description = "Your Special Prompt",
-      opts = {
-        adapter = {
-          name = "ollama",
-          model = "deepseek-coder:6.7b",
-        },
-      },
-      -- Your prompts here
-    }
-<
-
-
-SPECIFYING A PLACEMENT FOR INLINE PROMPTS
-
-As outlined in the |codecompanion-usage-inline-assistant.html-classification|
-section, an inline prompt can place its response in many different ways within
-a Neovim buffer. To override this, you can reference a specific placement:
-
->lua
-    ["Your_New_Prompt"] = {
-      strategy = "inline",
-      description = "Your Special Inline Prompt",
-      opts = {
-        placement = "new" -- or "replace"|"add"|"before"|"chat"
-      },
-      -- Your prompts here
-    }
-<
-
-In this example, the LLM’s response will be placed in a new buffer.
-
-
-IGNORING THE DEFAULT SYSTEM PROMPT
-
-It may also be useful to create custom prompts that do not send the default
-system prompt with the request:
-
->lua
-    ["Your_New_Prompt"] = {
-      strategy = "chat",
-      description = "Your Special New Prompt",
-      opts = {
-        ignore_system_prompt = true,
-      },
-      -- Your prompts here
-    }
-<
-
-
-SETTING A CUSTOM INTRO MESSAGE
-
-To customize the chat buffer UI, you can set a custom intro message:
-
->lua
-    ["Your_New_Prompt"] = {
-      strategy = "chat",
-      description = "Your Special New Prompt",
-      opts = {
-        intro_message = "Welcome to your Special New Prompt"
-      },
-      -- Your prompts here
-    }
-<
-
-
-PROMPTS WITH CONTEXT
-
-It can be useful to pre-load a chat buffer with context from `files`, `symbols`
-or even `urls`. This makes conversing with an LLM that much more productive.
-This can now accomplished, as per the example below:
-
->lua
-    ["Test Context"] = {
-      strategy = "chat",
-      description = "Add some context",
-      opts = {
-        alias = "ref",
-        auto_submit = false,
-        is_slash_cmd = false,
-      },
-      -- These will appear at the top of the chat buffer
-      context = {
-        {
-          type = "file",
-          path = { -- This can be a string or a table of values
-            "lua/codecompanion/health.lua",
-            "lua/codecompanion/http.lua",
-          },
-        },
-        {
-          type = "file",
-          path = "lua/codecompanion/schema.lua",
-        },
-        {
-          type = "symbols",
-          path = "lua/codecompanion/strategies/chat/init.lua",
-        },
-        {
-          type = "url", -- This URL will even be cached for you!
-          url = "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/commands.lua",
-        },
-      },
-      prompts = {
-        {
-          role = "user",
-          content = "I'll think of something clever to put here...",
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
-    },
-<
-
-
-PROMPTS WITH RULES
-
-You can specify a default rule group to load with a prompt:
-
->lua
-    ["Test Context"] = {
-      strategy = "chat",
-      description = "Add some context",
-      opts = {
-        default_rules = "my_rule_group",
-      },
-      prompts = {
-        -- Prompt go here
-      }
-    },
-<
-
-
-CONCLUSION ~
-
-Hopefully this serves as a useful introduction on how you can expand
-CodeCompanion to create prompts that suit your workflow. It’s worth checking
-out config.lua
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
-files for more complex examples.
-
-
 CREATING TOOLS                        *codecompanion-extending-creating-tools*
 
 In CodeCompanion, tools offer pre-defined ways for LLMs to call functions on
@@ -6625,7 +6481,8 @@ the subscription to prevent it from being executed again.
 SIMPLE WORKFLOWS ~
 
 Workflows are setup in exactly the same way as prompts in the
-|codecompanion-extending-prompts|. Take the `code workflow` as an example:
+|codecompanion-configuration-prompt-library-creating-prompts|. Take the `code
+workflow` as an example:
 
 >lua
     ["Code workflow"] = {

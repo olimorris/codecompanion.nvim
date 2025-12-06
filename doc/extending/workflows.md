@@ -16,7 +16,7 @@ When initiated from the [Action Palette](/usage/action-palette), workflows attac
 
 ## Simple Workflows
 
-Workflows are setup in exactly the same way as prompts in the [prompt library](/extending/prompts). Take the `code workflow` as an example:
+Workflows are setup in exactly the same way as prompts in the [prompt library](/configuration/prompt-library#creating-prompts). Take the `code workflow` as an example:
 
 ```lua
 ["Code workflow"] = {
