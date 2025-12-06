@@ -8,38 +8,8 @@
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
-local context_utils = require("codecompanion.utils.context")
 
--- Cache variables
-local _cached_prompts = nil
-local _cached_short_name_prompts = nil
 local _cached_adapters = nil
-
----Get the prompt library items
----@return table
-local function get_prompts()
-  if not _cached_prompts then
-    local context = context_utils.get(vim.api.nvim_get_current_buf())
-    _cached_prompts = require("codecompanion.actions").get_cached_items(context)
-  end
-  return _cached_prompts
-end
-
----Get the short_name of any prompt library items
----@return string[]
-local function get_short_name_prompts()
-  if not _cached_short_name_prompts then
-    local prompts = get_prompts()
-    _cached_short_name_prompts = {}
-    vim.iter(prompts):each(function(k, _)
-      if k.opts and k.opts.short_name then
-        k = k.opts.short_name
-        table.insert(_cached_short_name_prompts, k)
-      end
-    end)
-  end
-  return _cached_short_name_prompts
-end
 
 ---Get the available adapters from the config
 ---@return string[]
@@ -68,14 +38,11 @@ return {
       if opts.fargs[1] and string.sub(opts.fargs[1], 1, 1) == "/" then
         -- Get the prompt minus the slash
         local prompt = string.sub(opts.fargs[1], 2)
-        local prompts = get_prompts()
 
-        if prompts[prompt] then
-          if #opts.fargs > 1 then
-            opts.user_prompt = table.concat(opts.fargs, " ", 2)
-          end
-          return codecompanion.prompt_library(prompts[prompt], opts)
+        if #opts.fargs > 1 then
+          opts.user_prompt = table.concat(opts.fargs, " ", 2)
         end
+        return codecompanion.prompt(prompt, opts)
       end
 
       -- If the user calls the command with no prompt, then ask for their input
@@ -122,7 +89,7 @@ return {
         -- Always provide completions for adapters, prompt library, and variables
         local completions = {}
         local adapters = get_adapters()
-        local short_name_prompts = get_short_name_prompts()
+        local short_name_prompts = require("codecompanion.helpers").get_short_name_prompts()
 
         -- Add adapters
         for _, adapter in ipairs(adapters) do
@@ -264,11 +231,19 @@ return {
   {
     cmd = "CodeCompanionActions",
     callback = function(opts)
+      if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then
+        local context = require("codecompanion.utils.context").get(vim.api.nvim_get_current_buf())
+        require("codecompanion.actions").refresh_cache(context)
+      end
       codecompanion.actions(opts)
     end,
     opts = {
       desc = "Open the CodeCompanion actions palette",
       range = true,
+      nargs = "*",
+      complete = function(arg_lead, cmdline, _cursor_pos)
+        return { "refresh" }
+      end,
     },
   },
 }

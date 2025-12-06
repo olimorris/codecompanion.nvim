@@ -31,7 +31,7 @@ CodeCompanion.inline = function(args)
   return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
----Accept the next word
+---Accept the next word of code completion
 ---@return nil
 CodeCompanion.inline_accept_word = function()
   if vim.fn.has("nvim-0.12") == 0 then
@@ -40,7 +40,7 @@ CodeCompanion.inline_accept_word = function()
   return require("codecompanion.strategies.inline.completion").accept_word()
 end
 
----Accept the next line
+---Accept the next line of code completion
 ---@return nil
 CodeCompanion.inline_accept_line = function()
   if vim.fn.has("nvim-0.12") == 0 then
@@ -49,44 +49,24 @@ CodeCompanion.inline_accept_line = function()
   return require("codecompanion.strategies.inline.completion").accept_line()
 end
 
----Initiate a prompt from the prompt library
----@param prompt table The prompt to resolve from the command
----@param args table The arguments that were passed to the command
----@return nil
-CodeCompanion.prompt_library = function(prompt, args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
-
-  -- A user may add a further prompt
-  if prompt.opts and prompt.opts.user_prompt and args.user_prompt then
-    prompt.opts.user_prompt = args.user_prompt
-  end
-
-  return require("codecompanion.strategies")
-    .new({
-      buffer_context = context,
-      selected = prompt,
-    })
-    :start(prompt.strategy)
-end
-
 ---Run a prompt from the prompt library
----@param name string
+---@param short_name string
 ---@param args table?
 ---@return nil
-CodeCompanion.prompt = function(name, args)
+CodeCompanion.prompt = function(short_name, args)
   local actions = require("codecompanion.actions")
 
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local prompt = actions.resolve_from_short_name(name, context)
+  local prompt = actions.resolve_from_short_name(short_name, context)
 
   if not prompt then
-    return log:warn("Could not find `%s` in the prompt library", name)
+    return log:warn("Could not find `%s` in the prompt library", short_name)
   end
 
   return actions.resolve(prompt, context)
 end
 
---Add visually selected code to the current chat buffer
+---Add visually selected code to the current chat buffer
 ---@param args table
 ---@return nil
 CodeCompanion.add = function(args)
