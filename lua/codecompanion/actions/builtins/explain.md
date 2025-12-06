@@ -3,12 +3,11 @@ name: Explain code
 strategy: chat
 description: Explain how code in a buffer works
 opts:
+  alias: explain
   auto_submit: true
-  is_default: true
   is_slash_cmd: true
   modes:
     - v
-  short_name: explain
   stop_context_insertion: true
 ---
 

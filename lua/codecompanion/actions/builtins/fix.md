@@ -3,12 +3,11 @@ name: Fix code
 strategy: chat
 description: Fix the selected code
 opts:
+  alias: fix
   auto_submit: true
-  is_default: true
   is_slash_cmd: false
   modes:
     - v
-  short_name: fix
   stop_context_insertion: true
 ---
 

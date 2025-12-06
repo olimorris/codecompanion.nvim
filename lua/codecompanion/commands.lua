@@ -89,7 +89,7 @@ return {
         -- Always provide completions for adapters, prompt library, and variables
         local completions = {}
         local adapters = get_adapters()
-        local short_name_prompts = require("codecompanion.helpers").get_short_name_prompts()
+        local prompt_aliases = require("codecompanion.helpers").get_prompt_aliases()
 
         -- Add adapters
         for _, adapter in ipairs(adapters) do
@@ -97,7 +97,7 @@ return {
         end
 
         -- Add prompt library items
-        vim.iter(short_name_prompts):each(function(k)
+        vim.iter(prompt_aliases):each(function(k)
           table.insert(completions, "/" .. k)
         end)
 

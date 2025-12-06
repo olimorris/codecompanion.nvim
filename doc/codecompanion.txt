@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 November 29
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -550,7 +550,7 @@ alongside your prompt, you can leverage
 |codecompanion-usage-inline-assistant-variables| such as `:CodeCompanion
 #{buffer} <your prompt>`.
 
-For convenience, you can call prompts with their `short_name` from the prompt
+For convenience, you can call prompts with their `alias` from the prompt
 library
 <https://github.com/olimorris/codecompanion.nvim/blob/6a4341a4cfe8988a57ad9e8b7dc01ccd6f3e1628/lua/codecompanion/config.lua#L565>
 such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the
@@ -848,7 +848,7 @@ You can change the appearance of the chat buffer by changing the
           provider = "default", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
           opts = {
             show_default_actions = true, -- Show the default actions in the action palette?
-            show_default_prompt_library = true, -- Show the default prompt library in the action palette?
+            show_prompt_library_builtins = true, -- Show the default prompt library prompts in the action palette?
             title = "CodeCompanion actions", -- The title of the action palette
           },
         },
@@ -2175,7 +2175,7 @@ to have more granular control.
 
 PROMPT LIBRARY                    *codecompanion-configuration-prompt-library*
 
-The plugin comes with a number of pre-built prompts. As per the config
+The plugin comes with a number of builtin prompts. As per the config
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
 these can be called via keymaps or via the cmdline. These prompts have been
 carefully curated to mimic those in GitHub’s Copilot Chat
@@ -2198,10 +2198,9 @@ Custom prompts can be added as follows:
           strategy = "chat",
           description = "Write documentation for me",
           opts = {
-            index = 11,
-            is_slash_cmd = false,
+            alias = "docs",
             auto_submit = false,
-            short_name = "docs",
+            is_slash_cmd = false,
           },
           context = {
             {
@@ -2230,7 +2229,7 @@ Custom prompts can be added as follows:
 <
 
 
-ASSIGNING PROMPTS TO A KEYMAP ~
+KEYMAPS ~
 
 You can assign prompts from the prompt library to a keymap via the `prompt`
 function:
@@ -2241,7 +2240,7 @@ function:
     end, { noremap = true, silent = true })
 <
 
-Where `docs` is the `short_name` of the prompt.
+Where `docs` is the `alias` of the prompt.
 
 
 SYSTEM PROMPTS                    *codecompanion-configuration-system-prompts*
@@ -2869,24 +2868,27 @@ These can be turned off in the config by setting
 `display.action_palette.opts.show_default_actions = false`.
 
 
-DEFAULT PROMPTS ~
+BUILTIN PROMPTS ~
 
 The plugin also defines a number of prompts in the form of the prompt library:
 
-- `Explain` - Explain how code in a buffer works
-- `Fix Code` - Fix the selected code
-- `Explain LSP Diagnostics` - Explain the LSP diagnostics for the selected code
-- `Unit Tests` - Generate unit tests for selected code
-- `Generate a Commit Message` - Generate a commit message
+- `Commit message` - Generate a commit message
+- `Explain code` - Explain how code in a buffer works
+- `Explain LSP diagnostics` - Explain the LSP diagnostics for the selected code
+- `Fix code` - Fix the selected code
+- `Unit tests` - Generate unit tests for selected code
 
 
-  [!INFO] These can also be called via the cmd line for example `:CodeCompanion
-  /explain`
-The plugin also contains an example workflow, `Code Workflow`. See the
-|codecompanion-usage-workflows| for more information.
+  [!INFO] These can also be called via the cmd line with their `alias`, for
+  example `:CodeCompanion /explain`
+The plugin also contains two builtin workflows, `Code workflow` and `Edit test
+repeat workflow`. See the |codecompanion-usage-workflows| for more information.
 
-The default prompts can be turned off by setting
-`display.action_palette.show_default_prompt_library = false`.
+The builtin prompts can be turned off by setting
+`display.action_palette.show_prompt_library_builtins = false`.
+
+You can also refresh the markdown prompts in your prompt library with
+`:CodeCompanionActions refresh`
 
 
 CHAT BUFFER                                  *codecompanion-usage-chat-buffer*
@@ -5439,10 +5441,10 @@ builtin to the plugin as the `Code Advisor` action:
           strategy = "chat",
           description = "Get some special advice from an LLM",
           opts = {
+            alias = "expert",
+            auto_submit = true,
             mapping = "<LocalLeader>ce",
             modes = { "v" },
-            short_name = "expert",
-            auto_submit = true,
             stop_context_insertion = true,
             user_prompt = true,
           },
@@ -5479,10 +5481,10 @@ PALETTE OPTIONS
 
 >lua
     opts = {
+      alias = "expert",
+      auto_submit = true,
       mapping = "<LocalLeader>ce",
       modes = { "v" },
-      short_name = "expert",
-      auto_submit = true,
       stop_context_insertion = true,
       user_prompt = true,
     },
@@ -5492,10 +5494,10 @@ In the `opts` table we’re specifying that we only want this action to appear
 in the `Action Palette` if we’re in visual mode. We’re also asking the chat
 strategy to automatically submit the prompts to the LLM via the `auto_submit =
 true` value. We’re also telling the picker that we want to get the user’s
-input before we action the response with `user_prompt = true`. With the
-`short_name = "expert"` option, the user can run `:CodeCompanion /expert` from
-the cmdline in order to trigger this prompt. Finally, as we define a prompt to
-add any visually selected text to the chat buffer, we need to add the
+input before we action the response with `user_prompt = true`. With the `alias
+= "expert"` option, the user can run `:CodeCompanion /expert` from the cmdline
+in order to trigger this prompt. Finally, as we define a prompt to add any
+visually selected text to the chat buffer, we need to add the
 `stop_context_insertion = true` option to prevent the chat buffer from
 duplicating this. Remember that visually selecting text and opening a chat
 buffer will result in that selection from being adding as a codeblock.
@@ -5639,11 +5641,9 @@ This can be done by specifying a `is_slash_cmd = true` option to the prompt:
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 9,
-        is_default = true,
-        is_slash_cmd = true,
-        short_name = "commit",
+        alias = "commit",
         auto_submit = true,
+        is_slash_cmd = true,
       },
       prompts = {
         -- Prompts go here
@@ -5651,7 +5651,7 @@ This can be done by specifying a `is_slash_cmd = true` option to the prompt:
     }
 <
 
-In the chat buffer, if you type `/` you will see the value of `opts.short_name`
+In the chat buffer, if you type `/` you will see the value of `opts.alias`
 appear in the completion menu for you to expand.
 
 
@@ -5736,11 +5736,9 @@ This can now accomplished, as per the example below:
       strategy = "chat",
       description = "Add some context",
       opts = {
-        index = 11,
-        is_default = true,
-        is_slash_cmd = false,
-        short_name = "ref",
+        alias = "ref",
         auto_submit = false,
+        is_slash_cmd = false,
       },
       -- These will appear at the top of the chat buffer
       context = {
@@ -6634,9 +6632,7 @@ Workflows are setup in exactly the same way as prompts in the
       strategy = "workflow",
       description = "Use a workflow to guide an LLM in writing code",
       opts = {
-        index = 4,
-        is_default = true,
-        short_name = "cw",
+        alias = "cw",
       },
       prompts = {
         {

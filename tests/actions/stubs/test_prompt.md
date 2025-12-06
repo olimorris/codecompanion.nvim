@@ -8,7 +8,7 @@ opts:
   is_slash_cmd: true
   modes:
     - v
-  short_name: explain
+  alias: explain
   stop_context_insertion: true
   user_prompt: false
 ---

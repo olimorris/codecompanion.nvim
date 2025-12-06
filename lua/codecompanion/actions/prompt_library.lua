@@ -11,7 +11,7 @@ function M.resolve(context, config)
 
   for name, prompt in pairs(config.prompt_library) do
     if
-      not config.display.action_palette.opts.show_default_prompt_library and (prompt.opts and prompt.opts.is_default)
+      not config.display.action_palette.opts.show_prompt_library_builtins and (prompt.opts and prompt.opts.is_default)
     then
       goto continue
     end

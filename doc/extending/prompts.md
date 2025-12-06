@@ -109,10 +109,10 @@ require("codecompanion").setup({
       strategy = "chat",
       description = "Get some special advice from an LLM",
       opts = {
+        alias = "expert",
+        auto_submit = true,
         mapping = "<LocalLeader>ce",
         modes = { "v" },
-        short_name = "expert",
-        auto_submit = true,
         stop_context_insertion = true,
         user_prompt = true,
       },
@@ -148,16 +148,16 @@ At first glance there's a lot of new stuff in this. Let's break it down.
 
 ```lua
 opts = {
+  alias = "expert",
+  auto_submit = true,
   mapping = "<LocalLeader>ce",
   modes = { "v" },
-  short_name = "expert",
-  auto_submit = true,
   stop_context_insertion = true,
   user_prompt = true,
 },
 ```
 
-In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM via the `auto_submit = true` value. We're also telling the picker that we want to get the user's input before we action the response with `user_prompt = true`. With the `short_name = "expert"` option, the user can run `:CodeCompanion /expert` from the cmdline in order to trigger this prompt. Finally, as we define a prompt to add any visually selected text to the chat buffer, we need to add the `stop_context_insertion = true` option to prevent the chat buffer from duplicating this. Remember that visually selecting text and opening a chat buffer will result in that selection from being adding as a codeblock.
+In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM via the `auto_submit = true` value. We're also telling the picker that we want to get the user's input before we action the response with `user_prompt = true`. With the `alias = "expert"` option, the user can run `:CodeCompanion /expert` from the cmdline in order to trigger this prompt. Finally, as we define a prompt to add any visually selected text to the chat buffer, we need to add the `stop_context_insertion = true` option to prevent the chat buffer from duplicating this. Remember that visually selecting text and opening a chat buffer will result in that selection from being adding as a codeblock.
 
 ### Prompt options and context
 
@@ -285,11 +285,9 @@ It can be useful to have a prompt from the prompt library appear as a slash comm
   strategy = "chat",
   description = "Generate a commit message",
   opts = {
-    index = 9,
-    is_default = true,
-    is_slash_cmd = true,
-    short_name = "commit",
+    alias = "commit",
     auto_submit = true,
+    is_slash_cmd = true,
   },
   prompts = {
     -- Prompts go here
@@ -297,7 +295,7 @@ It can be useful to have a prompt from the prompt library appear as a slash comm
 }
 ```
 
-In the chat buffer, if you type `/` you will see the value of `opts.short_name` appear in the completion menu for you to expand.
+In the chat buffer, if you type `/` you will see the value of `opts.alias` appear in the completion menu for you to expand.
 
 ### Specifying an Adapter and Model
 
@@ -371,11 +369,9 @@ It can be useful to pre-load a chat buffer with context from _files_, _symbols_ 
   strategy = "chat",
   description = "Add some context",
   opts = {
-    index = 11,
-    is_default = true,
-    is_slash_cmd = false,
-    short_name = "ref",
+    alias = "ref",
     auto_submit = false,
+    is_slash_cmd = false,
   },
   -- These will appear at the top of the chat buffer
   context = {

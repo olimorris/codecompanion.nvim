@@ -50,17 +50,17 @@ CodeCompanion.inline_accept_line = function()
 end
 
 ---Run a prompt from the prompt library
----@param short_name string
+---@param alias string
 ---@param args table?
 ---@return nil
-CodeCompanion.prompt = function(short_name, args)
+CodeCompanion.prompt = function(alias, args)
   local actions = require("codecompanion.actions")
 
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local prompt = actions.resolve_from_short_name(short_name, context)
+  local prompt = actions.resolve_from_alias(alias, context)
 
   if not prompt then
-    return log:warn("Could not find `%s` in the prompt library", short_name)
+    return log:warn("Could not find `%s` in the prompt library", alias)
   end
 
   return actions.resolve(prompt, context)

@@ -3,13 +3,12 @@ name: Unit tests
 strategy: inline
 description: Generate unit tests for the selected code
 opts:
+  alias: tests
   auto_submit: true
-  is_default: true
   is_slash_cmd: false
   modes:
     - v
   placement: new
-  short_name: tests
   stop_context_insertion: true
 ---
 

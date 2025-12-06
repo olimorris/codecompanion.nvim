@@ -146,7 +146,7 @@ function M.slash_commands()
     end)
     :each(function(_, v)
       table.insert(slash_commands, {
-        label = "/" .. v.opts.short_name,
+        label = "/" .. v.opts.alias,
         detail = v.description,
         config = v,
         type = "slash_command",

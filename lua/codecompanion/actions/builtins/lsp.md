@@ -3,11 +3,10 @@ name: Explain LSP diagnostics
 strategy: chat
 description: Explain the LSP diagnostics for the selected code
 opts:
-  is_default: true
+  alias: lsp
   is_slash_cmd: false
   modes:
     - v
-  short_name: lsp
   stop_context_insertion: true
 ---
 

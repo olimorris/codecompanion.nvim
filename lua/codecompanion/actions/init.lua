@@ -50,7 +50,7 @@ function Actions.set_items(context)
 
     -- Add builtin markdown prompts
     local markdown = require("codecompanion.actions.markdown")
-    if config.display.action_palette.opts.show_default_prompt_library then
+    if config.display.action_palette.opts.show_prompt_library_builtins then
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
       local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
       for _, prompt in ipairs(builtin_prompts) do
@@ -108,15 +108,15 @@ function Actions.get_cached_items(context)
   return _cached_actions
 end
 
----Resolves an item from its short name
----@param name string The short name of the action
+---Resolves an item from an alias
+---@param alias string
 ---@param context CodeCompanion.BufferContext
 ---@return table|nil
-function Actions.resolve_from_short_name(name, context)
+function Actions.resolve_from_alias(alias, context)
   Actions.set_items(context)
 
   for _, item in ipairs(_cached_actions) do
-    if item.opts.short_name == name then
+    if item.opts.alias == alias then
       return item
     end
   end

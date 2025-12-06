@@ -20,10 +20,9 @@ require("codecompanion").setup({
       strategy = "chat",
       description = "Write documentation for me",
       opts = {
-        index = 11,
-        is_slash_cmd = false,
+        alias = "docs",
         auto_submit = false,
-        short_name = "docs",
+        is_slash_cmd = false,
       },
       context = {
         {
@@ -61,5 +60,5 @@ vim.keymap.set("n", "<LocalLeader>d", function()
 end, { noremap = true, silent = true })
 ```
 
-Where `docs` is the `short_name` of the prompt.
+Where `docs` is the `alias` of the prompt.
 

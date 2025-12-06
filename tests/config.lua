@@ -387,7 +387,7 @@ return {
       strategy = "chat",
       description = "Demo prompt",
       opts = {
-        short_name = "demo",
+        alias = "demo",
       },
       prompts = {
         {
@@ -415,10 +415,8 @@ return {
       strategy = "chat",
       description = "Add some context",
       opts = {
-        index = 1,
-        is_default = true,
+        alias = "test_ref",
         is_slash_cmd = false,
-        short_name = "test_ref",
         auto_submit = false,
       },
       context = {

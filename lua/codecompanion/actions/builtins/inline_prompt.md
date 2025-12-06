@@ -3,7 +3,6 @@ name: Inline prompt
 strategy: inline
 description: Prompt the LLM from inside a Neovim buffer
 opts:
-  is_default: true
   is_slash_cmd: false
   user_prompt: true
 ---

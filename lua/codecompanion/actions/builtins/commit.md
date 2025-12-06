@@ -3,10 +3,9 @@ name: Commit message
 strategy: chat
 description: Generate a commit message
 opts:
+  alias: commit
   auto_submit: false
-  is_default: true
   is_slash_cmd: true
-  short_name: commit
 ---
 
 ## user

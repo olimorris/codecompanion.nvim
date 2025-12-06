@@ -27,7 +27,7 @@ T["Prompt Library"]["can specify separate adapter and model"] = function()
           description = "Testing that different adapters work",
           opts = {
             index = 1,
-            short_name = "test_adapters",
+            alias = "test_adapters",
             adapter = {
               name = "copilot",
               model = "gpt-4.1",
@@ -65,7 +65,7 @@ T["Prompt Library"]["can add context"] = function()
             index = 1,
             is_default = true,
             is_slash_cmd = false,
-            short_name = "test_context",
+            alias = "test_context",
             auto_submit = false,
           },
           context = {
@@ -108,7 +108,7 @@ T["Prompt Library"]["can add context"] = function()
               index = 1,
               is_default = true,
               is_slash_cmd = false,
-              short_name = "test_context",
+              alias = "test_context",
               auto_submit = false,
             },
             context = {
@@ -157,7 +157,7 @@ T["Prompt Library"]["can add rules"] = function()
             description = "Chat with your test prompt",
             opts = {
               index = 4,
-              short_name = "test_prompt",
+              alias = "test_prompt",
               ignore_system_prompt = true,
               default_rules = "default",
             },
@@ -188,7 +188,7 @@ T["Prompt Library"]["can ignore system prompt"] = function()
             strategy = "chat",
             description = "No system prompt from config",
             opts = {
-              short_name = "no_sys",
+              alias = "no_sys",
               index = 1,
               ignore_system_prompt = true,
             },

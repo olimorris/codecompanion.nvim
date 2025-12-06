@@ -842,7 +842,7 @@ The user is working on a %s machine. Please respond with system specific command
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
         show_default_actions = true, -- Show the default actions in the action palette?
-        show_default_prompt_library = true, -- Show the default prompt library in the action palette?
+        show_prompt_library_builtins = true, -- Show the default prompt library in the action palette?
         title = "CodeCompanion actions", -- The title of the action palette
       },
     },

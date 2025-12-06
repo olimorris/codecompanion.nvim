@@ -38,7 +38,7 @@ opts:
     model: gpt-4.1
   modes:
     - v
-  short_name: explain
+  alias: explain
   stop_context_insertion: true
   user_prompt: false
 ---
@@ -60,7 +60,7 @@ opts:
       is_default = true,
       is_slash_cmd = true,
       modes = { "v" },
-      short_name = "explain",
+      alias = "explain",
       stop_context_insertion = true,
       user_prompt = false,
     },
@@ -329,7 +329,7 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
         is_default = true,
         is_slash_cmd = true,
         modes = { "v" },
-        short_name = "explain",
+        alias = "explain",
         stop_context_insertion = true,
         user_prompt = false,
       },

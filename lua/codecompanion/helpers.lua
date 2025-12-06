@@ -11,15 +11,15 @@ end
 
 ---Get short names of prompts from the prompt library
 ---@return string[]
-function M.get_short_name_prompts()
+function M.get_prompt_aliases()
   local prompts = M.get_prompts()
-  local short_names = {}
+  local aliases = {}
   vim.iter(prompts):each(function(k, _)
-    if k.opts and k.opts.short_name then
-      table.insert(short_names, k.opts.short_name)
+    if k.opts and k.opts.alias then
+      table.insert(aliases, k.opts.alias)
     end
   end)
-  return short_names
+  return aliases
 end
 
 return M
