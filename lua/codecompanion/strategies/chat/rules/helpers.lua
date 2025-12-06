@@ -98,12 +98,21 @@ function M.add_callbacks(args, rules_name)
     return args.callbacks
   end
 
-  local defaults = rules_name or rules.default_rules
+  local default_rules = rules_name or rules.default_rules
   local memories = {}
-  if type(defaults) == "string" then
-    memories = { defaults }
-  elseif type(defaults) == "table" then
-    memories = vim.deepcopy(defaults)
+  if type(default_rules) == "string" then
+    memories = { default_rules }
+  elseif type(default_rules) == "table" then
+    memories = vim.deepcopy(default_rules)
+  elseif type(default_rules) == "function" then
+    memories = default_rules()
+    assert(
+      type(memories) == "string" or type(memories) == "table",
+      "default_rules must return a string or table of strings"
+    )
+    if type(memories) == "string" then
+      memories = { memories }
+    end
   else
     return args.callbacks
   end

@@ -123,22 +123,6 @@ require("codecompanion").setup({
 })
 ```
 
-== Setting Default Groups
-
-```lua
-require("codecompanion").setup({
-  rules = {
-    opts = {
-      chat = {
-        default_rules = "default",
-        -- Or, set multiple default groups
-        --default_rules = { "default", "another_new_group" },
-      },
-    },
-  },
-})
-```
-
 :::
 
 Nested groups allow you to apply the same conditional to multiple groups alongside keeping your config clean. In the example above, the main group is `CodeCompanion` and a sub-group, `acp`, sits within the files table. The `claude` parser sits across all of the groups.
@@ -146,6 +130,62 @@ Nested groups allow you to apply the same conditional to multiple groups alongsi
 When using the _Action Palette_ or the slash command, the plugin will extract these nested groups and display them.
 
 You can also set default groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
+
+### Default Rule groups
+
+You can set default rule groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
+
+::: tabs
+
+== Single Group
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      chat = {
+        default_rules = "default",
+      },
+    },
+  },
+})
+```
+
+== Multiple Groups
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      chat = {
+        default_rules = { "default", "another_new_group" },
+      },
+    },
+  },
+})
+```
+
+== Conditional Groups
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      chat = {
+        ---@return string|string[]
+        default_rules = function()
+          if vim.fn.getcwd():find("my_secret_project", 1, true) ~= nil then
+            return { "default", "secret_group" }
+          end
+          return "default"
+        end,
+      },
+    },
+  },
+})
+```
+
+:::
 
 ## Parsers
 
