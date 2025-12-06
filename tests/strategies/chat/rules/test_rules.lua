@@ -12,20 +12,20 @@ local T = new_set({
   },
 })
 
-T["Rules.make() with string file (no parser)"] = function()
+T["Rules:make()"] = new_set({})
+
+T["Rules:make()"]["with string file (no parser)"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
   local content = "plain rules content"
   child.fn.writefile({ content }, tmp)
 
-  -- Monkey-patch helpers to capture processed data and chat
   child.lua([[
     package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
-        _G.__mem_processed = processed
-        _G.__mem_chat = chat
+        _G.test_processed = processed
+        _G.test_chat = chat
       end
     }
-    -- Minimal config to avoid nil in parsers module
     package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
 
@@ -37,21 +37,20 @@ T["Rules.make() with string file (no parser)"] = function()
     tmp
   ))
 
-  local processed = child.lua("return _G.__mem_processed")
-  local chat = child.lua("return _G.__mem_chat")
+  local processed = child.lua("return _G.test_processed")
+  local chat = child.lua("return _G.test_chat")
   local expected_filename = child.lua("return vim.fn.fnamemodify(..., ':t')", { tmp })
   local expected_path = child.lua("return vim.fs.normalize(...)", { tmp })
 
   h.eq(type(processed), "table")
   h.eq(#processed, 1)
-  -- file read returns content plus newline; code earlier expected content .. "\n"
   h.eq(processed[1].content, content .. "\n")
   h.eq(processed[1].filename, expected_filename)
   h.eq(processed[1].path, expected_path)
   h.eq(chat.id, "c-1")
 end
 
-T["Rules.make() applies parser when provided at file level"] = function()
+T["Rules:make()"]["applies parser when provided at file level"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
   local content = "to be parsed"
   child.fn.writefile({ content }, tmp)
@@ -64,11 +63,10 @@ T["Rules.make() applies parser when provided at file level"] = function()
         }
       }
     }
-
     package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
-        _G.__mem2_processed = processed
-        _G.__mem2_chat = chat
+        _G.test_processed = processed
+        _G.test_chat = chat
       end
     }
   ]])
@@ -84,8 +82,8 @@ T["Rules.make() applies parser when provided at file level"] = function()
     tmp
   ))
 
-  local processed = child.lua("return _G.__mem2_processed")
-  local chat = child.lua("return _G.__mem2_chat")
+  local processed = child.lua("return _G.test_processed")
+  local chat = child.lua("return _G.test_chat")
 
   h.eq(type(processed), "table")
   h.eq(#processed, 1)
@@ -93,25 +91,24 @@ T["Rules.make() applies parser when provided at file level"] = function()
   h.eq(chat.id, "c-2")
 end
 
-T["Rules.make() with directory file (no parser)"] = function()
+T["Rules:make()"]["with directory file (no parser)"] = function()
   local tmpdir = child.lua("return vim.fn.tempname()")
-  -- create directory
   child.fn.mkdir(tmpdir)
-  local f1 = tmpdir .. "/one.txt"
-  local f2 = tmpdir .. "/two.md"
+  local f1 = vim.fs.joinpath(tmpdir, "one.txt")
+  local f2 = vim.fs.joinpath(tmpdir, "two.md")
   child.fn.writefile({ "first file" }, f1)
   child.fn.writefile({ "second file" }, f2)
-  -- Monkey-patch helpers to capture processed data and chat
+
   child.lua([[
     package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
-        _G.__mem3_processed = processed
-        _G.__mem3_chat = chat
+        _G.test_processed = processed
+        _G.test_chat = chat
       end
     }
-    -- Minimal config to avoid nil in parsers module
     package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
+
   child.lua(string.format(
     [[
     local Rules = require("codecompanion.strategies.chat.rules.init")
@@ -119,38 +116,41 @@ T["Rules.make() with directory file (no parser)"] = function()
   ]],
     tmpdir
   ))
-  local processed = child.lua("return _G.__mem3_processed")
-  local chat = child.lua("return _G.__mem3_chat")
+
+  local processed = child.lua("return _G.test_processed")
+  local chat = child.lua("return _G.test_chat")
+
   h.eq(type(processed), "table")
   h.eq(#processed, 2)
+
   local names = {}
   for i = 1, #processed do
     names[i] = processed[i].filename
   end
   table.sort(names)
+
   h.eq(names, { "one.txt", "two.md" })
   h.eq(chat.id, "c-3")
 end
 
-T["Rules.make() with glob pattern"] = function()
+T["Rules:make()"]["with glob pattern"] = function()
   local tmpdir = child.lua("return vim.fn.tempname()")
   child.fn.mkdir(tmpdir)
-  local f1 = tmpdir .. "/alpha.md"
-  local f2 = tmpdir .. "/beta.txt"
+  local f1 = vim.fs.joinpath(tmpdir, "alpha.md")
+  local f2 = vim.fs.joinpath(tmpdir, "beta.txt")
   child.fn.writefile({ "alpha" }, f1)
   child.fn.writefile({ "beta" }, f2)
 
   child.lua([[
     package.loaded['codecompanion.strategies.chat.rules.helpers'] = {
       add_context = function(processed, chat)
-        _G.__mem5_processed = processed
-        _G.__mem5_chat = chat
+        _G.test_processed = processed
+        _G.test_chat = chat
       end
     }
     package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
 
-  -- Use a glob that matches both files in the directory
   local pattern = tmpdir .. "/*"
   child.lua(string.format(
     [[
@@ -160,35 +160,33 @@ T["Rules.make() with glob pattern"] = function()
     pattern
   ))
 
-  local processed = child.lua("return _G.__mem5_processed")
-  local chat = child.lua("return _G.__mem5_chat")
+  local processed = child.lua("return _G.test_processed")
+  local chat = child.lua("return _G.test_chat")
+
   h.eq(type(processed), "table")
   h.eq(#processed, 2)
+
   local names = {}
   for i = 1, #processed do
     names[i] = processed[i].filename
   end
   table.sort(names)
+
   h.eq(names, { "alpha.md", "beta.txt" })
   h.eq(chat.id, "c-5")
 end
 
-T["Rules.make() integration: rules is added to a real chat messages stack"] = function()
+T["Rules:make()"]["integration: rules is added to a real chat messages stack"] = function()
   local tmp = child.lua("return vim.fn.tempname()")
   local content = "integration rules content"
   child.fn.writefile({ content }, tmp)
 
-  -- Use test helpers to setup the plugin (less brittle than directly mutating package.loaded)
   child.lua(string.format(
     [[
     local h = require("tests.helpers")
-
-    -- Initialize plugin with test config (h.setup_plugin returns the codecompanion module)
     local cc = h.setup_plugin()
-
     local config = require("codecompanion.config")
 
-    -- Merge our rules settings into the existing test config to avoid overwriting unrelated defaults
     config.rules = vim.tbl_deep_extend("force", config.rules or {}, {
       default = {
         description = "integration default",
@@ -206,17 +204,16 @@ T["Rules.make() integration: rules is added to a real chat messages stack"] = fu
       },
     })
 
-    -- Create a chat via the public API (this should trigger the rules callback)
-    _G.__int_chat = cc.chat()
-    _G.__int_messages = _G.__int_chat and _G.__int_chat.messages or nil
+    _G.integration_chat = cc.chat()
+    _G.integration_messages = _G.integration_chat and _G.integration_chat.messages or nil
   ]],
     tmp
   ))
 
-  local messages = child.lua_get([[_G.__int_messages]])
+  local messages = child.lua_get([[_G.integration_messages]])
   local last_message = messages[#messages]
 
-  h.eq(#messages, 2) -- System prompt + rules
+  h.eq(#messages, 2)
   h.eq(last_message._meta.tag, "rules")
   h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
   h.eq(last_message.content, content .. "\n")
@@ -225,12 +222,9 @@ end
 T["add_files_or_buffers() prevents duplicate files from being added"] = function()
   local tmp1 = child.lua("return vim.fn.tempname()")
   local tmp2 = child.lua("return vim.fn.tempname()")
-  local content1 = "first file content"
-  local content2 = "second file content"
-  child.fn.writefile({ content1 }, tmp1)
-  child.fn.writefile({ content2 }, tmp2)
+  child.fn.writefile({ "first file content" }, tmp1)
+  child.fn.writefile({ "second file content" }, tmp2)
 
-  -- Setup the test environment
   child.lua(string.format(
     [[
     local h = require("tests.helpers")
@@ -239,7 +233,6 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
     local chat_helpers = require("codecompanion.strategies.chat.helpers")
     local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 
-    -- Create a mock chat object
     local chat = {
       messages = {},
       add_context = function(self, content, tag, id, opts)
@@ -251,31 +244,26 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
       end
     }
 
-    -- Add the same file multiple times
     local files = { %q, %q, %q }
     rules_helpers.add_files_or_buffers(files, chat)
 
-    _G.__dup_test_messages = chat.messages
+    _G.duplicate_messages = chat.messages
   ]],
     tmp1,
     tmp2,
-    tmp1 -- Duplicate of tmp1
+    tmp1
   ))
 
-  local messages = child.lua_get([[_G.__dup_test_messages]])
+  local messages = child.lua_get([[_G.duplicate_messages]])
 
-  -- Should only have 2 messages (no duplicate for tmp1)
   h.eq(#messages, 2)
 
-  -- Verify the two unique files are present
   local has_tmp1 = false
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
     if msg.context and msg.context.id then
-      -- Extract the path from the context id format: <file>path</file>
       local path = msg.context.id:match("<file>(.-)</file>")
       if path then
-        -- Convert to absolute path for comparison
         local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
         if abs_path == vim.fs.normalize(tmp1) then
           has_tmp1 = true
@@ -291,7 +279,6 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
 end
 
 T["add_context() prevents duplicate rules context from being added"] = function()
-  -- Setup the test environment
   child.lua([[
     local h = require("tests.helpers")
     h.setup_plugin()
@@ -299,16 +286,13 @@ T["add_context() prevents duplicate rules context from being added"] = function(
     local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
     local chat_helpers = require("codecompanion.strategies.chat.helpers")
 
-    -- Mock chat_helpers.has_context to track calls
-    local has_context_calls = 0
+    local has_context_call_count = 0
     local original_has_context = chat_helpers.has_context
     chat_helpers.has_context = function(id, messages)
-      has_context_calls = has_context_calls + 1
-      -- Return true on second call to simulate duplicate
-      return has_context_calls > 1
+      has_context_call_count = has_context_call_count + 1
+      return has_context_call_count > 1
     end
 
-    -- Create a mock chat object
     local chat = {
       messages = {},
       add_context = function(self, content, tag, id, opts)
@@ -320,26 +304,22 @@ T["add_context() prevents duplicate rules context from being added"] = function(
       end
     }
 
-    -- Create test files
     local files = {
       { name = "file1.txt", content = "content 1", path = "/tmp/file1.txt" },
-      { name = "file1.txt", content = "content 1", path = "/tmp/file1.txt" }, -- duplicate
+      { name = "file1.txt", content = "content 1", path = "/tmp/file1.txt" },
     }
 
-    -- Add context twice with the same file
     rules_helpers.add_context(files, chat)
 
-    _G.__context_test_messages = chat.messages
-    _G.__context_test_calls = has_context_calls
+    _G.context_messages = chat.messages
+    _G.context_call_count = has_context_call_count
   ]])
 
-  local messages = child.lua_get([[_G.__context_test_messages]])
-  local calls = child.lua_get([[_G.__context_test_calls]])
+  local messages = child.lua_get([[_G.context_messages]])
+  local call_count = child.lua_get([[_G.context_call_count]])
 
-  -- Should only have 1 message (no duplicate)
   h.eq(#messages, 1)
-  -- has_context should have been called twice (once for each file in the list)
-  h.eq(calls, 2)
+  h.eq(call_count, 2)
 end
 
 return T

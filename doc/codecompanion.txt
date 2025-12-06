@@ -2151,6 +2151,14 @@ buffers. This is useful for ensuring that your preferred rules are always
 available.
 
 
+DEFAULT RULE GROUPS
+
+You can set default rule groups that are automatically applied to all chat
+buffers. This is useful for ensuring that your preferred rules are always
+available.
+
+
+
 PARSERS ~
 
 Parsers allow CodeCompanion to transform rules, affecting how they are shared
