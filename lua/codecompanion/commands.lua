@@ -9,36 +9,24 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 
--- Create the short name prompt library items table
-local prompts = vim.iter(config.prompt_library):fold({}, function(acc, _, value)
-  if value.opts and value.opts.short_name then
-    acc[value.opts.short_name] = value
+local _cached_adapters = nil
+
+---Get the available adapters from the config
+---@return string[]
+local function get_adapters()
+  if not _cached_adapters then
+    local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
+    _cached_adapters = vim
+      .iter(config_adapters)
+      :filter(function(k, _)
+        return k ~= "acp" and k ~= "http" and k ~= "opts"
+      end)
+      :map(function(k, _)
+        return k
+      end)
+      :totable()
   end
-  return acc
-end)
-
-local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
-
-local adapters = vim
-  .iter(config_adapters)
-  :filter(function(k, _)
-    return k ~= "acp" and k ~= "http" and k ~= "opts"
-  end)
-  :map(function(k, _)
-    return k
-  end)
-  :totable()
-
-local inline_subcommands = vim.deepcopy(adapters)
-vim.iter(prompts):each(function(k, _)
-  table.insert(inline_subcommands, "/" .. k)
-end)
-
--- Add inline variables
-for key, _ in pairs(config.strategies.inline.variables) do
-  if key ~= "opts" then
-    table.insert(inline_subcommands, "#{" .. key .. "}")
-  end
+  return _cached_adapters
 end
 
 ---@type CodeCompanion.Command[]
@@ -51,12 +39,10 @@ return {
         -- Get the prompt minus the slash
         local prompt = string.sub(opts.fargs[1], 2)
 
-        if prompts[prompt] then
-          if #opts.fargs > 1 then
-            opts.user_prompt = table.concat(opts.fargs, " ", 2)
-          end
-          return codecompanion.prompt_library(prompts[prompt], opts)
+        if #opts.fargs > 1 then
+          opts.user_prompt = table.concat(opts.fargs, " ", 2)
         end
+        return codecompanion.prompt(prompt, opts)
       end
 
       -- If the user calls the command with no prompt, then ask for their input
@@ -81,6 +67,7 @@ return {
       complete = function(arg_lead, cmdline, cursor_pos)
         local param_key = arg_lead:match("^(%w+)=$")
         if param_key == "adapter" then
+          local adapters = get_adapters()
           return vim
             .iter(adapters)
             :map(function(adapter)
@@ -101,6 +88,8 @@ return {
 
         -- Always provide completions for adapters, prompt library, and variables
         local completions = {}
+        local adapters = get_adapters()
+        local prompt_aliases = require("codecompanion.helpers").get_prompt_aliases()
 
         -- Add adapters
         for _, adapter in ipairs(adapters) do
@@ -108,7 +97,7 @@ return {
         end
 
         -- Add prompt library items
-        vim.iter(prompts):each(function(k, _)
+        vim.iter(prompt_aliases):each(function(k)
           table.insert(completions, "/" .. k)
         end)
 
@@ -168,11 +157,12 @@ return {
         -- Check if we're completing a parameter value (e.g., "adapter=" or "model=")
         local param_key = arg_lead:match("^(%w+)=$")
         if param_key == "adapter" then
-          return adapters
+          return get_adapters()
         elseif param_key == "model" then
           -- Extract the adapter from the command line
           local adapter_name = cmdline:match("adapter=(%S+)")
           if adapter_name then
+            local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
             local adapter_config = config_adapters[adapter_name]
             if adapter_config then
               -- Resolve the adapter to get the full schema
@@ -238,15 +228,22 @@ return {
       nargs = "*",
     },
   },
-
   {
     cmd = "CodeCompanionActions",
     callback = function(opts)
+      if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then
+        local context = require("codecompanion.utils.context").get(vim.api.nvim_get_current_buf())
+        require("codecompanion.actions").refresh_cache(context)
+      end
       codecompanion.actions(opts)
     end,
     opts = {
       desc = "Open the CodeCompanion actions palette",
       range = true,
+      nargs = "*",
+      complete = function(arg_lead, cmdline, _cursor_pos)
+        return { "refresh" }
+      end,
     },
   },
 }

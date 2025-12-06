@@ -37,7 +37,7 @@ Thank you to the following people:
 - :brain: Support for [rules](https://codecompanion.olimorris.dev/usage/chat-buffer/rules.html) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 - :crystal_ball: Native [Super Diff](https://codecompanion.olimorris.dev/usage/chat-buffer/index.html#super-diff) for tracking agent edits
 - :sparkles: Built-in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
-- :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/extending/prompts.html), Variables and Slash Commands
+- :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/configuration/prompt-library.html#creating-prompts), Variables and Slash Commands
 - :books: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
 - :art: Support for [vision and images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images-vision) as input
 - :muscle: Async execution for fast performance

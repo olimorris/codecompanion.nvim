@@ -93,6 +93,8 @@ export default withMermaid(
     head: headers,
     sitemap: { hostname: siteUrl },
     themeConfig: {
+      outline: "deep",
+
       logo: "https://github.com/user-attachments/assets/7083eeb1-2f6c-4cf6-82ff-bc3171cab801",
       nav: [
         {
@@ -157,6 +159,7 @@ export default withMermaid(
             },
             { text: "Events", link: "/usage/events" },
             { text: "Inline Assistant", link: "/usage/inline-assistant" },
+            { text: "Prompt Library", link: "/usage/prompt-library" },
             { text: "User Interface", link: "/usage/ui" },
             { text: "Workflows", link: "/usage/workflows" },
           ],
@@ -168,7 +171,6 @@ export default withMermaid(
             { text: "Creating Adapters", link: "/extending/adapters" },
             { text: "Creating Extensions", link: "/extending/extensions" },
             { text: "Creating Rules Parsers", link: "/extending/parsers" },
-            { text: "Creating Prompts", link: "/extending/prompts" },
             { text: "Creating Tools", link: "/extending/tools" },
             { text: "Creating Workflows", link: "/extending/workflows" },
           ],
