@@ -52,7 +52,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
           description = "Test Workflow",
           name = "Code workflow",
           strategy = "workflow",
-          opts = { index = 4, is_default = true },
+          opts = { index = 4 },
           prompts = {
             {
               {

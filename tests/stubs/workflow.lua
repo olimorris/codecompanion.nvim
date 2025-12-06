@@ -4,7 +4,6 @@ return {
   opts = {
     alias = "workflow",
     index = 4,
-    is_default = true,
   },
   prompts = {
     {

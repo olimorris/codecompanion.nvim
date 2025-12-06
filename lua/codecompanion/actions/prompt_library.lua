@@ -10,9 +10,7 @@ function M.resolve(context, config)
   local sort_index = true
 
   for name, prompt in pairs(config.prompt_library) do
-    if
-      not config.display.action_palette.opts.show_prompt_library_builtins and (prompt.opts and prompt.opts.is_default)
-    then
+    if not config.display.action_palette.opts.show_prompt_library_builtins then
       goto continue
     end
 

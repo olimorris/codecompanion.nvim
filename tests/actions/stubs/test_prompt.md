@@ -4,7 +4,6 @@ strategy: chat
 description: Explain how code in a buffer works
 opts:
   auto_submit: true
-  is_default: true
   is_slash_cmd: true
   modes:
     - v

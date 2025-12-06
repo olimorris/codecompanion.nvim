@@ -31,7 +31,6 @@ strategy: chat
 description: Explain how code in a buffer works
 opts:
   auto_submit: true
-  is_default: true
   is_slash_cmd: true
   adapter:
     name: copilot
@@ -57,7 +56,6 @@ opts:
     opts = {
       auto_submit = true,
       adapter = { name = "copilot", model = "gpt-4.1" },
-      is_default = true,
       is_slash_cmd = true,
       modes = { "v" },
       alias = "explain",
@@ -326,7 +324,6 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
       name = "Test Prompt",
       opts = {
         auto_submit = true,
-        is_default = true,
         is_slash_cmd = true,
         modes = { "v" },
         alias = "explain",

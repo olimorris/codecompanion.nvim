@@ -2194,6 +2194,16 @@ as markdown files in your filesystem and reference them in your configuration.
 
 
 
+REFRESHING MARKDOWN PROMPTS
+
+If you add or modify markdown prompts whilst your Neovim session is running,
+you can refresh the prompt library to pick up the changes with:
+
+>
+    :CodeCompanionActions refresh
+<
+
+
 CREATING PROMPTS ~
 
 As mentioned earlier, prompts can be created in two ways: as Lua tables or as

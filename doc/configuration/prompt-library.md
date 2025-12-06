@@ -54,6 +54,14 @@ require("codecompanion").setup({
 
 :::
 
+### Refreshing Markdown Prompts
+
+If you add or modify markdown prompts whilst your Neovim session is running, you can refresh the prompt library to pick up the changes with:
+
+```
+:CodeCompanionActions refresh
+```
+
 ## Creating Prompts
 
 As mentioned earlier, prompts can be created in two ways: as Lua tables or as markdown files.
