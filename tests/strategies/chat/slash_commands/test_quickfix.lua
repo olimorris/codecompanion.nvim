@@ -12,7 +12,7 @@ T = new_set({
         h = require('tests.helpers')
         _G.chat, _ = h.setup_chat_buffer()
 
-        _G.qflist = require("codecompanion.strategies.chat.slash_commands.catalog.quickfix").new({
+        _G.qflist = require("codecompanion.strategies.chat.slash_commands.builtin.quickfix").new({
           Chat = chat,
           config = {
             opts = {

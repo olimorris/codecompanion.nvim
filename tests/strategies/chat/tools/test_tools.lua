@@ -27,7 +27,7 @@ T["Tools"]["resolve"] = new_set()
 T["Tools"]["resolve"]["can resolve built-in tools"] = function()
   child.lua([[
     _G.tool = _G.tools.resolve({
-      callback = "strategies.chat.tools.catalog.create_file",
+      callback = "strategies.chat.tools.builtin.create_file",
       description = "Update a buffer with the LLM's response",
     })
   ]])

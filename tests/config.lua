@@ -83,23 +83,23 @@ return {
       keymaps = og_config.strategies.chat.keymaps,
       tools = {
         ["cmd_runner"] = {
-          callback = "strategies.chat.tools.catalog.cmd_runner",
+          callback = "strategies.chat.tools.builtin.cmd_runner",
           description = "Run shell commands initiated by the LLM",
         },
         ["files"] = {
-          callback = "strategies.chat.tools.catalog.files",
+          callback = "strategies.chat.tools.builtin.files",
           description = "Update the file system with the LLM's response",
         },
         ["next_edit_suggestion"] = {
-          callback = "strategies.chat.tools.catalog.next_edit_suggestion",
+          callback = "strategies.chat.tools.builtin.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
         ["memory"] = {
-          callback = "strategies.chat.tools.catalog.memory",
+          callback = "strategies.chat.tools.builtin.memory",
           description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
         },
         ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
+          callback = "strategies.chat.tools.builtin.insert_edit_into_file",
           description = "Robustly edit files with multiple automatic fallback strategies",
           opts = {
             require_approval_before = {
@@ -110,67 +110,67 @@ return {
           },
         },
         ["create_file"] = {
-          callback = "strategies.chat.tools.catalog.create_file",
+          callback = "strategies.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
         },
         ["delete_file"] = {
-          callback = "strategies.chat.tools.catalog.delete_file",
+          callback = "strategies.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
         },
         ["fetch_webpage"] = {
-          callback = "strategies.chat.tools.catalog.fetch_webpage",
+          callback = "strategies.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
             adapter = "jina",
           },
         },
         ["web_search"] = {
-          callback = "strategies.chat.tools.catalog.web_search",
+          callback = "strategies.chat.tools.builtin.web_search",
           description = "Searches the web for a given query",
           opts = {
             adapter = "tavily",
           },
         },
         ["file_search"] = {
-          callback = "strategies.chat.tools.catalog.file_search",
+          callback = "strategies.chat.tools.builtin.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
           },
         },
         ["grep_search"] = {
-          callback = "strategies.chat.tools.catalog.grep_search",
+          callback = "strategies.chat.tools.builtin.grep_search",
           description = "Search for text in the current working directory",
         },
         ["read_file"] = {
-          callback = "strategies.chat.tools.catalog.read_file",
+          callback = "strategies.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
         ["list_code_usages"] = {
-          callback = "strategies.chat.tools.catalog.list_code_usages",
+          callback = "strategies.chat.tools.builtin.list_code_usages",
           description = "Find code symbol context",
         },
         ["weather"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/weather.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/weather.lua",
           description = "Get the latest weather",
         },
         ["weather_with_default"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/weather_with_default.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/weather_with_default.lua",
           description = "Get the latest weather",
         },
         ["func"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func.lua",
           description = "Some function tool to test",
         },
         ["func_approval"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_approval.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_approval.lua",
           description = "Some function tool to test with an approval step",
           opts = {
             require_approval_before = true,
           },
         },
         ["func_approval2"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_approval2.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_approval2.lua",
           description = "Some function tool to test with an approval step that's a table",
           opts = {
             require_approval_before = {
@@ -179,68 +179,68 @@ return {
           },
         },
         ["func_handlers_once"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_handlers_once.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_handlers_once.lua",
           description = "Some function tool to test",
         },
         ["func2"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func2.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func2.lua",
           description = "Some function tool to test",
         },
         ["func_consecutive"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_consecutive.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_consecutive.lua",
           description = "Consecutive function tool to test",
         },
         ["func_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_error.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_error.lua",
           description = "Error function tool to test",
         },
         ["func_return_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_return_error.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_return_error.lua",
           description = "Error function tool to test",
         },
         ["func_queue"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_queue.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_queue.lua",
           description = "Some function tool to test",
         },
         ["func_queue_2"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_queue_2.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_queue_2.lua",
           description = "Some function tool to test",
         },
         ["func_async_1"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_async_1.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_async_1.lua",
           description = "Some function tool to test",
         },
         ["func_async_2"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func_async_2.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/func_async_2.lua",
           description = "Some function tool to test",
         },
         ["cmd"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/cmd.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/cmd.lua",
           description = "Cmd tool",
         },
         ["cmd_consecutive"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/cmd_consecutive.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/cmd_consecutive.lua",
           description = "Cmd tool",
         },
         ["cmd_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/cmd_error.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/cmd_error.lua",
           description = "Cmd tool",
         },
         ["cmd_queue"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/cmd_queue.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/cmd_queue.lua",
           description = "Cmd tool",
         },
         ["cmd_queue_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/cmd_queue_error.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/cmd_queue_error.lua",
           description = "Cmd tool",
         },
         ["mock_cmd_runner"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/mock_cmd_runner.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/mock_cmd_runner.lua",
           description = "Cmd tool",
         },
         -- Add tool with same name as a tool group to verify word boundary matching
         ["tool_group_tool"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/tool_group_tool.lua",
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/builtin/stubs/tool_group_tool.lua",
           description = "Tool group extended",
         },
         groups = {
@@ -329,7 +329,7 @@ return {
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.catalog.buffer",
+          callback = "strategies.chat.slash_commands.builtin.buffer",
           description = "Insert open buffers",
           keymaps = {
             modes = {
@@ -343,7 +343,7 @@ return {
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.catalog.fetch",
+          callback = "strategies.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina|tavily
@@ -352,7 +352,7 @@ return {
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.catalog.file",
+          callback = "strategies.chat.slash_commands.builtin.file",
           description = "Insert a file",
           opts = {
             contains_code = true,

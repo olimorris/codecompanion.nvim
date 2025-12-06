@@ -23,7 +23,7 @@ T = new_set({
           { role = "llm", content = "Sure! What do you need help with?" },
         }
 
-        _G.compact = require("codecompanion.strategies.chat.slash_commands.catalog.compact").new({
+        _G.compact = require("codecompanion.strategies.chat.slash_commands.builtin.compact").new({
           Chat = chat,
           context = {},
           opts = {},
