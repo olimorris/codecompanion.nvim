@@ -2,7 +2,7 @@
 description: Learn how to configure adapters like OpenAI, Anthropic, Claude Code in CodeCompanion
 ---
 
-# Configuring Adapters
+# Configuring HTTP Adapters
 
 > [!TIP]
 > Want to connect to an LLM that isn't supported out of the box? Check out
@@ -10,7 +10,7 @@ description: Learn how to configure adapters like OpenAI, Anthropic, Claude Code
 
 An adapter is what connects Neovim to an LLM provider and model. It's the interface that allows data to be sent, received and processed. There are a multitude of ways to customize them.
 
-There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and [ACP](/configuration/acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
+There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
 The configuration for both types of adapters is exactly the same, however they sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have different options available. HTTP adapters use _models_ to allow users to select the specific LLM they'd like to interact with. ACP adapters use _commands_ to allow users to customize their interaction with agents (e.g. enabling _yolo_ mode). As there is a lot of shared functionality between the two adapters, it is recommend that you read this page alongside the ACP one.
 
@@ -336,7 +336,7 @@ With `show_model_choices = false`, the default model (as defined in the adapter'
 
 Below are some examples of how you can configure various adapters within CodeCompanion. Some merely serve as illustrations and are not actively supported by the plugin.
 
-### Example: OpenAI Responses API
+### OpenAI Responses API
 
 CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
 
@@ -373,7 +373,7 @@ require("codecompanion").setup({
 
 By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
 
-### Example: Using Ollama Remotely
+### Using Ollama Remotely
 
 To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
 
@@ -401,7 +401,7 @@ require("codecompanion").setup({
 })
 ```
 
-### Example: Azure OpenAI
+### Azure OpenAI
 
 Below is an example of how you can leverage the `azure_openai` adapter within the plugin:
 
@@ -435,7 +435,7 @@ require("codecompanion").setup({
 }),
 ```
 
-### Example: OpenRouter with Reasoning Output
+### OpenRouter with Reasoning Output
 
 ```lua
 require("codecompanion").setup({
@@ -475,7 +475,7 @@ require("codecompanion").setup({
 })
 ```
 
-### Example: llama.cpp with `--reasoning-format deepseek`
+### llama.cpp with `--reasoning-format deepseek`
 
 ```lua
 require("codecompanion").setup({

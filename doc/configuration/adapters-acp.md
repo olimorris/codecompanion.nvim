@@ -2,9 +2,9 @@
 description: Learn how to configure ACP adapters like Claude Code, Gemini CLI and Codex
 ---
 
-# Configuring Agent Client Protocol (ACP)
+# Configuring ACP Adapters
 
-This section contains configuration which is specific to ACP adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters) adapters. Therefore it's recommended you read the two pages together.
+This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
 ## Setup: Auggie CLI from Augment Code
 
@@ -54,7 +54,7 @@ To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion
 <img src="https://github.com/user-attachments/assets/28b70ba1-6fd2-4431-9905-c60c83286e4c">
 4. Back in your CLI, copy the OAuth token (in yellow):
 <img src="https://github.com/user-attachments/assets/73992480-20a6-4858-a9fe-93a4e49004ff">
-5. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on [environment variables and setting API keys](/configuration/adapters#environment-variables-setting-an-api-key) for other ways to do this):
+5. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on [environment variables and setting API keys](/configuration/adapters-http#environment-variables-setting-an-api-key) for other ways to do this):
 ```lua
 require("codecompanion").setup({
   adapters = {

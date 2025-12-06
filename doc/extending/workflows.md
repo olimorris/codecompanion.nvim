@@ -2,7 +2,7 @@
 description: Learn how to create your own agentic workflows with CodeCompanion
 ---
 
-# Creating Workflows
+# Extending with Workflows
 
 Workflows in CodeCompanion, are successive prompts which can be automatically sent to the LLM in a turn-based manner. This allows for actions such as reflection and planning to be easily implemented into your workflow. They can be combined with tools to create agentic workflows, which could be used to automate common activities like editing files and then running a test suite.
 

@@ -2,7 +2,7 @@
 description: Learn how to create your parsers for rules in CodeCompanion
 ---
 
-# Creating Rules Parsers
+# Extending with Rules Parsers
 
 In CodeCompanion, parsers act on the contents of a rules file, carrying out some post-processing activities and returning the content back to the rules class.
 
