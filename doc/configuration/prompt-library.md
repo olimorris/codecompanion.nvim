@@ -69,6 +69,19 @@ As mentioned earlier, prompts can be created in two ways: as Lua tables or as ma
 > [!NOTE]
 > Markdown prompts are new in `v18.0.0`. They provide a cleaner, more maintainable way to define prompts with support for external Lua files for dynamic content.
 
+### Why Markdown?
+
+Markdown prompts offer several advantages:
+
+- **Cleaner syntax** - No Lua string escaping or concatenation
+- **Better readability** - Natural formatting with proper indentation
+- **Easier editing** - Edit in any markdown editor with syntax highlighting
+- **Reusability** - Share Lua helper files across multiple prompts
+- **Version control friendly** - Easier to diff and review changes
+
+For complex prompts with multiple messages or dynamic content, markdown files are significantly easier to maintain than Lua tables.
+
+
 ### Basic Structure
 
 At their core, prompts define a series of messages sent to an LLM. Let's start with a simple example:
@@ -486,21 +499,9 @@ This prompt:
 - Uses a reusable `shared.code` function
 - Includes detailed instructions for the LLM
 
-### Why Markdown?
+### Advanced Configuration
 
-Markdown prompts offer several advantages:
-
-- **Cleaner syntax** - No Lua string escaping or concatenation
-- **Better readability** - Natural formatting with proper indentation
-- **Easier editing** - Edit in any markdown editor with syntax highlighting
-- **Reusability** - Share Lua helper files across multiple prompts
-- **Version control friendly** - Easier to diff and review changes
-
-For complex prompts with multiple messages or dynamic content, markdown files are significantly easier to maintain than Lua tables.
-
-## Advanced Configuration
-
-### Conditionals
+#### Conditionals
 
 **Lua only:**
 
@@ -543,7 +544,7 @@ You can conditionally control when prompts appear in the Action Palette or condi
 > [!NOTE]
 > Conditionals are not supported in markdown prompts since they require Lua functions. Use the `modes` option in frontmatter instead to control visibility by mode.
 
-### Prompts with Context
+#### Prompts with Context
 
 Pre-load a chat buffer with context from files, symbols, or URLs:
 
@@ -611,7 +612,7 @@ I'll think of something clever to put here...
 
 Context items appear at the top of the chat buffer. URLs are automatically cached for you.
 
-### Using Pre-hooks
+#### Using Pre-hooks
 
 Pre-hooks allow you to run custom logic before a prompt is executed. This is particularly useful for creating new buffers or setting up the environment:
 
@@ -645,11 +646,21 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
 
 For the inline strategy, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
 
+## Others
 
+### Hiding Built-in Prompts
 
+You can hide the built-in prompts from the Action Palette by setting the following configuration option:
 
-
-
-
-
+```lua
+require("codecompanion").setup({
+  display = {
+    action_palette = {
+      opts = {
+        show_prompt_library_builtins = false,
+      }
+    },
+  },
+})
+```
 
