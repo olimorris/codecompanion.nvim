@@ -89,7 +89,7 @@ return {
       return vim.tbl_count(rules_list) > 0
     end,
     picker = {
-      prompt = "Select a rules",
+      prompt = "Select a rule",
       items = function()
         local formatted = {}
         for _, item in ipairs(rules_list) do

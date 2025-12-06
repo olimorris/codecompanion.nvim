@@ -146,10 +146,10 @@ function M.images(chat, start_range)
         local child_type = child:type()
 
         if child_type == "link_text" then
-          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          local text = get_node_text(child, chat.bufnr)
           link_label_text = text
         elseif child_type == "link_destination" then
-          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          local text = get_node_text(child, chat.bufnr)
           link_dest_text = text
         end
       end

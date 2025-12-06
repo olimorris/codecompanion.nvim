@@ -6,6 +6,8 @@ local tool_filter = require("codecompanion.strategies.chat.tools.filter")
 
 local api = vim.api
 
+---ACP slash commands are triggered by a configurable trigger (default: "\")
+---@return string
 local function get_acp_trigger()
   if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
     return config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
@@ -14,10 +16,10 @@ local function get_acp_trigger()
 end
 
 local trigger = {
+  acp_commands = get_acp_trigger(),
+  slash_commands = "/",
   tools = "@",
   variables = "#",
-  slash_commands = "/",
-  acp_commands = get_acp_trigger(),
 }
 
 local _vars_aug = nil
@@ -125,7 +127,7 @@ function M.slash_commands()
 
   -- Slash commands from prompt library
   vim
-    .iter(pairs(config.prompt_library))
+    .iter(pairs(require("codecompanion.helpers").get_prompts()))
     :filter(function(_, v)
       if not (v.opts and v.opts.is_slash_cmd and v.strategy == "chat") then
         return false
@@ -140,17 +142,21 @@ function M.slash_commands()
           return v.enabled
         end
       end
-
       return true
     end)
     :each(function(_, v)
-      table.insert(slash_commands, {
-        label = "/" .. v.opts.short_name,
+      local prompt = {
         detail = v.description,
         config = v,
         type = "slash_command",
         from_prompt_library = true,
-      })
+      }
+      if v.opts and v.opts.alias then
+        prompt.label = "/" .. v.opts.alias
+      else
+        prompt.label = "/" .. v.name
+      end
+      table.insert(slash_commands, prompt)
     end)
 
   return slash_commands
@@ -167,7 +173,14 @@ function M.slash_commands_execute(selected, chat)
       strategy.add_context(selected.config, chat)
     end
 
-    local prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)
+    local prompts = {}
+    if selected.config.opts and selected.config.opts.is_markdown then
+      prompts =
+        require("codecompanion.actions.markdown").resolve_placeholders(selected.config, selected.context).prompts
+    else
+      prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)
+    end
+
     vim.iter(prompts):each(function(prompt)
       if prompt.role == config.constants.SYSTEM_ROLE then
         chat:add_message(prompt, { visible = false })

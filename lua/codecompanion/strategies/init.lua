@@ -105,22 +105,24 @@ function Strategies:chat()
     end
 
     local callbacks = opts and opts.callbacks or {}
-    local rules_cb = rules_helpers.add_callbacks(callbacks, self.selected.opts.default_rules)
-    if rules_cb then
-      callbacks = rules_cb
+    if self.selected.opts.default_rules and self.selected.opts.default_rules ~= "none" then
+      local rules_cb = rules_helpers.add_callbacks(callbacks, self.selected.opts.default_rules)
+      if rules_cb then
+        callbacks = rules_cb
+      end
     end
 
     log:info("[Strategy] Chat Initiated")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
+      auto_submit = (opts and opts.auto_submit) or false,
       buffer_context = self.buffer_context,
       callbacks = callbacks,
-      messages = messages,
       from_prompt_library = self.selected.description and true or false,
-      auto_submit = (opts and opts.auto_submit) or false,
-      stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
       ignore_system_prompt = (opts and opts.ignore_system_prompt) or false,
       intro_message = (opts and opts.intro_message) or nil,
+      messages = messages,
+      stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
     })
   end
 

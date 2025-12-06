@@ -27,7 +27,7 @@ CodeCompanion is a Neovim plugin which streamlines how you write code with LLMs,
 - :brain: Support for [rules](/usage/chat-buffer/rules) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 - :crystal_ball: Native [Super Diff](/usage/chat-buffer/index#super-diff) for tracking agent edits
 - :sparkles: Built-in [prompt library](/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
-- :building_construction: Create your own [custom prompts](extending/prompts), Variables and Slash Commands
+- :building_construction: Create your own [custom prompts](configuration/prompt-library#creating-prompts), Variables and Slash Commands
 - :books: Have [multiple chats](/usage/introduction#quickly-accessing-a-chat-buffer) open at the same time
 - :art: Support for [vision and images](/usage/chat-buffer/#images-vision) as input
 - :muscle: Async execution for fast performance

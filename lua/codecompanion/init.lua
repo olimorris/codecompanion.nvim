@@ -2,7 +2,6 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local rules_helpers = require("codecompanion.strategies.chat.rules.helpers")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -32,7 +31,7 @@ CodeCompanion.inline = function(args)
   return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
----Accept the next word
+---Accept the next word of code completion
 ---@return nil
 CodeCompanion.inline_accept_word = function()
   if vim.fn.has("nvim-0.12") == 0 then
@@ -41,7 +40,7 @@ CodeCompanion.inline_accept_word = function()
   return require("codecompanion.strategies.inline.completion").accept_word()
 end
 
----Accept the next line
+---Accept the next line of code completion
 ---@return nil
 CodeCompanion.inline_accept_line = function()
   if vim.fn.has("nvim-0.12") == 0 then
@@ -50,57 +49,24 @@ CodeCompanion.inline_accept_line = function()
   return require("codecompanion.strategies.inline.completion").accept_line()
 end
 
----Initiate a prompt from the prompt library
----@param prompt table The prompt to resolve from the command
----@param args table The arguments that were passed to the command
----@return nil
-CodeCompanion.prompt_library = function(prompt, args)
-  log:trace("Running inline prompt")
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
-
-  -- A user may add a further prompt
-  if prompt.opts and prompt.opts.user_prompt and args.user_prompt then
-    log:trace("Adding custom user prompt")
-    prompt.opts.user_prompt = args.user_prompt
-  end
-
-  return require("codecompanion.strategies")
-    .new({
-      buffer_context = context,
-      selected = prompt,
-    })
-    :start(prompt.strategy)
-end
-
 ---Run a prompt from the prompt library
----@param name string
+---@param alias string
 ---@param args table?
 ---@return nil
-CodeCompanion.prompt = function(name, args)
+CodeCompanion.prompt = function(alias, args)
+  local actions = require("codecompanion.actions")
+
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local prompt = vim
-    .iter(config.prompt_library)
-    :filter(function(_, v)
-      return v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
-    end)
-    :map(function(_, v)
-      return v
-    end)
-    :totable()[1]
+  local prompt = actions.resolve_from_alias(alias, context)
 
   if not prompt then
-    return log:warn("Could not find '%s' in the prompt library", name)
+    return log:warn("Could not find `%s` in the prompt library", alias)
   end
 
-  return require("codecompanion.strategies")
-    .new({
-      buffer_context = context,
-      selected = prompt,
-    })
-    :start(prompt.strategy)
+  return actions.resolve(prompt, context)
 end
 
---Add visually selected code to the current chat buffer
+---Add visually selected code to the current chat buffer
 ---@param args table
 ---@return nil
 CodeCompanion.add = function(args)
@@ -144,28 +110,27 @@ CodeCompanion.chat = function(args)
   local messages = args.messages or {}
   local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
 
-  -- Extract the adapter if it's provided
+  -- Set the adapter and model if provided
   if args.params and args.params.adapter then
     local adapter_name = args.params.adapter
     adapter = config.adapters[adapter_name] or config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
-
-    if not adapter then
-      return log:warn("Adapter '%s' not found", adapter_name)
+    adapter = require("codecompanion.adapters").resolve(adapter)
+    if args.params.model then
+      adapter.schema.model.default = args.params.model
     end
   end
 
-  -- Handle subcommands
   if args.subcommand then
     if args.subcommand == "add" then
       return CodeCompanion.add(args)
     elseif args.subcommand == "toggle" then
       return CodeCompanion.toggle(args)
     elseif args.subcommand == "refreshcache" then
-      return CodeCompanion.refresh_cache()
+      return CodeCompanion.chat_refresh_cache()
     end
   end
 
-  -- Handle user prompt/message
+  -- Manage user prompts
   if args.user_prompt and #args.user_prompt > 0 then
     table.insert(messages, {
       role = config.constants.USER_ROLE,
@@ -180,7 +145,7 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add rules to the chat buffer
-  local rules_cb = rules_helpers.add_callbacks(args)
+  local rules_cb = require("codecompanion.strategies.chat.rules.helpers").add_callbacks(args)
   if rules_cb then
     args.callbacks = rules_cb
   end
@@ -193,6 +158,14 @@ CodeCompanion.chat = function(args)
     messages = has_messages and messages or nil,
     window_opts = args and args.window_opts,
   })
+end
+
+---Refresh any of the caches used by the plugin
+---@return nil
+CodeCompanion.chat_refresh_cache = function()
+  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
+  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
+  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Create a cmd
@@ -305,14 +278,6 @@ end
 CodeCompanion.actions = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   return require("codecompanion.actions").launch(context, args)
-end
-
----Refresh any of the caches used by the plugin
----@return nil
-CodeCompanion.refresh_cache = function()
-  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
-  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
-  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Check if a feature is available in the plugin's current version

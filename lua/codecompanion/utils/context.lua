@@ -93,7 +93,7 @@ end
 ---Get the context of the current buffer.
 ---@param bufnr? number
 ---@param args? table
----@return table
+---@return CodeCompanion.BufferContext
 function M.get(bufnr, args)
   bufnr = bufnr or api.nvim_get_current_buf()
   local winnr = api.nvim_get_current_win()
@@ -117,21 +117,21 @@ function M.get(bufnr, args)
   end
 
   return {
-    winnr = winnr,
     bufnr = bufnr,
-    mode = mode,
-    is_visual = is_visual,
-    is_normal = is_normal,
     buftype = api.nvim_get_option_value("buftype", { buf = bufnr }) or "",
+    cursor_pos = cursor_pos,
+    end_col = end_col,
+    end_line = end_line,
     filetype = M.get_filetype(bufnr),
     filename = api.nvim_buf_get_name(bufnr),
-    cursor_pos = cursor_pos,
+    is_visual = is_visual,
+    is_normal = is_normal,
     lines = lines,
     line_count = api.nvim_buf_line_count(bufnr),
+    mode = mode,
     start_line = start_line,
     start_col = start_col,
-    end_line = end_line,
-    end_col = end_col,
+    winnr = winnr,
   }
 end
 
