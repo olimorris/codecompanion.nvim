@@ -145,13 +145,18 @@ function M.slash_commands()
       return true
     end)
     :each(function(_, v)
-      table.insert(slash_commands, {
-        label = "/" .. v.opts.alias,
+      local prompt = {
         detail = v.description,
         config = v,
         type = "slash_command",
         from_prompt_library = true,
-      })
+      }
+      if v.opts and v.opts.alias then
+        prompt.label = "/" .. v.opts.alias
+      else
+        prompt.label = "/" .. v.name
+      end
+      table.insert(slash_commands, prompt)
     end)
 
   return slash_commands
