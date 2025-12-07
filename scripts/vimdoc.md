@@ -2,6 +2,7 @@
 doc/index.md
 doc/installation.md
 doc/getting-started.md
+doc/upgrading.md
 ```
 
 # Configuration
@@ -43,4 +44,5 @@ doc/extending/agentic-workflows.md
 doc/extending/extensions.md
 doc/extending/parsers.md
 doc/extending/tools.md
+doc/extending/ui.md
 ```

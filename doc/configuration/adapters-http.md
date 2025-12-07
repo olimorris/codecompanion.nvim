@@ -131,7 +131,7 @@ A core part of working with CodeCompanion is being able to easily switch between
 
 ::: tabs
 
-== For Strategies
+== For Interactions
 
 ```lua
 require("codecompanion").setup({
@@ -175,10 +175,6 @@ require("codecompanion").setup({
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
 
-::: tabs
-
-== For HTTP Adapters
-
 ```lua
 require("codecompanion").setup({
   adapters = {
@@ -210,38 +206,6 @@ require("codecompanion").setup({
   },
 })
 ```
-
-== For ACP Adapters
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    acp = {
-      gemini_cli = function()
-        return require("codecompanion.adapters").extend("gemini_cli", {
-          commands = {
-            default = {
-              "node",
-              "/Users/Oli/Code/try/gemini-cli/packages/cli",
-              "--experimental-acp",
-            },
-          },
-          defaults = {
-            auth_method = "gemini-api-key",
-            mcpServers = {},
-            timeout = 20000, -- 20 seconds
-          },
-          env = {
-            GEMINI_API_KEY = "GEMINI_API_KEY",
-          },
-        })
-      end,
-    },
-  },
-})
-```
-
-:::
 
 ## Adding a Custom Adapter
 
@@ -297,17 +261,10 @@ By default, the plugin shows all available adapters, including the defaults. If 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    acp = {
-      opts = {
-        show_defaults = false,
-      },
-      -- Define your custom adapters here
-    },
     http = {
       opts = {
         show_defaults = false,
       },
-      -- Define your custom adapters here
     },
   },
 })
