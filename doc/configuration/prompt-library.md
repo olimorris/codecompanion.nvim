@@ -138,8 +138,6 @@ require("codecompanion").setup({
 
 :::
 
-#### Markdown Format
-
 Markdown prompts consist of two main parts:
 
 1. **Frontmatter** - YAML metadata between `---` delimiters that defines the prompt's configuration
@@ -186,9 +184,8 @@ Generate comprehensive unit tests for the provided code.
 
 ## user
 
-```${context.filetype}
-${shared.code}
-```
+The code to generate tests for is #{buffer}
+
 ````
 
 == Lua
@@ -211,13 +208,10 @@ ${shared.code}
     },
     {
       role = "user",
-      content = function(context)
-        local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-        return "```" .. context.filetype .. "\n" .. text .. "\n```"
-      end,
+      content = "The code to generate tests for is #{buffer}",
     },
   },
-}
+},
 ````
 
 :::
@@ -261,13 +255,14 @@ opts = {
 - `ignore_system_prompt` - Don't send the default system prompt with the request
 - `intro_message` - Custom intro message for the chat buffer UI
 - `is_slash_cmd` - Make the prompt available as a slash command in chat
+- `is_workflow` - Treat successive prompts as a workflow
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 
-### Using Placeholders
+### Placeholders
 
 Placeholders allow you to inject dynamic content into your prompts. In markdown prompts, use `${placeholder.name}` syntax:
 
@@ -440,90 +435,36 @@ You can also reference built-in values using dot notation:
 
 And many more from the context object.
 
-### Advanced Example
-
-Here's a complete example showing the power of markdown prompts:
-
-**unit_tests.md:**
-````markdown
----
-name: Unit tests
-interaction: inline
-description: Generate unit tests for the selected code
-opts:
-  alias: tests
-  auto_submit: true
-  modes:
-    - v
-  placement: new
-  stop_context_insertion: true
----
-
-## system
-
-When generating unit tests, follow these steps:
-
-1. Identify the programming language.
-2. Identify the purpose of the function or module to be tested.
-3. List the edge cases and typical use cases that should be covered in the tests and share the plan with the user.
-4. Generate unit tests using an appropriate testing framework for the identified programming language.
-5. Ensure the tests cover:
-      - Normal cases
-      - Edge cases
-      - Error handling (if applicable)
-6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.
-
-## user
-
-Please generate unit tests for this code from buffer ${context.bufnr}:
-
-```${context.filetype}
-${shared.code}
-```
-````
-
-**shared.lua:**
-````lua
-return {
-  code = function(args)
-    local actions = require("codecompanion.helpers.actions")
-    return actions.get_code(args.context.start_line, args.context.end_line)
-  end,
-}
-````
-
-This prompt:
-- Only appears in visual mode
-- Automatically submits to the LLM
-- Places results in a new buffer
-- Uses a reusable `shared.code` function
-- Includes detailed instructions for the LLM
-
 ### Advanced Configuration
 
 #### Conditionals
 
-**Lua only:**
 
 You can conditionally control when prompts appear in the Action Palette or conditionally include specific prompt messages using `condition` functions:
 
-**Item-level conditions** (controls visibility in Action Palette):
+**Lua only:**
+
+::: tabs
+
+== Item-level
 
 ````lua
-["Open chats ..."] = {
-  name = "Open chats ...",
-  interaction = " ",
-  description = "Your currently open chats",
+["Visual Only"] = {
+  interaction = "chat",
+  description = "Only appears in visual mode",
   condition = function(context)
-    return #require("codecompanion").buf_get_chat() > 0
+    return context.is_visual
   end,
-  picker = {
-    ---
-  }
-}
+  prompts = {
+    {
+      role = "user",
+      content = "This prompt only appears when you're in visual mode.",
+    },
+  },
+},
 ````
 
-**Prompt-level conditions** (controls individual messages):
+== Prompt-level
 
 ````lua
 ["Visual Only"] = {
@@ -541,10 +482,9 @@ You can conditionally control when prompts appear in the Action Palette or condi
 }
 ````
 
-> [!NOTE]
-> Conditionals are not supported in markdown prompts since they require Lua functions. Use the `modes` option in frontmatter instead to control visibility by mode.
+:::
 
-#### Prompts with Context
+#### Context
 
 Pre-load a chat buffer with context from files, symbols, or URLs:
 
@@ -605,14 +545,48 @@ I'll think of something clever to put here...
       },
     },
   },
-}
+},
 ````
 
 :::
 
 Context items appear at the top of the chat buffer. URLs are automatically cached for you.
 
-#### Using Pre-hooks
+#### Pickers
+
+Pickers allow you to create dynamic prompt menus based on runtime data.
+
+**Lua only:**
+
+```lua
+["My picker menu ..."] = {
+  name = "A list of items",
+  interaction = " ",
+  description = "My current items",
+  picker = {
+    prompt = "Select an item",
+    columns = { "name", "description" },
+    items = {
+      {
+        name = "Item 1",
+        description = "This is item 1",
+        callback = function()
+          print("You selected item 1")
+        end,
+      },
+      {
+        name = "Item 2",
+        description = "This is item 2",
+        callback = function()
+          print("You selected item 2")
+        end,
+      },
+    },
+  },
+},
+```
+
+#### Pre-hooks
 
 Pre-hooks allow you to run custom logic before a prompt is executed. This is particularly useful for creating new buffers or setting up the environment:
 
@@ -645,6 +619,163 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
 ````
 
 For the inline interaction, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
+
+
+#### Workflows
+
+Workflows allow you to chain multiple prompts together in a sequence. That is, the first prompt is sent to the LLM, the LLM responds, then the next prompt in the workflow is sent, etc. This can be useful for implementing multi-step processes such as chain-of-thought reasoning or iterative code refinement.
+
+**Note:** Markdown prompts do not support [agentic workflows](/extending/agentic-workflows).
+
+::: tabs
+
+== Markdown
+
+````markdown
+---
+name: Oli's test workflow
+interaction: chat
+description: Use a workflow to test the plugin
+opts:
+  adapter:
+    name: copilot
+    model: gpt-4.1
+  ignore_system_prompt: true
+  is_workflow: true
+---
+
+## user
+
+Generate a Python class for managing a book library with methods for adding, removing, and searching books
+
+## user
+
+Write unit tests for the library class you just created
+
+## user
+
+Create a TypeScript interface for a complex e-commerce shopping cart system
+
+## user
+
+Write a recursive algorithm to balance a binary search tree in Java
+
+````
+
+== Lua
+
+````lua
+["Oli's test workflow"] = {
+  interaction = "chat",
+  description = "Use a workflow to test the plugin",
+  opts = {
+    adapter = {
+      name = "copilot",
+      model = "gpt-4.1",
+    },
+    ignore_system_prompt = true,
+    is_workflow = true,
+  },
+  prompts = {
+    {
+      {
+        role = "user",
+        content = "Generate a Python class for managing a book library with methods for adding, removing, and searching books",
+      },
+    },
+    {
+      {
+        role = "user",
+        content = "Write unit tests for the library class you just created",
+      },
+    },
+    {
+      {
+        role = "user",
+        content = "Create a TypeScript interface for a complex e-commerce shopping cart system",
+      },
+    },
+    {
+      {
+        role = "user",
+        content = "Write a recursive algorithm to balance a binary search tree in Java",
+      },
+    },
+  },
+},
+````
+
+:::
+
+You can also modify the options for the entire workflow at an individual prompt level. This can be useful if you wish to automatically submit certain prompts or change the adapter/model mid-workflow. Simply use a yaml code block with `opts` as a meta field:
+
+::: tabs
+
+== Markdown
+
+````markdown
+
+## user
+
+Generate a Python class for managing a book library with methods for adding, removing, and searching books
+
+## user
+
+```yaml opts
+auto_submit: true
+```
+
+Write unit tests for the library class you just created
+
+## user
+
+```yaml opts
+adapter:
+  name: copilot
+  model: claude-haiku-4.5
+auto_submit: false
+```
+
+Create a TypeScript interface for a complex e-commerce shopping cart system
+
+````
+
+== Lua
+
+```lua
+prompts = {
+  {
+    {
+      role = "user",
+      content = "Generate a Python class for managing a book library with methods for adding, removing, and searching books",
+    },
+  },
+  {
+    {
+      role = "user",
+      content = "Write unit tests for the library class you just created",
+      opts = {
+        auto_submit = true,
+      },
+    },
+  },
+  {
+    {
+      role = "user",
+      content = "Create a TypeScript interface for a complex e-commerce shopping cart system",
+      opts = {
+        adapter = {
+          name = "copilot",
+          model = "claude-haiku-4.5",
+        },
+        auto_submit = false,
+      },
+    },
+  },
+},
+```
+
+:::
 
 ## Others
 

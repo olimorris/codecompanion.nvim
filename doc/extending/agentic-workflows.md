@@ -2,7 +2,7 @@
 description: Learn how to create your own agentic workflows with CodeCompanion
 ---
 
-# Creating Workflows
+# Creating Agentic Workflows
 
 Workflows in CodeCompanion, are successive prompts which can be automatically sent to the LLM in a turn-based manner. This allows for actions such as reflection and planning to be easily implemented into your workflow. They can be combined with tools to create agentic workflows, which could be used to automate common activities like editing files and then running a test suite.
 
@@ -14,71 +14,7 @@ Before showcasing some examples, it's important to understand how workflows have
 
 When initiated from the [Action Palette](/usage/action-palette), workflows attach themselves to a [chat buffer](/usage/chat-buffer/index) via the notion of a _subscription_. That is, the workflow has subscribed to the conversation and dataflow that's taking place in the chat buffer. After the LLM sends a response, the chat buffer will trigger an event on the subscription class. This will execute a callback which has been defined in the workflow itself (often times this is simply a text prompt), and the event will duly be deleted from the subscription to prevent it from being executed again.
 
-## Simple Workflows
-
-Workflows are setup in exactly the same way as prompts in the [prompt library](/configuration/prompt-library#creating-prompts). Take the `code workflow` as an example:
-
-```lua
-["Code workflow"] = {
-  interaction = "workflow",
-  description = "Use a workflow to guide an LLM in writing code",
-  opts = {
-    alias = "cw",
-  },
-  prompts = {
-    {
-      -- We can group prompts together to make a workflow
-      -- This is the first prompt in the workflow
-      -- Everything in this group is added to the chat buffer in one batch
-      {
-        role = constants.SYSTEM_ROLE,
-        content = function(context)
-          return string.format(
-            "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the %s language",
-            context.filetype
-          )
-        end,
-        opts = {
-          visible = false,
-        },
-      },
-      {
-        role = constants.USER_ROLE,
-        content = "I want you to ",
-        opts = {
-          auto_submit = false,
-        },
-      },
-    },
-    -- This is the second group of prompts
-    {
-      {
-        role = constants.USER_ROLE,
-        content = "Great. Now let's consider your code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
-        opts = {
-          auto_submit = false,
-        },
-      },
-    },
-    -- This is the final group of prompts
-    {
-      {
-        role = constants.USER_ROLE,
-        content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
-        opts = {
-          auto_submit = false,
-        },
-      },
-    },
-  },
-},
-```
-
-You'll notice that the comments use the notion of "groups". These are collections of prompts which are added to a chat buffer in a timely manner. Infact, the second group will only be added once the LLM has responded to the first group...and so on.
-
-The `auto_submit` option allows you to automatically send prompts to an LLM, saving you a keypress. Please note that there is default delay of 2s (which can be changed as per the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file under `opts.submit_delay`) to avoid triggering a rate limit block on an LLM's endpoint.
-
-## Agentic Workflows
+## Creating Agentic Workflows
 
 By combining a workflow with tools, we can use an LLM to act as an Agent and do some impressive things!
 
@@ -153,97 +89,3 @@ Now there's a little bit more to unpack in this prompt. Firstly, we're automatic
 We're also leveraging a function called `repeat_until`. This ensures that the prompt is always attached to the chat buffer until a condition is met. In this case, until the tests pass. In the [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner) tool, we ask the LLM to pass a flag if it detects a test suite is being run. The plugin picks up on that flag and puts the test outcome into the chat buffer class as a flag.
 
 Finally, we're letting the LLM know that the tests failed, and asking it to fix.
-
-## Useful Options
-
-There are also a number of options which haven't been covered in the example prompts above:
-
-**Specifying an Adapter**
-
-You can specify a specific adapter for a workflow:
-
-```lua
-["Workflow"] = {
-  interaction = "workflow",
-  description = "My workflow",
-  opts = {
-    adapter = {
-      name = "deepseek",
-      model = "deepseek-chat"
-    }
-  },
-  -- Prompts go here
-},
-```
-
-You can even specify an adapter and model on each workflow prompt:
-
-> [!NOTE]
-> The adapter name is required however model is optional.
-
-
-```lua
--- ... Workflow config goes above this
-opts = {
-  adapter = {
-    name = "copilot",
-    model = "gpt-5",
-  },
-},
-prompts = {
-  {
-    {
-      role = constants.USER_ROLE,
-      content = "Do not write any code. Let's brainstorm ideas first. Come up with a plan for ___",
-      opts = {
-        auto_submit = false,
-      },
-    },
-  },
-  {
-    {
-      role = constants.USER_ROLE,
-      content = "Plan looks good. Let's implement it.",
-      opts = {
-        adapter = {
-          name = "copilot",
-          -- Use a more cost effective cheaper model for token intensive activities
-          -- This model will persist for the duration of the chat unless changed
-          model = "gpt-4.1",
-        },
-        auto_submit = false,
-      },
-    },
-  },
-},
-```
-
-**Persistent Prompts**
-
-> [!NOTE]
-> Persistent prompts are not available for the first prompt group.
-
-By default, all workflow prompts are of the type `once`. That is, they are consumed once and then removed. However, this can be changed:
-
-```lua
-["A Cool Workflow"] = {
-  interaction = "workflow",
-  description = "My cool workflow",
-  prompts = {
-    {
-      -- Some first prompt
-    },
-    {
-      {
-        role = constants.USER_ROLE,
-        content = "This prompt will never go away!",
-        type = "persistent",
-        opts = {
-          auto_submit = false,
-        },
-      },
-    },
-  },
-},
-```
-
