@@ -31,7 +31,7 @@ return {
         return cb({ status = "error", data = fmt("No URL for `fetch_webpage`") })
       end
 
-      local tool_adapter = config.strategies.chat.tools.fetch_webpage.opts.adapter
+      local tool_adapter = config.interactions.chat.tools.fetch_webpage.opts.adapter
       local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
       adapter.methods.tools.fetch_webpage.setup(adapter, args)
 

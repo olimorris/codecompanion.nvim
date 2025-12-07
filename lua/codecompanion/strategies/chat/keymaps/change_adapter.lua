@@ -144,7 +144,7 @@ end
 ---Update system prompt after adapter change
 ---@param chat CodeCompanion.Chat
 function M.update_system_prompt(chat)
-  local system_prompt = config.strategies.chat.opts.system_prompt
+  local system_prompt = config.interactions.chat.opts.system_prompt
   if type(system_prompt) == "function" then
     if chat.messages[1] and chat.messages[1].role == "system" then
       chat.messages[1].content = system_prompt(chat:make_system_prompt_ctx())

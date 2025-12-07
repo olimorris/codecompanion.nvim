@@ -72,15 +72,13 @@ return {
   },
   interactions = {
     background = {},
-  },
-  strategies = {
     chat = {
       adapter = "test_adapter",
       roles = {
         llm = "assistant",
         user = "foo",
       },
-      keymaps = og_config.strategies.chat.keymaps,
+      keymaps = og_config.interactions.chat.keymaps,
       tools = {
         ["cmd_runner"] = {
           callback = "strategies.chat.tools.builtin.cmd_runner",
@@ -369,7 +367,7 @@ return {
     },
     inline = {
       adapter = "test_adapter",
-      keymaps = og_config.strategies.inline.keymaps,
+      keymaps = og_config.interactions.inline.keymaps,
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

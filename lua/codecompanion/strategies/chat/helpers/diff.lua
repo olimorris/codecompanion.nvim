@@ -141,7 +141,7 @@ local function place_diff_winbar(winnr)
     return
   end
 
-  local keymaps_config = config.strategies.inline.keymaps
+  local keymaps_config = config.interactions.inline.keymaps
   if not keymaps_config then
     return
   end
@@ -369,7 +369,7 @@ end
 function M.setup_keymaps(diff, opts)
   opts = opts or {}
 
-  local inline_config = config.strategies.inline
+  local inline_config = config.interactions.inline
   if not inline_config or not inline_config.keymaps then
     return
   end

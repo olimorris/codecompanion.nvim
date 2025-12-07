@@ -99,7 +99,7 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
   local output = child.lua(string.format(
     [[
       local config = require("codecompanion.config")
-      config.strategies.chat.opts.prompt_decorator = function(message)
+      config.interactions.chat.opts.prompt_decorator = function(message)
         return "<prompt>" .. message .. "</prompt>"
       end
       _G.chat:add_buf_message({
@@ -183,7 +183,7 @@ T["Chat"]["can load default tools"] = function()
     h = require('tests.helpers')
 
     _G.chat, _G.tools = h.setup_chat_buffer({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             opts = {

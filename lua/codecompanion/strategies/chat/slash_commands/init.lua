@@ -100,7 +100,7 @@ function SlashCommands.context(chat, slash_command, opts)
   local slash_commands = {
     buffer = require("codecompanion.strategies.chat.slash_commands.builtin.buffer").new({
       Chat = chat,
-      config = config.strategies.chat.slash_commands["buffer"],
+      config = config.interactions.chat.slash_commands["buffer"],
     }),
     file = require("codecompanion.strategies.chat.slash_commands.builtin.file").new({
       Chat = chat,
@@ -110,7 +110,7 @@ function SlashCommands.context(chat, slash_command, opts)
     }),
     url = require("codecompanion.strategies.chat.slash_commands.builtin.fetch").new({
       Chat = chat,
-      config = config.strategies.chat.slash_commands["fetch"],
+      config = config.interactions.chat.slash_commands["fetch"],
     }),
   }
 

@@ -132,8 +132,8 @@ When given a task:
 }
 
 local clients = {} -- Cache for HTTP and ACP clients
-local llm_role = config.strategies.chat.roles.llm
-local user_role = config.strategies.chat.roles.user
+local llm_role = config.interactions.chat.roles.llm
+local user_role = config.interactions.chat.roles.user
 local show_settings = config.display.chat.show_settings
 
 --=============================================================================
@@ -430,7 +430,7 @@ function Chat.new(args)
       end)
 
       -- Set up omnifunc for automatic completion when no other completion provider is active
-      local completion_provider = config.strategies.chat.opts.completion_provider
+      local completion_provider = config.interactions.chat.opts.completion_provider
       if completion_provider == "default" then
         vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
       end
@@ -473,7 +473,7 @@ function Chat.new(args)
   if args.adapter and adapters.resolved(args.adapter) then
     self.adapter = args.adapter
   else
-    self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+    self.adapter = adapters.resolve(args.adapter or config.interactions.chat.adapter)
   end
   if not self.adapter then
     return log:error("No adapter found")
@@ -546,10 +546,10 @@ function Chat.new(args)
     self.ui:set_intro_msg(self.intro_message)
   end
 
-  if config.strategies.chat.keymaps then
+  if config.interactions.chat.keymaps then
     -- Filter out any private keymaps
     local filtered_keymaps = {}
-    for k, v in pairs(config.strategies.chat.keymaps) do
+    for k, v in pairs(config.interactions.chat.keymaps) do
       if k:sub(1, 1) ~= "_" then
         filtered_keymaps[k] = v
       end
@@ -565,7 +565,7 @@ function Chat.new(args)
       :set()
   end
 
-  local slash_command_keymaps = helpers.slash_command_keymaps(config.strategies.chat.slash_commands)
+  local slash_command_keymaps = helpers.slash_command_keymaps(config.interactions.chat.slash_commands)
   if vim.tbl_count(slash_command_keymaps) > 0 then
     keymaps
       .new({
@@ -583,12 +583,12 @@ function Chat.new(args)
 
   last_chat = self
 
-  for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
-    local tool_config = config.strategies.chat.tools[tool_name]
+  for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
+    local tool_config = config.interactions.chat.tools[tool_name]
     if tool_config ~= nil then
       self.tool_registry:add(tool_name, tool_config)
-    elseif config.strategies.chat.tools.groups[tool_name] ~= nil then
-      self.tool_registry:add_group(tool_name, config.strategies.chat.tools)
+    elseif config.interactions.chat.tools.groups[tool_name] ~= nil then
+      self.tool_registry:add_group(tool_name, config.interactions.chat.tools)
     end
   end
 
@@ -820,7 +820,7 @@ function Chat:set_system_prompt(prompt, opts)
     return self
   end
 
-  prompt = prompt or config.strategies.chat.opts.system_prompt
+  prompt = prompt or config.interactions.chat.opts.system_prompt
   opts = opts or { visible = false }
 
   local _meta = { tag = "system_prompt_from_config" }
@@ -1115,14 +1115,14 @@ function Chat:submit(opts)
 
     -- Allow users to send a blank message to the LLM
     if not opts.regenerate then
-      local chat_opts = config.strategies.chat.opts
+      local chat_opts = config.interactions.chat.opts
       if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
         message_to_submit.content =
           chat_opts.prompt_decorator(message_to_submit.content, adapters.make_safe(self.adapter), self.buffer_context)
       end
       self:add_message({
         role = config.constants.USER_ROLE,
-        content = (message_to_submit and message_to_submit.content or config.strategies.chat.opts.blank_prompt),
+        content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
       })
     end
 

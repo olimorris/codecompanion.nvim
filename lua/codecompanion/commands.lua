@@ -102,7 +102,7 @@ return {
         end)
 
         -- Add inline variables
-        for key, _ in pairs(config.strategies.inline.variables) do
+        for key, _ in pairs(config.interactions.inline.variables) do
           if key ~= "opts" then
             table.insert(completions, "#{" .. key .. "}")
           end

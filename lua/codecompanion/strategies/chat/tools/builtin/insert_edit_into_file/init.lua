@@ -153,8 +153,8 @@ end
 ---@param opts table Options containing: diff_id, chat_bufnr, display_name, should_diff, success_response, output_handler, bufnr (optional), on_reject (optional for files)
 ---@return any Result of output_handler call
 local function handle_user_decision(opts)
-  local accept = config.strategies.inline.keymaps.accept_change.modes.n
-  local reject = config.strategies.inline.keymaps.reject_change.modes.n
+  local accept = config.interactions.inline.keymaps.accept_change.modes.n
+  local reject = config.interactions.inline.keymaps.reject_change.modes.n
   local is_buffer = opts.bufnr ~= nil
 
   local wait_opts = {

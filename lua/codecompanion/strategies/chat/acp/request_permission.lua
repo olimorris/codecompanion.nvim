@@ -22,7 +22,7 @@ local CONSTANTS = {
   },
 
   MAPPINGS_PREFIX = "_acp_",
-  TIMEOUT_RESPONSE = config.strategies.chat.opts.acp_timeout_response or "reject_once",
+  TIMEOUT_RESPONSE = config.interactions.chat.opts.acp_timeout_response or "reject_once",
 
   NS = api.nvim_create_namespace("codecompanion.acp.diff"),
 }
@@ -377,7 +377,7 @@ local function show_diff(chat, request)
 
   -- Build present kinds and normalize keymaps from config, then setup winbar
   local kind_map = build_kind_map(request.options)
-  local normalized = normalize_maps(config.strategies.chat.keymaps)
+  local normalized = normalize_maps(config.interactions.chat.keymaps)
   place_banner(winnr, normalized, kind_map)
 
   local provider = config.display.diff.provider

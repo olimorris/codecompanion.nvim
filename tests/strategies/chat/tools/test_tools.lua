@@ -90,7 +90,7 @@ T["Tools"][":find"]["should find tools added after a chat is initialized"] = fun
     local config = require("codecompanion.config")
 
     -- Add a dynamic tool after chat is already created
-    config.strategies.chat.tools.dynamic_test_tool = {
+    config.interactions.chat.tools.dynamic_test_tool = {
     callback = "",
       description = "Dynamic tool",
       enabled = true,
@@ -105,7 +105,7 @@ T["Tools"][":find"]["should find tools added after a chat is initialized"] = fun
 
     _G.found_dynamic_tool = _G.chat.tool_registry.in_use["dynamic_test_tool"]
     -- Clean up
-    config.strategies.chat.tools.dynamic_test_tool = nil
+    config.interactions.chat.tools.dynamic_test_tool = nil
   ]])
 
   h.eq(true, child.lua_get("_G.found_dynamic_tool"))

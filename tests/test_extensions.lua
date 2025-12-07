@@ -24,7 +24,7 @@ T["extensions"]["loads pure extension via setup()"] = function()
     ---@type CodeCompanion.Extension
     package.loaded['codecompanion._extensions.test_extension'] = {
       setup = function(opts)
-        require("codecompanion.config").strategies.chat.keymaps.test_keymap = {
+        require("codecompanion.config").interactions.chat.keymaps.test_keymap = {
           modes = { n = "gt" },
           description = "Test Keymap",
         }
@@ -64,7 +64,7 @@ T["extensions"]["loads external extension via setup()"] = function()
     ---@type CodeCompanion.Extension
     local mock_ext = {
       setup = function(opts)
-        require("codecompanion.config").strategies.chat.keymaps.test_action = {
+        require("codecompanion.config").interactions.chat.keymaps.test_action = {
           modes = { n = "gt" },
           description = "Test Action",
         }
@@ -101,7 +101,7 @@ T["extensions"]["loads via register_extension()"] = function()
     ---@type CodeCompanion.Extension
     local extension = {
       setup = function()
-        local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
+        local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
         chat_keymaps.test_action = {
           modes = { n = "gt" },
           description = "Test Action",

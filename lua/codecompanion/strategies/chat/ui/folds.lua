@@ -69,7 +69,7 @@ function Folds._format_fold_text(content, fold_type, opts)
     local icon_conf = icons.tool_success or ""
     local icon_hl = "CodeCompanionChatToolSuccessIcon"
     local summary_hl = "CodeCompanionChatToolSuccess"
-    local failure_words = config.strategies.chat.tools.opts.folds.failure_words or {}
+    local failure_words = config.interactions.chat.tools.opts.folds.failure_words or {}
     for _, word in ipairs(failure_words) do
       if content:lower():find(word) then
         icon_conf = icons.tool_failure or ""
@@ -208,7 +208,7 @@ end
 ---@param end_row number (0-based)
 ---@param foldtext string
 function Folds:create_tool_fold(bufnr, start_row, end_row, foldtext)
-  if not config.strategies.chat.tools.opts.folds.enabled then
+  if not config.interactions.chat.tools.opts.folds.enabled then
     return
   end
 

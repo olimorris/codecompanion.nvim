@@ -195,8 +195,8 @@ T["Inline"]["can parse adapter syntax"] = function()
   end
 
   -- Mock the buffer variable to return predictable content
-  local original_buffer_variable = require("codecompanion.config").strategies.inline.variables.buffer
-  require("codecompanion.config").strategies.inline.variables.buffer = {
+  local original_buffer_variable = require("codecompanion.config").interactions.inline.variables.buffer
+  require("codecompanion.config").interactions.inline.variables.buffer = {
     callback = function()
       return "mocked buffer content"
     end,
@@ -218,7 +218,7 @@ T["Inline"]["can parse adapter syntax"] = function()
   h.eq("<prompt>print hello world</prompt>", submitted_prompts[#submitted_prompts].content)
 
   -- Restore original buffer variable
-  require("codecompanion.config").strategies.inline.variables.buffer = original_buffer_variable
+  require("codecompanion.config").interactions.inline.variables.buffer = original_buffer_variable
 end
 
 return T

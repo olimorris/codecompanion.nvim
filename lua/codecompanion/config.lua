@@ -72,9 +72,7 @@ local defaults = {
         },
       },
     },
-  },
-  strategies = {
-    -- CHAT STRATEGY ----------------------------------------------------------
+    -- CHAT INTERACTION -------------------------------------------------------
     chat = {
       adapter = "copilot",
       roles = {
@@ -659,7 +657,7 @@ The user is working on a %s machine. Please respond with system specific command
         end,
       },
     },
-    -- INLINE STRATEGY --------------------------------------------------------
+    -- INLINE INTERACTION -----------------------------------------------------
     inline = {
       adapter = "copilot",
       keymaps = {
@@ -715,7 +713,7 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
     },
-    -- CMD STRATEGY -----------------------------------------------------------
+    -- CMD INTERACTION --------------------------------------------------------
     cmd = {
       adapter = "copilot",
       opts = {
@@ -1049,10 +1047,14 @@ M.setup = function(args)
     )
   end
 
+  if args.strategies then
+    args.interactions = args.strategies
+  end
+
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 
-  M.config.strategies.chat.keymaps = remove_disabled_keymaps(M.config.strategies.chat.keymaps)
-  M.config.strategies.inline.keymaps = remove_disabled_keymaps(M.config.strategies.inline.keymaps)
+  M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
+  M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
 end
 
 ---Determine if code can be sent to the LLM

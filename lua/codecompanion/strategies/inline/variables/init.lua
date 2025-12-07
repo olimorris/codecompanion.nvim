@@ -23,7 +23,7 @@ local Variables = {}
 
 function Variables.new(args)
   local self = setmetatable({
-    config = config.strategies.inline.variables,
+    config = config.interactions.inline.variables,
     inline = args.inline,
     prompt = args.prompt,
     vars = {},

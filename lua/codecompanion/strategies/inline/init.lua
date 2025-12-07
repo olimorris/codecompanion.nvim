@@ -202,7 +202,7 @@ function Inline.new(args)
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
-  self:set_adapter(args.adapter or config.strategies.inline.adapter)
+  self:set_adapter(args.adapter or config.interactions.inline.adapter)
   if not self.adapter then
     return log:error("[Inline] No adapter found")
   end
@@ -267,7 +267,7 @@ function Inline:set_keymaps(bufnr, opts)
       bufnr = bufnr,
       callbacks = require("codecompanion.strategies.inline.keymaps"),
       data = self,
-      keymaps = config.strategies.inline.keymaps,
+      keymaps = config.interactions.inline.keymaps,
     })
     :set(opts)
 end

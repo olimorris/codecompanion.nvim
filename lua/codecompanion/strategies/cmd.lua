@@ -20,7 +20,7 @@ function Cmd.new(args)
     opts = args.opts,
   }, { __index = Cmd })
 
-  self.adapter = adapters.resolve(config.strategies.cmd.adapter)
+  self.adapter = adapters.resolve(config.interactions.cmd.adapter)
   if not self.adapter then
     return log:error("No adapter found")
   end
@@ -38,10 +38,10 @@ end
 function Cmd:start()
   local messages = {}
 
-  if config.strategies.cmd.opts.system_prompt and config.strategies.cmd.opts.system_prompt ~= "" then
+  if config.interactions.cmd.opts.system_prompt and config.interactions.cmd.opts.system_prompt ~= "" then
     table.insert(messages, {
       role = config.constants.SYSTEM_ROLE,
-      content = config.strategies.cmd.opts.system_prompt,
+      content = config.interactions.cmd.opts.system_prompt,
       opts = { visible = false },
     })
   end

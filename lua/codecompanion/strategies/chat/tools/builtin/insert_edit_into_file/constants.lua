@@ -7,8 +7,8 @@ local M = {}
 ---Get the file size limit from config or use default
 ---@return number The file size limit in bytes
 local function get_file_size_limit()
-  local opts = config.strategies.chat.tools["insert_edit_into_file"]
-      and config.strategies.chat.tools["insert_edit_into_file"].opts
+  local opts = config.interactions.chat.tools["insert_edit_into_file"]
+      and config.interactions.chat.tools["insert_edit_into_file"].opts
     or {}
   local limit_mb = opts.file_size_limit_mb or 2 -- Default 2MB
   return limit_mb * 1000000 -- Convert MB to bytes

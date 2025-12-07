@@ -101,8 +101,8 @@ function ACPHandler:transform_acp_commands(messages)
   -- Get trigger character
   local config = require("codecompanion.config")
   local trigger = "\\"
-  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
-    trigger = config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+  if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
+    trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
   end
   local escaped_trigger = vim.pesc(trigger)
 

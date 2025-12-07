@@ -6,7 +6,7 @@ local get_node_range = vim.treesitter.get_node_range --[[@as function]]
 local get_node_text = vim.treesitter.get_node_text --[[@as function]]
 local query_get = vim.treesitter.query.get --[[@as function]]
 
-local user_role = config.strategies.chat.roles.user
+local user_role = config.interactions.chat.roles.user
 local icons = {
   sync_all = config.display.chat.icons.buffer_sync_all,
   sync_diff = config.display.chat.icons.buffer_sync_diff,

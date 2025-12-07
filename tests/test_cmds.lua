@@ -142,10 +142,10 @@ T["cmds"]["chat variable syntax highlighting"] = function()
 
     -- Make sure test variable exists before setting filetype
     local cfg = require('codecompanion.config')
-    cfg.strategies = cfg.strategies or {}
-    cfg.strategies.chat = cfg.strategies.chat or {}
-    cfg.strategies.chat.variables = cfg.strategies.chat.variables or {}
-    cfg.strategies.chat.variables.testvar = cfg.strategies.chat.variables.testvar or {}
+    cfg.interactions = cfg.interactions or {}
+    cfg.interactions.chat = cfg.interactions.chat or {}
+    cfg.interactions.chat.variables = cfg.interactions.chat.variables or {}
+    cfg.interactions.chat.variables.testvar = cfg.interactions.chat.variables.testvar or {}
 
     -- New buffer with placeholder
     vim.cmd('enew')

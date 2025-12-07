@@ -23,7 +23,7 @@ M.accept_change = {
     if inline.diff then
       log:trace("[Inline] Accepting diff for id=%s", tostring(inline.id))
       inline.diff:accept()
-      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+      clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
     end
   end,
 }
@@ -34,7 +34,7 @@ M.reject_change = {
     if inline.diff then
       log:trace("[Inline] Rejecting diff for id=%d", tostring(inline.id))
       inline.diff:reject()
-      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+      clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
     end
   end,
 }
@@ -45,7 +45,7 @@ M.always_accept = {
     if inline.diff then
       log:trace("[Inline] Auto-accepting diff for id=%s", tostring(inline.id))
       inline.diff:accept()
-      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+      clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
     end
     vim.g.codecompanion_yolo_mode = true
     log:trace("[Inline] YOLO mode enabled")
@@ -55,7 +55,7 @@ M.always_accept = {
 M.stop = {
   callback = function(inline)
     inline:stop()
-    clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+    clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
     log:trace("[Inline] Cancelling the request")
   end,
 }

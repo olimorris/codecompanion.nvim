@@ -69,7 +69,7 @@ end
 
 T["Variables"][":parse"]["should parse a message with a variable and use default params if set"] = function()
   local config = require("codecompanion.config")
-  config.strategies.chat.variables.baz.opts = { default_params = "with default" }
+  config.interactions.chat.variables.baz.opts = { default_params = "with default" }
 
   table.insert(chat.messages, {
     role = "user",

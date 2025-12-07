@@ -75,7 +75,7 @@ end
 local function enable_folds(c)
   c.lua([[
     _G.chat, _G.tools = h.setup_chat_buffer({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             opts = {

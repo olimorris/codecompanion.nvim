@@ -9,8 +9,8 @@ local api = vim.api
 ---ACP slash commands are triggered by a configurable trigger (default: "\")
 ---@return string
 local function get_acp_trigger()
-  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
-    return config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+  if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
+    return config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
   end
   return "\\"
 end
@@ -106,7 +106,7 @@ function M.slash_commands()
   local adapter_info = adapter_cache[bufnr]
 
   local filtered_slash_commands = slash_command_filter.filter_enabled_slash_commands(
-    config.strategies.chat.slash_commands,
+    config.interactions.chat.slash_commands,
     { adapter = adapter_info }
   )
 
@@ -259,7 +259,7 @@ function M.tools()
   end
 
   -- Get filtered tools configuration (this uses the cache!)
-  local tools = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
+  local tools = tool_filter.filter_enabled_tools(config.interactions.chat.tools, { adapter = adapter_info })
 
   -- Add groups
   local items = vim
@@ -310,7 +310,7 @@ function M.variables()
     return _vars_cache
   end
 
-  local config_vars = config.strategies.chat.variables
+  local config_vars = config.interactions.chat.variables
   local variables = vim
     .iter(config_vars)
     :map(function(label, data)

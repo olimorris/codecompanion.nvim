@@ -230,7 +230,7 @@ function Debug:render()
   api.nvim_buf_set_name(self.bufnr, "CodeCompanion_debug")
   -- Set the keymaps as per the user's chat buffer config
   local maps = {}
-  local config_maps = vim.deepcopy(config.strategies.chat.keymaps)
+  local config_maps = vim.deepcopy(config.interactions.chat.keymaps)
   maps["save"] = config_maps["send"]
   maps["save"].callback = "save"
   maps["save"].description = "Save debug window content"

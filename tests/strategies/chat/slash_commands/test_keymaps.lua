@@ -25,7 +25,7 @@ T["Slash Command Keymaps"] = new_set()
 T["Slash Command Keymaps"]["can be obtained from the config"] = function()
   local result = child.lua([[
     local h = require("codecompanion.strategies.chat.helpers")
-    return h.slash_command_keymaps(require("tests.config").strategies.chat.slash_commands)
+    return h.slash_command_keymaps(require("tests.config").interactions.chat.slash_commands)
   ]])
 
   h.eq({

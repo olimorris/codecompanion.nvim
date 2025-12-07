@@ -27,7 +27,7 @@ local function setup_with_tools_and_cancel_stub(n_tools)
     [[
     -- Build a minimal config with custom tools that require approval
     local cfg = {
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             opts = {
@@ -68,12 +68,12 @@ local function setup_with_tools_and_cancel_stub(n_tools)
     end
 
     -- Register tools in test config
-    cfg.strategies.chat.tools.t1 = { callback = function() return make_tool("t1") end, enabled = true }
+    cfg.interactions.chat.tools.t1 = { callback = function() return make_tool("t1") end, enabled = true }
     if %d >= 2 then
-      cfg.strategies.chat.tools.t2 = { callback = function() return make_tool("t2") end, enabled = true }
+      cfg.interactions.chat.tools.t2 = { callback = function() return make_tool("t2") end, enabled = true }
     end
     if %d >= 3 then
-      cfg.strategies.chat.tools.t3 = { callback = function() return make_tool("t3") end, enabled = true }
+      cfg.interactions.chat.tools.t3 = { callback = function() return make_tool("t3") end, enabled = true }
     end
 
     -- Create chat and tools
@@ -163,7 +163,7 @@ T["cmd_runner handles Windows pipe command with empty string argument"] = functi
 
     -- Use the actual cmd_runner tool
     local cfg = {
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             cmd_runner = { enabled = true }

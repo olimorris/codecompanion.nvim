@@ -74,7 +74,7 @@ local Variables = {}
 
 function Variables.new()
   local self = setmetatable({
-    vars = config.strategies.chat.variables,
+    vars = config.interactions.chat.variables,
   }, { __index = Variables })
 
   return self

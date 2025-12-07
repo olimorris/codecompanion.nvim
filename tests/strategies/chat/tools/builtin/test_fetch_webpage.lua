@@ -48,7 +48,7 @@ local T = new_set({
 
         -- Minimal config
         local config = require("codecompanion.config")
-        config.strategies.chat.tools.fetch_webpage = {
+        config.interactions.chat.tools.fetch_webpage = {
           callback = "strategies.chat.tools.builtin.fetch_webpage",
           opts = { adapter = "test_adapter" }
         }

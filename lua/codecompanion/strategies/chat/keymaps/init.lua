@@ -83,7 +83,7 @@ M.options = {
 
     -- Filter out private keymaps
     local keymaps = {}
-    for k, v in pairs(config.strategies.chat.keymaps) do
+    for k, v in pairs(config.interactions.chat.keymaps) do
       if k:sub(1, 1) ~= "_" then
         keymaps[k] = v
       end
@@ -92,7 +92,7 @@ M.options = {
     local keymaps_max = max("description", keymaps)
 
     local vars = {}
-    vim.iter(config.strategies.chat.variables):each(function(key, val)
+    vim.iter(config.interactions.chat.variables):each(function(key, val)
       if not val.hide_in_help_window then
         vars[key] = val
       end
@@ -102,12 +102,12 @@ M.options = {
     local tools = {}
     -- Add tools
     vim
-      .iter(config.strategies.chat.tools)
+      .iter(config.interactions.chat.tools)
       :filter(function(name)
         return name ~= "opts" and name ~= "groups"
       end)
       :each(function(tool)
-        local tool_conf = config.strategies.chat.tools[tool]
+        local tool_conf = config.interactions.chat.tools[tool]
         if not tool_conf.hide_in_help_window then
           tools[tool] = {
             description = tool_conf.description,
@@ -115,8 +115,8 @@ M.options = {
         end
       end)
     -- Add groups
-    vim.iter(config.strategies.chat.tools.groups):each(function(tool)
-      local group_conf = config.strategies.chat.tools.groups[tool]
+    vim.iter(config.interactions.chat.tools.groups):each(function(tool)
+      local group_conf = config.interactions.chat.tools.groups[tool]
       if not group_conf.hide_in_help_window then
         tools[tool] = {
           description = group_conf.description,
@@ -344,12 +344,12 @@ local function yank_node(node)
   vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
 
   -- Yank using marks
-  vim.cmd(string.format('normal! `["%sy`]', config.strategies.chat.opts.register))
+  vim.cmd(string.format('normal! `["%sy`]', config.interactions.chat.opts.register))
 
   -- Restore position after delay
   vim.defer_fn(function()
     vim.fn.setpos(".", cursor_position)
-  end, config.strategies.chat.opts.yank_jump_delay_ms)
+  end, config.interactions.chat.opts.yank_jump_delay_ms)
 end
 
 M.yank_code = {
@@ -601,7 +601,7 @@ M.goto_file_under_cursor = {
       return
     end
     local action = nil
-    local user_action = config.strategies.chat.opts.goto_file_action
+    local user_action = config.interactions.chat.opts.goto_file_action
     if type(user_action) == "string" then
       action = function(fname)
         vim.cmd(user_action .. " " .. fname)

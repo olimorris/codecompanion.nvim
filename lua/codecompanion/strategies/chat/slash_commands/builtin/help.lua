@@ -11,7 +11,7 @@ local line_count = 0
 local CONSTANTS = {
   NAME = "Help",
   PROMPT = "Select a help tag",
-  MAX_LINES = config.strategies.chat.slash_commands.help.opts.max_lines,
+  MAX_LINES = config.interactions.chat.slash_commands.help.opts.max_lines,
 }
 
 ---Find the tag row

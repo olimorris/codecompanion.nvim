@@ -70,7 +70,7 @@ function Tools:format(message, opts, state)
 
   -- If there's a status being passed then we know it's an ACP tool and we can
   -- prevent any folds from being created
-  if not config.strategies.chat.tools.opts.folds.enabled or opts.status then
+  if not config.interactions.chat.tools.opts.folds.enabled or opts.status then
     return lines, nil
   end
 

@@ -11,7 +11,7 @@ local fmt = string.format
 
 local CONSTANTS = {
   NAME = "Fetch",
-  CACHE_PATH = config.strategies.chat.slash_commands.fetch.opts.cache_path,
+  CACHE_PATH = config.interactions.chat.slash_commands.fetch.opts.cache_path,
 }
 
 ---Get the cached URLs from the directory

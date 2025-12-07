@@ -5,8 +5,8 @@ local log = require("codecompanion.utils.log")
 local CONSTANTS = {
   NAME = "Image",
   PROMPT = "Images",
-  IMAGE_DIRS = config.strategies.chat.slash_commands.image.opts.dirs,
-  IMAGE_TYPES = config.strategies.chat.slash_commands.image.opts.filetypes,
+  IMAGE_DIRS = config.interactions.chat.slash_commands.image.opts.dirs,
+  IMAGE_TYPES = config.interactions.chat.slash_commands.image.opts.filetypes,
 }
 
 ---Prepares image search directories and filetypes for a single invocation.

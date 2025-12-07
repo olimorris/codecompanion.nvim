@@ -195,7 +195,7 @@ function Tools.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = args.adapter }),
+    tools_config = tool_filter.filter_enabled_tools(config.interactions.chat.tools, { adapter = args.adapter }),
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
 
@@ -208,7 +208,7 @@ function Tools.new(args)
         return
       end
       self.tools_config =
-        tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = autocmd_args.data.adapter })
+        tool_filter.filter_enabled_tools(config.interactions.chat.tools, { adapter = autocmd_args.data.adapter })
     end,
   })
 
@@ -220,7 +220,7 @@ end
 ---@return CodeCompanion.Tools
 function Tools:refresh(opts)
   opts = opts or {}
-  self.tools_config = tool_filter.filter_enabled_tools(config.strategies.chat.tools, opts)
+  self.tools_config = tool_filter.filter_enabled_tools(config.interactions.chat.tools, opts)
   return self
 end
 

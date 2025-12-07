@@ -349,7 +349,7 @@ CodeCompanion.setup = function(opts)
   end
 
   -- Set up completion
-  local completion = config.strategies.chat.opts.completion_provider
+  local completion = config.interactions.chat.opts.completion_provider
   local ok, completion_module = pcall(require, "codecompanion.providers.completion." .. completion .. ".setup")
   if not ok then
     log:warn("Failed to load completion provider `%s`: %s", completion, completion_module)

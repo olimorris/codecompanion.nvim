@@ -82,7 +82,7 @@ function M.messages(chat, start_range)
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
       last_role = helpers.format_role(get_node_text(node, chat.bufnr))
-    elseif last_role == config.strategies.chat.roles.user and query.captures[id] == "content" then
+    elseif last_role == config.interactions.chat.roles.user and query.captures[id] == "content" then
       table.insert(content, get_node_text(node, chat.bufnr))
     end
   end
@@ -108,7 +108,7 @@ function M.headers(chat)
   for id, node in query:iter_captures(root, chat.bufnr) do
     if query.captures[id] == "role_only" then
       local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      if role == config.strategies.chat.roles.user then
+      if role == config.interactions.chat.roles.user then
         last_match = node
       end
     end

@@ -151,7 +151,7 @@ function Builder:add_message(data, opts)
   if needs_header then
     state:update_role(data.role)
     self:_add_header_spacing(lines, state)
-    self.chat.ui:set_header(lines, config.strategies.chat.roles[data.role])
+    self.chat.ui:set_header(lines, config.interactions.chat.roles[data.role])
 
     -- Section started: reset block trackers
     self.state.section_index = (self.state.section_index or 0) + 1
