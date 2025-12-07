@@ -50,10 +50,10 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Workflows                                  |codecompanion-usage-workflows|
 6. Extending                                         |codecompanion-extending|
   - Creating Adapters              |codecompanion-extending-creating-adapters|
+  - Creating Agentic Workflows|codecompanion-extending-creating-agentic-workflows|
+  - Creating Extensions          |codecompanion-extending-creating-extensions|
   - Creating Rules Parsers    |codecompanion-extending-creating-rules-parsers|
   - Creating Tools                    |codecompanion-extending-creating-tools|
-  - Creating Workflows            |codecompanion-extending-creating-workflows|
-  - Creating Extensions          |codecompanion-extending-creating-extensions|
 
 ==============================================================================
 1. Welcome                                             *codecompanion-welcome*
@@ -2242,9 +2242,6 @@ At their core, prompts define a series of messages sent to an LLM. Let’s
 start with a simple example:
 
 
-
-MARKDOWN FORMAT
-
 Markdown prompts consist of two main parts:
 
 1. **Frontmatter** - YAML metadata between `---` delimiters that defines the prompt’s configuration
@@ -2279,6 +2276,7 @@ behaviour:
 - `ignore_system_prompt` - Don’t send the default system prompt with the request
 - `intro_message` - Custom intro message for the chat buffer UI
 - `is_slash_cmd` - Make the prompt available as a slash command in chat
+- `is_workflow` - Treat successive prompts as a workflow
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
@@ -2438,121 +2436,60 @@ You can also reference built-in values using dot notation:
 And many more from the context object.
 
 
-ADVANCED EXAMPLE
-
-Here’s a complete example showing the power of markdown prompts:
-
-**unit_tests.md:**
-
->markdown
-    ---
-    name: Unit tests
-    interaction: inline
-    description: Generate unit tests for the selected code
-    opts:
-      alias: tests
-      auto_submit: true
-      modes:
-        - v
-      placement: new
-      stop_context_insertion: true
-    ---
-    
-    ## system
-    
-    When generating unit tests, follow these steps:
-    
-    1. Identify the programming language.
-    2. Identify the purpose of the function or module to be tested.
-    3. List the edge cases and typical use cases that should be covered in the tests and share the plan with the user.
-    4. Generate unit tests using an appropriate testing framework for the identified programming language.
-    5. Ensure the tests cover:
-          - Normal cases
-          - Edge cases
-          - Error handling (if applicable)
-    6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.
-    
-    ## user
-    
-    Please generate unit tests for this code from buffer ${context.bufnr}:
-    
-    ```${context.filetype}
-    ${shared.code}
-    ```
-<
-
-**shared.lua:**
-
->lua
-    return {
-      code = function(args)
-        local actions = require("codecompanion.helpers.actions")
-        return actions.get_code(args.context.start_line, args.context.end_line)
-      end,
-    }
-<
-
-This prompt: - Only appears in visual mode - Automatically submits to the LLM -
-Places results in a new buffer - Uses a reusable `shared.code` function -
-Includes detailed instructions for the LLM
-
-
 ADVANCED CONFIGURATION
 
 
 CONDITIONALS
 
-**Lua only:**
-
 You can conditionally control when prompts appear in the Action Palette or
 conditionally include specific prompt messages using `condition` functions:
 
-**Item-level conditions** (controls visibility in Action Palette):
-
->lua
-    ["Open chats ..."] = {
-      name = "Open chats ...",
-      interaction = " ",
-      description = "Your currently open chats",
-      condition = function(context)
-        return #require("codecompanion").buf_get_chat() > 0
-      end,
-      picker = {
-        ---
-      }
-    }
-<
-
-**Prompt-level conditions** (controls individual messages):
-
->lua
-    ["Visual Only"] = {
-      interaction = "chat",
-      description = "Only appears in visual mode",
-      prompts = {
-        {
-          role = "user",
-          content = "This prompt only appears when you're in visual mode.",
-          condition = function(context)
-            return context.is_visual
-          end,
-        },
-      },
-    }
-<
+**Lua only:**
 
 
-  [!NOTE] Conditionals are not supported in markdown prompts since they require
-  Lua functions. Use the `modes` option in frontmatter instead to control
-  visibility by mode.
 
-PROMPTS WITH CONTEXT
+CONTEXT
 
 Pre-load a chat buffer with context from files, symbols, or URLs:
 
 
 Context items appear at the top of the chat buffer. URLs are automatically
 cached for you.
+
+
+PICKERS
+
+Pickers allow you to create dynamic prompt menus based on runtime data.
+
+**Lua only:**
+
+>lua
+    ["My picker menu ..."] = {
+      name = "A list of items",
+      interaction = " ",
+      description = "My current items",
+      picker = {
+        prompt = "Select an item",
+        columns = { "name", "description" },
+        items = {
+          {
+            name = "Item 1",
+            description = "This is item 1",
+            callback = function()
+              print("You selected item 1")
+            end,
+          },
+          {
+            name = "Item 2",
+            description = "This is item 2",
+            callback = function()
+              print("You selected item 2")
+            end,
+          },
+        },
+      },
+    },
+<
 
 
 PRE-HOOKS
@@ -2591,6 +2528,24 @@ particularly useful for creating new buffers or setting up the environment:
 For the inline interaction, the plugin will detect a number being returned from
 the `pre_hook` and assume that is the buffer number you wish any code to be
 streamed into.
+
+
+WORKFLOWS
+
+Workflows allow you to chain multiple prompts together in a sequence. That is,
+the first prompt is sent to the LLM, the LLM responds, then the next prompt in
+the workflow is sent, etc. This can be useful for implementing multi-step
+processes such as chain-of-thought reasoning or iterative code refinement.
+
+**Note:** Markdown prompts do not support
+|codecompanion-extending-agentic-workflows|.
+
+
+You can also modify the options for the entire workflow at an individual prompt
+level. This can be useful if you wish to automatically submit certain prompts
+or change the adapter/model mid-workflow. Simply use a yaml code block with
+`opts` as a meta field:
+
 
 
 OTHERS ~
@@ -3761,7 +3716,8 @@ occurs, the tool will instead share the exit code.
 The LLM is specifically instructed to detect if you’re running a test suite,
 and if so, to insert a flag in its request. This is then detected and the
 outcome of the test is stored in the corresponding flag on the chat buffer.
-This makes it ideal for |codecompanion-extending-workflows| to hook into.
+This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
+into.
 
 **Options:** - `require_approval_before` require approval before running a
 command? (Default: true)
@@ -4807,7 +4763,8 @@ processed and added to a new chat buffer. Simply open up the Action Palette and
 select your desired workflow.
 
 You can create your own workflows by following the
-|codecompanion-extending-workflows| guide.
+|codecompanion-configuration-prompt-library-workflows| configuration guide and
+the |codecompanion-extending-agentic-workflows| guide.
 
 
 ==============================================================================
@@ -5640,6 +5597,331 @@ structure for better organization:
       },
     }
 <
+
+
+CREATING AGENTIC WORKFLOWS*codecompanion-extending-creating-agentic-workflows*
+
+Workflows in CodeCompanion, are successive prompts which can be automatically
+sent to the LLM in a turn-based manner. This allows for actions such as
+reflection and planning to be easily implemented into your workflow. They can
+be combined with tools to create agentic workflows, which could be used to
+automate common activities like editing files and then running a test suite.
+
+I fully recommend reading Issue 242 of The Batch
+<https://www.deeplearning.ai/the-batch/issue-242/> to understand the origin of
+workflows. They were originally implemented
+<https://github.com/olimorris/codecompanion.nvim/commit/73e5a27075749b3ff60cfc796438d302d4b08715>
+in the plugin as an early form of Chain-of-thought
+<https://en.wikipedia.org/wiki/Prompt_engineering#Chain-of-thought> prompting,
+via the use of reflection and planning prompts.
+
+
+HOW THEY WORK ~
+
+Before showcasing some examples, it’s important to understand how workflows
+have been implemented in the plugin.
+
+When initiated from the |codecompanion-usage-action-palette|, workflows attach
+themselves to a |codecompanion-usage-chat-buffer-index| via the notion of a
+`subscription`. That is, the workflow has subscribed to the conversation and
+dataflow that’s taking place in the chat buffer. After the LLM sends a
+response, the chat buffer will trigger an event on the subscription class. This
+will execute a callback which has been defined in the workflow itself (often
+times this is simply a text prompt), and the event will duly be deleted from
+the subscription to prevent it from being executed again.
+
+
+CREATING AGENTIC WORKFLOWS ~
+
+By combining a workflow with tools, we can use an LLM to act as an Agent and do
+some impressive things!
+
+A great example of that is the `Edit<->Test` workflow that come with the
+plugin. This workflow asks the LLM to edit code in a buffer and then run a test
+suite, feeding the output back to the LLM to then make future edits if
+required.
+
+Let’s breakdown the prompts in that workflow:
+
+>lua
+    prompts = {
+      {
+        {
+          name = "Setup Test",
+          role = constants.USER_ROLE,
+          opts = { auto_submit = false },
+          content = function()
+            -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
+            vim.g.codecompanion_yolo_mode = true
+    
+            -- Some clear instructions for the LLM to follow
+            return [[### Instructions
+    
+    Your instructions here
+    
+    ### Steps to Follow
+    
+    You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
+    
+    1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
+    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    3. Make sure you trigger both tools in the same response
+    
+    We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
+          end,
+        },
+      },
+      --- Prompts to be continued ...
+    },
+<
+
+The first prompt in a workflow should set the ask of the LLM and provide clear
+instructions. In this case, we’re giving the LLM access to the
+|codecompanion-usage-chat-buffer-tools.html-files| and
+|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tools to edit a buffer
+and run tests, respectively.
+
+We’re giving the LLM knowledge of the buffer with the `#buffer` variable and
+also telling CodeCompanion to watch it for any changes with the `{watch}`
+parameter. Prior to sending a response to the LLM, the plugin will share any
+changes to that buffer, keeping the LLM updated.
+
+Now let’s look at how we trigger the automated reflection prompts:
+
+>lua
+    {
+      {
+        --- Prompts continued...
+        {
+          {
+            name = "Repeat On Failure",
+            role = constants.USER_ROLE,
+            opts = { auto_submit = true },
+            -- Scope this prompt to only run when the cmd_runner tool is active
+            condition = function()
+              return _G.codecompanion_current_tool == "cmd_runner"
+            end,
+            -- Repeat until the tests pass, as indicated by the testing flag
+            repeat_until = function(chat)
+              return chat.tools.flags.testing == true
+            end,
+            content = "The tests have failed. Can you edit the buffer and run the test suite again?",
+          },
+        },
+      },
+    },
+<
+
+Now there’s a little bit more to unpack in this prompt. Firstly, we’re
+automatically submitting the prompt to the LLM to save the user some time and
+keypresses. Next, we’re scoping the prompt to only be sent to the chat buffer
+if the currently active tool is the
+|codecompanion-usage-chat-buffer-tools.html-cmd-runner|.
+
+We’re also leveraging a function called `repeat_until`. This ensures that the
+prompt is always attached to the chat buffer until a condition is met. In this
+case, until the tests pass. In the
+|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tool, we ask the LLM to
+pass a flag if it detects a test suite is being run. The plugin picks up on
+that flag and puts the test outcome into the chat buffer class as a flag.
+
+Finally, we’re letting the LLM know that the tests failed, and asking it to
+fix.
+
+
+CREATING EXTENSIONS              *codecompanion-extending-creating-extensions*
+
+CodeCompanion supports extensions similar to telescope.nvim, allowing users to
+create functionality that can be shared with others. Extensions can either be
+distributed as plugins or defined locally in your configuration.
+
+
+EXTENSIONS ~
+
+Extensions are configured in your CodeCompanion setup:
+
+>lua
+    -- Install the extension
+    {
+      "olimorris/codecompanion.nvim",
+      dependencies = {
+        "author/codecompanion_history.nvim" -- history extension
+      }
+    }
+    
+    -- Configure in your setup
+    require("codecompanion").setup({
+      extensions = {
+        codecompanion_history = {
+          enabled = true, -- defaults to true
+          opts = {
+            history_file = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
+            max_history = 10, -- maximum number of chats to keep
+          }
+        }
+      }
+    })
+<
+
+
+CREATING EXTENSIONS ~
+
+Extensions are typically distributed as plugins. Create a new plugin with the
+following structure:
+
+>
+    your-extension/
+    ├── lua/
+    │   └── codecompanion/
+    │       └── _extensions/
+    │           └── your_extension/
+    │               └── init.lua  -- Main extension file
+    └── README.md
+<
+
+The init.lua file should export a module that provides setup and optional
+exports:
+
+>lua
+    ---@class CodeCompanion.Extension
+    ---@field setup fun(opts: table) Function called when extension is loaded
+    ---@field exports? table Functions exposed via codecompanion.extensions.your_extension
+    local Extension = {}
+    
+    ---Setup the extension
+    ---@param opts table Configuration options
+    function Extension.setup(opts)
+      -- Initialize extension
+      -- Add actions, keymaps etc.
+    end
+    
+    -- Optional: Functions exposed via codecompanion.extensions.your_extension
+    Extension.exports = {
+      clear_history = function() end
+    }
+    
+    return Extension
+<
+
+
+EXTENDING CHAT FUNCTIONALITY
+
+A common pattern is to add keymaps, slash_commands, tools to the
+codecompanion.config object inside setup function.
+
+>lua
+    ---This is called on codecompanion setup.
+    ---You can access config via require("codecompanion.config") and chat via require("codecompanion.chat").last_chat() etc
+    function Extension.setup(opts)
+      -- Add action to chat keymaps
+      local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
+    
+      chat_keymaps.open_saved_chats = {
+        modes = {
+          n = opts.keymap or "gh",
+        },
+        description = "Open Saved Chats",
+        callback = function(chat)
+            -- Implementation of opening saved chats
+            vim.notify("Opening saved chats for " .. chat.id)
+        end
+      }
+    end
+<
+
+Once configured, extension exports are accessible via:
+
+>lua
+    local codecompanion = require("codecompanion")
+    -- Use exported functions
+    codecompanion.extensions.codecompanion_history.clear_history()
+<
+
+
+LOCAL EXTENSIONS ~
+
+Extensions can also be defined directly in your configuration for simpler use
+cases:
+
+>lua
+    -- Example: Adding a message editor extension
+    require("codecompanion").setup({
+      extensions = {
+        editor = {
+          enabled = true,
+          opts = {},
+          callback = {
+            setup = function(ext_config)
+              -- Add a new action to chat keymaps
+              local open_editor = {
+                modes = {
+                  n = "ge",  -- Keymap to open editor
+                },
+                description = "Open Editor",
+                callback = function(chat)
+                  -- Implementation of editor opening logic
+                  -- You have access to the chat buffer via the chat parameter
+                  vim.notify("Editor opened for chat " .. chat.id)
+                end,
+              }
+    
+              -- Add the action to chat keymaps config
+              local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
+              chat_keymaps.open_editor = open_editor
+            end,
+    
+            -- Optional: Expose functions
+            exports = {
+              is_editor_open = function()
+                return false -- Implementation
+              end
+            }
+          }
+        }
+      }
+    })
+<
+
+The callback can be: - A function returning the extension table - The extension
+table directly - A string path to a module that returns the extension
+
+
+DYNAMIC REGISTRATION ~
+
+Extensions can also be added dynamically using
+
+>lua
+    require("codecompanion").register_extension("codecompanion_history", {
+        callback = {
+            setup = function()
+            end,
+            exports = {}
+        },
+    })
+<
+
+
+BEST PRACTICES ~
+
+1. **Namespacing**:- Use unique names for extensions to avoid conflicts
+- Prefix functions and variables appropriately
+
+
+2. **Configuration**:- Provide sensible defaults
+- Allow customization via opts table
+- Document all options
+
+
+3. **Integration**:- Follow CodeCompanion’s patterns for actions and tools
+- Use existing utilities like keymaps.set_keymap
+- Handle errors appropriately
+
+
+4. **Documentation**:- Document installation process
+- List all available options
+- Provide usage examples
+
+
 
 
 CREATING RULES PARSERS        *codecompanion-extending-creating-rules-parsers*
@@ -6483,499 +6765,6 @@ this in the `opts` table in the tool itself:
       -- More code follows...
     }
 <
-
-
-CREATING WORKFLOWS                *codecompanion-extending-creating-workflows*
-
-Workflows in CodeCompanion, are successive prompts which can be automatically
-sent to the LLM in a turn-based manner. This allows for actions such as
-reflection and planning to be easily implemented into your workflow. They can
-be combined with tools to create agentic workflows, which could be used to
-automate common activities like editing files and then running a test suite.
-
-I fully recommend reading Issue 242 of The Batch
-<https://www.deeplearning.ai/the-batch/issue-242/> to understand the origin of
-workflows. They were originally implemented
-<https://github.com/olimorris/codecompanion.nvim/commit/73e5a27075749b3ff60cfc796438d302d4b08715>
-in the plugin as an early form of Chain-of-thought
-<https://en.wikipedia.org/wiki/Prompt_engineering#Chain-of-thought> prompting,
-via the use of reflection and planning prompts.
-
-
-HOW THEY WORK ~
-
-Before showcasing some examples, it’s important to understand how workflows
-have been implemented in the plugin.
-
-When initiated from the |codecompanion-usage-action-palette|, workflows attach
-themselves to a |codecompanion-usage-chat-buffer-index| via the notion of a
-`subscription`. That is, the workflow has subscribed to the conversation and
-dataflow that’s taking place in the chat buffer. After the LLM sends a
-response, the chat buffer will trigger an event on the subscription class. This
-will execute a callback which has been defined in the workflow itself (often
-times this is simply a text prompt), and the event will duly be deleted from
-the subscription to prevent it from being executed again.
-
-
-SIMPLE WORKFLOWS ~
-
-Workflows are setup in exactly the same way as prompts in the
-|codecompanion-configuration-prompt-library-creating-prompts|. Take the `code
-workflow` as an example:
-
->lua
-    ["Code workflow"] = {
-      interaction = "workflow",
-      description = "Use a workflow to guide an LLM in writing code",
-      opts = {
-        alias = "cw",
-      },
-      prompts = {
-        {
-          -- We can group prompts together to make a workflow
-          -- This is the first prompt in the workflow
-          -- Everything in this group is added to the chat buffer in one batch
-          {
-            role = constants.SYSTEM_ROLE,
-            content = function(context)
-              return string.format(
-                "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the %s language",
-                context.filetype
-              )
-            end,
-            opts = {
-              visible = false,
-            },
-          },
-          {
-            role = constants.USER_ROLE,
-            content = "I want you to ",
-            opts = {
-              auto_submit = false,
-            },
-          },
-        },
-        -- This is the second group of prompts
-        {
-          {
-            role = constants.USER_ROLE,
-            content = "Great. Now let's consider your code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
-            opts = {
-              auto_submit = false,
-            },
-          },
-        },
-        -- This is the final group of prompts
-        {
-          {
-            role = constants.USER_ROLE,
-            content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
-            opts = {
-              auto_submit = false,
-            },
-          },
-        },
-      },
-    },
-<
-
-You’ll notice that the comments use the notion of "groups". These are
-collections of prompts which are added to a chat buffer in a timely manner.
-Infact, the second group will only be added once the LLM has responded to the
-first group…and so on.
-
-The `auto_submit` option allows you to automatically send prompts to an LLM,
-saving you a keypress. Please note that there is default delay of 2s (which can
-be changed as per the config.lua
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
-file under `opts.submit_delay`) to avoid triggering a rate limit block on an
-LLM’s endpoint.
-
-
-AGENTIC WORKFLOWS ~
-
-By combining a workflow with tools, we can use an LLM to act as an Agent and do
-some impressive things!
-
-A great example of that is the `Edit<->Test` workflow that come with the
-plugin. This workflow asks the LLM to edit code in a buffer and then run a test
-suite, feeding the output back to the LLM to then make future edits if
-required.
-
-Let’s breakdown the prompts in that workflow:
-
->lua
-    prompts = {
-      {
-        {
-          name = "Setup Test",
-          role = constants.USER_ROLE,
-          opts = { auto_submit = false },
-          content = function()
-            -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
-            vim.g.codecompanion_yolo_mode = true
-    
-            -- Some clear instructions for the LLM to follow
-            return [[### Instructions
-    
-    Your instructions here
-    
-    ### Steps to Follow
-    
-    You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
-    
-    1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
-    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
-    3. Make sure you trigger both tools in the same response
-    
-    We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
-          end,
-        },
-      },
-      --- Prompts to be continued ...
-    },
-<
-
-The first prompt in a workflow should set the ask of the LLM and provide clear
-instructions. In this case, we’re giving the LLM access to the
-|codecompanion-usage-chat-buffer-tools.html-files| and
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tools to edit a buffer
-and run tests, respectively.
-
-We’re giving the LLM knowledge of the buffer with the `#buffer` variable and
-also telling CodeCompanion to watch it for any changes with the `{watch}`
-parameter. Prior to sending a response to the LLM, the plugin will share any
-changes to that buffer, keeping the LLM updated.
-
-Now let’s look at how we trigger the automated reflection prompts:
-
->lua
-    {
-      {
-        --- Prompts continued...
-        {
-          {
-            name = "Repeat On Failure",
-            role = constants.USER_ROLE,
-            opts = { auto_submit = true },
-            -- Scope this prompt to only run when the cmd_runner tool is active
-            condition = function()
-              return _G.codecompanion_current_tool == "cmd_runner"
-            end,
-            -- Repeat until the tests pass, as indicated by the testing flag
-            repeat_until = function(chat)
-              return chat.tools.flags.testing == true
-            end,
-            content = "The tests have failed. Can you edit the buffer and run the test suite again?",
-          },
-        },
-      },
-    },
-<
-
-Now there’s a little bit more to unpack in this prompt. Firstly, we’re
-automatically submitting the prompt to the LLM to save the user some time and
-keypresses. Next, we’re scoping the prompt to only be sent to the chat buffer
-if the currently active tool is the
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner|.
-
-We’re also leveraging a function called `repeat_until`. This ensures that the
-prompt is always attached to the chat buffer until a condition is met. In this
-case, until the tests pass. In the
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tool, we ask the LLM to
-pass a flag if it detects a test suite is being run. The plugin picks up on
-that flag and puts the test outcome into the chat buffer class as a flag.
-
-Finally, we’re letting the LLM know that the tests failed, and asking it to
-fix.
-
-
-USEFUL OPTIONS ~
-
-There are also a number of options which haven’t been covered in the example
-prompts above:
-
-**Specifying an Adapter**
-
-You can specify a specific adapter for a workflow:
-
->lua
-    ["Workflow"] = {
-      interaction = "workflow",
-      description = "My workflow",
-      opts = {
-        adapter = {
-          name = "deepseek",
-          model = "deepseek-chat"
-        }
-      },
-      -- Prompts go here
-    },
-<
-
-You can even specify an adapter and model on each workflow prompt:
-
-
-  [!NOTE] The adapter name is required however model is optional.
->lua
-    -- ... Workflow config goes above this
-    opts = {
-      adapter = {
-        name = "copilot",
-        model = "gpt-5",
-      },
-    },
-    prompts = {
-      {
-        {
-          role = constants.USER_ROLE,
-          content = "Do not write any code. Let's brainstorm ideas first. Come up with a plan for ___",
-          opts = {
-            auto_submit = false,
-          },
-        },
-      },
-      {
-        {
-          role = constants.USER_ROLE,
-          content = "Plan looks good. Let's implement it.",
-          opts = {
-            adapter = {
-              name = "copilot",
-              -- Use a more cost effective cheaper model for token intensive activities
-              -- This model will persist for the duration of the chat unless changed
-              model = "gpt-4.1",
-            },
-            auto_submit = false,
-          },
-        },
-      },
-    },
-<
-
-**Persistent Prompts**
-
-
-  [!NOTE] Persistent prompts are not available for the first prompt group.
-By default, all workflow prompts are of the type `once`. That is, they are
-consumed once and then removed. However, this can be changed:
-
->lua
-    ["A Cool Workflow"] = {
-      interaction = "workflow",
-      description = "My cool workflow",
-      prompts = {
-        {
-          -- Some first prompt
-        },
-        {
-          {
-            role = constants.USER_ROLE,
-            content = "This prompt will never go away!",
-            type = "persistent",
-            opts = {
-              auto_submit = false,
-            },
-          },
-        },
-      },
-    },
-<
-
-
-CREATING EXTENSIONS              *codecompanion-extending-creating-extensions*
-
-CodeCompanion supports extensions similar to telescope.nvim, allowing users to
-create functionality that can be shared with others. Extensions can either be
-distributed as plugins or defined locally in your configuration.
-
-
-EXTENSIONS ~
-
-Extensions are configured in your CodeCompanion setup:
-
->lua
-    -- Install the extension
-    {
-      "olimorris/codecompanion.nvim",
-      dependencies = {
-        "author/codecompanion_history.nvim" -- history extension
-      }
-    }
-    
-    -- Configure in your setup
-    require("codecompanion").setup({
-      extensions = {
-        codecompanion_history = {
-          enabled = true, -- defaults to true
-          opts = {
-            history_file = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
-            max_history = 10, -- maximum number of chats to keep
-          }
-        }
-      }
-    })
-<
-
-
-CREATING EXTENSIONS ~
-
-Extensions are typically distributed as plugins. Create a new plugin with the
-following structure:
-
->
-    your-extension/
-    ├── lua/
-    │   └── codecompanion/
-    │       └── _extensions/
-    │           └── your_extension/
-    │               └── init.lua  -- Main extension file
-    └── README.md
-<
-
-The init.lua file should export a module that provides setup and optional
-exports:
-
->lua
-    ---@class CodeCompanion.Extension
-    ---@field setup fun(opts: table) Function called when extension is loaded
-    ---@field exports? table Functions exposed via codecompanion.extensions.your_extension
-    local Extension = {}
-    
-    ---Setup the extension
-    ---@param opts table Configuration options
-    function Extension.setup(opts)
-      -- Initialize extension
-      -- Add actions, keymaps etc.
-    end
-    
-    -- Optional: Functions exposed via codecompanion.extensions.your_extension
-    Extension.exports = {
-      clear_history = function() end
-    }
-    
-    return Extension
-<
-
-
-EXTENDING CHAT FUNCTIONALITY
-
-A common pattern is to add keymaps, slash_commands, tools to the
-codecompanion.config object inside setup function.
-
->lua
-    ---This is called on codecompanion setup.
-    ---You can access config via require("codecompanion.config") and chat via require("codecompanion.chat").last_chat() etc
-    function Extension.setup(opts)
-      -- Add action to chat keymaps
-      local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
-    
-      chat_keymaps.open_saved_chats = {
-        modes = {
-          n = opts.keymap or "gh",
-        },
-        description = "Open Saved Chats",
-        callback = function(chat)
-            -- Implementation of opening saved chats
-            vim.notify("Opening saved chats for " .. chat.id)
-        end
-      }
-    end
-<
-
-Once configured, extension exports are accessible via:
-
->lua
-    local codecompanion = require("codecompanion")
-    -- Use exported functions
-    codecompanion.extensions.codecompanion_history.clear_history()
-<
-
-
-LOCAL EXTENSIONS ~
-
-Extensions can also be defined directly in your configuration for simpler use
-cases:
-
->lua
-    -- Example: Adding a message editor extension
-    require("codecompanion").setup({
-      extensions = {
-        editor = {
-          enabled = true,
-          opts = {},
-          callback = {
-            setup = function(ext_config)
-              -- Add a new action to chat keymaps
-              local open_editor = {
-                modes = {
-                  n = "ge",  -- Keymap to open editor
-                },
-                description = "Open Editor",
-                callback = function(chat)
-                  -- Implementation of editor opening logic
-                  -- You have access to the chat buffer via the chat parameter
-                  vim.notify("Editor opened for chat " .. chat.id)
-                end,
-              }
-    
-              -- Add the action to chat keymaps config
-              local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
-              chat_keymaps.open_editor = open_editor
-            end,
-    
-            -- Optional: Expose functions
-            exports = {
-              is_editor_open = function()
-                return false -- Implementation
-              end
-            }
-          }
-        }
-      }
-    })
-<
-
-The callback can be: - A function returning the extension table - The extension
-table directly - A string path to a module that returns the extension
-
-
-DYNAMIC REGISTRATION ~
-
-Extensions can also be added dynamically using
-
->lua
-    require("codecompanion").register_extension("codecompanion_history", {
-        callback = {
-            setup = function()
-            end,
-            exports = {}
-        },
-    })
-<
-
-
-BEST PRACTICES ~
-
-1. **Namespacing**:- Use unique names for extensions to avoid conflicts
-- Prefix functions and variables appropriately
-
-
-2. **Configuration**:- Provide sensible defaults
-- Allow customization via opts table
-- Document all options
-
-
-3. **Integration**:- Follow CodeCompanion’s patterns for actions and tools
-- Use existing utilities like keymaps.set_keymap
-- Handle errors appropriately
-
-
-4. **Documentation**:- Document installation process
-- List all available options
-- Provide usage examples
-
-
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 

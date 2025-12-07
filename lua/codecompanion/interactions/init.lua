@@ -71,11 +71,18 @@ function Interactions.add_context(prompt, chat)
   end)
 end
 
+---Start a chat interaction
 ---@return CodeCompanion.Chat|nil
 function Interactions:chat()
   local messages
 
   local opts = self.selected.opts
+
+  -- Handle workflows separately
+  if opts and opts.is_workflow then
+    return self:workflow()
+  end
+
   local mode = self.buffer_context.mode:lower()
   local prompts = self.selected.prompts
 
@@ -158,6 +165,7 @@ function Interactions:chat()
   return self.add_context(self.selected, chat)
 end
 
+---Start a chat interaction with a workflow
 ---@return CodeCompanion.Chat
 function Interactions:workflow()
   local workflow = self.selected
@@ -242,6 +250,7 @@ function Interactions:workflow()
   return chat
 end
 
+---Start an inline interaction
 ---@return CodeCompanion.Inline|nil
 function Interactions:inline()
   log:info("[Interaction] Inline Initiated")

@@ -168,11 +168,14 @@ export default withMermaid(
           text: "Extending the Plugin",
           collapsed: true,
           items: [
+            {
+              text: "Creating Agentic Workflows",
+              link: "/extending/agentic-workflows",
+            },
             { text: "Creating Adapters", link: "/extending/adapters" },
             { text: "Creating Extensions", link: "/extending/extensions" },
             { text: "Creating Rules Parsers", link: "/extending/parsers" },
             { text: "Creating Tools", link: "/extending/tools" },
-            { text: "Creating Workflows", link: "/extending/workflows" },
           ],
         },
       ],
