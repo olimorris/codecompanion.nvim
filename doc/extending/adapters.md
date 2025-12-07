@@ -430,7 +430,7 @@ handlers = {
 
 ### `response.parse_inline`
 
-From a design perspective, the inline strategy is very similar to the chat strategy. With the `parse_inline` handler we simply return the content we wish to be streamed into the buffer.
+From a design perspective, the inline interaction is very similar to the chat interaction. With the `parse_inline` handler we simply return the content we wish to be streamed into the buffer.
 
 In the case of OpenAI, once we've checked the data we have back from the LLM and parsed it as JSON, we simply need to:
 

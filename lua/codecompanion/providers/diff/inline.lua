@@ -141,7 +141,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
         attach_line = attach_line + 1
       end
       -- Build hint text from configured keymaps
-      local keymaps_config = config.strategies.inline.keymaps
+      local keymaps_config = config.interactions.inline.keymaps
       if keymaps_config then
         local hint_parts = {}
         table.insert(hint_parts, keymaps_config.always_accept.modes.n .. ": always accept")

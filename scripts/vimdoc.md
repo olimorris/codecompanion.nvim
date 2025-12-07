@@ -39,8 +39,8 @@ doc/usage/workflows.md
 # Extending
 ```{.include shift-heading-level-by=1}
 doc/extending/adapters.md
+doc/extending/agentic-workflows.md
+doc/extending/extensions.md
 doc/extending/parsers.md
 doc/extending/tools.md
-doc/extending/workflows.md
-doc/extending/extensions.md
 ```

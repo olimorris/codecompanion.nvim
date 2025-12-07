@@ -1,13 +1,13 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
-local rules = require("codecompanion.strategies.chat.rules")
-local rules_list = require("codecompanion.strategies.chat.rules.helpers").list()
+local rules = require("codecompanion.interactions.chat.rules")
+local rules_list = require("codecompanion.interactions.chat.rules.helpers").list()
 
 return {
   -- Chat
   {
     name = "Chat",
-    strategy = "chat",
+    interaction = "chat",
     description = "Create a new chat buffer to converse with an LLM",
     type = nil,
     opts = {
@@ -43,7 +43,7 @@ return {
   -- Open chats
   {
     name = "Open chats ...",
-    strategy = " ",
+    interaction = " ",
     description = "Your currently open chats",
     opts = {
       index = 2,
@@ -62,7 +62,7 @@ return {
         for _, data in ipairs(loaded_chats) do
           table.insert(open_chats, {
             name = data.name,
-            strategy = "chat",
+            interaction = "chat",
             description = data.title or data.description,
             bufnr = data.chat.bufnr,
             callback = function()
@@ -79,7 +79,7 @@ return {
   -- Context
   {
     name = "Chat with rules ...",
-    strategy = " ",
+    interaction = " ",
     description = "Add rules to your chat",
     opts = {
       index = 3,
@@ -95,7 +95,7 @@ return {
         for _, item in ipairs(rules_list) do
           table.insert(formatted, {
             name = item.name,
-            strategy = "chat",
+            interaction = "chat",
             description = item.description,
             callback = function(context)
               codecompanion.chat({

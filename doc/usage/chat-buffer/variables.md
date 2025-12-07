@@ -10,7 +10,7 @@ description: Learn how variables can add context to the chat buffer in CodeCompa
 
 Variables allow you to dynamically insert Neovim context into your chat messages using the `#{variable_name}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available variables through code completion, or type them manually.
 
-Custom variables can be shared in the chat buffer by adding them to the `strategies.chat.variables` table in your configuration.
+Custom variables can be shared in the chat buffer by adding them to the `interactions.chat.variables` table in your configuration.
 
 ## Basic Usage
 

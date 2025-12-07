@@ -8,7 +8,7 @@ description: Configure the Inline Assistant in CodeCompanion
   <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Assistant">
 </p>
 
-CodeCompanion provides an _inline_ strategy for quick, direct interaction with your code. Unlike the chat buffer, the inline assistant integrates responses directly into the current buffer—allowing the LLM to add or replace code as needed.
+CodeCompanion provides an _inline_ interaction for quick, direct editing of your code. Unlike the chat buffer, the inline assistant integrates responses directly into the current buffer—allowing the LLM to add or replace code as needed.
 
 Only _http_ adapters are supported for the inline assistant.
 
@@ -18,7 +18,7 @@ The inline assistant supports keymaps for accepting or rejecting changes:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     inline = {
       keymaps = {
         accept_change = {
@@ -42,7 +42,7 @@ You can also cancel an inline request with:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     inline = {
       keymaps = {
         stop = {
@@ -63,7 +63,7 @@ The plugin comes with a number of [variables](/usage/inline-assistant.html#varia
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     inline = {
       variables = {
         ["my_new_var"] = {

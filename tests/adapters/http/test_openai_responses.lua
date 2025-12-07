@@ -344,7 +344,7 @@ end
 T["Responses"]["build_tools"] = new_set()
 
 T["Responses"]["build_tools"]["format available tools to call"] = function()
-  local weather = require("tests.strategies.chat.tools.builtin.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   local expected = {

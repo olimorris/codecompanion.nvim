@@ -98,7 +98,7 @@ T["Mistral adapter"]["form_messages"]["it can form tools to be sent to the API"]
     },
   })
 
-  local weather = require("tests.strategies.chat.tools.builtin.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))

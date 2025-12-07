@@ -1,6 +1,6 @@
 ---
 name: Commit message
-strategy: chat
+interaction: chat
 description: Generate a commit message
 opts:
   alias: commit

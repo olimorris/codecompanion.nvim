@@ -40,8 +40,8 @@ Parsers may also return a list of files to be shared with the LLM by the _rules_
       "./lua/codecompanion/adapters/acp/claude_code.lua",
       "./lua/codecompanion/adapters/acp/helpers.lua",
       "./lua/codecompanion/acp/prompt_builder.lua",
-      "./lua/codecompanion/strategies/chat/acp/handler.lua",
-      "./lua/codecompanion/strategies/chat/acp/request_permission.lua",
+      "./lua/codecompanion/interactions/chat/acp/handler.lua",
+      "./lua/codecompanion/interactions/chat/acp/request_permission.lua",
     },
   },
 }

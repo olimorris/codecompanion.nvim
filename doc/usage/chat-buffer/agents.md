@@ -24,9 +24,9 @@ As outlined in the Agent Client Protocol [documentation](https://agentclientprot
 
 At various points during the agent's lifecycle, you may be prompted for [permission](https://agentclientprotocol.com/protocol/schema#session%2Frequest-permission) to execute a tool.
 
-If the agent wishes to edit a file, then you will be shown a diff and presented with the various options available to you. You can send a response back to the agent via the keymaps defined in your config at `strategies.chat.keymaps._acp_*` (which are also displayed to you in the diff). If there is no diff associated with the tool call then you will be prompted via [vim.fn.confirm](https://neovim.io/doc/user/editing.html#_6.-dialogs).
+If the agent wishes to edit a file, then you will be shown a diff and presented with the various options available to you. You can send a response back to the agent via the keymaps defined in your config at `interactions.chat.keymaps._acp_*` (which are also displayed to you in the diff). If there is no diff associated with the tool call then you will be prompted via [vim.fn.confirm](https://neovim.io/doc/user/editing.html#_6.-dialogs).
 
-By default, the chat buffer will wait for c. 30 mins for you to respond to a permission request. This can be configured in `strategies.chat.opts.wait_timeout` with the default response, after a timeout, being defined at `strategies.chat.opts.acp_timeout_response`.
+By default, the chat buffer will wait for c. 30 mins for you to respond to a permission request. This can be configured in `interactions.chat.opts.wait_timeout` with the default response, after a timeout, being defined at `interactions.chat.opts.acp_timeout_response`.
 
 ## Cancelling a Request
 

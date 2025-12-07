@@ -1,6 +1,6 @@
 ---
 name: Explain code
-strategy: chat
+interaction: chat
 description: Explain how code in a buffer works
 opts:
   alias: explain

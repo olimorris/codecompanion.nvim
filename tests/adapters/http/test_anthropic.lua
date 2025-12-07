@@ -539,7 +539,7 @@ T["Anthropic adapter"]["form_reasoning"] = function()
 end
 
 T["Anthropic adapter"]["form_tools"] = function()
-  local weather = require("tests.strategies.chat.tools.builtin.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { transform.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))

@@ -8,7 +8,7 @@ description: Learn how Slash Commands improve your productivity in CodeCompanion
   <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 </p>
 
-Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `strategies.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
+Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `interactions.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
 
 ## /buffer
 

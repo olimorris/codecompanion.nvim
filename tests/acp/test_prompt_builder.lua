@@ -345,7 +345,7 @@ T["Prompt Builder"]["handle_error calls error handler and fires event"] = functi
         error_handler_called = true
         error_msg = msg
       end)
-      :with_options({ bufnr = 1, strategy = "chat" })
+      :with_options({ bufnr = 1, interaction = "chat" })
 
     -- Simulate error - pass error message as string
     pb:handle_error("LLM provider error: quota exceeded")

@@ -49,6 +49,6 @@ The plugin uses [adapters](configuration/adapters-http) to connect to LLMs. Out 
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
-The plugin utilises objects called _strategies_. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
+The plugin utilises objects called _interactions_. These are the different ways that a user can interact with the plugin. The _chat_ interaction harnesses a buffer to allow direct conversation with the LLM. The _inline_ interaction allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
-The plugin allows you to specify adapters for each strategy and also for each [prompt library](configuration/prompt-library) entry.
+The plugin allows you to specify adapters for each interaction and also for each [prompt library](configuration/prompt-library) entry.

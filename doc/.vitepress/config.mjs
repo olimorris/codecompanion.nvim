@@ -169,6 +169,10 @@ export default withMermaid(
           collapsed: true,
           items: [
             { text: "Adapters", link: "/extending/adapters" },
+            {
+              text: "Agentic Workflows",
+              link: "/extending/agentic-workflows",
+            },
             { text: "Extensions", link: "/extending/extensions" },
             { text: "Rules Parsers", link: "/extending/parsers" },
             { text: "Tools", link: "/extending/tools" },

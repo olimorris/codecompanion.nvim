@@ -52,7 +52,7 @@ CodeCompanion.nvim is organized into several key directories:
 
 - `lua/codecompanion/`:
   - `adapters/`: Adapters for different LLM providers (OpenAI, Anthropic, etc.)
-  - `strategies/`:
+  - `interactions/`:
     - `chat/`: Chat buffer implementation
     - `inline/`: Inline code editing functionality
     - `cmd/`: Command-line editing
@@ -194,7 +194,7 @@ REM run all tests
 nmake test
 
 REM run a single test suite
-nmake FILE=tests/strategies/chat/tools/runtime/tests_cmd.lua test_file
+nmake FILE=tests/interactions/chat/tools/runtime/tests_cmd.lua test_file
 ```
 
 ### Testing Tips
