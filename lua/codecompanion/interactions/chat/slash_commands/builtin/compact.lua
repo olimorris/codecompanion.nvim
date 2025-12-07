@@ -8,19 +8,9 @@ local CONSTANTS = {
   PROMPT = [[Your task is to create a detailed summary of the conversation so far, paying close attention to the user's explicit requests and your previous actions.
 This summary should be thorough in capturing technical details, code patterns, and architectural decisions that would be essential for continuing development work without losing context.
 
-Before providing your final summary, you must first perform an analysis of the conversation. Your entire output must be a single JSON object.
+Before providing your final summary, you must first perform an analysis of the conversation, outputting a summary.
 
-The JSON object should have two top-level keys: "analysis" and "summary".
-
-In the "analysis" field, you should place your thought process. In this process:
-1. Chronologically analyze each message and section of the conversation. For each section thoroughly identify:
-   - The user's explicit requests and intents
-   - Your approach to addressing the user's requests
-   - Key decisions, technical concepts and code patterns
-   - Specific details like file names, full code snippets, function signatures, file edits, etc
-2. Double-check for technical accuracy and completeness, addressing each required element thoroughly.
-
-The "summary" field should be a single string containing a Markdown-formatted summary. The summary must include the following sections, each with a Markdown header:
+The "summary" should be a Markdown-formatted summary. It must include the following sections, each with a Markdown header:
 
 - "Primary Request and Intent": Capture all of the user's explicit requests and intents in detail.
 - "Key Technical Concepts": List all important technical concepts, technologies, and frameworks discussed.
@@ -31,17 +21,54 @@ The "summary" field should be a single string containing a Markdown-formatted su
 - "Optional Next Step": List the next step that you will take that is related to the most recent work you were doing. IMPORTANT: ensure that this step is DIRECTLY in line with the user's explicit requests, and the task you were working on immediately before this summary request. If your last task was concluded, then only list next steps if they are explicitly in line with the users request. Do not start on tangential requests without confirming with the user first.
 - "Supporting Quotes": If there is a next step, include direct quotes from the most recent conversation showing exactly what task you were working on and where you left off. This should be verbatim to ensure there's no drift in task interpretation.
 
-Here's an example of how your JSON output should be structured:
+Here's an example of how a summary might be structured:
 
-```json
-{
-  "analysis": "[Your thought process, ensuring all points are covered thoroughly and accurately]",
-  "summary": "### Primary Request and Intent\n[Detailed description]\n\n### Key Technical Concepts\n- [Concept 1]\n- [Concept 2]\n\n### Files and Code Sections\n- **[File Name 1]**\n  - [Summary of why this file is important]\n  - [Summary of the changes made to this file, if any]\n  - ```[language]\n[Important Code Snippet]\n```\n\n### Problem Solving\n[Description of solved problems and ongoing troubleshooting]\n\n### Pending Tasks\n- [Task 1]\n- [Task 2]\n\n### Current Work\n[Precise description of current work]\n\n### Optional Next Step\n[Optional Next step to take]\n\n### Supporting Quotes\n> [Verbatim quotes from the conversation]"
-}
-```
+---
+### Primary Request and Intent
 
-Please provide your summary based on the conversation so far, following this JSON structure and ensuring precision and thoroughness in your response.
-Include the JSON object only, without any additional commentary or explanation and no markdown formatting. If you're referencing any code in your summary, ensure that is wrapped in FOUR backticks followed by the appropriate language identifier for syntax highlighting. For example:
+[Detailed description]
+
+### Key Technical Concepts
+
+- [Concept 1]
+- [Concept 2]
+
+### Files and Code Sections
+
+- **[File Name 1]**
+- [Summary of why this file is important]
+- [Summary of the changes made to this file, if any]
+
+````[language]
+[Important Code Snippet]
+````
+
+### Problem Solving
+
+[Description of solved problems and ongoing troubleshooting]
+
+### Pending Tasks
+
+- [Task 1]
+- [Task 2]
+
+### Current Work
+
+[Precise description of current work]
+
+### Optional Next Step
+
+[Optional Next step to take]
+
+### Supporting Quotes
+
+> [Verbatim quotes from the conversation]
+---
+
+Please provide your summary based on the conversation so far, following this structure and ensuring precision and thoroughness in your response.
+
+Include the markdown only, without any additional commentary or explanation and no markdown formatting. If you're referencing any code in your summary, ensure that is wrapped in FOUR backticks followed by the appropriate language identifier for syntax highlighting. For example:
+
 ````python
 def example_function():
     pass
@@ -139,21 +166,18 @@ function SlashCommand:execute(SlashCommands)
         on_done = function(result)
           if result then
             local content = result.output and result.output.content
-            local ok, json = pcall(vim.json.decode, content, { luanil = { object = true } })
-            if not ok or not json.summary then
-              return log:error("[Compact] Error parsing the JSON: %s", json)
-            end
 
             -- I don't care about the analysis field. I include that in the
             -- prompt to guide the model's thinking process.
             self.Chat:add_buf_message({
               role = config.constants.USER_ROLE,
-              content = fmt("Below is a summary of a conversation we've previously had:\n\n%s\n\n", json.summary),
+              content = fmt("Below is a summary of a conversation we've previously had:\n\n%s\n\n", content),
             })
             self:compact_messages()
 
-            log:debug("[Compact] Compacted the chat history")
+            return log:debug("[Compact] Compacted the chat history")
           end
+          log:debug("[Compact] No result from compacting the conversation")
         end,
         on_error = function(err)
           return log:error("[Compact] Error compacting the conversation: %s", err)
