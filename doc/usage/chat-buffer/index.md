@@ -100,7 +100,7 @@ When using an ACP adapter (such as claude-code), you can also type `\` (backslas
 > [!NOTE]
 > It typically takes 1-5 seconds after opening a chat buffer for ACP commands to become available. The agent needs to initialize and scan for both built-in and custom commands. If you define a new custom command mid-session, the same delay applies before it appears in the completion list.
 
-The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `strategies.chat.slash_commands.opts.acp.trigger` in your config.
+The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `interactions.chat.slash_commands.opts.acp.trigger` in your config.
 
 It's worth noting that not all commands available in ACP CLI tools are exposed via the SDK. Only a subset of built-in commands are supported, though this is constantly evolving as the underlying SDKs mature.
 
@@ -138,7 +138,7 @@ To disable a keymap, you can set it to `false` in your configuration:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       keymaps = {
         clear = false,

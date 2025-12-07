@@ -74,7 +74,7 @@ end
 ---@param opts? table
 ---@return CodeCompanion.ACPAdapter
 function Adapter.resolve(adapter, opts)
-  adapter = adapter or config.strategies.chat.adapter
+  adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
   if type(adapter) == "table" then

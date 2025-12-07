@@ -17,7 +17,7 @@ If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can simply 
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       adapter = "anthropic",
       model = "claude-sonnet-4-20250514"
@@ -38,7 +38,7 @@ can be used in a _lazy.nvim_ configuration like so:
     "nvim-lua/plenary.nvim"
   },
   opts = {
-    strategies = {
+    interactions = {
       chat = {
         adapter = "anthropic",
         model = "claude-sonnet-4-20250514"
@@ -61,7 +61,7 @@ An adapter is what connects Neovim to an LLM or an agent. It's the interface tha
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       name = "copilot",
       model = "gpt-4.1",
@@ -73,7 +73,7 @@ require("codecompanion").setup({
 })
 ```
 
-In the example above, we're using the Copilot adapter for the chat strategy and the Anthropic one for the inline strategy.
+In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and **ACP** adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 

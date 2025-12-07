@@ -52,7 +52,7 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   -- As tools can now be created from outside of the config, apply a general pattern
   vim.cmd.syntax('match CodeCompanionChatTool "@{[^}]*}"')
 
-  vim.iter(config.strategies.chat.variables):each(function(name)
+  vim.iter(config.interactions.chat.variables):each(function(name)
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
     vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
@@ -110,7 +110,7 @@ api.nvim_create_autocmd("BufEnter", {
       return
     end
 
-    local buffer_config = config.strategies.chat.variables.buffer.opts
+    local buffer_config = config.interactions.chat.variables.buffer.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
     local excluded_buftypes = excluded.buftypes or {}

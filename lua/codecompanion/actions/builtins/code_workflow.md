@@ -1,6 +1,6 @@
 ---
 name: Code workflow
-strategy: workflow
+interaction: workflow
 description: Use a workflow to guide an LLM in writing code
 opts:
   auto_submit: false

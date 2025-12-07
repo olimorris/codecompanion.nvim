@@ -1,6 +1,6 @@
 ---
 name: Explain LSP diagnostics
-strategy: chat
+interaction: chat
 description: Explain the LSP diagnostics for the selected code
 opts:
   alias: lsp

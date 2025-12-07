@@ -212,7 +212,7 @@ end
 
 ---Resolve a nested table value using a dot-separated path string
 ---@param tbl table The table to traverse
----@param path string The dot-separated path (e.g. "strategies.chat.tools.memory")
+---@param path string The dot-separated path (e.g. "interactions.chat.tools.memory")
 ---@return any|nil The resolved value, or nil if the path doesn't exist
 function M.resolve_nested_value(tbl, path)
   local parts = vim.split(path, ".", { plain = true })

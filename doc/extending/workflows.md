@@ -20,7 +20,7 @@ Workflows are setup in exactly the same way as prompts in the [prompt library](/
 
 ```lua
 ["Code workflow"] = {
-  strategy = "workflow",
+  interaction = "workflow",
   description = "Use a workflow to guide an LLM in writing code",
   opts = {
     alias = "cw",
@@ -164,7 +164,7 @@ You can specify a specific adapter for a workflow:
 
 ```lua
 ["Workflow"] = {
-  strategy = "workflow",
+  interaction = "workflow",
   description = "My workflow",
   opts = {
     adapter = {
@@ -227,7 +227,7 @@ By default, all workflow prompts are of the type `once`. That is, they are consu
 
 ```lua
 ["A Cool Workflow"] = {
-  strategy = "workflow",
+  interaction = "workflow",
   description = "My cool workflow",
   prompts = {
     {

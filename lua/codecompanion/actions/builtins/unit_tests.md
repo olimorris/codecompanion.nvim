@@ -1,6 +1,6 @@
 ---
 name: Unit tests
-strategy: inline
+interaction: inline
 description: Generate unit tests for the selected code
 opts:
   alias: tests

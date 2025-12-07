@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 06
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -99,14 +99,14 @@ of the box, the plugin supports:
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
-The plugin utilises objects called `strategies`. These are the different ways
-that a user can interact with the plugin. The `chat` strategy harnesses a
-buffer to allow direct conversation with the LLM. The `inline` strategy allows
-for output from the LLM to be written directly into a pre-existing Neovim
-buffer.
+The plugin utilises objects called `interactions`. These are the different ways
+that a user can interact with the plugin. The `chat` interaction harnesses a
+buffer to allow direct conversation with the LLM. The `inline` interaction
+allows for output from the LLM to be written directly into a pre-existing
+Neovim buffer.
 
-The plugin allows you to specify adapters for each strategy and also for each
-|codecompanion-configuration-prompt-library| entry.
+The plugin allows you to specify adapters for each interaction and also for
+each |codecompanion-configuration-prompt-library| entry.
 
 
 ==============================================================================
@@ -365,7 +365,7 @@ table. For example, the following code snippet from these docs:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           adapter = "anthropic",
           model = "claude-sonnet-4-20250514"
@@ -386,7 +386,7 @@ can be used in a `lazy.nvim` configuration like so:
         "nvim-lua/plenary.nvim"
       },
       opts = {
-        strategies = {
+        interactions = {
           chat = {
             adapter = "anthropic",
             model = "claude-sonnet-4-20250514"
@@ -414,7 +414,7 @@ plugin, you need to make sure you’ve configured an adapter first:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           name = "copilot",
           model = "gpt-4.1",
@@ -426,8 +426,8 @@ plugin, you need to make sure you’ve configured an adapter first:
     })
 <
 
-In the example above, we’re using the Copilot adapter for the chat strategy
-and the Anthropic one for the inline strategy.
+In the example above, we’re using the Copilot adapter for the chat
+interaction and the Anthropic one for the inline.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which
 connect you to an LLM and **ACP** adapters which leverage the Agent Client
@@ -884,11 +884,11 @@ two adapters, it is recommend that you read this page alongside the ACP one.
 
 CHANGING THE DEFAULT ADAPTER ~
 
-You can change the default adapter for each strategy as follows:
+You can change the default adapter for each interaction as follows:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           adapter = "anthropic",
         },
@@ -967,7 +967,7 @@ and `model` to the adapter:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           adapter = {
             name = "copilot",
@@ -1184,7 +1184,7 @@ a separate adapter:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           adapter = "openai_responses",
         },
@@ -1274,7 +1274,7 @@ the plugin:
           end,
         },
       },
-      strategies = {
+      interactions = {
         chat = {
           adapter = "azure_openai",
         },
@@ -1315,7 +1315,7 @@ SETUP: OPENROUTER WITH REASONING OUTPUT ~
           end,
         },
       },
-      strategies = {
+      interactions = {
         chat = {
           adapter = "openrouter",
         },
@@ -1356,7 +1356,7 @@ SETUP: LLAMA.CPP WITH --REASONING-FORMAT DEEPSEEK ~
           end,
         },
       },
-      strategies = {
+      interactions = {
         chat = {
           adapter = "llama.cpp",
         },
@@ -1370,7 +1370,7 @@ SETUP: LLAMA.CPP WITH --REASONING-FORMAT DEEPSEEK ~
 
 CHAT BUFFER                          *codecompanion-configuration-chat-buffer*
 
-By default, CodeCompanion provides a "chat" strategy that uses a dedicated
+By default, CodeCompanion provides a `chat` interaction that uses a dedicated
 Neovim buffer for conversational interaction with your chosen LLM. This buffer
 can be customized according to your preferences.
 
@@ -1390,7 +1390,7 @@ to send messages, regenerate responses, close the buffer, etc. Example:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           keymaps = {
             send = {
@@ -1426,7 +1426,7 @@ You can even define your own variables to share specific content:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           variables = {
             ["my_var"] = {
@@ -1454,7 +1454,7 @@ default, you can add this configuration:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           variables = {
             ["buffer"] = {
@@ -1491,12 +1491,12 @@ You can configure Slash Commands with:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           slash_commands = {
             ["file"] = {
               -- Location to the slash command in CodeCompanion
-              callback = "strategies.chat.slash_commands.file",
+              callback = "interactions.chat.slash_commands.file",
               description = "Select a file using Telescope",
               opts = {
                 provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
@@ -1514,11 +1514,11 @@ It’s also possible to conditionally enable a slash command by including
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           slash_commands = {
             ["image"] = {
-              callback = "strategies.chat.slash_commands.builtin.image",
+              callback = "interactions.chat.slash_commands.builtin.image",
               description = "Insert an image",
               ---@param opts { adapter: CodeCompanion.HTTPAdapter }
               ---@return boolean
@@ -1541,7 +1541,7 @@ You can also add your own slash commands:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           slash_commands = {
             ["git_files"] = {
@@ -1581,7 +1581,7 @@ Slash Commands can also be called via keymaps, in the chat buffer. Simply add a
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           slash_commands = {
             ["buffer"] = {
@@ -1609,7 +1609,7 @@ referenced with `@` when in the chat buffer:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             ["my_tool"] = {
@@ -1663,7 +1663,7 @@ changed by altering the config for each tool:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             ["cmd_runner"] = {
@@ -1688,7 +1688,7 @@ the LLM. This can be achieved by the following options in your configuration:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             opts = {
@@ -1709,7 +1709,7 @@ chat buffers:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             opts = {
@@ -1737,7 +1737,7 @@ achieved in CodeCompanion:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           opts = {
             ---Decorate the user message before it's sent to the LLM
@@ -1781,11 +1781,11 @@ options available to you:
 
 
 The keymaps for accepting and rejecting the diff sit within the `inline`
-strategy configuration and can be changed via:
+interaction configuration and can be changed via:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         inline = {
           keymaps = {
             accept_change = {
@@ -1817,7 +1817,7 @@ customized in the configuration:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           roles = {
             ---The header name for the LLM's messages
@@ -1965,7 +1965,7 @@ commands and tools. However, you can override this in your config:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           opts = {
             completion_provider = "cmp", -- blink|cmp|coc|default
@@ -1987,7 +1987,7 @@ customised as follows:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           opts = {
             goto_file_action = 'tabnew', -- this will always open the file in a new tab
@@ -2005,7 +2005,7 @@ otherwise.
 
 INLINE ASSISTANT                *codecompanion-configuration-inline-assistant*
 
-CodeCompanion provides an `inline` strategy for quick, direct interaction with
+CodeCompanion provides an `inline` interaction for quick, direct editing of
 your code. Unlike the chat buffer, the inline assistant integrates responses
 directly into the current buffer—allowing the LLM to add or replace code as
 needed.
@@ -2019,7 +2019,7 @@ The inline assistant supports keymaps for accepting or rejecting changes:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         inline = {
           keymaps = {
             accept_change = {
@@ -2043,7 +2043,7 @@ You can also cancel an inline request with:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         inline = {
           keymaps = {
             stop = {
@@ -2068,7 +2068,7 @@ also add your own:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         inline = {
           variables = {
             ["my_new_var"] = {
@@ -2251,8 +2251,8 @@ Markdown prompts consist of two main parts:
 2. **Prompt sections** - Markdown headings (`## system`, `## user`) that define the role and content of each message
 
 **Required frontmatter fields:** - `name` - The display name in the Action
-Palette - `description` - Description shown in the Action Palette - `strategy`
-- The strategy to use (`chat`, `inline`, `workflow`)
+Palette - `description` - Description shown in the Action Palette -
+`interaction` - The interaction to use (`chat`, `inline`, `workflow`)
 
 **Optional frontmatter fields:** - `opts` - Additional options (see
 |codecompanion--options| section) - `context` - Pre-loaded context (see
@@ -2280,7 +2280,7 @@ behaviour:
 - `intro_message` - Custom intro message for the chat buffer UI
 - `is_slash_cmd` - Make the prompt available as a slash command in chat
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
-- `placement` - For inline strategy: `new`, `replace`, `add`, `before`, `chat`
+- `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
@@ -2360,7 +2360,7 @@ logic or reusable components:
 >markdown
     ---
     name: Commit message
-    strategy: chat
+    interaction: chat
     description: Generate a commit message
     opts:
       alias: commit
@@ -2388,7 +2388,7 @@ In this example, `${commit.diff}` references the `diff` function from
 >markdown
     ---
     name: Code Review
-    strategy: chat
+    interaction: chat
     description: Review code changes
     ---
     
@@ -2447,7 +2447,7 @@ Here’s a complete example showing the power of markdown prompts:
 >markdown
     ---
     name: Unit tests
-    strategy: inline
+    interaction: inline
     description: Generate unit tests for the selected code
     opts:
       alias: tests
@@ -2512,7 +2512,7 @@ conditionally include specific prompt messages using `condition` functions:
 >lua
     ["Open chats ..."] = {
       name = "Open chats ...",
-      strategy = " ",
+      interaction = " ",
       description = "Your currently open chats",
       condition = function(context)
         return #require("codecompanion").buf_get_chat() > 0
@@ -2527,7 +2527,7 @@ conditionally include specific prompt messages using `condition` functions:
 
 >lua
     ["Visual Only"] = {
-      strategy = "chat",
+      interaction = "chat",
       description = "Only appears in visual mode",
       prompts = {
         {
@@ -2564,7 +2564,7 @@ particularly useful for creating new buffers or setting up the environment:
 
 >lua
     ["Boilerplate HTML"] = {
-      strategy = "inline",
+      interaction = "inline",
       description = "Generate some boilerplate HTML",
       opts = {
         ---@return number
@@ -2588,7 +2588,7 @@ particularly useful for creating new buffers or setting up the environment:
     }
 <
 
-For the inline strategy, the plugin will detect a number being returned from
+For the inline interaction, the plugin will detect a number being returned from
 the `pre_hook` and assume that is the buffer number you wish any code to be
 streamed into.
 
@@ -2731,7 +2731,7 @@ The chat system prompt can be changed with:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           opts = {
             system_prompt = "My new system prompt",
@@ -2761,7 +2761,7 @@ to build the system prompt:
     ---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
     
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           opts = {
             ---@param ctx CodeCompanion.SystemPrompt.Context
@@ -2794,7 +2794,7 @@ There are additional options available when working with tool system prompts:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             opts = {
@@ -3427,7 +3427,7 @@ The backslash trigger is used to avoid conflicts with CodeCompanion’s
 built-in |codecompanion-usage-chat-buffer-slash-commands|. When you send a
 message, `\command` is automatically transformed to `/command` for the agent.
 The trigger character can be customized via
-`strategies.chat.slash_commands.opts.acp.trigger` in your config.
+`interactions.chat.slash_commands.opts.acp.trigger` in your config.
 
 It’s worth noting that not all commands available in ACP CLI tools are
 exposed via the SDK. Only a subset of built-in commands are supported, though
@@ -3469,7 +3469,7 @@ To disable a keymap, you can set it to `false` in your configuration:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           keymaps = {
             clear = false,
@@ -3537,14 +3537,14 @@ to execute a tool.
 If the agent wishes to edit a file, then you will be shown a diff and presented
 with the various options available to you. You can send a response back to the
 agent via the keymaps defined in your config at
-`strategies.chat.keymaps._acp_*` (which are also displayed to you in the diff).
-If there is no diff associated with the tool call then you will be prompted via
-|vim.fn.confirm|.
+`interactions.chat.keymaps._acp_*` (which are also displayed to you in the
+diff). If there is no diff associated with the tool call then you will be
+prompted via |vim.fn.confirm|.
 
 By default, the chat buffer will wait for c. 30 mins for you to respond to a
 permission request. This can be configured in
-`strategies.chat.opts.wait_timeout` with the default response, after a timeout,
-being defined at `strategies.chat.opts.acp_timeout_response`.
+`interactions.chat.opts.wait_timeout` with the default response, after a
+timeout, being defined at `interactions.chat.opts.acp_timeout_response`.
 
 
 CANCELLING A REQUEST ~
@@ -3625,7 +3625,7 @@ EXAMPLE 1: RULE THAT CAN BE PROCESSED WITH THE CODECOMPANION PARSER
     
     ## My other header
     
-    @./lua/codecompanion/strategies/chat/tools/init.lua
+    @./lua/codecompanion/interactions/chat/tools/init.lua
     
     Anything in this section is added as context to the chat buffer. The file above is also shared
 <
@@ -3636,7 +3636,7 @@ EXAMPLE 2: RULE THAT CAN BE PROCESSED WITH THE CLAUDE PARSER
 >markdown
     # Example Claude Rules File
     
-    @./lua/codecompanion/strategies/chat/tools/init.lua
+    @./lua/codecompanion/interactions/chat/tools/init.lua
     
     This is a rules file that can be parsed with the Claude parser.
     
@@ -4165,14 +4165,14 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   ------------------------------------------------------------------------
 
   [!IMPORTANT] When using Mistral, you will need to set
-  `strategies.chat.tools.opts.auto_submit_errors` to `true`. See #2278
+  `interactions.chat.tools.opts.auto_submit_errors` to `true`. See #2278
   <https://github.com/olimorris/codecompanion.nvim/pull/2278> for more
   information.
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
 
 Slash Commands enable you to quickly add context to the chat buffer. They are
-comprised of values present in the `strategies.chat.slash_commands` table
+comprised of values present in the `interactions.chat.slash_commands` table
 alongside the `prompt_library` table where individual prompts have
 `opts.is_slash_cmd = true`.
 
@@ -4308,7 +4308,7 @@ buffer to see available variables through code completion, or type them
 manually.
 
 Custom variables can be shared in the chat buffer by adding them to the
-`strategies.chat.variables` table in your configuration.
+`interactions.chat.variables` table in your configuration.
 
 
 BASIC USAGE ~
@@ -4407,8 +4407,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
-- `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
-- `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
+- `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
+- `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
@@ -4439,7 +4439,7 @@ Each event also comes with a data payload. For example, with
         },
         bufnr = 10,
         id = 6107753,
-        strategy = "chat"
+        interaction = "chat"
       },
       event = "User",
       file = "CodeCompanionRequestStarted",
@@ -4517,9 +4517,9 @@ You can also have multiple variables a part of a prompt, for example:
 ADAPTERS ~
 
 You can specify a different adapter to that in the configuration
-(`strategies.inline.adapter`) when sending an inline prompt. Simply include the
-adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can
-you refactor this?`. This approach can also be combined with variables.
+(`interactions.inline.adapter`) when sending an inline prompt. Simply include
+the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek
+can you refactor this?`. This approach can also be combined with variables.
 
 
 CLASSIFICATION ~
@@ -4551,7 +4551,7 @@ keymaps:
 - `gdr` - Reject an inline edit
 
 These keymaps can also be changed in your config via the
-`strategies.inline.keymaps` table.
+`interactions.inline.keymaps` table.
 
 
 PROMPT LIBRARY                            *codecompanion-usage-prompt-library*
@@ -5274,7 +5274,7 @@ appropriate output fields:
           local extra = data.extra
           if extra.reasoning_content then
             -- codecompanion expect the reasoning tokens in this format
-            data.output.reasoning = { content = extra.reasoning_content } 
+            data.output.reasoning = { content = extra.reasoning_content }
             -- so that codecompanion doesn't mistake this as a normal response with empty string as the content
             if data.output.content == "" then
               data.output.content = nil
@@ -5311,9 +5311,9 @@ created. So we just pass this through:
 
 RESPONSE.PARSE_INLINE
 
-From a design perspective, the inline strategy is very similar to the chat
-strategy. With the `parse_inline` handler we simply return the content we wish
-to be streamed into the buffer.
+From a design perspective, the inline interaction is very similar to the chat
+interaction. With the `parse_inline` handler we simply return the content we
+wish to be streamed into the buffer.
 
 In the case of OpenAI, once we’ve checked the data we have back from the LLM
 and parsed it as JSON, we simply need to:
@@ -5689,8 +5689,8 @@ Parsers may also return a list of files to be shared with the LLM by the
           "./lua/codecompanion/adapters/acp/claude_code.lua",
           "./lua/codecompanion/adapters/acp/helpers.lua",
           "./lua/codecompanion/acp/prompt_builder.lua",
-          "./lua/codecompanion/strategies/chat/acp/handler.lua",
-          "./lua/codecompanion/strategies/chat/acp/request_permission.lua",
+          "./lua/codecompanion/interactions/chat/acp/handler.lua",
+          "./lua/codecompanion/interactions/chat/acp/request_permission.lua",
         },
       },
     }
@@ -5773,7 +5773,7 @@ Before we begin, it’s important to familiarise yourself with the directory
 structure of the tools implementation:
 
 >
-    strategies/chat/tools
+    interactions/chat/tools
     ├── init.lua
     ├── orchestrator.lua
     ├── runtime/
@@ -5794,7 +5794,7 @@ response from the LLM, identifying the tool and duly executing it.
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They’re non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/builtin/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we’ll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
@@ -5887,7 +5887,7 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
   [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
   create commands dynamically like in the cmd_runner
-  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/builtin/cmd_runner.lua>
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua>
   tool.
 **Function-based Tools**
 
@@ -6074,7 +6074,7 @@ HANDLERS
 The `handlers` table contains two functions that are executed before and after
 a tool completes:
 
-1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/builtin/cmd_runner.lua> tool.
+1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
 3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they’d like to apply an approval to `buffer` or `file` edits.
 
@@ -6159,7 +6159,7 @@ If we put this all together in our config:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             calculator = {
@@ -6316,7 +6316,7 @@ a tool’s `opts` table:
 
 >lua
     require("codecompanion").setup({
-      strategies = {
+      interactions = {
         chat = {
           tools = {
             calculator = {
@@ -6458,7 +6458,7 @@ for this, ensure that the tool definition in `available_tools` has
       -- ...existing code here
       opts = {
         -- Allow a hybrid tool -> One that also has a client side implementation
-        client_tool = "strategies.chat.tools.memory",
+        client_tool = "interactions.chat.tools.memory",
       },
     },
 <
@@ -6525,7 +6525,7 @@ workflow` as an example:
 
 >lua
     ["Code workflow"] = {
-      strategy = "workflow",
+      interaction = "workflow",
       description = "Use a workflow to guide an LLM in writing code",
       opts = {
         alias = "cw",
@@ -6701,7 +6701,7 @@ You can specify a specific adapter for a workflow:
 
 >lua
     ["Workflow"] = {
-      strategy = "workflow",
+      interaction = "workflow",
       description = "My workflow",
       opts = {
         adapter = {
@@ -6762,7 +6762,7 @@ consumed once and then removed. However, this can be changed:
 
 >lua
     ["A Cool Workflow"] = {
-      strategy = "workflow",
+      interaction = "workflow",
       description = "My cool workflow",
       prompts = {
         {
@@ -6868,7 +6868,7 @@ codecompanion.config object inside setup function.
     ---You can access config via require("codecompanion.config") and chat via require("codecompanion.chat").last_chat() etc
     function Extension.setup(opts)
       -- Add action to chat keymaps
-      local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
+      local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
     
       chat_keymaps.open_saved_chats = {
         modes = {
@@ -6920,7 +6920,7 @@ cases:
               }
     
               -- Add the action to chat keymaps config
-              local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
+              local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
               chat_keymaps.open_editor = open_editor
             end,
     

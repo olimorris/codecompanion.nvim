@@ -65,7 +65,7 @@ return {
       end,
       opts = {
         -- Allow a hybrid tool -> One that also has a client side implementation
-        client_tool = "strategies.chat.tools.memory",
+        client_tool = "interactions.chat.tools.memory",
       },
     },
     ["web_fetch"] = {

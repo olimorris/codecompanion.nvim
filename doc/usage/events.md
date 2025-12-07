@@ -27,8 +27,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
-- `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
-- `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
+- `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
+- `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
@@ -56,7 +56,7 @@ Each event also comes with a data payload. For example, with `CodeCompanionReque
     },
     bufnr = 10,
     id = 6107753,
-    strategy = "chat"
+    interaction = "chat"
   },
   event = "User",
   file = "CodeCompanionRequestStarted",

@@ -45,12 +45,14 @@ opts:
 
   local result = child.lua(
     [[
+      require("tests.log")
       return markdown.parse_frontmatter(...)
-  ]],
+    ]],
     { frontmatter }
   )
 
   h.eq(result, {
+    interaction = "chat",
     description = "Explain how code in a buffer works",
     name = "Explain",
     opts = {
@@ -62,7 +64,28 @@ opts:
       stop_context_insertion = true,
       user_prompt = false,
     },
-    strategy = "chat",
+  }, "Frontmatter should be parsed correctly")
+end
+
+T["Markdown"]["parse_frontmatter extracts interactions"] = function()
+  local frontmatter = [[---
+name: Explain
+interaction: chat
+description: Explain how code in a buffer works
+---
+  ]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_frontmatter(...)
+  ]],
+    { frontmatter }
+  )
+
+  h.eq(result, {
+    description = "Explain how code in a buffer works",
+    name = "Explain",
+    interaction = "chat",
   }, "Frontmatter should be parsed correctly")
 end
 
@@ -104,7 +127,7 @@ context:
     },
     description = "Explain how code in a buffer works",
     name = "Explain",
-    strategy = "chat",
+    interaction = "chat",
   }, "Frontmatter with context should be parsed correctly")
 end
 
@@ -345,7 +368,7 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
           role = "user",
         },
       },
-      strategy = "chat",
+      interaction = "chat",
     },
   }
 

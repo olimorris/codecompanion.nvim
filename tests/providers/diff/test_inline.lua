@@ -691,7 +691,7 @@ T["InlineDiff Screenshots"]["Shows floating window diff for simple changes"] = f
 
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
 
-    local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+    local diff_helper = require("codecompanion.interactions.chat.helpers.diff")
     local diff = diff_helper.create(bufnr, "float_test_1", {
       original_content = original_content
     })
@@ -765,7 +765,7 @@ T["InlineDiff Screenshots"]["Shows floating window diff for complex file changes
 
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
 
-    local diff_helper = require("codecompanion.strategies.chat.helpers.diff")
+    local diff_helper = require("codecompanion.interactions.chat.helpers.diff")
     local diff = diff_helper.create(bufnr, "float_test_2", {
       original_content = original_content
     })

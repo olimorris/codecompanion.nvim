@@ -4,7 +4,7 @@ description: Configure CodeCompanion's native chat buffer, to enable Vim like co
 
 # Configuring the Chat Buffer
 
-By default, CodeCompanion provides a "chat" strategy that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
+By default, CodeCompanion provides a _chat_ interaction that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
 
 Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
 
@@ -17,7 +17,7 @@ You can define or override the [default keymaps](https://github.com/olimorris/co
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       keymaps = {
         send = {
@@ -45,7 +45,7 @@ You can even define your own variables to share specific content:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       variables = {
         ["my_var"] = {
@@ -71,7 +71,7 @@ To [sync](/usage/chat-buffer/variables#with-parameters) buffers by default, you 
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       variables = {
         ["buffer"] = {
@@ -97,12 +97,12 @@ You can configure Slash Commands with:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       slash_commands = {
         ["file"] = {
           -- Location to the slash command in CodeCompanion
-          callback = "strategies.chat.slash_commands.file",
+          callback = "interactions.chat.slash_commands.file",
           description = "Select a file using Telescope",
           opts = {
             provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
@@ -119,11 +119,11 @@ It's also possible to conditionally enable a slash command by including `enabled
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       slash_commands = {
         ["image"] = {
-          callback = "strategies.chat.slash_commands.builtin.image",
+          callback = "interactions.chat.slash_commands.builtin.image",
           description = "Insert an image",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter }
           ---@return boolean
@@ -144,7 +144,7 @@ You can also add your own slash commands:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       slash_commands = {
         ["git_files"] = {
@@ -181,7 +181,7 @@ Slash Commands can also be called via keymaps, in the chat buffer. Simply add a 
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       slash_commands = {
         ["buffer"] = {
@@ -205,7 +205,7 @@ require("codecompanion").setup({
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         ["my_tool"] = {
@@ -246,7 +246,7 @@ Tools can be conditionally enabled using the `enabled` option. This works for bu
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         ["grep_search"] = {
@@ -289,7 +289,7 @@ Some tools, such as [cmd_runner](/usage/chat-buffer/tools.html#cmd-runner), requ
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         ["cmd_runner"] = {
@@ -311,7 +311,7 @@ When a tool executes, it can be useful to automatically send its output back to 
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         opts = {
@@ -330,7 +330,7 @@ You can configure the plugin to automatically add tools and tool groups to new c
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         opts = {
@@ -353,7 +353,7 @@ It can be useful to decorate your prompt, prior to sending to an LLM, with addit
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       opts = {
         ---Decorate the user message before it's sent to the LLM
@@ -579,11 +579,11 @@ require("codecompanion").setup({
 
 :::
 
-The keymaps for accepting and rejecting the diff sit within the `inline` strategy configuration and can be changed via:
+The keymaps for accepting and rejecting the diff sit within the `inline` interaction configuration and can be changed via:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     inline = {
       keymaps = {
         accept_change = {
@@ -613,7 +613,7 @@ The chat buffer places user and LLM responses under a `H2` header. These can be 
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       roles = {
         ---The header name for the LLM's messages
@@ -738,7 +738,7 @@ By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       opts = {
         completion_provider = "cmp", -- blink|cmp|coc|default
@@ -756,7 +756,7 @@ The jump action (the command/function triggered by the `gR` keymap) can be
 customised as follows:
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       opts = {
         goto_file_action = 'tabnew', -- this will always open the file in a new tab

@@ -1,6 +1,6 @@
 ---
 name: Fix code
-strategy: chat
+interaction: chat
 description: Fix the selected code
 opts:
   alias: fix
