@@ -19,13 +19,9 @@ Variables use the `#{variable_name}` syntax to dynamically insert content into y
 ## #buffer
 
 > [!IMPORTANT]
-> By default, CodeCompanion automatically applies `{diff}` to all buffers
+> By default, CodeCompanion automatically applies the `{diff}` parameter to all buffers
 
 The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared, or _synced_, with the LLM, on each turn:
-
-**`{all}`** - Sends all of the buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
-
-**`{diff}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
 
 ### Basic Usage
 
@@ -38,6 +34,12 @@ The `#{buffer}` variable shares buffer contents with the LLM. It has two special
 - `#{buffer:utils}` - Shares a file containing "utils" in the path
 
 ### With Parameters
+
+**`{all}`** - Sends all of the buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
+
+**`{diff}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
+
+Can be used in combination with targeting a specific buffer:
 
 - `#{buffer}{all}` - Sends entire buffer on any change
 - `#{buffer}{diff}` - Sends only changed portions of the buffer
