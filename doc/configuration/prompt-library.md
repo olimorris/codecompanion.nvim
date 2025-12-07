@@ -563,7 +563,7 @@ context:
       - lua/codecompanion/health.lua
       - lua/codecompanion/http.lua
   - type: symbols
-    path: lua/codecompanion/strategies/chat/init.lua
+    path: lua/codecompanion/interactions/chat/init.lua
   - type: url
     url: https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/commands.lua
 ---
@@ -589,7 +589,7 @@ I'll think of something clever to put here...
     },
     {
       type = "symbols",
-      path = "lua/codecompanion/strategies/chat/init.lua",
+      path = "lua/codecompanion/interactions/chat/init.lua",
     },
     {
       type = "url",

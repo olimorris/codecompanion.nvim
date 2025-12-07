@@ -28,7 +28,7 @@ This document provides guidance for Claude Code when working with the CodeCompan
 
 ### Strategies (Interaction Modes)
 
-Located in `lua/codecompanion/strategies/`:
+Located in `lua/codecompanion/interactions/`:
 
 **Chat Strategy** (`strategies/chat/`)
 - Primary interactive mode with buffer-based interface
@@ -54,7 +54,7 @@ Located in `lua/codecompanion/adapters/`:
 
 ### Tools System (Function Calling)
 
-Located in `lua/codecompanion/strategies/chat/tools/builtin/`:
+Located in `lua/codecompanion/interactions/chat/tools/builtin/`:
 
 **File Operations:** `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/` (advanced editing with multiple matching strategies)
 
@@ -68,7 +68,7 @@ Tool groups (e.g., `full_stack_dev`) defined in config. Orchestration via `tools
 
 ### Slash Commands (Context Injection)
 
-Located in `lua/codecompanion/strategies/chat/slash_commands/builtin/`:
+Located in `lua/codecompanion/interactions/chat/slash_commands/builtin/`:
 
 `/buffer`, `/file`, `/fetch`, `/symbols`, `/help`, `/image`, `/quickfix`, `/terminal`, `/mode`, `/memory`, `/now`
 

@@ -21,23 +21,21 @@ describe("Strategies", function()
       ollama = "ollama",
       openai = "openai",
     },
-    strategies = {
+    interactions = {
       chat = { adapter = "test_adapter" },
       inline = { adapter = "test_adapter" },
     },
   })
 
   before_each(function()
-    chat_mock = mock(require("codecompanion.strategies.chat"), true)
-    inline_mock = mock(require("codecompanion.strategies.inline"), true)
+    chat_mock = mock(require("codecompanion.interactions.chat"), true)
+    inline_mock = mock(require("codecompanion.interactions.inline"), true)
 
     inline_mock.new = function()
       return {
         start = inline_mock.start,
       }
     end
-
-    strategies = require("codecompanion.strategies")
   end)
 
   after_each(function()

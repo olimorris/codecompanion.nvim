@@ -388,7 +388,7 @@ It can be useful to pre-load a chat buffer with context from _files_, _symbols_ 
     },
     {
       type = "symbols",
-      path = "lua/codecompanion/strategies/chat/init.lua",
+      path = "lua/codecompanion/interactions/chat/init.lua",
     },
     {
       type = "url", -- This URL will even be cached for you!

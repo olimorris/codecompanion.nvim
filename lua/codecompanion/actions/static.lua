@@ -1,7 +1,7 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
-local rules = require("codecompanion.strategies.chat.rules")
-local rules_list = require("codecompanion.strategies.chat.rules.helpers").list()
+local rules = require("codecompanion.interactions.chat.rules")
+local rules_list = require("codecompanion.interactions.chat.rules.helpers").list()
 
 return {
   -- Chat

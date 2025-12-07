@@ -28,7 +28,7 @@ end
 ---@return nil
 CodeCompanion.inline = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
+  return require("codecompanion.interactions.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
 ---Accept the next word of code completion
@@ -37,7 +37,7 @@ CodeCompanion.inline_accept_word = function()
   if vim.fn.has("nvim-0.12") == 0 then
     return log:warn("Inline completion requires Neovim 0.12+")
   end
-  return require("codecompanion.strategies.inline.completion").accept_word()
+  return require("codecompanion.interactions.inline.completion").accept_word()
 end
 
 ---Accept the next line of code completion
@@ -46,7 +46,7 @@ CodeCompanion.inline_accept_line = function()
   if vim.fn.has("nvim-0.12") == 0 then
     return log:warn("Inline completion requires Neovim 0.12+")
   end
-  return require("codecompanion.strategies.inline.completion").accept_line()
+  return require("codecompanion.interactions.inline.completion").accept_line()
 end
 
 ---Run a prompt from the prompt library
@@ -145,12 +145,12 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add rules to the chat buffer
-  local rules_cb = require("codecompanion.strategies.chat.rules.helpers").add_callbacks(args)
+  local rules_cb = require("codecompanion.interactions.chat.rules.helpers").add_callbacks(args)
   if rules_cb then
     args.callbacks = rules_cb
   end
 
-  return require("codecompanion.strategies.chat").new({
+  return require("codecompanion.interactions.chat").new({
     adapter = adapter,
     auto_submit = auto_submit,
     buffer_context = context,
@@ -163,8 +163,8 @@ end
 ---Refresh any of the caches used by the plugin
 ---@return nil
 CodeCompanion.chat_refresh_cache = function()
-  require("codecompanion.strategies.chat.tools.filter").refresh_cache()
-  require("codecompanion.strategies.chat.slash_commands.filter").refresh_cache()
+  require("codecompanion.interactions.chat.tools.filter").refresh_cache()
+  require("codecompanion.interactions.chat.slash_commands.filter").refresh_cache()
   utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
@@ -173,7 +173,7 @@ end
 CodeCompanion.cmd = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
-  return require("codecompanion.strategies.cmd")
+  return require("codecompanion.interactions.cmd")
     .new({
       buffer_context = context,
       prompts = {
@@ -247,7 +247,7 @@ CodeCompanion.restore = function(bufnr)
     return log:error("Chat buffer %d is not valid", bufnr)
   end
 
-  local chat = require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+  local chat = require("codecompanion.interactions.chat").buf_get_chat(bufnr)
   if not chat then
     return log:error("Could not restore the chat buffer")
   end
@@ -265,19 +265,19 @@ end
 ---@param bufnr? number
 ---@return CodeCompanion.Chat|table
 CodeCompanion.buf_get_chat = function(bufnr)
-  return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+  return require("codecompanion.interactions.chat").buf_get_chat(bufnr)
 end
 
 ---Get the last chat buffer
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.last_chat = function()
-  return require("codecompanion.strategies.chat").last_chat()
+  return require("codecompanion.interactions.chat").last_chat()
 end
 
 ---Close the last chat buffer
 ---@return nil
 CodeCompanion.close_last_chat = function()
-  return require("codecompanion.strategies.chat").close_last_chat()
+  return require("codecompanion.interactions.chat").close_last_chat()
 end
 
 ---Show the action palette

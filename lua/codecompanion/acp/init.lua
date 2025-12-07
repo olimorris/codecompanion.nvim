@@ -542,7 +542,7 @@ function Connection:handle_fs_read_text_file_request(id, params)
     return self:send_error(id, "invalid params", -32602)
   end
 
-  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, content = fs.read_text_file(path, { line = params.line, limit = params.limit })
   if ok then
     return self:send_result(id, { content = content })
@@ -578,7 +578,7 @@ function Connection:handle_fs_write_file_request(id, params)
     return self:send_error(id, "invalid params", -32602)
   end
 
-  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, err = fs.write_text_file(path, content)
   if ok then
     -- Spec: WriteTextFileResponse is null
@@ -605,7 +605,7 @@ function Connection:handle_available_commands_update(session_id, commands)
     return log:error("[acp::handle_available_commands_update] Invalid commands format")
   end
 
-  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   acp_commands.register_commands(session_id, commands)
 end
 

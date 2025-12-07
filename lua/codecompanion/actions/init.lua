@@ -125,12 +125,12 @@ end
 ---Resolve the selected item into a strategy
 ---@param item table
 ---@param context CodeCompanion.BufferContext
----@return CodeCompanion.Strategies
+---@return codecompanion.interactions
 function Actions.resolve(item, context)
   item = vim.deepcopy(item)
   item = require("codecompanion.actions.markdown").resolve_placeholders(item, context)
 
-  return require("codecompanion.strategies")
+  return require("codecompanion.interactions")
     .new({
       buffer_context = context,
       selected = item,

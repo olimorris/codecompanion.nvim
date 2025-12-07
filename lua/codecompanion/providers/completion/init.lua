@@ -1,8 +1,8 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
-local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
-local strategy = require("codecompanion.strategies")
-local tool_filter = require("codecompanion.strategies.chat.tools.filter")
+local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
+local strategy = require("codecompanion.interactions")
+local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 
 local api = vim.api
 
@@ -189,7 +189,7 @@ function M.slash_commands_execute(selected, chat)
       end
     end)
   else
-    require("codecompanion.strategies.chat.slash_commands"):execute(selected, chat)
+    require("codecompanion.interactions.chat.slash_commands"):execute(selected, chat)
   end
 end
 
@@ -205,7 +205,7 @@ function M.acp_commands(bufnr)
     return {}
   end
 
-  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   local commands = acp_commands.get_commands_for_buffer(bufnr)
   local acp_trigger = get_acp_trigger()
 

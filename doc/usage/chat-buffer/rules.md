@@ -56,7 +56,7 @@ So you can specify instructions:
 
 ## My other header
 
-@./lua/codecompanion/strategies/chat/tools/init.lua
+@./lua/codecompanion/interactions/chat/tools/init.lua
 
 Anything in this section is added as context to the chat buffer. The file above is also shared
 ```
@@ -66,7 +66,7 @@ Anything in this section is added as context to the chat buffer. The file above 
 ```markdown
 # Example Claude Rules File
 
-@./lua/codecompanion/strategies/chat/tools/init.lua
+@./lua/codecompanion/interactions/chat/tools/init.lua
 
 This is a rules file that can be parsed with the Claude parser.
 
