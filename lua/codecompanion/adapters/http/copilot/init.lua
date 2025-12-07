@@ -20,6 +20,11 @@ local function resolve_model_opts(adapter)
     -- Avoid blocking during initialization
     choices = choices(adapter, { async = true })
   end
+
+  if adapter.model and choices then
+    adapter.model.info = choices[model]
+  end
+
   return choices and choices[model] or { opts = {} }
 end
 
@@ -27,6 +32,7 @@ end
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return table
 local function handlers(adapter)
+  -- print('handlers')
   local model_opts = resolve_model_opts(adapter)
   if model_opts.endpoint == "responses" then
     adapter.url = "https://api.githubcopilot.com/responses"
@@ -97,6 +103,7 @@ return {
       return token.fetch({ force = true }).copilot_token
     end,
   },
+  -- model_metadata = resolve_model_opts,
   headers = {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
