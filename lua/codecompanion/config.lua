@@ -1053,14 +1053,10 @@ M.setup = function(args)
 
   M.config.strategies.chat.keymaps = remove_disabled_keymaps(M.config.strategies.chat.keymaps)
   M.config.strategies.inline.keymaps = remove_disabled_keymaps(M.config.strategies.inline.keymaps)
-
-  -- TODO: Add a deprecation warning at some point
-  if M.config.opts and M.config.opts.system_prompt then
-    M.config.strategies.chat.opts.system_prompt = M.config.opts.system_prompt
-    M.config.opts.system_prompt = nil
-  end
 end
 
+---Determine if code can be sent to the LLM
+---@return boolean
 M.can_send_code = function()
   if type(M.config.opts.send_code) == "boolean" then
     return M.config.opts.send_code
