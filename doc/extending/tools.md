@@ -2,7 +2,7 @@
 description: Learn how to create your own tools for use with agents in CodeCompanion
 ---
 
-# Creating Tools
+# Extending with Tools
 
 In CodeCompanion, tools offer pre-defined ways for LLMs to call functions on your machine, acting as an Agent in the process. This guide walks you through the implementation of tools, enabling you to create your own.
 

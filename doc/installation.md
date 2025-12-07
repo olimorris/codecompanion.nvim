@@ -17,13 +17,26 @@ description: How to install CodeCompanion and it's dependencies
 
 ## Installation
 
-The plugin can be installed with the plugin manager of your choice:
+The plugin can be installed with the plugin manager of your choice. It is recommended to pin the plugin to a specific release to avoid breaking changes.
 
-### [Lazy.nvim](https://github.com/folke/lazy.nvim)
+### vim.pack
+
+For Neovim 0.12+:
+
+```lua
+vim.pack.add("https://www.github.com/nvim-lua/plenary.nvim")
+vim.pack.add({
+  src = "https://www.github.com/olimorris/codecompanion.nvim",
+  version = vim.version.range("^18.0.0")
+})
+```
+
+### Lazy.nvim
 
 ```lua
 {
   "olimorris/codecompanion.nvim",
+  version = "^18.0.0"
   opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
@@ -31,11 +44,12 @@ The plugin can be installed with the plugin manager of your choice:
 },
 ```
 
-### [Packer](https://github.com/wbthomason/packer.nvim)
+### Packer.nvim
 
 ```lua
 use({
   "olimorris/codecompanion.nvim",
+  tag = "^18.0.0",
   config = function()
     require("codecompanion").setup()
   end,
@@ -43,21 +57,6 @@ use({
     "nvim-lua/plenary.nvim",
   }
 }),
-```
-
-### [vim-plug](https://github.com/junegunn/vim-plug)
-
-```vim
-call plug#begin()
-
-Plug 'nvim-lua/plenary.nvim'
-Plug 'olimorris/codecompanion.nvim'
-
-call plug#end()
-
-lua << EOF
-  require("codecompanion").setup()
-EOF
 ```
 
 **Pinned plugins**

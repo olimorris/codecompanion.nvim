@@ -6,9 +6,9 @@ doc/getting-started.md
 
 # Configuration
 ```{.include shift-heading-level-by=1}
-doc/configuration/acp.md
 doc/configuration/action-palette.md
-doc/configuration/adapters.md
+doc/configuration/adapters-acp.md
+doc/configuration/adapters-http.md
 doc/configuration/chat-buffer.md
 doc/configuration/inline-assistant.md
 doc/configuration/rules.md

@@ -55,7 +55,7 @@ can be used in a _lazy.nvim_ configuration like so:
 ## Configuring an Adapter
 
 > [!NOTE]
-> The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters.html#community-adapters)
+> The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters-http#community-adapters)
 
 An adapter is what connects Neovim to an LLM or an agent. It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
 
@@ -77,7 +77,7 @@ In the example above, we're using the Copilot adapter for the chat interaction a
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and **ACP** adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
-Refer to the [adapter](configuration/adapters) section to understand more about working with adapters like [Claude Code](/configuration/adapters#setup-claude-code-via-acp).
+Refer to the [adapter](configuration/adapters-http) section to understand more about working with adapters like [Claude Code](/configuration/adapters-acp#setup-claude-code-via-acp).
 
 ### Setting an API Key
 
@@ -118,7 +118,7 @@ require("codecompanion").setup({
 ```
 
 > [!IMPORTANT]
-> Please see the section on [Configuring Adapters](configuration/adapters) for more information
+> Please see the section on [Configuring Adapters](configuration/adapters-http) for more information
 
 ## Chat Buffer
 

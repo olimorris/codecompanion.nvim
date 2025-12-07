@@ -2,7 +2,7 @@
 description: Learn how to create your own extensions in CodeCompanion
 ---
 
-# Creating Extensions
+# Extending with Extensions
 
 CodeCompanion supports extensions similar to telescope.nvim, allowing users to create functionality that can be shared with others. Extensions can either be distributed as plugins or defined locally in your configuration.
 

@@ -2,7 +2,7 @@
 description: Learn how to create your own adapters in CodeCompanion
 ---
 
-# Creating Adapters
+# Extending with Adapters
 
 > [!TIP]
 > Does your LLM state that it is "OpenAI Compatible"? If so, good news, you can extend from the `openai` adapter or use the `openai_compatible` one. Something we did with the [xAI](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua) adapter

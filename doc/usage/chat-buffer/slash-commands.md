@@ -61,7 +61,7 @@ The _rules_ slash command allows you to add [rules](/usage/chat-buffer/rules) gr
 
 ## /mode
 
-The _mode_ slash command is specific to [ACP](/configuration/acp) adapters allows users to switch between different agent operating modes, as per the [protocol](https://agentclientprotocol.com/protocol/session-modes) docs.
+The _mode_ slash command is specific to [ACP](/configuration/adapters-acp) adapters allows users to switch between different agent operating modes, as per the [protocol](https://agentclientprotocol.com/protocol/session-modes) docs.
 
 ## /now
 
