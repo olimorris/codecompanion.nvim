@@ -6,6 +6,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 1. Welcome                                             |codecompanion-welcome|
   - Features                                  |codecompanion-welcome-features|
   - Overview                                  |codecompanion-welcome-overview|
+  - Supported LLMs and Agents|codecompanion-welcome-supported-llms-and-agents|
 2. Installation                                   |codecompanion-installation|
   - Requirements                     |codecompanion-installation-requirements|
   - Installation                     |codecompanion-installation-installation|
@@ -60,8 +61,8 @@ Table of Contents                            *codecompanion-table-of-contents*
 
 
   AI Coding, Vim Style
-CodeCompanion is a Neovim plugin which streamlines how you write code with
-LLMs, in Neovim.
+CodeCompanion is a Neovim plugin which enables you to code with AI, using LLMs
+and agents, in Neovim.
 
 
 FEATURES                                      *codecompanion-welcome-features*
@@ -83,22 +84,6 @@ FEATURES                                      *codecompanion-welcome-features*
 
 OVERVIEW                                      *codecompanion-welcome-overview*
 
-The plugin uses |codecompanion-configuration-adapters-http| to connect to LLMs.
-Out of the box, the plugin supports:
-
-- Anthropic (`anthropic`) - Requires an API key and supports prompt caching <https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching>
-- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
-- GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
-- DeepSeek (`deepseek`) - Requires an API key
-- Gemini (`gemini`) - Requires an API key
-- HuggingFace (`huggingface`) - Requires an API key
-- Mistral AI (`mistral`) - Requires an API key
-- Novita (`novita`) - Requires an API key
-- Ollama (`ollama`) - Both local and remotely hosted
-- OpenAI (`openai`) - Requires an API key
-- Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
-- xAI (`xai`) - Requires an API key
-
 The plugin utilises objects called `interactions`. These are the different ways
 that a user can interact with the plugin. The `chat` interaction harnesses a
 buffer to allow direct conversation with the LLM. The `inline` interaction
@@ -107,6 +92,34 @@ Neovim buffer.
 
 The plugin allows you to specify adapters for each interaction and also for
 each |codecompanion-configuration-prompt-library| entry.
+
+
+SUPPORTED LLMS AND AGENTS    *codecompanion-welcome-supported-llms-and-agents*
+
+CodeCompanion uses |codecompanion-configuration-adapters-http| and
+|codecompanion-configuration-adapters-acp| adapters to connect to LLMs and
+agents. Out of the box, the plugin supports:
+
+- Anthropic (`anthropic`) - Requires an API key and supports prompt caching <https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching>
+- Augment Code (`augment_code`) - Requires an API key
+- Cagent (`cagent`)
+- Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
+- Codex (`codex`) - Requires an API key
+- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
+- Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
+- GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
+- Goose (`goose`) - Requires an API key
+- DeepSeek (`deepseek`) - Requires an API key
+- Gemini (`gemini`) - Requires an API key
+- HuggingFace (`huggingface`) - Requires an API key
+- Kimi CLI (`kimi_cli`) - Requires an API key
+- Mistral AI (`mistral`) - Requires an API key
+- Novita (`novita`) - Requires an API key
+- Ollama (`ollama`) - Both local and remotely hosted
+- OpenAI (`openai`) - Requires an API key
+- opencode (`opencode`) - Requires an API key
+- Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
+- xAI (`xai`) - Requires an API key
 
 
 ==============================================================================
@@ -342,16 +355,15 @@ troubleshoot, running it with `nvim --clean -u minimal.lua`.
 ==============================================================================
 3. Getting Started                             *codecompanion-getting-started*
 
-Please see the author’s own config
-<https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua>
-for a complete reference of how to setup the plugin.
-
 
   [!IMPORTANT] The default adapter in CodeCompanion is GitHub Copilot
   <https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide>.
   If you have copilot.vim <https://github.com/github/copilot.vim> or copilot.lua
   <https://github.com/zbirenbaum/copilot.lua> installed then expect CodeCompanion
   to work out of the box.
+This guide is intended to help you get up and running with CodeCompanion and
+begin your journey of coding with AI in Neovim.
+
 
 DOCUMENTATION                    *codecompanion-getting-started-documentation*
 
@@ -429,21 +441,26 @@ plugin, you need to make sure you’ve configured an adapter first:
 In the example above, we’re using the Copilot adapter for the chat
 interaction and the Anthropic one for the inline.
 
-There are two "types" of adapter in CodeCompanion; **http** adapters which
-connect you to an LLM and **ACP** adapters which leverage the Agent Client
-Protocol <https://agentclientprotocol.com> to connect you to an agent.
+There are two "types" of adapter in CodeCompanion;
+|codecompanion-configuration-adapters-http| adapters which connect you to an
+LLM and |codecompanion-configuration-adapters-acp| adapters which leverage the
+Agent Client Protocol <https://agentclientprotocol.com> to connect you to an
+agent.
 
-Refer to the |codecompanion-configuration-adapters-http| section to understand
-more about working with adapters like
-|codecompanion-configuration-adapters-acp-setup-claude-code-via-acp|.
+Refer to the respective sections to understand more about working with adapters
+that enable agents like
+|codecompanion-configuration-adapters-acp-setup-claude-code|.
 
 
 SETTING AN API KEY ~
 
-Because most LLMs require an API key you’ll need to share that with the
+Because most LLMs require an API key, you’ll need to share that with the
 adapter. By default, adapters will look in your environment for a `*_API_KEY`
-where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However,
-you can extend the adapter and change the API key like so:
+where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. Refer to
+the documentation of the LLM or agent you’re using to find out what the
+environment variable is called.
+
+You can extend an adapter and change the API key like so:
 
 >lua
     require("codecompanion").setup({
@@ -461,35 +478,17 @@ you can extend the adapter and change the API key like so:
     })
 <
 
-Having API keys in plain text in your shell is not always safe. Thanks to this
-PR <https://github.com/olimorris/codecompanion.nvim/pull/24>, you can run
-commands from within your config by prefixing them with `cmd:`. In the example
-below, we’re using the 1Password CLI to read an OpenAI credential.
+There are numerous ways that environment variables can be set for adapters.
+Refer to the |codecompanion-configuration-adapters-http-environment-variables|
+section for more information.
 
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              env = {
-                api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-
-  [!IMPORTANT] Please see the section on
-  |codecompanion-configuration-adapters-http| for more information
 
 CHAT BUFFER                        *codecompanion-getting-started-chat-buffer*
 
 The Chat Buffer is where you can converse with an LLM from within Neovim. It
-operates on a single response per turn, basis.
+operates on a single response per turn, basis. Once your adapter has been
+configured, you can start using the chat buffer and begin interacting with an
+LLM.
 
 Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by
 pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively,
@@ -508,7 +507,9 @@ VARIABLES ~
 
 `Variables`, accessed via `#`, contain data about the present state of Neovim.
 You can find a list of available variables,
-|codecompanion-usage-chat-buffer-variables.html|.
+|codecompanion-usage-chat-buffer-variables.html|. The buffer variable will
+automatically link a buffer to the chat buffer, by default, updating the LLM
+when the buffer changes.
 
 
   [!TIP] Use them in your prompt like: `What does the code in #{buffer} do?`
