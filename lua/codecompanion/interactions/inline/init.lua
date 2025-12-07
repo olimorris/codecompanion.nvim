@@ -257,7 +257,7 @@ function Inline:parse_special_syntax(prompt)
   return vim.trim(prompt)
 end
 
----Set keymaps for the inline strategy
+---Set keymaps for the inline interaction
 ---@param bufnr? number
 ---@param opts? table
 ---@return nil
@@ -452,7 +452,7 @@ function Inline:submit(prompt)
     }, {
       bufnr = self.bufnr,
       buffer_context = self.buffer_context or {},
-      strategy = "inline",
+      interaction = "inline",
     })
 end
 
@@ -643,7 +643,7 @@ function Inline:place(placement)
       utils.set_option(bufnr, "filetype", ft)
     end
 
-    -- TODO: This is duplicated from the chat strategy
+    -- TODO: This is duplicated from the chat interaction
     if config.display.inline.layout == "vertical" then
       local cmd = "vsplit"
       local window_width = config.display.chat.window.width

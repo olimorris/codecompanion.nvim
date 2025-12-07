@@ -32,13 +32,13 @@ function M.resolve(context, config)
 
     table.insert(_prompts, {
       condition = prompt.condition,
+      context = prompt.context,
       description = description,
+      interaction = prompt.interaction or prompt.strategy,
       name = name,
       opts = prompt.opts,
-      context = prompt.context,
       picker = prompt.picker,
       prompts = prompt.prompts,
-      strategy = prompt.strategy,
     })
 
     ::continue::

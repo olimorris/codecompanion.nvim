@@ -26,22 +26,22 @@ This document provides guidance for Claude Code when working with the CodeCompan
 
 **Core Location:** `lua/codecompanion/`
 
-### Strategies (Interaction Modes)
+### Interactions (Interaction Modes)
 
 Located in `lua/codecompanion/interactions/`:
 
-**Chat Strategy** (`strategies/chat/`)
+**Chat Interaction** (`interactions/chat/`)
 - Primary interactive mode with buffer-based interface
 - Key components: `ui/`, `tools/`, `slash_commands/`, `memory/`, `variables/`, `edit_tracker.lua`, `parser.lua`
 
-**Inline Strategy** (`strategies/inline/`)
+**Inline Interaction** (`interactions/inline/`)
 - Direct code transformation in Neovim buffers
 - Supports multiple placement modes (buffer, replace, new file)
 
-**Cmd Strategy** (`strategies/cmd.lua`)
+**Cmd Interaction** (`interactions/cmd.lua`)
 - Command-line style lightweight query-response interface
 
-**Workflow Strategy** (`strategies/init.lua`)
+**Workflow Interaction** (`interactions/init.lua`)
 - Multi-stage prompts with subscribers for complex interactions
 
 ### Adapters (LLM Providers)
@@ -56,7 +56,7 @@ Located in `lua/codecompanion/adapters/`:
 
 Located in `lua/codecompanion/interactions/chat/tools/builtin/`:
 
-**File Operations:** `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/` (advanced editing with multiple matching strategies)
+**File Operations:** `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/` (advanced editing with multiple matching interactions)
 
 **Code Analysis:** `list_code_usages/` (LSP-based), `grep_search`, `file_search`
 
@@ -76,7 +76,7 @@ Dynamic context ingestion via `/command` syntax in chat.
 
 ### Variables & Interactions
 
-**Variables** (`strategies/chat/variables/`): `buffer`, `lsp`, `user`, `viewport` - expanded in system prompts and messages.
+**Variables** (`interactions/chat/variables/`): `buffer`, `lsp`, `user`, `viewport` - expanded in system prompts and messages.
 
 **Background Interactions** (`interactions/background/`): Auto-run LLM tasks with event hooks (e.g., `chat_make_title` auto-generates chat titles).
 
@@ -110,7 +110,7 @@ end
 
 **Configuration Pattern:**
 ````lua
-local defaults = { strategies = { chat = { adapter = "copilot" } } }
+local defaults = { interactions = { chat = { adapter = "copilot" } } }
 local M = { config = vim.deepcopy(defaults) }
 M.setup = function(args)
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args or {})
@@ -127,7 +127,7 @@ end
 
 **Message Flow:**
 ````
-User Input → Strategy → Adapter → LLM
+User Input → Interaction → Adapter → LLM
 LLM Response → Parser → Tools (optional) → Chat Buffer Display
 ````
 

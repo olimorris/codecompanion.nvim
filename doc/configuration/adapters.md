@@ -16,11 +16,11 @@ The configuration for both types of adapters is exactly the same, however they s
 
 ## Changing the Default Adapter
 
-You can change the default adapter for each strategy as follows:
+You can change the default adapter for each interaction as follows:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       adapter = "anthropic",
     },
@@ -89,7 +89,7 @@ To more easily change a model for a HTTP adapter, you can pass in the `name` and
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       adapter = {
         name = "copilot",
@@ -285,7 +285,7 @@ CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       adapter = "openai_responses",
     },
@@ -367,7 +367,7 @@ require("codecompanion").setup({
       end,
     },
   },
-  strategies = {
+  interactions = {
     chat = {
       adapter = "azure_openai",
     },
@@ -380,7 +380,7 @@ require("codecompanion").setup({
 
 ## Setup: OpenRouter with Reasoning Output
 
-```lua 
+```lua
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -407,7 +407,7 @@ require("codecompanion").setup({
       end,
     },
   },
-  strategies = {
+  interactions = {
     chat = {
       adapter = "openrouter",
     },
@@ -447,7 +447,7 @@ require("codecompanion").setup({
       end,
     },
   },
-  strategies = {
+  interactions = {
     chat = {
       adapter = "llama.cpp",
     },

@@ -133,7 +133,7 @@ local defaults = {
         },
         ["insert_edit_into_file"] = {
           callback = "interactions.chat.tools.builtin.insert_edit_into_file",
-          description = "Robustly edit existing files with multiple automatic fallback strategies",
+          description = "Robustly edit existing files with multiple automatic fallback interactions",
           opts = {
             require_approval_before = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
@@ -635,7 +635,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         goto_file_action = ui_utils.tabnew_reuse,
 
         ---This is the default prompt which is sent with every request in the chat
-        ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
+        ---interaction. It is primarily based on the GitHub Copilot Chat's prompt
         ---but with some modifications. You can choose to remove this via
         ---your own config but note that LLM results may not be as good
         ---@param ctx CodeCompanion.SystemPrompt.Context

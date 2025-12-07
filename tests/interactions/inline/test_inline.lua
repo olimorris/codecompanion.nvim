@@ -162,17 +162,17 @@ T["Inline"]["can be called from the action palette"] = function()
     },
   }
 
-  local strategy = require("codecompanion.interactions").new({
+  local interaction = require("codecompanion.interactions").new({
     buffer_context = inline.buffer_context,
     selected = prompt,
   })
-  strategy:start("inline")
+  interaction:start("inline")
 
   -- System prompt is added
-  h.eq(2, #strategy.called.prompts)
+  h.eq(2, #interaction.called.prompts)
 
   -- User prompt is added
-  h.eq("Action Palette test", strategy.called.prompts[2].content)
+  h.eq("Action Palette test", interaction.called.prompts[2].content)
 end
 
 T["Inline"]["integration"] = function()

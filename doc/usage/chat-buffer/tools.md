@@ -373,5 +373,5 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
 
 > [!IMPORTANT]
-> When using Mistral, you will need to set `strategies.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.
+> When using Mistral, you will need to set `interactions.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.
 

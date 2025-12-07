@@ -466,7 +466,7 @@ function Chat.new(args)
   chatmap[self.bufnr] = {
     name = "Chat " .. vim.tbl_count(chatmap) + 1,
     description = CONSTANTS.BLANK_DESC,
-    strategy = "chat",
+    interaction = "chat",
     chat = self,
   }
 
@@ -1070,7 +1070,7 @@ function Chat:_submit_http(payload)
       self:done(output)
     end,
     bufnr = self.bufnr,
-    strategy = "chat",
+    interaction = "chat",
   })
 
   self.current_request = handle

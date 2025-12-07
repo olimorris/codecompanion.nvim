@@ -112,7 +112,7 @@ The chat system prompt can be changed with:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       opts = {
         system_prompt = "My new system prompt",
@@ -139,7 +139,7 @@ Alternatively, the system prompt can be a function. The `opts` parameter contain
 ---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
 
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       opts = {
         ---@param ctx CodeCompanion.SystemPrompt.Context
@@ -171,7 +171,7 @@ There are additional options available when working with tool system prompts:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         opts = {

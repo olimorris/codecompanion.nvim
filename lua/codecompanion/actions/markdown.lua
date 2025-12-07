@@ -63,8 +63,10 @@ function M.parse_file(path, context)
   end
 
   local frontmatter = M.parse_frontmatter(content)
-  if not frontmatter or not frontmatter.strategy or not frontmatter.name then
-    log:warn("[Prompt Library] Missing frontmatter, name or strategy in `%s`", path)
+
+  --TODO: Remove frontmatter.strategy conditional in v19.0.0
+  if not frontmatter or not (frontmatter.interaction or frontmatter.strategy) or not frontmatter.name then
+    log:warn("[Prompt Library] Missing frontmatter, name or interaction in `%s`", path)
     return nil
   end
 
@@ -73,11 +75,11 @@ function M.parse_file(path, context)
   return {
     context = frontmatter.context or nil,
     description = frontmatter.description or "",
+    interaction = frontmatter.interaction,
     name = frontmatter.name,
     opts = frontmatter.opts or {},
     path = path,
     prompts = prompts,
-    strategy = frontmatter.strategy,
   }
 end
 
@@ -135,6 +137,12 @@ function M.parse_frontmatter(content)
         end
       end
     end
+  end
+
+  --TODO: Remove in v19.0.0
+  if frontmatter.strategy then
+    frontmatter.interaction = frontmatter.strategy
+    frontmatter.strategy = nil
   end
 
   return frontmatter

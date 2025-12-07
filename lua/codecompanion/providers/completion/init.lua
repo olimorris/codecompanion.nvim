@@ -1,7 +1,7 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local interactions = require("codecompanion.interactions")
 local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
-local strategy = require("codecompanion.interactions")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 
 local api = vim.api
@@ -129,7 +129,7 @@ function M.slash_commands()
   vim
     .iter(pairs(require("codecompanion.helpers").get_prompts()))
     :filter(function(_, v)
-      if not (v.opts and v.opts.is_slash_cmd and v.strategy == "chat") then
+      if not (v.opts and v.opts.is_slash_cmd and v.interaction == "chat") then
         return false
       end
 
@@ -170,7 +170,7 @@ function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
     local context = selected.config.context
     if context then
-      strategy.add_context(selected.config, chat)
+      interactions.add_context(selected.config, chat)
     end
 
     local prompts = {}
@@ -178,7 +178,7 @@ function M.slash_commands_execute(selected, chat)
       prompts =
         require("codecompanion.actions.markdown").resolve_placeholders(selected.config, selected.context).prompts
     else
-      prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)
+      prompts = interactions.evaluate_prompts(selected.config.prompts, selected.context)
     end
 
     vim.iter(prompts):each(function(prompt)

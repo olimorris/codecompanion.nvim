@@ -29,7 +29,7 @@ You can also have multiple variables a part of a prompt, for example: `:CodeComp
 
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`strategies.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with variables.
+You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with variables.
 
 ## Classification
 
@@ -48,5 +48,5 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 - `gda` - Accept an inline edit
 - `gdr` - Reject an inline edit
 
-These keymaps can also be changed in your config via the `strategies.inline.keymaps` table.
+These keymaps can also be changed in your config via the `interactions.inline.keymaps` table.
 

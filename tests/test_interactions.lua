@@ -1,6 +1,6 @@
 local mock = require("luassert.mock")
 
-describe("Strategies", function()
+describe("Interactions", function()
   local chat_mock
   local inline_mock
 
@@ -43,10 +43,10 @@ describe("Strategies", function()
     mock.revert(inline_mock)
   end)
 
-  it("should call chat strategy with a specific adapter", function()
+  it("should call chat interaction with a specific adapter", function()
     local context = { mode = "n" }
     local selected = {
-      strategy = "chat",
+      interaction = "chat",
       opts = {
         user_prompt = false,
         adapter = {
@@ -61,24 +61,15 @@ describe("Strategies", function()
         },
       },
     }
-
-    -- local strategy_instance = strategies.new({ context = context, selected = selected })
-    -- strategy_instance:start("chat")
-    --
-    -- assert.stub(chat_mock.new).was_called()
-    -- local call_args = chat_mock.new.calls[1].vals[1]
-    --
-    -- assert.equals("test_adapter", call_args.adapter.name)
-    -- assert.equals("custom_model", call_args.adapter.schema.model.default)
   end)
 end)
 
-describe("Chat Strategy", function()
+describe("Chat interaction", function()
   it("messages should be populated when selected with a pre-defined prompt", function()
     local item = {
       name = "Explain",
       description = "(/explain) Explain how code in a buffer works",
-      strategy = "chat",
+      interaction = "chat",
       opts = {
         auto_submit = true,
         default_prompt = true,

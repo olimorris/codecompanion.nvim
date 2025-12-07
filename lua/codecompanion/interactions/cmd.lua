@@ -73,7 +73,7 @@ function Cmd:start()
       done = function() end,
     }, {
       bufnr = self.buffer_context.bufnr,
-      strategy = "cmd",
+      interaction = "cmd",
     })
 end
 

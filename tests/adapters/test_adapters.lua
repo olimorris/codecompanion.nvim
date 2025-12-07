@@ -295,7 +295,7 @@ T["Adapter"]["can resolve custom adapters"] = function()
           end,
         }
       },
-      strategies = {
+      interactions = {
         chat = {
           adapter = "openai",
         }
@@ -311,7 +311,7 @@ end
 T["Adapter"]["can pass in the name of the model"] = function()
   local result = child.lua([[
     h.setup_plugin({
-      strategies = {
+      interactions = {
         chat = {
           adapter = {
             name = "copilot",

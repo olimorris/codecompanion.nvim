@@ -163,7 +163,7 @@ function ACPHandler:create_and_send_prompt(payload)
     :on_error(function(error)
       self:handle_error(error)
     end)
-    :with_options({ bufnr = self.chat.bufnr, strategy = "chat" })
+    :with_options({ bufnr = self.chat.bufnr, interaction = "chat" })
     :send()
 end
 

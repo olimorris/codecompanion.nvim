@@ -1,6 +1,4 @@
-local SlashCommands = require("codecompanion.interactions.chat.slash_commands")
 local completion = require("codecompanion.providers.completion")
-local strategy = require("codecompanion.interactions")
 
 local source = {}
 

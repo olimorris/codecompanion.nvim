@@ -66,7 +66,7 @@ sequenceDiagram
 Before we begin, it's important to familiarise yourself with the directory structure of the tools implementation:
 
 ```
-strategies/chat/tools
+interactions/chat/tools
 ├── init.lua
 ├── orchestrator.lua
 ├── runtime/
@@ -401,7 +401,7 @@ If we put this all together in our config:
 
 ````lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         calculator = {
@@ -553,7 +553,7 @@ To enable this for any tool, simply add the `require_approval_before = true` in 
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         calculator = {
@@ -677,7 +677,7 @@ Some adapter tools can be a _hybrid_ in terms of their implementation. That is, 
   -- ...existing code here
   opts = {
     -- Allow a hybrid tool -> One that also has a client side implementation
-    client_tool = "strategies.chat.tools.memory",
+    client_tool = "interactions.chat.tools.memory",
   },
 },
 ```

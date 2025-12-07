@@ -5,12 +5,12 @@ local log = require("codecompanion.utils.log")
 local rules_helpers = require("codecompanion.interactions.chat.rules.helpers")
 
 ---A user may specify an adapter for the prompt
----@param strategy CodeCompanion.Interactions
+---@param interaction CodeCompanion.Interactions
 ---@param opts table
 ---@return nil
-local function add_adapter(strategy, opts)
+local function add_adapter(interaction, opts)
   if opts.adapter and opts.adapter.name then
-    strategy.selected.adapter = adapters.resolve(opts.adapter.name, { model = opts.adapter.model })
+    interaction.selected.adapter = adapters.resolve(opts.adapter.name, { model = opts.adapter.model })
   end
 end
 
@@ -34,9 +34,9 @@ function Interactions.new(args)
   }, { __index = Interactions })
 end
 
----@param strategy string
-function Interactions:start(strategy)
-  return self[strategy](self)
+---@param interaction string
+function Interactions:start(interaction)
+  return self[interaction](self)
 end
 
 ---Add context to the chat buffer
@@ -252,7 +252,7 @@ function Interactions:inline()
     add_adapter(self, opts)
   end
 
-  -- Allow us to test the inline strategy
+  -- Make testing easier by assinging this to a field
   self.called = require("codecompanion.interactions.inline").new({
     adapter = self.selected.adapter,
     buffer_context = self.buffer_context,
