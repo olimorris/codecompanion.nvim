@@ -252,7 +252,7 @@ function Interactions:inline()
     add_adapter(self, opts)
   end
 
-  -- Make testing easier by assinging this to a field
+  -- Make testing easier by assigning this to a field
   self.called = require("codecompanion.interactions.inline").new({
     adapter = self.selected.adapter,
     buffer_context = self.buffer_context,
