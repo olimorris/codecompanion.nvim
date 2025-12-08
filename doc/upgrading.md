@@ -20,7 +20,7 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 ### Adapters
 
 - If you have a custom adapter, you'll need to rename `condition` to be `enabled` on any schema items ([#2439](https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569))
-
+- If you wish to hide the adapters that come with CodeCompanion, `show_defaults` has been renamed to `show_presets` for both HTTP and ACP adapters ([#2497](https://github.com/olimorris/codecompanion.nvim/pull/2497))
 
 ### Chat
 

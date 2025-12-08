@@ -246,14 +246,14 @@ require("codecompanion").setup({
 
 ## Hiding Default Adapters
 
-By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_defaults` option to `false`:
+By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
     http = {
       opts = {
-        show_defaults = false,
+        show_presets = false,
       },
     },
   },
