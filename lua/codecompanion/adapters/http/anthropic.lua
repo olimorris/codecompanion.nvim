@@ -606,7 +606,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-sonnet-4-20250514",
+      default = "claude-sonnet-4-5-20250929",
       choices = {
         ["claude-sonnet-4-5-20250929"] = {
           formatted_name = "Claude Sonnet 4.5",

@@ -31,7 +31,7 @@ local defaults = {
         allow_insecure = false, -- Allow insecure connections?
         cache_models_for = 1800, -- Cache adapter models for this long (seconds)
         proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
-        show_defaults = true, -- Show default adapters
+        show_presets = true, -- Show preset adapters
         show_model_choices = true, -- Show model choices when changing adapter
       },
     },
@@ -45,7 +45,7 @@ local defaults = {
       kimi_cli = "kimi_cli",
       opencode = "opencode",
       opts = {
-        show_defaults = true, -- Show default adapters
+        show_presets = true,
       },
     },
   },
@@ -752,7 +752,7 @@ The user is working on a %s machine. Please respond with system specific command
         { path = "CLAUDE.local.md", parser = "claude" },
         { path = "~/.claude/CLAUDE.md", parser = "claude" },
       },
-      is_default = true,
+      is_preset = true,
     },
     CodeCompanion = {
       description = "CodeCompanion rules",
@@ -806,7 +806,7 @@ The user is working on a %s machine. Please respond with system specific command
           },
         },
       },
-      is_default = true,
+      is_preset = true,
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
@@ -828,7 +828,7 @@ The user is working on a %s machine. Please respond with system specific command
         default_rules = "default", -- The rule groups to load
         default_params = "diff", -- all|diff
       },
-      show_defaults = true, -- Show the default rules files in the action palette?
+      show_presets = true, -- Show the preset rules files in the action palette?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------
@@ -1047,8 +1047,10 @@ M.setup = function(args)
     )
   end
 
+  -- TODO: Remove in v19.0.0
   if args.strategies then
-    args.interactions = args.strategies
+    args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
+    args.strategies = nil
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
