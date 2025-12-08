@@ -323,7 +323,7 @@ end
 ---@return nil
 local function handle_adapter_config(adapter_type, opts)
   if opts and opts.adapters and opts.adapters[adapter_type] then
-    if config.adapters[adapter_type].opts.show_defaults then
+    if config.adapters[adapter_type].opts.show_presets then
       require("codecompanion.utils.adapters").extend(config.adapters[adapter_type], opts.adapters[adapter_type])
     else
       config.adapters[adapter_type] = vim.deepcopy(opts.adapters[adapter_type])
