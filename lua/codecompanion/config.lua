@@ -1047,8 +1047,10 @@ M.setup = function(args)
     )
   end
 
+  -- TODO: Remove in v19.0.0
   if args.strategies then
-    args.interactions = args.strategies
+    args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
+    args.strategies = nil
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
