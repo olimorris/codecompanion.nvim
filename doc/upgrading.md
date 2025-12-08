@@ -25,10 +25,10 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 ### Chat
 
 - Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the [Rules](/configuration/rules) documentation for more information ([#2440](https://github.com/olimorris/codecompanion.nvim/pull/2440))
-- The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of the buffer with each request ([#2444](https://github.com/olimorris/codecompanion.nvim/pull/2444))
+- The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request ([#2444](https://github.com/olimorris/codecompanion.nvim/pull/2444))
 - The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
   entire buffer is sent to the LLM with each request ([#2444](https://github.com/olimorris/codecompanion.nvim/pull/2444))
-- Passing an adapter to the chat command is now done with `:CodeCompanionChat adapter=<adapter_name>` ([#2437](https://github.com/olimorris/codecompanion.nvim/pull/2437))
+- Passing an adapter as an argument to `:CodeCompanionChat` is now done with `:CodeCompanionChat adapter=<adapter_name>` ([#2437](https://github.com/olimorris/codecompanion.nvim/pull/2437))
 - If your chat buffer system prompt is still stored at `opts.system_prompt` you'll need to change it to `interactions.chat.opts.system_prompt` ([#2484](https://github.com/olimorris/codecompanion.nvim/pull/2484))
 
 ### Prompt Library
@@ -116,8 +116,9 @@ As an example:
 
 ### Tools
 
-If you have any custom tools, in your config you'll need to rename:
+If you have any tools in your config, you'll need to rename:
 
-- `requires_approval` to `require_approval_before`
-- `user_confirmation` to `require_confirmation_after`
+- `requires_approval` to `require_approval_before` ([#2439](https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569))
+- `user_confirmation` to `require_confirmation_after` ([#2450](https://github.com/olimorris/codecompanion.nvim/pull/2450))
 
+These now better reflect the timing of each action.

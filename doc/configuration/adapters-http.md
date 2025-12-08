@@ -243,16 +243,6 @@ require("codecompanion").setup({
 }),
 ```
 
-## Community Adapters
-
-Thanks to the community for building the following adapters:
-
-- [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
-- [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
-- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
-- [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
-
-The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
 
 ## Hiding Default Adapters
 
@@ -471,3 +461,14 @@ require("codecompanion").setup({
   },
 })
 ```
+
+## Community Adapters
+
+Thanks to the community for building the following adapters:
+
+- [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
+- [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
+- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
+- [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
+
+The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.

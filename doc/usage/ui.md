@@ -1,5 +1,5 @@
 ---
-description: Customize the user interface of CodeCompanion
+description: How to customize the user interface (UI) of CodeCompanion
 ---
 
 # User Interface
@@ -23,7 +23,7 @@ CodeCompanion exposes a global dictionary, `_G.codecompanion_chat_metadata` whic
 
 You can also leverage `_G.codecompanion_current_context` to fetch the number of the buffer which the `#{buffer}` variable points at.
 
-Below are some examples of how you can customize the UI related to CodeCompanion.
+The video at the top of this page shows how the author has incorporated the metadata into their statusline.
 
 ### Highlight Groups
 

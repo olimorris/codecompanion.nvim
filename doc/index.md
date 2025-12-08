@@ -43,7 +43,7 @@ The plugin allows you to specify adapters for each interaction and also for each
 CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/adapters-acp) adapters to connect to LLMs and agents. Out of the box, the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key and supports [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
-- Augment Code (`augment_code`) - Requires an API key
+- Augment Code (`auggie_cli`) - Requires an API key
 - Cagent (`cagent`)
 - Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
 - Codex (`codex`) - Requires an API key
@@ -60,6 +60,6 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 - opencode (`opencode`) - Requires an API key
-- Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
+In order to add a custome adapter, please refer to the [extending adapters](/extending/adapters) documentation. Also, be sure to check out the [community adapters](configuration/adapters-http#community-adapters) section for user contributed adapters.
