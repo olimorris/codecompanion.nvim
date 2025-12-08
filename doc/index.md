@@ -62,4 +62,4 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - opencode (`opencode`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
-In order to add a custome adapter, please refer to the [extending adapters](/extending/adapters) documentation. Also, be sure to check out the [community adapters](configuration/adapters-http#community-adapters) section for user contributed adapters.
+In order to add a custom adapter, please refer to the [extending adapters](/extending/adapters) documentation. Also, be sure to check out the [community adapters](configuration/adapters-http#community-adapters) section for user contributed adapters.
