@@ -191,7 +191,7 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
       default = {
         description = "integration default",
         files = { %q },
-        is_default = true,
+        is_preset = true,
       },
       parsers = {},
       opts = {
@@ -200,7 +200,7 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
           default_rules = "default",
           condition = function() return true end,
         },
-        show_defaults = true,
+        show_presets = true,
       },
     })
 

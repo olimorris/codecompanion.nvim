@@ -51,7 +51,7 @@ function M.list()
   local exclusions = { "opts", "parsers" }
 
   for name, cfg in pairs(config.rules or {}) do
-    if cfg.is_default and config.rules.opts.show_defaults == false then
+    if cfg.is_preset and config.rules.opts.show_presets == false then
       goto continue
     end
     if cfg.enabled == false then
