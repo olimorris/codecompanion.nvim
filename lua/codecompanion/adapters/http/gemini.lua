@@ -119,7 +119,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
-      default = "gemini-2.5-flash",
+      default = "gemini-3-pro-preview",
       choices = {
         ["gemini-3-pro-preview"] = { formatted_name = "Gemini 3 Pro", opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-pro"] = { formatted_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
