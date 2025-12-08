@@ -4,7 +4,7 @@ The chat buffer is a Neovim buffer which allows a user to interact with an LLM. 
 
 The file below is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here.
 
-@./lua/codecompanion/strategies/chat/init.lua
+@./lua/codecompanion/interactions/chat/init.lua
 
 ## Message Stack
 
