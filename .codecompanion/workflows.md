@@ -10,21 +10,21 @@ Focus on:
 
 ## Relevant Files
 
-### Strategies Init
+### Init
 
-@./lua/codecompanion/strategies/init.lua
+@./lua/codecompanion/interactions/init.lua
 
 This is where the workflow are initiated from.
 
 ### Subscribers
 
-@./lua/codecompanion/strategies/chat/subscribers.lua
+@./lua/codecompanion/interactions/chat/subscribers.lua
 
 The is where the subscribers logic resides.
 
 ### Chat Buffer
 
-@./lua/codecompanion/strategies/chat/init.lua
+@./lua/codecompanion/interactions/chat/init.lua
 
 This file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here.
 
@@ -91,5 +91,5 @@ return {
 
 The tests can be found:
 
-@./tests/strategies/chat/test_workflows.lua
+@./tests/interactions/chat/test_workflows.lua
 
