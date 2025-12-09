@@ -41,7 +41,7 @@ function Actions.set_items(context)
     local static_actions = require("codecompanion.actions.static")
 
     -- Add static actions
-    if config.display.action_palette.opts.show_default_actions then
+    if config.display.action_palette.opts.show_preset_actions then
       for _, action in ipairs(static_actions) do
         action.type = "static"
         table.insert(_cached_actions, action)
@@ -50,7 +50,7 @@ function Actions.set_items(context)
 
     -- Add builtin markdown prompts
     local markdown = require("codecompanion.actions.markdown")
-    if config.display.action_palette.opts.show_prompt_library_builtins then
+    if config.display.action_palette.opts.show_preset_prompts then
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
       local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
       for _, prompt in ipairs(builtin_prompts) do

@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 08
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 09
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -578,8 +578,8 @@ You can change the appearance of the chat buffer by changing the
           prompt = "Prompt ", -- Prompt used for interactive LLM calls
           provider = "default", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
           opts = {
-            show_default_actions = true, -- Show the default actions in the action palette?
-            show_prompt_library_builtins = true, -- Show the default prompt library prompts in the action palette?
+            show_preset_actions = true, -- Show the preset actions in the action palette?
+            show_preset_prompts = true, -- Show the preset prompts in the action palette?
             title = "CodeCompanion actions", -- The title of the action palette
           },
         },
@@ -3046,7 +3046,7 @@ configuration options that CodeCompanion offers. It can be opened with
 Once opened, the user can see plugin defined actions such as `Chat` and `Open
 Chats`. The latter, enabling the user to move between any open chat buffers.
 These can be turned off in the config by setting
-`display.action_palette.opts.show_default_actions = false`.
+`display.action_palette.opts.show_preset_actions = false`.
 
 
 BUILT-IN PROMPTS ~
@@ -3066,7 +3066,7 @@ The plugin also contains two built-in workflows, `Code workflow` and `Edit test
 repeat workflow`. See the |codecompanion-usage-workflows| for more information.
 
 The built-in prompts can be turned off by setting
-`display.action_palette.show_prompt_library_builtins = false`.
+`display.action_palette.show_preset_prompts = false`.
 
 You can also refresh the markdown prompts in your prompt library with
 `:CodeCompanionActions refresh`
