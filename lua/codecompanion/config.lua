@@ -855,30 +855,29 @@ The user is working on a %s machine. Please respond with system specific command
         tool_failure = "  ",
         tool_success = "  ",
       },
+
       -- Window options for the chat buffer
       window = {
+        buflisted = false, -- List the chat buffer in the buffer list?
+        sticky = false, -- Chat buffer remains open when switching tabs
+
         layout = "vertical", -- float|vertical|horizontal|buffer
+        full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
-        border = "single",
+
+        width = 0.5, ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
         height = 0.8,
-        ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
-        width = 0.45,
+        border = "single",
         relative = "editor",
-        full_height = true,
-        sticky = false, -- chat buffer remains open when switching tabs
+
+        -- Ensure that long paragraphs of markdown are wrapped
         opts = {
           breakindent = true,
-          cursorcolumn = false,
-          cursorline = false,
-          foldcolumn = "0",
           linebreak = true,
-          list = false,
-          numberwidth = 1,
-          signcolumn = "no",
-          spell = false,
           wrap = true,
         },
       },
+
       -- Options for any windows that open within the chat buffer
       floating_window = {
         ---@return number|fun(): number
@@ -898,7 +897,8 @@ The user is working on a %s machine. Please respond with system specific command
           relativenumber = false,
         },
       },
-      -- Extend/override the floating_window options for a diff
+
+      -- Options for diff windows that open within the chat buffer
       diff_window = {
         ---@return number|fun(): number
         width = function()
@@ -913,19 +913,20 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
 
+      -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
-      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
+      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
 
-      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       fold_context = false, -- Fold context in the chat buffer?
+      show_context = true, -- Show context that you've shared with the LLM in the chat buffer?
 
-      show_reasoning = true, -- Show reasoning content in the chat buffer?
       fold_reasoning = true, -- Fold the reasoning content in the chat buffer?
+      show_reasoning = true, -- Show reasoning content in the chat buffer?
 
-      show_settings = false, -- Show LLM settings at the top of the chat buffer?
+      show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?

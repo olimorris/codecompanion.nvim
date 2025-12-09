@@ -265,6 +265,7 @@ local last_chat = {}
 ---@return nil
 local function set_autocmds(chat)
   local bufnr = chat.bufnr
+
   api.nvim_create_autocmd("BufEnter", {
     group = chat.aug,
     buffer = bufnr,
@@ -421,8 +422,8 @@ function Chat.new(args)
     status = "",
     title = args.title or nil,
     create_buf = function()
-      local bufnr = api.nvim_create_buf(false, true)
-      api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", id))
+      local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
+      api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
 
       -- Safely attach treesitter
       vim.schedule(function()
@@ -1670,6 +1671,9 @@ function Chat:set_title(title)
 
   self.title = title
   chatmap[self.bufnr].description = title
+  pcall(function()
+    api.nvim_buf_set_name(self.bufnr, title)
+  end)
 
   return self
 end
