@@ -6,6 +6,52 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
+## Changing Adapter Settings
+
+To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      gemini_cli = function()
+        return require("codecompanion.adapters").extend("gemini_cli", {
+          commands = {
+            default = {
+              "some-other-gemini"
+              "--experimental-acp",
+            },
+          },
+          defaults = {
+            auth_method = "gemini-api-key",
+            timeout = 20000, -- 20 seconds
+          },
+          env = {
+            GEMINI_API_KEY = "GEMINI_API_KEY",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+## Hiding Default Adapters
+
+By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      opts = {
+        show_presets = false,
+      },
+    },
+  },
+})
+```
+
 ## Setup: Auggie CLI from Augment Code
 
 To use [Auggie CLI](https://docs.augmentcode.com/cli/overview) within CodeCompanion, you simply need to follow their [Getting Started](https://docs.augmentcode.com/cli/overview#getting-started) guide.

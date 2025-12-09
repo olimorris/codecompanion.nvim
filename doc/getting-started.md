@@ -4,10 +4,10 @@ description: Getting started with CodeCompanion
 
 # Getting Started
 
-Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup the plugin.
-
 > [!IMPORTANT]
 > The default adapter in CodeCompanion is [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide). If you have [copilot.vim](https://github.com/github/copilot.vim) or [copilot.lua](https://github.com/zbirenbaum/copilot.lua) installed then expect CodeCompanion to work out of the box.
+
+This guide is intended to help you get up and running with CodeCompanion and begin your journey of coding with AI in Neovim.
 
 ## Using the Documentation
 
@@ -75,13 +75,15 @@ require("codecompanion").setup({
 
 In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline.
 
-There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and **ACP** adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
+There are two "types" of adapter in CodeCompanion; [HTTP](/configuration/adapters-http) adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
-Refer to the [adapter](configuration/adapters-http) section to understand more about working with adapters like [Claude Code](/configuration/adapters-acp#setup-claude-code-via-acp).
+Refer to the respective sections to understand more about working with adapters that enable agents like [Claude Code](/configuration/adapters-acp#setup-claude-code).
 
 ### Setting an API Key
 
-Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
+Because most LLMs require an API key, you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. Refer to the documentation of the LLM or agent you're using to find out what the environment variable is called.
+
+You can extend an adapter and change the API key like so:
 
 ```lua
 require("codecompanion").setup({
@@ -99,26 +101,7 @@ require("codecompanion").setup({
 })
 ```
 
-Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config by prefixing them with `cmd:`. In the example below, we're using the 1Password CLI to read an OpenAI credential.
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    acp = {
-      gemini_cli = function()
-        return require("codecompanion.adapters").extend("gemini_cli", {
-          env = {
-            api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
-          },
-        })
-      end,
-    },
-  },
-})
-```
-
-> [!IMPORTANT]
-> Please see the section on [Configuring Adapters](configuration/adapters-http) for more information
+There are numerous ways that environment variables can be set for adapters. Refer to the [environment variables](/configuration/adapters-http#environment-variables) section for more information.
 
 ## Chat Buffer
 
@@ -126,7 +109,7 @@ require("codecompanion").setup({
   <img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
 </p>
 
-The Chat Buffer is where you can converse with an LLM from within Neovim. It operates on a single response per turn, basis.
+The Chat Buffer is where you can converse with an LLM from within Neovim. It operates on a single response per turn, basis. Once your adapter has been configured, you can start using the chat buffer and begin interacting with an LLM.
 
 Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open the chat buffer and send a prompt at the same time. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
@@ -137,7 +120,7 @@ You can add context from your code base by using _Variables_ and _Slash Commands
 
 ### Variables
 
-_Variables_, accessed via `#`, contain data about the present state of Neovim. You can find a list of available variables, [here](/usage/chat-buffer/variables.html).
+_Variables_, accessed via `#`, contain data about the present state of Neovim. You can find a list of available variables, [here](/usage/chat-buffer/variables.html). The buffer variable will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
 
 > [!TIP]
 > Use them in your prompt like: `What does the code in #{buffer} do?`

@@ -199,8 +199,8 @@ There are various scenarios for when the system prompt may change in the chat bu
 
 - When a user changes adapter
 - When a user changes the model on an adapter
-- When a workspace is added
+- When a rule is added
 - When a tool (with a defined system prompt) is added to the chat buffer
 
-CodeCompanion will always resolve a system prompt change asynchronously, as many adapters make a HTTP request to a server in order to obtain the available models. Refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how the plugin accomplishes this.
+CodeCompanion will always resolve a system prompt change asynchronously, as many adapters make a HTTP request to a server in order to obtain the available models.
 

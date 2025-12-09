@@ -131,7 +131,7 @@ A core part of working with CodeCompanion is being able to easily switch between
 
 ::: tabs
 
-== For Strategies
+== For Interactions
 
 ```lua
 require("codecompanion").setup({
@@ -175,10 +175,6 @@ require("codecompanion").setup({
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
 
-::: tabs
-
-== For HTTP Adapters
-
 ```lua
 require("codecompanion").setup({
   adapters = {
@@ -210,38 +206,6 @@ require("codecompanion").setup({
   },
 })
 ```
-
-== For ACP Adapters
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    acp = {
-      gemini_cli = function()
-        return require("codecompanion.adapters").extend("gemini_cli", {
-          commands = {
-            default = {
-              "node",
-              "/Users/Oli/Code/try/gemini-cli/packages/cli",
-              "--experimental-acp",
-            },
-          },
-          defaults = {
-            auth_method = "gemini-api-key",
-            mcpServers = {},
-            timeout = 20000, -- 20 seconds
-          },
-          env = {
-            GEMINI_API_KEY = "GEMINI_API_KEY",
-          },
-        })
-      end,
-    },
-  },
-})
-```
-
-:::
 
 ## Adding a Custom Adapter
 
@@ -279,35 +243,18 @@ require("codecompanion").setup({
 }),
 ```
 
-## Community Adapters
-
-Thanks to the community for building the following adapters:
-
-- [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
-- [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
-- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
-- [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
-
-The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
 
 ## Hiding Default Adapters
 
-By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_defaults` option to `false`:
+By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    acp = {
-      opts = {
-        show_defaults = false,
-      },
-      -- Define your custom adapters here
-    },
     http = {
       opts = {
-        show_defaults = false,
+        show_presets = false,
       },
-      -- Define your custom adapters here
     },
   },
 })
@@ -514,3 +461,14 @@ require("codecompanion").setup({
   },
 })
 ```
+
+## Community Adapters
+
+Thanks to the community for building the following adapters:
+
+- [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
+- [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
+- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
+- [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
+
+The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
