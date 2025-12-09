@@ -458,22 +458,20 @@ return {
       fold_context = false,
       show_settings = false,
       window = {
+        buflisted = false, -- List the chat buffer in the buffer list?
+        sticky = false, -- Chat buffer remains open when switching tabs
+
         layout = "vertical", -- float|vertical|horizontal|buffer
+        full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
-        border = "single",
+
+        width = 0.5, ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
         height = 0.8,
-        width = 0.45,
+        border = "single",
         relative = "editor",
         opts = {
           breakindent = true,
-          cursorcolumn = false,
-          cursorline = false,
-          foldcolumn = "0",
           linebreak = true,
-          list = false,
-          numberwidth = 1,
-          signcolumn = "no",
-          spell = false,
           wrap = true,
         },
       },
