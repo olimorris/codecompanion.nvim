@@ -29,6 +29,9 @@ vim.pack.add({
   src = "https://www.github.com/olimorris/codecompanion.nvim",
   version = vim.version.range("^18.0.0")
 })
+
+-- Somewhere in your config
+require("codecompanion").setup()
 ```
 
 == Lazy.nvim
@@ -74,6 +77,7 @@ CodeCompanion supports extensions that add additional functionality to the plugi
 == 1. Install
 
 ```lua
+-- Lazy.nvim
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
@@ -103,7 +107,7 @@ require("codecompanion").setup({
 
 Visit the [extensions documentation](extending/extensions) to learn more about available extensions and how to create your own.
 
-## QOL Plugins
+## Other Plugins
 
 CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
 
@@ -114,6 +118,7 @@ CodeCompanion integrates with a number of other plugins to make your AI coding e
 Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) to render the markdown in the chat buffer:
 
 ```lua
+-- Lazy.nvim
 {
   "MeanderingProgrammer/render-markdown.nvim",
   ft = { "markdown", "codecompanion" }
@@ -125,6 +130,7 @@ Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdo
 Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer:
 
 ```lua
+-- Lazy.nvim
 {
   "OXY2DEV/markview.nvim",
   lazy = false,
@@ -142,6 +148,7 @@ Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the mark
 Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
 
 ```lua
+-- Lazy.nvim
 {
   "HakonHarnes/img-clip.nvim",
   opts = {

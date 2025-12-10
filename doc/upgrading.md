@@ -14,13 +14,12 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 
 - The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you'll need to change it to `codecompanion.interactions` ([#2485](https://github.com/olimorris/codecompanion.nvim/pull/2485))
 - Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you'll need to update the paths accordingly ([#2482](https://github.com/olimorris/codecompanion.nvim/pull/2482))
-- The `display.chat.child_window` has been renamed `display.chat.floating_window` to better describe what it is
-  ([#2452](https://github.com/olimorris/codecompanion.nvim/pull/2452))
 
 ### Adapters
 
 - If you have a custom adapter, you'll need to rename `condition` to be `enabled` on any schema items ([#2439](https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569))
-- If you wish to hide the adapters that come with CodeCompanion, `show_defaults` has been renamed to `show_presets` for both HTTP and ACP adapters ([#2497](https://github.com/olimorris/codecompanion.nvim/pull/2497))
+- The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively ([#2494](https://github.com/olimorris/codecompanion.nvim/pull/2494))
+- If you wish to hide the adapters that come with CodeCompanion, `adapter.[acp|http].opts.show_defaults` has been renamed to `adapter.[acp|http].opts.show_presets` for both HTTP and ACP adapters ([#2497](https://github.com/olimorris/codecompanion.nvim/pull/2497))
 
 ### Chat
 
@@ -35,10 +34,7 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 
 If you have any prompts defined in your config, you'll need to:
 
-- Rename `opts.short_name` to `opts.alias` for each item in order to allow you to call them with
-  `require("codecompanion").prompt("docs")` or as slash commands in the chat buffer ([#2471](https://github.com/olimorris/codecompanion.nvim/pull/2471)).
-
-As an example:
+- Rename `opts.short_name` to `opts.alias` for each item in order to allow you to call them with `require("codecompanion").prompt("my_prompt")` or as slash commands in the chat buffer ([#2471](https://github.com/olimorris/codecompanion.nvim/pull/2471)).
 
 ::: tabs
 
@@ -49,7 +45,7 @@ As an example:
   strategy = "chat",
   description = "My custom prompt",
   opts = {
-    short_name = "p1"
+    short_name = "my_prompt"
   },
   prompts = {
     -- ...
@@ -64,7 +60,7 @@ As an example:
   strategy = "chat",
   description = "My custom prompt",
   opts = {
-    alias = "p1"
+    alias = "my_prompt"
   },
   prompts = {
     -- ...
@@ -75,8 +71,6 @@ As an example:
 :::
 
 - Change all workflow prompts, replacing `strategy = "workflow"` with `interaction = "chat"` and specifying `opts.is_workflow = true` ([#2487](https://github.com/olimorris/codecompanion.nvim/pull/2487)).
-
-As an example:
 
 ::: tabs
 
@@ -112,7 +106,7 @@ As an example:
 
 :::
 
-- If you don't wish to display any of the built-in prompt library items, you'll need to change `display.action_palette.show_default_prompt_library` to `display.action_palette.show_prompt_library_builtins`
+- If you don't wish to display any of the built-in prompt library items, you'll need to change `display.action_palette.show_default_prompt_library` to `display.action_palette.show_preset_prompts` ([#2499](https://github.com/olimorris/codecompanion.nvim/pull/2499))
 
 ### Tools
 
@@ -122,3 +116,8 @@ If you have any tools in your config, you'll need to rename:
 - `user_confirmation` to `require_confirmation_after` ([#2450](https://github.com/olimorris/codecompanion.nvim/pull/2450))
 
 These now better reflect the timing of each action.
+
+### UI
+
+- The `display.chat.child_window` has been renamed `display.chat.floating_window` to better describe what it is ([#2452](https://github.com/olimorris/codecompanion.nvim/pull/2452))
+- The `display.action_palette.opts.show_default_actions` has been renamed to be `display.action_palette.opts.show_preset_actions` ([#2499](https://github.com/olimorris/codecompanion.nvim/pull/2499))
