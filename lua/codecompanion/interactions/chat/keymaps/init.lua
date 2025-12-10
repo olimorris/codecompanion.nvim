@@ -14,10 +14,11 @@ local _cached_options = {}
 M.options = {
   callback = function()
     local float_opts = {
-      title = "Options",
+      filetype = "codecompanion",
       lock = true,
-      window = config.display.chat.window,
       style = "minimal",
+      title = "Options",
+      window = config.display.chat.window,
     }
 
     if next(_cached_options) ~= nil then
@@ -114,6 +115,7 @@ M.options = {
           }
         end
       end)
+
     -- Add groups
     vim.iter(config.interactions.chat.tools.groups):each(function(tool)
       local group_conf = config.interactions.chat.tools.groups[tool]

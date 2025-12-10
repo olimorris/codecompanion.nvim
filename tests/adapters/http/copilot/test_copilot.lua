@@ -539,15 +539,12 @@ T["test model selection dialog works with copilot adapter"] = function()
 
     -- Mock token module to return tokens when forced
     package.loaded["codecompanion.adapters.http.copilot.token"] = {
-      fetch = function(force_init)
-        if force_init then
-          return {
-            oauth_token = "test_oauth",
-            copilot_token = "test_token",
-            endpoints = { api = "https://api.githubcopilot.com" }
-          }
-        end
-        return nil
+      fetch = function()
+        return {
+          oauth_token = "test_oauth",
+          copilot_token = "test_token",
+          endpoints = { api = "https://api.githubcopilot.com" }
+        }
       end,
     }
 
