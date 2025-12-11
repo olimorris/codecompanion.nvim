@@ -178,7 +178,6 @@ export default withMermaid(
             { text: "Rules Parsers", link: "/extending/parsers" },
             { text: "Tools", link: "/extending/tools" },
             { text: "UI", link: "/extending/ui" },
-            { text: "Workflows", link: "/extending/workflows" },
           ],
         },
       ],

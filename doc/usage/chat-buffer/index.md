@@ -33,24 +33,23 @@ One of the joys of working with CodeCompanion is being able to switch between co
 
 To do this, simply press `ga` to open up the _Select Adapter_ select window. If your chosen adapter has more than one model (in the case of HTTP adapters) or command (in the case of ACP adapters) then you'll be prompted to make another selection.
 
-## Messages
+## Completion
 
-> [!TIP]
-> The message history and adapter settings can be modified via the debug window (`gd`) in the chat buffer
+> [!IMPORTANT]
+> As of `v17.5.0`, variables and tools are wrapped in curly braces automatically, such as `#{buffer}` or `@{files}`
 
-It's important to note that some messages, such as system prompts or context provided via [Slash Commands](/usage/chat-buffer/slash-commands), will be hidden. This is to keep the chat buffer uncluttered from a UI perspective. Using the `gd` keymap opens up the debug window, which allows the user to see the full contents of the messages table which will be sent to the LLM on the next turn.
+<img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 
-The message history cannot be altered directly in the chat buffer. However, it can be modified in the debug window. This window is simply a Lua buffer which the user can edit as they wish. To persist any changes, the chat buffer keymaps for sending a message (defaults: `<CR>` or `<C-s>`) can be used.
+You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
-## Images / Vision
+When using an ACP adapter (such as claude-code), you can also type `\` (backslash, by default) to get completions for ACP commands. These are agent-specific commands like `/compact` (compact chat history) that are dynamically discovered from the agent itself.
 
-<p>
-<video controls muted src="https://github.com/user-attachments/assets/8897d58e-f2c4-4da9-a170-22f31a75c358"></video>
-</p>
+> [!NOTE]
+> It typically takes 1-5 seconds after opening a chat buffer for ACP commands to become available. The agent needs to initialize and scan for both built-in and custom commands. If you define a new custom command mid-session, the same delay applies before it appears in the completion list.
 
-Many LLMs have the ability to receive images as input (sometimes referred to as vision). CodeCompanion supports the adding of images into the chat buffer via the [/image](/usage/chat-buffer/slash-commands#image) slash command and through the system clipboard with [img-clip.nvim](/installation#img-clip-nvim). CodeCompanion can work with images in your file system and also with remote URLs, encoding both into a base64 representation.
+The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `interactions.chat.slash_commands.opts.acp.trigger` in your config.
 
-If your adapter and model doesn't support images, then CodeCompanion will endeavour to ensure that the image is not included in the messages payload that's sent to the LLM.
+It's worth noting that not all commands available in ACP CLI tools are exposed via the SDK. Only a subset of built-in commands are supported, though this is constantly evolving as the underlying SDKs mature.
 
 ## Context
 
@@ -71,38 +70,17 @@ If a context item is added by mistake, it can be removed from the chat buffer by
 
 Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
 
-## Super Diff
-
-<img alt="Super Diff" src="https://github.com/user-attachments/assets/e530d6dd-6f14-4085-b839-6d30439b356f" />
-
-When an LLM uses tools like [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file) to make changes across multiple files and buffers, it can be difficult to keep track. This is amplified if the tools are working without requiring approvals (perhaps via [automatic tool mode](/usage/chat-buffer/tools.html#automatic-tool-mode)) and it simply isn't impossible to keep track of what an LLM has added, deleted or modified.
-
-Super Diff gives you a single, unified view of all edits made in via the chat buffer. Open it with `gD` to review every change, grouped by file, with visual diffs and status indicators. You can accept or reject changes before they’re applied, keeping you in control of your codebase. You can even send changes to the quickfix list for easier navigation and review.
 
 
-## Settings
+## Images / Vision
 
-<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
+<p>
+<video controls muted src="https://github.com/user-attachments/assets/8897d58e-f2c4-4da9-a170-22f31a75c358"></video>
+</p>
 
-When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
+Many LLMs have the ability to receive images as input (sometimes referred to as vision). CodeCompanion supports the adding of images into the chat buffer via the [/image](/usage/chat-buffer/slash-commands#image) slash command and through the system clipboard with [img-clip.nvim](/installation#img-clip-nvim). CodeCompanion can work with images in your file system and also with remote URLs, encoding both into a base64 representation.
 
-## Completion
-
-> [!IMPORTANT]
-> As of `v17.5.0`, variables and tools are wrapped in curly braces automatically, such as `#{buffer}` or `@{files}`
-
-<img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
-
-You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
-
-When using an ACP adapter (such as claude-code), you can also type `\` (backslash, by default) to get completions for ACP commands. These are agent-specific commands like `/compact` (compact chat history) that are dynamically discovered from the agent itself.
-
-> [!NOTE]
-> It typically takes 1-5 seconds after opening a chat buffer for ACP commands to become available. The agent needs to initialize and scan for both built-in and custom commands. If you define a new custom command mid-session, the same delay applies before it appears in the completion list.
-
-The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `interactions.chat.slash_commands.opts.acp.trigger` in your config.
-
-It's worth noting that not all commands available in ACP CLI tools are exposed via the SDK. Only a subset of built-in commands are supported, though this is constantly evolving as the underlying SDKs mature.
+If your adapter and model doesn't support images, then CodeCompanion will endeavour to ensure that the image is not included in the messages payload that's sent to the LLM.
 
 ## Keymaps
 
@@ -147,3 +125,28 @@ require("codecompanion").setup({
   }
 })
 ```
+
+
+## Messages
+
+> [!TIP]
+> The message history and adapter settings can be modified via the debug window (`gd`) in the chat buffer
+
+It's important to note that some messages, such as system prompts or context provided via [Slash Commands](/usage/chat-buffer/slash-commands), will be hidden. This is to keep the chat buffer uncluttered from a UI perspective. Using the `gd` keymap opens up the debug window, which allows the user to see the full contents of the messages table which will be sent to the LLM on the next turn.
+
+The message history cannot be altered directly in the chat buffer. However, it can be modified in the debug window. This window is simply a Lua buffer which the user can edit as they wish. To persist any changes, the chat buffer keymaps for sending a message (defaults: `<CR>` or `<C-s>`) can be used.
+
+## Settings
+
+<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
+
+When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
+
+## Super Diff
+
+<img alt="Super Diff" src="https://github.com/user-attachments/assets/e530d6dd-6f14-4085-b839-6d30439b356f" />
+
+When an LLM uses tools like [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file) to make changes across multiple files and buffers, it can be difficult to keep track. This is amplified if the tools are working without requiring approvals (perhaps via [automatic tool mode](/usage/chat-buffer/tools.html#automatic-tool-mode)) and it simply isn't impossible to keep track of what an LLM has added, deleted or modified.
+
+Super Diff gives you a single, unified view of all edits made in via the chat buffer. Open it with `gD` to review every change, grouped by file, with visual diffs and status indicators. You can accept or reject changes before they’re applied, keeping you in control of your codebase. You can even send changes to the quickfix list for easier navigation and review.
+

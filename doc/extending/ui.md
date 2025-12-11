@@ -2,7 +2,7 @@
 description: Some useful UI tips and tricks you can leverage
 ---
 
-# The User Interface
+# Extending the UI
 
 Below are some examples of how you can extend CodeCompanion and modify the user interface to suit your needs.
 
