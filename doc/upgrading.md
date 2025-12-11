@@ -36,75 +36,35 @@ If you have any prompts defined in your config, you'll need to:
 
 - Rename `opts.short_name` to `opts.alias` for each item in order to allow you to call them with `require("codecompanion").prompt("my_prompt")` or as slash commands in the chat buffer ([#2471](https://github.com/olimorris/codecompanion.nvim/pull/2471)).
 
-::: tabs
-
-== Before
-
 ```lua
 ["my custom prompt"] = {
   strategy = "chat",
   description = "My custom prompt",
   opts = {
-    short_name = "my_prompt"
+    short_name = "my_prompt", -- [!code --]
+    alias = "my_prompt", -- [!code ++]
   },
   prompts = {
     -- ...
   },
 },
 ```
-
-== After
-
-```lua
-["my custom prompt"] = {
-  strategy = "chat",
-  description = "My custom prompt",
-  opts = {
-    alias = "my_prompt"
-  },
-  prompts = {
-    -- ...
-  },
-},
-```
-
-:::
 
 - Change all workflow prompts, replacing `strategy = "workflow"` with `interaction = "chat"` and specifying `opts.is_workflow = true` ([#2487](https://github.com/olimorris/codecompanion.nvim/pull/2487)).
 
-::: tabs
-
-== Before
-
 ```lua
 ["my_workflow"] = {
-  strategy = "workflow",
+  strategy = "workflow", -- [!code --]
+  interaction = "chat", -- [!code ++]
   description = "My custom workflow",
   opts = {
-    -- ...
+    is_workflow = true, -- [!code ++]
   },
   prompts = {
     -- ...
   },
 },
 ```
-
-== After
-
-```lua
-["my_workflow"] = {
-  interaction = "chat",
-  description = "My custom workflow",
-  opts = {
-    is_workflow = true,
-  },
-  prompts = {
-    -- ...
-  },
-},
-```
-
-:::
 
 - If you don't wish to display any of the built-in prompt library items, you'll need to change `display.action_palette.show_default_prompt_library` to `display.action_palette.show_preset_prompts` ([#2499](https://github.com/olimorris/codecompanion.nvim/pull/2499))
 

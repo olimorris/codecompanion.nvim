@@ -502,12 +502,9 @@ require("codecompanion").setup({
 
 The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [Super Diff](/usage/chat-buffer/#super-diff), [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
 
+::: code-group
 
-::: tabs
-
-== Icons
-
-```lua
+```lua [Icons]
 require("codecompanion").setup({
   display = {
     chat = {
@@ -527,9 +524,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Chat Buffer
-
-```lua
+```lua [Chat Buffer]
 require("codecompanion").setup({
   display = {
     chat = {
@@ -558,9 +553,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Debug Window
-
-```lua
+```lua [Debug Window]
 require("codecompanion").setup({
   display = {
     chat = {
@@ -576,9 +569,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Floating Windows
-
-```lua
+```lua [Floating Window]
 require("codecompanion").setup({
   display = {
     chat = {
