@@ -1,7 +1,6 @@
 local Path = require("plenary.path")
 local Scandir = require("plenary.scandir")
 
-local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.rules.helpers")
 local parsers = require("codecompanion.interactions.chat.rules.parsers")
 
@@ -154,32 +153,8 @@ end
 
 ---Make the rules message
 ---@param chat CodeCompanion.Chat
----@param opts? { force: boolean } Additional options
 ---@return nil
-function Rules:make(chat, opts)
-  opts = vim.tbl_extend("force", { force = false }, opts or {})
-
-  local condition = config
-    and config.rules
-    and config.rules.opts
-    and config.rules.opts.chat
-    and config.rules.opts.chat.condition
-
-  if condition ~= nil and opts.force == false then
-    local ctype = type(condition)
-
-    if ctype == "function" then
-      local ok, result = pcall(condition, chat)
-      if not ok or not result then
-        return
-      end
-    elseif ctype == "boolean" then
-      if not condition then
-        return
-      end
-    end
-  end
-
+function Rules:make(chat)
   return self:extract():parse():add(chat)
 end
 

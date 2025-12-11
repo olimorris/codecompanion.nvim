@@ -45,8 +45,9 @@ local function expand_rules_group(picker_items, group_path, group_cfg, parent_cf
 end
 
 ---List all of the rules from the config (flattened)
+---@param chat CodeCompanion.Chat
 ---@return table
-function M.list()
+function M.list(chat)
   local picker_items = {}
   local exclusions = { "opts", "parsers" }
 
@@ -58,7 +59,7 @@ function M.list()
       goto continue
     end
     if cfg.enabled and type(cfg.enabled) == "function" then
-      if not cfg.enabled() then
+      if not cfg.enabled(chat) then
         goto continue
       end
     end

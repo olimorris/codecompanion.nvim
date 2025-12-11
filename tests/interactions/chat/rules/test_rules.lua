@@ -198,7 +198,6 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
         chat = {
           enabled = true,
           default_rules = "default",
-          condition = function() return true end,
         },
         show_presets = true,
       },
