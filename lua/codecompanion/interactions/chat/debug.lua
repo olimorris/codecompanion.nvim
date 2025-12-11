@@ -261,12 +261,9 @@ function Debug:render()
   ui_utils.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
+    opts = window_config.opts,
     title = "Debug Chat",
     window = window_config,
-    style = "minimal",
-    opts = window_config.opts or {
-      wrap = true,
-    },
   })
 
   self:setup_window()
