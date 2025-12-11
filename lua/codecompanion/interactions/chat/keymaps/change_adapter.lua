@@ -60,6 +60,7 @@ function M.get_models_list(adapter)
     models = { adapter.schema.model.default }
   end
   if type(models) == "function" then
+    -- When user explicitly wants to change models, force token creation
     models = models(adapter, { async = false })
   end
   if not models or vim.tbl_count(models) < 2 then

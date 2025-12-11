@@ -891,11 +891,7 @@ The user is working on a %s machine. Please respond with system specific command
         row = "center",
         col = "center",
         relative = "editor",
-        opts = {
-          wrap = false,
-          number = false,
-          relativenumber = false,
-        },
+        opts = {},
       },
 
       -- Options for diff windows that open within the chat buffer
