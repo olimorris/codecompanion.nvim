@@ -18,7 +18,6 @@ Use insert_edit_into_file for safe, reliable file editing with advanced matching
 
 ## CRITICAL: Schema Requirements
 Every edit MUST have both `oldText` AND `newText` - NO EXCEPTIONS.
-- ✓ Preserve exact indentation (tabs/spaces) as it appears in the file
 
 ❌ **Common mistakes that cause FAILURE:**
 - Missing `oldText` or `newText` fields
@@ -54,18 +53,22 @@ The tool uses different strategies based on your parameters:
 | Single specific change | Standard replacement with unique context |
 | Same change everywhere (blocks/structures) | `replaceAll: true` with `\n` in oldText |
 | Same change everywhere (tokens/keywords) | `replaceAll: true` without `\n` in oldText (max 1000) |
-| Multiple different changes | Multiple edits in array (applied sequentially) |
+| Multiple different changes | Multiple edits in array (applied sequentially) SEE RULES|
 | Add to start of file | `oldText: "^"` |
 | Add to end of file | `oldText: "$"` |
 | Initialize empty file contents | `oldText: ""` with initial content |
 | Replace entire file contents | `mode: "overwrite"` |
 
 
-## Performance Notes
+## RULES
 
+- When editing text from Read tool output, ENSURE YOU PRESERVE THE EXACT INDENTATION (TABS/SPACES) as it appears.
+- Each call should edit only ONE file
+- For large-scale refactoring, break the task into multiple `insert_edit_into_file` calls
+- **Edit** = one object in the `edits` array (one oldText/newText pair)
+- CRITICAL: **Use SEPARATE calls:** When Different files, sequential dependencies, big chunks of code, OR >5 EDITS in one file. THIS AVOIDS ERRORS
+- **Use ONE call with multiple edits:** when Same file, independent small changes, AND <=5 EDITS.
 - Substring replacement with `replaceAll: true` is limited to 1000 replacements per edit
-- For large-scale refactoring, consider breaking into multiple insert_edit_into_file calls
-- Sequential edits in one call are more efficient than multiple separate calls
 
 ## Parameters
 
@@ -220,6 +223,9 @@ Use `overwrite` mode to replace all file contents completely.
   {"oldText": "local diff_utils", "newText": "local cc_diff_utils", "replaceAll": true},
   {"oldText": "local util ", "newText": "local cc_util ", "replaceAll": true}
 ]
+
+// ❌ BAD - Single call with 10 edits - WRONG!
+{"filepath": "file.js", "edits": [{...}, {...}, ..., {...}]}  // 10 items
 ```
 
 ## Best Practices
