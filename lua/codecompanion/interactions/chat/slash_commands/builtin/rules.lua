@@ -35,13 +35,13 @@ end
 ---@return nil
 function SlashCommand:output(selected)
   return rules
-    .init({
+    .new({
       name = selected.name,
       files = selected.files,
       opts = selected.opts,
       parser = selected.parser,
     })
-    :make(self.Chat, { force = true })
+    :make({ chat = self.Chat, force = true })
 end
 
 return SlashCommand

@@ -123,12 +123,12 @@ function M.add_callbacks(args, rules_name)
     if current then
       -- Ensure that we extend any existing callbacks
       args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
-        require("codecompanion.interactions.chat.rules").add_to_chat({
+        require("codecompanion.interactions.chat.rules").add_to_chat_from_config(chat, {
           name = name,
           opts = current.opts,
           parser = current.parser,
           files = current.files,
-        }, chat)
+        })
       end)
     else
       log:warn("Could not find `%s` rules", name)
