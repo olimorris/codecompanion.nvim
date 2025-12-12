@@ -209,7 +209,7 @@ end
 ---@param content1 string[]
 ---@param content2 string[]
 ---@return boolean
-function M.are_contents_equal(content1, content2)
+function M.is_equal(content1, content2)
   if #content1 ~= #content2 then
     return false
   end
