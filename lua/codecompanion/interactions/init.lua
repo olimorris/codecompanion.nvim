@@ -112,8 +112,8 @@ function Interactions:chat()
     end
 
     local callbacks = opts and opts.callbacks or {}
-    if self.selected.opts.default_rules and self.selected.opts.default_rules ~= "none" then
-      local rules_cb = rules_helpers.add_callbacks(callbacks, self.selected.opts.default_rules)
+    if self.selected.opts.rules and self.selected.opts.rules ~= "none" then
+      local rules_cb = rules_helpers.add_callbacks(callbacks, self.selected.opts.rules)
       if rules_cb then
         callbacks = rules_cb
       end

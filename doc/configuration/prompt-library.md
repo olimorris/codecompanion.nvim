@@ -251,7 +251,6 @@ opts = {
 
 - `alias` - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
 - `auto_submit` - Automatically submit the prompt to the LLM
-- `default_rules` - Specify a default rule group to load with the prompt
 - `ignore_system_prompt` - Don't send the default system prompt with the request
 - `intro_message` - Custom intro message for the chat buffer UI
 - `is_slash_cmd` - Make the prompt available as a slash command in chat
@@ -259,6 +258,7 @@ opts = {
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
+- `rules` - Specify a default rule group to load with the prompt
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 

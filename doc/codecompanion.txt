@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 09
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2013,25 +2013,29 @@ every time a chat buffer is created.
 RULE GROUPS ~
 
 In the plugin, rule groups are a collection of files and/or directories that
-can be loaded into the chat buffer.
+can be loaded into the chat buffer. Groups give you flexibility to create
+different sets of rules for different use-cases. For example, you may want a
+set of rules specifically for working with Claude Code or another for working
+with a specific project.
 
 
 Nested groups allow you to apply the same conditional to multiple groups
-alongside keeping your config clean. In the example above, the main group is
-`CodeCompanion` and a sub-group, `acp`, sits within the files table. The
-`claude` parser sits across all of the groups.
+alongside keeping your config clean. Infact, the plugin uses this itself. There
+is a `CodeCompanion` group with sub-groups for different parts of the plugin,
+allowing contributors to easily share context with an LLM when they’re
+working on specific parts of the codebase.
 
 When using the `Action Palette` or the slash command, the plugin will extract
-these nested groups and display them.
+these nested groups and display them in the `Chat with rules ...` menu.
 
 You can also set default groups that are automatically applied to all chat
 buffers. This is useful for ensuring that your preferred rules are always
 available.
 
 
-DEFAULT RULE GROUPS
+AUTOLOAD
 
-You can set default rule groups that are automatically applied to all chat
+You can set specific rule groups that will be automatically added to chat
 buffers. This is useful for ensuring that your preferred rules are always
 available.
 
@@ -2150,7 +2154,6 @@ behaviour:
 
 - `alias` - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
 - `auto_submit` - Automatically submit the prompt to the LLM
-- `default_rules` - Specify a default rule group to load with the prompt
 - `ignore_system_prompt` - Don’t send the default system prompt with the request
 - `intro_message` - Custom intro message for the chat buffer UI
 - `is_slash_cmd` - Make the prompt available as a slash command in chat
@@ -2158,6 +2161,7 @@ behaviour:
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
+- `rules` - Specify a default rule group to load with the prompt
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 

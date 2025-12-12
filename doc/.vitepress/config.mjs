@@ -1,6 +1,5 @@
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { defineConfig } from "vitepress";
-import { tabsMarkdownPlugin } from "vitepress-plugin-tabs";
 import { execSync } from "node:child_process";
 import { withMermaid } from "vitepress-plugin-mermaid";
 
@@ -75,11 +74,6 @@ const headers = inProd ? [...baseHeaders, umamiScript] : baseHeaders;
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
   defineConfig({
-    markdown: {
-      config(md) {
-        md.use(tabsMarkdownPlugin);
-      },
-    },
     mermaid: {
       securityLevel: "loose", // Allows more flexibility
       theme: "base", // Use base theme to allow CSS variables to take effect

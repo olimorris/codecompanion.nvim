@@ -138,7 +138,7 @@ T["Prompt Library"]["can add context"] = function()
   h.expect_match(items[2].id, "^<file>lua[\\/]codecompanion[\\/]http.lua</file>$")
 end
 
--- New: ensure default_rules adds a rules context item
+-- New: ensure rules adds a rules context item
 T["Prompt Library"]["can add rules"] = function()
   local mem_items = child.lua([[
       codecompanion.setup({
@@ -157,7 +157,7 @@ T["Prompt Library"]["can add rules"] = function()
               index = 4,
               alias = "test_prompt",
               ignore_system_prompt = true,
-              default_rules = "default",
+              rules = "default",
             },
             prompts = {
               {

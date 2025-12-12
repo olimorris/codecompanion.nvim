@@ -13,11 +13,9 @@ Similar to Cursor's [Rules](https://cursor.com/docs/context/rules), they provide
 
 ## Enabling Rules
 
-:::tabs
+::: code-group
 
-== Enable
-
-```lua
+```lua [Enable]
 require("codecompanion").setup({
   rules = {
     opts = {
@@ -29,9 +27,7 @@ require("codecompanion").setup({
 })
 ```
 
-== With Conditions
-
-```lua
+```lua [With Conditions]
 require("codecompanion").setup({
   rules = {
     opts = {
@@ -57,19 +53,17 @@ Once enabled, the plugin will look to load a common, or default, set of rules ev
 
 ## Rule Groups
 
-In the plugin, rule groups are a collection of files and/or directories that can be loaded into the chat buffer.
+In the plugin, rule groups are a collection of files and/or directories that can be loaded into the chat buffer. Groups give you flexibility to create different sets of rules for different use-cases. For example, you may want a set of rules specifically for working with Claude Code or another for working with a specific project.
 
-:::tabs
+::: code-group
 
-== Example Group
-
-```lua
+```lua [Basic Group]
 require("codecompanion").setup({
   rules = {
-    claude = {
-      description = "Rule files for Claude Code users",
+    my_project_rules = { -- [!code focus:9]
+      description = "Rule files for My Project",
       files = {
-        -- Paths can be absolute or relative to the cwd
+        -- Literal file paths (absolute or relative to cwd)
         "~/.claude/CLAUDE.md",
         "CLAUDE.md",
         "CLAUDE.local.md",
@@ -79,18 +73,15 @@ require("codecompanion").setup({
 })
 ```
 
-== With Conditions
-
-```lua
+```lua [Conditionals]
 require("codecompanion").setup({
   rules = {
-    CodeCompanion = {
-      description = "CodeCompanion plugin rule files",
-      parser = "claude",
+    my_project_rules = { -- [!code focus:13]
+      description = "Rule files for My Project",
       ---@return boolean
       enabled = function()
-        -- Don't show this to users who aren't working on CodeCompanion itself
-        return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
+        -- Don't show this group unless in a specific dir
+        return vim.fn.getcwd():find("my_project", 1, true) ~= nil
       end,
       files = {
         "~/.claude/CLAUDE.md",
@@ -102,19 +93,72 @@ require("codecompanion").setup({
 })
 ```
 
-== Nested Groups
 
-```lua
+```lua [Directories]
 require("codecompanion").setup({
   rules = {
-    CodeCompanion = {
-      description = "CodeCompanion plugin rule files",
+    my_project_rules = { -- [!code focus:19]
+      description = "Rule files for My Project",
+      files = {
+        -- Specify dirs to search in (supports glob patterns and literals)
+        {
+          path = vim.fn.getcwd(),
+          files = { ".clinerules", ".cursorrules", "*.md" }
+        },
+        {
+          path = "~/.config/rules",
+          files = "*.md"
+        },
+
+        -- Mix with literal file paths
+        "~/.claude/CLAUDE.md",
+        "CLAUDE.md",
+        "CLAUDE.local.md",
+      },
+    },
+  },
+})
+```
+
+```lua [File Patterns]
+require("codecompanion").setup({
+  rules = {
+    my_project_rules = { -- [!code focus:21]
+      description = "Rule files for My Project",
+      files = {
+        -- 1. Literal file paths
+        "CLAUDE.md",
+        "~/.claude/CLAUDE.md",
+
+        -- 2. File path with parser
+        { path = "CLAUDE.local.md", parser = "claude" },
+
+        -- 3. Directory with file patterns
+        { path = ".", files = { ".clinerules", "*.md" } },
+
+        -- 4. Directory with parser
+        { path = "~/.config/rules", files = "*.md", parser = "claude" },
+
+        -- 5. Glob patterns (searches filesystem)
+        "docs/**/*.md",
+        ".github/*.md",
+      },
+    },
+  },
+})
+```
+
+```lua [Nested Groups]
+require("codecompanion").setup({
+  rules = {
+    my_project_rules = { -- [!code focus:12]
+      description = "Rule files for My Project",
       parser = "claude",
       files = {
-        ["acp"] = {
-          description = "The ACP implementation",
+        ["mcp"] = {
+          description = "The MCP implementation in My project",
           files = {
-            ".codecompanion/acp/acp.md",
+            ".rules/mcp/mcp.md",
           },
         },
       },
@@ -125,59 +169,53 @@ require("codecompanion").setup({
 
 :::
 
-Nested groups allow you to apply the same conditional to multiple groups alongside keeping your config clean. In the example above, the main group is `CodeCompanion` and a sub-group, `acp`, sits within the files table. The `claude` parser sits across all of the groups.
+Nested groups allow you to apply the same conditional to multiple groups alongside keeping your config clean. Infact, the plugin uses this itself. There is a `CodeCompanion` group with sub-groups for different parts of the plugin, allowing contributors to easily share context with an LLM when they're working on specific parts of the codebase.
 
-When using the _Action Palette_ or the slash command, the plugin will extract these nested groups and display them.
+When using the _Action Palette_ or the slash command, the plugin will extract these nested groups and display them in the `Chat with rules ...` menu.
 
 You can also set default groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
 
-### Default Rule groups
+### Autoload
 
-You can set default rule groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
+You can set specific rule groups that will be automatically added to chat buffers. This is useful for ensuring that your preferred rules are always available.
 
-::: tabs
+::: code-group
 
-== Single Group
-
-```lua
+```lua{5} [Single Group]
 require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        default_rules = "default",
+        autoload = "my_project_rules",
       },
     },
   },
 })
 ```
 
-== Multiple Groups
-
-```lua
+```lua{5} [Multiple Groups]
 require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        default_rules = { "default", "another_new_group" },
+        autoload = { "my_project_rules", "another_project" },
       },
     },
   },
 })
 ```
 
-== Conditional Groups
-
-```lua
+```lua{6-11} [Conditional Groups]
 require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
         ---@return string|string[]
-        default_rules = function()
-          if vim.fn.getcwd():find("my_secret_project", 1, true) ~= nil then
-            return { "default", "secret_group" }
+        autoload = function()
+          if vim.fn.getcwd():find("another_project", 1, true) ~= nil then
+            return { "my_project", "another_project" }
           end
-          return "default"
+          return "my_project"
         end,
       },
     },
@@ -201,11 +239,9 @@ Please see the guide on [Creating Rules Parsers](/extending/parsers) to understa
 
 You can apply parsers at a group level, to ensure that all files in the group are parsed in the same way. Alternatively, you can apply them at a file level to have more granular control.
 
-::: tabs
+::: code-group
 
-== Group Level
-
-```lua
+```lua{5} [Group Level]
 require("codecompanion").setup({
   rules = {
     claude = {
@@ -221,9 +257,7 @@ require("codecompanion").setup({
 })
 ```
 
-== File Level
-
-```lua
+```lua{6-8} [File Level]
 require("codecompanion").setup({
   rules = {
     claude = {
@@ -238,9 +272,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Disable
-
-```lua
+```lua{5} [Disable]
 require("codecompanion").setup({
   rules = {
     claude = {
