@@ -65,10 +65,10 @@ If you cannot answer, respond with a single-sentence reason in %s, enclosed in e
 }
 
 Rules:
+- **CRITICAL**: ENSURE YOU PRESERVE THE EXACT INDENTATION (TABS/SPACES) as it appears in the provided code.
 - Validate all code carefully.
 - Adhere strictly to the JSON schema.
 - Do not include markdown, code fences, or explanations.
-- Use proper indentation and preserve whitespace.
 - Include comments if appropriate for the language.
 - Do not output anything except the JSON response]],
 

@@ -19,7 +19,10 @@ T["DiffUtils"]["calculate_hunks - detects simple addition"] = function()
   local removed_lines = { "line 1", "line 2" }
   local added_lines = { "line 1", "line 2", "line 3" }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
 
   h.eq(type(hunks), "table")
   h.expect_truthy(#hunks > 0)
@@ -29,7 +32,10 @@ T["DiffUtils"]["calculate_hunks - detects simple deletion"] = function()
   local removed_lines = { "line 1", "line 2", "line 3" }
   local added_lines = { "line 1", "line 3" }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
 
   h.eq(type(hunks), "table")
   h.expect_truthy(#hunks > 0)
@@ -39,7 +45,10 @@ T["DiffUtils"]["calculate_hunks - detects modification"] = function()
   local removed_lines = { "line 1", "old line 2", "line 3" }
   local added_lines = { "line 1", "new line 2", "line 3" }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
 
   h.eq(type(hunks), "table")
   h.expect_truthy(#hunks > 0)
@@ -49,7 +58,10 @@ T["DiffUtils"]["calculate_hunks - returns empty for identical content"] = functi
   local removed_lines = { "line 1", "line 2", "line 3" }
   local added_lines = { "line 1", "line 2", "line 3" }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
 
   h.eq(type(hunks), "table")
   h.eq(#hunks, 0)
@@ -59,7 +71,10 @@ T["DiffUtils"]["calculate_hunks - handles empty content"] = function()
   local removed_lines = {}
   local added_lines = { "new line" }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
 
   h.eq(type(hunks), "table")
 end
@@ -68,8 +83,15 @@ T["DiffUtils"]["calculate_hunks - respects context lines parameter"] = function(
   local removed_lines = { "line 1", "line 2", "line 3", "line 4", "line 5" }
   local added_lines = { "line 1", "modified line 2", "line 3", "line 4", "line 5" }
 
-  local hunks_default = diff_utils.calculate_hunks(removed_lines, added_lines)
-  local hunks_context_1 = diff_utils.calculate_hunks(removed_lines, added_lines, 1)
+  local hunks_default = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
+  local hunks_context_1 = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+    context_lines = 1,
+  })
 
   h.eq(type(hunks_default), "table")
   h.eq(type(hunks_context_1), "table")
@@ -79,7 +101,10 @@ T["DiffUtils"]["calculate_hunks - returns valid hunk structure"] = function()
   local removed_lines = { "line 1", "old line", "line 3" }
   local added_lines = { "line 1", "new line", "line 3" }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
 
   if #hunks > 0 then
     local hunk = hunks[1]
@@ -111,7 +136,11 @@ T["DiffUtils"]["apply_hunk_highlights - returns extmark ids"] = function()
     },
   }
 
-  local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id)
+  local extmark_ids = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+  })
   h.eq(type(extmark_ids), "table")
 
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
@@ -120,7 +149,11 @@ end
 T["DiffUtils"]["apply_hunk_highlights - handles empty hunks"] = function()
   local bufnr = vim.api.nvim_get_current_buf()
   local ns_id = vim.api.nvim_create_namespace("test_diff")
-  local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, {}, ns_id)
+  local extmark_ids = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = {},
+    ns_id = ns_id,
+  })
 
   h.eq(type(extmark_ids), "table")
   h.eq(#extmark_ids, 0)
@@ -142,7 +175,12 @@ T["DiffUtils"]["apply_hunk_highlights - respects line offset"] = function()
       context_after = { "line 3" },
     },
   }
-  local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 1)
+  local extmark_ids = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+    line_offset = 1,
+  })
 
   h.eq(type(extmark_ids), "table")
 
@@ -166,9 +204,27 @@ T["DiffUtils"]["apply_hunk_highlights - handles different status"] = function()
     },
   }
 
-  local extmark_ids_pending = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, { status = "pending" })
-  local extmark_ids_accepted = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, { status = "accepted" })
-  local extmark_ids_rejected = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, { status = "rejected" })
+  local extmark_ids_pending = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+    line_offset = 0,
+    opts = { status = "pending" },
+  })
+  local extmark_ids_accepted = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+    line_offset = 0,
+    opts = { status = "accepted" },
+  })
+  local extmark_ids_rejected = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+    line_offset = 0,
+    opts = { status = "rejected" },
+  })
 
   h.eq(type(extmark_ids_pending), "table")
   h.eq(type(extmark_ids_accepted), "table")
@@ -219,43 +275,43 @@ T["DiffUtils"]["get_sign_highlight_for_change - defaults to pending status"] = f
   h.eq(highlight_explicit, "DiagnosticOk")
 end
 
--- Test are_contents_equal function
-T["DiffUtils"]["are_contents_equal - returns true for identical content"] = function()
+-- Test is_equal function
+T["DiffUtils"]["is_equal - returns true for identical content"] = function()
   local content1 = { "line 1", "line 2", "line 3" }
   local content2 = { "line 1", "line 2", "line 3" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, true)
 end
 
-T["DiffUtils"]["are_contents_equal - returns false for different content"] = function()
+T["DiffUtils"]["is_equal - returns false for different content"] = function()
   local content1 = { "line 1", "line 2", "line 3" }
   local content2 = { "line 1", "modified line 2", "line 3" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, false)
 end
 
-T["DiffUtils"]["are_contents_equal - returns false for different lengths"] = function()
+T["DiffUtils"]["is_equal - returns false for different lengths"] = function()
   local content1 = { "line 1", "line 2" }
   local content2 = { "line 1", "line 2", "line 3" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, false)
 end
 
-T["DiffUtils"]["are_contents_equal - handles empty arrays"] = function()
+T["DiffUtils"]["is_equal - handles empty arrays"] = function()
   local content1 = {}
   local content2 = {}
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, true)
 end
 
-T["DiffUtils"]["are_contents_equal - handles one empty array"] = function()
+T["DiffUtils"]["is_equal - handles one empty array"] = function()
   local content1 = {}
   local content2 = { "line 1" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, false)
 end
@@ -274,18 +330,25 @@ T["DiffUtils"]["integration - full diff workflow"] = function()
     "end",
   }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
   h.expect_truthy(#hunks > 0)
 
   local bufnr = vim.api.nvim_get_current_buf()
   local ns_id = vim.api.nvim_create_namespace("test_integration")
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, added_lines)
 
-  local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id)
+  local extmark_ids = diff_utils.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+  })
   h.eq(type(extmark_ids), "table")
 
-  h.eq(diff_utils.are_contents_equal(removed_lines, added_lines), false)
-  h.eq(diff_utils.are_contents_equal(removed_lines, removed_lines), true)
+  h.eq(diff_utils.is_equal(removed_lines, added_lines), false)
+  h.eq(diff_utils.is_equal(removed_lines, removed_lines), true)
 
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 end
@@ -309,7 +372,10 @@ T["DiffUtils"]["integration - complex multi-hunk diff"] = function()
     "line 6",
   }
 
-  local hunks = diff_utils.calculate_hunks(removed_lines, added_lines)
+  local hunks = diff_utils.calculate_hunks({
+    removed_lines = removed_lines,
+    added_lines = added_lines,
+  })
   h.expect_truthy(#hunks > 0)
 end
 
@@ -366,14 +432,24 @@ T["DiffUtils Screenshots"]["Shows hunk highlights with modifications"] = functio
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, added_lines)
 
     -- Calculate hunks and apply highlights to show the diff
-    local hunks = diff_utils.calculate_hunks(removed_lines, added_lines, 1)
+    local hunks = diff_utils.calculate_hunks({
+      removed_lines = removed_lines,
+      added_lines = added_lines,
+      context_lines = 1,
+    })
     local ns_id = vim.api.nvim_create_namespace("screenshot_hunk_highlights")
 
     -- Apply the actual hunk highlights that the code uses
-    diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, {
-      show_removed = true,
-      full_width_removed = true,
-      status = "pending"
+    diff_utils.apply_hunk_highlights({
+      bufnr = bufnr,
+      hunks = hunks,
+      ns_id = ns_id,
+      line_offset = 0,
+      opts = {
+        show_removed = true,
+        full_width_removed = true,
+        status = "pending",
+      },
     })
   ]])
 
@@ -415,7 +491,13 @@ T["DiffUtils Screenshots"]["Shows hunk highlights in buffer"] = function()
       }
     }
 
-    local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, { status = "pending" })
+    local extmark_ids = diff_utils.apply_hunk_highlights({
+      bufnr = bufnr,
+      hunks = hunks,
+      ns_id = ns_id,
+      line_offset = 0,
+      opts = { status = "pending" },
+    })
   ]])
 
   local expect = MiniTest.expect
@@ -455,7 +537,13 @@ T["DiffUtils Screenshots"]["Shows rejected changes highlighting"] = function()
       }
     }
 
-    local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, { status = "rejected" })
+    local extmark_ids = diff_utils.apply_hunk_highlights({
+      bufnr = bufnr,
+      hunks = hunks,
+      ns_id = ns_id,
+      line_offset = 0,
+      opts = { status = "rejected" },
+    })
   ]])
 
   local expect = MiniTest.expect
@@ -509,14 +597,24 @@ T["DiffUtils Screenshots"]["Shows complex multi-hunk highlights"] = function()
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, added_lines)
 
     -- Calculate hunks and apply highlights using the actual functions
-    local hunks = diff_utils.calculate_hunks(removed_lines, added_lines, 2)
+    local hunks = diff_utils.calculate_hunks({
+      removed_lines = removed_lines,
+      added_lines = added_lines,
+      context_lines = 2,
+    })
     local ns_id = vim.api.nvim_create_namespace("screenshot_multi_hunk")
 
     -- Apply the actual hunk highlights with complex multi-hunk changes
-    diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, {
-      show_removed = true,
-      full_width_removed = true,
-      status = "pending"
+    diff_utils.apply_hunk_highlights({
+      bufnr = bufnr,
+      hunks = hunks,
+      ns_id = ns_id,
+      line_offset = 0,
+      opts = {
+        show_removed = true,
+        full_width_removed = true,
+        status = "pending",
+      },
     })
   ]])
 

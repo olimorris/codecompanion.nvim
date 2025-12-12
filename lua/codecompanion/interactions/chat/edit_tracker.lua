@@ -134,7 +134,7 @@ function EditTracker.register_edit_operation(chat, edit_info)
     if
       time_diff < time_window
       and existing_op.tool_name == edit_info.tool_name
-      and diff_utils.are_contents_equal(existing_op.original_content, edit_info.original_content)
+      and diff_utils.is_equal(existing_op.original_content, edit_info.original_content)
     then
       return existing_op.id
     end
