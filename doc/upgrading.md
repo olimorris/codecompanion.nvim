@@ -24,9 +24,12 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 ### Chat
 
 - Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the [Rules](/configuration/rules) documentation for more information ([#2440](https://github.com/olimorris/codecompanion.nvim/pull/2440))
+- `default_memory` has been renamed to `autoload` ([#2509](https://github.com/olimorris/codecompanion.nvim/pull/2509))
+---
 - The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request ([#2444](https://github.com/olimorris/codecompanion.nvim/pull/2444))
 - The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
   entire buffer is sent to the LLM with each request ([#2444](https://github.com/olimorris/codecompanion.nvim/pull/2444))
+---
 - Passing an adapter as an argument to `:CodeCompanionChat` is now done with `:CodeCompanionChat adapter=<adapter_name>` ([#2437](https://github.com/olimorris/codecompanion.nvim/pull/2437))
 - If your chat buffer system prompt is still stored at `opts.system_prompt` you'll need to change it to `interactions.chat.opts.system_prompt` ([#2484](https://github.com/olimorris/codecompanion.nvim/pull/2484))
 

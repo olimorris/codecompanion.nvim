@@ -19,11 +19,9 @@ description: How to install CodeCompanion and it's dependencies
 
 The plugin can be installed with the plugin manager of your choice. It is recommended to pin the plugin to a specific release to avoid breaking changes.
 
-::: tabs
+::: code-group
 
-== vim.pack
-
-```lua
+```lua [vim.pack]
 vim.pack.add("https://www.github.com/nvim-lua/plenary.nvim")
 vim.pack.add({
   src = "https://www.github.com/olimorris/codecompanion.nvim",
@@ -34,9 +32,7 @@ vim.pack.add({
 require("codecompanion").setup()
 ```
 
-== Lazy.nvim
-
-```lua
+```lua [Lazy.nvim]
 {
   "olimorris/codecompanion.nvim",
   version = "^18.0.0"
@@ -47,9 +43,7 @@ require("codecompanion").setup()
 },
 ```
 
-== Packer.nvim
-
-```lua
+```lua [Packer.nvim]
 use({
   "olimorris/codecompanion.nvim",
   tag = "^18.0.0",
@@ -72,11 +66,9 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 
 CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
 
-::: tabs
+::: code-group
 
-== 1. Install
-
-```lua
+```lua [1. Install]
 -- Lazy.nvim
 {
   "olimorris/codecompanion.nvim",
@@ -86,9 +78,7 @@ CodeCompanion supports extensions that add additional functionality to the plugi
 }
 ```
 
-== 2. Configure
-
-```lua
+```lua [2. Configure]
 require("codecompanion").setup({
   extensions = {
     mcphub = {
@@ -111,26 +101,16 @@ Visit the [extensions documentation](extending/extensions) to learn more about a
 
 CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
 
-::: tabs
+::: code-group
 
-== render-markdown.nvim
-
-Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) to render the markdown in the chat buffer:
-
-```lua
--- Lazy.nvim
+```lua [render-markdown.nvim]
 {
   "MeanderingProgrammer/render-markdown.nvim",
   ft = { "markdown", "codecompanion" }
 },
 ```
 
-== markview.nvim
-
-Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer:
-
-```lua
--- Lazy.nvim
+```lua [markview.nvim]
 {
   "OXY2DEV/markview.nvim",
   lazy = false,
@@ -143,12 +123,7 @@ Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the mark
 },
 ```
 
-== img-clip.nvim
-
-Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
-
-```lua
--- Lazy.nvim
+```lua [img-clip.nvim]
 {
   "HakonHarnes/img-clip.nvim",
   opts = {
@@ -164,6 +139,9 @@ Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images
 ```
 
 :::
+
+Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) or [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer.  Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
+
 
 ## Completion
 
