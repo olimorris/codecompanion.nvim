@@ -151,13 +151,12 @@ T["Rules:make()"]["with glob pattern"] = function()
     package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
 
-  local pattern = tmpdir .. "/*"
   child.lua(string.format(
     [[
     local Rules = require("codecompanion.interactions.chat.rules.init")
     Rules.new({ name = "glob_pattern_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
-    pattern
+    tmpdir .. "/*"
   ))
 
   local processed = child.lua("return _G.test_processed")
