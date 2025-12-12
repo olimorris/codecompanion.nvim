@@ -275,43 +275,43 @@ T["DiffUtils"]["get_sign_highlight_for_change - defaults to pending status"] = f
   h.eq(highlight_explicit, "DiagnosticOk")
 end
 
--- Test are_contents_equal function
-T["DiffUtils"]["are_contents_equal - returns true for identical content"] = function()
+-- Test is_equal function
+T["DiffUtils"]["is_equal - returns true for identical content"] = function()
   local content1 = { "line 1", "line 2", "line 3" }
   local content2 = { "line 1", "line 2", "line 3" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, true)
 end
 
-T["DiffUtils"]["are_contents_equal - returns false for different content"] = function()
+T["DiffUtils"]["is_equal - returns false for different content"] = function()
   local content1 = { "line 1", "line 2", "line 3" }
   local content2 = { "line 1", "modified line 2", "line 3" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, false)
 end
 
-T["DiffUtils"]["are_contents_equal - returns false for different lengths"] = function()
+T["DiffUtils"]["is_equal - returns false for different lengths"] = function()
   local content1 = { "line 1", "line 2" }
   local content2 = { "line 1", "line 2", "line 3" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, false)
 end
 
-T["DiffUtils"]["are_contents_equal - handles empty arrays"] = function()
+T["DiffUtils"]["is_equal - handles empty arrays"] = function()
   local content1 = {}
   local content2 = {}
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, true)
 end
 
-T["DiffUtils"]["are_contents_equal - handles one empty array"] = function()
+T["DiffUtils"]["is_equal - handles one empty array"] = function()
   local content1 = {}
   local content2 = { "line 1" }
-  local result = diff_utils.are_contents_equal(content1, content2)
+  local result = diff_utils.is_equal(content1, content2)
 
   h.eq(result, false)
 end
@@ -347,8 +347,8 @@ T["DiffUtils"]["integration - full diff workflow"] = function()
   })
   h.eq(type(extmark_ids), "table")
 
-  h.eq(diff_utils.are_contents_equal(removed_lines, added_lines), false)
-  h.eq(diff_utils.are_contents_equal(removed_lines, removed_lines), true)
+  h.eq(diff_utils.is_equal(removed_lines, added_lines), false)
+  h.eq(diff_utils.is_equal(removed_lines, removed_lines), true)
 
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 end
