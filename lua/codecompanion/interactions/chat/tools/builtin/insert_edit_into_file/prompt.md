@@ -61,11 +61,13 @@ The tool uses different strategies based on your parameters:
 | Replace entire file contents | `mode: "overwrite"` |
 
 
-## Performance Notes
+## RULES
 
+- When editing text from Read tool output, ENSURE YOU PRESERVE THE EXACT INDENTATION (TABS/SPACES) as it appears.
+- Each call should edit only ONE file
+- For large-scale refactoring, break the task into multiple `insert_edit_into_file` calls
+- Multiple separate calls are preferred over sequential edits in a single call if you have complicated multiple edits.
 - Substring replacement with `replaceAll: true` is limited to 1000 replacements per edit
-- For large-scale refactoring, consider breaking into multiple insert_edit_into_file calls
-- Sequential edits in one call are more efficient than multiple separate calls
 
 ## Parameters
 
