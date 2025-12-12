@@ -45,8 +45,9 @@ local function expand_rules_group(picker_items, group_path, group_cfg, parent_cf
 end
 
 ---List all of the rules from the config (flattened)
+---@param chat CodeCompanion.Chat
 ---@return table
-function M.list()
+function M.list(chat)
   local picker_items = {}
   local exclusions = { "opts", "parsers" }
 
@@ -58,7 +59,7 @@ function M.list()
       goto continue
     end
     if cfg.enabled and type(cfg.enabled) == "function" then
-      if not cfg.enabled() then
+      if not cfg.enabled(chat) then
         goto continue
       end
     end
@@ -94,22 +95,19 @@ end
 ---@return table|nil
 function M.add_callbacks(args, rules_name)
   local rules = config.rules and config.rules.opts and config.rules.opts.chat
-  if not rules_name and not (rules and rules.enabled and rules.default_rules) then
+  if not rules_name and not (rules and rules.enabled and rules.autoload) then
     return args.callbacks
   end
 
-  local default_rules = rules_name or rules.default_rules
+  local autoload = rules_name or rules.autoload
   local memories = {}
-  if type(default_rules) == "string" then
-    memories = { default_rules }
-  elseif type(default_rules) == "table" then
-    memories = vim.deepcopy(default_rules)
-  elseif type(default_rules) == "function" then
-    memories = default_rules()
-    assert(
-      type(memories) == "string" or type(memories) == "table",
-      "default_rules must return a string or table of strings"
-    )
+  if type(autoload) == "string" then
+    memories = { autoload }
+  elseif type(autoload) == "table" then
+    memories = vim.deepcopy(autoload)
+  elseif type(autoload) == "function" then
+    memories = autoload()
+    assert(type(memories) == "string" or type(memories) == "table", "autoload must return a string or table of strings")
     if type(memories) == "string" then
       memories = { memories }
     end
@@ -122,12 +120,12 @@ function M.add_callbacks(args, rules_name)
     if current then
       -- Ensure that we extend any existing callbacks
       args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
-        require("codecompanion.interactions.chat.rules").add_to_chat({
+        require("codecompanion.interactions.chat.rules").add_to_chat_from_config(chat, {
           name = name,
           opts = current.opts,
           parser = current.parser,
           files = current.files,
-        }, chat)
+        })
       end)
     else
       log:warn("Could not find `%s` rules", name)

@@ -32,7 +32,7 @@ T["Rules:make()"]["with string file (no parser)"] = function()
   child.lua(string.format(
     [[
     local Rules = require("codecompanion.interactions.chat.rules.init")
-    Rules.init({ name = "t1", files = { %q } }):make({ id = "c-1" })
+    Rules.new({ name = "literal_file_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
     tmp
   ))
@@ -47,7 +47,7 @@ T["Rules:make()"]["with string file (no parser)"] = function()
   h.eq(processed[1].content, content .. "\n")
   h.eq(processed[1].filename, expected_filename)
   h.eq(processed[1].path, expected_path)
-  h.eq(chat.id, "c-1")
+  h.eq(chat.id, "test_chat")
 end
 
 T["Rules:make()"]["applies parser when provided at file level"] = function()
@@ -74,10 +74,10 @@ T["Rules:make()"]["applies parser when provided at file level"] = function()
   child.lua(string.format(
     [[
     local Rules = require("codecompanion.interactions.chat.rules.init")
-    Rules.init({
-      name = "t2",
+    Rules.new({
+      name = "parser_test",
       files = { { path = %q, parser = "prefix" } },
-    }):make({ id = "c-2" })
+    }):make({ chat = { id = "test_chat" } })
   ]],
     tmp
   ))
@@ -88,7 +88,7 @@ T["Rules:make()"]["applies parser when provided at file level"] = function()
   h.eq(type(processed), "table")
   h.eq(#processed, 1)
   h.eq(processed[1].content, content .. "\n")
-  h.eq(chat.id, "c-2")
+  h.eq(chat.id, "test_chat")
 end
 
 T["Rules:make()"]["with directory file (no parser)"] = function()
@@ -112,7 +112,7 @@ T["Rules:make()"]["with directory file (no parser)"] = function()
   child.lua(string.format(
     [[
     local Rules = require("codecompanion.interactions.chat.rules.init")
-    Rules.init({ name = "t3", files = { %q } }):make({ id = "c-3" })
+    Rules.new({ name = "directory_scan_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
     tmpdir
   ))
@@ -130,7 +130,7 @@ T["Rules:make()"]["with directory file (no parser)"] = function()
   table.sort(names)
 
   h.eq(names, { "one.txt", "two.md" })
-  h.eq(chat.id, "c-3")
+  h.eq(chat.id, "test_chat")
 end
 
 T["Rules:make()"]["with glob pattern"] = function()
@@ -151,13 +151,12 @@ T["Rules:make()"]["with glob pattern"] = function()
     package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
   ]])
 
-  local pattern = tmpdir .. "/*"
   child.lua(string.format(
     [[
     local Rules = require("codecompanion.interactions.chat.rules.init")
-    Rules.init({ name = "t5", files = { %q } }):make({ id = "c-5" })
+    Rules.new({ name = "glob_pattern_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
-    pattern
+    tmpdir .. "/*"
   ))
 
   local processed = child.lua("return _G.test_processed")
@@ -173,7 +172,98 @@ T["Rules:make()"]["with glob pattern"] = function()
   table.sort(names)
 
   h.eq(names, { "alpha.md", "beta.txt" })
-  h.eq(chat.id, "c-5")
+  h.eq(chat.id, "test_chat")
+end
+
+T["Rules:make()"]["with directory and file patterns"] = function()
+  local tmpdir = child.lua("return vim.fn.tempname()")
+  child.fn.mkdir(tmpdir)
+  local f1 = vim.fs.joinpath(tmpdir, ".clinerules")
+  local f2 = vim.fs.joinpath(tmpdir, ".cursorrules")
+  local f3 = vim.fs.joinpath(tmpdir, "README.md")
+  local f4 = vim.fs.joinpath(tmpdir, "test.txt")
+  child.fn.writefile({ "cline rules" }, f1)
+  child.fn.writefile({ "cursor rules" }, f2)
+  child.fn.writefile({ "readme" }, f3)
+  child.fn.writefile({ "test" }, f4)
+
+  child.lua([[
+    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+      add_context = function(processed, chat)
+        _G.test_processed = processed
+        _G.test_chat = chat
+      end
+    }
+    package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
+  ]])
+
+  child.lua(string.format(
+    [[
+    local Rules = require("codecompanion.interactions.chat.rules.init")
+    Rules.new({
+      name = "pattern_filter_test",
+      files = {
+        { path = %q, files = { ".clinerules", ".cursorrules", "*.md" } }
+      }
+    }):make({ chat = { id = "test_chat" } })
+  ]],
+    tmpdir
+  ))
+
+  local processed = child.lua("return _G.test_processed")
+  local chat = child.lua("return _G.test_chat")
+
+  h.eq(type(processed), "table")
+  h.eq(#processed, 3)
+
+  local names = {}
+  for i = 1, #processed do
+    names[i] = processed[i].filename
+  end
+  table.sort(names)
+
+  h.eq(names, { ".clinerules", ".cursorrules", "README.md" })
+  h.eq(chat.id, "test_chat")
+end
+
+T["Rules:make()"]["with directory and files patterns deduplicates"] = function()
+  local tmpdir = child.lua("return vim.fn.tempname()")
+  child.fn.mkdir(tmpdir)
+  local f1 = vim.fs.joinpath(tmpdir, "CLAUDE.md")
+  child.fn.writefile({ "claude rules" }, f1)
+
+  child.lua([[
+    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+      add_context = function(processed, chat)
+        _G.test_processed = processed
+        _G.test_chat = chat
+      end
+    }
+    package.loaded['codecompanion.config'] = { rules = { parsers = {} } }
+  ]])
+
+  child.lua(string.format(
+    [[
+    local Rules = require("codecompanion.interactions.chat.rules.init")
+    Rules.new({
+      name = "deduplication_test",
+      files = {
+        { path = %q, files = "*.md" },
+        %q
+      }
+    }):make({ chat = { id = "test_chat" } })
+  ]],
+    tmpdir,
+    f1
+  ))
+
+  local processed = child.lua("return _G.test_processed")
+  local chat = child.lua("return _G.test_chat")
+
+  h.eq(type(processed), "table")
+  h.eq(#processed, 1)
+  h.eq(processed[1].filename, "CLAUDE.md")
+  h.eq(chat.id, "test_chat")
 end
 
 T["Rules:make()"]["integration: rules is added to a real chat messages stack"] = function()
@@ -197,8 +287,7 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
       opts = {
         chat = {
           enabled = true,
-          default_rules = "default",
-          condition = function() return true end,
+          autoload = "default",
         },
         show_presets = true,
       },

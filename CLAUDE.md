@@ -98,6 +98,30 @@ Lua + Neovim API. Testing with Mini.Test. Dependencies: plenary.nvim, nvim-trees
 - Make conditionals readable
 - Avoid globals; use module-local state
 
+**Defining Functions:**
+- Prefer function parameters to contain a table like:
+```lua
+---@param args { files: string[], name: string, opts: table, parser: function }
+function add_to_chat(args)
+  return
+end
+```
+
+- It reads cleanly, and makes adding new parameters easier.
+````lua
+add_to_chat({
+  files = current.files,
+  name = name,
+  opts = current.opts,
+  parser = current.parser,
+}
+````
+
+- As opposed to:
+````lua
+add_to_chat(chat, name, parser, files, opts)
+````
+
 **Error Handling:**
 ````lua
 local log = require("codecompanion.utils.log")

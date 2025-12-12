@@ -16,7 +16,7 @@ function SlashCommand.new(args)
 end
 
 function SlashCommand:execute()
-  vim.ui.select(helpers.list(), {
+  vim.ui.select(helpers.list(self.Chat), {
     prompt = "Select a rule",
     format_item = function(item)
       return item.name
@@ -35,13 +35,13 @@ end
 ---@return nil
 function SlashCommand:output(selected)
   return rules
-    .init({
+    .new({
       name = selected.name,
       files = selected.files,
       opts = selected.opts,
       parser = selected.parser,
     })
-    :make(self.Chat, { force = true })
+    :make({ chat = self.Chat, force = true })
 end
 
 return SlashCommand

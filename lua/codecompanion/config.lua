@@ -815,20 +815,18 @@ The user is working on a %s machine. Please respond with system specific command
     },
     opts = {
       chat = {
-        enabled = false, -- Automatically add rules to new chat buffers?
+        ---The rule groups to load with every chat interaction
+        ---@type string|fun(): string
+        autoload = "default",
 
-        ---Function to determine if rules should be added to a chat buffer
-        ---This requires `enabled` to be true
-        ---@param chat CodeCompanion.Chat
-        ---@return boolean
-        condition = function(chat)
-          return chat.adapter.type ~= "acp"
-        end,
+        ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
+        enabled = true,
 
-        default_rules = "default", -- The rule groups to load
+        ---The default parameters to use when loading buffer rules
         default_params = "diff", -- all|diff
       },
-      show_presets = true, -- Show the preset rules files in the action palette?
+
+      show_presets = true, -- Show the preset rules files?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------
@@ -841,6 +839,7 @@ The user is working on a %s machine. Please respond with system specific command
       opts = {
         show_preset_actions = true, -- Show the preset actions in the action palette?
         show_preset_prompts = true, -- Show the preset prompts in the action palette?
+        show_preset_rules = true, -- Show the preset rules in the action palette?
         title = "CodeCompanion actions", -- The title of the action palette
       },
     },
