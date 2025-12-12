@@ -65,7 +65,7 @@ If you cannot answer, respond with a single-sentence reason in %s, enclosed in e
 }
 
 Rules:
-- ENSURE YOU PRESERVE THE EXACT INDENTATION (TABS/SPACES) as it appears in the provided code.
+- **CRITICAL**: ENSURE YOU PRESERVE THE EXACT INDENTATION (TABS/SPACES) as it appears in the provided code.
 - Validate all code carefully.
 - Adhere strictly to the JSON schema.
 - Do not include markdown, code fences, or explanations.
