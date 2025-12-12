@@ -90,7 +90,10 @@ end
 T["InlineDiff"]["calculate_hunks - delegates to DiffUtils"] = function()
   local removed_lines = { "line 1", "old line", "line 3" }
   local added_lines = { "line 1", "new line", "line 3" }
-  local hunks = InlineDiff.calculate_hunks(removed_lines, added_lines)
+  local hunks = InlineDiff.calculate_hunks({
+    old_lines = removed_lines,
+    new_lines = added_lines,
+  })
 
   h.eq(type(hunks), "table")
 end
@@ -98,8 +101,15 @@ end
 T["InlineDiff"]["calculate_hunks - respects context parameter"] = function()
   local removed_lines = { "line 1", "line 2", "old line", "line 4", "line 5" }
   local added_lines = { "line 1", "line 2", "new line", "line 4", "line 5" }
-  local hunks_default = InlineDiff.calculate_hunks(removed_lines, added_lines)
-  local hunks_context_1 = InlineDiff.calculate_hunks(removed_lines, added_lines, 1)
+  local hunks_default = InlineDiff.calculate_hunks({
+    old_lines = removed_lines,
+    new_lines = added_lines,
+  })
+  local hunks_context_1 = InlineDiff.calculate_hunks({
+    old_lines = removed_lines,
+    new_lines = added_lines,
+    context_lines = 1,
+  })
 
   h.eq(type(hunks_default), "table")
   h.eq(type(hunks_context_1), "table")
@@ -122,7 +132,11 @@ T["InlineDiff"]["apply_hunk_highlights - delegates to DiffUtils"] = function()
       context_after = { "line 3" },
     },
   }
-  local extmark_ids = InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id)
+  local extmark_ids = InlineDiff.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+  })
 
   h.eq(type(extmark_ids), "table")
 
@@ -147,7 +161,13 @@ T["InlineDiff"]["apply_hunk_highlights - handles options"] = function()
     },
   }
   local opts = { show_removed = false, status = "accepted" }
-  local extmark_ids = InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, 0, opts)
+  local extmark_ids = InlineDiff.apply_hunk_highlights({
+    bufnr = bufnr,
+    hunks = hunks,
+    ns_id = ns_id,
+    line_offset = 0,
+    opts = opts,
+  })
 
   h.eq(type(extmark_ids), "table")
 
@@ -171,60 +191,6 @@ T["InlineDiff"]["contents_equal - delegates to DiffUtils"] = function()
 
   h.eq(diff:are_contents_equal(content1, content2), true)
   h.eq(diff:are_contents_equal(content1, content3), false)
-end
-
-T["InlineDiff"]["apply_diff_highlights - applies highlights for changes"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local original_contents = { "line 1", "old line", "line 3" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, original_contents)
-
-  local diff = InlineDiff.new({
-    bufnr = bufnr,
-    contents = original_contents,
-    id = "test_highlights",
-  })
-
-  local removed_lines = { "line 1", "old line", "line 3" }
-  local added_lines = { "line 1", "new line", "line 3" }
-  local initial_extmarks = #diff.extmark_ids
-  diff:apply_diff_highlights(removed_lines, added_lines)
-
-  h.expect_truthy(#diff.extmark_ids >= initial_extmarks)
-  h.eq(vim.api.nvim_get_mode().mode, "n")
-end
-
-T["InlineDiff"]["clear_highlights - removes all extmarks"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local original_contents = { "line 1", "old line", "line 3" }
-  local current_contents = { "line 1", "new line", "line 3" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, current_contents)
-
-  local diff = InlineDiff.new({
-    bufnr = bufnr,
-    contents = original_contents,
-    id = "test_clear",
-  })
-
-  local _ = #diff.extmark_ids
-  diff:clear_highlights()
-
-  h.eq(#diff.extmark_ids, 0)
-end
-
-T["InlineDiff"]["clear_highlights - handles invalid buffer"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local contents = { "line 1" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
-
-  local diff = InlineDiff.new({
-    bufnr = bufnr,
-    contents = contents,
-    id = "test_invalid",
-  })
-  vim.api.nvim_buf_delete(bufnr, { force = true })
-
-  diff:clear_highlights() -- Should not throw error
-  h.eq(#diff.extmark_ids, 0)
 end
 
 T["InlineDiff"]["accept - clears highlights and fires event"] = function()

@@ -2,6 +2,11 @@ local log = require("codecompanion.utils.log")
 
 local api = vim.api
 
+local CONSTANTS = {
+  PRIORITY_DIFF_HIGHLIGHT = 100,
+  SIGN_COLUMN_PADDING = 2,
+}
+
 ---@class CodeCompanion.Diff.Utils
 local M = {}
 
@@ -16,12 +21,12 @@ local M = {}
 ---@field context_after string[]
 
 ---Calculate diff hunks between two content arrays
----@param removed_lines string[]
----@param added_lines string[]
----@param context_lines? number Number of context lines (default: 3)
+---@param args { removed_lines: string[], added_lines: string[], context_lines?: number }
 ---@return CodeCompanion.Diff.Utils.DiffHunk[] hunks
-function M.calculate_hunks(removed_lines, added_lines, context_lines)
-  context_lines = context_lines or 3
+function M.calculate_hunks(args)
+  local removed_lines = args.removed_lines
+  local added_lines = args.added_lines
+  local context_lines = args.context_lines or 3
 
   local diff_engine = vim.text.diff or vim.diff
   local original_text = table.concat(removed_lines, "\n")
@@ -88,15 +93,14 @@ function M.calculate_hunks(removed_lines, added_lines, context_lines)
 end
 
 ---Apply visual highlights to hunks in a buffer with sign column indicators
----@param bufnr number
----@param hunks CodeCompanion.Diff.Utils.DiffHunk
----@param ns_id number
----@param line_offset? number
----@param opts? {show_removed: boolean, full_width_removed: boolean, status: string}
+---@param args { bufnr: number, hunks: CodeCompanion.Diff.Utils.DiffHunk[], ns_id: number, line_offset?: number, opts?: table }
 ---@return number[] extmark_ids
-function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
-  line_offset = line_offset or 0
-  opts = opts or { show_removed = true, full_width_removed = true, status = "pending" }
+function M.apply_hunk_highlights(args)
+  local bufnr = args.bufnr
+  local hunks = args.hunks
+  local ns_id = args.ns_id
+  local line_offset = args.line_offset or 0
+  local opts = args.opts or { show_removed = true, full_width_removed = true, status = "pending" }
   local extmark_ids = {}
 
   -- Get sign configuration from config (lazy load to avoid circular dependency)
@@ -126,7 +130,9 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
       local virt_lines = {}
       for _, old_line in ipairs(hunk.removed_lines) do
         local display_line = old_line
-        local padding = opts.full_width_removed and math.max(0, vim.o.columns - #display_line - 2) or 0
+        local padding = opts.full_width_removed
+            and math.max(0, vim.o.columns - #display_line - CONSTANTS.SIGN_COLUMN_PADDING)
+          or 0
         table.insert(virt_lines, { { display_line .. string.rep(" ", padding), "DiffDelete" } })
       end
 
@@ -135,7 +141,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         virt_lines = virt_lines,
         virt_lines_above = true,
         virt_lines_overflow = "scroll",
-        priority = 100,
+        priority = CONSTANTS.PRIORITY_DIFF_HIGHLIGHT,
         sign_text = sign_text,
         sign_hl_group = sign_hl,
       })
@@ -158,7 +164,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         local line_hl = "DiffAdd"
         local _, extmark_id = pcall(api.nvim_buf_set_extmark, bufnr, ns_id, target_row, 0, {
           line_hl_group = line_hl,
-          priority = 100,
+          priority = CONSTANTS.PRIORITY_DIFF_HIGHLIGHT,
           sign_text = sign_text,
           sign_hl_group = sign_hl,
         })
