@@ -38,11 +38,9 @@ require("codecompanion").setup({
 
 A core part of working with CodeCompanion is being able to easily switch between adapters and LLMs. Below are two examples of how this can be achieved.
 
-::: tabs
+::: code-group
 
-== For Interactions
-
-```lua
+```lua [For Interactions]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -55,9 +53,7 @@ require("codecompanion").setup({
 }),
 ```
 
-== For Adapters
-
-```lua
+```lua [For Adapters]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -84,11 +80,9 @@ require("codecompanion").setup({
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
 
-::: tabs
+::: code-group
 
-== Modifying Schema
-
-```lua
+```lua [Modifying Schema]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -106,9 +100,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Disabling Schema
-
-```lua
+```lua [Disabling Schema]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -139,11 +131,9 @@ require("codecompanion").setup({
 
 Setting environment variables within adapters is a key part of configuration. The adapter `env` table lets you define values that will be interpolated into the adapter's URL, headers, parameters and other fields at runtime.
 
-::: tabs
+::: code-group
 
-== Plain Text
-
-```lua
+```lua{7} [Plain Text]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -159,9 +149,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Commands
-
-```lua
+```lua{7} [Commands]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -177,9 +165,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Function
-
-```lua
+```lua{7-9} [Function]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -197,9 +183,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Schema Reference
-
-```lua
+```lua{7} [Schema Reference]
 require("codecompanion").setup({
   adapters = {
     http = {

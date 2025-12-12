@@ -51,7 +51,7 @@ require("codecompanion").setup({
     default = {
       description = "Collection of common files for all projects",
       files = {
-        -- Ommitted for brevity
+        -- Omitted for brevity
       },
     },
     opts = {

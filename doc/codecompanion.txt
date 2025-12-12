@@ -16,6 +16,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Help                                     |codecompanion-installation-help|
 3. Getting Started                             |codecompanion-getting-started|
   - Documentation                |codecompanion-getting-started-documentation|
+  - Interactions                  |codecompanion-getting-started-interactions|
   - With an Adapter            |codecompanion-getting-started-with-an-adapter|
   - Chat Buffer                    |codecompanion-getting-started-chat-buffer|
   - Inline Assistant          |codecompanion-getting-started-inline-assistant|
@@ -25,6 +26,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Upgrading General                         |codecompanion-upgrading-general|
   - v17.33.0 to v18.0.0  |codecompanion-upgrading-general-v17.33.0-to-v18.0.0|
+  - default_memory has been renamed to autoload (#2509)|codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)|
 5. Configuration                                 |codecompanion-configuration|
   - Action Palette                |codecompanion-configuration-action-palette|
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
@@ -176,6 +178,12 @@ experience more enjoyable. Below are some common lazy.nvim configurations for
 popular plugins:
 
 
+Use render-markdown.nvim
+<https://github.com/MeanderingProgrammer/render-markdown.nvim> or markview.nvim
+<https://github.com/OXY2DEV/markview.nvim> to render the markdown in the chat
+buffer. Use img-clip.nvim <https://github.com/hakonharnes/img-clip.nvim> to
+copy images from your system clipboard into a chat buffer via `:PasteImage`:
+
 
 COMPLETION                             *codecompanion-installation-completion*
 
@@ -269,6 +277,18 @@ can be used in a `lazy.nvim` configuration like so:
 <
 
 
+INTERACTIONS                      *codecompanion-getting-started-interactions*
+
+The plugin uses the notion of `interactions` to describe the many different
+ways that you can interact with an LLM from within CodeCompanion. There are
+four main types of interactions:
+
+- **Chat** - A chat buffer where you can converse with an LLM (`:CodeCompanionChat`)
+- **Inline** - An inline assistant that can write code directly into a buffer (`:CodeCompanion`)
+- **Cmd** - Create Neovim commands in the command-line (`:CodeCompanionCmd`)
+- **Background** - Runs tasks in the background such as compacting chat messages or generating titles for chats
+
+
 WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
 
 
@@ -284,11 +304,22 @@ plugin, you need to make sure you’ve configured an adapter first:
     require("codecompanion").setup({
       interactions = {
         chat = {
-          name = "copilot",
-          model = "gpt-4.1",
+          adapter = {
+            name = "copilot",
+            model = "gpt-4.1",
+          },
         },
         inline = {
           adapter = "anthropic",
+        },
+        cmd = {
+          adapter = "openai",
+        },
+        background = {
+          adapter = {
+            name = "ollama",
+            model = "qwen-7b-instruct",
+          },
         },
       },
     })
@@ -297,6 +328,8 @@ plugin, you need to make sure you’ve configured an adapter first:
 In the example above, we’re using the Copilot adapter for the chat
 interaction and the Anthropic one for the inline.
 
+
+  [!IMPORTANT] ACP adapters are only supported for the chat interction.
 There are two "types" of adapter in CodeCompanion;
 |codecompanion-configuration-adapters-http| adapters which connect you to an
 LLM and |codecompanion-configuration-adapters-acp| adapters which leverage the
@@ -511,9 +544,11 @@ ADAPTERS ~
 CHAT ~
 
 - Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the |codecompanion-configuration-rules| documentation for more information (#2440 <https://github.com/olimorris/codecompanion.nvim/pull/2440>)
+- DEFAULT_MEMORY HAS BEEN RENAMED TO AUTOLOAD (#2509)*codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)*
 - The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
 - The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
     entire buffer is sent to the LLM with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
+    —
 - Passing an adapter as an argument to `:CodeCompanionChat` is now done with `:CodeCompanionChat adapter=<adapter_name>` (#2437 <https://github.com/olimorris/codecompanion.nvim/pull/2437>)
 - If your chat buffer system prompt is still stored at `opts.system_prompt` you’ll need to change it to `interactions.chat.opts.system_prompt` (#2484 <https://github.com/olimorris/codecompanion.nvim/pull/2484>)
 
@@ -524,9 +559,35 @@ If you have any prompts defined in your config, you’ll need to:
 
 - Rename `opts.short_name` to `opts.alias` for each item in order to allow you to call them with `require("codecompanion").prompt("my_prompt")` or as slash commands in the chat buffer (#2471 <https://github.com/olimorris/codecompanion.nvim/pull/2471>).
 
+>lua
+    ["my custom prompt"] = {
+      strategy = "chat",
+      description = "My custom prompt",
+      opts = {
+        short_name = "my_prompt", -- [!code --]
+        alias = "my_prompt", -- [!code ++]
+      },
+      prompts = {
+        -- ...
+      },
+    },
+<
 
 - Change all workflow prompts, replacing `strategy = "workflow"` with `interaction = "chat"` and specifying `opts.is_workflow = true` (#2487 <https://github.com/olimorris/codecompanion.nvim/pull/2487>).
 
+>lua
+    ["my_workflow"] = {
+      strategy = "workflow", -- [!code --]
+      interaction = "chat", -- [!code ++]
+      description = "My custom workflow",
+      opts = {
+        is_workflow = true, -- [!code ++]
+      },
+      prompts = {
+        -- ...
+      },
+    },
+<
 
 - If you don’t wish to display any of the built-in prompt library items, you’ll need to change `display.action_palette.show_default_prompt_library` to `display.action_palette.show_preset_prompts` (#2499 <https://github.com/olimorris/codecompanion.nvim/pull/2499>)
 
@@ -1289,6 +1350,11 @@ table (which refreshes when a user toggles the chat buffer).
 
 SLASH COMMANDS ~
 
+
+  [!IMPORTANT] Each slash command may have their own unique configuration so be
+  sure to check out the config.lua
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
+  file
 Slash Commands
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114>
 (invoked with `/`) let you dynamically insert context into the chat buffer,
@@ -1304,6 +1370,10 @@ them as the default provider. Failing that, the in-built `default` provider
 will be used. Please see the |codecompanion-usage-chat-buffer-index| usage
 section for information on how to use Slash Commands.
 
+
+Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
+<https://github.com/olimorris/codecompanion.nvim/discussions/958> for the
+custom slash command example.
 
 
 TOOLS ~
@@ -1937,7 +2007,7 @@ behaviour:
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
-- `rules` - Specify a default rule group to load with the prompt
+- `rules` - Specify a rule group to load with the prompt
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 
@@ -4913,7 +4983,7 @@ Let’s take a look at one more schema value:
       type = "number",
       default = 0,
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
@@ -4928,7 +4998,7 @@ Let’s take a look at one more schema value:
     },
 <
 
-You’ll see we’ve specified a function call for the `condition` key. We’re
+You’ll see we’ve specified a function call for the `enabled` key. We’re
 simply checking that the model name doesn’t start with `o1` as these models
 don’t accept temperature as a parameter. You’ll also see we’ve specified
 a function call for the `validate` key. We’re simply checking that the value

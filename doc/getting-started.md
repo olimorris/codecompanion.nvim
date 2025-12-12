@@ -52,6 +52,15 @@ can be used in a _lazy.nvim_ configuration like so:
 },
 ```
 
+## Interactions
+
+The plugin uses the notion of _interactions_ to describe the many different ways that you can interact with an LLM from within CodeCompanion. There are four main types of interactions:
+
+- **Chat** - A chat buffer where you can converse with an LLM (`:CodeCompanionChat`)
+- **Inline** - An inline assistant that can write code directly into a buffer (`:CodeCompanion`)
+- **Cmd** - Create Neovim commands in the command-line (`:CodeCompanionCmd`)
+- **Background** - Runs tasks in the background such as compacting chat messages or generating titles for chats
+
 ## Configuring an Adapter
 
 > [!NOTE]
@@ -63,17 +72,31 @@ An adapter is what connects Neovim to an LLM or an agent. It's the interface tha
 require("codecompanion").setup({
   interactions = {
     chat = {
-      name = "copilot",
-      model = "gpt-4.1",
+      adapter = {
+        name = "copilot",
+        model = "gpt-4.1",
+      },
     },
     inline = {
       adapter = "anthropic",
+    },
+    cmd = {
+      adapter = "openai",
+    },
+    background = {
+      adapter = {
+        name = "ollama",
+        model = "qwen-7b-instruct",
+      },
     },
   },
 })
 ```
 
 In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline.
+
+> [!IMPORTANT]
+> ACP adapters are only supported for the chat interction.
 
 There are two "types" of adapter in CodeCompanion; [HTTP](/configuration/adapters-http) adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 

@@ -81,11 +81,9 @@ Including the file above.
 
 Rules can automatically be added to a chat buffer when it's created. Just specify the default rules to include:
 
-::: tabs
+::: code-group
 
-== Default Rules
-
-```lua
+```lua [Autoload]
 require("codecompanion").setup({
   rules = {
     opts = {
@@ -97,9 +95,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Overwriting the Default Rules Group
-
-```lua
+```lua [Overwrite Autoload]
 require("codecompanion").setup({
   rules = {
     default = {

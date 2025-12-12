@@ -14,11 +14,9 @@ CodeCompanion has built-in inline and split diffs available to you. If you utili
 
 Depending on which provider you choose, there are different configuration options available to you:
 
-:::tabs
+::: code-group
 
-== Select Provider
-
-```lua
+```lua [Select Provider]
 require("codecompanion").setup({
   display = {
     diff = {
@@ -29,9 +27,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Inline Provider
-
-```lua
+```lua [Inline Provider]
 require("codecompanion").setup({
   display = {
     diff = {
@@ -52,9 +48,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Split Provider
-
-```lua
+```lua [Split Provider]
 require("codecompanion").setup({
   display = {
     diff = {
@@ -78,9 +72,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Diff Windows
-
-```lua
+```lua [Diff Windows]
 require("codecompanion").setup({
   display = {
     chat = {
@@ -184,15 +176,16 @@ The decorator function also has access to the adapter in the chat buffer alongsi
 
 ## Slash Commands
 
+> [!IMPORTANT]
+> Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
+
 [Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
 The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for information on how to use Slash Commands.
 
-::: tabs
+::: code-group
 
-== Configure
-
-```lua
+```lua [Configure]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -209,9 +202,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Keymaps
-
-```lua
+```lua [Keymaps]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -230,10 +221,7 @@ require("codecompanion").setup({
 })
 ```
 
-
-== Conditionally Enable
-
-```lua
+```lua [Conditionally Enable]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -251,12 +239,7 @@ require("codecompanion").setup({
 })
 ```
 
-> [!IMPORTANT]
-> Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
-
-== Custom Commands
-
-```lua
+```lua [Custom Commands]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -284,12 +267,9 @@ require("codecompanion").setup({
 })
 ```
 
-Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](https://github.com/olimorris/codecompanion.nvim/discussions/958).
-
-> [!NOTE]
-> You can also point the callback to a lua file that resides within your own configuration
-
 :::
+
+Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](https://github.com/olimorris/codecompanion.nvim/discussions/958) for the custom slash command example.
 
 ## Tools
 
@@ -332,11 +312,9 @@ A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys th
 
 Tools can be conditionally enabled using the `enabled` option. This works for built-in tools as well as an adapter's own tools. This is useful to ensure that a particular dependency is installed on the machine. You can use the `:CodeCompanionChat RefreshCache` command if you've installed a new dependency and want to refresh the tool availability in the chat buffer.
 
-::: tabs
+::: code-group
 
-== Enable Built-in Tools
-
-```lua
+```lua [Enable Built-in Tools]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -354,9 +332,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Enable Adapter Tools
-
-```lua
+```lua [Enable Adapter Tools]
 require("codecompanion").setup({
   openai_responses = function()
     return require("codecompanion.adapters").extend("openai_responses", {
