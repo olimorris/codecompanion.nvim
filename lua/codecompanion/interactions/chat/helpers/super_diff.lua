@@ -275,7 +275,7 @@ local function calculate_file_accepted_hunks(file_data)
     return nil, nil, {}
   end
   local original_content, updated_content = determine_diff_content(sorted_operations, accepted_operations, tracked_file)
-  if original_content and updated_content and not diff_utils.are_contents_equal(original_content, updated_content) then
+  if original_content and updated_content and not diff_utils.is_equal(original_content, updated_content) then
     local hunks = diff_utils.calculate_hunks(original_content, updated_content, 0)
     return original_content, updated_content, hunks
   end
@@ -341,7 +341,7 @@ local function process_rejected_operations(lines, diff_info, rejected_operations
         local op_old_content = operation.original_content
         local op_new_content = operation.updated_content
 
-        if not diff_utils.are_contents_equal(op_old_content, op_new_content) then
+        if not diff_utils.is_equal(op_old_content, op_new_content) then
           local op_hunks = diff_utils.calculate_hunks(op_old_content, op_new_content, 0)
           if #op_hunks > 0 then
             table.insert(lines, fmt("* REJECTED: %s*", operation.tool_name))
