@@ -90,7 +90,7 @@ require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        default_rules = { "default", "claude "}
+        autoload = { "default", "claude "}
       },
     },
   },
@@ -111,7 +111,7 @@ require("codecompanion").setup({
     },
     opts = {
       chat = {
-        default_rules = "default",
+        autoload = "default",
       },
     },
   },

@@ -815,12 +815,12 @@ The user is working on a %s machine. Please respond with system specific command
     },
     opts = {
       chat = {
-        ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
-        enabled = true,
-
         ---The rule groups to load with every chat interaction
         ---@type string|fun(): string
-        default_rules = "default",
+        autoload = "default",
+
+        ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
+        enabled = true,
 
         ---The default parameters to use when loading buffer rules
         default_params = "diff", -- all|diff

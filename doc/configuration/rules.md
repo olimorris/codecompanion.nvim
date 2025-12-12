@@ -60,7 +60,7 @@ In the plugin, rule groups are a collection of files and/or directories that can
 ```lua [Basic Group]
 require("codecompanion").setup({
   rules = {
-    my_project = { -- [!code focus:9]
+    my_project_rules = { -- [!code focus:9]
       description = "Rule files for My Project",
       files = {
         -- Literal file paths (absolute or relative to cwd)
@@ -76,7 +76,7 @@ require("codecompanion").setup({
 ```lua [Conditionals]
 require("codecompanion").setup({
   rules = {
-    my_project = { -- [!code focus:13]
+    my_project_rules = { -- [!code focus:13]
       description = "Rule files for My Project",
       ---@return boolean
       enabled = function()
@@ -97,7 +97,7 @@ require("codecompanion").setup({
 ```lua [Directories]
 require("codecompanion").setup({
   rules = {
-    my_project = { -- [!code focus:19]
+    my_project_rules = { -- [!code focus:19]
       description = "Rule files for My Project",
       files = {
         -- Specify dirs to search in (supports glob patterns and literals)
@@ -123,7 +123,7 @@ require("codecompanion").setup({
 ```lua [File Patterns]
 require("codecompanion").setup({
   rules = {
-    my_project = { -- [!code focus:21]
+    my_project_rules = { -- [!code focus:21]
       description = "Rule files for My Project",
       files = {
         -- 1. Literal file paths
@@ -151,7 +151,7 @@ require("codecompanion").setup({
 ```lua [Nested Groups]
 require("codecompanion").setup({
   rules = {
-    my_project = { -- [!code focus:12]
+    my_project_rules = { -- [!code focus:12]
       description = "Rule files for My Project",
       parser = "claude",
       files = {
@@ -175,9 +175,9 @@ When using the _Action Palette_ or the slash command, the plugin will extract th
 
 You can also set default groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
 
-### Default Rule groups
+### Autoload
 
-You can set default rule groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
+You can set specific rule groups that will be automatically added to chat buffers. This is useful for ensuring that your preferred rules are always available.
 
 ::: code-group
 
@@ -186,7 +186,7 @@ require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        default_rules = "default",
+        autoload = "my_project_rules",
       },
     },
   },
@@ -198,7 +198,7 @@ require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        default_rules = { "default", "another_new_group" },
+        autoload = { "my_project_rules", "another_project" },
       },
     },
   },
@@ -211,11 +211,11 @@ require("codecompanion").setup({
     opts = {
       chat = {
         ---@return string|string[]
-        default_rules = function()
-          if vim.fn.getcwd():find("my_secret_project", 1, true) ~= nil then
-            return { "default", "secret_group" }
+        autoload = function()
+          if vim.fn.getcwd():find("another_project", 1, true) ~= nil then
+            return { "my_project", "another_project" }
           end
-          return "default"
+          return "my_project"
         end,
       },
     },

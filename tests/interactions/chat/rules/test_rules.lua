@@ -287,7 +287,7 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
       opts = {
         chat = {
           enabled = true,
-          default_rules = "default",
+          autoload = "default",
         },
         show_presets = true,
       },

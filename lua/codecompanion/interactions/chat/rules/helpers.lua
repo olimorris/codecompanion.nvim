@@ -95,22 +95,19 @@ end
 ---@return table|nil
 function M.add_callbacks(args, rules_name)
   local rules = config.rules and config.rules.opts and config.rules.opts.chat
-  if not rules_name and not (rules and rules.enabled and rules.default_rules) then
+  if not rules_name and not (rules and rules.enabled and rules.autoload) then
     return args.callbacks
   end
 
-  local default_rules = rules_name or rules.default_rules
+  local autoload = rules_name or rules.autoload
   local memories = {}
-  if type(default_rules) == "string" then
-    memories = { default_rules }
-  elseif type(default_rules) == "table" then
-    memories = vim.deepcopy(default_rules)
-  elseif type(default_rules) == "function" then
-    memories = default_rules()
-    assert(
-      type(memories) == "string" or type(memories) == "table",
-      "default_rules must return a string or table of strings"
-    )
+  if type(autoload) == "string" then
+    memories = { autoload }
+  elseif type(autoload) == "table" then
+    memories = vim.deepcopy(autoload)
+  elseif type(autoload) == "function" then
+    memories = autoload()
+    assert(type(memories) == "string" or type(memories) == "table", "autoload must return a string or table of strings")
     if type(memories) == "string" then
       memories = { memories }
     end
