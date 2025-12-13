@@ -18,6 +18,19 @@ There are two ways to add prompts to the prompt library. You can either define t
 
 ::: code-group
 
+```lua [Markdown]
+require("codecompanion").setup({
+  prompt_library = {
+    markdown = {
+      dirs = {
+        vim.fn.getcwd() .. "/.prompts", -- Can be relative
+        "~/.dotfiles/.config/prompts", -- Or absolute paths
+      },
+    },
+  }
+})
+```
+
 ```lua [Lua]
 require("codecompanion").setup({
   prompt_library = {
@@ -32,19 +45,6 @@ require("codecompanion").setup({
       },
     },
   },
-})
-```
-
-```lua [Markdown]
-require("codecompanion").setup({
-  prompt_library = {
-    markdown = {
-      dirs = {
-        vim.fn.getcwd() .. "/.prompts", -- Can be relative
-        "~/.dotfiles/.config/prompts", -- Or absolute paths
-      },
-    },
-  }
 })
 ```
 

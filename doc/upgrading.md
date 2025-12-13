@@ -14,10 +14,26 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 
 - The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you'll need to change it to `codecompanion.interactions` ([#2485](https://github.com/olimorris/codecompanion.nvim/pull/2485))
 - Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you'll need to update the paths accordingly ([#2482](https://github.com/olimorris/codecompanion.nvim/pull/2482))
+- Workspaces have now been removed from the plugin. Please use [Rules](configuration/rules) instead.
 
 ### Adapters
 
-- If you have a custom adapter, you'll need to rename `condition` to be `enabled` on any schema items ([#2439](https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569))
+- If you have a custom adapter, you'll need to rename `condition` to be `enabled` on any schema items ([#2439](https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569)):
+
+```lua
+return {
+  schema = {
+    ["reasoning.effort"] = {
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      condition = function(self) -- [!code --]
+      enabled = function(self) -- [!code ++]
+        --
+      end,
+    },
+  }
+}
+```
+
 - The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively ([#2494](https://github.com/olimorris/codecompanion.nvim/pull/2494))
 - If you wish to hide the adapters that come with CodeCompanion, `adapter.[acp|http].opts.show_defaults` has been renamed to `adapter.[acp|http].opts.show_presets` for both HTTP and ACP adapters ([#2497](https://github.com/olimorris/codecompanion.nvim/pull/2497))
 
