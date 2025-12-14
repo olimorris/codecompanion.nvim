@@ -154,6 +154,25 @@ T["Mistral adapter"]["Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["Mistral adapter"]["Streaming"]["can process thinking"] = function()
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/mistral_thinking_streaming.txt")
+  local output = {}
+  for _, line in ipairs(lines) do
+    table.insert(output, adapter.handlers.chat_output(adapter, line, {}))
+  end
+
+  h.eq(output, {
+    {
+      status = "success",
+      output = { reasoning = { content = "Okay" } },
+    },
+    {
+      status = "success",
+      output = { reasoning = { content = ", that works" } },
+    },
+  })
+end
+
 -- No streaming ---------------------------------------------------------------
 
 T["Mistral adapter"]["No Streaming"] = new_set({

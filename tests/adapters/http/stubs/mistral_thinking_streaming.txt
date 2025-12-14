@@ -1,0 +1,2 @@
+data: {"id":"c6ea1832d8f24d2e8ec5ca6221198940","object":"chat.completion.chunk","created":1763066354,"model":"magistral-medium-latest","choices":[{"index":0,"delta":{"content":[{"type":"thinking","thinking":[{"type":"text","text":"Okay"}]}]},"finish_reason":null}]}
+data: {"id":"c6ea1832d8f24d2e8ec5ca6221198941","object":"chat.completion.chunk","created":1763066354,"model":"magistral-medium-latest","choices":[{"index":0,"delta":{"content":[{"type":"thinking","thinking":[{"type":"text","text":", that works"}]}]},"finish_reason":null}]}
