@@ -1,5 +1,19 @@
 # Changelog
 
+## [18.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.0.0...v18.1.0) (2025-12-14)
+
+
+### Features
+
+* **adapters:** Copilot now has max_context_window_tokens ([#2516](https://github.com/olimorris/codecompanion.nvim/issues/2516)) ([8e81351](https://github.com/olimorris/codecompanion.nvim/commit/8e813517c537007c784b2702609b244712433e1f))
+* **adapters:** mistral can now reason ([#2377](https://github.com/olimorris/codecompanion.nvim/issues/2377)) ([4c37295](https://github.com/olimorris/codecompanion.nvim/commit/4c37295e111eb3534a5cd1391c5a65ce3c4cb3c8))
+* **prompts:** add code to context table ([#2523](https://github.com/olimorris/codecompanion.nvim/issues/2523)) ([42d28cb](https://github.com/olimorris/codecompanion.nvim/commit/42d28cbed8b61c5c144d0adf06553c26b88439e4))
+
+
+### Bug Fixes
+
+* **adapters:** copilot stats forces oauth token fetching ([#2520](https://github.com/olimorris/codecompanion.nvim/issues/2520)) ([2cf85e3](https://github.com/olimorris/codecompanion.nvim/commit/2cf85e3fe63572e3a1c2be32c2ffb5b7bb0d18ab))
+
 ## [18.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.33.0...v18.0.0) (2025-12-14)
 
 
