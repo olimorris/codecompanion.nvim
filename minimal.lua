@@ -16,9 +16,8 @@ local plugins = {
   {
     "olimorris/codecompanion.nvim",
     dependencies = {
-      -- needed to install additional parsers
-      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
+
       -- Test with blink.cmp (delete if not required)
       {
         "saghen/blink.cmp",
@@ -36,6 +35,7 @@ local plugins = {
           },
         },
       },
+
       -- Test with nvim-cmp
       -- { "hrsh7th/nvim-cmp" },
     },
@@ -57,15 +57,6 @@ local plugins = {
 -- This is so I can tell if they've really tested with their own minimal.lua file
 
 require("lazy.minit").repro({ spec = plugins })
-
--- Setup Tree-sitter
-local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
-if ts_status then
-  treesitter.setup({
-    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml", "diff" },
-    highlight = { enable = true },
-  })
-end
 
 -- Setup nvim-cmp
 -- local cmp_status, cmp = pcall(require, "cmp")

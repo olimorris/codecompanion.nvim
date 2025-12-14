@@ -68,7 +68,7 @@ local defaults = {
           },
         },
         opts = {
-          enabled = true, -- Enable ALL background chat interactions?
+          enabled = false, -- Enable ALL background chat interactions?
         },
       },
     },
