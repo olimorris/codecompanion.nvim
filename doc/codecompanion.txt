@@ -2089,13 +2089,16 @@ The `context` object contains information about the current buffer:
     {
       bufnr = 7,
       buftype = "",
+      code = [[local function hello(text)
+        return "hello " .. text
+      end]],
       cursor_pos = { 10, 3 },
       end_col = 3,
       end_line = 10,
       filetype = "lua",
       is_normal = false,
       is_visual = true,
-      lines = { "local function fire_autocmd(status)", "..." },
+      lines = { "local function hello(text)", '  return "hello " .. text', "end" },
       mode = "V",
       start_col = 1,
       start_line = 8,
@@ -2183,7 +2186,7 @@ In this example, `${commit.diff}` references the `diff` function from
     Please review this code:
     
     ```${context.filetype}
-    ${shared.code}
+    ${context.code}
     ```
     
     Here's the git diff:

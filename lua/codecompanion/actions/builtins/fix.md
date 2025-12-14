@@ -34,6 +34,6 @@ Use Markdown formatting and include the programming language name at the start o
 Please fix this code from buffer ${context.bufnr}:
 
 ````${context.filetype}
-${shared.code}
+${context.code}
 ````
 

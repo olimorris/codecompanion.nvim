@@ -31,6 +31,6 @@ When generating unit tests, follow these steps:
 Please generate unit tests for this code from buffer ${context.bufnr}:
 
 ````${context.filetype}
-${shared.code}
+${context.code}
 ````
 

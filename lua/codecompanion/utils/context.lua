@@ -119,6 +119,7 @@ function M.get(bufnr, args)
   return {
     bufnr = bufnr,
     buftype = api.nvim_get_option_value("buftype", { buf = bufnr }) or "",
+    code = vim.tbl_count(lines) > 0 and table.concat(lines, "\n"),
     cursor_pos = cursor_pos,
     end_col = end_col,
     end_line = end_line,
@@ -129,8 +130,8 @@ function M.get(bufnr, args)
     lines = lines,
     line_count = api.nvim_buf_line_count(bufnr),
     mode = mode,
-    start_line = start_line,
     start_col = start_col,
+    start_line = start_line,
     winnr = winnr,
   }
 end

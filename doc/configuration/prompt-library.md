@@ -99,7 +99,7 @@ You are an expert programmer who excels at explaining code clearly and concisely
 Please explain the following code:
 
 ```${context.filetype}
-${shared.code}
+${context.code}
 ```
 ````
 
@@ -290,13 +290,16 @@ I'm working in buffer ${context.bufnr} which is a ${context.filetype} file.
 {
   bufnr = 7,
   buftype = "",
+  code = [[local function hello(text)
+    return "hello " .. text
+  end]],
   cursor_pos = { 10, 3 },
   end_col = 3,
   end_line = 10,
   filetype = "lua",
   is_normal = false,
   is_visual = true,
-  lines = { "local function fire_autocmd(status)", "..." },
+  lines = { "local function hello(text)", '  return "hello " .. text', "end" },
   mode = "V",
   start_col = 1,
   start_line = 8,
@@ -313,18 +316,7 @@ For markdown prompts, you can reference functions and values from external Lua f
 .prompts/
 ├── commit.md
 ├── commit.lua
-├── shared.lua
 └── utils.lua
-````
-
-**shared.lua:**
-````lua
-return {
-  code = function(args)
-    local actions = require("codecompanion.helpers.actions")
-    return actions.get_code(args.context.start_line, args.context.end_line)
-  end,
-}
 ````
 
 **commit.lua:**
@@ -376,7 +368,7 @@ description: Review code changes
 Please review this code:
 
 ```${context.filetype}
-${shared.code}
+${context.code}
 ```
 
 Here's the git diff:

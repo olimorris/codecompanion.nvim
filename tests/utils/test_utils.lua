@@ -28,8 +28,8 @@ T["Utils"]["extract_placeholders()"]["extracts multiple placeholders"] = functio
 end
 
 T["Utils"]["extract_placeholders()"]["extracts dot-notation placeholders"] = function()
-  local result = child.lua([[return utils.extract_placeholders("${shared.code} and ${utils.helper}")]])
-  h.eq(result, { "shared.code", "utils.helper" })
+  local result = child.lua([[return utils.extract_placeholders("${context.code} and ${utils.helper}")]])
+  h.eq(result, { "context.code", "utils.helper" })
 end
 
 T["Utils"]["extract_placeholders()"]["handles nested paths"] = function()
@@ -74,7 +74,7 @@ T["Utils"]["extract_all_placeholders()"]["extracts from deeply nested tables"] =
     return utils.extract_all_placeholders({
       prompts = {
         { role = "system", content = "Hello ${name}" },
-        { role = "user", content = "Use ${shared.code} and ${utils.format}" },
+        { role = "user", content = "Use ${context.code} and ${utils.format}" },
       },
       opts = {
         description = "Test ${context.bufnr}",
@@ -85,7 +85,7 @@ T["Utils"]["extract_all_placeholders()"]["extracts from deeply nested tables"] =
   -- Check all expected placeholders are present (order doesn't matter)
   h.eq(#result, 4)
   h.expect_tbl_contains("name", result)
-  h.expect_tbl_contains("shared.code", result)
+  h.expect_tbl_contains("context.code", result)
   h.expect_tbl_contains("utils.format", result)
   h.expect_tbl_contains("context.bufnr", result)
 end
@@ -149,8 +149,8 @@ end
 T["Utils"]["replace_placeholders()"]["replaces dot-notation placeholders"] = function()
   local result = child.lua([[
     return utils.replace_placeholders(
-      "Code: ${shared.code}",
-      { ["shared.code"] = "function() end" }
+      "Code: ${context.code}",
+      { ["context.code"] = "function() end" }
     )
   ]])
   h.eq(result, "Code: function() end")
