@@ -1630,7 +1630,6 @@ function Chat:update_metadata()
   local model
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
-
   end
 
   local mode_info
@@ -1654,10 +1653,7 @@ function Chat:update_metadata()
     adapter = {
       name = self.adapter.formatted_name,
       model = model,
-      model_info = (
-        self.adapter.model
-        and self.adapter.model.info
-      ) and self.adapter.model.info,
+      model_info = (self.adapter.model and self.adapter.model.info) and self.adapter.model.info,
     },
     context_items = #self.context_items,
     cycles = self.cycle,
@@ -1666,7 +1662,6 @@ function Chat:update_metadata()
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
-
 end
 
 ---Set the title of the chat buffer
