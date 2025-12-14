@@ -14,7 +14,7 @@ There are two "types" of adapter in CodeCompanion; **http** adapters which conne
 
 The configuration for both types of adapters is exactly the same, however they sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have different options available. HTTP adapters use _models_ to allow users to select the specific LLM they'd like to interact with. ACP adapters use _commands_ to allow users to customize their interaction with agents (e.g. enabling _yolo_ mode). As there is a lot of shared functionality between the two adapters, it is recommend that you read this page alongside the ACP one.
 
-## Changing the Default Adapter
+## Changing an Adapter
 
 You can change the default adapter for each interaction as follows:
 
@@ -34,15 +34,106 @@ require("codecompanion").setup({
 }),
 ```
 
+## Changing a Model
+
+A core part of working with CodeCompanion is being able to easily switch between adapters and LLMs. Below are two examples of how this can be achieved.
+
+::: code-group
+
+```lua [For Interactions]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = {
+        name = "openai",
+        model = "gpt-4.1",
+      },
+    },
+  },
+}),
+```
+
+```lua [For Adapters]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
+          schema = {
+            model = {
+              default = "gpt-4.1",
+            },
+          },
+        })
+      end,
+    },
+  },
+}),
+```
+
+:::
+
+## Changing Adapter Schema
+
+> [!NOTE]
+> When extending an adapter with `extend`, use it's key from the `adapters` dictionary
+
+LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
+
+::: code-group
+
+```lua [Modifying Schema]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          schema = {
+            top_p = {
+              default = 0
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+```lua [Disabling Schema]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          schema = {
+            top_p = {
+              ---@type fun(self: CodeCompanion.HTTPAdapter): boolean | boolean
+              enabled = function(self)
+                local model = self.schema.model.default
+                if model:find("codex%") then
+                  return false
+                end
+                return true
+              end
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+:::
+
 ## Environment Variables
 
 Setting environment variables within adapters is a key part of configuration. The adapter `env` table lets you define values that will be interpolated into the adapter's URL, headers, parameters and other fields at runtime.
 
-::: tabs
+::: code-group
 
-== Plain Text
-
-```lua
+```lua{7} [Plain Text]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -58,9 +149,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Commands
-
-```lua
+```lua{7} [Commands]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -76,9 +165,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Function
-
-```lua
+```lua{7-9} [Function]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -96,9 +183,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Schema Reference
-
-```lua
+```lua{7} [Schema Reference]
 require("codecompanion").setup({
   adapters = {
     http = {
@@ -124,88 +209,6 @@ Supported `env` value types:
 - **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
 - **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
 - **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
-
-## Changing a Model
-
-A core part of working with CodeCompanion is being able to easily switch between adapters and LLMs. Below are two examples of how this can be achieved.
-
-::: tabs
-
-== For Interactions
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      adapter = {
-        name = "openai",
-        model = "gpt-4.1",
-      },
-    },
-  },
-}),
-```
-
-== For Adapters
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      openai = function()
-        return require("codecompanion.adapters").extend("openai", {
-          schema = {
-            model = {
-              default = "gpt-4.1",
-            },
-          },
-        })
-      end,
-    },
-  },
-}),
-```
-
-:::
-
-## Changing Adapter Settings
-
-> [!NOTE]
-> When extending an adapter with `extend`, use it's key from the `adapters` dictionary
-
-LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      qwen3 = function()
-        return require("codecompanion.adapters").extend("ollama", {
-          name = "qwen3", -- Give this adapter a different name to differentiate it from the default ollama adapter
-          opts = {
-            vision = true,
-            stream = true,
-          },
-          schema = {
-            model = {
-              default = "qwen3:latest",
-            },
-            num_ctx = {
-              default = 16384,
-            },
-            think = {
-              default = false,
-            },
-            keep_alive = {
-              default = "5m",
-            },
-          },
-        })
-      end,
-    },
-  },
-})
-```
 
 ## Adding a Custom Adapter
 
@@ -244,9 +247,9 @@ require("codecompanion").setup({
 ```
 
 
-## Hiding Default Adapters
+## Hiding Preset Adapters
 
-By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
+By default, the plugin shows all available adapters, including the presets. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
 
 ```lua
 require("codecompanion").setup({
@@ -283,71 +286,6 @@ With `show_model_choices = false`, the default model (as defined in the adapter'
 
 Below are some examples of how you can configure various adapters within CodeCompanion. Some merely serve as illustrations and are not actively supported by the plugin.
 
-### OpenAI Responses API
-
-CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      adapter = "openai_responses",
-    },
-    inline = {
-      adapter = "openai_responses",
-    },
-  },
-}),
-```
-
-and it can be configured as with any other adapter:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      openai_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
-          env = {
-            api_key = "OPENAI_API_KEY",
-          },
-        })
-      end,
-    },
-  },
-},
-```
-
-By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
-
-### Using Ollama Remotely
-
-To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      ollama = function()
-        return require("codecompanion.adapters").extend("ollama", {
-          env = {
-            url = "https://my_ollama_url",
-            api_key = "OLLAMA_API_KEY",
-          },
-          headers = {
-            ["Content-Type"] = "application/json",
-            ["Authorization"] = "Bearer ${api_key}",
-          },
-          parameters = {
-            sync = true,
-          },
-        })
-      end,
-    },
-  },
-})
-```
-
 ### Azure OpenAI
 
 Below is an example of how you can leverage the `azure_openai` adapter within the plugin:
@@ -380,46 +318,6 @@ require("codecompanion").setup({
     },
   },
 }),
-```
-
-### OpenRouter with Reasoning Output
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      openrouter = function()
-        return require("codecompanion.adapters").extend("openai_compatible", {
-          env = {
-            url = "https://openrouter.ai/api",
-            api_key = "OPENROUTER_API_KEY",
-            chat_url = "/v1/chat/completions",
-          },
-          handlers = {
-            parse_message_meta = function(self, data)
-              local extra = data.extra
-              if extra and extra.reasoning then
-                data.output.reasoning = { content = extra.reasoning }
-                if data.output.content == "" then
-                  data.output.content = nil
-                end
-              end
-              return data
-            end,
-          },
-        })
-      end,
-    },
-  },
-  interactions = {
-    chat = {
-      adapter = "openrouter",
-    },
-    inline = {
-      adapter = "openrouter",
-    },
-  },
-})
 ```
 
 ### llama.cpp with `--reasoning-format deepseek`
@@ -461,6 +359,72 @@ require("codecompanion").setup({
   },
 })
 ```
+
+### Ollama (remotely)
+
+To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      ollama = function()
+        return require("codecompanion.adapters").extend("ollama", {
+          env = {
+            url = "https://my_ollama_url",
+            api_key = "OLLAMA_API_KEY",
+          },
+          headers = {
+            ["Content-Type"] = "application/json",
+            ["Authorization"] = "Bearer ${api_key}",
+          },
+          parameters = {
+            sync = true,
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+
+### OpenAI Responses API
+
+CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "openai_responses",
+    },
+    inline = {
+      adapter = "openai_responses",
+    },
+  },
+}),
+```
+
+and it can be configured as with any other adapter:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai_responses = function()
+        return require("codecompanion.adapters").extend("openai_responses", {
+          env = {
+            api_key = "OPENAI_API_KEY",
+          },
+        })
+      end,
+    },
+  },
+},
+```
+
+By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
 
 ## Community Adapters
 

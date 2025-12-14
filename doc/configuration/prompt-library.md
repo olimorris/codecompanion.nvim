@@ -16,11 +16,22 @@ CodeCompanion enables you to leverage prompt templates to quickly interact with 
 
 There are two ways to add prompts to the prompt library. You can either define them directly in your configuration file as Lua tables, or you can store them as markdown files in your filesystem and reference them in your configuration.
 
-::: tabs
+::: code-group
 
-== Lua
+```lua [Markdown]
+require("codecompanion").setup({
+  prompt_library = {
+    markdown = {
+      dirs = {
+        vim.fn.getcwd() .. "/.prompts", -- Can be relative
+        "~/.dotfiles/.config/prompts", -- Or absolute paths
+      },
+    },
+  }
+})
+```
 
-```lua
+```lua [Lua]
 require("codecompanion").setup({
   prompt_library = {
     ["Docusaurus"] = {
@@ -34,21 +45,6 @@ require("codecompanion").setup({
       },
     },
   },
-})
-```
-
-== Markdown
-
-```lua
-require("codecompanion").setup({
-  prompt_library = {
-    markdown = {
-      dirs = {
-        vim.fn.getcwd() .. "/.prompts", -- Can be relative
-        "~/.dotfiles/.config/prompts", -- Or absolute paths
-      },
-    },
-  }
 })
 ```
 
@@ -81,16 +77,13 @@ Markdown prompts offer several advantages:
 
 For complex prompts with multiple messages or dynamic content, markdown files are significantly easier to maintain than Lua tables.
 
-
 ### Basic Structure
 
 At their core, prompts define a series of messages sent to an LLM. Let's start with a simple example:
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 ---
 name: Explain Code
 interaction: chat
@@ -110,9 +103,7 @@ ${shared.code}
 ```
 ````
 
-== Lua
-
-````lua
+````lua [Lua]
 require("codecompanion").setup({
   prompt_library = {
     ["Explain Code"] = {
@@ -160,11 +151,9 @@ Markdown prompts consist of two main parts:
 
 Both markdown and Lua prompts support a wide range of options to customise behaviour:
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 ---
 name: Generate Tests
 interaction: inline
@@ -188,9 +177,7 @@ The code to generate tests for is #{buffer}
 
 ````
 
-== Lua
-
-````lua
+````lua [Lua]
 ["Generate Tests"] = {
   interaction = "inline",
   description = "Generate unit tests",
@@ -220,11 +207,9 @@ The code to generate tests for is #{buffer}
 
 - `adapter` - Specify a different adapter/model:
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 ---
 name: My Prompt
 interaction: chat
@@ -236,9 +221,7 @@ opts:
 ---
 ````
 
-== Lua
-
-````lua
+````lua [Lua]
 opts = {
   adapter = {
     name = "ollama",
@@ -258,7 +241,7 @@ opts = {
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
-- `rules` - Specify a default rule group to load with the prompt
+- `rules` - Specify a rule group to load with the prompt
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 
@@ -270,11 +253,9 @@ Placeholders allow you to inject dynamic content into your prompts. In markdown 
 
 The `context` object contains information about the current buffer:
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 ---
 name: Buffer Info
 interaction: chat
@@ -286,9 +267,7 @@ description: Show buffer information
 I'm working in buffer ${context.bufnr} which is a ${context.filetype} file.
 ````
 
-== Lua
-
-````lua
+````lua [Lua]
 ["Buffer Info"] = {
   interaction = "chat",
   description = "Show buffer information",
@@ -444,11 +423,9 @@ You can conditionally control when prompts appear in the Action Palette or condi
 
 **Lua only:**
 
-::: tabs
+::: code-group
 
-== Item-level
-
-````lua
+````lua [Item-level]
 ["Visual Only"] = {
   interaction = "chat",
   description = "Only appears in visual mode",
@@ -464,9 +441,7 @@ You can conditionally control when prompts appear in the Action Palette or condi
 },
 ````
 
-== Prompt-level
-
-````lua
+````lua [Prompt-level]
 ["Visual Only"] = {
   interaction = "chat",
   description = "Only appears in visual mode",
@@ -488,11 +463,9 @@ You can conditionally control when prompts appear in the Action Palette or condi
 
 Pre-load a chat buffer with context from files, symbols, or URLs:
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 ---
 name: Test Context
 interaction: chat
@@ -513,9 +486,7 @@ context:
 I'll think of something clever to put here...
 ````
 
-== Lua
-
-````lua
+````lua [Lua]
 ["Test Context"] = {
   interaction = "chat",
   description = "Add some context",
@@ -620,18 +591,15 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
 
 For the inline interaction, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
 
-
 #### Workflows
 
 Workflows allow you to chain multiple prompts together in a sequence. That is, the first prompt is sent to the LLM, the LLM responds, then the next prompt in the workflow is sent, etc. This can be useful for implementing multi-step processes such as chain-of-thought reasoning or iterative code refinement.
 
 **Note:** Markdown prompts do not support [agentic workflows](/extending/agentic-workflows).
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 ---
 name: Oli's test workflow
 interaction: chat
@@ -662,9 +630,7 @@ Write a recursive algorithm to balance a binary search tree in Java
 
 ````
 
-== Lua
-
-````lua
+````lua [Lua]
 ["Oli's test workflow"] = {
   interaction = "chat",
   description = "Use a workflow to test the plugin",
@@ -709,11 +675,9 @@ Write a recursive algorithm to balance a binary search tree in Java
 
 You can also modify the options for the entire workflow at an individual prompt level. This can be useful if you wish to automatically submit certain prompts or change the adapter/model mid-workflow. Simply use a yaml code block with `opts` as a meta field:
 
-::: tabs
+::: code-group
 
-== Markdown
-
-````markdown
+````markdown [Markdown]
 
 ## user
 
@@ -740,9 +704,7 @@ Create a TypeScript interface for a complex e-commerce shopping cart system
 
 ````
 
-== Lua
-
-```lua
+```lua [Lua]
 prompts = {
   {
     {

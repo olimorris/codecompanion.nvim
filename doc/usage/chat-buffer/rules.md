@@ -39,6 +39,8 @@ The plugin does not require rules to be in a specific filetype or even format (u
 
 The location of the rules is also unimportant. The rules files could be local to the project you're working in. Or, they could reside in a separate location on your disk. Just ensure the path is correct when you're [creating/configuring](/configuration/rules#rule-groups) the rules group.
 
+You can even set the system prompt for the chat buffer in the rules file itself.
+
 ### Example 1: Rule that can be processed with the `codecompanion` parser
 
 ```markdown
@@ -81,11 +83,9 @@ Including the file above.
 
 Rules can automatically be added to a chat buffer when it's created. Just specify the default rules to include:
 
-::: tabs
+::: code-group
 
-== Default Rules
-
-```lua
+```lua [Autoload]
 require("codecompanion").setup({
   rules = {
     opts = {
@@ -97,9 +97,7 @@ require("codecompanion").setup({
 })
 ```
 
-== Overwriting the Default Rules Group
-
-```lua
+```lua [Overwrite Autoload]
 require("codecompanion").setup({
   rules = {
     default = {

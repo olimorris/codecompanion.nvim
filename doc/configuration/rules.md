@@ -18,9 +18,27 @@ Similar to Cursor's [Rules](https://cursor.com/docs/context/rules), they provide
 ```lua [Enable]
 require("codecompanion").setup({
   rules = {
+    default = {
+      description = "Collection of common files for all projects",
+      files = {
+        ".clinerules",
+        ".cursorrules",
+        ".goosehints",
+        ".rules",
+        ".windsurfrules",
+        ".github/copilot-instructions.md",
+        "AGENT.md",
+        "AGENTS.md",
+        { path = "CLAUDE.md", parser = "claude" },
+        { path = "CLAUDE.local.md", parser = "claude" },
+        { path = "~/.claude/CLAUDE.md", parser = "claude" },
+      },
+      is_preset = true,
+    },
     opts = {
       chat = {
         enabled = true,
+        default_rules = "default", -- The rule groups to load
       },
     },
   },
@@ -30,13 +48,20 @@ require("codecompanion").setup({
 ```lua [With Conditions]
 require("codecompanion").setup({
   rules = {
+    default = {
+      description = "Collection of common files for all projects",
+      files = {
+        -- Omitted for brevity
+      },
+    },
     opts = {
       chat = {
         ---@param chat CodeCompanion.Chat
         ---@return boolean
         condition = function(chat)
-          -- Only enable rules for non ACP chats
-          return chat.adapter.type ~= "acp"
+          -- In this example, only enable rules for chats
+          -- that are using http adapters
+          return chat.adapter.type == "http"
         end,
       },
     },
