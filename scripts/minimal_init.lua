@@ -13,11 +13,9 @@ require("nvim-treesitter").setup({
 
 require("nvim-treesitter")
   .install({
-    "go",
     "lua",
     "markdown",
     "markdown_inline",
-    "python",
     "yaml",
   })
   :wait(300000)
