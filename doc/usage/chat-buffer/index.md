@@ -70,7 +70,35 @@ If a context item is added by mistake, it can be removed from the chat buffer by
 
 Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
 
+## Generating Titles
 
+CodeCompanion can automatically generate titles for your chat buffers based on their content. This is accomplished via a background interaction. To enable this:
+
+```lua{11,16}
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              "interactions.background.builtin.chat_make_title",
+            },
+            -- Enable "on_ready" callback which contains the title generation action
+            enabled = true,
+          },
+        },
+        opts = {
+          -- Enable background interactions generally
+          enabled = true,
+        },
+      },
+    },
+  }
+})
+```
+
+Finally, ensure that you have an adapter configured for any background interactions.
 
 ## Images / Vision
 
