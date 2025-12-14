@@ -1653,6 +1653,7 @@ function Chat:update_metadata()
     adapter = {
       name = self.adapter.formatted_name,
       model = model,
+      model_info = (self.adapter.model and self.adapter.model.info) and self.adapter.model.info,
     },
     context_items = #self.context_items,
     cycles = self.cycle,

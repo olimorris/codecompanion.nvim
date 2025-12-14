@@ -20,6 +20,11 @@ local function resolve_model_opts(adapter)
     -- Avoid blocking during initialization
     choices = choices(adapter, { async = true })
   end
+
+  if adapter.model and choices and choices[model] then
+    adapter.model.info = choices[model]
+  end
+
   return choices and choices[model] or { opts = {} }
 end
 

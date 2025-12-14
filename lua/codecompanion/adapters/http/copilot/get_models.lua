@@ -145,6 +145,7 @@ local function fetch_async(adapter, opts)
               if model.capabilities.limits then
                 limits.max_output_tokens = model.capabilities.limits.max_output_tokens
                 limits.max_prompt_tokens = model.capabilities.limits.max_prompt_tokens
+                limits.max_context_window_tokens = model.capabilities.limits.max_context_window_tokens
               end
             end
 
