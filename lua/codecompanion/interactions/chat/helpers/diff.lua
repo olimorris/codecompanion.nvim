@@ -194,10 +194,6 @@ local function create_diff_floating_window(bufnr, path)
     show_dim = show_dim,
   })
 
-  if winnr then
-    place_diff_winbar(winnr)
-  end
-
   return winnr
 end
 
@@ -353,6 +349,10 @@ function M.create(bufnr_or_path, diff_id, opts)
   }
 
   local diff = diff_module.new(diff_args)
+
+  if diff and layout == "float" and winnr then
+    place_diff_winbar(winnr)
+  end
 
   if diff and opts.set_keymaps then
     vim.schedule(function()
