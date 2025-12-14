@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 12
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 14
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -532,11 +532,27 @@ CONFIG ~
 
 - The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you’ll need to change it to `codecompanion.interactions` (#2485 <https://github.com/olimorris/codecompanion.nvim/pull/2485>)
 - Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you’ll need to update the paths accordingly (#2482 <https://github.com/olimorris/codecompanion.nvim/pull/2482>)
+- Workspaces have now been removed from the plugin. Please use |codecompanion-configuration-rules| instead.
 
 
 ADAPTERS ~
 
-- If you have a custom adapter, you’ll need to rename `condition` to be `enabled` on any schema items (#2439 <https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569>)
+- If you have a custom adapter, you’ll need to rename `condition` to be `enabled` on any schema items (#2439 <https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569>):
+
+>lua
+    return {
+      schema = {
+        ["reasoning.effort"] = {
+          ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+          condition = function(self) -- [!code --]
+          enabled = function(self) -- [!code ++]
+            --
+          end,
+        },
+      }
+    }
+<
+
 - The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively (#2494 <https://github.com/olimorris/codecompanion.nvim/pull/2494>)
 - If you wish to hide the adapters that come with CodeCompanion, `adapter.[acp|http].opts.show_defaults` has been renamed to `adapter.[acp|http].opts.show_presets` for both HTTP and ACP adapters (#2497 <https://github.com/olimorris/codecompanion.nvim/pull/2497>)
 
@@ -1246,6 +1262,28 @@ Please refer to the config.lua
 file for a full list of all configuration options.
 
 
+CHANGING ADAPTER ~
+
+By default, CodeCompanion sets the `copilot` adapter for the chat interaction.
+You can change this to be a `ACP` or `HTTP` adapter:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = {
+            name = "anthropic",
+            model = "claude-haiku-4-5-20251001"
+          },
+        },
+      },
+    })
+<
+
+See the section on ACP <http://localhost:5173/configuration/adapters-acp> and
+|codecompanion-configuration-adapters-http| for more information.
+
+
 DIFF ~
 
 CodeCompanion has built-in inline and split diffs available to you. If you
@@ -1729,12 +1767,34 @@ To enable this by default for the built-in `#buffer` variable, you can set the
 
 INLINE ASSISTANT                *codecompanion-configuration-inline-assistant*
 
+
+  [!IMPORTANT] Only **http** adapters are supported for the inline assistant.
 CodeCompanion provides an `inline` interaction for quick, direct editing of
 your code. Unlike the chat buffer, the inline assistant integrates responses
 directly into the current buffer—allowing the LLM to add or replace code as
 needed.
 
-Only `http` adapters are supported for the inline assistant.
+
+CHANGING ADAPTER ~
+
+By default, CodeCompanion sets the `copilot` adapter for the inline assistant.
+You can change this to any other HTTP adapter:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        inline = {
+          adapter = {
+            name = "anthropic",
+            model = "claude-haiku-4-5-20251001"
+          },
+        },
+      },
+    })
+<
+
+See the section on |codecompanion-configuration-adapters-http| for more
+information.
 
 
 KEYMAPS ~
@@ -3266,6 +3326,9 @@ The location of the rules is also unimportant. The rules files could be local
 to the project you’re working in. Or, they could reside in a separate
 location on your disk. Just ensure the path is correct when you’re
 |codecompanion-configuration-rules-rule-groups| the rules group.
+
+You can even set the system prompt for the chat buffer in the rules file
+itself.
 
 
 EXAMPLE 1: RULE THAT CAN BE PROCESSED WITH THE CODECOMPANION PARSER

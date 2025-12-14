@@ -8,6 +8,25 @@ By default, CodeCompanion provides a _chat_ interaction that uses a dedicated Ne
 
 Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
 
+## Changing Adapter
+
+By default, CodeCompanion sets the _copilot_ adapter for the chat interaction. You can change this to be a _ACP_ or _HTTP_ adapter:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = {
+        name = "anthropic",
+        model = "claude-haiku-4-5-20251001"
+      },
+    },
+  },
+})
+```
+
+See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/adapters-http) for more information.
+
 ## Diff
 
 CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
