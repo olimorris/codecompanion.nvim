@@ -21,7 +21,7 @@ local function resolve_model_opts(adapter)
     choices = choices(adapter, { async = true })
   end
 
-  if adapter.model and choices then
+  if adapter.model and choices and choices[model] then
     adapter.model.info = choices[model]
   end
 
