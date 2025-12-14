@@ -1667,7 +1667,6 @@ function Chat:update_metadata()
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
 
-  vim.print(_G.codecompanion_chat_metadata)
 end
 
 ---Set the title of the chat buffer
