@@ -25,15 +25,15 @@ The best way to contribute to CodeCompanion is to use CodeCompanion to help you 
 
 They're located [here](https://codecompanion.olimorris.dev) and are regularly updated.
 
-### Use Memory
+### Use Rules
 
-When working inside the CodeCompanion repository, you have access to the built-in [memory](https://codecompanion.olimorris.dev/usage/chat-buffer/memory#whilst-in-the-chat-buffer) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
+When working inside the CodeCompanion repository, you have access to the built-in [rule](https://codecompanion.olimorris.dev/usage/chat-buffer/rules) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
 
 You can load memory into the chat via the Action Palette:
 
 <img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c">
 
-Or, via the `/memory` slash command. Currently, the memory files that have been added are:
+Or, via the `/rules` slash command. Currently, the memory files that have been added are:
 
 - ACP
 - Adapters
@@ -44,7 +44,7 @@ Or, via the `/memory` slash command. Currently, the memory files that have been 
 
 ### Refer to the Tests
 
-CodeCompanion has [c. 500 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
+CodeCompanion has [c. 800 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
 
 ## Project Structure
 
@@ -52,7 +52,7 @@ CodeCompanion.nvim is organized into several key directories:
 
 - `lua/codecompanion/`:
   - `adapters/`: Adapters for different LLM providers (OpenAI, Anthropic, etc.)
-  - `strategies/`:
+  - `interactions/`:
     - `chat/`: Chat buffer implementation
     - `inline/`: Inline code editing functionality
     - `cmd/`: Command-line editing
@@ -194,12 +194,12 @@ REM run all tests
 nmake test
 
 REM run a single test suite
-nmake FILE=tests/strategies/chat/tools/runtime/tests_cmd.lua test_file
+nmake FILE=tests/interactions/chat/tools/runtime/tests_cmd.lua test_file
 ```
 
 ### Testing Tips
 
-Trying to understand the CodeCompanion codebase and then having to learn how to create tests can feel onerous. So to make this process easier, it's recommended to load the `test` workspace into your chat buffer to give your LLM knowledge of how Mini.Test works.
+Trying to understand the CodeCompanion codebase and then having to learn how to create tests can feel onerous. So to make this process easier, it's recommended to load the `test` rules into your chat buffer to give your LLM knowledge of how Mini.Test works.
 
 It can also be useful to share an example [test file](https://github.com/olimorris/codecompanion.nvim/blob/main/tests/adapters/test_openai.lua) with an LLM too.
 

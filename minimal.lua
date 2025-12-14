@@ -41,7 +41,7 @@ local plugins = {
     },
     opts = {
       --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
-      strategies = {
+      interactions = {
         --NOTE: Change the adapter as required
         chat = { adapter = "copilot" },
         inline = { adapter = "copilot" },

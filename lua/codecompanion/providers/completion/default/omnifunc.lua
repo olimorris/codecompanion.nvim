@@ -25,8 +25,8 @@ function M.omnifunc(findstart, base)
       "/[%w_]*$", -- Slash commands: /buffer, /help, etc.
     }
 
-    if config.strategies.chat.slash_commands.opts.acp.enabled then
-      local trigger = config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+    if config.interactions.chat.slash_commands.opts.acp.enabled then
+      local trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
       local escaped = vim.pesc(trigger)
       table.insert(patterns, escaped .. "[%w_]*$") -- ACP commands
     end
@@ -43,7 +43,7 @@ function M.omnifunc(findstart, base)
   else
     -- Determine what type of completion based on the trigger character
     local trigger_char = base:sub(1, 1)
-    local acp_trigger = config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+    local acp_trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
     local items = {}
 
     if trigger_char == acp_trigger then

@@ -57,9 +57,9 @@ local prompt = PromptBuilder.new(connection, messages)
 
 #### ACP Handlers
 
-@./lua/codecompanion/strategies/chat/acp/handler.lua
-@./lua/codecompanion/strategies/chat/acp/request_permission.lua
-@./lua/codecompanion/strategies/chat/acp/formatters.lua
+@./lua/codecompanion/interactions/chat/acp/handler.lua
+@./lua/codecompanion/interactions/chat/acp/request_permission.lua
+@./lua/codecompanion/interactions/chat/acp/formatters.lua
 
 Chat-specific ACP integration:
 - `handler.lua` - Main chat buffer ACP handler
@@ -263,7 +263,7 @@ ACP agents can interact with the file system through standardized methods:
 
 All file operations require user permission and show diffs when applicable. The file containing this logic is:
 
-@./lua/codecompanion/strategies/chat/acp/fs.lua
+@./lua/codecompanion/interactions/chat/acp/fs.lua
 
 ## Error Handling
 

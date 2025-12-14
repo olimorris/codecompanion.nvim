@@ -2,7 +2,7 @@
 description: Learn how to create your own extensions in CodeCompanion
 ---
 
-# Creating Extensions
+# Extending with Extensions
 
 CodeCompanion supports extensions similar to telescope.nvim, allowing users to create functionality that can be shared with others. Extensions can either be distributed as plugins or defined locally in your configuration.
 
@@ -80,7 +80,7 @@ A common pattern is to add keymaps, slash_commands, tools to the codecompanion.c
 ---You can access config via require("codecompanion.config") and chat via require("codecompanion.chat").last_chat() etc
 function Extension.setup(opts)
   -- Add action to chat keymaps
-  local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
+  local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
 
   chat_keymaps.open_saved_chats = {
     modes = {
@@ -130,7 +130,7 @@ require("codecompanion").setup({
           }
 
           -- Add the action to chat keymaps config
-          local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
+          local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
           chat_keymaps.open_editor = open_editor
         end,
 

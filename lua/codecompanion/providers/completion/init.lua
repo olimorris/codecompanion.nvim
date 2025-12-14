@@ -1,23 +1,25 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
-local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
-local strategy = require("codecompanion.strategies")
-local tool_filter = require("codecompanion.strategies.chat.tools.filter")
+local interactions = require("codecompanion.interactions")
+local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
+local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 
 local api = vim.api
 
+---ACP slash commands are triggered by a configurable trigger (default: "\")
+---@return string
 local function get_acp_trigger()
-  if config.strategies.chat.slash_commands.opts and config.strategies.chat.slash_commands.opts.acp then
-    return config.strategies.chat.slash_commands.opts.acp.trigger or "\\"
+  if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
+    return config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
   end
   return "\\"
 end
 
 local trigger = {
+  acp_commands = get_acp_trigger(),
+  slash_commands = "/",
   tools = "@",
   variables = "#",
-  slash_commands = "/",
-  acp_commands = get_acp_trigger(),
 }
 
 local _vars_aug = nil
@@ -104,7 +106,7 @@ function M.slash_commands()
   local adapter_info = adapter_cache[bufnr]
 
   local filtered_slash_commands = slash_command_filter.filter_enabled_slash_commands(
-    config.strategies.chat.slash_commands,
+    config.interactions.chat.slash_commands,
     { adapter = adapter_info }
   )
 
@@ -125,9 +127,9 @@ function M.slash_commands()
 
   -- Slash commands from prompt library
   vim
-    .iter(pairs(config.prompt_library))
+    .iter(pairs(require("codecompanion.helpers").get_prompts()))
     :filter(function(_, v)
-      if not (v.opts and v.opts.is_slash_cmd and v.strategy == "chat") then
+      if not (v.opts and v.opts.is_slash_cmd and v.interaction == "chat") then
         return false
       end
 
@@ -140,17 +142,21 @@ function M.slash_commands()
           return v.enabled
         end
       end
-
       return true
     end)
     :each(function(_, v)
-      table.insert(slash_commands, {
-        label = "/" .. v.opts.short_name,
+      local prompt = {
         detail = v.description,
         config = v,
         type = "slash_command",
         from_prompt_library = true,
-      })
+      }
+      if v.opts and v.opts.alias then
+        prompt.label = "/" .. v.opts.alias
+      else
+        prompt.label = "/" .. v.name
+      end
+      table.insert(slash_commands, prompt)
     end)
 
   return slash_commands
@@ -162,13 +168,19 @@ end
 ---@return nil
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
-    --TODO: Remove `selected.config.references` check in v18.0.0
-    local context = selected.config.references or selected.config.context
+    local context = selected.config.context
     if context then
-      strategy.add_context(selected.config, chat)
+      interactions.add_context(selected.config, chat)
     end
 
-    local prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)
+    local prompts = {}
+    if selected.config.opts and selected.config.opts.is_markdown then
+      prompts =
+        require("codecompanion.actions.markdown").resolve_placeholders(selected.config, selected.context).prompts
+    else
+      prompts = interactions.evaluate_prompts(selected.config.prompts, selected.context)
+    end
+
     vim.iter(prompts):each(function(prompt)
       if prompt.role == config.constants.SYSTEM_ROLE then
         chat:add_message(prompt, { visible = false })
@@ -177,7 +189,7 @@ function M.slash_commands_execute(selected, chat)
       end
     end)
   else
-    require("codecompanion.strategies.chat.slash_commands"):execute(selected, chat)
+    require("codecompanion.interactions.chat.slash_commands"):execute(selected, chat)
   end
 end
 
@@ -193,7 +205,7 @@ function M.acp_commands(bufnr)
     return {}
   end
 
-  local acp_commands = require("codecompanion.strategies.chat.acp.commands")
+  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   local commands = acp_commands.get_commands_for_buffer(bufnr)
   local acp_trigger = get_acp_trigger()
 
@@ -247,7 +259,7 @@ function M.tools()
   end
 
   -- Get filtered tools configuration (this uses the cache!)
-  local tools = tool_filter.filter_enabled_tools(config.strategies.chat.tools, { adapter = adapter_info })
+  local tools = tool_filter.filter_enabled_tools(config.interactions.chat.tools, { adapter = adapter_info })
 
   -- Add groups
   local items = vim
@@ -298,7 +310,7 @@ function M.variables()
     return _vars_cache
   end
 
-  local config_vars = config.strategies.chat.variables
+  local config_vars = config.interactions.chat.variables
   local variables = vim
     .iter(config_vars)
     :map(function(label, data)

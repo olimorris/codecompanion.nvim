@@ -2,19 +2,15 @@ local M = {}
 
 local _prompts = {}
 
----Resolve the prompts in the prompt library with a view to displaying them in
----the action palette.
----@param config table
+---Resolve the prompts in the prompt library with a view to displaying them in the action palette.
 ---@param context table
+---@param config table
 ---@return table
 function M.resolve(context, config)
   local sort_index = true
 
-  --TODO: Replace with vim.iter()
   for name, prompt in pairs(config.prompt_library) do
-    if
-      not config.display.action_palette.opts.show_default_prompt_library and (prompt.opts and prompt.opts.is_default)
-    then
+    if config.display.action_palette.opts.show_prompt_library_builtins == false then
       goto continue
     end
 
@@ -22,9 +18,8 @@ function M.resolve(context, config)
       sort_index = false
     end
 
-    --TODO: Can we refactor this to name?!
-    if type(prompt.name_f) == "function" then
-      name = prompt.name_f(context)
+    if type(prompt.name) == "function" then
+      name = prompt.name(context)
     end
 
     local description = prompt.description
@@ -37,17 +32,13 @@ function M.resolve(context, config)
 
     table.insert(_prompts, {
       condition = prompt.condition,
+      context = prompt.context,
       description = description,
+      interaction = prompt.interaction or prompt.strategy,
       name = name,
       opts = prompt.opts,
-
-      --TODO: Remove this in v18.0.0
-      references = prompt.references,
-
-      context = prompt.context,
       picker = prompt.picker,
       prompts = prompt.prompts,
-      strategy = prompt.strategy,
     })
 
     ::continue::

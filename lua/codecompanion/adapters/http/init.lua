@@ -161,7 +161,7 @@ function Adapter:make_from_schema()
 
   -- Process regular schema values
   for key, value in pairs(self.schema) do
-    if type(value.condition) == "function" and not value.condition(self) then
+    if type(value.enabled) == "function" and not value.enabled(self) then
       goto continue
     end
 
@@ -239,21 +239,7 @@ function Adapter.extend(adapter, opts)
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters.http." .. adapter)
     if not ok then
-      -- TODO: Remove this in v18.0.0
-      -- START
-
-      -- Try new structure first
-      if config.adapters.http and config.adapters.http[adapter] then
-        adapter_config = config.adapters.http[adapter]
-      else
-        -- Fallback to root level for backwards compatibility
-        adapter_config = config.adapters[adapter]
-      end
-      -- END
-
-      --TODO: Uncomment this in v18.0.0
-      --adapter_config = config.adapters.http[adapter]
-
+      adapter_config = config.adapters.http[adapter]
       if adapter_config and type(adapter_config) == "function" then
         adapter_config = adapter_config()
       end
@@ -306,7 +292,7 @@ end
 ---@param opts? table
 ---@return CodeCompanion.HTTPAdapter
 function Adapter.resolve(adapter, opts)
-  adapter = adapter or config.strategies.chat.adapter
+  adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
   if type(adapter) == "table" then

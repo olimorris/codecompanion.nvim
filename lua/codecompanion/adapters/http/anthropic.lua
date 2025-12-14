@@ -65,7 +65,7 @@ return {
       end,
       opts = {
         -- Allow a hybrid tool -> One that also has a client side implementation
-        client_tool = "strategies.chat.tools.memory",
+        client_tool = "interactions.chat.tools.memory",
       },
     },
     ["web_fetch"] = {
@@ -606,7 +606,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-sonnet-4-20250514",
+      default = "claude-sonnet-4-5-20250929",
       choices = {
         ["claude-sonnet-4-5-20250929"] = {
           formatted_name = "Claude Sonnet 4.5",
@@ -657,7 +657,7 @@ return {
       default = false,
       desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason
@@ -684,7 +684,7 @@ return {
         return false
       end,
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason
@@ -704,7 +704,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
       ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      enabled = function(self)
         local model = self.schema.model.default
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason

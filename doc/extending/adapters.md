@@ -2,7 +2,7 @@
 description: Learn how to create your own adapters in CodeCompanion
 ---
 
-# Creating Adapters
+# Extending with Adapters
 
 > [!TIP]
 > Does your LLM state that it is "OpenAI Compatible"? If so, good news, you can extend from the `openai` adapter or use the `openai_compatible` one. Something we did with the [xAI](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua) adapter
@@ -383,7 +383,7 @@ Some OpenAI-compatible API providers like deepseek, Gemini and OpenRouter implem
 The non-standard fields in the [`message` (non-streaming)](https://platform.openai.com/docs/api-reference/chat/object#chat-object-choices-message) or [`delta` (streaming)](https://platform.openai.com/docs/api-reference/chat-streaming/streaming#chat_streaming-streaming-choices-delta) object are captured by the OpenAI adapter and can be used to extract the reasoning.
 
 For example, the DeepSeek API provides the reasoning tokens in the `delta.reasoning_content` field.
-We can therefore use the following `parse_meta` handler to extract the reasoning tokens and put them into the appropriate output fields: 
+We can therefore use the following `parse_meta` handler to extract the reasoning tokens and put them into the appropriate output fields:
 
 ```lua
 handlers = {
@@ -396,7 +396,7 @@ handlers = {
       local extra = data.extra
       if extra.reasoning_content then
         -- codecompanion expect the reasoning tokens in this format
-        data.output.reasoning = { content = extra.reasoning_content } 
+        data.output.reasoning = { content = extra.reasoning_content }
         -- so that codecompanion doesn't mistake this as a normal response with empty string as the content
         if data.output.content == "" then
           data.output.content = nil
@@ -408,7 +408,7 @@ handlers = {
 }
 ```
 
-Notes: 
+Notes:
 
 1. You don't always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
 2. It's expected that the processed `data` table is returned at the end.
@@ -430,7 +430,7 @@ handlers = {
 
 ### `response.parse_inline`
 
-From a design perspective, the inline strategy is very similar to the chat strategy. With the `parse_inline` handler we simply return the content we wish to be streamed into the buffer.
+From a design perspective, the inline interaction is very similar to the chat interaction. With the `parse_inline` handler we simply return the content we wish to be streamed into the buffer.
 
 In the case of OpenAI, once we've checked the data we have back from the LLM and parsed it as JSON, we simply need to:
 
@@ -575,7 +575,7 @@ temperature = {
   type = "number",
   default = 0,
   ---@param self CodeCompanion.HTTPAdapter
-  condition = function(self)
+  enabled = function(self)
     local model = self.schema.model.default
     if type(model) == "function" then
       model = model()
@@ -590,7 +590,7 @@ temperature = {
 },
 ```
 
-You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
+You'll see we've specified a function call for the `enabled` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
 
 For some endpoints, like OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses), schema values may need to be nested in the parameters:
 
