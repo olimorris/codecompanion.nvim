@@ -1015,6 +1015,10 @@ The user is working on a %s machine. Please respond with system specific command
       warning = " ",
     },
   },
+  -- MCP SERVERS -----------------------------------------------------------
+  mcp = {
+    servers = {},
+  },
   -- EXTENSIONS ------------------------------------------------------
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
