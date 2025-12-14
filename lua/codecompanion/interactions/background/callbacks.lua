@@ -70,7 +70,7 @@ end
 function M.register_chat_callbacks(chat)
   local background_config = config.interactions.background.chat
 
-  if not background_config or not background_config.opts.enabled then
+  if not background_config or background_config.opts.enabled == false then
     return
   end
 
