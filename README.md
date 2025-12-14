@@ -127,6 +127,7 @@ buffer
 Command
 - [Saghen](https://github.com/Saghen) for the fantastic docs inspiration from [blink.cmp](https://github.com/Saghen/blink.cmp) and continued PRs to the project
 - [Catwell](https://github.com/catwell) for the [queue](https://github.com/catwell/cw-lua/blob/master/deque/deque.lua) inspiration that I use to stack agents and tools
+- [bassamsdata](https://github.com/bassamsdata) for the Super Diff, amazing `insert_edit_into_file` tool (the list is endless) and ongoing contributions to this project
 - [ravitemer](https://github.com/ravitemer) for the fantastic extensions API
 - [Davidyz](https://github.com/Davidyz) for his continued, excellent contributions that keep CodeCompanion going
 - [Conrad Irwin](https://github.com/conradirwin), [Agus Zubiaga](https://github.com/agu-z) and Morgan Krey from [Zed Industries](https://github.com/zed-industries) for their support in implementing [ACP](https://agentclientprotocol.com)
