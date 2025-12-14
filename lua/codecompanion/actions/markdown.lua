@@ -318,7 +318,7 @@ function M.resolve_placeholders(item, context)
 
   local replacements = {}
   for _, placeholder in ipairs(placeholders) do
-    -- Check if it's a dot-notation placeholder (e.g., "shared.code", "utils.helper")
+    -- Check if it's a dot-notation placeholder (e.g., "context.code", "utils.helper")
     local dot_placeholder = placeholder:match("^([^.]+)%.")
     if dot_placeholder then
       -- Try to load the file from the prompt directory

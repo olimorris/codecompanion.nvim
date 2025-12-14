@@ -26,6 +26,6 @@ When asked to explain code, follow these steps:
 Please explain this code from buffer ${context.bufnr}:
 
 ````${context.filetype}
-${shared.code}
+${context.code}
 ````
 
