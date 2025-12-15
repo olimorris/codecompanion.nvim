@@ -196,7 +196,7 @@ function M.select_model(chat)
       return
     end
     local model_id = get_model_id(selected_model)
-    chat:apply_model(model_id)
+    chat:apply_model_or_command({ model = model_id })
   end)
 end
 
@@ -214,9 +214,7 @@ function M.select_command(chat)
       return
     end
     local selected = chat.adapter.commands[selected_command]
-    chat.adapter.commands.selected = selected
-    utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
-    chat:update_metadata()
+    chat:apply_model_or_command({ command = selected })
   end)
 end
 
