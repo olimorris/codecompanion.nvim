@@ -1,5 +1,13 @@
 # Changelog
 
+## [18.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.1.0...v18.1.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* **adapters:** gemini system prompts ([#2530](https://github.com/olimorris/codecompanion.nvim/issues/2530)) ([247ab70](https://github.com/olimorris/codecompanion.nvim/commit/247ab7022c4fb150c9f35138c44092f2f414a98e))
+* pattern escape context ([#2532](https://github.com/olimorris/codecompanion.nvim/issues/2532)) ([94f62bf](https://github.com/olimorris/codecompanion.nvim/commit/94f62bfc4e6333d0b039198a492913533d25946b)), closes [#2525](https://github.com/olimorris/codecompanion.nvim/issues/2525)
+
 ## [18.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.0.0...v18.1.0) (2025-12-14)
 
 
