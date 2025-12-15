@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 14
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -143,14 +143,23 @@ REQUIREMENTS                         *codecompanion-installation-requirements*
 - The `curl` library
 - Neovim 0.11.0 or greater
 - `(Optional)` An API key for your chosen LLM
+- `(Optional)` nvim-treesitter <https://github.com/nvim-treesitter/nvim-treesitter> and a `yaml` parser for markdown prompt library items
 - `(Optional)` The file <https://man7.org/linux/man-pages/man1/file.1.html> command for detecting image mimetype
 - `(Optional)` The ripgrep <https://github.com/BurntSushi/ripgrep> library for the `grep_search` tool
+
+You can run `:checkhealth codecompanion` to verify that all requirements are
+met.
 
 
 INSTALLATION                         *codecompanion-installation-installation*
 
 The plugin can be installed with the plugin manager of your choice. It is
 recommended to pin the plugin to a specific release to avoid breaking changes.
+
+nvim-treesitter <https://github.com/nvim-treesitter/nvim-treesitter> is
+required if you plan to use markdown prompts in the
+|codecompanion-configuration-prompt-library|, ensuring you have the `yaml`
+parser installed.
 
 
 **Plenary.nvim note:**
@@ -226,7 +235,9 @@ troubleshoot, running it with `nvim --clean -u minimal.lua`.
   <https://github.com/zbirenbaum/copilot.lua> installed then expect CodeCompanion
   to work out of the box.
 This guide is intended to help you get up and running with CodeCompanion and
-begin your journey of coding with AI in Neovim.
+begin your journey of coding with AI in Neovim. It assumes that you have
+already installed the plugin. If you haven’t done so, please refer to the
+|codecompanion-installation| first.
 
 
 DOCUMENTATION                    *codecompanion-getting-started-documentation*
@@ -2119,19 +2130,7 @@ logic or reusable components:
     .prompts/
     ├── commit.md
     ├── commit.lua
-    ├── shared.lua
     └── utils.lua
-<
-
-**shared.lua:**
-
->lua
-    return {
-      code = function(args)
-        local actions = require("codecompanion.helpers.actions")
-        return actions.get_code(args.context.start_line, args.context.end_line)
-      end,
-    }
 <
 
 **commit.lua:**

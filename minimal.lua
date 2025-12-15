@@ -17,6 +17,11 @@ local plugins = {
     "olimorris/codecompanion.nvim",
     dependencies = {
       { "nvim-lua/plenary.nvim" },
+      {
+        "nvim-treesitter/nvim-treesitter",
+        lazy = false,
+        build = ":TSUpdate",
+      },
 
       -- Test with blink.cmp (delete if not required)
       {
@@ -57,6 +62,18 @@ local plugins = {
 -- This is so I can tell if they've really tested with their own minimal.lua file
 
 require("lazy.minit").repro({ spec = plugins })
+
+-- CONFIGURE PLUGINS HERE -----------------------------------------------------
+
+-- Setup Tree-sitter
+require("nvim-treesitter")
+  .install({
+    "lua",
+    "markdown",
+    "markdown_inline",
+    "yaml",
+  })
+  :wait(300000)
 
 -- Setup nvim-cmp
 -- local cmp_status, cmp = pcall(require, "cmp")
