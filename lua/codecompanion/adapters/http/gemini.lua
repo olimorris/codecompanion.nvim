@@ -58,9 +58,7 @@ return {
       return openai.handlers.form_tools(self, tools)
     end,
     form_messages = function(self, messages)
-      -- Gemini openai compatible api backend only reads last system_prompt.
-      -- So we merge all system prompts.
-      -- See https://github.com/olimorris/codecompanion.nvim/issues/2522
+      -- WARN: System prompts must be merged as per #2522
       messages = adapter_utils.merge_system_messages(messages)
 
       local result = openai.handlers.form_messages(self, messages)

@@ -15,23 +15,23 @@ T["Gemini adapter"] = new_set({
 T["Gemini adapter"]["can form messages to be sent to the API"] = function()
   local messages = {
     {
-      content = "Follow the user's request",
-      role = "system",
-    },
-    {
-      content = "Respond in code",
+      content = "System Prompt 1",
       role = "system",
     },
     {
       content = "Explain Ruby in two words",
       role = "user",
     },
+    {
+      content = "System Prompt 2",
+      role = "system",
+    },
   }
 
   local output = {
     messages = {
       {
-        content = "Follow the user's request Respond in code",
+        content = "System Prompt 1 System Prompt 2",
         role = "system",
       },
       {
