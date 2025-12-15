@@ -31,11 +31,7 @@ T["Gemini adapter"]["can form messages to be sent to the API"] = function()
   local output = {
     messages = {
       {
-        content = "Follow the user's request",
-        role = "system",
-      },
-      {
-        content = "Respond in code",
+        content = "Follow the user's request Respond in code",
         role = "system",
       },
       {
