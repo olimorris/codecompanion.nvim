@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 14
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -908,6 +908,54 @@ To use opencode <https://opencode.ai> in CodeCompanion, ensure you’ve
 followed their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
+
+You will need to configure a default model in your
+`~/.config/opencode/config.json` file: eg:
+
+>json
+    {
+        "$schema": "https://opencode.ai/config.json",
+        "model": "github-copilot/claude-sonnet-4.5",
+    }
+<
+
+alternatively, you can set up various models by overriding the adapter config:
+
+>lua
+    
+        require("codecompanion").setup({
+            adapters = {
+                acp = {
+                    opencode = function()
+                        return require("codecompanion.adapters").extend("opencode", {
+                            commands = {
+                                default = {   -- this will use your opencode/config.json setting
+                                    "opencode",
+                                    "acp",
+                                },
+                                copilot_sonnet_4_5 = {
+                                    "opencode",
+                                    "acp", "-m", "github-copilot/claude-sonnet-4.5"
+                                },
+                                copilot_opus_4_5 = {
+                                    "opencode",
+                                    "acp", "-m", "github-copilot/claude-opus-4.5"
+                                },
+                                anthropic_sonnet_4_5 = {
+                                    "opencode",
+                                    "acp", "-m", "anthropic/claude-sonnet-4.5"
+                                },
+                                anthropic_opus_4_5 = {
+                                    "opencode",
+                                    "acp", "-m", "anthropic/claude-opus-4.5"
+                                }
+                            },
+                        })
+                    end,
+                },
+            }
+        })
+<
 
 
 HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
@@ -2119,19 +2167,7 @@ logic or reusable components:
     .prompts/
     ├── commit.md
     ├── commit.lua
-    ├── shared.lua
     └── utils.lua
-<
-
-**shared.lua:**
-
->lua
-    return {
-      code = function(args)
-        local actions = require("codecompanion.helpers.actions")
-        return actions.get_code(args.context.start_line, args.context.end_line)
-      end,
-    }
 <
 
 **commit.lua:**
