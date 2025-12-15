@@ -1,3 +1,4 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local openai = require("codecompanion.adapters.http.openai")
 
 ---@class CodeCompanion.HTTPAdapter.Gemini : CodeCompanion.HTTPAdapter
@@ -57,6 +58,9 @@ return {
       return openai.handlers.form_tools(self, tools)
     end,
     form_messages = function(self, messages)
+      -- WARN: System prompts must be merged as per #2522
+      messages = adapter_utils.merge_system_messages(messages)
+
       local result = openai.handlers.form_messages(self, messages)
 
       local STANDARD_TOOL_CALL_FIELDS = {
