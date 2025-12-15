@@ -199,11 +199,11 @@ To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've f
 
 Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/setup` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
 
-## Setup: opencode
+## Setup: OpenCode
 
-To use [opencode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
+To use [OpenCode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
 
-You will need to configure a default model in your `~/.config/opencode/config.json` file: eg:
+You will need to configure a default model in your `~/.config/opencode/config.json` file:
 
 ```json
 {
@@ -212,40 +212,48 @@ You will need to configure a default model in your `~/.config/opencode/config.js
 }
 ```
 
-alternatively, you can set up various models by overriding the adapter config:
+Alternatively, you can set up various models in the adapter itself:
 
 ```lua
-
-    require("codecompanion").setup({
-        adapters = {
-            acp = {
-                opencode = function()
-                    return require("codecompanion.adapters").extend("opencode", {
-                        commands = {
-                            default = {   -- this will use your opencode/config.json setting
-                                "opencode",
-                                "acp",
-                            },
-                            copilot_sonnet_4_5 = {
-                                "opencode",
-                                "acp", "-m", "github-copilot/claude-sonnet-4.5"
-                            },
-                            copilot_opus_4_5 = {
-                                "opencode",
-                                "acp", "-m", "github-copilot/claude-opus-4.5"
-                            },
-                            anthropic_sonnet_4_5 = {
-                                "opencode",
-                                "acp", "-m", "anthropic/claude-sonnet-4.5"
-                            },
-                            anthropic_opus_4_5 = {
-                                "opencode",
-                                "acp", "-m", "anthropic/claude-opus-4.5"
-                            }
-                        },
-                    })
-                end,
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      opencode = function()
+        return require("codecompanion.adapters").extend("opencode", {
+          commands = {
+            -- The default uses the opencode/config.json value
+            default = {
+              "opencode",
+              "acp",
             },
-        }
-    })
+            copilot_sonnet_4_5 = {
+              "opencode",
+              "acp",
+              "-m",
+              "github-copilot/claude-sonnet-4.5",
+            },
+            copilot_opus_4_5 = {
+              "opencode",
+              "acp",
+              "-m",
+              "github-copilot/claude-opus-4.5",
+            },
+            anthropic_sonnet_4_5 = {
+              "opencode",
+              "acp",
+              "-m",
+              "anthropic/claude-sonnet-4.5",
+            },
+            anthropic_opus_4_5 = {
+              "opencode",
+              "acp",
+              "-m",
+              "anthropic/claude-opus-4.5",
+            },
+          },
+        })
+      end,
+    },
+  },
+})
 ```
