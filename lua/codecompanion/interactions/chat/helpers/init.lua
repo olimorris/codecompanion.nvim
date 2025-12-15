@@ -115,7 +115,7 @@ function M.apply_settings_and_model(chat, settings)
   local old_model = chat.settings.model
   chat:apply_settings(settings)
   if old_model and old_model ~= settings.model then
-    chat:apply_model(settings.model)
+    chat:apply_model_or_command({ model = settings.model })
   end
 end
 

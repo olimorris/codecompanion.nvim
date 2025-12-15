@@ -688,13 +688,11 @@ function Chat:change_adapter(name, model)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    vim.schedule(function()
-      helpers.create_acp_connection(self)
-    end)
+    return
   end
 
   if model then
-    self:apply_model(model)
+    self:apply_model_or_command({ model = model })
     return fire()
   end
 
@@ -705,22 +703,27 @@ function Chat:change_adapter(name, model)
 end
 
 ---Set a model in the chat buffer
----@param model string
+---@param args { model?: string, command?: table }
 ---@return CodeCompanion.Chat
-function Chat:apply_model(model)
-  if self.adapter.type ~= "http" then
-    return self
+function Chat:apply_model_or_command(args)
+  if args and args.command then
+    self.adapter.commands.selected = args.command
+    helpers.create_acp_connection(self)
+  elseif args.model then
+    self.settings.model = args.model
+    self.adapter.schema.model.default = args.model
+    self.adapter = adapters.set_model(self.adapter)
+
+    self:set_system_prompt()
+    self:apply_settings()
   end
 
-  self.settings.model = model
-  self.adapter.schema.model.default = model
-  self.adapter = adapters.set_model(self.adapter)
-
-  utils.fire("ChatModel", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter), model = model })
-
-  self:set_system_prompt()
   self:update_metadata()
-  self:apply_settings()
+  utils.fire("ChatModel", {
+    bufnr = self.bufnr,
+    adapter = adapters.make_safe(self.adapter),
+    model = args.model or args.command,
+  })
 
   return self
 end
