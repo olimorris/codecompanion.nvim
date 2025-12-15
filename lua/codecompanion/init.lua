@@ -205,15 +205,23 @@ CodeCompanion.cmd = function(args)
 end
 
 ---Toggle the chat buffer
----@param opts? table
+---@param args? table
 ---@return nil
-CodeCompanion.toggle = function(opts)
-  local window_opts = opts and opts.window_opts
+CodeCompanion.toggle = function(args)
+  local window_opts = args and args.window_opts
 
   -- Get the most recent chat buffer, or create one
   local chat = CodeCompanion.last_chat()
   if not chat then
-    return CodeCompanion.chat(window_opts and { window_opts = window_opts })
+    local chat_opts = {}
+    if args and args.params then
+      chat_opts.params = args.params
+    end
+    if window_opts then
+      chat_opts.window_opts = window_opts
+    end
+
+    return CodeCompanion.chat(chat_opts)
   end
 
   -- If the chat is visible in a different tab, just hide it there
@@ -232,7 +240,7 @@ CodeCompanion.toggle = function(opts)
   CodeCompanion.close_last_chat()
 
   -- Reopen the chat in the current tab with the toggled flag
-  opts = { toggled = true }
+  local opts = { toggled = true }
   if window_opts then
     opts.window_opts = window_opts
   end
