@@ -1,21 +1,31 @@
 local config = require("codecompanion.config")
 local utils = require("codecompanion.utils")
 
+local CONSTANTS = {
+  icons = {
+    tools = config.display.chat.icons.can_use_tools or " ", -- nf-cod-tools
+    vision = config.display.chat.icons.has_vision or "󰡼 ", -- nf-md-image_plus
+    stream = config.display.chat.icons.can_stream or " ", -- nf-fa-arrow_right_arrow_left
+    reason = config.display.chat.icons.can_reason or "󰟷 ", -- nf-md-thought_bubble_outline
+  },
+}
+
 local M = {}
 
 ---Create options for vim.ui.select with formatting
 ---@param prompt string The prompt to display
 ---@param conditional string The item to mark as current
+---@param format function The function to format the item. TODO Don't know if this is a good idee, but works for now
 ---@return table
-local function select_opts(prompt, conditional)
+local function select_opts(prompt, conditional, format)
   return {
     prompt = prompt,
     kind = "codecompanion.nvim",
     format_item = function(item)
       if conditional == item then
-        return "* " .. item
+        return "* " .. format(item)
       end
-      return "  " .. item
+      return "  " .. format(item)
     end,
   }
 end
@@ -153,6 +163,30 @@ function M.update_system_prompt(chat)
   end
 end
 
+function format_model_select(model)
+  -- TODO Deicide what to do when model is not a table
+  local tools = "?"
+  local vision = "?"
+  local stream = "?"
+  local reason = "?"
+
+  if type(model) == "table" then
+    if model.opts ~= nil then
+      --  TODO If you want to be complete. You probably also take the opts from the adapter in consideration.
+      --       Because all model support a capability, there no really a reason to store that for the model
+      tools = model.opts.can_use_tools and CONSTANTS.icons.tools or ""
+      vision = model.opts.has_vision and CONSTANTS.icons.vision or ""
+      stream = model.opts.can_stream and CONSTANTS.icons.stream or ""
+      reason = model.opts.can_reason and CONSTANTS.icons.reason or ""
+    end
+
+    display = model.description or model.formatted_name or model.id or "Unknown"
+  else
+    display = model
+  end
+
+  return string.format("%-30s %2s%2s%2s%2s", display, tools, vision, stream, reason)
+end
 ---Handle model selection for HTTP adapters
 ---@param chat CodeCompanion.Chat
 ---@return nil
@@ -175,13 +209,7 @@ function M.select_model(chat)
     kind = "codecompanion.nvim",
     format_item = function(model)
       local model_id = get_model_id(model)
-      local display
-
-      if type(model) == "table" then
-        display = model.description or model.formatted_name or model.id or "Unknown"
-      else
-        display = model
-      end
+      local display = format_model_select(model)
 
       -- Mark the current model
       if model_id == current_id then
@@ -209,17 +237,32 @@ function M.select_command(chat)
     return
   end
 
-  vim.ui.select(commands_list, select_opts("Select a Command", commands_list[1]), function(selected_command)
-    if not selected_command then
-      return
+  vim.ui.select(
+    commands_list,
+    select_opts("Select a Command", commands_list[1], function(item)
+      return item
+    end),
+    function(selected_command)
+      if not selected_command then
+        return
+      end
+      local selected = chat.adapter.commands[selected_command]
+      chat.adapter.commands.selected = selected
+      utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+      chat:update_metadata()
     end
-    local selected = chat.adapter.commands[selected_command]
-    chat.adapter.commands.selected = selected
-    utils.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
-    chat:update_metadata()
-  end)
+  )
 end
 
+function format_adapter_select(item)
+  local adapter = require("codecompanion.adapters").resolve(item)
+  local tools = adapter.opts.tools and CONSTANTS.icons.tools or ""
+  local vision = adapter.opts.vision and CONSTANTS.icons.vision or ""
+  local stream = adapter.opts.stream and CONSTANTS.icons.stream or ""
+  local reason = adapter.opts.reason and CONSTANTS.icons.reason or ""
+
+  return string.format("%-30s %2s%2s%2s%2s", item, tools, vision, stream, reason)
+end
 ---Main callback for the change_adapter keymap
 ---@param chat CodeCompanion.Chat
 ---@return nil
@@ -231,30 +274,34 @@ function M.callback(chat)
   local current_adapter = chat.adapter.name
   local adapters_list = M.get_adapters_list(current_adapter)
 
-  vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected_adapter)
-    if not selected_adapter then
-      return
-    end
+  vim.ui.select(
+    adapters_list,
+    select_opts("Select Adapter", current_adapter, format_adapter_select),
+    function(selected_adapter)
+      if not selected_adapter then
+        return
+      end
 
-    if current_adapter ~= selected_adapter then
-      chat.acp_connection = nil
-      chat:change_adapter(selected_adapter)
-    end
+      if current_adapter ~= selected_adapter then
+        chat.acp_connection = nil
+        chat:change_adapter(selected_adapter)
+      end
 
-    -- Only force a system prompt update if the user isn't ignoring it. This
-    -- occurs when a user has initiated a chat from the prompt library
-    if not chat.opts.ignore_system_prompt then
-      M.update_system_prompt(chat)
-    end
+      -- Only force a system prompt update if the user isn't ignoring it. This
+      -- occurs when a user has initiated a chat from the prompt library
+      if not chat.opts.ignore_system_prompt then
+        M.update_system_prompt(chat)
+      end
 
-    if chat.adapter.type == "http" then
-      M.select_model(chat)
-    end
+      if chat.adapter.type == "http" then
+        M.select_model(chat)
+      end
 
-    if chat.adapter.type == "acp" then
-      M.select_command(chat)
+      if chat.adapter.type == "acp" then
+        M.select_command(chat)
+      end
     end
-  end)
+  )
 end
 
 return M
