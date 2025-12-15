@@ -203,3 +203,49 @@ Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#ins
 
 To use [opencode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
 
+You will need to configure a default model in your `~/.config/opencode/config.json` file: eg:
+
+```json
+{
+    "$schema": "https://opencode.ai/config.json",
+    "model": "github-copilot/claude-sonnet-4.5",
+}
+```
+
+alternatively, you can set up various models by overriding the adapter config:
+
+```lua
+
+    require("codecompanion").setup({
+        adapters = {
+            acp = {
+                opencode = function()
+                    return require("codecompanion.adapters").extend("opencode", {
+                        commands = {
+                            default = {   -- this will use your opencode/config.json setting
+                                "opencode",
+                                "acp",
+                            },
+                            copilot_sonnet_4_5 = {
+                                "opencode",
+                                "acp", "-m", "github-copilot/claude-sonnet-4.5"
+                            },
+                            copilot_opus_4_5 = {
+                                "opencode",
+                                "acp", "-m", "github-copilot/claude-opus-4.5"
+                            },
+                            anthropic_sonnet_4_5 = {
+                                "opencode",
+                                "acp", "-m", "anthropic/claude-sonnet-4.5"
+                            },
+                            anthropic_opus_4_5 = {
+                                "opencode",
+                                "acp", "-m", "anthropic/claude-opus-4.5"
+                            }
+                        },
+                    })
+                end,
+            },
+        }
+    })
+```
