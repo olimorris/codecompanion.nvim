@@ -7,7 +7,7 @@ description: Getting started with CodeCompanion
 > [!IMPORTANT]
 > The default adapter in CodeCompanion is [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide). If you have [copilot.vim](https://github.com/github/copilot.vim) or [copilot.lua](https://github.com/zbirenbaum/copilot.lua) installed then expect CodeCompanion to work out of the box.
 
-This guide is intended to help you get up and running with CodeCompanion and begin your journey of coding with AI in Neovim.
+This guide is intended to help you get up and running with CodeCompanion and begin your journey of coding with AI in Neovim. It assumes that you have already installed the plugin. If you haven't done so, please refer to the [installation instructions](/installation) first.
 
 ## Using the Documentation
 

@@ -17,7 +17,8 @@ M.deps = {
 
 M.parsers = {
   { name = "markdown" },
-  { name = "yaml" },
+  { name = "markdown_inline" },
+  { name = "yaml", optional = true },
 }
 
 M.libraries = {

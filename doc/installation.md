@@ -12,17 +12,23 @@ description: How to install CodeCompanion and it's dependencies
 - The `curl` library
 - Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
+- _(Optional)_ [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and a `yaml` parser for markdown prompt library items
 - _(Optional)_ The [file](https://man7.org/linux/man-pages/man1/file.1.html) command for detecting image mimetype
 - _(Optional)_ The [ripgrep](https://github.com/BurntSushi/ripgrep) library for the `grep_search` tool
+
+You can run `:checkhealth codecompanion` to verify that all requirements are met.
 
 ## Installation
 
 The plugin can be installed with the plugin manager of your choice. It is recommended to pin the plugin to a specific release to avoid breaking changes.
 
+[nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) is required if you plan to use markdown prompts in the [prompt library](/configuration/prompt-library), ensuring you have the `yaml` parser installed.
+
 ::: code-group
 
 ```lua [vim.pack]
 vim.pack.add("https://www.github.com/nvim-lua/plenary.nvim")
+vim.pack.add("https://github.com/nvim-treesitter/nvim-treesitter")
 vim.pack.add({
   src = "https://www.github.com/olimorris/codecompanion.nvim",
   version = vim.version.range("^18.0.0")
@@ -39,6 +45,7 @@ require("codecompanion").setup()
   opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
   },
 },
 ```
@@ -52,7 +59,8 @@ use({
   end,
   requires = {
     "nvim-lua/plenary.nvim",
-  }
+    "nvim-treesitter/nvim-treesitter",
+  },
 }),
 ```
 
