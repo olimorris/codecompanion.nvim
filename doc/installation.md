@@ -41,7 +41,7 @@ require("codecompanion").setup()
 ```lua [Lazy.nvim]
 {
   "olimorris/codecompanion.nvim",
-  version = "^18.0.0"
+  version = "^18.0.0",
   opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
