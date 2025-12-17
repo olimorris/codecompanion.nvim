@@ -1,10 +1,17 @@
 local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
-local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 
 local api = vim.api
+
+-- Lazy load context_utils
+local context_utils
+local function get_context(bufnr, args)
+  if not context_utils then
+    context_utils = require("codecompanion.utils.context")
+  end
+  return context_utils.get(bufnr, args)
+end
 
 ---@class CodeCompanion
 local CodeCompanion = {
@@ -27,7 +34,7 @@ end
 ---@param args table
 ---@return nil
 CodeCompanion.inline = function(args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
   return require("codecompanion.interactions.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
@@ -56,7 +63,7 @@ end
 CodeCompanion.prompt = function(alias, args)
   local actions = require("codecompanion.actions")
 
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
   local prompt = actions.resolve_from_alias(alias, context)
 
   if not prompt then
@@ -74,7 +81,7 @@ CodeCompanion.add = function(args)
     return log:warn("Sending of code has been disabled")
   end
 
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
 
   local chat = CodeCompanion.last_chat()
@@ -108,7 +115,7 @@ CodeCompanion.chat = function(args)
 
   local adapter
   local messages = args.messages or {}
-  local context = args.context or context_utils.get(api.nvim_get_current_buf(), args)
+  local context = args.context or get_context(api.nvim_get_current_buf(), args)
 
   -- Set the adapter and model if provided
   if args.params and args.params.adapter then
@@ -165,13 +172,13 @@ end
 CodeCompanion.chat_refresh_cache = function()
   require("codecompanion.interactions.chat.tools.filter").refresh_cache()
   require("codecompanion.interactions.chat.slash_commands.filter").refresh_cache()
-  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
+  require("codecompanion.utils").notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Create a cmd
 ---@return nil
 CodeCompanion.cmd = function(args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
 
   return require("codecompanion.interactions.cmd")
     .new({
@@ -232,7 +239,7 @@ CodeCompanion.toggle = function(args)
     return chat.ui:hide()
   end
 
-  chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
+  chat.buffer_context = get_context(api.nvim_get_current_buf())
 
   -- At this point, the chat exists but is not visible in the current tab
 
@@ -292,7 +299,7 @@ end
 ---@param args table
 ---@return nil
 CodeCompanion.actions = function(args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
   return require("codecompanion.actions").launch(context, args)
 end
 
@@ -332,7 +339,8 @@ end
 local function handle_adapter_config(adapter_type, opts)
   if opts and opts.adapters and opts.adapters[adapter_type] then
     if config.adapters[adapter_type].opts.show_presets then
-      require("codecompanion.utils.adapters").extend(config.adapters[adapter_type], opts.adapters[adapter_type])
+      local adapters_util = require("codecompanion.utils.adapters")
+      adapters_util.extend(config.adapters[adapter_type], opts.adapters[adapter_type])
     else
       config.adapters[adapter_type] = vim.deepcopy(opts.adapters[adapter_type])
     end
@@ -399,7 +407,7 @@ CodeCompanion.setup = function(opts)
       callback = function(args)
         local chat = CodeCompanion.last_chat()
         if chat and chat.ui:is_visible_non_curtab() then
-          chat.buffer_context = context_utils.get(args.buf)
+          chat.buffer_context = get_context(args.buf)
           vim.schedule(function()
             CodeCompanion.close_last_chat()
             chat.ui:open({ toggled = true })
