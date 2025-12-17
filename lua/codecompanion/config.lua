@@ -1053,6 +1053,21 @@ M.setup = function(args)
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
+
+  -- Set the diagnostic namespace for the chat buffer settings
+  M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
+  M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+
+  local diagnostic_config = {
+    underline = false,
+    virtual_text = {
+      spacing = 2,
+      severity = { min = vim.diagnostic.severity.INFO },
+    },
+    signs = false,
+  }
+  vim.diagnostic.config(diagnostic_config, M.config.INFO_NS)
+  vim.diagnostic.config(diagnostic_config, M.config.ERROR_NS)
 end
 
 ---Determine if code can be sent to the LLM
