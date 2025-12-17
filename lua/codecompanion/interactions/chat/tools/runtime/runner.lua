@@ -83,7 +83,7 @@ function Runner:run(runner, action, input, callback)
     tool_finished = true
     if msg.status == self.orchestrator.tools.constants.STATUS_ERROR then
       self.orchestrator:error(action, msg.data or "An error occurred")
-      return self.orchestrator:close()
+      return
     end
 
     self.orchestrator:success(action, msg.data)
@@ -98,7 +98,7 @@ function Runner:run(runner, action, input, callback)
   end)
   if not ok then
     self.orchestrator:error(action, output)
-    return self.orchestrator:close()
+    return
   end
 
   if output ~= nil then
