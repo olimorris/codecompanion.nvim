@@ -87,7 +87,10 @@ end
 ---@param content string The full markdown file content
 ---@return table|nil Parsed frontmatter as a Lua table
 function M.parse_frontmatter(content)
-  content = content:match("^%-%-%-\n(.-)%-%-%-")
+  content = content:gsub("\r\n", "\n"):gsub("\r", "\n")
+  content = content:gsub("^\239\187\191", "")
+  content = content:match("^%-%-%-\n(.-)\n%-%-%-\n")
+
   if not content then
     return
   end
