@@ -7,8 +7,6 @@ if vim.fn.has("nvim-0.11") == 0 then
   return vim.notify("CodeCompanion.nvim requires Neovim 0.11+", vim.log.levels.ERROR)
 end
 
-local config = require("codecompanion.config")
-
 local api = vim.api
 
 api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
@@ -35,11 +33,13 @@ api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = tru
 local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
 pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })
 
--- Setup syntax highlighting for the chat buffer
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
 
+-- Setup syntax highlighting for the chat buffer
 ---@param bufnr? integer
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
+  local config = require("codecompanion.config")
+
   -- Ref: #2344 - schedule_wrap defers execution to the next event loop cycle.
   -- By that time, the buffer may have been deleted (e.g. user closed the
   -- chat before the callback), so guard against this race condition.
@@ -66,21 +66,6 @@ api.nvim_create_autocmd("FileType", {
     make_hl_syntax(args.buf)
   end,
 })
-
--- Set the diagnostic namespace for the chat buffer settings
-config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
-config.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
-
-local diagnostic_config = {
-  underline = false,
-  virtual_text = {
-    spacing = 2,
-    severity = { min = vim.diagnostic.severity.INFO },
-  },
-  signs = false,
-}
-vim.diagnostic.config(diagnostic_config, config.INFO_NS)
-vim.diagnostic.config(diagnostic_config, config.ERROR_NS)
 
 local buf_group = api.nvim_create_augroup("codecompanion.buffers", { clear = true })
 
@@ -110,6 +95,8 @@ api.nvim_create_autocmd("BufEnter", {
       return
     end
 
+    local config = require("codecompanion.config")
+
     local buffer_config = config.interactions.chat.variables.buffer.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
@@ -125,5 +112,4 @@ api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
--- Register the Tree-sitter filetype
 vim.treesitter.language.register("markdown", "codecompanion")
