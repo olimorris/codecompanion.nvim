@@ -70,7 +70,7 @@ T["ACP Formatters"]["short_title"] = function()
     title = "Write file",
     content = { { type = "diff", path = "/Users/test/project/file.lua" } },
   })]])
-  h.eq("Edit: /Users/test/project/file.lua", result)
+  h.eq("Edit: Users/test/project/file.lua", result)
 
   -- Test with backtick command
   result = child.lua_get([[formatters.short_title({
@@ -108,7 +108,7 @@ T["ACP Formatters"]["tool_message - Edit Tools"] = function()
         }
       ]],
     [[_G.test_adapter = { opts = { verbose_output = true } }]],
-    "Edited /Users/test/file.lua (+1 lines)"
+    "Edited Users/test/file.lua (+1 lines)"
   )
 
   -- Test trimmed output
@@ -131,7 +131,7 @@ T["ACP Formatters"]["tool_message - Edit Tools"] = function()
         }
       ]],
     [[_G.test_adapter = { opts = { verbose_output = false } }]],
-    "Edit: /Users/test/file.lua"
+    "Edit: Users/test/file.lua"
   )
 
   -- Test pending edit
@@ -146,7 +146,7 @@ T["ACP Formatters"]["tool_message - Edit Tools"] = function()
         }
       ]],
     [[_G.test_adapter = { opts = { verbose_output = false } }]],
-    "Edit: /Users/test/file.lua"
+    "Edit: Users/test/file.lua"
   )
 end
 
@@ -172,7 +172,7 @@ T["ACP Formatters"]["tool_message - Read Tools"] = function()
         }
       ]],
     [[_G.test_adapter = { opts = { verbose_output = true } }]],
-    'Read: /Users/test/config.json — {"name": "test"} formatted'
+    'Read: Users/test/config.json — {"name": "test"} formatted'
   )
 
   -- Test completed read without content
@@ -188,7 +188,7 @@ T["ACP Formatters"]["tool_message - Read Tools"] = function()
         }
       ]],
     [[_G.test_adapter = { opts = { verbose_output = false } }]],
-    "Read: /Users/test/config.json"
+    "Read: Users/test/config.json"
   )
 end
 
@@ -271,7 +271,7 @@ T["ACP Formatters"]["fs_write_message"] = function()
     path = "/Users/test/project/file.lua",
     bytes = 1024,
   })]])
-  h.eq("Wrote 1024 bytes to /Users/test/project/file.lua", result)
+  h.eq("Wrote 1024 bytes to Users/test/project/file.lua", result)
 
   -- Test empty path
   result = child.lua_get([[formatters.fs_write_message({

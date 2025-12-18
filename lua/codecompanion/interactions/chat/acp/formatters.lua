@@ -23,7 +23,7 @@ local M = {}
 ---@param p string
 ---@return string
 local function relpath(p)
-  return vim.fn.fnamemodify(p or "", ":.")
+  return vim.fs.normalize(vim.fn.fnamemodify(p or "", ":."))
 end
 
 ---Sanitize text content for single-line display

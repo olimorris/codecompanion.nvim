@@ -88,7 +88,6 @@ end
 ---@return table|nil Parsed frontmatter as a Lua table
 function M.parse_frontmatter(content)
   content = content:gsub("\r\n", "\n"):gsub("\r", "\n")
-  content = content:gsub("^\239\187\191", "")
   content = content:match("^%-%-%-\n(.-)\n%-%-%-\n")
 
   if not content then
@@ -179,6 +178,7 @@ function M.parse_prompt(content, frontmatter)
     return nil
   end
 
+  content = content:gsub("\r\n", "\n"):gsub("\r", "\n")
   local parser = vim.treesitter.get_string_parser(content, "markdown")
   local query = vim.treesitter.query.get("markdown", "chat")
   if not query then
