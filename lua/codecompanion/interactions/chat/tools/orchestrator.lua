@@ -297,9 +297,10 @@ function Orchestrator:setup(input)
           end)
         else
           log:debug("Orchestrator:execute - Tool cancelled")
-          -- NOTE: Cancel current tool and continue with remaining tools
+          -- NOTE: Cancel current tool, then cancel all queued tools
           self.output.cancelled(cmd)
           self:close()
+          self:cancel_pending_tools()
           return self:setup()
         end
       end)
