@@ -207,7 +207,10 @@ function Debug:render()
             table.insert(lines, "  " .. key .. ' = "' .. tostring(val(self.adapter)) .. '",')
           end
         else
-          table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
+          local inspected = vim.inspect(val)
+          for line in inspected:gmatch("[^\r\n]+") do
+            table.insert(lines, line)
+          end
         end
       end
       table.insert(lines, "}")
