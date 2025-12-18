@@ -233,9 +233,6 @@ function Orchestrator:setup(input)
   if self.queue:is_empty() then
     return finalize_tools(self)
   end
-  if self.tools.status == self.tools.constants.STATUS_ERROR then
-    self:close()
-  end
 
   -- Get the next tool to run
   self.tool = self.queue:pop()
@@ -272,27 +269,39 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
-      if choice == 1 or choice == 2 then
-        log:debug("Orchestrator:execute - Tool approved")
-        if choice == 1 then
-          vim.g.codecompanion_yolo_mode = true
-        end
-        return self:execute(cmd, input)
-      elseif choice == 3 then
-        log:debug("Orchestrator:execute - Tool rejected")
-        ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
-          self.output.rejected(cmd, { reason = i })
+      -- Schedule the confirmation dialog to ensure UI is ready
+      vim.schedule(function()
+        local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
+        log:debug("Orchestrator:execute - User choice: %s", choice)
+
+        -- Handle invalid/failed dialog (returns 0 or nil)
+        if not choice or choice == 0 then
+          log:warn("Orchestrator:execute - Confirm dialog failed, rejecting tool and continuing")
+          self.output.rejected(cmd, { reason = "Confirmation dialog failed" })
+          self:close()
           return self:setup()
-        end)
-      else
-        log:debug("Orchestrator:execute - Tool cancelled")
-        -- NOTE: Cancel current tool, then cancel all queued tools
-        self.output.cancelled(cmd)
-        self:close()
-        self:cancel_pending_tools()
-        return self:setup()
-      end
+        end
+
+        if choice == 1 or choice == 2 then
+          log:debug("Orchestrator:execute - Tool approved")
+          if choice == 1 then
+            vim.g.codecompanion_yolo_mode = true
+          end
+          return self:execute(cmd, input)
+        elseif choice == 3 then
+          log:debug("Orchestrator:execute - Tool rejected")
+          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+            self.output.rejected(cmd, { reason = i })
+            return self:setup()
+          end)
+        else
+          log:debug("Orchestrator:execute - Tool cancelled")
+          -- NOTE: Cancel current tool and continue with remaining tools
+          self.output.cancelled(cmd)
+          self:close()
+          return self:setup()
+        end
+      end)
     else
       return self:execute(cmd, input)
     end
@@ -364,6 +373,7 @@ function Orchestrator:error(action, error)
     end
   end
 
+  self:close()
   self:setup()
 end
 

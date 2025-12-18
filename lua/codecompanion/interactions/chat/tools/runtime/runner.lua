@@ -93,6 +93,9 @@ function Runner:run(runner, action, input, callback)
     end
   end
 
+  -- Set the current tool on the Tools object so tool functions can access the correct opts
+  self.orchestrator.tools.tool = self.orchestrator.tool
+
   local ok, output = pcall(function()
     return runner(self.orchestrator.tools, action, input, output_handler)
   end)
