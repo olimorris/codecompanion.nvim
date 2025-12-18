@@ -64,7 +64,7 @@ function M.read_text_file(path, opts)
     return false, tostring(data_or_err)
   end
 
-  local content = (data_or_err or ""):gsub("\r\n", "\n"):gsub("\r", "\n")
+  local content = file_utils.normalize_content(data_or_err or "")
 
   -- If no line and no limit requested, return the full raw content immediately.
   if opts.line == nil and opts.limit == nil then
