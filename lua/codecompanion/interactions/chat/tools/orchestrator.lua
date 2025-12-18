@@ -205,13 +205,14 @@ function Orchestrator:setup_handlers()
         )
       end
     end,
-    success = function(cmd)
+    success = function(cmd, current_output)
       if not self.tool then
         return
       end
 
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self.tool, self.tools, cmd, self.tools.stdout)
+        local output_to_pass = current_output and { current_output } or self.tools.stdout
+        self.tool.output.success(self.tool, self.tools, cmd, output_to_pass)
       else
         send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end
@@ -396,7 +397,7 @@ function Orchestrator:success(action, output)
     table.insert(self.tools.stdout, output)
   end
   local ok, err = pcall(function()
-    self.output.success(action)
+    self.output.success(action, output)
   end)
 
   if not ok then
