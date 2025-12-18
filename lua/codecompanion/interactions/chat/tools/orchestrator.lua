@@ -205,14 +205,13 @@ function Orchestrator:setup_handlers()
         )
       end
     end,
-    success = function(cmd, current_output)
+    success = function(cmd)
       if not self.tool then
         return
       end
 
       if self.tool.output and self.tool.output.success then
-        local output_to_pass = current_output and { current_output } or self.tools.stdout
-        self.tool.output.success(self.tool, self.tools, cmd, output_to_pass)
+        self.tool.output.success(self.tool, self.tools, cmd, self.current_tool_stdout or {})
       else
         send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end
@@ -237,6 +236,7 @@ function Orchestrator:setup(input)
 
   -- Get the next tool to run
   self.tool = self.queue:pop()
+  self.current_tool_stdout = {}
 
   -- Setup the handlers
   self:setup_handlers()
@@ -396,9 +396,13 @@ function Orchestrator:success(action, output)
 
   if output then
     table.insert(self.tools.stdout, output)
+    if not self.current_tool_stdout then
+      self.current_tool_stdout = {}
+    end
+    table.insert(self.current_tool_stdout, output)
   end
   local ok, err = pcall(function()
-    self.output.success(action, output)
+    self.output.success(action)
   end)
 
   if not ok then
