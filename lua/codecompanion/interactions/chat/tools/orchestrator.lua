@@ -101,6 +101,7 @@ end
 ---@field tool CodeCompanion.Tools.Tool
 ---@field queue CodeCompanion.Tools.Orchestrator.Queue
 ---@field status string
+---@field current_tool_stdout table Output accumulator for the current tool only (reset per-tool)
 local Orchestrator = {}
 
 ---@param tools CodeCompanion.Tools
