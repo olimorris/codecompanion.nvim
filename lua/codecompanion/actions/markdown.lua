@@ -87,9 +87,7 @@ end
 ---@param content string The full markdown file content
 ---@return table|nil Parsed frontmatter as a Lua table
 function M.parse_frontmatter(content)
-  content = content:gsub("\r\n", "\n"):gsub("\r", "\n")
-  content = content:match("^%-%-%-\n(.-)\n%-%-%-\n")
-
+  content = file_utils.normalize_content(content):match("^%-%-%-\n(.-)\n%-%-%-\n")
   if not content then
     return
   end
@@ -178,7 +176,7 @@ function M.parse_prompt(content, frontmatter)
     return nil
   end
 
-  content = content:gsub("\r\n", "\n"):gsub("\r", "\n")
+  content = file_utils.normalize_content(content)
   local parser = vim.treesitter.get_string_parser(content, "markdown")
   local query = vim.treesitter.query.get("markdown", "chat")
   if not query then
