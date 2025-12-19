@@ -126,6 +126,10 @@ return {
       default = "gemini-3-pro-preview",
       choices = {
         ["gemini-3-pro-preview"] = { formatted_name = "Gemini 3 Pro", opts = { can_reason = true, has_vision = true } },
+        ["gemini-3-flash-preview"] = {
+          formatted_name = "Gemini 3 Flash",
+          opts = { can_reason = true, has_vision = true },
+        },
         ["gemini-2.5-pro"] = { formatted_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash"] = { formatted_name = "Gemini 2.5 Flash", opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash-preview-05-20"] = {
