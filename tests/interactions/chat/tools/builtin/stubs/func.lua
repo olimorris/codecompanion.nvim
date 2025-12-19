@@ -27,9 +27,10 @@ return {
   },
   output = {
     -- Should be called multiple times
-    success = function(self, cmd, output)
+    success = function(self, tools, cmd, stdout)
       _G._test_order = (_G._test_order or "") .. "->Success"
       _G._test_output = (_G._test_output or "") .. "Ran with success"
+      _G._test_success_stdout = stdout
       return "stdout is populated!"
     end,
   },

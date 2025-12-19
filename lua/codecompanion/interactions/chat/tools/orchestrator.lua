@@ -93,23 +93,24 @@ local function cmd_to_func_tool(tool)
 end
 
 ---@class CodeCompanion.Tools.Orchestrator
----@field tools CodeCompanion.Tools
----@field handlers table<string, function>
 ---@field id number The id of the tools coordinator
 ---@field index number The index of the current command
+---@field handlers table<string, function>
 ---@field output table<string, function>
----@field tool CodeCompanion.Tools.Tool
 ---@field queue CodeCompanion.Tools.Orchestrator.Queue
----@field status string
+---@field status string The status of the tool execution "success" | "error"
+---@field tool CodeCompanion.Tools.Tool The current tool being executed
+---@field tool_output table? The output collected from the tool
+---@field tools CodeCompanion.Tools
 local Orchestrator = {}
 
 ---@param tools CodeCompanion.Tools
 ---@param id number
 function Orchestrator.new(tools, id)
   local self = setmetatable({
-    tools = tools,
     id = id,
     queue = Queue.new(),
+    tools = tools,
   }, { __index = Orchestrator })
 
   _G.codecompanion_cancel_tool = false
@@ -119,7 +120,7 @@ end
 
 ---Add the tool's handlers to the executor
 ---@return nil
-function Orchestrator:setup_handlers()
+function Orchestrator:_setup_handlers()
   self.handlers = {
     setup = function()
       if not self.tool then
@@ -211,7 +212,7 @@ function Orchestrator:setup_handlers()
       end
 
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self.tool, self.tools, cmd, self.tools.stdout)
+        self.tool.output.success(self.tool, self.tools, cmd, self.tool_output or {})
       else
         send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end
@@ -222,83 +223,87 @@ end
 ---When the tools coordinator is finished, finalize it via an autocmd
 ---@param self CodeCompanion.Tools.Orchestrator
 ---@return nil
-local function finalize_tools(self)
+function Orchestrator:_finalize_tools()
   return utils.fire("ToolsFinished", { id = self.id, bufnr = self.tools.bufnr })
 end
 
 ---Setup the tool to be executed
 ---@param input? any
 ---@return nil
-function Orchestrator:setup(input)
+function Orchestrator:setup_next_tool(input)
   if self.queue:is_empty() then
-    return finalize_tools(self)
-  end
-  if self.tools.status == self.tools.constants.STATUS_ERROR then
-    self:close()
+    return self:_finalize_tools()
   end
 
   -- Get the next tool to run
   self.tool = self.queue:pop()
+  self.tool_output = {}
 
-  -- Setup the handlers
-  self:setup_handlers()
+  self:_setup_handlers()
   self.handlers.setup() -- Call this early as cmd_runner needs to setup its cmds dynamically
 
-  self.tool = cmd_to_func_tool(self.tool) -- transform cmd-based tools to func-based
+  -- Transform cmd-based tools to func-based
+  self.tool = cmd_to_func_tool(self.tool)
 
   -- Get the first command to run
   local cmd = self.tool.cmds[1]
-  log:debug("Orchestrator:execute - `%s` tool", self.tool.name)
+  log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
   if self.tool.opts and not vim.g.codecompanion_yolo_mode then
     local require_approval_before = self.tool.opts.require_approval_before
 
-    -- Users can set this to be a function if necessary
     if require_approval_before and type(require_approval_before) == "function" then
       require_approval_before = require_approval_before(self.tool, self.tools)
     end
-
-    -- Anything that isn't a boolean will get evaluated with a prompt condition
     if require_approval_before and type(require_approval_before) ~= "boolean" then
       require_approval_before = self.handlers.prompt_condition()
     end
 
     if require_approval_before then
-      log:debug("Orchestrator:execute - Asking for approval")
+      log:debug("[Orchestrator::setup_next_tool] Asking for approval")
 
       local prompt = self.output.prompt()
       if prompt == nil or prompt == "" then
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
-      if choice == 1 or choice == 2 then
-        log:debug("Orchestrator:execute - Tool approved")
-        if choice == 1 then
-          vim.g.codecompanion_yolo_mode = true
+      -- Schedule the confirmation dialog to ensure UI is ready
+      vim.schedule(function()
+        local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
+        log:debug("[Orchestrator::setup_next_tool] User choice: %s", choice)
+
+        -- Handle invalid/failed dialog (returns 0 or nil)
+        if not choice or choice == 0 then
+          self.output.rejected(cmd, { reason = "Confirmation dialog failed" })
+          self:finalize_tool()
+          return self:setup_next_tool()
         end
-        return self:execute(cmd, input)
-      elseif choice == 3 then
-        log:debug("Orchestrator:execute - Tool rejected")
-        ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
-          self.output.rejected(cmd, { reason = i })
-          return self:setup()
-        end)
-      else
-        log:debug("Orchestrator:execute - Tool cancelled")
-        -- NOTE: Cancel current tool, then cancel all queued tools
-        self.output.cancelled(cmd)
-        self:close()
-        self:cancel_pending_tools()
-        return self:setup()
-      end
+
+        if choice == 1 or choice == 2 then
+          if choice == 1 then
+            vim.g.codecompanion_yolo_mode = true
+          end
+          return self:execute_tool({ cmd = cmd, input = input })
+        elseif choice == 3 then
+          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+            self.output.rejected(cmd, { reason = i })
+            return self:setup_next_tool()
+          end)
+        else
+          -- NOTE: Cancel current tool, then cancel all queued tools
+          self.output.cancelled(cmd)
+          self:finalize_tool()
+          self:cancel_pending_tools()
+          return self:_finalize_tools()
+        end
+      end)
     else
-      return self:execute(cmd, input)
+      return self:execute_tool({ cmd = cmd, input = input })
     end
   else
-    log:debug("Orchestrator:execute - No tool approval required")
-    return self:execute(cmd, input)
+    log:debug("[Orchestrator::setup_next_tool] No tool approval required")
+    return self:execute_tool({ cmd = cmd, input = input })
   end
 end
 
@@ -310,23 +315,22 @@ function Orchestrator:cancel_pending_tools()
     self.tool = pending_tool
 
     -- Prepare handlers/output first
-    self:setup_handlers()
+    self:_setup_handlers()
     local first_cmd = pending_tool.cmds and pending_tool.cmds[1] or nil
 
     local ok, err = pcall(function()
       self.output.cancelled(first_cmd)
     end)
     if not ok then
-      log:error("Failed to run cancelled handler for tool %s: %s", tostring(pending_tool.name), err)
+      return log:error("Failed to run cancelled handler for tool %s: %s", tostring(pending_tool.name), err)
     end
   end
 end
 
 ---Execute the tool command
----@param cmd function
----@param input? any
+---@param args { cmd: function, input?: any }
 ---@return nil
-function Orchestrator:execute(cmd, input)
+function Orchestrator:execute_tool(args)
   utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
 
   pcall(function()
@@ -334,17 +338,17 @@ function Orchestrator:execute(cmd, input)
     self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
   end)
 
-  return Runner.new(self, cmd, 1):setup(input)
+  return Runner.new({ index = 1, orchestrator = self, cmd = args.cmd }):setup(args.input)
 end
 
 ---Handle an error from a tool
----@param action table
----@param error? any
+---@param args { action: table, error?: any }
 ---@return nil
-function Orchestrator:error(action, error)
-  log:debug("Orchestrator:error")
+function Orchestrator:error(args)
   self.tools.status = self.tools.constants.STATUS_ERROR
-  table.insert(self.tools.stderr, error)
+  if args.error then
+    table.insert(self.tools.stderr, args.error)
+  end
 
   if self.tool and self.tool.name then
     -- Wrap this in error handling to avoid breaking the tool execution
@@ -355,24 +359,25 @@ function Orchestrator:error(action, error)
   end
 
   local ok, err = pcall(function()
-    self.output.error(action)
+    self.output.error(args.action)
   end)
   if not ok then
-    log:error("Internal error with the %s error handler: %s", self.tool.name, err)
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+      self.tools.chat:add_tool_output(
+        self.tool,
+        string.format("Internal error with `%s` tool: %s", self.tool.name, err)
+      )
     end
   end
 
-  self:setup()
+  self:finalize_tool()
+  self:setup_next_tool()
 end
 
 ---Handle a successful completion of a tool
----@param action table
----@param output? any
+---@param args { action: table, output?: any }
 ---@return nil
-function Orchestrator:success(action, output)
-  log:debug("Orchestrator:success")
+function Orchestrator:success(args)
   self.tools.status = self.tools.constants.STATUS_SUCCESS
 
   if self.tool and self.tool.name then
@@ -382,11 +387,15 @@ function Orchestrator:success(action, output)
     end)
   end
 
-  if output then
-    table.insert(self.tools.stdout, output)
+  if args.output then
+    table.insert(self.tools.stdout, args.output)
+    if not self.tool_output then
+      self.tool_output = {}
+    end
+    table.insert(self.tool_output, args.output)
   end
   local ok, err = pcall(function()
-    self.output.success(action)
+    self.output.success(args.action)
   end)
 
   if not ok then
@@ -397,11 +406,10 @@ function Orchestrator:success(action, output)
   end
 end
 
----Close the execution of the tool
+---Finalize the execution of the tool
 ---@return nil
-function Orchestrator:close()
+function Orchestrator:finalize_tool()
   if self.tool then
-    log:debug("Orchestrator:close")
     pcall(function()
       self.handlers.on_exit()
     end)
