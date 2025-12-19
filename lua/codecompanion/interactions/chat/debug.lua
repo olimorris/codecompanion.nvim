@@ -170,6 +170,11 @@ function Debug:render()
         local val = self.settings[key]
         local is_nil = adapter.schema[key] and adapter.schema[key].default == nil
 
+        local formatted_key = key
+        if key:find("%.") then
+          formatted_key = '["' .. key .. '"]'
+        end
+
         if key == "model" then
           local other_models = " -- "
 
@@ -186,30 +191,36 @@ function Debug:render()
             val = val(self.adapter)
           end
           if vim.tbl_count(models) > 1 then
-            table.insert(lines, "  " .. key .. ' = "' .. val .. '", ' .. other_models)
+            table.insert(lines, "  " .. formatted_key .. ' = "' .. val .. '", ' .. other_models)
           else
-            table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
+            table.insert(lines, "  " .. formatted_key .. ' = "' .. val .. '",')
           end
         elseif is_nil and current_settings[key] == nil then
-          table.insert(lines, "  " .. key .. " = nil,")
-        elseif type(val) == "number" or type(val) == "boolean" then
-          table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
-        elseif type(val) == "string" then
-          if key:find("%.") then
-            key = '["' .. key .. '"]'
-          end
-          table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
-        elseif type(val) == "function" then
-          local expanded_val = val(self.adapter)
-          if type(expanded_val) == "number" or type(expanded_val) == "boolean" then
-            table.insert(lines, "  " .. key .. " = " .. tostring(val(self.adapter)) .. ",")
-          else
-            table.insert(lines, "  " .. key .. ' = "' .. tostring(val(self.adapter)) .. '",')
-          end
+          table.insert(lines, "  " .. formatted_key .. " = nil,")
         else
-          table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
+          if type(val) == "function" then
+            val = val(self.adapter)
+          end
+
+          if type(val) == "number" or type(val) == "boolean" then
+            table.insert(lines, "  " .. formatted_key .. " = " .. tostring(val) .. ",")
+          elseif type(val) == "string" then
+            table.insert(lines, "  " .. formatted_key .. ' = "' .. val .. '",')
+          else
+            local inspected = vim.inspect(val)
+            local lines_to_add = vim.split(inspected, "\n")
+            for i, line in ipairs(lines_to_add) do
+              if i == 1 then
+                table.insert(lines, "  " .. formatted_key .. " = " .. line)
+              else
+                table.insert(lines, "  " .. line)
+              end
+            end
+            lines[#lines] = lines[#lines] .. ","
+          end
         end
       end
+
       table.insert(lines, "}")
     end
   end
