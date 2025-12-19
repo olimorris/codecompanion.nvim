@@ -1,5 +1,20 @@
 # Changelog
 
+## [18.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.1.1...v18.2.0) (2025-12-19)
+
+
+### Features
+
+* **adapters:** add Gemini 3 Flash to Gemini ([#2548](https://github.com/olimorris/codecompanion.nvim/issues/2548)) ([6db10c1](https://github.com/olimorris/codecompanion.nvim/commit/6db10c1d38f09194cff6760717bc8f907068f20c))
+* **cmds:** can toggle with the adapter param ([#2535](https://github.com/olimorris/codecompanion.nvim/issues/2535)) ([19ac06a](https://github.com/olimorris/codecompanion.nvim/commit/19ac06a849778d002c93ffc9cb90d07120a9b1a7)), closes [#2528](https://github.com/olimorris/codecompanion.nvim/issues/2528)
+
+
+### Bug Fixes
+
+* **chat:** changing adapters and models ([#2472](https://github.com/olimorris/codecompanion.nvim/issues/2472)) ([663d53c](https://github.com/olimorris/codecompanion.nvim/commit/663d53cd1a05a699c7d2741d09369c15f12b1e10))
+* **chat:** improve handling nested tables for the debug window ([#2554](https://github.com/olimorris/codecompanion.nvim/issues/2554)) ([532ccbf](https://github.com/olimorris/codecompanion.nvim/commit/532ccbf22c166e084a867fcd2830dc4d9612d289))
+* **tools:** consecutive tool calls ([#2545](https://github.com/olimorris/codecompanion.nvim/issues/2545)) ([8fa83ad](https://github.com/olimorris/codecompanion.nvim/commit/8fa83adfb812f70bf241a62e84c539e3216a70e4))
+
 ## [18.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.1.0...v18.1.1) (2025-12-15)
 
 
