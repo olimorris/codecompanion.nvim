@@ -1,5 +1,14 @@
 # Changelog
 
+## [18.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.0...v18.2.1) (2025-12-19)
+
+
+### Bug Fixes
+
+* **chat:** stop duplicated context with `:CodeCompanionChat Add` ([#2402](https://github.com/olimorris/codecompanion.nvim/issues/2402)) ([14b5782](https://github.com/olimorris/codecompanion.nvim/commit/14b57823943652da77b7fbc0964733cb9ff14606))
+* file format normalization on Windows ([#2550](https://github.com/olimorris/codecompanion.nvim/issues/2550)) ([97ee970](https://github.com/olimorris/codecompanion.nvim/commit/97ee9705e1584b44bd74a799dba66579732a069a))
+* **http:** handle nil data in HTTP callbacks ([#2558](https://github.com/olimorris/codecompanion.nvim/issues/2558)) ([43efc50](https://github.com/olimorris/codecompanion.nvim/commit/43efc50ed4320b324201f096456cd1800ea5d5e4))
+
 ## [18.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.1.1...v18.2.0) (2025-12-19)
 
 
