@@ -303,13 +303,13 @@ function Tools:execute(chat, tools)
         end
       end
 
-      self.tool = resolved_tool
+      self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
       orchestrator.queue:push(resolved_tool)
     end
 
     self:set_autocmds()
     utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
-    orchestrator:setup()
+    orchestrator:setup_next_tool()
   end
 
   -- Execute all tools with error handling
@@ -327,10 +327,9 @@ function Tools:execute(chat, tools)
 end
 
 ---Look for tools in a given message
----@param chat CodeCompanion.Chat
 ---@param message table
 ---@return table?, table?
-function Tools:find(chat, message)
+function Tools:find(message)
   if not message.content then
     return nil, nil
   end
@@ -376,7 +375,7 @@ end
 ---@param message table
 ---@return boolean
 function Tools:parse(chat, message)
-  local tools, groups = self:find(chat, message)
+  local tools, groups = self:find(message)
 
   if tools or groups then
     if tools and not vim.tbl_isempty(tools) then

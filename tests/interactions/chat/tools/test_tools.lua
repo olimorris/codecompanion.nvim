@@ -56,7 +56,7 @@ T["Tools"][":find"]["should find a group and a tool with same prefix"] = functio
     local message = {
       content = "Use @{tool_group_tool} @{tool_group} for something"
     }
-    local tools, groups = _G.tools:find(_G.chat, message)
+    local tools, groups = _G.tools:find(message)
     return {
      tools = tools,
      groups = groups
@@ -72,7 +72,7 @@ T["Tools"][":find"]["should not find a group when tool name starts with group na
     local message = {
       content = "Use @{tool_group_tool} for something"
     }
-    local tools, groups = _G.tools:find(_G.chat, message)
+    local tools, groups = _G.tools:find(message)
     return {
      tools = tools,
      groups = groups
