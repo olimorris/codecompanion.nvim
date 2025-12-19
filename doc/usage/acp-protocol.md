@@ -1,5 +1,5 @@
 ---
-description: Technical reference for ACP protocol implementation in CodeCompanion
+description: How CodeCompanion implements the Agent Client Protocol (ACP)
 ---
 
 # ACP Protocol Reference
@@ -28,12 +28,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
 
 ### Supported Adapters
 
-| Adapter | Description | Special Features |
-|---------|-------------|------------------|
-| **Claude Code** | Anthropic's Claude Code CLI | OAuth authentication, tool output trimming |
-| **Gemini CLI** | Google's Gemini CLI | Multiple auth methods (OAuth, API key, Vertex AI), YOLO mode |
-| **Auggie CLI** | Augment Code CLI | Standard ACP support |
-| **Codex** | OpenAI Codex | Full ACP implementation |
+Please see the [Configuring ACP Adapters](/configuration/adapters-acp) page.
 
 ### Client Capabilities
 
@@ -132,10 +127,4 @@ The protocol version is negotiated during initialization. If an agent selects a 
 - [Configuring ACP Adapters](/configuration/adapters-acp) - Setup instructions for specific agents
 - [Using Agents](/usage/chat-buffer/agents) - How to interact with agents in chat
 - [Agent Client Protocol Specification](https://agentclientprotocol.com/) - Official ACP documentation
-
-
-
-
-
-
 
