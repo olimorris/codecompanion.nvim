@@ -1,34 +1,23 @@
 local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
-local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 
 local api = vim.api
+
+-- Lazy load context_utils
+local context_utils
+local function get_context(bufnr, args)
+  if not context_utils then
+    context_utils = require("codecompanion.utils.context")
+  end
+  return context_utils.get(bufnr, args)
+end
 
 ---@class CodeCompanion
 local CodeCompanion = {
   ---@type table Access to extension exports via extensions.foo
   extensions = _extensions.manager,
 }
-
----Keep the chat buffer open when switching tabs
----@return nil
-local function setup_sticky_chat_buffer()
-  api.nvim_create_autocmd("TabEnter", {
-    group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
-    callback = function(args)
-      local chat = CodeCompanion.last_chat()
-      if chat and chat.ui:is_visible_non_curtab() then
-        chat.buffer_context = context_utils.get(args.buf)
-        vim.schedule(function()
-          CodeCompanion.close_last_chat()
-          chat.ui:open({ toggled = true })
-        end)
-      end
-    end,
-  })
-end
 
 ---Register an extension with setup and exports
 ---@param name string The name of the extension
@@ -45,61 +34,46 @@ end
 ---@param args table
 ---@return nil
 CodeCompanion.inline = function(args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
+  local context = get_context(api.nvim_get_current_buf(), args)
+  return require("codecompanion.interactions.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
----Initiate a prompt from the prompt library
----@param prompt table The prompt to resolve from the command
----@param args table The arguments that were passed to the command
+---Accept the next word of code completion
 ---@return nil
-CodeCompanion.prompt_library = function(prompt, args)
-  log:trace("Running inline prompt")
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
-
-  -- A user may add a further prompt
-  if prompt.opts and prompt.opts.user_prompt and args.user_prompt then
-    log:trace("Adding custom user prompt")
-    prompt.opts.user_prompt = args.user_prompt
+CodeCompanion.inline_accept_word = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
   end
+  return require("codecompanion.interactions.inline.completion").accept_word()
+end
 
-  return require("codecompanion.strategies")
-    .new({
-      buffer_context = context,
-      selected = prompt,
-    })
-    :start(prompt.strategy)
+---Accept the next line of code completion
+---@return nil
+CodeCompanion.inline_accept_line = function()
+  if vim.fn.has("nvim-0.12") == 0 then
+    return log:warn("Inline completion requires Neovim 0.12+")
+  end
+  return require("codecompanion.interactions.inline.completion").accept_line()
 end
 
 ---Run a prompt from the prompt library
----@param name string
+---@param alias string
 ---@param args table?
 ---@return nil
-CodeCompanion.prompt = function(name, args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local prompt = vim
-    .iter(config.prompt_library)
-    :filter(function(_, v)
-      return v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
-    end)
-    :map(function(_, v)
-      return v
-    end)
-    :totable()[1]
+CodeCompanion.prompt = function(alias, args)
+  local actions = require("codecompanion.actions")
+
+  local context = get_context(api.nvim_get_current_buf(), args)
+  local prompt = actions.resolve_from_alias(alias, context)
 
   if not prompt then
-    return log:warn("Could not find '%s' in the prompt library", name)
+    return log:warn("Could not find `%s` in the prompt library", alias)
   end
 
-  return require("codecompanion.strategies")
-    .new({
-      buffer_context = context,
-      selected = prompt,
-    })
-    :start(prompt.strategy)
+  return actions.resolve(prompt, context)
 end
 
---Add visually selected code to the current chat buffer
+---Add visually selected code to the current chat buffer
 ---@param args table
 ---@return nil
 CodeCompanion.add = function(args)
@@ -107,13 +81,13 @@ CodeCompanion.add = function(args)
     return log:warn("Sending of code has been disabled")
   end
 
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
 
   local chat = CodeCompanion.last_chat()
 
   if not chat then
-    chat = CodeCompanion.chat()
+    chat = CodeCompanion.chat({ context = {} })
 
     if not chat then
       return log:warn("Could not create chat buffer")
@@ -134,52 +108,79 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? table
----@return nil
+---@param args? { auto_submit: boolean, params: table, subcommand: table,  callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, user_prompt: table, window_opts: table }
+---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
+  args = args or {}
+
   local adapter
-  local messages = {}
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local messages = args.messages or {}
+  local context = args.context or get_context(api.nvim_get_current_buf(), args)
 
-  if args and args.fargs and #args.fargs > 0 then
-    local prompt = args.fargs[1]:lower()
-
-    -- Check if the adapter is available
-    --TODO: Remove `config.adapters[prompt]` in V18.0.0
-    adapter = config.adapters[prompt] or config.adapters.http[prompt] or config.adapters.acp[prompt]
-
-    if not adapter then
-      if prompt == "add" then
-        return CodeCompanion.add(args)
-      elseif prompt == "toggle" then
-        return CodeCompanion.toggle()
-      elseif prompt == "refreshcache" then
-        return CodeCompanion.refresh_cache()
-      else
-        table.insert(messages, {
-          role = config.constants.USER_ROLE,
-          content = args.args,
-        })
-      end
+  -- Set the adapter and model if provided
+  if args.params and args.params.adapter then
+    local adapter_name = args.params.adapter
+    adapter = config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
+    adapter = require("codecompanion.adapters").resolve(adapter)
+    if args.params.model then
+      adapter.schema.model.default = args.params.model
     end
   end
 
-  local has_messages = not vim.tbl_isempty(messages)
+  if args.subcommand then
+    if args.subcommand == "add" then
+      return CodeCompanion.add(args)
+    elseif args.subcommand == "toggle" then
+      return CodeCompanion.toggle(args)
+    elseif args.subcommand == "refreshcache" then
+      return CodeCompanion.chat_refresh_cache()
+    end
+  end
 
-  return require("codecompanion.strategies.chat").new({
+  -- Manage user prompts
+  if args.user_prompt and #args.user_prompt > 0 then
+    table.insert(messages, {
+      role = config.constants.USER_ROLE,
+      content = args.user_prompt,
+    })
+  end
+
+  local has_messages = not vim.tbl_isempty(messages)
+  local auto_submit = has_messages -- Don't auto submit if there are no messages
+  if args.auto_submit ~= nil then
+    auto_submit = args.auto_submit
+  end
+
+  -- Add rules to the chat buffer
+  local rules_cb = require("codecompanion.interactions.chat.rules.helpers").add_callbacks(args)
+  if rules_cb then
+    args.callbacks = rules_cb
+  end
+
+  return require("codecompanion.interactions.chat").new({
     adapter = adapter,
+    auto_submit = auto_submit,
     buffer_context = context,
+    callbacks = args.callbacks,
     messages = has_messages and messages or nil,
-    auto_submit = has_messages,
+    window_opts = args and args.window_opts,
   })
+end
+
+---Refresh any of the caches used by the plugin
+---@return nil
+CodeCompanion.chat_refresh_cache = function()
+  require("codecompanion.interactions.chat.tools.filter").refresh_cache()
+  require("codecompanion.interactions.chat.slash_commands.filter").refresh_cache()
+  require("codecompanion.utils").notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Create a cmd
 ---@return nil
 CodeCompanion.cmd = function(args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
 
-  return require("codecompanion.strategies.cmd")
+  return require("codecompanion.interactions.cmd")
     .new({
       buffer_context = context,
       prompts = {
@@ -211,23 +212,46 @@ CodeCompanion.cmd = function(args)
 end
 
 ---Toggle the chat buffer
+---@param args? table
 ---@return nil
-CodeCompanion.toggle = function()
-  local chat = CodeCompanion.last_chat()
+CodeCompanion.toggle = function(args)
+  local window_opts = args and args.window_opts
 
+  -- Get the most recent chat buffer, or create one
+  local chat = CodeCompanion.last_chat()
   if not chat then
-    return CodeCompanion.chat()
+    local chat_opts = {}
+    if args and args.params then
+      chat_opts.params = args.params
+    end
+    if window_opts then
+      chat_opts.window_opts = window_opts
+    end
+
+    return CodeCompanion.chat(chat_opts)
   end
 
+  -- If the chat is visible in a different tab, just hide it there
   if chat.ui:is_visible_non_curtab() then
     chat.ui:hide()
+  -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end
 
-  chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
+  chat.buffer_context = get_context(api.nvim_get_current_buf())
+
+  -- At this point, the chat exists but is not visible in the current tab
+
+  -- Close the chat window (if it's open elsewhere)
   CodeCompanion.close_last_chat()
-  chat.ui:open({ toggled = true })
+
+  -- Reopen the chat in the current tab with the toggled flag
+  local opts = { toggled = true }
+  if window_opts then
+    opts.window_opts = window_opts
+  end
+  chat.ui:open(opts)
 end
 
 ---Make a previously hidden chat buffer, visible again
@@ -238,12 +262,15 @@ CodeCompanion.restore = function(bufnr)
     return log:error("Chat buffer %d is not valid", bufnr)
   end
 
-  local chat = require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+  local chat = require("codecompanion.interactions.chat").buf_get_chat(bufnr)
   if not chat then
     return log:error("Could not restore the chat buffer")
   end
 
   if chat.ui:is_visible() then
+    if chat.ui.winnr and api.nvim_win_is_valid(chat.ui.winnr) then
+      pcall(api.nvim_set_current_win, chat.ui.winnr)
+    end
     return
   end
   chat.ui:open()
@@ -253,50 +280,27 @@ end
 ---@param bufnr? number
 ---@return CodeCompanion.Chat|table
 CodeCompanion.buf_get_chat = function(bufnr)
-  return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+  return require("codecompanion.interactions.chat").buf_get_chat(bufnr)
 end
 
 ---Get the last chat buffer
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.last_chat = function()
-  return require("codecompanion.strategies.chat").last_chat()
+  return require("codecompanion.interactions.chat").last_chat()
 end
 
 ---Close the last chat buffer
 ---@return nil
 CodeCompanion.close_last_chat = function()
-  return require("codecompanion.strategies.chat").close_last_chat()
+  return require("codecompanion.interactions.chat").close_last_chat()
 end
 
 ---Show the action palette
 ---@param args table
 ---@return nil
 CodeCompanion.actions = function(args)
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local context = get_context(api.nvim_get_current_buf(), args)
   return require("codecompanion.actions").launch(context, args)
-end
-
----Refresh any of the caches used by the plugin
----@return nil
-CodeCompanion.refresh_cache = function()
-  local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
-  ToolFilter.refresh_cache()
-  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
-end
-
----Return the JSON schema for the workspace file
----@return string|nil
-CodeCompanion.workspace_schema = function()
-  -- Credit: https://github.com/romgrk/fzy-lua-native/blob/master/lua/init.lua
-  local dirname = string.sub(debug.getinfo(1).source, 2, string.len("/init.lua") * -1)
-
-  local ok, file = pcall(function()
-    return require("plenary.path"):new(dirname .. "workspace-schema.json"):read()
-  end)
-
-  if ok then
-    return file
-  end
 end
 
 ---Check if a feature is available in the plugin's current version
@@ -311,6 +315,7 @@ CodeCompanion.has = function(feature)
     "function-calling",
     "extensions",
     "acp",
+    "rules",
   }
 
   if type(feature) == "string" then
@@ -327,66 +332,32 @@ CodeCompanion.has = function(feature)
   return features
 end
 
+---Handle adapter configuration merging
+---@param adapter_type string
+---@param opts table
+---@return nil
+local function handle_adapter_config(adapter_type, opts)
+  if opts and opts.adapters and opts.adapters[adapter_type] then
+    if config.adapters[adapter_type].opts.show_presets then
+      local adapters_util = require("codecompanion.utils.adapters")
+      adapters_util.extend(config.adapters[adapter_type], opts.adapters[adapter_type])
+    else
+      config.adapters[adapter_type] = vim.deepcopy(opts.adapters[adapter_type])
+    end
+  end
+end
+
 ---Setup the plugin
 ---@param opts? table
 ---@return nil
 CodeCompanion.setup = function(opts)
   opts = opts or {}
 
-  -- TODO: Remove in v18.0.0
-  -- // START -----------------------------------------------------------------
-  if opts.adapters then
-    local has_old_format = false
-    local migrated_adapters = {}
-
-    -- Check if user has the old adapter format
-    for key, value in pairs(opts.adapters) do
-      if key ~= "http" and key ~= "acp" then
-        if type(value) == "function" or type(value) == "table" then
-          has_old_format = true
-          migrated_adapters[key] = value
-        end
-      end
-    end
-
-    if has_old_format then
-      vim.deprecate(
-        "`adapters.<adapter_name>` and `adapters.opts`",
-        "`adapters.http.<adapter_name>` and `adapters.http.opts`",
-        "v18.0.0",
-        "CodeCompanion",
-        false
-      )
-
-      -- Begin the migration to the new format
-      if not opts.adapters.http then
-        opts.adapters.http = {}
-      end
-      for adapter_name, adapter_config in pairs(migrated_adapters) do
-        if not opts.adapters.http[adapter_name] then
-          opts.adapters.http[adapter_name] = adapter_config
-        end
-      end
-      -- Remove the adapters from the old format
-      for adapter_name, _ in pairs(migrated_adapters) do
-        opts.adapters[adapter_name] = nil
-      end
-    end
-  end
-  --// END --------------------------------------------------------------------
-
   -- Setup the plugin's config
   config.setup(opts)
 
-  -- Handle adapter configuration
-  if opts and opts.adapters and opts.adapters.http then
-    if config.adapters.http.opts.show_defaults then
-      require("codecompanion.utils.adapters").extend(config.adapters.http, opts.adapters.http)
-    else
-      local copied = vim.deepcopy(opts.adapters.http)
-      config.adapters.http = copied
-    end
-  end
+  handle_adapter_config("acp", opts)
+  handle_adapter_config("http", opts)
 
   local cmds = require("codecompanion.commands")
   for _, cmd in ipairs(cmds) do
@@ -394,10 +365,11 @@ CodeCompanion.setup = function(opts)
   end
 
   -- Set up completion
-  local completion = config.strategies.chat.opts.completion_provider
-  pcall(function()
-    return require("codecompanion.providers.completion." .. completion .. ".setup")
-  end)
+  local completion = config.interactions.chat.opts.completion_provider
+  local ok, completion_module = pcall(require, "codecompanion.providers.completion." .. completion .. ".setup")
+  if not ok then
+    log:warn("Failed to load completion provider `%s`: %s", completion, completion_module)
+  end
 
   -- Set the log root
   log.set_root(log.new({
@@ -430,7 +402,19 @@ CodeCompanion.setup = function(opts)
 
   local window_config = config.display.chat.window
   if window_config.sticky and (window_config.layout ~= "buffer") then
-    setup_sticky_chat_buffer()
+    api.nvim_create_autocmd("TabEnter", {
+      group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
+      callback = function(args)
+        local chat = CodeCompanion.last_chat()
+        if chat and chat.ui:is_visible_non_curtab() then
+          chat.buffer_context = get_context(args.buf)
+          vim.schedule(function()
+            CodeCompanion.close_last_chat()
+            chat.ui:open({ toggled = true })
+          end)
+        end
+      end,
+    })
   end
 end
 

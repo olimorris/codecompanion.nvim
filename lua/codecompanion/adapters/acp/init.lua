@@ -9,6 +9,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field command table The command to execute
 ---@field commands { default: table, [string]: table } The list of possible commands for the adapter. Must include a 'default' key
+---@field opts? table Additional options for the adapter
 ---@field defaults? table Additional options for the adapter
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
@@ -73,7 +74,7 @@ end
 ---@param opts? table
 ---@return CodeCompanion.ACPAdapter
 function Adapter.resolve(adapter, opts)
-  adapter = adapter or config.strategies.chat.adapter
+  adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
   if type(adapter) == "table" then
@@ -127,6 +128,7 @@ function Adapter.make_safe(adapter)
     command = adapter.command,
     defaults = adapter.defaults,
     params = adapter.parameters,
+    opts = adapter.opts,
     handlers = adapter.handlers,
   }
 end

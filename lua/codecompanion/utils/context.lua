@@ -2,13 +2,11 @@ local api = vim.api
 
 local M = {}
 
-local ESC_FEEDKEY = api.nvim_replace_termcodes("<ESC>", true, false, true)
-
 ---@param bufnr nil|number
 ---@return string
 M.get_filetype = function(bufnr)
   bufnr = bufnr or 0
-  local ft = api.nvim_buf_get_option(bufnr, "filetype")
+  local ft = api.nvim_get_option_value("filetype", { buf = bufnr })
 
   if ft == "cpp" then
     return "C++"
@@ -95,7 +93,7 @@ end
 ---Get the context of the current buffer.
 ---@param bufnr? number
 ---@param args? table
----@return table
+---@return CodeCompanion.BufferContext
 function M.get(bufnr, args)
   bufnr = bufnr or api.nvim_get_current_buf()
   local winnr = api.nvim_get_current_win()
@@ -119,21 +117,22 @@ function M.get(bufnr, args)
   end
 
   return {
-    winnr = winnr,
     bufnr = bufnr,
-    mode = mode,
-    is_visual = is_visual,
-    is_normal = is_normal,
-    buftype = api.nvim_buf_get_option(bufnr, "buftype") or "",
+    buftype = api.nvim_get_option_value("buftype", { buf = bufnr }) or "",
+    code = vim.tbl_count(lines) > 0 and vim.pesc(table.concat(lines, "\n")),
+    cursor_pos = cursor_pos,
+    end_col = end_col,
+    end_line = end_line,
     filetype = M.get_filetype(bufnr),
     filename = api.nvim_buf_get_name(bufnr),
-    cursor_pos = cursor_pos,
+    is_visual = is_visual,
+    is_normal = is_normal,
     lines = lines,
     line_count = api.nvim_buf_line_count(bufnr),
-    start_line = start_line,
+    mode = mode,
     start_col = start_col,
-    end_line = end_line,
-    end_col = end_col,
+    start_line = start_line,
+    winnr = winnr,
   }
 end
 

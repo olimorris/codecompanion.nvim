@@ -16,14 +16,168 @@ local function mock_config()
 end
 
 ---Set up the CodeCompanion plugin with test configuration
+---@param config? table
 ---@return nil
-Helpers.setup_plugin = function()
-  local test_config = require("tests.config")
-  test_config.strategies.chat.adapter = "test_adapter"
+Helpers.setup_plugin = function(config)
+  local test_config = config or require("tests.config")
+
+  -- To be safe, ensure that we mock some of the Copilot adapter's features
+  -- that make HTTP requests. This slows tests down and makes them fail
+  -- in GitHub Actions.
+  local function mock_external_calls()
+    local ok, copilot = pcall(require, "codecompanion.adapters.http.copilot")
+    if ok then
+      copilot.schema.max_tokens.default = 16000
+
+      local get_models_ok, get_models = pcall(require, "codecompanion.adapters.http.copilot.get_models")
+      if get_models_ok then
+        get_models.choices = function(adapter, opts, provided_token)
+          return { ["gpt-4.1"] = { opts = {} } }
+        end
+      end
+
+      -- Mock the token module to prevent HTTP calls
+      local token_ok, token = pcall(require, "codecompanion.adapters.http.copilot.token")
+      if token_ok then
+        token.init = function()
+          return true
+        end
+        token.fetch = function()
+          return {
+            oauth_token = "mock_oauth_token",
+            copilot_token = "mock_copilot_token",
+            endpoints = { api = "https://api.githubcopilot.com" },
+          }
+        end
+      end
+    end
+  end
+
+  mock_external_calls()
 
   local codecompanion = require("codecompanion")
   codecompanion.setup(test_config)
   return codecompanion
+end
+
+---Create a mock adapter for testing
+---@param child table The child Neovim instance
+---@param adapter? string|table Adapter name (e.g., "openai"), config table, or nil for default
+---@param opts? { var_name?: string, handlers?: table } Options to customize adapter
+---@return string var_name The variable name where adapter is stored
+Helpers.create_mock_adapter = function(child, adapter, opts)
+  opts = opts or {}
+  local var_name = opts.var_name or "_G.mock_adapter"
+
+  child.lua(
+    string.format(
+      [[
+    local adapter_config
+    local adapter_input = ...
+
+    if adapter_input == nil then
+      -- Default test adapter
+      adapter_config = {
+        name = "test_adapter",
+        type = "http",
+        url = "https://api.openai.com/v1/chat/completions",
+        roles = {
+          llm = "assistant",
+          user = "user",
+        },
+        opts = {
+          stream = true,
+        },
+        headers = {
+          content_type = "application/json",
+        },
+        schema = {
+          model = {
+            default = "gpt-3.5-turbo",
+          },
+        },
+        handlers = {
+          response = {
+            parse_chat = function(self, data)
+              local ok, body = pcall(vim.json.decode, data)
+              if not ok then
+                return nil
+              end
+
+              if body.choices and body.choices[1] and body.choices[1].message then
+                return {
+                  status = "success",
+                  output = body.choices[1].message,
+                }
+              end
+              return nil
+            end,
+          },
+        },
+      }
+    elseif type(adapter_input) == "string" then
+      -- Load real adapter by name
+      local adapters = require("codecompanion.adapters")
+      adapter_config = adapters.resolve(adapter_input)
+    else
+      -- Use provided config
+      adapter_config = adapter_input
+    end
+
+    -- Make it a proper adapter instance
+    local Adapter = require("codecompanion.adapters.http")
+    %s = Adapter.new(adapter_config)
+  ]],
+      var_name
+    ),
+    { adapter }
+  )
+
+  return var_name
+end
+
+---Setup mock HTTP client
+---@param child table The child Neovim instance
+---@param adapter? string Name of the adapter variable in child process (default: "_G.mock_adapter")
+---@return nil
+Helpers.mock_http = function(child, adapter)
+  adapter = adapter or "_G.mock_adapter"
+
+  child.lua(string.format(
+    [[
+    -- Create and store the mock client globally
+    local mock_client = require("tests.mocks.http").new({ adapter = %s })
+    _G.mock_client = mock_client
+
+    -- Replace the http module
+    package.loaded["codecompanion.http"] = {
+      new = function()
+        return _G.mock_client
+      end,
+    }
+  ]],
+    adapter
+  ))
+end
+
+---Queue a response in the mock HTTP client
+---@param child table The child Neovim instance
+---@param response table The response to queue
+---@return nil
+Helpers.queue_mock_http_response = function(child, response)
+  child.lua([[_G.mock_client:queue_response(...)]], { response })
+end
+
+---Get requests captured by mock HTTP client
+---@param child table The child Neovim instance
+---@return table
+Helpers.get_mock_http_requests = function(child)
+  return child.lua([[
+    if not _G.mock_client then
+      error("Mock client not initialized. Did you call setup_mock_http?")
+    end
+    return _G.mock_client:get_requests()
+  ]])
 end
 
 ---Mock the submit function of a chat to avoid actual API calls
@@ -31,9 +185,9 @@ end
 ---@param status? string The status to set (default: "success")
 ---@return function The original submit function for restoration
 Helpers.mock_submit = function(response, status)
-  local original_submit = require("codecompanion.strategies.chat").submit
+  local original_submit = require("codecompanion.interactions.chat").submit
 
-  require("codecompanion.strategies.chat").submit = function(self)
+  require("codecompanion.interactions.chat").submit = function(self)
     -- Mock submission instead of calling actual API
     self:add_buf_message({
       role = "llm",
@@ -51,7 +205,7 @@ end
 ---@param original function The original submit function to restore
 ---@return nil
 Helpers.restore_submit = function(original)
-  require("codecompanion.strategies.chat").submit = original
+  require("codecompanion.interactions.chat").submit = original
 end
 
 ---Setup and mock a chat buffer
@@ -68,18 +222,18 @@ Helpers.setup_chat_buffer = function(config, adapter)
     config_module.adapters[adapter.name] = adapter.config
   end
 
-  local chat = require("codecompanion.strategies.chat").new({
+  local chat = require("codecompanion.interactions.chat").new({
     buffer_context = { bufnr = 1, filetype = "lua" },
     adapter = adapter and adapter.name or "test_adapter",
   })
   chat.vars = {
     foo = {
-      callback = "spec.codecompanion.strategies.chat.variables.foo",
+      callback = "spec.codecompanion.interactions.chat.variables.foo",
       description = "foo",
     },
   }
-  local tools = require("codecompanion.strategies.chat.tools").new({ bufnr = 1 })
-  local vars = require("codecompanion.strategies.chat.variables").new()
+  local tools = require("codecompanion.interactions.chat.tools").new({ bufnr = 1 })
+  local vars = require("codecompanion.interactions.chat.variables").new()
 
   return chat, tools, vars
 end
@@ -165,7 +319,7 @@ Helpers.setup_inline = function(config)
   local config_module = mock_config()
   config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
 
-  return require("codecompanion.strategies.inline").new({
+  return require("codecompanion.interactions.inline").new({
     buffer_context = {
       winnr = 0,
       bufnr = 0,

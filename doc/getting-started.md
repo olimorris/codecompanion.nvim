@@ -1,26 +1,44 @@
-# Getting Started
+---
+description: Getting started with CodeCompanion
+---
 
-Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup the plugin.
+# Getting Started
 
 > [!IMPORTANT]
 > The default adapter in CodeCompanion is [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide). If you have [copilot.vim](https://github.com/github/copilot.vim) or [copilot.lua](https://github.com/zbirenbaum/copilot.lua) installed then expect CodeCompanion to work out of the box.
 
+This guide is intended to help you get up and running with CodeCompanion and begin your journey of coding with AI in Neovim. It assumes that you have already installed the plugin. If you haven't done so, please refer to the [installation instructions](/installation) first.
+
 ## Using the Documentation
 
-Throughout the documentation you will see examples that are wrapped in a `require("codecompanion").setup({})` block. This is purposefully done so that users can apply them to their own Neovim configuration.
+Throughout the documentation you will see examples that are wrapped in a `require("codecompanion").setup({ })` block. This is purposefully done so that users can apply them to their own Neovim configuration.
 
-If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply the examples that you see in this documentation in the `opts` table, without the need for `require("codecompanion").setup({})`:
+If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can simply apply the examples that you see in this documentation in the `opts` table. For example, the following code snippet from these docs:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "anthropic",
+      model = "claude-sonnet-4-20250514"
+    },
+  },
+  opts = {
+    log_level = "DEBUG",
+  },
+})
+```
+
+can be used in a _lazy.nvim_ configuration like so:
 
 ```lua
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
+    "nvim-lua/plenary.nvim"
   },
   opts = {
-    strategies = {
-      -- Change the default chat adapter and model
+    interactions = {
       chat = {
         adapter = "anthropic",
         model = "claude-sonnet-4-20250514"
@@ -34,36 +52,61 @@ If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply t
 },
 ```
 
+## Interactions
+
+The plugin uses the notion of _interactions_ to describe the many different ways that you can interact with an LLM from within CodeCompanion. There are four main types of interactions:
+
+- **Chat** - A chat buffer where you can converse with an LLM (`:CodeCompanionChat`)
+- **Inline** - An inline assistant that can write code directly into a buffer (`:CodeCompanion`)
+- **Cmd** - Create Neovim commands in the command-line (`:CodeCompanionCmd`)
+- **Background** - Runs tasks in the background such as compacting chat messages or generating titles for chats
+
 ## Configuring an Adapter
 
 > [!NOTE]
-> The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters.html#community-adapters)
+> The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters-http#community-adapters)
 
 An adapter is what connects Neovim to an LLM or an agent. It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
-      name = "copilot",
-      model = "gpt-4.1",
+      adapter = {
+        name = "copilot",
+        model = "gpt-4.1",
+      },
     },
     inline = {
       adapter = "anthropic",
+    },
+    cmd = {
+      adapter = "openai",
+    },
+    background = {
+      adapter = {
+        name = "ollama",
+        model = "qwen-7b-instruct",
+      },
     },
   },
 })
 ```
 
-In the example above, we're using the Copilot adapter for the chat strategy and the Anthropic one for the inline strategy.
+In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline.
 
-There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and **ACP** adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
+> [!IMPORTANT]
+> ACP adapters are only supported for the chat interction.
 
-Refer to the [adapter](configuration/adapters) section to understand more about working with adapters like [Claude Code](/configuration/adapters#setup-claude-code-via-acp).
+There are two "types" of adapter in CodeCompanion; [HTTP](/configuration/adapters-http) adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
+
+Refer to the respective sections to understand more about working with adapters that enable agents like [Claude Code](/configuration/adapters-acp#setup-claude-code).
 
 ### Setting an API Key
 
-Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
+Because most LLMs require an API key, you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. Refer to the documentation of the LLM or agent you're using to find out what the environment variable is called.
+
+You can extend an adapter and change the API key like so:
 
 ```lua
 require("codecompanion").setup({
@@ -81,26 +124,7 @@ require("codecompanion").setup({
 })
 ```
 
-Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config by prefixing them with `cmd:`. In the example below, we're using the 1Password CLI to read an OpenAI credential.
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    acp = {
-      gemini_cli = function()
-        return require("codecompanion.adapters").extend("gemini_cli", {
-          env = {
-            api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
-          },
-        })
-      end,
-    },
-  },
-})
-```
-
-> [!IMPORTANT]
-> Please see the section on [Configuring Adapters](configuration/adapters) for more information
+There are numerous ways that environment variables can be set for adapters. Refer to the [environment variables](/configuration/adapters-http#environment-variables) section for more information.
 
 ## Chat Buffer
 
@@ -108,7 +132,7 @@ require("codecompanion").setup({
   <img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
 </p>
 
-The Chat Buffer is where you can converse with an LLM from within Neovim. It operates on a single response per turn, basis.
+The Chat Buffer is where you can converse with an LLM from within Neovim. It operates on a single response per turn, basis. Once your adapter has been configured, you can start using the chat buffer and begin interacting with an LLM.
 
 Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open the chat buffer and send a prompt at the same time. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
@@ -119,7 +143,7 @@ You can add context from your code base by using _Variables_ and _Slash Commands
 
 ### Variables
 
-_Variables_, accessed via `#`, contain data about the present state of Neovim. You can find a list of available variables, [here](/usage/chat-buffer/variables.html).
+_Variables_, accessed via `#`, contain data about the present state of Neovim. You can find a list of available variables, [here](/usage/chat-buffer/variables.html). The buffer variable will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
 
 > [!TIP]
 > Use them in your prompt like: `What does the code in #{buffer} do?`
@@ -151,7 +175,7 @@ The inline assistant enables an LLM to write code directly into a Neovim buffer.
 
 Run `:CodeCompanion your prompt` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant. To send additional context alongside your prompt, you can leverage [variables](/usage/inline-assistant#variables) such as `:CodeCompanion #{buffer} <your prompt>`.
 
-For convenience, you can call prompts with their `short_name` from the [prompt library](https://github.com/olimorris/codecompanion.nvim/blob/6a4341a4cfe8988a57ad9e8b7dc01ccd6f3e1628/lua/codecompanion/config.lua#L565) such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following defaults:
+For convenience, you can call prompts with their `alias` from the [prompt library](https://github.com/olimorris/codecompanion.nvim/blob/6a4341a4cfe8988a57ad9e8b7dc01ccd6f3e1628/lua/codecompanion/config.lua#L565) such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following presets:
 
 - `/commit` - Generate a commit message
 - `/explain` - Explain how selected code in a buffer works
@@ -188,10 +212,10 @@ The plugin has four core commands:
 However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
-- `CodeCompanion <adapter> <prompt>` - Prompt the inline assistant with a specific adapter
+- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item from the [prompt library](configuration/prompt-library)
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
+- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific adapter and model
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer

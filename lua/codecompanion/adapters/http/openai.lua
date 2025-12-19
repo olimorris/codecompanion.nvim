@@ -1,5 +1,36 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
+
+local CONSTANTS = {
+  STANDARD_MESSAGE_FIELDS = {
+    -- fields that are defined in the standard openai chat-completion API (inc. streaming and non-streaming)
+    "content",
+    "function_call",
+    "refusal",
+    "role",
+    "tool_calls",
+    "annotations",
+    "audio",
+  },
+}
+
+---Find the non-standard fields in the `message` or `delta` that are not in the standard OpenAI chat-completion specs.
+---@param delta table?
+---@return table|nil
+local function find_extra_fields(delta)
+  if delta == nil then
+    return nil
+  end
+  local extra = {}
+  vim.iter(delta):each(function(k, v)
+    if not vim.list_contains(CONSTANTS.STANDARD_MESSAGE_FIELDS, k) then
+      extra[k] = v
+    end
+  end)
+  if not vim.tbl_isempty(extra) then
+    return extra
+  end
+end
 
 ---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
 return {
@@ -85,27 +116,29 @@ return {
           end
 
           -- Ensure tool_calls are clean
-          if m.tool_calls then
-            m.tool_calls = vim
-              .iter(m.tool_calls)
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
+            tool_calls = vim
+              .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
                   id = tool_call.id,
                   ["function"] = tool_call["function"],
                   type = tool_call.type,
+                  -- Include a _meta field to hold everything else
                 }
               end)
               :totable()
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
             if self.opts and self.opts.vision then
               m.content = {
                 {
                   type = "image_url",
                   image_url = {
-                    url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                    url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
                   },
                 },
               }
@@ -115,12 +148,19 @@ return {
             end
           end
 
-          return {
+          local result = {
             role = m.role,
             content = m.content,
-            tool_calls = m.tool_calls,
-            tool_call_id = m.tool_call_id,
+            tool_calls = tool_calls,
+            tool_call_id = m.tools and m.tools.call_id or nil,
           }
+
+          -- Adapter's like Copilot have reasoning fields that must be preserved
+          if m.reasoning then
+            result.reasoning = m.reasoning
+          end
+
+          return result
         end)
         :totable()
 
@@ -133,10 +173,10 @@ return {
     ---@return table|nil
     form_tools = function(self, tools)
       if not self.opts.tools or not tools then
-        return
+        return nil
       end
       if vim.tbl_count(tools) == 0 then
-        return
+        return nil
       end
 
       local transformed = {}
@@ -155,7 +195,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
+        local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -179,11 +219,45 @@ return {
       end
 
       -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
       local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
       if not ok or not json.choices or #json.choices == 0 then
         return nil
+      end
+
+      -- Define standard tool_call fields
+      local STANDARD_TOOL_CALL_FIELDS = {
+        "id",
+        "type",
+        "function",
+        "index",
+      }
+
+      ---Helper to create any tool data
+      ---@param tool table
+      ---@param index number
+      ---@param id string
+      ---@return table
+      local function create_tool_data(tool, index, id)
+        local tool_data = {
+          _index = index,
+          id = id,
+          type = tool.type,
+          ["function"] = {
+            name = tool["function"]["name"],
+            arguments = tool["function"]["arguments"] or "",
+          },
+        }
+
+        -- Preserve any non-standard fields as-is
+        for key, value in pairs(tool) do
+          if not vim.tbl_contains(STANDARD_TOOL_CALL_FIELDS, key) then
+            tool_data[key] = value
+          end
+        end
+
+        return tool_data
       end
 
       -- Process tool calls from all choices
@@ -216,26 +290,10 @@ return {
                 end
 
                 if not found then
-                  table.insert(tools, {
-                    _index = tool_index,
-                    id = id,
-                    type = tool.type,
-                    ["function"] = {
-                      name = tool["function"]["name"],
-                      arguments = tool["function"]["arguments"] or "",
-                    },
-                  })
+                  table.insert(tools, create_tool_data(tool, tool_index, id))
                 end
               else
-                table.insert(tools, {
-                  _index = i,
-                  id = id,
-                  type = tool.type,
-                  ["function"] = {
-                    name = tool["function"]["name"],
-                    arguments = tool["function"]["arguments"],
-                  },
-                })
+                table.insert(tools, create_tool_data(tool, i, id))
               end
             end
           end
@@ -256,6 +314,7 @@ return {
           role = delta.role,
           content = delta.content,
         },
+        extra = find_extra_fields(delta),
       }
     end,
 
@@ -302,7 +361,9 @@ return {
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
-          tool_call_id = tool_call.id,
+          tools = {
+            call_id = tool_call.id,
+          },
           content = output,
           opts = { visible = false },
         }
@@ -333,47 +394,47 @@ return {
         -- https://news.ycombinator.com/item?id=44837367
         -- (see also #2017)
         ["gpt-5"] = {
-          nice_name = "GPT 5",
-          opts = { has_vision = true, can_reason = true, stream = false },
+          formatted_name = "GPT 5",
+          opts = { has_vision = true, can_reason = true },
         },
         ["gpt-5-mini"] = {
-          nice_name = "GPT 5 Mini",
-          opts = { has_vision = true, can_reason = true, stream = false },
+          formatted_name = "GPT 5 Mini",
+          opts = { has_vision = true, can_reason = true },
         },
         ["gpt-5-nano"] = {
-          nice_name = "GPT 5 Nano",
+          formatted_name = "GPT 5 Nano",
           opts = { has_vision = true, can_reason = true },
         },
         ["o4-mini-2025-04-16"] = {
-          nice_name = "o4 Mini",
+          formatted_name = "o4 Mini",
           opts = { has_vision = true, can_reason = true },
         },
         ["o3-mini-2025-01-31"] = {
-          nice_name = "o3 Mini",
+          formatted_name = "o3 Mini",
           opts = { can_reason = true },
         },
         ["o3-2025-04-16"] = {
-          nice_name = "o3",
+          formatted_name = "o3",
           opts = { has_vision = true, can_reason = true },
         },
         ["o1-2024-12-17"] = {
-          nice_name = "o1",
+          formatted_name = "o1",
           opts = { has_vision = true, can_reason = true },
         },
         ["gpt-4.1"] = {
-          nice_name = "GPT 4.1",
+          formatted_name = "GPT 4.1",
           opts = { has_vision = true },
         },
         ["gpt-4o"] = {
-          nice_name = "GPT-4o",
+          formatted_name = "GPT-4o",
           opts = { has_vision = true },
         },
         ["gpt-4o-mini"] = {
-          nice_name = "GPT-4o Mini",
+          formatted_name = "GPT-4o Mini",
           opts = { has_vision = true },
         },
         ["gpt-4-turbo-preview"] = {
-          nice_name = "GPT-4 Turbo Preview",
+          formatted_name = "GPT-4 Turbo Preview",
           opts = { has_vision = true },
         },
         "gpt-4",
@@ -385,7 +446,8 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(self)
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()

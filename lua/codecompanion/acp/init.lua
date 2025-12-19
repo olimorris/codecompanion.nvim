@@ -28,6 +28,7 @@ local TIMEOUTS = {
   RESPONSE_POLL = 10, -- 10ms
 }
 
+local api = vim.api
 local uv = vim.uv
 
 --=============================================================================
@@ -44,6 +45,7 @@ local uv = vim.uv
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
 ---@field _state {handle: table, next_id: number, stdout_buffer: string}
+---@field _modes {currentModeId: string, availableModes: table[]}|nil
 ---@field methods table
 local Connection = {}
 Connection.static = {}
@@ -93,6 +95,7 @@ function Connection.new(args)
     methods = transform_static_methods(args.opts),
     _initialized = false,
     _authenticated = false,
+    _modes = nil,
     _state = { handle = nil, next_id = 1, stdout_buffer = "" },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -135,7 +138,16 @@ function Connection:connect_and_initialize()
     end
 
     self._initialized = true
-    log:debug("[acp::connect_and_initialize] ACP connection initialized")
+
+    -- Ensure that we ALWAYS disconnect when exiting Neovim
+    api.nvim_create_autocmd("VimLeavePre", {
+      group = vim.api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
+      callback = function()
+        pcall(function()
+          return self:disconnect()
+        end)
+      end,
+    })
   end
 
   -- Allow adapters to handle authentication themselves
@@ -152,7 +164,6 @@ function Connection:connect_and_initialize()
     end
     if adapter_authenticated == true then
       self._authenticated = true
-      log:debug("[acp::connect_and_initialize] Authentication handled by adapter; skipping RPC authenticate")
     end
   end
 
@@ -176,12 +187,7 @@ function Connection:connect_and_initialize()
           log:error("[acp::connect_and_initialize] Failed to authenticate with method %s", methodId)
           return nil
         end
-        log:debug("[acp::connect_and_initialize] Authenticated using %s", methodId)
-      else
-        log:debug("[acp::connect_and_initialize] No compatible auth method; skipping authenticate")
       end
-    else
-      log:debug("[acp::connect_and_initialize] Agent requires no authentication; skipping")
     end
     self._authenticated = true
   end
@@ -200,10 +206,7 @@ function Connection:connect_and_initialize()
       METHODS.SESSION_LOAD,
       vim.tbl_extend("force", session_args, { sessionId = self.session_id })
     )
-    if ok ~= nil then
-      log:debug("[acp::connect_and_initialize]: Loaded session %s", self.session_id)
-    else
-      log:debug("[acp::connect_and_initialize] session/load failed; falling back to session/new")
+    if ok == nil then
       can_load = false
     end
   end
@@ -215,7 +218,11 @@ function Connection:connect_and_initialize()
       return nil
     end
     self.session_id = new_session.sessionId
-    log:debug("Created ACP session: %s", self.session_id)
+
+    -- Cache session modes if provided
+    if new_session.modes then
+      self._modes = new_session.modes
+    end
   end
 
   return self
@@ -226,8 +233,6 @@ end
 function Connection:start_agent_process()
   local adapter = self:prepare_adapter()
   self.adapter_modified = adapter
-
-  log:debug("Starting ACP process: %s", adapter.command)
 
   if adapter.handlers and adapter.handlers.setup then
     if not adapter.handlers.setup(adapter) then
@@ -255,12 +260,6 @@ function Connection:start_agent_process()
       stderr = self.methods.schedule_wrap(function(err, data)
         if err then
           log:error("[acp::start_agent_process::stderr] Error: %s", err)
-        elseif data then
-          for line in data:gmatch("[^\r\n]+") do
-            if line ~= "" then
-              log:debug("[acp::stderr] %s", line)
-            end
-          end
         end
       end),
     },
@@ -275,7 +274,6 @@ function Connection:start_agent_process()
   end
 
   self._state.handle = sysobj
-  log:debug("[acp::start_agent_process] ACP process started")
   return true
 end
 
@@ -362,7 +360,6 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
-  log:debug("[acp::disconnect] Disconnecting ACP connection: %s", self.session_id or "[No session ID]")
   assert(self._state.handle):kill(9)
 end
 
@@ -374,7 +371,6 @@ function Connection:buffer_stdout_and_dispatch(data)
     return
   end
 
-  log:debug("[acp::buffer_stdout_and_dispatch] Received stdout:\n%s", data)
   self._state.stdout_buffer = self._state.stdout_buffer .. data
 
   -- Extract complete lines
@@ -400,9 +396,8 @@ function Connection:handle_rpc_message(line)
     return
   end
 
-  -- If it doesn't look like JSON-RPC, then silently log it
+  -- If it doesn't look like JSON-RPC, skip it
   if not line:match("^%s*{") then
-    log:debug("[acp::handle_rpc_message] Non-JSON output from agent: %s", line)
     return
   end
 
@@ -424,7 +419,7 @@ function Connection:handle_rpc_message(line)
     log:error("[acp::handle_rpc_message] Invalid message format: %s", message)
   end
 
-  if message.error then
+  if message.error and message.error.code ~= -32603 then
     log:error("[acp::handle_rpc_message] Error: %s", message.error)
   end
 end
@@ -434,6 +429,18 @@ end
 function Connection:store_rpc_response(response)
   if response.error then
     self.pending_responses[response.id] = { nil, response.error }
+
+    -- Sometimes errors are passed as part of the response so we need to handle them
+    if self._active_prompt and self._active_prompt.handle_error then
+      self.methods.schedule(function()
+        local error_msg = response.error.message or "Unknown error"
+        if response.error.data and response.error.data.error then
+          error_msg = response.error.data.error
+        end
+
+        self._active_prompt:handle_error(error_msg)
+      end)
+    end
     return
   end
   self.pending_responses[response.id] = { response.result, nil }
@@ -452,7 +459,7 @@ end
 ---@param notification? table
 function Connection:handle_incoming_request_or_notification(notification)
   if type(notification) ~= "table" or type(notification.method) ~= "string" then
-    return log:debug("[acp::handle_incoming_request_or_notification] Malformed notification")
+    return
   end
 
   local sid = notification.params and notification.params.sessionId
@@ -461,25 +468,24 @@ function Connection:handle_incoming_request_or_notification(notification)
     if is_request then
       return self:send_error(notification.id, "invalid sessionId", -32602)
     end
-    return log:debug(
-      "[acp::handle_incoming_request_or_notification] Ignoring update for session %s (current: %s)",
-      sid,
-      self.session_id
-    )
+    return
   end
 
   local DISPATCH = self._dispatch
     or {
       [self.METHODS.SESSION_UPDATE] = function(s, m)
-        if s._active_prompt then
+        -- Handle available_commands_update at the connection level
+        if m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
+          s:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
+        elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
+          s:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
+        elseif s._active_prompt then
           s._active_prompt:handle_session_update(m.params.update)
         end
       end,
       [self.METHODS.SESSION_REQUEST_PERMISSION] = function(s, m)
         if s._active_prompt then
           s._active_prompt:handle_permission_request(m.id, m.params)
-        else
-          log:debug("[acp::handle_incoming_request_or_notification] Permission request with no active prompt; ignoring")
         end
       end,
       [self.METHODS.FS_READ_TEXT_FILE] = function(s, m)
@@ -495,7 +501,6 @@ function Connection:handle_incoming_request_or_notification(notification)
   if handler then
     return handler(self, notification)
   end
-  log:debug("[acp::handle_incoming_request_or_notification] Unhandled notification method: %s", notification.method)
 end
 
 ---Send data to the ACP process
@@ -508,7 +513,6 @@ function Connection:write_message(data)
   end
 
   local ok, err = pcall(function()
-    log:debug("[acp::write_message] Sending data:\n%s", data)
     self._state.handle:write(data)
   end)
 
@@ -538,7 +542,7 @@ function Connection:handle_fs_read_text_file_request(id, params)
     return self:send_error(id, "invalid params", -32602)
   end
 
-  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, content = fs.read_text_file(path, { line = params.line, limit = params.limit })
   if ok then
     return self:send_result(id, { content = content })
@@ -574,7 +578,7 @@ function Connection:handle_fs_write_file_request(id, params)
     return self:send_error(id, "invalid params", -32602)
   end
 
-  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, err = fs.write_text_file(path, content)
   if ok then
     -- Spec: WriteTextFileResponse is null
@@ -588,12 +592,55 @@ function Connection:handle_fs_write_file_request(id, params)
   end
 end
 
+---Handle available_commands_update notification
+---@param session_id string
+---@param commands ACP.availableCommands
+---@return nil
+function Connection:handle_available_commands_update(session_id, commands)
+  if not session_id then
+    return
+  end
+
+  if type(commands) ~= "table" then
+    return log:error("[acp::handle_available_commands_update] Invalid commands format")
+  end
+
+  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
+  acp_commands.register_commands(session_id, commands)
+end
+
+---Handle current_mode_update notification
+---@param session_id string
+---@param mode_id string
+---@return nil
+function Connection:handle_current_mode_update(session_id, mode_id)
+  if not session_id then
+    return
+  end
+
+  if session_id ~= self.session_id then
+    return
+  end
+
+  if not self._modes then
+    return
+  end
+
+  if type(mode_id) ~= "string" then
+    return log:error("[acp::handle_current_mode_update] Invalid mode_id format")
+  end
+
+  -- Update the current mode
+  self._modes.currentModeId = mode_id
+
+  local utils = require("codecompanion.utils")
+  utils.fire("ChatACPModeChanged", { session_id = session_id, mode_id = mode_id })
+end
+
 ---Handle process exit
 ---@param code number
 ---@param signal number
 function Connection:handle_process_exit(code, signal)
-  log:debug("[acp::handle_process_exit] Process exited: code=%d, signal=%d", code, signal or 0)
-
   if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
     self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
   end
@@ -621,6 +668,57 @@ function Connection:session_prompt(messages)
     return log:error("[acp::session_prompt] Connection not established. Call connect_and_initialize() first.")
   end
   return PromptBuilder.new(self, messages)
+end
+
+---Get the available session modes
+---@return table|nil modes {currentModeId: string, availableModes: table[]} or nil if not supported
+function Connection:get_modes()
+  return self._modes
+end
+
+---Set the current session mode
+---@param mode_id string The ID of the mode to switch to
+---@return boolean success
+function Connection:set_mode(mode_id)
+  if not self.session_id then
+    log:error("[acp::set_mode] Connection not established")
+    return false
+  end
+
+  if not self._modes then
+    log:error("[acp::set_mode] Agent does not support session modes")
+    return false
+  end
+
+  -- Validate the mode_id exists
+  local valid = false
+  for _, mode in ipairs(self._modes.availableModes or {}) do
+    if mode.id == mode_id then
+      valid = true
+      break
+    end
+  end
+
+  if not valid then
+    log:error("[acp::set_mode] Invalid mode ID: %s", mode_id)
+    return false
+  end
+
+  local ok = self:send_rpc_request(METHODS.SESSION_SET_MODE, {
+    sessionId = self.session_id,
+    modeId = mode_id,
+  })
+
+  if not ok then
+    log:error("[acp::set_mode] Failed to set mode to %s", mode_id)
+    return false
+  end
+
+  -- Update our cached current mode
+  self._modes.currentModeId = mode_id
+  log:debug("[acp::set_mode] Successfully set mode to %s", mode_id)
+
+  return true
 end
 
 return Connection

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://codecompanion.olimorris.dev/sitemap.xml

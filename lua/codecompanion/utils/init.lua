@@ -21,22 +21,6 @@ function M.notify(msg, level)
   })
 end
 
----Get the Operating System
----@return string
-function M.os()
-  local os_name
-  if vim.fn.has("win32") == 1 then
-    os_name = "Windows"
-  elseif vim.fn.has("macunix") == 1 then
-    os_name = "macOS"
-  elseif vim.fn.has("unix") == 1 then
-    os_name = "Unix"
-  else
-    os_name = "Unknown"
-  end
-  return os_name
-end
-
 ---Make the first letter uppercase
 ---@param str string
 ---@return string
@@ -49,10 +33,13 @@ end
 ---@param t table
 ---@return boolean
 M.is_array = function(t)
-  if type(t) == "table" and type(t[1]) == "table" then
-    return true
+  if type(t) ~= "table" then
+    return false
   end
-  return false
+  if vim.islist then
+    return vim.islist(t)
+  end
+  return vim.tbl_islist(t)
 end
 
 ---@param table table
@@ -77,14 +64,58 @@ M.set_dot_repeat = function(name)
   vim.go.operatorfunc = string.format("v:lua.require'codecompanion'.%s", name)
 end
 
+---Extract placeholder names from a string
+---@param str string The string to search for placeholders
+---@return table List of unique placeholder names found (e.g. {"diff", "selection"})
+function M.extract_placeholders(str)
+  local placeholders = {}
+  local seen = {}
+
+  for placeholder in str:gmatch("%${([^}]+)}") do
+    if not seen[placeholder] then
+      seen[placeholder] = true
+      table.insert(placeholders, placeholder)
+    end
+  end
+
+  return placeholders
+end
+
+---Extract all placeholders from a prompts structure (recursively)
+---@param prompts table|string The prompts structure to search
+---@return table List of unique placeholder names found
+function M.extract_all_placeholders(prompts)
+  local all_placeholders = {}
+  local seen = {}
+
+  local function extract_recursive(value)
+    if type(value) == "string" then
+      local found = M.extract_placeholders(value)
+      for _, placeholder in ipairs(found) do
+        if not seen[placeholder] then
+          seen[placeholder] = true
+          table.insert(all_placeholders, placeholder)
+        end
+      end
+    elseif type(value) == "table" then
+      for _, v in pairs(value) do
+        extract_recursive(v)
+      end
+    end
+  end
+
+  extract_recursive(prompts)
+  return all_placeholders
+end
+
 ---Replace any placeholders (e.g. ${placeholder}) in a string or table
----@param t table|string
----@param replacements {placeholder: string, replacement: string}
----@return nil|string
+---@param t table|string The content to process
+---@param replacements table<string, string> Map of placeholder names to replacement values
+---@return string|nil The replaced string if input was string, or nil if input was table (modified in place)
 function M.replace_placeholders(t, replacements)
   if type(t) == "string" then
     for placeholder, replacement in pairs(replacements) do
-      t = t:gsub("%${" .. placeholder .. "}", replacement)
+      t = t:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
     end
     return t
   else
@@ -93,7 +124,7 @@ function M.replace_placeholders(t, replacements)
         M.replace_placeholders(value, replacements)
       elseif type(value) == "string" then
         for placeholder, replacement in pairs(replacements) do
-          value = value:gsub("%${" .. placeholder .. "}", replacement)
+          value = value:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
         end
         t[key] = value
       end
@@ -138,6 +169,7 @@ function M.set_option(bufnr, opt, value)
       buf = bufnr,
     })
   end
+
   if api.nvim_buf_set_option then
     return api.nvim_buf_set_option(bufnr, opt, value)
   end
@@ -159,6 +191,50 @@ function M.make_relative(timestamp)
   else
     return math.floor(diff / 86400) .. "d"
   end
+end
+
+---Add a callback to a set of callbacks
+---@param callbacks table|nil The existing callbacks
+---@param event string The event to add the callback to
+---@param fn function The callback function
+function M.callbacks_extend(callbacks, event, fn)
+  callbacks = callbacks or {}
+  local existing = callbacks[event]
+  if not existing then
+    callbacks[event] = fn
+  elseif type(existing) == "function" then
+    callbacks[event] = { existing, fn }
+  else
+    table.insert(existing, fn)
+  end
+  return callbacks
+end
+
+---Resolve a nested table value using a dot-separated path string
+---@param tbl table The table to traverse
+---@param path string The dot-separated path (e.g. "interactions.chat.tools.memory")
+---@return any|nil The resolved value, or nil if the path doesn't exist
+function M.resolve_nested_value(tbl, path)
+  local parts = vim.split(path, ".", { plain = true })
+  local resolved = tbl
+  for _, part in ipairs(parts) do
+    resolved = resolved[part]
+    if not resolved then
+      return nil
+    end
+  end
+  return resolved
+end
+
+---Convert a word to singular or plural form based on count
+---@param count number The count to determine singular or plural
+---@param word string The base word (singular form)
+---@return string The word with "s" appended if count ~= 1, or the original word if inputs are invalid
+function M.pluralize(count, word)
+  if type(count) ~= "number" or type(word) ~= "string" then
+    return word or "item"
+  end
+  return count == 1 and word or word .. "s"
 end
 
 return M

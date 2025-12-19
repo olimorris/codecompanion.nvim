@@ -1,6 +1,6 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter.DeepSeek: CodeCompanion.HTTPAdapter
 return {
@@ -56,19 +56,31 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      messages = utils.merge_messages(messages)
-      messages = utils.merge_system_messages(messages)
+      messages = adapter_utils.merge_messages(messages)
+      messages = adapter_utils.merge_system_messages(messages)
 
-      -- Ensure that all messages have a content field
       messages = vim
         .iter(messages)
         :map(function(msg)
+          -- Ensure that all messages have a content field
           local content = msg.content
           if content and type(content) == "table" then
             msg.content = table.concat(content, "\n")
           elseif not content then
             msg.content = ""
           end
+
+          -- Process tools
+          if msg.tools then
+            if msg.tools.calls then
+              msg.tool_calls = msg.tools.calls
+            end
+            if msg.tools.call_id then
+              msg.tool_call_id = msg.tools.call_id
+            end
+            msg.tools = nil
+          end
+
           return msg
         end)
         :totable()
@@ -79,76 +91,20 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.HTTPAdapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param tools? table The table to write any tool output to
-    ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
+    ---@param tools table The table to write any tool output to
+    ---@return { status: string, output: { role: string, content: string?, reasoning: {content: string}? } } | nil
     chat_output = function(self, data, tools)
-      local output = {}
-
-      if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
-
-        if ok and json.choices and #json.choices > 0 then
-          local choice = json.choices[1]
-          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-
-          if delta then
-            output.role = delta.role
-            output.content = delta.content
-
-            if delta.reasoning_content then
-              output.reasoning = output.reasoning or {}
-              output.reasoning.content = delta.reasoning_content
-            end
-
-            -- Process tools
-            if self.opts.tools and delta.tool_calls and tools then
-              for _, tool in ipairs(delta.tool_calls) do
-                if self.opts.stream then
-                  local index = tool.index
-                  local found = false
-
-                  for i, existing_tool in ipairs(tools) do
-                    if existing_tool._index == index then
-                      tools[i]["function"].arguments = (tools[i]["function"].arguments or "")
-                        .. (tool["function"]["arguments"] or "")
-                      found = true
-                      break
-                    end
-                  end
-
-                  if not found then
-                    table.insert(tools, {
-                      ["function"] = {
-                        name = tool["function"]["name"],
-                        arguments = tool["function"]["arguments"] or "",
-                      },
-                      id = tool.id,
-                      type = "function",
-                      _index = index,
-                    })
-                  end
-                else
-                  table.insert(tools, {
-                    _index = tool.index,
-                    ["function"] = {
-                      name = tool["function"]["name"],
-                      arguments = tool["function"]["arguments"],
-                    },
-                    id = tool.id,
-                    type = "function",
-                  })
-                end
-              end
-            end
-
-            return {
-              status = "success",
-              output = output,
-            }
-          end
+      return openai.handlers.chat_output(self, data, tools)
+    end,
+    parse_message_meta = function(self, data)
+      local extra = data.extra
+      if extra.reasoning_content then
+        data.output.reasoning = { content = extra.reasoning_content }
+        if data.output.content == "" then
+          data.output.content = nil
         end
       end
+      return data
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
@@ -176,8 +132,11 @@ return {
       ---@type string|fun(): string
       default = "deepseek-reasoner",
       choices = {
-        ["deepseek-reasoner"] = { nice_name = "DeepSeek", opts = { can_reason = true, can_use_tools = false } },
-        ["deepseek-chat"] = { nice_name = "DeepSeek", opts = { can_use_tools = true } },
+        ["deepseek-reasoner"] = {
+          formatted_name = "DeepSeek Reasoner",
+          opts = { can_reason = true, can_use_tools = false },
+        },
+        ["deepseek-chat"] = { formatted_name = "DeepSeek Chat", opts = { can_use_tools = true } },
       },
     },
     ---@type CodeCompanion.Schema

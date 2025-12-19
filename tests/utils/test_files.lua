@@ -159,4 +159,164 @@ T["Files utils"]["create_dir_recursive"]["logs errors properly"] = function()
   h.expect_contains("create_dir_recursive:", logged_messages[1] or "")
 end
 
+T["Files utils"]["get_mimetype"] = new_set()
+T["Files utils"]["get_mimetype"]["can invoke `file`"] = function()
+  local orig_system = vim.system
+  local _cmd, _opts, _cb = nil, nil, nil
+  ---@diagnostic disable-next-line: duplicate-set-field
+  vim.system = function(cmds, opts, cb)
+    _cmd = cmds
+    _opts = opts
+    _cb = cb
+    return {
+      wait = function()
+        return { code = 0, stdout = "some_file.txt: text/plain\n" }
+      end,
+    }
+  end
+
+  local _type = files.get_mimetype("some_file.txt")
+  h.eq({ "file", "--mime-type", "some_file.txt" }, _cmd)
+  h.eq("text/plain", _type)
+  vim.system = orig_system
+end
+
+T["Files utils"]["get_mimetype"]["works without `file`"] = function()
+  local orig_system = vim.system
+
+  local _cmd, _opts, _cb = nil, nil, nil
+  ---@diagnostic disable-next-line: duplicate-set-field
+  vim.system = function(cmds, opts, cb)
+    _cmd = cmds
+    _opts = opts
+    _cb = cb
+    return {
+      wait = function()
+        return { code = 1 }
+      end,
+    }
+  end
+
+  local _type = files.get_mimetype("some_file.png")
+  h.eq({ "file", "--mime-type", "some_file.png" }, _cmd)
+  h.eq("image/png", _type)
+  vim.system = orig_system
+end
+
+T["Files utils"]["match_pattern"] = new_set()
+
+T["Files utils"]["match_pattern"]["matches exact literal patterns"] = function()
+  h.eq(true, files.match_pattern(".clinerules", ".clinerules"))
+  h.eq(true, files.match_pattern("CLAUDE.md", "CLAUDE.md"))
+  h.eq(true, files.match_pattern("test_file.lua", "test_file.lua"))
+end
+
+T["Files utils"]["match_pattern"]["rejects non-matching literal patterns"] = function()
+  h.eq(false, files.match_pattern(".clinerules", ".cursorrules"))
+  h.eq(false, files.match_pattern("CLAUDE.md", "claude.md"))
+  h.eq(false, files.match_pattern("test.lua", "test.txt"))
+end
+
+T["Files utils"]["match_pattern"]["is case sensitive"] = function()
+  h.eq(true, files.match_pattern("README.md", "README.md"))
+  h.eq(false, files.match_pattern("readme.md", "README.md"))
+  h.eq(false, files.match_pattern("CLAUDE.MD", "CLAUDE.md"))
+end
+
+T["Files utils"]["match_pattern"]["matches wildcard * patterns"] = function()
+  h.eq(true, files.match_pattern("test.md", "*.md"))
+  h.eq(true, files.match_pattern("CLAUDE.md", "*.md"))
+  h.eq(true, files.match_pattern("file.txt", "*.txt"))
+  h.eq(false, files.match_pattern("file.md", "*.txt"))
+end
+
+T["Files utils"]["match_pattern"]["matches wildcard at start"] = function()
+  h.eq(true, files.match_pattern("test_file.lua", "*_file.lua"))
+  h.eq(true, files.match_pattern("my_test_file.lua", "*_file.lua"))
+  h.eq(false, files.match_pattern("test_file.txt", "*_file.lua"))
+end
+
+T["Files utils"]["match_pattern"]["matches wildcard in middle"] = function()
+  h.eq(true, files.match_pattern("test_spec.lua", "test_*.lua"))
+  h.eq(true, files.match_pattern("test_unit.lua", "test_*.lua"))
+  h.eq(false, files.match_pattern("test_spec.md", "test_*.lua"))
+end
+
+T["Files utils"]["match_pattern"]["matches multiple wildcards"] = function()
+  h.eq(true, files.match_pattern("my_test_file.lua", "*_test_*.lua"))
+  h.eq(true, files.match_pattern("a_test_b.lua", "*_test_*.lua"))
+  h.eq(false, files.match_pattern("my_test_file.md", "*_test_*.lua"))
+end
+
+T["Files utils"]["match_pattern"]["matches ? for single character"] = function()
+  h.eq(true, files.match_pattern("test1.lua", "test?.lua"))
+  h.eq(true, files.match_pattern("testA.lua", "test?.lua"))
+  h.eq(false, files.match_pattern("test12.lua", "test?.lua"))
+  h.eq(false, files.match_pattern("test.lua", "test?.lua"))
+end
+
+T["Files utils"]["match_pattern"]["matches character sets [abc]"] = function()
+  h.eq(true, files.match_pattern("test_a.lua", "test_[abc].lua"))
+  h.eq(true, files.match_pattern("test_b.lua", "test_[abc].lua"))
+  h.eq(true, files.match_pattern("test_c.lua", "test_[abc].lua"))
+  h.eq(false, files.match_pattern("test_d.lua", "test_[abc].lua"))
+end
+
+T["Files utils"]["match_pattern"]["matches range patterns [0-9]"] = function()
+  h.eq(true, files.match_pattern("file1.txt", "file[0-9].txt"))
+  h.eq(true, files.match_pattern("file5.txt", "file[0-9].txt"))
+  h.eq(false, files.match_pattern("fileA.txt", "file[0-9].txt"))
+end
+
+T["Files utils"]["match_pattern"]["escapes special Lua pattern characters"] = function()
+  h.eq(true, files.match_pattern("test.file.lua", "test.file.lua"))
+  h.eq(true, files.match_pattern("file-name.lua", "file-name.lua"))
+  h.eq(true, files.match_pattern("file+name.lua", "file+name.lua"))
+  h.eq(true, files.match_pattern("file(1).lua", "file(1).lua"))
+end
+
+T["Files utils"]["match_pattern"]["combines glob patterns with special chars"] = function()
+  h.eq(true, files.match_pattern("test.spec.lua", "*.spec.lua"))
+  h.eq(true, files.match_pattern("my-file.test.md", "*-file.test.md"))
+  h.eq(false, files.match_pattern("test.spec.txt", "*.spec.lua"))
+end
+
+T["Files utils"]["match_patterns"] = new_set()
+
+T["Files utils"]["match_patterns"]["accepts single pattern as string"] = function()
+  h.eq(true, files.match_patterns("test.md", "*.md"))
+  h.eq(false, files.match_patterns("test.txt", "*.md"))
+end
+
+T["Files utils"]["match_patterns"]["matches against multiple patterns"] = function()
+  local patterns = { "*.md", "*.txt", ".clinerules" }
+  h.eq(true, files.match_patterns("test.md", patterns))
+  h.eq(true, files.match_patterns("file.txt", patterns))
+  h.eq(true, files.match_patterns(".clinerules", patterns))
+  h.eq(false, files.match_patterns("test.lua", patterns))
+end
+
+T["Files utils"]["match_patterns"]["returns true on first match"] = function()
+  local patterns = { ".cursorrules", "*.md", "*.txt" }
+  h.eq(true, files.match_patterns(".cursorrules", patterns))
+end
+
+T["Files utils"]["match_patterns"]["returns false when no patterns match"] = function()
+  local patterns = { "*.md", "*.txt" }
+  h.eq(false, files.match_patterns("test.lua", patterns))
+  h.eq(false, files.match_patterns("script.py", patterns))
+end
+
+T["Files utils"]["match_patterns"]["handles empty pattern list"] = function()
+  h.eq(false, files.match_patterns("test.md", {}))
+end
+
+T["Files utils"]["match_patterns"]["mixes literal and glob patterns"] = function()
+  local patterns = { ".clinerules", "*.md", "test_?.lua" }
+  h.eq(true, files.match_patterns(".clinerules", patterns))
+  h.eq(true, files.match_patterns("README.md", patterns))
+  h.eq(true, files.match_patterns("test_1.lua", patterns))
+  h.eq(false, files.match_patterns("other.txt", patterns))
+end
+
 return T

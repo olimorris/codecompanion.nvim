@@ -34,7 +34,12 @@ end
 ---@param bufnr number
 ---@return table
 function M.name_from_bufnr(bufnr)
-  return vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
+  local bufname = api.nvim_buf_get_name(bufnr)
+  if vim.fn.has("win32") == 1 then
+    -- On Windows, slashes need to be consistent with getcwd, which uses backslashes
+    bufname = bufname:gsub("/", "\\")
+  end
+  return vim.fn.fnamemodify(bufname, ":.")
 end
 
 ---Get the information of a given buffer
@@ -46,7 +51,7 @@ function M.get_info(bufnr)
 
   return {
     bufnr = bufnr,
-    filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+    filetype = api.nvim_get_option_value("filetype", { buf = bufnr }),
     number = bufnr,
     name = vim.fn.fnamemodify(bufname, ":t"),
     path = bufname,
@@ -77,106 +82,11 @@ function M.get_open(ft)
   return buffers
 end
 
----Format buffer content with XML wrapper for LLM consumption
----@param selected table Buffer info { bufnr: number, path: string, name?: string }
----@param opts? table Options { message?: string, range?: table }
----@return string content The XML-wrapped content
----@return string id The buffer context ID
----@return string filename The buffer filename
-function M.format_for_llm(selected, opts)
-  opts = opts or {}
-  local bufnr = selected.bufnr
-  local path = selected.path
-
-  -- Handle unloaded buffers
-  local content
-  if not api.nvim_buf_is_loaded(bufnr) then
-    local file_content = require("plenary.path").new(path):read()
-    if file_content == "" then
-      error("Could not read the file: " .. path)
-    end
-    content = string.format(
-      [[```%s
-%s
-```]],
-      vim.filetype.match({ filename = path }),
-      M.add_line_numbers(vim.trim(file_content))
-    )
-  else
-    content = string.format(
-      [[```%s
-%s
-```]],
-      M.get_info(bufnr).filetype,
-      M.add_line_numbers(M.get_content(bufnr, opts.range))
-    )
-  end
-
-  local filename = vim.fn.fnamemodify(path, ":t")
-  local relative_path = vim.fn.fnamemodify(path, ":.")
-
-  -- Generate consistent ID
-  local id = "<buf>" .. relative_path .. "</buf>"
-
-  local message = opts.message or "File content"
-
-  local formatted_content = string.format(
-    [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
-    relative_path,
-    bufnr,
-    message,
-    content
-  )
-
-  return formatted_content, id, filename
-end
-
----Format viewport content with XML wrapper for LLM consumption
----@param buf_lines table Buffer lines from get_visible_lines()
----@return string content The XML-wrapped content for all visible buffers
-function M.format_viewport_for_llm(buf_lines)
-  local formatted = {}
-
-  for bufnr, ranges in pairs(buf_lines) do
-    local info = M.get_info(bufnr)
-    local relative_path = vim.fn.fnamemodify(info.path, ":.")
-
-    for _, range in ipairs(ranges) do
-      local start_line, end_line = range[1], range[2]
-
-      local buffer_content = M.get_content(bufnr, { start_line - 1, end_line })
-      local content = string.format(
-        [[```%s
-%s
-```]],
-        info.filetype,
-        buffer_content
-      )
-
-      local excerpt_info = string.format("Excerpt from %s, lines %d to %d", relative_path, start_line, end_line)
-
-      local formatted_content = string.format(
-        [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
-        relative_path,
-        bufnr,
-        excerpt_info,
-        content
-      )
-
-      table.insert(formatted, formatted_content)
-    end
-  end
-
-  return table.concat(formatted, "\n\n")
-end
-
----Check if a filepath is open as a buffer and return the buffer number
----@param filepath string The filepath to check
+---Check if a path is open as a buffer and return the buffer number
+---@param path string The path to check
 ---@return number|nil Buffer number if found, nil otherwise
-function M.get_bufnr_from_filepath(filepath)
-  local normalized_path = vim.fn.fnamemodify(filepath, ":p")
+function M.get_bufnr_from_path(path)
+  local normalized_path = vim.fn.fnamemodify(path, ":p")
 
   for _, bufnr in ipairs(api.nvim_list_bufs()) do
     if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then

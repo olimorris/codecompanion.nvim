@@ -12,7 +12,7 @@ local CONSTANTS = {
 local M = {}
 
 ---@class CopilotModels
----@field nice_name string
+---@field formatted_name string
 ---@field vendor string
 ---@field opts {can_stream: boolean, can_use_tools: boolean, has_vision: boolean}
 
@@ -50,9 +50,9 @@ end
 
 ---Asynchronously fetch the list of available Copilot
 ---@param adapter table
----@param provided_token? table
+---@param opts? { token: table, force: boolean } Whether to force token initialization if not available
 ---@return boolean
-local function fetch_async(adapter, provided_token)
+local function fetch_async(adapter, opts)
   _cached_models = get_cached_models()
   if _cached_models then
     return true
@@ -62,11 +62,13 @@ local function fetch_async(adapter, provided_token)
   end
   _fetch_in_progress = true
 
+  opts = opts or {}
+
   if not _cached_adapter then
     _cached_adapter = adapter
   end
 
-  local fresh_token = provided_token or token.fetch()
+  local fresh_token = opts.token or token.fetch({ force = opts.force })
 
   if not fresh_token or not fresh_token.copilot_token then
     log:trace("Copilot Adapter: No copilot token available, skipping async models fetch")
@@ -76,8 +78,10 @@ local function fetch_async(adapter, provided_token)
 
   local base_url = (fresh_token.endpoints and fresh_token.endpoints.api) or "https://api.githubcopilot.com"
   local url = base_url .. "/models"
+
   local headers = vim.deepcopy(_cached_adapter.headers or {})
   headers["Authorization"] = "Bearer " .. fresh_token.copilot_token
+  headers["X-Github-Api-Version"] = "2025-10-01"
 
   -- Async request via plenary.curl with a callback
   local ok, err = pcall(function()
@@ -101,21 +105,69 @@ local function fetch_async(adapter, provided_token)
 
         local models = {}
         for _, model in ipairs(json.data) do
-          if model.model_picker_enabled and model.capabilities and model.capabilities.type == "chat" then
-            local choice_opts = {}
-
-            if model.capabilities.supports and model.capabilities.supports.streaming then
-              choice_opts.can_stream = true
+          -- Copilot models can use the "completions" or "responses" endpoint
+          local internal_endpoint = "completions"
+          if model.supported_endpoints then
+            for _, endpoint in ipairs(model.supported_endpoints) do
+              if endpoint == "/responses" then
+                internal_endpoint = "responses"
+                break
+              elseif endpoint ~= "/chat/completions" then
+                log:debug("Copilot Adapter: Skipping unsupported endpoint '%s' for model '%s'", endpoint, model.id)
+                goto continue
+              end
             end
-            if model.capabilities.supports and model.capabilities.supports.tool_calls then
-              choice_opts.can_use_tools = true
-            end
-            if model.capabilities.supports and model.capabilities.supports.vision then
-              choice_opts.has_vision = true
-            end
-
-            models[model.id] = { vendor = model.vendor, nice_name = model.name, opts = choice_opts }
           end
+
+          if model.model_picker_enabled then
+            local choice_opts = {}
+            local limits = {}
+            local billing = {}
+
+            if model.capabilities then
+              if type(model.capabilities.type) == "string" and model.capabilities.type ~= "chat" then
+                log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
+                goto continue
+              end
+              if type(model.capabilities.type) == "table" and not vim.tbl_contains(model.capabilities.type, "chat") then
+                log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
+                goto continue
+              end
+              if model.capabilities.supports and model.capabilities.supports.streaming then
+                choice_opts.can_stream = true
+              end
+              if model.capabilities.supports and model.capabilities.supports.tool_calls then
+                choice_opts.can_use_tools = true
+              end
+              if model.capabilities.supports and model.capabilities.supports.vision then
+                choice_opts.has_vision = true
+              end
+              if model.capabilities.limits then
+                limits.max_output_tokens = model.capabilities.limits.max_output_tokens
+                limits.max_prompt_tokens = model.capabilities.limits.max_prompt_tokens
+                limits.max_context_window_tokens = model.capabilities.limits.max_context_window_tokens
+              end
+            end
+
+            if model.billing then
+              billing.is_premium = model.billing.is_premium
+              billing.multiplier = model.billing.multiplier
+            end
+
+            local description = model.name .. (billing.multiplier and (" (" .. billing.multiplier .. "x)") or "")
+
+            models[model.id] = {
+              billing = billing,
+              description = description,
+              endpoint = internal_endpoint,
+              formatted_name = model.name,
+              limits = limits,
+              opts = choice_opts,
+              vendor = model.vendor,
+            }
+          end
+
+          ::continue::
         end
 
         _cached_models = models
@@ -135,12 +187,12 @@ end
 
 ---Fetch the list of available Copilot models synchronously.
 ---@param adapter table
----@param provided_token? table
+---@param opts { token: table, async: boolean }
 ---@return CopilotModels|nil
-local function fetch(adapter, provided_token)
-  local _ = fetch_async(adapter, provided_token)
+local function fetch(adapter, opts)
+  local _ = fetch_async(adapter, { token = opts.token, force = true })
 
-  -- Block until models are cached or timeout (milliseconds)
+  -- Block until models are cached or timeout
   local ok = vim.wait(CONSTANTS.TIMEOUT, function()
     return get_cached_models() ~= nil
   end, CONSTANTS.POLL_INTERVAL)
@@ -154,17 +206,19 @@ end
 
 ---Canonical interface used by adapter.schema.model.choices implementations.
 ---@param adapter table
----@param opts? { async: boolean }
----@param provided_token? table
+---@param opts? { token: table, async: boolean }
 ---@return CopilotModels|nil
-function M.choices(adapter, opts, provided_token)
-  opts = opts or { async = true }
-  if not opts.async or opts.async == false then
-    return fetch(adapter, provided_token)
+function M.choices(adapter, opts)
+  opts = opts or {}
+  opts.async = opts.async ~= false -- Default to true unless explicitly false
+
+  if opts.async == false then
+    return fetch(adapter, opts)
   end
 
   -- Non-blocking: start async fetching (if possible) and return whatever is cached
-  fetch_async(adapter, provided_token)
+  -- Don't force token initialization for async requests
+  fetch_async(adapter, { token = opts.token, force = false })
   return get_cached_models()
 end
 

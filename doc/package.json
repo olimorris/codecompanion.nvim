@@ -2,7 +2,8 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "mermaid": "^11.10.0",
-    "vitepress": "^1.5.0",
+    "ufo": "^1.6.1",
+    "vitepress": "^1.6.0",
     "vitepress-plugin-mermaid": "^2.0.17"
   },
   "scripts": {

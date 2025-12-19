@@ -2,10 +2,118 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local shared = require("codecompanion.adapters.shared")
 
+---Check if adapter uses the new handler format
+---@param adapter CodeCompanion.HTTPAdapter
+---@return boolean
+local function uses_new_handlers(adapter)
+  if not adapter.handlers then
+    return false
+  end
+  return adapter.handlers.lifecycle ~= nil or adapter.handlers.request ~= nil or adapter.handlers.response ~= nil
+end
+
+---Get handler function with backwards compatibility
+---@param adapter CodeCompanion.HTTPAdapter
+---@param name string Handler name
+---@return function|nil
+local function get_handler(adapter, name)
+  if not adapter.handlers then
+    return nil
+  end
+
+  -- New nested format - search all categories
+  if uses_new_handlers(adapter) then
+    local categories = { "lifecycle", "request", "response", "tools" }
+    for _, category in ipairs(categories) do
+      if adapter.handlers[category] and adapter.handlers[category][name] then
+        return adapter.handlers[category][name]
+      end
+    end
+    return nil
+  end
+
+  -- Old flat format - map to old names
+  local old_names = {
+    -- lifecycle
+    setup = "setup",
+    on_exit = "on_exit",
+    teardown = "teardown",
+
+    -- request
+    build_parameters = "form_parameters",
+    build_messages = "form_messages",
+    build_tools = "form_tools",
+    build_body = "set_body",
+    build_reasoning = "form_reasoning",
+
+    -- response
+    parse_chat = "chat_output",
+    parse_inline = "inline_output",
+    parse_tokens = "tokens",
+    parse_meta = "parse_message_meta",
+
+    -- tools
+    format_calls = "format_tool_calls",
+    format_response = "output_response",
+  }
+
+  local old_name = old_names[name] or name
+
+  -- Check tools namespace for backwards compat
+  if old_name:match("^format_tool") or old_name == "output_response" or old_name == "output_tool_call" then
+    if adapter.handlers.tools then
+      return adapter.handlers.tools[old_name]
+    end
+  end
+
+  return adapter.handlers[old_name]
+end
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Lifecycle
+---@field setup? fun(self: CodeCompanion.HTTPAdapter): boolean
+---@field on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): nil
+---@field teardown? fun(self: CodeCompanion.HTTPAdapter): nil
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Request
+---@field build_parameters? fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
+---@field build_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table
+---@field build_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table|nil
+---@field build_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
+---@field build_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Response
+---@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, data: string|table, tools?: table): { status: string, output: table }|nil
+---@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, data: string|table, context?: table): { status: string, output: string }|nil
+---@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
+---@field parse_message_meta? fun(self: CodeCompanion.HTTPAdapter, data: {status: string, output: {role: string?, content: string?}, extra: table}):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
+
+---@class CodeCompanion.HTTPAdapter.Handlers.Tools
+---@field format_calls? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
+---@field format_response? fun(self: CodeCompanion.HTTPAdapter, tool_call: table, output: string): table
+
+---@class CodeCompanion.HTTPAdapter.Handlers
+---@field lifecycle? CodeCompanion.HTTPAdapter.Handlers.Lifecycle
+---@field request? CodeCompanion.HTTPAdapter.Handlers.Request
+---@field response? CodeCompanion.HTTPAdapter.Handlers.Response
+---@field tools? CodeCompanion.HTTPAdapter.Handlers.Tools
+---@field resolve? fun(self: CodeCompanion.HTTPAdapter): nil (Deprecated: use lifecycle.setup)
+---@field setup? fun(self: CodeCompanion.HTTPAdapter): boolean (Deprecated: use lifecycle.setup)
+---@field set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil (Deprecated: use request.build_body)
+---@field form_parameters? fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table (Deprecated: use request.build_parameters)
+---@field form_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table (Deprecated: use request.build_messages)
+---@field form_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table } (Deprecated: use request.build_reasoning)
+---@field form_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table (Deprecated: use request.build_tools)
+---@field tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil (Deprecated: use response.parse_tokens)
+---@field chat_output? fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil (Deprecated: use response.parse_chat)
+---@field inline_output? fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil (Deprecated: use response.parse_inline)
+---@field on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil (Deprecated: use lifecycle.on_exit)
+---@field teardown? fun(self: CodeCompanion.HTTPAdapter): any (Deprecated: use lifecycle.teardown)
+
 ---@class CodeCompanion.HTTPAdapter
 ---@field name string The name of the adapter
 ---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
+---@field available_tools? table The tools that are available for the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
@@ -17,27 +125,29 @@ local shared = require("codecompanion.adapters.shared")
 ---@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
----@field model? { name: string, nice_name?: string, vendor?: string, opts: table } The model to use for the request
----@field handlers table Functions which link the output from the request to CodeCompanion
----@field handlers.resolve? fun(self: CodeCompanion.HTTPAdapter): nil When the adapter is resolved, call this method
----@field handlers.setup? fun(self: CodeCompanion.HTTPAdapter): boolean
----@field handlers.set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
----@field handlers.form_parameters fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
----@field handlers.form_messages fun(self: CodeCompanion.HTTPAdapter, messages: table): table
----@field handlers.form_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
----@field handlers.form_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field handlers.tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
----@field handlers.chat_output fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil
----@field handlers.inline_output fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil
----@field handlers.tools.format? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field handlers.tools.output_tool_call? fun(self: CodeCompanion.HTTPAdapter, tool_call: table, output: string): table
----@field handlers.on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
----@field handlers.teardown? fun(self: CodeCompanion.HTTPAdapter): any
+---@field model? {name: string, formatted_name?: string, vendor?: string, opts: table, info?: table } The model to use for the request
+---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
+---@class CodeCompanion.HTTPAdapter.Safe
+---@field name string The name of the adapter
+---@field model string The current model name
+---@field available_tools? table The tools that are available for the adapter
+---@field formatted_name string The formatted name of the adapter
+---@field features table The features that the adapter supports
+---@field url string The URL of the generative AI service to connect to
+---@field headers table The headers to pass to the request
+---@field parameters table The parameters to pass to the request
+---@field opts? table Additional options for the adapter
+---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
+---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+
 ---@class CodeCompanion.HTTPAdapter
 local Adapter = {}
+
+Adapter.get_handler = get_handler
+Adapter.uses_new_handlers = uses_new_handlers
 
 ---@return CodeCompanion.HTTPAdapter
 function Adapter.new(args)
@@ -51,7 +161,7 @@ function Adapter:make_from_schema()
 
   -- Process regular schema values
   for key, value in pairs(self.schema) do
-    if type(value.condition) == "function" and not value.condition(self) then
+    if type(value.enabled) == "function" and not value.enabled(self) then
       goto continue
     end
 
@@ -78,29 +188,37 @@ function Adapter:map_schema_to_params(settings)
   for k, v in pairs(settings) do
     local mapping = self.schema[k] and self.schema[k].mapping
     if mapping then
-      local segments = {}
+      -- Parse the mapping path
+      local mapping_segments = {}
       for segment in string.gmatch(mapping, "[^.]+") do
-        table.insert(segments, segment)
+        table.insert(mapping_segments, segment)
       end
 
+      -- Navigate to the mapping location
       local current = self
-      for i = 1, #segments - 1 do
-        if not current[segments[i]] then
-          current[segments[i]] = {}
+      for i = 1, #mapping_segments do
+        if not current[mapping_segments[i]] then
+          current[mapping_segments[i]] = {}
         end
-        current = current[segments[i]]
+        current = current[mapping_segments[i]]
       end
 
-      -- Before setting the value, ensure the target exists or initialize it.
-      local target = segments[#segments]
-      if not current[target] then
-        current[target] = {}
+      -- Parse the schema key for nested structure (e.g., "reasoning.effort")
+      local key_segments = {}
+      for segment in string.gmatch(k, "[^.]+") do
+        table.insert(key_segments, segment)
       end
 
-      -- Ensure 'target' is not nil and 'k' can be assigned to the final segment.
-      if target then
-        current[target][k] = v
+      -- Create nested structure based on the key segments
+      for i = 1, #key_segments - 1 do
+        if not current[key_segments[i]] then
+          current[key_segments[i]] = {}
+        end
+        current = current[key_segments[i]]
       end
+
+      -- Set the final value at the deepest level
+      current[key_segments[#key_segments]] = v
     end
   end
 
@@ -121,21 +239,7 @@ function Adapter.extend(adapter, opts)
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters.http." .. adapter)
     if not ok then
-      -- TODO: Remove this in v18.0.0
-      -- START
-
-      -- Try new structure first
-      if config.adapters.http and config.adapters.http[adapter] then
-        adapter_config = config.adapters.http[adapter]
-      else
-        -- Fallback to root level for backwards compatibility
-        adapter_config = config.adapters[adapter]
-      end
-      -- END
-
-      --TODO: Uncomment this in v18.0.0
-      --adapter_config = config.adapters.http[adapter]
-
+      adapter_config = config.adapters.http[adapter]
       if adapter_config and type(adapter_config) == "function" then
         adapter_config = adapter_config()
       end
@@ -188,7 +292,7 @@ end
 ---@param opts? table
 ---@return CodeCompanion.HTTPAdapter
 function Adapter.resolve(adapter, opts)
-  adapter = adapter or config.strategies.chat.adapter
+  adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
   if type(adapter) == "table" then
@@ -243,18 +347,21 @@ function Adapter.resolved(adapter)
   return false
 end
 
----Make an adapter safe for serialization
+---Make an adapter safe for serialization and prevent any recursive issues.
+---Adapters have become complex, making API calls to get models etc.
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table
+---@return CodeCompanion.HTTPAdapter.Safe
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
+    type = adapter.type,
     model = adapter.model,
+    available_tools = adapter.available_tools,
     formatted_name = adapter.formatted_name,
     features = adapter.features,
     url = adapter.url,
     headers = adapter.headers,
-    params = adapter.parameters,
+    parameters = adapter.parameters,
     opts = adapter.opts,
     handlers = adapter.handlers,
     schema = vim

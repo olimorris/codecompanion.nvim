@@ -1,6 +1,6 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.GeminiCLI: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.ClaudeCode: CodeCompanion.ACPAdapter
 return {
   name = "claude_code",
   formatted_name = "Claude Code",
@@ -14,10 +14,7 @@ return {
   },
   commands = {
     default = {
-      "npx",
-      "--silent",
-      "--yes",
-      "@zed-industries/claude-code-acp",
+      "claude-code-acp",
     },
   },
   defaults = {

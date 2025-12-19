@@ -34,10 +34,14 @@ T["OpenAI adapter"]["it can form messages with images"] = function()
     {
       content = "somefakebase64encoding",
       role = "user",
-      opts = {
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         mimetype = "image/jpg",
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+      },
+      _meta = {
         tag = "image",
+      },
+      opts = {
         visible = false,
       },
     },
@@ -80,6 +84,30 @@ T["OpenAI adapter"]["it can form messages with tools"] = function()
   local messages = {
     {
       role = "assistant",
+      tools = {
+        calls = {
+          {
+            id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
+          },
+          {
+            id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "Paris", "units": "celsius"}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      role = "assistant",
       tool_calls = {
         {
           id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
@@ -99,11 +127,11 @@ T["OpenAI adapter"]["it can form messages with tools"] = function()
     },
   }
 
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
 T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
@@ -126,7 +154,9 @@ T["OpenAI adapter"]["can output tool call"] = function()
       visible = false,
     },
     role = "tool",
-    tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    tools = {
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    },
   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end
 
@@ -241,7 +271,7 @@ T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
 end
 
-T["OpenAI adapter"]["reasoning_effort condition"] = function()
+T["OpenAI adapter"]["reasoning_effort enabled"] = function()
   -- Test when choices is a function and model supports reasoning
   local adapter_with_reasoning = require("codecompanion.adapters").extend("openai", {
     schema = {
@@ -256,8 +286,8 @@ T["OpenAI adapter"]["reasoning_effort condition"] = function()
       },
     },
   })
-  local condition_result = adapter_with_reasoning.schema.reasoning_effort.condition(adapter_with_reasoning)
-  h.eq(true, condition_result)
+  local enabled_result = adapter_with_reasoning.schema.reasoning_effort.enabled(adapter_with_reasoning)
+  h.eq(true, enabled_result)
 
   -- Test when choices is a function but model doesn't support reasoning
   local adapter_without_reasoning = require("codecompanion.adapters").extend("openai", {
@@ -273,8 +303,8 @@ T["OpenAI adapter"]["reasoning_effort condition"] = function()
       },
     },
   })
-  local condition_result_false = adapter_without_reasoning.schema.reasoning_effort.condition(adapter_without_reasoning)
-  h.eq(false, condition_result_false)
+  local enabled_result_false = adapter_without_reasoning.schema.reasoning_effort.enabled(adapter_without_reasoning)
+  h.eq(false, enabled_result_false)
 
   -- Test when model doesn't exist in choices
   local adapter_missing_model = require("codecompanion.adapters").extend("openai", {
@@ -289,8 +319,8 @@ T["OpenAI adapter"]["reasoning_effort condition"] = function()
       },
     },
   })
-  local condition_result_missing = adapter_missing_model.schema.reasoning_effort.condition(adapter_missing_model)
-  h.eq(false, condition_result_missing)
+  local enabled_result_missing = adapter_missing_model.schema.reasoning_effort.enabled(adapter_missing_model)
+  h.eq(false, enabled_result_missing)
 end
 
 return T

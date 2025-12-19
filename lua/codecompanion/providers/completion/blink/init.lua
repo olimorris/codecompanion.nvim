@@ -1,6 +1,7 @@
 --- @module 'blink.cmp'
 
 local completion = require("codecompanion.providers.completion")
+local config = require("codecompanion.config")
 
 --- @class blink.cmp.Source
 local M = {}
@@ -10,7 +11,11 @@ function M.new()
 end
 
 function M:get_trigger_characters()
-  return { "/", "#", "@" }
+  local triggers = { "/", "#", "@" }
+  if config.interactions.chat.slash_commands.opts.acp.enabled then
+    table.insert(triggers, config.interactions.chat.slash_commands.opts.acp.trigger or "\\")
+  end
+  return triggers
 end
 
 function M:enabled()
@@ -114,6 +119,38 @@ function M:get_completions(ctx, callback)
         :totable(),
     })
 
+  -- ACP commands
+  elseif trigger_char == (config.interactions.chat.slash_commands.opts.acp.trigger or "\\") then
+    local acp_cmds = completion.acp_commands(ctx.bufnr)
+    local items = vim
+      .iter(acp_cmds)
+      :map(function(item)
+        return {
+          kind = vim.lsp.protocol.CompletionItemKind.Function,
+          label = item.label:sub(2),
+          textEdit = {
+            newText = item.label,
+            range = edit_range,
+          },
+          documentation = {
+            kind = "plaintext",
+            value = item.detail,
+          },
+          data = {
+            type = "acp_command",
+            command = item.command,
+          },
+        }
+      end)
+      :totable()
+
+    callback({
+      context = ctx,
+      is_incomplete_forward = true, -- ACP commands can be updated dynamically via available_commands_update
+      is_incomplete_backward = false,
+      items = items,
+    })
+
   -- Nothing to show
   else
     callback()
@@ -121,6 +158,7 @@ function M:get_completions(ctx, callback)
 end
 
 function M:execute(ctx, item, callback, default_implementation)
+  -- Variables and tools just need default text insertion
   if vim.tbl_contains({ "variable", "tool" }, item.data.type) then
     if type(default_implementation) == "function" then
       default_implementation()
@@ -129,7 +167,16 @@ function M:execute(ctx, item, callback, default_implementation)
     return callback()
   end
 
-  -- Clear keyword
+  -- ACP commands just need text insertion (no execution needed)
+  if item.data.type == "acp_command" then
+    if type(default_implementation) == "function" then
+      default_implementation()
+    end
+
+    return callback()
+  end
+
+  -- Clear keyword for slash commands
   -- TODO: use only the former implementation once blink.cmp 0.14+ is released
   if type(default_implementation) == "function" then
     vim.lsp.util.apply_text_edits({ { newText = "", range = item.textEdit.range } }, ctx.bufnr, "utf-8")

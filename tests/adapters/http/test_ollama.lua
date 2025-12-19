@@ -41,20 +41,22 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
     },
     {
       role = "llm",
-      tool_calls = {
-        {
-          ["function"] = {
-            arguments = '{"location":"London, UK","units":"fahrenheit"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            type = "function",
           },
-          type = "function",
-        },
-        {
-          ["function"] = {
-            arguments = '{"location":"Paris, France","units":"fahrenheit"}',
-            name = "weather",
+          {
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+              name = "weather",
+            },
+            type = "function",
           },
-          type = "function",
         },
       },
     },
@@ -112,7 +114,7 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
 end
 
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
@@ -146,10 +148,14 @@ T["Ollama adapter"]["Streaming"]["can form messages with images"] = function()
     {
       content = "somefakebase64encoding",
       role = "user",
-      opts = {
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         mimetype = "image/jpg",
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+      },
+      _meta = {
         tag = "image",
+      },
+      opts = {
         visible = false,
       },
     },

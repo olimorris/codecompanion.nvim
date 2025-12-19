@@ -1,5 +1,19 @@
 # Other Configuration Options
 
+## Language
+
+If you use the default system prompt, you can specify which language an LLM should respond in by changing the `opts.language` option:
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    language = "English",
+  },
+}),
+```
+
+Of course, if you have your own system prompt you can specify your own language for the LLM to respond in.
+
 ## Log Level
 
 > [!IMPORTANT]
@@ -15,20 +29,6 @@ require("codecompanion").setup({
 }),
 ```
 
-## Default Language
-
-If you use the default system prompt, you can specify which language an LLM should respond in by changing the `opts.language` option:
-
-```lua
-require("codecompanion").setup({
-  opts = {
-    language = "English",
-  },
-}),
-```
-
-Of course, if you have your own system prompt you can specify your own language for the LLM to respond in.
-
 ## Sending Code
 
 > [!IMPORTANT]
@@ -43,23 +43,4 @@ require("codecompanion").setup({
   },
 }),
 ```
-## Highlight Groups
-
-The plugin sets the following highlight groups during setup:
-
-- `CodeCompanionChatInfo` - Information messages in the chat buffer
-- `CodeCompanionChatInfoBanner` - Banner showing useful information in the chat buffer
-- `CodeCompanionChatError` - Error messages in the chat buffer
-- `CodeCompanionChatWarn` - Warning messages in the chat buffer
-- `CodeCompanionChatSubtext` - Messages that appear under the information, error or warning messages in the chat buffer
-- `CodeCompanionChatFold` - For any folds in the chat buffer (not including tool output)
-- `CodeCompanionChatHeader` - The headers in the chat buffer
-- `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
-- `CodeCompanionSuperDiffDirectory` - Highlight directories in a Super Diff buffer
-- `CodeCompanionSuperDiffFilename` - Highlight filenames in a Super Diff buffer
-- `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
-- `CodeCompanionChatTool` - Tools in the chat buffer
-- `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
-- `CodeCompanionChatVariable` - Variables in the chat buffer
-- `CodeCompanionVirtualText` - All other virtual text in the plugin
 

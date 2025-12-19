@@ -99,22 +99,24 @@ T["DeepSeek adapter"]["form_messages"]["it can form messages with tools"] = func
     { role = "system", content = "System Prompt 3" },
     {
       role = "llm",
-      tool_calls = {
-        {
-          ["function"] = {
-            arguments = '{"location":"London, UK","units":"fahrenheit"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+            type = "function",
           },
-          id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
-          type = "function",
-        },
-        {
-          ["function"] = {
-            arguments = '{"location":"Paris, France","units":"fahrenheit"}',
-            name = "weather",
+          {
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+            type = "function",
           },
-          id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
-          type = "function",
         },
       },
     },
@@ -167,7 +169,7 @@ T["DeepSeek adapter"]["form_messages"]["it can form tools to be sent to the API"
     },
   })
 
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
@@ -198,6 +200,9 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
+    if adapter.handlers.parse_message_meta and chat_output.extra then
+      chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
+    end
     if chat_output then
       if chat_output.output.reasoning and chat_output.output.reasoning.content then
         output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
@@ -275,7 +280,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _index = 0,
+      _index = 1,
       ["function"] = {
         arguments = '{"location": "London", "units": "celsius"}',
         name = "weather",
@@ -284,7 +289,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
       type = "function",
     },
     {
-      _index = 1,
+      _index = 2,
       ["function"] = {
         arguments = '{"location": "Paris", "units": "celsius"}',
         name = "weather",

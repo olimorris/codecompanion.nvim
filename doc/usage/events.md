@@ -1,3 +1,7 @@
+---
+description: Learn how to consume events within Neovim in CodeCompanion
+---
+
 # Events / Hooks
 
 In order to enable a tighter integration between CodeCompanion and your Neovim config, the plugin fires events at various points during its lifecycle.
@@ -6,6 +10,7 @@ In order to enable a tighter integration between CodeCompanion and your Neovim c
 
 The events that are fired from within the plugin are:
 
+- `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden
@@ -16,15 +21,14 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
-- `CodeCompanionChatPin` - Fired after a pinned context item has been updated in the messages table
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
-- `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
-- `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
+- `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
+- `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
@@ -52,7 +56,7 @@ Each event also comes with a data payload. For example, with `CodeCompanionReque
     },
     bufnr = 10,
     id = 6107753,
-    strategy = "chat"
+    interaction = "chat"
   },
   event = "User",
   file = "CodeCompanionRequestStarted",

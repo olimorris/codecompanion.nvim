@@ -16,6 +16,13 @@
 
 ---@alias ACP.authMethods ACP.AuthMethod[]
 
+---@class ACP.AvailableCommand
+---@field name string The command name (e.g., "cost", "context")
+---@field description string The command description
+---@field input? { hint: string } Optional input hint for arguments
+
+---@alias ACP.availableCommands ACP.AvailableCommand[]
+
 ---@meta Tree-sitter
 
 ---@class vim.treesitter.LanguageTree
@@ -34,21 +41,24 @@
 ---@alias CodeCompanion.Chat.Messages CodeCompanion.Chat.Message[]
 
 ---@class CodeCompanion.Chat.Message
----@field id number Unique identifier for the message (generated via hash)
 ---@field role string Role of the author (e.g. "user", "llm", "system", "tool")
 ---@field content string The raw Markdown/text content of the message (optional for tool-only entries)
----@field cycle number The chat turn cycle when this message was added
+---@field tools? table Optional tool data
+---@field tools.call_id? string Tool call ID
+---@field tools.calls? CodeCompanion.Chat.ToolCall[] Array of tool calls
+---@field tools.id? string Tool ID
 ---@field opts? table Optional metadata used by the UI and processing
----@field opts.visible? boolean Whether the message should be shown in the chat UI
----@field opts.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
----@field opts.context_id? string Link to a context item (used for pinned/context messages)
----@field opts.pinned? boolean Whether the context message is pinned
 ---@field opts.index? number If set, the message was inserted at this index
----@field opts.watched? boolean Whether the context is being watched for changes
----@field _meta table Internal metadata (e.g. { sent = true })
+---@field opts.sync_all? boolean When synced, whether the entire buffer is shared
+---@field opts.sync_diff? boolean When synced, whether only buffer diffs are shared
+---@field opts.visible? boolean Whether the message should be shown in the chat UI
+---@field _meta? table Internal static metadata (e.g. { sent = true })
+---@field _meta.id? number Unique identifier for the message (generated via hash)
+---@field _meta.cycle? number The chat turn cycle when this message was added
+---@field _meta.index? number The index of the chat message in the messages stack
+---@field _meta.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
+---@field context? { id?: string, path?: string, mimetype?: string, url?: string } Optional context object
 ---@field reasoning? CodeCompanion.Chat.Reasoning Optional reasoning object returned by some adapters
----@field tool_calls? CodeCompanion.Chat.ToolCall[] Array of tool call descriptors attached to this message
----@field tool_call_id? string Optional single tool call id that this message represents (links tool output -> call)
 ---@field type? string Optional message type used by the UI (e.g. "llm_message", "tool_message", "reasoning_message")
 ---@field _raw? any Any adapter-specific raw payload stored with the message
 ---@field created_at? number Unix timestamp (optional, helpful for sorting/logging)
@@ -97,18 +107,6 @@
 ---@field target string The buffer that's being targeted by the variable
 ---@field params string Any additional parameters for the variable
 
----@class CodeCompanion.Watchers
----@field buffers table<number, CodeCompanion.WatcherState> Map of buffer numbers to their states
----@field augroup integer The autocmd group ID
----@field watch fun(self: CodeCompanion.Watchers, bufnr: number): nil Start watching a buffer
----@field unwatch fun(self: CodeCompanion.Watchers, bufnr: number): nil Stop watching a buffer
----@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): boolean, table
-
----@class CodeCompanion.WatcherState
----@field content string[] Complete buffer content
----@field changedtick number Last known changedtick
----@field last_sent string[] Last content sent to LLM
-
 ---@class CodeCompanion.Subscribers
 ---@field queue CodeCompanion.Chat.Event[]
 
@@ -122,15 +120,6 @@
 ---@field id number The unique identifier for the event
 ---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
-
----@class CodeCompanion.Chat.ContextItem
----@field bufnr? number The buffer number if this is buffer context
----@field id string The unique ID of the context which links it to a message in the chat buffer and is displayed to the user
----@field source string The source of the context e.g. slash_command
----@field opts? table
----@field opts.pinned? boolean Whether this context item is pinned
----@field opts.watched? boolean Whether this context item is being watched for changes
----@field opts.visible? boolean Whether this context item should be shown in the chat UI
 
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool
@@ -146,7 +135,7 @@
 ---@field handlers.on_exit? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): any Function to call at the end of a group of commands or functions
 ---@field output? table Functions which handle the output after every execution of a tool
 ---@field output.prompt fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): string The message which is shared with the user when asking for their approval
----@field output.rejected? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
+---@field output.rejected? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table, opts?: {reason?: string}): any Function to call if the user rejects running a command
 ---@field output.error? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
 ---@field output.success? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table, stdout: table): any Function to call if the tool is successful
 ---@field output.cancelled? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table): any Function to call if the tool is cancelled
@@ -173,3 +162,20 @@
 ---@field validate table Validate an item
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
+
+---@class CodeCompanion.BufferContext
+---@field bufnr number The buffer number
+---@field buftype string The buffer type
+---@field cursor_pos number[] The cursor position as [line, col]
+---@field end_col number The end column of the selection
+---@field end_line number The end line of the selection
+---@field filetype string The filetype of the buffer
+---@field filename string The name of the file
+---@field is_visual boolean Whether the selection is visual
+---@field is_normal boolean Whether the selection is normal
+---@field lines string[] The lines in the buffer
+---@field line_count number The number of lines in the buffer
+---@field mode string The current mode
+---@field start_line number The start line of the selection
+---@field start_col number The start column of the selection
+---@field winnr number The window number

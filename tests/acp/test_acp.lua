@@ -480,7 +480,7 @@ end
 
 T["ACP Responses"]["fs/read_text_file ENOENT returns empty content"] = function()
   local result = child.lua([[
-    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
       read_text_file = function(path) return false, "ENOENT: " .. path end
     }
     local connection = ACP.new({
@@ -506,7 +506,7 @@ end
 
 T["ACP Responses"]["fs/read_text_file rejects invalid sessionId"] = function()
   local result = child.lua([[
-    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
       read_text_file = function(path) return true, "should_not_be_called" end
     }
     local connection = ACP.new({
@@ -535,7 +535,7 @@ T["ACP Responses"]["fs/write_text_file and responds with null"] = function()
   local result = child.lua([[
     -- Stub the fs module to capture writes
     local writes = {}
-    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
       write_text_file = function(path, content)
         table.insert(writes, { path = path, content = content })
         return true
@@ -586,7 +586,7 @@ end
 
 T["ACP Responses"]["fs/write_text_file rejects invalid sessionId"] = function()
   local result = child.lua([[
-    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
       write_text_file = function(path, content)
         error("should not be called for wrong session")
       end
@@ -629,7 +629,7 @@ end
 
 T["ACP Responses"]["fs/write_text_file failure returns JSON-RPC error"] = function()
   local result = child.lua([[
-    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
       write_text_file = function(_) return nil, "EACCES" end
     }
     local connection = ACP.new({
@@ -689,6 +689,51 @@ T["ACP Responses"]["ignores notifications for other sessions"] = function()
 
   h.eq(result.count, 1)
   h.eq(result.last, "seen")
+end
+
+T["ACP Responses"]["error response notifies active prompt"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        schedule_wrap = function(fn) return fn end,
+        schedule = function(fn) fn() end,
+      }
+    })
+
+    local error_handled = false
+    local captured_error = nil
+
+    connection._active_prompt = {
+      handle_error = function(self, err)
+        error_handled = true
+        captured_error = err
+      end
+    }
+
+    -- Simulate error response with nested error data
+    local error_response = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 5,
+      error = {
+        code = -32603,
+        message = "Internal error",
+        data = {
+          error = "LLM provider error: quota exceeded"
+        }
+      }
+    })
+
+    connection:handle_rpc_message(error_response)
+
+    return {
+      error_handled = error_handled,
+      error_message = captured_error,
+    }
+  ]])
+
+  h.eq(result.error_handled, true)
+  h.eq(result.error_message, "LLM provider error: quota exceeded")
 end
 
 return T

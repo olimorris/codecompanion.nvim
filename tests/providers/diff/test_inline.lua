@@ -87,74 +87,7 @@ T["InlineDiff"]["new - handles missing id parameter"] = function()
   h.eq(type(diff.ns_id), "number")
 end
 
-T["InlineDiff"]["calculate_hunks - delegates to DiffUtils"] = function()
-  local old_lines = { "line 1", "old line", "line 3" }
-  local new_lines = { "line 1", "new line", "line 3" }
-  local hunks = InlineDiff.calculate_hunks(old_lines, new_lines)
-
-  h.eq(type(hunks), "table")
-end
-
-T["InlineDiff"]["calculate_hunks - respects context parameter"] = function()
-  local old_lines = { "line 1", "line 2", "old line", "line 4", "line 5" }
-  local new_lines = { "line 1", "line 2", "new line", "line 4", "line 5" }
-  local hunks_default = InlineDiff.calculate_hunks(old_lines, new_lines)
-  local hunks_context_1 = InlineDiff.calculate_hunks(old_lines, new_lines, 1)
-
-  h.eq(type(hunks_default), "table")
-  h.eq(type(hunks_context_1), "table")
-end
-
-T["InlineDiff"]["apply_hunk_highlights - delegates to DiffUtils"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local ns_id = vim.api.nvim_create_namespace("test_highlights")
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "line 1", "new line", "line 3" })
-
-  local hunks = {
-    {
-      old_start = 2,
-      old_count = 1,
-      new_start = 2,
-      new_count = 1,
-      old_lines = { "old line" },
-      new_lines = { "new line" },
-      context_before = { "line 1" },
-      context_after = { "line 3" },
-    },
-  }
-  local extmark_ids = InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id)
-
-  h.eq(type(extmark_ids), "table")
-
-  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-end
-
-T["InlineDiff"]["apply_hunk_highlights - handles options"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local ns_id = vim.api.nvim_create_namespace("test_options")
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "line 1" })
-
-  local hunks = {
-    {
-      old_start = 1,
-      old_count = 0,
-      new_start = 1,
-      new_count = 1,
-      old_lines = {},
-      new_lines = { "line 1" },
-      context_before = {},
-      context_after = {},
-    },
-  }
-  local opts = { show_removed = false, status = "accepted" }
-  local extmark_ids = InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, 0, opts)
-
-  h.eq(type(extmark_ids), "table")
-
-  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-end
-
-T["InlineDiff"]["contents_equal - delegates to DiffUtils"] = function()
+T["InlineDiff"]["is_equal - compares content arrays"] = function()
   local bufnr = vim.api.nvim_get_current_buf()
   local contents = { "line 1", "line 2" }
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
@@ -169,61 +102,8 @@ T["InlineDiff"]["contents_equal - delegates to DiffUtils"] = function()
   local content2 = { "line 1", "line 2" }
   local content3 = { "line 1", "different line 2" }
 
-  h.eq(diff:contents_equal(content1, content2), true)
-  h.eq(diff:contents_equal(content1, content3), false)
-end
-
-T["InlineDiff"]["apply_diff_highlights - applies highlights for changes"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local original_contents = { "line 1", "old line", "line 3" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, original_contents)
-
-  local diff = InlineDiff.new({
-    bufnr = bufnr,
-    contents = original_contents,
-    id = "test_highlights",
-  })
-
-  local old_lines = { "line 1", "old line", "line 3" }
-  local new_lines = { "line 1", "new line", "line 3" }
-  local initial_extmarks = #diff.extmark_ids
-  diff:apply_diff_highlights(old_lines, new_lines)
-
-  h.expect_truthy(#diff.extmark_ids >= initial_extmarks)
-end
-
-T["InlineDiff"]["clear_highlights - removes all extmarks"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local original_contents = { "line 1", "old line", "line 3" }
-  local current_contents = { "line 1", "new line", "line 3" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, current_contents)
-
-  local diff = InlineDiff.new({
-    bufnr = bufnr,
-    contents = original_contents,
-    id = "test_clear",
-  })
-
-  local _ = #diff.extmark_ids
-  diff:clear_highlights()
-
-  h.eq(#diff.extmark_ids, 0)
-end
-
-T["InlineDiff"]["clear_highlights - handles invalid buffer"] = function()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local contents = { "line 1" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
-
-  local diff = InlineDiff.new({
-    bufnr = bufnr,
-    contents = contents,
-    id = "test_invalid",
-  })
-  vim.api.nvim_buf_delete(bufnr, { force = true })
-
-  diff:clear_highlights() -- Should not throw error
-  h.eq(#diff.extmark_ids, 0)
+  h.eq(diff:is_equal(content1, content2), true)
+  h.eq(diff:is_equal(content1, content3), false)
 end
 
 T["InlineDiff"]["accept - clears highlights and fires event"] = function()

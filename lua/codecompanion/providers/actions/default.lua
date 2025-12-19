@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
+local ui_utils = require("codecompanion.utils.ui")
 
 ---@class CodeCompanion.Actions.Provider.Default: CodeCompanion.SlashCommand.Provider
 ---@field context table
@@ -19,10 +19,10 @@ end
 ---@return nil
 function Provider:picker(items, opts)
   opts = opts or {}
-  opts.columns = opts.columns or { "name", "strategy", "description" }
+  opts.columns = opts.columns or { "name", "interaction", "description" }
   opts.prompt = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions"
 
-  ui.action_palette_selector(items, {
+  ui_utils.action_palette_selector(items, {
     prompt = opts.prompt,
     width = config.display.action_palette.width,
     height = config.display.action_palette.height,

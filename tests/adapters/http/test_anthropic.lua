@@ -48,7 +48,9 @@ T["Anthropic adapter"]["form_messages"]["regular chat"] = function()
       opts = {
         visible = true,
       },
-      cycle = 1,
+      _meta = {
+        cycle = 1,
+      },
       id = 1849003275,
       some_made_up_thing = true,
     },
@@ -82,10 +84,14 @@ T["Anthropic adapter"]["form_messages"]["images"] = function()
     {
       content = "somefakebase64encoding",
       role = "user",
-      opts = {
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         mimetype = "image/jpg",
-        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+      },
+      _meta = {
         tag = "image",
+      },
+      opts = {
         visible = false,
       },
     },
@@ -148,56 +154,60 @@ T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results
     },
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 1,
-          ["function"] = {
-            arguments = '{"location": "London, UK", "units": "celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "London, UK", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_01A09q90qw90lq917835lq9",
+            type = "function",
           },
-          id = "toolu_01A09q90qw90lq917835lq9",
-          type = "function",
         },
       },
     },
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 1,
-          ["function"] = {
-            arguments = '{"location": "Paris, France", "units": "celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "Paris, France", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_01A09q90qw90lq917835lq8",
+            type = "function",
           },
-          id = "toolu_01A09q90qw90lq917835lq8",
-          type = "function",
         },
       },
     },
     {
       role = "tool",
-      content = {
+      content = "The weather in London is 15 degrees celsius",
+      tools = {
         type = "tool_result",
-        content = "The weather in London is 15 degrees celsius",
-        tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+        call_id = "toolu_01A09q90qw90lq917835lq9",
         is_error = false,
       },
     },
     {
       role = "tool",
-      content = {
+      content = ". So enjoy it!",
+      tools = {
         type = "tool_result",
-        content = ". So enjoy it!",
-        tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+        call_id = "toolu_01A09q90qw90lq917835lq9",
         is_error = false,
       },
     },
     {
       role = "tool",
-      content = {
+      content = "The weather in Paris is 15 degrees celsius",
+      tools = {
         type = "tool_result",
-        content = "The weather in Paris is 15 degrees celsius",
-        tool_use_id = "toolu_01A09q90qw90lq917835lq8",
+        call_id = "toolu_01A09q90qw90lq917835lq8",
         is_error = false,
       },
     },
@@ -279,12 +289,14 @@ T["Anthropic adapter"]["form_messages"]["handles tool results correctly"] = func
     {
       role = "assistant",
       content = "I'll check the weather for you.",
-      tool_calls = {
-        {
-          id = "call_123",
-          ["function"] = {
-            name = "get_weather",
-            arguments = '{"location": "London"}',
+      tools = {
+        calls = {
+          {
+            id = "call_123",
+            ["function"] = {
+              name = "get_weather",
+              arguments = '{"location": "London"}',
+            },
           },
         },
       },
@@ -427,15 +439,17 @@ T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
     },
     {
       role = "assistant",
-      tool_calls = {
-        {
-          _index = 1,
-          ["function"] = {
-            arguments = '{"location": "London, UK", "units": "celsius"}',
-            name = "weather",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "London, UK", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_01UjbLnwyzbLtZNjvrDuiRDE",
+            type = "function",
           },
-          id = "toolu_01UjbLnwyzbLtZNjvrDuiRDE",
-          type = "function",
         },
       },
       reasoning = {
@@ -525,7 +539,7 @@ T["Anthropic adapter"]["form_reasoning"] = function()
 end
 
 T["Anthropic adapter"]["form_tools"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { transform.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))

@@ -6,7 +6,7 @@
 ---@field optional nil|boolean
 ---@field choices nil|table|fun(self: CodeCompanion.HTTPAdapter): table<string>
 ---@field desc string The description of the schema item
----@field condition? nil|fun(self: CodeCompanion.HTTPAdapter): boolean
+---@field enabled? nil|fun(self: CodeCompanion.HTTPAdapter): boolean
 ---@field validate? fun(value: any): boolean, nil|string
 
 local M = {}
@@ -20,7 +20,7 @@ M.get_default = function(adapter, defaults)
   local schema = adapter.schema
   local ret = {}
   for k, v in pairs(schema) do
-    if type(v.condition) == "function" and not v.condition(adapter) then
+    if type(v.enabled) == "function" and not v.enabled(adapter) then
       goto continue
     end
 
@@ -29,7 +29,11 @@ M.get_default = function(adapter, defaults)
         ret[k] = defaults[k]
       else
         -- Use the default value in the schema
-        ret[k] = v.default
+        if type(v.default) == "function" then
+          ret[k] = v.default(adapter)
+        else
+          ret[k] = v.default
+        end
       end
     end
     ::continue::
@@ -120,7 +124,7 @@ end
 M.get_ordered_keys = function(adapter)
   local schema = adapter.schema
   for k, v in pairs(schema) do
-    if type(v.condition) == "function" and not v.condition(adapter) then
+    if type(v.enabled) == "function" and not v.enabled(adapter) then
       schema[k] = nil
     end
   end

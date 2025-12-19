@@ -8,6 +8,7 @@ T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
+        h = require('tests.helpers')
         utils = require("codecompanion.utils.adapters")
 
         _G.test_adapter = {
@@ -118,6 +119,36 @@ T["Adapter"]["can form parameters from a chat buffer's settings"] = function()
   ]])
 
   h.eq(child.lua_get([[_G.chat_buffer_settings]]), result)
+end
+
+T["Adapter"]["can use schema to created nested parameters"] = function()
+  local result = child.lua([[
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      schema = {
+        ["reasoning.effort"] = {
+          order = 2,
+          mapping = "parameters",
+          type = "string",
+          optional = true,
+          default = "medium",
+          desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+          choices = {
+            "high",
+            "medium",
+            "low",
+            "minimal",
+          }
+        }
+      }
+    })
+    return adapter:map_schema_to_params().parameters
+  ]])
+
+  local expected = {
+    effort = "medium",
+  }
+
+  h.eq(expected, result.reasoning)
 end
 
 T["Adapter"]["can nest parameters based on an adapter's schema"] = function()
@@ -233,19 +264,38 @@ T["Adapter"]["can update a model on the adapter"] = function()
   }, result)
 end
 
+T["Adapter"]["can update schema"] = function()
+  local adapter = require("codecompanion.adapters").extend("openai", {
+    schema = {
+      model = {
+        default = "my-new-adapter",
+        choices = {
+          "my-new-adapter",
+          "my-other-adapter",
+        },
+      },
+    },
+  })
+
+  h.eq("my-new-adapter", adapter.schema.model.default)
+  h.eq("my-new-adapter", adapter.schema.model.choices[1])
+end
+
 T["Adapter"]["can resolve custom adapters"] = function()
   local result = child.lua([[
     require("codecompanion").setup({
       adapters = {
-        openai = function()
-          return require("codecompanion.adapters").extend("openai", {
-            env = {
-              api_key = "abc_123"
-            }
-          })
-        end,
+        http = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai", {
+              env = {
+                api_key = "abc_123"
+              }
+            })
+          end,
+        }
       },
-      strategies = {
+      interactions = {
         chat = {
           adapter = "openai",
         }
@@ -260,8 +310,8 @@ end
 
 T["Adapter"]["can pass in the name of the model"] = function()
   local result = child.lua([[
-    require("codecompanion").setup({
-      strategies = {
+    h.setup_plugin({
+      interactions = {
         chat = {
           adapter = {
             name = "copilot",
@@ -367,6 +417,324 @@ T["Adapter"]["utils"]["can consolidate system messages"] = function()
     { role = "assistant", content = "Bar" },
     { role = "user", content = "Baz" },
   }, child.lua_get([[utils.merge_system_messages(messages)]]))
+end
+
+T["Adapter"]["call_handler"] = new_set()
+
+T["Adapter"]["call_handler"]["works with nested handlers"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    -- Create an adapter with nested handlers
+    local adapter = {
+      name = "test",
+      type = "http",
+      handlers = {
+        request = {
+          build_messages = function(self, messages)
+            return { processed = true, messages = messages }
+          end,
+          build_parameters = function(self, params, messages)
+            return { processed_params = params }
+          end
+        },
+        response = {
+          parse_chat = function(self, data, tools)
+            return { status = "success", output = { content = data } }
+          end,
+          parse_tokens = function(self, data)
+            return 42
+          end
+        }
+      }
+    }
+
+    return {
+      messages = adapters.call_handler(adapter, "build_messages", { "hello" }),
+      parameters = adapters.call_handler(adapter, "build_parameters", { temp = 1 }, {}),
+      chat = adapters.call_handler(adapter, "parse_chat", "test data", {}),
+      tokens = adapters.call_handler(adapter, "parse_tokens", {})
+    }
+  ]])
+
+  h.eq({ processed = true, messages = { "hello" } }, result.messages)
+  h.eq({ processed_params = { temp = 1 } }, result.parameters)
+  h.eq({ status = "success", output = { content = "test data" } }, result.chat)
+  h.eq(42, result.tokens)
+end
+
+T["Adapter"]["call_handler"]["works with old flat handler structure"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    -- Create an adapter with old flat handler structure
+    local adapter = {
+      name = "test",
+      type = "http",
+      handlers = {
+        form_messages = function(self, messages)
+          return { old_format = true, messages = messages }
+        end,
+        form_parameters = function(self, params, messages)
+          return { old_params = params }
+        end,
+        chat_output = function(self, data, tools)
+          return { status = "success", output = { content = data } }
+        end,
+        tokens = function(self, data)
+          return 100
+        end
+      }
+    }
+
+    -- Call using new names, should map to old names via compatibility layer
+    return {
+      messages = adapters.call_handler(adapter, "build_messages", { "world" }),
+      parameters = adapters.call_handler(adapter, "build_parameters", { temp = 2 }, {}),
+      chat = adapters.call_handler(adapter, "parse_chat", "old data", {}),
+      tokens = adapters.call_handler(adapter, "parse_tokens", {})
+    }
+  ]])
+
+  h.eq({ old_format = true, messages = { "world" } }, result.messages)
+  h.eq({ old_params = { temp = 2 } }, result.parameters)
+  h.eq({ status = "success", output = { content = "old data" } }, result.chat)
+  h.eq(100, result.tokens)
+end
+
+T["Adapter"]["call_handler"]["returns nil for missing handlers"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    local adapter = {
+      name = "test",
+      type = "http",
+      handlers = {}
+    }
+
+    return {
+      missing = adapters.call_handler(adapter, "non_existent_handler", "data"),
+      also_missing = adapters.call_handler(adapter, "another_missing", "more data")
+    }
+  ]])
+
+  h.eq(nil, result.missing)
+  h.eq(nil, result.also_missing)
+end
+
+T["Adapter"]["call_handler"]["passes adapter as first argument"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    local adapter = {
+      name = "test_adapter",
+      custom_field = "test_value",
+      type = "http",
+      handlers = {
+        lifecycle = {
+          setup = function(self)
+            return {
+              name = self.name,
+              custom = self.custom_field
+            }
+          end
+        }
+      }
+    }
+
+    return adapters.call_handler(adapter, "setup")
+  ]])
+
+  h.eq({
+    name = "test_adapter",
+    custom = "test_value",
+  }, result)
+end
+
+T["Adapter"]["call_handler"]["works with lifecycle handlers"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    local adapter = {
+      name = "test",
+      type = "http",
+      handlers = {
+        lifecycle = {
+          setup = function(self)
+            return true
+          end,
+          on_exit = function(self, data)
+            return "cleaned_up_" .. data.status
+          end,
+          teardown = function(self)
+            return "torn_down"
+          end
+        }
+      }
+    }
+
+    return {
+      setup = adapters.call_handler(adapter, "setup"),
+      on_exit = adapters.call_handler(adapter, "on_exit", { status = 200 }),
+      teardown = adapters.call_handler(adapter, "teardown")
+    }
+  ]])
+
+  h.eq(true, result.setup)
+  h.eq("cleaned_up_200", result.on_exit)
+  h.eq("torn_down", result.teardown)
+end
+
+T["Adapter"]["call_handler"]["works with tool handlers"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    local adapter = {
+      name = "test",
+      type = "http",
+      roles = { tool = "tool" },
+      handlers = {
+        -- Add a lifecycle handler to make it clear this is new format
+        lifecycle = {},
+        tools = {
+          format_calls = function(self, tools)
+            return { formatted = true, tools = tools }
+          end,
+          format_response = function(self, tool_call, output)
+            return {
+              role = self.roles.tool,
+              content = output,
+              tool_call_id = tool_call.id
+            }
+          end
+        }
+      }
+    }
+
+    return {
+      format = adapters.call_handler(adapter, "format_calls", { { name = "test_tool" } }),
+      response = adapters.call_handler(adapter, "format_response", { id = "call_123" }, "tool output")
+    }
+  ]])
+
+  h.eq({
+    formatted = true,
+    tools = { { name = "test_tool" } },
+  }, result.format)
+
+  h.eq({
+    role = "tool",
+    content = "tool output",
+    tool_call_id = "call_123",
+  }, result.response)
+end
+
+T["Adapter"]["call_handler"]["works with tools in old flat format"] = function()
+  -- This test is is unneccesasry but checking there's no weird edge cases
+
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    -- Real old flat format - has tools namespace but no lifecycle/request/response
+    local adapter = {
+      name = "test",
+      type = "http",
+      roles = { tool = "tool" },
+      handlers = {
+        -- Flat handlers (old format indicators)
+        form_messages = function(self, messages)
+          return { messages = messages }
+        end,
+        chat_output = function(self, data, tools)
+          return { status = "success", output = { content = data } }
+        end,
+        -- Tools in namespace (but still old format because no lifecycle/request/response)
+        tools = {
+          format_tool_calls = function(self, tools)
+            return { old_format = true, tools = tools }
+          end,
+          output_response = function(self, tool_call, output)
+            return {
+              role = self.roles.tool,
+              content = "old:" .. output
+            }
+          end
+        }
+      }
+    }
+
+    return {
+      format = adapters.call_handler(adapter, "format_calls", { { name = "old_tool" } }),
+      response = adapters.call_handler(adapter, "format_response", { id = "123" }, "data")
+    }
+  ]])
+
+  h.eq({
+    old_format = true,
+    tools = { { name = "old_tool" } },
+  }, result.format)
+
+  h.eq({
+    role = "tool",
+    content = "old:data",
+  }, result.response)
+end
+
+T["Adapter"]["call_handler"]["handles multiple arguments correctly"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    local adapter = {
+      name = "test",
+      type = "http",
+      handlers = {
+        request = {
+          build_parameters = function(self, params, messages)
+            return {
+              adapter_name = self.name,
+              params_count = #params,
+              messages_count = #messages
+            }
+          end
+        }
+      }
+    }
+
+    return adapters.call_handler(
+      adapter,
+      "build_parameters",
+      { "p1", "p2", "p3" },
+      { "m1", "m2" }
+    )
+  ]])
+
+  h.eq({
+    adapter_name = "test",
+    params_count = 3,
+    messages_count = 2,
+  }, result)
+end
+
+T["Adapter"]["call_handler"]["works without arguments"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+
+    local adapter = {
+      name = "test",
+      type = "http",
+      handlers = {
+        lifecycle = {
+          teardown = function(self)
+            return "cleaned"
+          end
+        }
+      }
+    }
+
+    return adapters.call_handler(adapter, "teardown")
+  ]])
+
+  h.eq("cleaned", result)
 end
 
 return T

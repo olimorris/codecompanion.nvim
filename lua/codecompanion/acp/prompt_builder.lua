@@ -2,7 +2,7 @@
 -- PromptBuilder - Fluidly build the prompt which is sent to the agent
 --=============================================================================
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.ACP.PromptBuilder
 ---@field connection CodeCompanion.ACP.Connection
@@ -98,7 +98,7 @@ function PromptBuilder:send()
 
     -- Fire request started
     if not self.options.silent then
-      util.fire("RequestStarted", self.options)
+      utils.fire("RequestStarted", self.options)
     end
   end
 
@@ -113,8 +113,9 @@ function PromptBuilder:send()
   self.connection:write_message(self.connection.methods.encode(req) .. "\n")
 
   self._streaming_started = false
+
   return {
-    shutdown = function()
+    cancel = function()
       self:cancel()
     end,
   }
@@ -159,7 +160,7 @@ function PromptBuilder:handle_session_update(params)
   if self.options and not self._streaming_started then
     self._streaming_started = true
     if not self.options.silent then
-      util.fire("RequestStreaming", self.options)
+      utils.fire("RequestStreaming", self.options)
     end
   end
 
@@ -226,6 +227,28 @@ function PromptBuilder:handle_permission_request(id, params)
   end
 end
 
+---Handle errors from the agent
+---@param error string|table The error message
+function PromptBuilder:handle_error(error)
+  if not error then
+    return
+  end
+
+  local error_msg = type(error) == "string" and error or (error.message or "Unknown error")
+
+  if self.handlers.error then
+    self.handlers.error(error_msg)
+  end
+
+  if self.options and not self.options.silent then
+    self.options.status = "error"
+    self.options.error = error_msg
+    utils.fire("RequestFinished", self.options)
+  end
+
+  self.connection._active_prompt = nil
+end
+
 ---Handle done event from the server
 ---@param stop_reason string
 ---@return nil
@@ -254,7 +277,7 @@ function PromptBuilder:handle_done(stop_reason)
   end
   if self.options and not self.options.silent then
     self.options.status = status
-    util.fire("RequestFinished", self.options)
+    utils.fire("RequestFinished", self.options)
   end
   self.connection._active_prompt = nil
 end
@@ -269,7 +292,7 @@ function PromptBuilder:cancel()
     )
     if self.options and not self.options.silent then
       self.options.status = "cancelled"
-      util.fire("RequestFinished", self.options)
+      utils.fire("RequestFinished", self.options)
     end
   end
   self.connection._active_prompt = nil

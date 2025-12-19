@@ -1,3 +1,5 @@
+local adapter_utils = require("codecompanion.utils.adapters")
+local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
 ---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
@@ -7,10 +9,12 @@ return {
   roles = {
     llm = "assistant",
     user = "user",
+    tool = "tool",
   },
   opts = {
     stream = true,
     vision = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -38,6 +42,9 @@ return {
         if not model_opts.opts.has_vision then
           self.opts.vision = false
         end
+        if model_opts.opts.has_function_calling ~= nil and not model_opts.opts.has_function_calling then
+          self.opts.tools = false
+        end
       end
 
       return true
@@ -47,15 +54,123 @@ return {
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
+    form_tools = function(self, params)
+      return openai.handlers.form_tools(self, params)
+    end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    chat_output = function(self, data, tools)
+      if not data or data == "" then
+        return nil
+      end
+
+      -- Handle both streamed data and structured response
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
+      local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+      if not ok or not json.choices or #json.choices == 0 then
+        return nil
+      end
+
+      -- Process tool calls from all choices
+      if self.opts.tools and tools then
+        for _, choice in ipairs(json.choices) do
+          local delta = self.opts.stream and choice.delta or choice.message
+
+          if delta and delta.tool_calls and #delta.tool_calls > 0 then
+            for i, tool in ipairs(delta.tool_calls) do
+              local id = tool.id
+              if not id or id == "" then
+                id = string.format("call_%s_%s", json.created, i)
+              end
+
+              if self.opts.stream then
+                local found = false
+                for _, existing_tool in ipairs(tools) do
+                  if existing_tool.id == id then
+                    -- Append to arguments if this is a continuation of a stream
+                    if tool["function"] and tool["function"]["arguments"] then
+                      existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
+                        .. tool["function"]["arguments"]
+                    end
+                    found = true
+                    break
+                  end
+                end
+
+                if not found then
+                  table.insert(tools, {
+                    id = id,
+                    type = tool.type,
+                    ["function"] = {
+                      name = tool["function"]["name"],
+                      arguments = tool["function"]["arguments"] or "",
+                    },
+                  })
+                end
+              else
+                table.insert(tools, {
+                  id = id,
+                  type = tool.type,
+                  ["function"] = {
+                    name = tool["function"]["name"],
+                    arguments = tool["function"]["arguments"],
+                  },
+                })
+              end
+            end
+          end
+        end
+      end
+
+      -- Process message content from the first choice
+      local choice = json.choices[1]
+      local delta = self.opts.stream and choice.delta or choice.message
+
+      if not delta then
+        return nil
+      end
+
+      local output = {
+        role = delta.role,
+      }
+
+      if delta.content then
+        local content = delta.content
+        if type(content) == "string" then
+          output.content = content
+        else
+          output.reasoning = output.reasoning or {}
+          output.reasoning.content = ""
+          for _, c in ipairs(content) do
+            if c.type == "thinking" then
+              for _, thinking in ipairs(c.thinking) do
+                output.reasoning.content = output.reasoning.content .. thinking.text
+              end
+            end
+          end
+        end
+      else
+        output.content = ""
+      end
+
+      return {
+        status = "success",
+        output = output,
+      }
     end,
+    tools = {
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
+      end,
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
+      end,
+    },
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
     end,
@@ -75,8 +190,10 @@ return {
         -- Premier models
         "mistral-large-latest",
         ["pixtral-large-latest"] = { opts = { has_vision = true } },
+        ["magistral-medium-latest"] = { opts = { can_reason = true } },
+        ["magistral-small-latest"] = { opts = { can_reason = true } },
         ["mistral-medium-latest"] = { opts = { has_vision = true } },
-        "mistral-saba-latest",
+        ["mistral-saba-latest"] = { opts = { has_function_calling = false } },
         "codestral-latest",
         "ministral-8b-latest",
         "ministral-3b-latest",

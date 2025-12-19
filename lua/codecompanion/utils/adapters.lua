@@ -78,7 +78,7 @@ end
 ---@param ignored_roles? table Roles that should not be merged even if consecutive
 ---@return table
 function M.merge_messages(messages, allowed_keys, ignored_roles)
-  allowed_keys = allowed_keys or { "tool_calls", "tool_call_id" }
+  allowed_keys = allowed_keys or { "tools" }
   ignored_roles = ignored_roles or { "tool" }
 
   local no_merge = {}
@@ -217,18 +217,31 @@ end
 ---@param var string
 ---@return string|nil
 local function run_cmd(var)
-  log:trace("Detected cmd in environment variable")
+  log:trace("[Adapters] Detected cmd in environment variable")
+
+  local timeout_ms = 5000 -- 5 second timeout
+
   local cmd = var:sub(5)
-  local handle = io.popen(cmd, "r")
-  if handle then
-    local result = handle:read("*a")
-    log:trace("Executed cmd: %s", cmd)
-    handle:close()
-    local r = result:gsub("%s+$", "")
-    return r
-  else
-    return log:error("Error: Could not execute cmd: %s", cmd)
+
+  local shell_cmd = require("codecompanion.utils.os").build_shell_command(cmd)
+
+  local obj = vim.system(shell_cmd, { text = true, timeout = timeout_ms })
+  if not obj then
+    return log:error("[Adapters] Could not execute cmd: %s", cmd)
   end
+
+  local result = obj:wait()
+
+  if result.code ~= 0 then
+    return log:error("[Adapters] Command execution failed: %s", cmd)
+  end
+
+  log:trace("[Adapters] Executed cmd: %s", cmd)
+
+  local output = result.stdout or ""
+  output = output:gsub("%s+$", "")
+
+  return output
 end
 
 ---Get the environment variable

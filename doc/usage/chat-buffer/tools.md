@@ -1,6 +1,11 @@
+---
+description: Learn how tools can aid your code, in CodeCompanion
+---
+
 # Using Tools
 
 > [!IMPORTANT]
+> Tools are not supported for ACP adapters as they have their own set.
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
@@ -9,7 +14,7 @@
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, tools are simply context and actions that are shared with an LLM via a `system` prompt. The LLM can act as an agent by requesting tools via the chat buffer which in turn orchestrates their use within Neovim. Tools can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context and actions that are shared with an LLM. The LLM can act as an agent by executing tools via the chat buffer which in turn orchestrates their use within Neovim. Tools can be added as a participant to the chat buffer by using the `@` key.
 
 > [!IMPORTANT]
 > The use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and approving their use.
@@ -22,9 +27,11 @@ When a tool is added to the chat buffer, the LLM is instructured by the plugin t
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
 
-## Tools
+## Built-in Tools
 
-CodeCompanion replaces the tool call in any prompt you send to the LLM with the value of `opts.tool_replacement_message`. This is to ensure that you can call a tool efficiently whilst making the prompt readable to the LLM.
+CodeCompanion comes with a number of built-in tools which you can leverage, as long as your adapter and model are [supported](#compatibility).
+
+When calling a tool, CodeCompanion replaces the tool call in any prompt you send to the LLM with the value of a tool's `opts.tool_replacement_message` string. This is to ensure that you can call a tool efficiently whilst making the prompt readable to the LLM.
 
 So calling a tool with:
 
@@ -34,7 +41,7 @@ Use @{lorem_ipsum} to generate a random paragraph
 
 will yield:
 
-```
+```md
 Use the lorem_ipsum tool to generate a random paragraph
 ```
 
@@ -52,10 +59,10 @@ Use @{cmd_runner} to install any missing libraries in my project
 
 Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
 
-The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
+The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [agentic workflows](/extending/agentic-workflows) to hook into.
 
 **Options:**
-- `requires_approval` require approval before running a command? (Default: true)
+- `require_approval_before` require approval before running a command? (Default: true)
 
 ### create_file
 
@@ -69,7 +76,21 @@ Can you create some test fixtures using @{create_file}?
 ```
 
 **Options:**
-- `requires_approval` require approval before creating a file? (Default: true)
+- `require_approval_before` require approval before creating a file? (Default: true)
+
+### delete_file
+
+> [!NOTE]
+> By default, this tool requires user approval before it can be executed
+
+Delete a file within the current working directory:
+
+```md
+Can you use @{delete_file} to delete the quotes.lua file?
+```
+
+**Options:**
+- `require_approval_before` require approval before deleting a file? (Default: true)
 
 ### fetch_webpage
 
@@ -140,9 +161,9 @@ Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
 
 **Options:**
 - `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
-- `requires_approval.buffer` (boolean) Require approval before editng a buffer? (Default: false)
-- `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
-- `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
+- `require_approval_before.buffer` (boolean) Require approval before editng a buffer? (Default: false)
+- `require_approval_before.file` (boolean) Require approval before editng a file? (Default: true)
+- `require_confirmation_after` (boolean) require confirmation after the execution and before moving on in the chat buffer? (Default: true)
 
 ### list_code_usages
 
@@ -168,6 +189,30 @@ Use @{list_code_usages} to find all usages of the `create_file` function
 Can you use @{list_code_usages} to show me how the `Tools` class is implemented and used?
 ```
 
+### memory
+
+> [!IMPORTANT]
+> For security, all memory operations are restricted to the `/memories` directory
+
+The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory (`/memories`).
+
+If you're using the _Anthropic_ adapter, then this tool will act as its client implementation. Please refer to their [documentation](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) for more information.
+
+The tool has the following commands that an LLM can use:
+
+- **view** - Lists the contents in the `/memories` directory or displays file content with optional line ranges
+- **create** - Creates a new file or overwrites an existing file with specified content
+- **str_replace** - Replaces the first exact match of text in a file with new text
+- **insert** - Inserts text at a specific line number in a file
+- **delete** - Removes a file or recursively deletes a directory and all its contents
+- **rename** - Moves or renames a file or directory to a new path
+
+To use the tool:
+
+```md
+Use @{memory} to carry on our conversation about streamlining my dotfiles
+```
+
 ### next_edit_suggestion
 
 Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
@@ -179,16 +224,16 @@ Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
-### search_web
+### web_search
 
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
 
 ```md
-Use @{search_web} to find the latest version of Neovim?
+Use @{web_search} to find the latest version of Neovim?
 ```
 
 ```md
-Use @{search_web} to search neovim.io and explain how I can configure a new language server
+Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
 
@@ -196,7 +241,7 @@ Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ens
 
 ## Tool Groups
 
-Tool Groups are a convenient way to combine multiple tools together in the chat buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and `@{files}`.
+Tool Groups are a convenient way to combine multiple built-in tools together in the chat buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and `@{files}`.
 
 When you include a tool group in the chat, all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
 
@@ -265,32 +310,49 @@ You can use it with:
 @{files}. Can you scaffold out the folder structure for a python package?
 ```
 
+## Adapter Tools
+
+> [!NOTE]
+> Adapter tools are configured via the `available_tools` dictionary on the adapter itself
+
+Prior to [v17.30.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v17.30.0), tool use in CodeCompanion was only possible with the built-in tools. However, that release unlocked _adapter_ tools. That is, tools that are owned by LLM providers such as [Anthropic](https://docs.claude.com/en/docs/agents-and-tools/tool-use/computer-use-tool) and [OpenAI](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses). This allows for remote tool execution of common tasks such as web searching and computer use.
+
+From a UX perspective, there is no difference in using the built-in and adapter tools. However, please note that an adapter tool takes precedence over a built-in tool in the event of a name clash.
+
+### Anthropic
+
+In the `anthropic` adapter, the following tools are available:
+
+- `code_execution` -  The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment
+- `memory` - Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window
+- `web_fetch` - The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.
+- `web_search` - The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff
+
+### OpenAI
+
+In the `openai_responses` adapter, the following tools are available:
+
+- `web_search` - Allow models to search the web for the latest information before generating a response.
+
 ## Useful Tips
 
 ### YOLO mode
 
 The plugin allows you to run tools on autopilot, with YOLO mode. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that tools may have edited. In the chat buffer, the keymap `gty` will toggle YOLO mode on/off. Alternatively, set the global variable `vim.g.codecompanion_yolo_mode` to enable this or set it to `nil` to undo this.
 
-## Community Tools
-
-There is also a thriving ecosystem of user created tools:
-
-- [VectorCode](https://github.com/Davidyz/VectorCode/tree/main) - A code repository indexing tool to supercharge your LLM experience
-- [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
-
-The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
-
 ## Security and Approvals
 
 CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
 
-The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
+The plugin also puts approvals at the heart of its workflow. Some tools, such as the [@cmd_runner](#cmd-runner), require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
 
+When using CodeCompanion's in-built tools, there are three choices:
+
+1. **Approve** - The tool will be executed
+2. **Reject** - The tool will **NOT** be executed
+3. **Cancel** - All tools in the queue will **NOT** be executed
 
 ## Compatibility
-
-> [!NOTE]
-> Tools are not supported for ACP adapters.
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
@@ -303,8 +365,13 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Gemini            |                   | :white_check_mark: | Dependent on the model              |
 | GitHub Models     | All               | :x:                | Not supported yet                   |
 | Huggingface       | All               | :x:                | Not supported yet                   |
-| Mistral           | All               | :x:                | Not supported yet                   |
-| Novita            |                   | :white_check_mark:                | Dependent on the model  |
+| Mistral           |                   | :white_check_mark: | Dependent on the model              |
+| Novita            |                   | :white_check_mark: | Dependent on the model              |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | All               | :x:                | Not supported yet                   |
+
+
+> [!IMPORTANT]
+> When using Mistral, you will need to set `interactions.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.
+
