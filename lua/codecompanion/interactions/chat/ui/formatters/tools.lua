@@ -75,14 +75,11 @@ function Tools:format(message, opts, state)
   end
 
   -- Calculate fold positions relative to the buffer
-  local fold_info = nil
-  if #content_lines > 1 then
-    fold_info = {
-      start_offset = content_start_index - 1, -- 0-based: first content line
-      end_offset = content_start_index + #content_lines - 2, -- 0-based: last content line
-      first_line = content_lines[1] or "",
-    }
-  end
+  local fold_info = {
+    start_offset = content_start_index - 1, -- 0-based: first content line
+    end_offset = content_start_index + #content_lines - 2, -- 0-based: last content line
+    first_line = content_lines[1] or "",
+  }
 
   return lines, fold_info
 end
