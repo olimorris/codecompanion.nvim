@@ -356,6 +356,9 @@ function Client:request(payload, actions, opts)
     vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
   end
 
+  -- Capture streaming errors for use in final callback
+  local stream_error_body = nil
+
   local request_opts = {
     url = adapter_utils.set_env_vars(adapter, adapter.url),
     headers = adapter_utils.set_env_vars(adapter, adapter.headers),
@@ -379,9 +382,12 @@ function Client:request(payload, actions, opts)
         end
 
         opts.status = "success"
-        if data.status >= 400 then
+        if data and data.status and data.status >= 400 then
           opts.status = "error"
           actions.callback({ message = string.format([[%d error: ]], data.status), stderr = data }, nil)
+        elseif not data and stream_error_body then
+          opts.status = "error"
+          actions.callback({ message = "Request failed", stderr = stream_error_body }, nil)
         end
 
         if not opts.silent then
@@ -415,6 +421,11 @@ function Client:request(payload, actions, opts)
     request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
         log:debug("Output data:\n%s", data)
+        -- Capture error responses that come through the stream (various API formats)
+        if data:match('^%s*{"error"') or data:match('^%s*{"type"%s*:%s*"error"') then
+          stream_error_body = data
+          return -- Don't pass error to cb, handle in final callback
+        end
       end
       if not has_started_steaming then
         has_started_steaming = true

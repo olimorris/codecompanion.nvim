@@ -437,14 +437,15 @@ function Inline:submit(prompt)
         end
 
         if err then
-          return error(err)
+          local msg = type(err) == "table" and err.message or err
+          return error(msg)
         end
 
         if data then
           data = adapters.call_handler(adapter, "parse_inline", data, self.buffer_context)
-          if data.status == CONSTANTS.STATUS_SUCCESS then
+          if data and data.status == CONSTANTS.STATUS_SUCCESS then
             return self:done(data.output)
-          else
+          elseif data then
             return error(data.output)
           end
         end
