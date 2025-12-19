@@ -562,6 +562,14 @@ return {
           formatted_name = "GPT-5 Pro",
           opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
         },
+        ["gpt-5-mini"] = {
+          formatted_name = "GPT-5 Mini",
+          opts = { has_vision = true, can_reason = true },
+        },
+        ["gpt-5-nano"] = {
+          formatted_name = "GPT-5 Nano",
+          opts = { has_vision = true, can_reason = true },
+        },
         ["o4-mini-deep-research-2025-06-26"] = {
           formatted_name = "o4-mini-deep-research",
           opts = { has_function_calling = false, has_vision = true, can_reason = true },
