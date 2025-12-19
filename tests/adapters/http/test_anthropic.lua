@@ -561,7 +561,7 @@ T["Anthropic adapter"]["Reasoning models have more tokens"] = function()
   local reasoning = require("codecompanion.adapters").extend("anthropic", {
     schema = {
       model = {
-        default = "claude-3-7-sonnet-20250219",
+        default = "claude-3-7-sonnet-latest",
       },
     },
   })
