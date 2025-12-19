@@ -304,7 +304,7 @@ function Tools:execute(chat, tools)
       end
 
       self.tool = resolved_tool
-      orchestrator.queue:push(self.tool)
+      orchestrator.queue:push(resolved_tool)
     end
 
     self:set_autocmds()
