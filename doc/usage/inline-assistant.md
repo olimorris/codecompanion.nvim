@@ -12,24 +12,9 @@ As per the [Getting Started](/getting-started.md#inline-assistant) guide, the in
 
 For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the assistant. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
 
-## Variables
-
-> [!TIP]
-> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` variable
-
-The inline assistant allows you to send context alongside your prompt via the notion of variables:
-
-- `buffer` - shares the contents of the current buffer
-- `chat` - shares the LLM's messages from the last chat buffer
-- `clipboard` - shares the data on your clipboard with the LLM
-
-Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple variables can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
-
-You can also have multiple variables a part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
-
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`strategies.inline.adapter`) when sending an inline prompt. Simply include the adapter name within `<>`. For example `:<','>CodeCompanion <deepseek> can you refactor this?`. This approach can also be combined with variables.
+You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with variables.
 
 ## Classification
 
@@ -48,5 +33,22 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 - `gda` - Accept an inline edit
 - `gdr` - Reject an inline edit
 
-These keymaps can also be changed in your config via the `strategies.inline.keymaps` table.
+These keymaps can also be changed in your config via the `interactions.inline.keymaps` table.
+
+
+
+## Variables
+
+> [!TIP]
+> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` variable
+
+The inline assistant allows you to send context alongside your prompt via the notion of variables:
+
+- `buffer` - shares the contents of the current buffer
+- `chat` - shares the LLM's messages from the last chat buffer
+- `clipboard` - shares the data on your clipboard with the LLM
+
+Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple variables can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
+
+You can also have multiple variables a part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
 

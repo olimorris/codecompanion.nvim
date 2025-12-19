@@ -48,10 +48,10 @@
 ---@field tools.calls? CodeCompanion.Chat.ToolCall[] Array of tool calls
 ---@field tools.id? string Tool ID
 ---@field opts? table Optional metadata used by the UI and processing
----@field opts.visible? boolean Whether the message should be shown in the chat UI
----@field opts.pinned? boolean Whether the context message is pinned
 ---@field opts.index? number If set, the message was inserted at this index
----@field opts.watched? boolean Whether the context is being watched for changes
+---@field opts.sync_all? boolean When synced, whether the entire buffer is shared
+---@field opts.sync_diff? boolean When synced, whether only buffer diffs are shared
+---@field opts.visible? boolean Whether the message should be shown in the chat UI
 ---@field _meta? table Internal static metadata (e.g. { sent = true })
 ---@field _meta.id? number Unique identifier for the message (generated via hash)
 ---@field _meta.cycle? number The chat turn cycle when this message was added
@@ -106,18 +106,6 @@
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
 ---@field params string Any additional parameters for the variable
-
----@class CodeCompanion.Watchers
----@field buffers table<number, CodeCompanion.WatcherState> Map of buffer numbers to their states
----@field augroup integer The autocmd group ID
----@field watch fun(self: CodeCompanion.Watchers, bufnr: number): nil Start watching a buffer
----@field unwatch fun(self: CodeCompanion.Watchers, bufnr: number): nil Stop watching a buffer
----@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): boolean, table
-
----@class CodeCompanion.WatcherState
----@field content string[] Complete buffer content
----@field changedtick number Last known changedtick
----@field last_sent string[] Last content sent to LLM
 
 ---@class CodeCompanion.Subscribers
 ---@field queue CodeCompanion.Chat.Event[]
@@ -174,3 +162,20 @@
 ---@field validate table Validate an item
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
+
+---@class CodeCompanion.BufferContext
+---@field bufnr number The buffer number
+---@field buftype string The buffer type
+---@field cursor_pos number[] The cursor position as [line, col]
+---@field end_col number The end column of the selection
+---@field end_line number The end line of the selection
+---@field filetype string The filetype of the buffer
+---@field filename string The name of the file
+---@field is_visual boolean Whether the selection is visual
+---@field is_normal boolean Whether the selection is normal
+---@field lines string[] The lines in the buffer
+---@field line_count number The number of lines in the buffer
+---@field mode string The current mode
+---@field start_line number The start line of the selection
+---@field start_col number The start column of the selection
+---@field winnr number The window number

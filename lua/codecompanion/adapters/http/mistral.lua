@@ -135,12 +135,32 @@ return {
         return nil
       end
 
+      local output = {
+        role = delta.role,
+      }
+
+      if delta.content then
+        local content = delta.content
+        if type(content) == "string" then
+          output.content = content
+        else
+          output.reasoning = output.reasoning or {}
+          output.reasoning.content = ""
+          for _, c in ipairs(content) do
+            if c.type == "thinking" then
+              for _, thinking in ipairs(c.thinking) do
+                output.reasoning.content = output.reasoning.content .. thinking.text
+              end
+            end
+          end
+        end
+      else
+        output.content = ""
+      end
+
       return {
         status = "success",
-        output = {
-          role = delta.role,
-          content = delta.content,
-        },
+        output = output,
       }
     end,
     tools = {
@@ -170,6 +190,8 @@ return {
         -- Premier models
         "mistral-large-latest",
         ["pixtral-large-latest"] = { opts = { has_vision = true } },
+        ["magistral-medium-latest"] = { opts = { can_reason = true } },
+        ["magistral-small-latest"] = { opts = { can_reason = true } },
         ["mistral-medium-latest"] = { opts = { has_vision = true } },
         ["mistral-saba-latest"] = { opts = { has_function_calling = false } },
         "codestral-latest",

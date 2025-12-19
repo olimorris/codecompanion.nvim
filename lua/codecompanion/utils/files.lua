@@ -68,7 +68,6 @@ function M.delete(path)
   end
 
   if stat.type == "directory" then
-    -- Read directory contents
     local handle = uv.fs_scandir(path)
     if handle then
       while true do
@@ -83,13 +82,12 @@ function M.delete(path)
         end
       end
     end
-    -- Remove the empty directory
+
     local success, err, errname = uv.fs_rmdir(path)
     if not success then
       return false, fmt("Failed to remove directory %s: %s (%s)", path, err, errname)
     end
   else
-    -- Remove file
     local success, err, errname = uv.fs_unlink(path)
     if not success then
       return false, fmt("Failed to remove file %s: %s (%s)", path, err, errname)
@@ -229,6 +227,214 @@ function M.get_mimetype(path)
   extension = extension:lower()
 
   return map[extension]
+end
+
+---Convert a glob pattern to a Lua pattern
+---Based on lua-glob-pattern by David Manura
+---@param glob string The glob pattern to convert
+---@return string lua_pattern The converted Lua pattern
+local function globtopattern(glob)
+  local p = "^"
+  local i = 0
+  local c
+
+  local function unescape()
+    if c == "\\" then
+      i = i + 1
+      c = glob:sub(i, i)
+      if c == "" then
+        p = "[^]"
+        return false
+      end
+    end
+    return true
+  end
+
+  local function escape(char)
+    return char:match("^%w$") and char or "%" .. char
+  end
+
+  local function charset_end()
+    while true do
+      if c == "" then
+        p = "[^]"
+        return false
+      elseif c == "]" then
+        p = p .. "]"
+        break
+      else
+        if not unescape() then
+          break
+        end
+        local c1 = c
+        i = i + 1
+        c = glob:sub(i, i)
+        if c == "" then
+          p = "[^]"
+          return false
+        elseif c == "-" then
+          i = i + 1
+          c = glob:sub(i, i)
+          if c == "" then
+            p = "[^]"
+            return false
+          elseif c == "]" then
+            p = p .. escape(c1) .. "%-]"
+            break
+          else
+            if not unescape() then
+              break
+            end
+            p = p .. escape(c1) .. "-" .. escape(c)
+          end
+        elseif c == "]" then
+          p = p .. escape(c1) .. "]"
+          break
+        else
+          p = p .. escape(c1)
+          i = i - 1
+        end
+      end
+      i = i + 1
+      c = glob:sub(i, i)
+    end
+    return true
+  end
+
+  local function charset()
+    i = i + 1
+    c = glob:sub(i, i)
+    if c == "" or c == "]" then
+      p = "[^]"
+      return false
+    elseif c == "^" or c == "!" then
+      i = i + 1
+      c = glob:sub(i, i)
+      if c == "]" then
+        -- ignored
+      else
+        p = p .. "[^"
+        if not charset_end() then
+          return false
+        end
+      end
+    else
+      p = p .. "["
+      if not charset_end() then
+        return false
+      end
+    end
+    return true
+  end
+
+  while true do
+    i = i + 1
+    c = glob:sub(i, i)
+    if c == "" then
+      p = p .. "$"
+      break
+    elseif c == "?" then
+      p = p .. "."
+    elseif c == "*" then
+      p = p .. ".*"
+    elseif c == "[" then
+      if not charset() then
+        break
+      end
+    elseif c == "\\" then
+      i = i + 1
+      c = glob:sub(i, i)
+      if c == "" then
+        p = p .. "\\$"
+        break
+      end
+      p = p .. escape(c)
+    else
+      p = p .. escape(c)
+    end
+  end
+  return p
+end
+
+---Check if a filename matches a single pattern
+---Supports glob patterns (*, ?, [abc]) and literal matches
+---@param filename string The filename to check (not the full path)
+---@param pattern string The pattern to match against
+---@return boolean
+function M.match_pattern(filename, pattern)
+  -- Check for glob pattern characters
+  if pattern:match("[%*%?%[]") then
+    local lua_pattern = globtopattern(pattern)
+    return filename:match(lua_pattern) ~= nil
+  else
+    -- Allow a literal match
+    return filename == pattern
+  end
+end
+
+---Check if a filename matches any of the provided patterns
+---@param filename string The filename to check (not the full path)
+---@param patterns string|string[] Pattern or list of patterns to match against
+---@return boolean
+function M.match_patterns(filename, patterns)
+  if type(patterns) == "string" then
+    patterns = { patterns }
+  end
+
+  for _, pattern in ipairs(patterns) do
+    if M.match_pattern(filename, pattern) then
+      return true
+    end
+  end
+
+  return false
+end
+
+---Recursively scan a directory and return all file paths
+---@param dir_path string The directory path to scan
+---@param opts? { patterns?: string|string[] } Optional patterns to filter files
+---@return string[] files List of absolute file paths
+function M.scan_directory(dir_path, opts)
+  opts = opts or {}
+  local files = {}
+
+  local function scan_recursively(path)
+    local handle = uv.fs_scandir(path)
+    if not handle then
+      return
+    end
+
+    while true do
+      local name, type = uv.fs_scandir_next(handle)
+      if not name then
+        break
+      end
+
+      local full_path = vim.fs.joinpath(path, name)
+
+      if type == "directory" then
+        scan_recursively(full_path)
+      elseif type == "file" then
+        if opts.patterns then
+          if M.match_patterns(name, opts.patterns) then
+            table.insert(files, full_path)
+          end
+        else
+          table.insert(files, full_path)
+        end
+      end
+    end
+  end
+
+  scan_recursively(dir_path)
+  return files
+end
+
+---Normalizes extracted content to Unix format
+---@param content string
+---@return string
+function M.normalize_content(content)
+  return (content:gsub("\r\n", "\n"):gsub("\r", "\n"))
 end
 
 return M

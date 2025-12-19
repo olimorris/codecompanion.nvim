@@ -261,4 +261,29 @@ T["send_sync returns error when curl call fails"] = function()
   h.expect_contains("curl failed", child.lua_get([[_G.__sync_err_message]]))
 end
 
+T["handles nil data with captured stream error"] = function()
+  child.lua([[
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        if opts.stream then
+          opts.stream(nil, '{"error": {"message": "Insufficient credits"}}')
+        end
+        opts.callback(nil)
+        return { args = "mocked args", shutdown = function() end }
+      end,
+    }
+
+    local adapter = __make_adapter({ opts = { method = "POST", stream = true } })
+    local cb = function(err, _)
+      if err then _G.__calls.err_received = err.message end
+    end
+
+    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+
+    vim.wait(20, function() return _G.__calls.err_received ~= nil end, 1)
+  ]])
+
+  h.eq(child.lua_get([[_G.__calls.err_received]]), "Request failed")
+end
+
 return T

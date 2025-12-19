@@ -10,7 +10,7 @@ description: Learn how variables can add context to the chat buffer in CodeCompa
 
 Variables allow you to dynamically insert Neovim context into your chat messages using the `#{variable_name}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available variables through code completion, or type them manually.
 
-Custom variables can be shared in the chat buffer by adding them to the `strategies.chat.variables` table in your configuration.
+Custom variables can be shared in the chat buffer by adding them to the `interactions.chat.variables` table in your configuration.
 
 ## Basic Usage
 
@@ -19,14 +19,9 @@ Variables use the `#{variable_name}` syntax to dynamically insert content into y
 ## #buffer
 
 > [!IMPORTANT]
-> By default, CodeCompanion automatically applies `{watch}` to all buffers
+> By default, CodeCompanion automatically applies the `{diff}` parameter to all buffers
 
-The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared with the LLM:
-
-**`{pin}`** - Sends the entire buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
-
-**`{watch}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
-
+The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared, or _synced_, with the LLM, on each turn:
 
 ### Basic Usage
 
@@ -40,9 +35,15 @@ The `#{buffer}` variable shares buffer contents with the LLM. It has two special
 
 ### With Parameters
 
-- `#{buffer}{pin}` - Pins the buffer (sends entire buffer on changes)
-- `#{buffer}{watch}` - Watches for changes (sends only changes)
-- `#{buffer:config.lua}{pin}` - Combines targeting with parameters
+**`{all}`** - Sends all of the buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
+
+**`{diff}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
+
+Can be used in combination with targeting a specific buffer:
+
+- `#{buffer}{all}` - Sends entire buffer on any change
+- `#{buffer}{diff}` - Sends only changed portions of the buffer
+- `#{buffer:config.lua}{all}` - Combines targeting with parameters
 
 ### Multiple Buffers
 

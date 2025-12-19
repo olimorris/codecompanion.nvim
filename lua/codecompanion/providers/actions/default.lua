@@ -19,7 +19,7 @@ end
 ---@return nil
 function Provider:picker(items, opts)
   opts = opts or {}
-  opts.columns = opts.columns or { "name", "strategy", "description" }
+  opts.columns = opts.columns or { "name", "interaction", "description" }
   opts.prompt = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions"
 
   ui_utils.action_palette_selector(items, {

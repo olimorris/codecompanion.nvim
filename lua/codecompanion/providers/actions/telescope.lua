@@ -93,8 +93,8 @@ function Provider:picker(items, opts)
 
   local function make_display(entry)
     local columns = { entry.value.name }
-    if entry.value.strategy then
-      columns[2] = { entry.value.strategy, "Comment" }
+    if entry.value.interaction then
+      columns[2] = { entry.value.interaction, "Comment" }
     end
     return displayer(columns)
   end

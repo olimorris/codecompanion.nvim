@@ -31,7 +31,7 @@ local defaults = {
         allow_insecure = false, -- Allow insecure connections?
         cache_models_for = 1800, -- Cache adapter models for this long (seconds)
         proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
-        show_defaults = true, -- Show default adapters
+        show_presets = true, -- Show preset adapters
         show_model_choices = true, -- Show model choices when changing adapter
       },
     },
@@ -45,7 +45,7 @@ local defaults = {
       kimi_cli = "kimi_cli",
       opencode = "opencode",
       opts = {
-        show_defaults = true, -- Show default adapters
+        show_presets = true,
       },
     },
   },
@@ -53,13 +53,16 @@ local defaults = {
   interactions = {
     -- BACKGROUND INTERACTION -------------------------------------------------
     background = {
-      adapter = "copilot",
+      adapter = {
+        name = "copilot",
+        model = "gpt-4.1",
+      },
       -- Callbacks within the plugin that you can attach background actions to
       chat = {
         callbacks = {
           ["on_ready"] = {
             actions = {
-              "interactions.background.catalog.chat_make_title",
+              "interactions.background.builtin.chat_make_title",
             },
             enabled = true,
           },
@@ -69,9 +72,7 @@ local defaults = {
         },
       },
     },
-  },
-  strategies = {
-    -- CHAT STRATEGY ----------------------------------------------------------
+    -- CHAT INTERACTION -------------------------------------------------------
     chat = {
       adapter = "copilot",
       roles = {
@@ -124,61 +125,61 @@ local defaults = {
         },
         -- Tools
         ["cmd_runner"] = {
-          callback = "strategies.chat.tools.catalog.cmd_runner",
+          callback = "interactions.chat.tools.builtin.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["insert_edit_into_file"] = {
-          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
-          description = "Robustly edit existing files with multiple automatic fallback strategies",
+          callback = "interactions.chat.tools.builtin.insert_edit_into_file",
+          description = "Robustly edit existing files with multiple automatic fallback interactions",
           opts = {
-            requires_approval = { -- Require approval before the tool is executed?
+            require_approval_before = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = false, -- For editing files in the current working directory
             },
-            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
             file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
         ["create_file"] = {
-          callback = "strategies.chat.tools.catalog.create_file",
+          callback = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["delete_file"] = {
-          callback = "strategies.chat.tools.catalog.delete_file",
+          callback = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["fetch_webpage"] = {
-          callback = "strategies.chat.tools.catalog.fetch_webpage",
+          callback = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
             adapter = "jina",
           },
         },
         ["file_search"] = {
-          callback = "strategies.chat.tools.catalog.file_search",
+          callback = "interactions.chat.tools.builtin.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
           },
         },
         ["get_changed_files"] = {
-          callback = "strategies.chat.tools.catalog.get_changed_files",
+          callback = "interactions.chat.tools.builtin.get_changed_files",
           description = "Get git diffs of current file changes in a git repository",
           opts = {
             max_lines = 1000,
           },
         },
         ["grep_search"] = {
-          callback = "strategies.chat.tools.catalog.grep_search",
+          callback = "interactions.chat.tools.builtin.grep_search",
           enabled = function()
             -- Currently this tool only supports ripgrep
             return vim.fn.executable("rg") == 1
@@ -190,22 +191,22 @@ local defaults = {
           },
         },
         ["memory"] = {
-          callback = "strategies.chat.tools.catalog.memory",
+          callback = "interactions.chat.tools.builtin.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         },
         ["next_edit_suggestion"] = {
-          callback = "strategies.chat.tools.catalog.next_edit_suggestion",
+          callback = "interactions.chat.tools.builtin.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
         ["read_file"] = {
-          callback = "strategies.chat.tools.catalog.read_file",
+          callback = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
         ["web_search"] = {
-          callback = "strategies.chat.tools.catalog.web_search",
+          callback = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -219,7 +220,7 @@ local defaults = {
           },
         },
         ["list_code_usages"] = {
-          callback = "strategies.chat.tools.catalog.list_code_usages",
+          callback = "interactions.chat.tools.builtin.list_code_usages",
           description = "Find code symbol context",
         },
         opts = {
@@ -290,11 +291,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       variables = {
         ["buffer"] = {
-          callback = "strategies.chat.variables.buffer",
+          callback = "interactions.chat.variables.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
-            default_params = "watch", -- watch|pin
+            default_params = "diff", -- all|diff
             has_params = true,
             excluded = {
               buftypes = {
@@ -312,14 +313,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["lsp"] = {
-          callback = "strategies.chat.variables.lsp",
+          callback = "interactions.chat.variables.lsp",
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
           },
         },
         ["viewport"] = {
-          callback = "strategies.chat.variables.viewport",
+          callback = "interactions.chat.variables.viewport",
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
@@ -328,16 +329,16 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "strategies.chat.slash_commands.catalog.buffer",
+          callback = "interactions.chat.slash_commands.builtin.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            default_params = "watch", -- watch|pin
+            default_params = "diff", -- all|diff
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["compact"] = {
-          callback = "strategies.chat.slash_commands.catalog.compact",
+          callback = "interactions.chat.slash_commands.builtin.compact",
           description = "Clears some of the chat history, keeping a summary in context",
           enabled = function(opts)
             if opts.adapter and opts.adapter.type == "http" then
@@ -350,7 +351,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["fetch"] = {
-          callback = "strategies.chat.slash_commands.catalog.fetch",
+          callback = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -359,14 +360,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["quickfix"] = {
-          callback = "strategies.chat.slash_commands.catalog.quickfix",
+          callback = "interactions.chat.slash_commands.builtin.quickfix",
           description = "Insert quickfix list entries",
           opts = {
             contains_code = true,
           },
         },
         ["file"] = {
-          callback = "strategies.chat.slash_commands.catalog.file",
+          callback = "interactions.chat.slash_commands.builtin.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -375,7 +376,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "strategies.chat.slash_commands.catalog.help",
+          callback = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -384,7 +385,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "strategies.chat.slash_commands.catalog.image",
+          callback = "interactions.chat.slash_commands.builtin.image",
           description = "Insert an image",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -400,15 +401,15 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
-        ["memory"] = {
-          callback = "strategies.chat.slash_commands.catalog.memory",
-          description = "Insert a memory into the chat buffer",
+        ["rules"] = {
+          callback = "interactions.chat.slash_commands.builtin.rules",
+          description = "Insert rules into the chat buffer",
           opts = {
             contains_code = true,
           },
         },
         ["mode"] = {
-          callback = "strategies.chat.slash_commands.catalog.mode",
+          callback = "interactions.chat.slash_commands.builtin.mode",
           description = "Change the ACP session mode",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -423,14 +424,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["now"] = {
-          callback = "strategies.chat.slash_commands.catalog.now",
+          callback = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
         ["symbols"] = {
-          callback = "strategies.chat.slash_commands.catalog.symbols",
+          callback = "interactions.chat.slash_commands.builtin.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -438,17 +439,10 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["terminal"] = {
-          callback = "strategies.chat.slash_commands.catalog.terminal",
+          callback = "interactions.chat.slash_commands.builtin.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
-          },
-        },
-        ["workspace"] = {
-          callback = "strategies.chat.slash_commands.catalog.workspace",
-          description = "Load a workspace file",
-          opts = {
-            contains_code = true,
           },
         },
         opts = {
@@ -519,17 +513,17 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.yank_code",
           description = "Yank code",
         },
-        pin = {
-          modes = { n = "gp" },
+        buffer_sync_all = {
+          modes = { n = "gba" },
           index = 9,
-          callback = "keymaps.pin_context",
-          description = "Pin context",
+          callback = "keymaps.buffer_sync_all",
+          description = "Toggle the syncing of the entire buffer",
         },
-        watch = {
-          modes = { n = "gw" },
+        buffer_sync_diff = {
+          modes = { n = "gbd" },
           index = 10,
-          callback = "keymaps.toggle_watch",
-          description = "Watch buffer",
+          callback = "keymaps.buffer_sync_diff",
+          description = "Toggle the syncing of the buffer to share it's diffs",
         },
         next_chat = {
           modes = { n = "}" },
@@ -579,11 +573,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle system prompt",
         },
-        memory = {
+        rules = {
           modes = { n = "gM" },
           index = 18,
-          callback = "keymaps.clear_memory",
-          description = "Clear memory",
+          callback = "keymaps.clear_rules",
+          description = "Clear Rules",
         },
         yolo_mode = {
           modes = { n = "gty" },
@@ -641,7 +635,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         goto_file_action = ui_utils.tabnew_reuse,
 
         ---This is the default prompt which is sent with every request in the chat
-        ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
+        ---interaction. It is primarily based on the GitHub Copilot Chat's prompt
         ---but with some modifications. You can choose to remove this via
         ---your own config but note that LLM results may not be as good
         ---@param ctx CodeCompanion.SystemPrompt.Context
@@ -663,7 +657,7 @@ The user is working on a %s machine. Please respond with system specific command
         end,
       },
     },
-    -- INLINE STRATEGY --------------------------------------------------------
+    -- INLINE INTERACTION -----------------------------------------------------
     inline = {
       adapter = "copilot",
       keymaps = {
@@ -697,21 +691,21 @@ The user is working on a %s machine. Please respond with system specific command
       },
       variables = {
         ["buffer"] = {
-          callback = "strategies.inline.variables.buffer",
+          callback = "interactions.inline.variables.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["chat"] = {
-          callback = "strategies.inline.variables.chat",
+          callback = "interactions.inline.variables.chat",
           description = "Share the currently open chat buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["clipboard"] = {
-          callback = "strategies.inline.variables.clipboard",
+          callback = "interactions.inline.variables.clipboard",
           description = "Share the contents of the clipboard with the LLM",
           opts = {
             contains_code = true,
@@ -719,7 +713,7 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
     },
-    -- CMD STRATEGY -----------------------------------------------------------
+    -- CMD INTERACTION --------------------------------------------------------
     cmd = {
       adapter = "copilot",
       opts = {
@@ -736,470 +730,13 @@ The user is working on a %s machine. Please respond with system specific command
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {
-    ["Custom Prompt"] = {
-      strategy = "inline",
-      description = "Prompt the LLM from Neovim",
-      opts = {
-        index = 3,
-        is_default = true,
-        is_slash_cmd = false,
-        user_prompt = true,
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = function(context)
-            return fmt(
-              [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing]],
-              context.filetype
-            )
-          end,
-        },
-      },
-    },
-    ["Code workflow"] = {
-      strategy = "workflow",
-      description = "Use a workflow to guide an LLM in writing code",
-      opts = {
-        index = 4,
-        is_default = true,
-        short_name = "cw",
-      },
-      prompts = {
-        {
-          -- We can group prompts together to make a workflow
-          -- This is the first prompt in the workflow
-          {
-            role = constants.SYSTEM_ROLE,
-            content = function(context)
-              return fmt(
-                "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the %s language",
-                context.filetype
-              )
-            end,
-          },
-          {
-            role = constants.USER_ROLE,
-            content = "I want you to ",
-            opts = {
-              auto_submit = false,
-            },
-          },
-        },
-        -- This is the second group of prompts
-        {
-          {
-            role = constants.USER_ROLE,
-            content = "Great. Now let's consider your code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
-            opts = {
-              auto_submit = true,
-            },
-          },
-        },
-        -- This is the final group of prompts
-        {
-          {
-            role = constants.USER_ROLE,
-            content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
-            opts = {
-              auto_submit = true,
-            },
-          },
-        },
-      },
-    },
-    ["Edit<->Test workflow"] = {
-      strategy = "workflow",
-      description = "Use a workflow to repeatedly edit then test code",
-      opts = {
-        index = 5,
-        is_default = true,
-        short_name = "et",
-      },
-      prompts = {
-        {
-          {
-            name = "Setup Test",
-            role = constants.USER_ROLE,
-            opts = { auto_submit = false },
-            content = function()
-              -- Enable YOLO mode!
-              vim.g.codecompanion_yolo_mode = true
-
-              return [[### Instructions
-
-Your instructions here
-
-### Steps to Follow
-
-You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
-
-1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
-2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
-3. Make sure you trigger both tools in the same response
-
-We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
-            end,
-          },
-        },
-        {
-          {
-            name = "Repeat On Failure",
-            role = constants.USER_ROLE,
-            opts = { auto_submit = true },
-            -- Scope this prompt to the cmd_runner tool
-            condition = function()
-              return _G.codecompanion_current_tool == "cmd_runner"
-            end,
-            -- Repeat until the tests pass, as indicated by the testing flag
-            -- which the cmd_runner tool sets on the chat buffer
-            repeat_until = function(chat)
-              return chat.tool_registry.flags.testing == true
-            end,
-            content = "The tests have failed. Can you edit the buffer and run the test suite again?",
-          },
-        },
-      },
-    },
-    ["Explain"] = {
-      strategy = "chat",
-      description = "Explain how code in a buffer works",
-      opts = {
-        index = 6,
-        is_default = true,
-        is_slash_cmd = false,
-        modes = { "v" },
-        short_name = "explain",
-        auto_submit = true,
-        user_prompt = false,
-        stop_context_insertion = true,
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = [[When asked to explain code, follow these steps:
-
-1. Identify the programming language.
-2. Describe the purpose of the code and reference core concepts from the programming language.
-3. Explain each function or significant block of code, including parameters and return values.
-4. Highlight any specific functions or methods used and their roles.
-5. Provide context on how the code fits into a larger application if applicable.]],
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function(context)
-            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
-            return fmt(
-              [[Please explain this code from buffer %d:
-
-```%s
-%s
-```
-]],
-              context.bufnr,
-              context.filetype,
-              code
-            )
-          end,
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
-    },
-    ["Unit Tests"] = {
-      strategy = "inline",
-      description = "Generate unit tests for the selected code",
-      opts = {
-        index = 7,
-        is_default = true,
-        is_slash_cmd = false,
-        modes = { "v" },
-        short_name = "tests",
-        auto_submit = true,
-        user_prompt = false,
-        placement = "new",
-        stop_context_insertion = true,
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = [[When generating unit tests, follow these steps:
-
-1. Identify the programming language.
-2. Identify the purpose of the function or module to be tested.
-3. List the edge cases and typical use cases that should be covered in the tests and share the plan with the user.
-4. Generate unit tests using an appropriate testing framework for the identified programming language.
-5. Ensure the tests cover:
-      - Normal cases
-      - Edge cases
-      - Error handling (if applicable)
-6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.]],
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function(context)
-            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
-            return fmt(
-              [[<user_prompt>
-Please generate unit tests for this code from buffer %d:
-
-```%s
-%s
-```
-</user_prompt>
-]],
-              context.bufnr,
-              context.filetype,
-              code
-            )
-          end,
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
-    },
-    ["Fix code"] = {
-      strategy = "chat",
-      description = "Fix the selected code",
-      opts = {
-        index = 8,
-        is_default = true,
-        is_slash_cmd = false,
-        modes = { "v" },
-        short_name = "fix",
-        auto_submit = true,
-        user_prompt = false,
-        stop_context_insertion = true,
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = [[When asked to fix code, follow these steps:
-
-1. **Identify the Issues**: Carefully read the provided code and identify any potential issues or improvements.
-2. **Plan the Fix**: Describe the plan for fixing the code in pseudocode, detailing each step.
-3. **Implement the Fix**: Write the corrected code in a single code block.
-4. **Explain the Fix**: Briefly explain what changes were made and why.
-
-Ensure the fixed code:
-
-- Includes necessary imports.
-- Handles potential errors.
-- Follows best practices for readability and maintainability.
-- Is formatted correctly.
-
-Use Markdown formatting and include the programming language name at the start of the code block.]],
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function(context)
-            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
-            return fmt(
-              [[Please fix this code from buffer %d:
-
-```%s
-%s
-```
-]],
-              context.bufnr,
-              context.filetype,
-              code
-            )
-          end,
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
-    },
-    ["Explain LSP Diagnostics"] = {
-      strategy = "chat",
-      description = "Explain the LSP diagnostics for the selected code",
-      opts = {
-        index = 9,
-        is_default = true,
-        is_slash_cmd = false,
-        modes = { "v" },
-        short_name = "lsp",
-        auto_submit = true,
-        user_prompt = false,
-        stop_context_insertion = true,
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function(context)
-            local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
-              context.start_line,
-              context.end_line,
-              context.bufnr
-            )
-
-            local concatenated_diagnostics = ""
-            for i, diagnostic in ipairs(diagnostics) do
-              concatenated_diagnostics = concatenated_diagnostics
-                .. i
-                .. ". Issue "
-                .. i
-                .. "\n  - Location: Line "
-                .. diagnostic.line_number
-                .. "\n  - Buffer: "
-                .. context.bufnr
-                .. "\n  - Severity: "
-                .. diagnostic.severity
-                .. "\n  - Message: "
-                .. diagnostic.message
-                .. "\n"
-            end
-
-            return fmt(
-              [[The programming language is %s. This is a list of the diagnostic messages:
-
-%s
-]],
-              context.filetype,
-              concatenated_diagnostics
-            )
-          end,
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function(context)
-            local code = require("codecompanion.helpers.actions").get_code(
-              context.start_line,
-              context.end_line,
-              { show_line_numbers = true }
-            )
-            return fmt(
-              [[
-This is the code, for context:
-
-```%s
-%s
-```
-]],
-              context.filetype,
-              code
-            )
-          end,
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
-    },
-    ["Generate a Commit Message"] = {
-      strategy = "chat",
-      description = "Generate a commit message",
-      opts = {
-        index = 10,
-        is_default = true,
-        is_slash_cmd = true,
-        short_name = "commit",
-        auto_submit = true,
-      },
-      prompts = {
-        {
-          role = constants.USER_ROLE,
-          content = function()
-            local diff = vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait()
-            return string.format(
-              [[You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
-
-````diff
-%s
-````
-]],
-              diff.stdout
-            )
-          end,
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
-    },
-    ["Workspace File"] = {
-      strategy = "chat",
-      description = "Generate a Workspace file/group",
-      opts = {
-        index = 11,
-        ignore_system_prompt = true,
-        is_default = true,
-        short_name = "workspace",
-      },
-      context = {
-        {
-          type = "file",
-          path = {
-            vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),
-          },
-        },
-      },
-      prompts = {
-        {
-          role = constants.SYSTEM_ROLE,
-          content = function()
-            local schema = require("codecompanion").workspace_schema()
-            return fmt(
-              [[## CONTEXT
-
-A workspace is a JSON configuration file that organizes your codebase into related groups to help LLMs understand your project structure. Each group contains files, symbols, or URLs that provide context about specific functionality or features.
-
-The workspace file follows this structure:
-
-```json
-%s
-```
-
-## OBJECTIVE
-
-Create or modify a workspace file that effectively organizes the user's codebase to provide optimal context for LLM interactions.
-
-## RESPONSE
-
-You must create or modify a workspace file through a series of prompts over multiple turns:
-
-1. First, ask the user about the project's overall purpose and structure if not already known
-2. Then ask the user to identify key functional groups in your codebase
-3. For each group, ask the user select relevant files, symbols, or URLs to include. Or, use your own knowledge to identify them
-4. Generate the workspace JSON structure based on the input
-5. Review and refine the workspace configuration together with the user]],
-              schema
-            )
-          end,
-        },
-        {
-          role = constants.USER_ROLE,
-          content = function()
-            local prompt = ""
-            if vim.fn.filereadable(vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")) == 1 then
-              prompt = [[Can you help me add a group to an existing workspace file?]]
-            else
-              prompt = [[Can you help me create a workspace file?]]
-            end
-
-            local ok, _ = pcall(require, "vectorcode")
-            if ok then
-              prompt = prompt .. " Use the @{vectorcode_toolbox} tool to help identify groupings of files"
-            end
-            return prompt
-          end,
-        },
-      },
+    -- Users can define prompt library items in markdown
+    markdown = {
+      dirs = {},
     },
   },
-  -- MEMORY -------------------------------------------------------------------
-  memory = {
+  -- RULES -------------------------------------------------------------------
+  rules = {
     default = {
       description = "Collection of common files for all projects",
       files = {
@@ -1215,10 +752,10 @@ You must create or modify a workspace file through a series of prompts over mult
         { path = "CLAUDE.local.md", parser = "claude" },
         { path = "~/.claude/CLAUDE.md", parser = "claude" },
       },
-      is_default = true,
+      is_preset = true,
     },
     CodeCompanion = {
-      description = "CodeCompanion plugin memory files",
+      description = "CodeCompanion rules",
       parser = "claude",
       ---@return boolean
       enabled = function()
@@ -1268,35 +805,28 @@ You must create or modify a workspace file through a series of prompts over mult
             ".codecompanion/ui.md",
           },
         },
-        ["workflows"] = {
-          description = "The workflow implementation",
-          files = {
-            ".codecompanion/workflows.md",
-          },
-        },
       },
-      is_default = true,
+      is_preset = true,
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
+      codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
       none = "none", -- No parsing, just raw text
     },
     opts = {
       chat = {
-        enabled = false, -- Automatically add memory to new chat buffers?
+        ---The rule groups to load with every chat interaction
+        ---@type string|fun(): string
+        autoload = "default",
 
-        ---Function to determine if memory should be added to a chat buffer
-        ---This requires `enabled` to be true
-        ---@param chat CodeCompanion.Chat
-        ---@return boolean
-        condition = function(chat)
-          return chat.adapter.type ~= "acp"
-        end,
+        ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
+        enabled = true,
 
-        default_memory = "default", -- The memory groups to load
-        default_params = "watch", -- watch|pin - when adding a buffer to the chat
+        ---The default parameters to use when loading buffer rules
+        default_params = "diff", -- all|diff
       },
-      show_defaults = true, -- Show the default memory files in the action palette?
+
+      show_presets = true, -- Show the preset rules files?
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------
@@ -1307,15 +837,16 @@ You must create or modify a workspace file through a series of prompts over mult
       prompt = "Prompt ", -- Prompt used for interactive LLM calls
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
-        show_default_actions = true, -- Show the default actions in the action palette?
-        show_default_prompt_library = true, -- Show the default prompt library in the action palette?
+        show_preset_actions = true, -- Show the preset actions in the action palette?
+        show_preset_prompts = true, -- Show the preset prompts in the action palette?
+        show_preset_rules = true, -- Show the preset rules in the action palette?
         title = "CodeCompanion actions", -- The title of the action palette
       },
     },
     chat = {
       icons = {
-        buffer_pin = " ",
-        buffer_watch = "󰂥 ",
+        buffer_sync_all = "󰪴 ",
+        buffer_sync_diff = " ",
         --chat_context = " ",
         chat_fold = " ",
         tool_pending = "  ",
@@ -1323,32 +854,31 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_failure = "  ",
         tool_success = "  ",
       },
+
       -- Window options for the chat buffer
       window = {
+        buflisted = false, -- List the chat buffer in the buffer list?
+        sticky = false, -- Chat buffer remains open when switching tabs
+
         layout = "vertical", -- float|vertical|horizontal|buffer
+        full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
-        border = "single",
+
+        width = 0.5, ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
         height = 0.8,
-        ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
-        width = 0.45,
+        border = "single",
         relative = "editor",
-        full_height = true,
-        sticky = false, -- chat buffer remains open when switching tabs
+
+        -- Ensure that long paragraphs of markdown are wrapped
         opts = {
           breakindent = true,
-          cursorcolumn = false,
-          cursorline = false,
-          foldcolumn = "0",
           linebreak = true,
-          list = false,
-          numberwidth = 1,
-          signcolumn = "no",
-          spell = false,
           wrap = true,
         },
       },
+
       -- Options for any windows that open within the chat buffer
-      child_window = {
+      floating_window = {
         ---@return number|fun(): number
         width = function()
           return vim.o.columns - 5
@@ -1360,13 +890,10 @@ You must create or modify a workspace file through a series of prompts over mult
         row = "center",
         col = "center",
         relative = "editor",
-        opts = {
-          wrap = false,
-          number = false,
-          relativenumber = false,
-        },
+        opts = {},
       },
-      -- Extend/override the child_window options for a diff
+
+      -- Options for diff windows that open within the chat buffer
       diff_window = {
         ---@return number|fun(): number
         width = function()
@@ -1381,19 +908,20 @@ You must create or modify a workspace file through a series of prompts over mult
         },
       },
 
+      -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
-      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
+      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
 
-      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       fold_context = false, -- Fold context in the chat buffer?
+      show_context = true, -- Show context that you've shared with the LLM in the chat buffer?
 
-      show_reasoning = true, -- Show reasoning content in the chat buffer?
       fold_reasoning = true, -- Fold the reasoning content in the chat buffer?
+      show_reasoning = true, -- Show reasoning content in the chat buffer?
 
-      show_settings = false, -- Show LLM settings at the top of the chat buffer?
+      show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
@@ -1515,18 +1043,35 @@ M.setup = function(args)
     )
   end
 
+  -- TODO: Remove in v19.0.0
+  if args.strategies then
+    args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
+    args.strategies = nil
+  end
+
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 
-  M.config.strategies.chat.keymaps = remove_disabled_keymaps(M.config.strategies.chat.keymaps)
-  M.config.strategies.inline.keymaps = remove_disabled_keymaps(M.config.strategies.inline.keymaps)
+  M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
+  M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
 
-  -- TODO: Add a deprecation warning at some point
-  if M.config.opts and M.config.opts.system_prompt then
-    M.config.strategies.chat.opts.system_prompt = M.config.opts.system_prompt
-    M.config.opts.system_prompt = nil
-  end
+  -- Set the diagnostic namespace for the chat buffer settings
+  M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
+  M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+
+  local diagnostic_config = {
+    underline = false,
+    virtual_text = {
+      spacing = 2,
+      severity = { min = vim.diagnostic.severity.INFO },
+    },
+    signs = false,
+  }
+  vim.diagnostic.config(diagnostic_config, M.config.INFO_NS)
+  vim.diagnostic.config(diagnostic_config, M.config.ERROR_NS)
 end
 
+---Determine if code can be sent to the LLM
+---@return boolean
 M.can_send_code = function()
   if type(M.config.opts.send_code) == "boolean" then
     return M.config.opts.send_code

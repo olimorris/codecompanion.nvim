@@ -5,76 +5,79 @@ description: How to install CodeCompanion and it's dependencies
 # Installation
 
 > [!IMPORTANT]
-> The plugin requires the markdown and markdown_inline Tree-sitter parsers to be installed with `:TSInstall markdown markdown_inline`
+> To avoid breaking changes, it is recommended to pin the plugin to a specific release when installing.
 
 ## Requirements
 
 - The `curl` library
 - Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
+- _(Optional)_ [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and a `yaml` parser for markdown prompt library items
 - _(Optional)_ The [file](https://man7.org/linux/man-pages/man1/file.1.html) command for detecting image mimetype
 - _(Optional)_ The [ripgrep](https://github.com/BurntSushi/ripgrep) library for the `grep_search` tool
 
+You can run `:checkhealth codecompanion` to verify that all requirements are met.
+
 ## Installation
 
-The plugin can be installed with the plugin manager of your choice:
+The plugin can be installed with the plugin manager of your choice. It is recommended to pin the plugin to a specific release to avoid breaking changes.
 
-### [Lazy.nvim](https://github.com/folke/lazy.nvim)
+[nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) is required if you plan to use markdown prompts in the [prompt library](/configuration/prompt-library), ensuring you have the `yaml` parser installed.
 
-```lua
+::: code-group
+
+```lua [vim.pack]
+vim.pack.add("https://www.github.com/nvim-lua/plenary.nvim")
+vim.pack.add("https://github.com/nvim-treesitter/nvim-treesitter")
+vim.pack.add({
+  src = "https://www.github.com/olimorris/codecompanion.nvim",
+  version = vim.version.range("^18.0.0")
+})
+
+-- Somewhere in your config
+require("codecompanion").setup()
+```
+
+```lua [Lazy.nvim]
 {
   "olimorris/codecompanion.nvim",
+  version = "^18.0.0",
   opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
   },
 },
 ```
 
-### [Packer](https://github.com/wbthomason/packer.nvim)
-
-```lua
+```lua [Packer.nvim]
 use({
   "olimorris/codecompanion.nvim",
+  tag = "^18.0.0",
   config = function()
     require("codecompanion").setup()
   end,
   requires = {
     "nvim-lua/plenary.nvim",
-  }
+    "nvim-treesitter/nvim-treesitter",
+  },
 }),
 ```
 
-### [vim-plug](https://github.com/junegunn/vim-plug)
+:::
 
-```vim
-call plug#begin()
+**Plenary.nvim note:**
 
-Plug 'nvim-lua/plenary.nvim'
-Plug 'olimorris/codecompanion.nvim'
+As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, ensure you set plenary.nvim to follow the master branch
 
-call plug#end()
-
-lua << EOF
-  require("codecompanion").setup()
-EOF
-```
-
-**Pinned plugins**
-
-As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, ensure you set plenary.nvim to follow the master branch:
-
-```lua
-{ "nvim-lua/plenary.nvim", branch = "master" },
-```
-
-## Installing Extensions
+## Extensions
 
 CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
 
-1. Install with:
+::: code-group
 
-```lua
+```lua [1. Install]
+-- Lazy.nvim
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
@@ -83,9 +86,7 @@ CodeCompanion supports extensions that add additional functionality to the plugi
 }
 ```
 
-2. Configure with additional options:
-
-```lua
+```lua [2. Configure]
 require("codecompanion").setup({
   extensions = {
     mcphub = {
@@ -100,28 +101,24 @@ require("codecompanion").setup({
 })
 ```
 
+:::
+
 Visit the [extensions documentation](extending/extensions) to learn more about available extensions and how to create your own.
 
-## Additional Plugins
+## Other Plugins
 
 CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
 
-### render-markdown.nvim
+::: code-group
 
-Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) to render the markdown in the chat buffer:
-
-```lua
+```lua [render-markdown.nvim]
 {
   "MeanderingProgrammer/render-markdown.nvim",
   ft = { "markdown", "codecompanion" }
 },
 ```
 
-### markview.nvim
-
-Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer:
-
-```lua
+```lua [markview.nvim]
 {
   "OXY2DEV/markview.nvim",
   lazy = false,
@@ -134,30 +131,7 @@ Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the mark
 },
 ```
 
-You can also conceal the tags used in chat buffers, see [HTML options](https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements) and [this discussion](https://github.com/olimorris/codecompanion.nvim/discussions/1638) for examples.
-
-### mini.diff
-
-Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@insert_edit_into_file` tool:
-
-```lua
-{
-  "echasnovski/mini.diff",
-  config = function()
-    local diff = require("mini.diff")
-    diff.setup({
-      -- Disabled by default
-      source = diff.gen_source.none(),
-    })
-  end,
-},
-```
-
-### img-clip.nvim
-
-Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
-
-```lua
+```lua [img-clip.nvim]
 {
   "HakonHarnes/img-clip.nvim",
   opts = {
@@ -171,6 +145,11 @@ Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images
   },
 },
 ```
+
+:::
+
+Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) or [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer.  Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
+
 
 ## Completion
 

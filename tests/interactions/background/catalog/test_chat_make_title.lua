@@ -11,7 +11,7 @@ T = new_set({
         h = require('tests.helpers')
         config = require('codecompanion.config')
         h.setup_plugin()
-	catalog = require("codecompanion.interactions.background.catalog.chat_make_title")
+	builtin = require("codecompanion.interactions.background.builtin.chat_make_title")
       ]])
     end,
     post_once = child.stop,
@@ -22,7 +22,7 @@ T["chat_make_title"] = new_set()
 
 T["chat_make_title"]["can format messages"] = function()
   local messages = child.lua([[
-    return catalog.format_messages({
+    return builtin.format_messages({
       { role = "user", content = "Hello, how are you?" },
       { role = "assistant", content = "I am fine, thank you!" },
     })
@@ -33,7 +33,7 @@ end
 
 T["chat_make_title"]["formats a title on_done"] = function()
   local title = child.lua([[
-    return catalog.on_done({
+    return builtin.on_done({
       output = {
 	content = "Python Agent Chatbot"
       }

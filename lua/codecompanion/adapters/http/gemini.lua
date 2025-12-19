@@ -1,3 +1,4 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local openai = require("codecompanion.adapters.http.openai")
 
 ---@class CodeCompanion.HTTPAdapter.Gemini : CodeCompanion.HTTPAdapter
@@ -57,6 +58,9 @@ return {
       return openai.handlers.form_tools(self, tools)
     end,
     form_messages = function(self, messages)
+      -- WARN: System prompts must be merged as per #2522
+      messages = adapter_utils.merge_system_messages(messages)
+
       local result = openai.handlers.form_messages(self, messages)
 
       local STANDARD_TOOL_CALL_FIELDS = {
@@ -119,9 +123,13 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
-      default = "gemini-2.5-flash",
+      default = "gemini-3-pro-preview",
       choices = {
         ["gemini-3-pro-preview"] = { formatted_name = "Gemini 3 Pro", opts = { can_reason = true, has_vision = true } },
+        ["gemini-3-flash-preview"] = {
+          formatted_name = "Gemini 3 Flash",
+          opts = { can_reason = true, has_vision = true },
+        },
         ["gemini-2.5-pro"] = { formatted_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash"] = { formatted_name = "Gemini 2.5 Flash", opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash-preview-05-20"] = {
@@ -176,8 +184,8 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      ---@param self CodeCompanion.HTTPAdapter
-      condition = function(self)
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      enabled = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
           model = model()

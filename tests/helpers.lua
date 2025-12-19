@@ -32,7 +32,22 @@ Helpers.setup_plugin = function(config)
       local get_models_ok, get_models = pcall(require, "codecompanion.adapters.http.copilot.get_models")
       if get_models_ok then
         get_models.choices = function(adapter, opts, provided_token)
-          return { "gpt-4.1" }
+          return { ["gpt-4.1"] = { opts = {} } }
+        end
+      end
+
+      -- Mock the token module to prevent HTTP calls
+      local token_ok, token = pcall(require, "codecompanion.adapters.http.copilot.token")
+      if token_ok then
+        token.init = function()
+          return true
+        end
+        token.fetch = function()
+          return {
+            oauth_token = "mock_oauth_token",
+            copilot_token = "mock_copilot_token",
+            endpoints = { api = "https://api.githubcopilot.com" },
+          }
         end
       end
     end
@@ -170,9 +185,9 @@ end
 ---@param status? string The status to set (default: "success")
 ---@return function The original submit function for restoration
 Helpers.mock_submit = function(response, status)
-  local original_submit = require("codecompanion.strategies.chat").submit
+  local original_submit = require("codecompanion.interactions.chat").submit
 
-  require("codecompanion.strategies.chat").submit = function(self)
+  require("codecompanion.interactions.chat").submit = function(self)
     -- Mock submission instead of calling actual API
     self:add_buf_message({
       role = "llm",
@@ -190,7 +205,7 @@ end
 ---@param original function The original submit function to restore
 ---@return nil
 Helpers.restore_submit = function(original)
-  require("codecompanion.strategies.chat").submit = original
+  require("codecompanion.interactions.chat").submit = original
 end
 
 ---Setup and mock a chat buffer
@@ -207,18 +222,18 @@ Helpers.setup_chat_buffer = function(config, adapter)
     config_module.adapters[adapter.name] = adapter.config
   end
 
-  local chat = require("codecompanion.strategies.chat").new({
+  local chat = require("codecompanion.interactions.chat").new({
     buffer_context = { bufnr = 1, filetype = "lua" },
     adapter = adapter and adapter.name or "test_adapter",
   })
   chat.vars = {
     foo = {
-      callback = "spec.codecompanion.strategies.chat.variables.foo",
+      callback = "spec.codecompanion.interactions.chat.variables.foo",
       description = "foo",
     },
   }
-  local tools = require("codecompanion.strategies.chat.tools").new({ bufnr = 1 })
-  local vars = require("codecompanion.strategies.chat.variables").new()
+  local tools = require("codecompanion.interactions.chat.tools").new({ bufnr = 1 })
+  local vars = require("codecompanion.interactions.chat.variables").new()
 
   return chat, tools, vars
 end
@@ -304,7 +319,7 @@ Helpers.setup_inline = function(config)
   local config_module = mock_config()
   config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
 
-  return require("codecompanion.strategies.inline").new({
+  return require("codecompanion.interactions.inline").new({
     buffer_context = {
       winnr = 0,
       bufnr = 0,

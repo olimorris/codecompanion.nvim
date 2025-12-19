@@ -22,7 +22,7 @@ function M.select(provider, item)
   elseif item and type(item.callback) == "function" then
     return item.callback(provider.context)
   else
-    -- Or resolve it down to a strategy
+    -- Or resolve it down to an interaction
     return provider.resolve(item, provider.context)
   end
 end

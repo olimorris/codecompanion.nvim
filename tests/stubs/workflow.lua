@@ -2,9 +2,8 @@ return {
   strategy = "workflow",
   description = "Use a workflow to guide an LLM in writing code",
   opts = {
+    alias = "workflow",
     index = 4,
-    is_default = true,
-    short_name = "workflow",
   },
   prompts = {
     {

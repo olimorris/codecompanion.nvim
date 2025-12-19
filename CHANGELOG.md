@@ -1,5 +1,107 @@
 # Changelog
 
+## [18.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.1.1...v18.2.0) (2025-12-19)
+
+
+### Features
+
+* **adapters:** add Gemini 3 Flash to Gemini ([#2548](https://github.com/olimorris/codecompanion.nvim/issues/2548)) ([6db10c1](https://github.com/olimorris/codecompanion.nvim/commit/6db10c1d38f09194cff6760717bc8f907068f20c))
+* **cmds:** can toggle with the adapter param ([#2535](https://github.com/olimorris/codecompanion.nvim/issues/2535)) ([19ac06a](https://github.com/olimorris/codecompanion.nvim/commit/19ac06a849778d002c93ffc9cb90d07120a9b1a7)), closes [#2528](https://github.com/olimorris/codecompanion.nvim/issues/2528)
+
+
+### Bug Fixes
+
+* **chat:** changing adapters and models ([#2472](https://github.com/olimorris/codecompanion.nvim/issues/2472)) ([663d53c](https://github.com/olimorris/codecompanion.nvim/commit/663d53cd1a05a699c7d2741d09369c15f12b1e10))
+* **chat:** improve handling nested tables for the debug window ([#2554](https://github.com/olimorris/codecompanion.nvim/issues/2554)) ([532ccbf](https://github.com/olimorris/codecompanion.nvim/commit/532ccbf22c166e084a867fcd2830dc4d9612d289))
+* **tools:** consecutive tool calls ([#2545](https://github.com/olimorris/codecompanion.nvim/issues/2545)) ([8fa83ad](https://github.com/olimorris/codecompanion.nvim/commit/8fa83adfb812f70bf241a62e84c539e3216a70e4))
+
+## [18.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.1.0...v18.1.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* **adapters:** gemini system prompts ([#2530](https://github.com/olimorris/codecompanion.nvim/issues/2530)) ([247ab70](https://github.com/olimorris/codecompanion.nvim/commit/247ab7022c4fb150c9f35138c44092f2f414a98e))
+* pattern escape context ([#2532](https://github.com/olimorris/codecompanion.nvim/issues/2532)) ([94f62bf](https://github.com/olimorris/codecompanion.nvim/commit/94f62bfc4e6333d0b039198a492913533d25946b)), closes [#2525](https://github.com/olimorris/codecompanion.nvim/issues/2525)
+
+## [18.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.0.0...v18.1.0) (2025-12-14)
+
+
+### Features
+
+* **adapters:** Copilot now has max_context_window_tokens ([#2516](https://github.com/olimorris/codecompanion.nvim/issues/2516)) ([8e81351](https://github.com/olimorris/codecompanion.nvim/commit/8e813517c537007c784b2702609b244712433e1f))
+* **adapters:** mistral can now reason ([#2377](https://github.com/olimorris/codecompanion.nvim/issues/2377)) ([4c37295](https://github.com/olimorris/codecompanion.nvim/commit/4c37295e111eb3534a5cd1391c5a65ce3c4cb3c8))
+* **prompts:** add code to context table ([#2523](https://github.com/olimorris/codecompanion.nvim/issues/2523)) ([42d28cb](https://github.com/olimorris/codecompanion.nvim/commit/42d28cbed8b61c5c144d0adf06553c26b88439e4))
+
+
+### Bug Fixes
+
+* **adapters:** copilot stats forces oauth token fetching ([#2520](https://github.com/olimorris/codecompanion.nvim/issues/2520)) ([2cf85e3](https://github.com/olimorris/codecompanion.nvim/commit/2cf85e3fe63572e3a1c2be32c2ffb5b7bb0d18ab))
+
+## [18.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.33.0...v18.0.0) (2025-12-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* defaults become presets ([#2497](https://github.com/olimorris/codecompanion.nvim/issues/2497))
+* **workflows:** `is_workflow` replaces `strategy = workflow`
+* **workflows:** `opts.is_workflow` defines a workflow ([#2487](https://github.com/olimorris/codecompanion.nvim/issues/2487))
+* `strategies` are now `interactions` ([#2485](https://github.com/olimorris/codecompanion.nvim/issues/2485))
+* remove old system prompt config option ([#2484](https://github.com/olimorris/codecompanion.nvim/issues/2484))
+* rename `catalog` to `builtin` ([#2482](https://github.com/olimorris/codecompanion.nvim/issues/2482))
+* **prompt_library:** prompts can be markdown and exist in directories ([#2471](https://github.com/olimorris/codecompanion.nvim/issues/2471))
+* `child_window` to `floating_window` ([#2452](https://github.com/olimorris/codecompanion.nvim/issues/2452))
+* **tools:** `user_confirmation` is now `require_confirmation_after` ([#2450](https://github.com/olimorris/codecompanion.nvim/issues/2450))
+* **tools:** `requires_approval` is now `require_approval_before`
+* **adapters:** `condition` is now `enabled`
+* remove workspaces ([#2446](https://github.com/olimorris/codecompanion.nvim/issues/2446))
+* remove deprecations ([#2445](https://github.com/olimorris/codecompanion.nvim/issues/2445))
+* **chat:** pins and watchers are now sync_all and sync_diff ([#2444](https://github.com/olimorris/codecompanion.nvim/issues/2444))
+* **chat:** rename memory to rules ([#2440](https://github.com/olimorris/codecompanion.nvim/issues/2440))
+* **chat:** pass adapter as arg in `:CodeCompanionChat` ([#2437](https://github.com/olimorris/codecompanion.nvim/issues/2437))
+
+### Features
+
+* **chat:** automatically generate chat descriptions ([#2462](https://github.com/olimorris/codecompanion.nvim/issues/2462)) ([7962553](https://github.com/olimorris/codecompanion.nvim/commit/796255361e62abf2e765135bdf608a718777b49b))
+* **chat:** pass adapter as arg in `:CodeCompanionChat` ([#2437](https://github.com/olimorris/codecompanion.nvim/issues/2437)) ([25127ef](https://github.com/olimorris/codecompanion.nvim/commit/25127ef5b93cfd5070163d1deb86d167922b2b1e))
+* **chat:** rules path can be dirs and glob patterns ([#2509](https://github.com/olimorris/codecompanion.nvim/issues/2509)) ([1b23363](https://github.com/olimorris/codecompanion.nvim/commit/1b23363f50ffc5558fb2f79f799e49228195ff6f))
+* **cmds:** pass model to `:CodeCompanionChat` ([#2466](https://github.com/olimorris/codecompanion.nvim/issues/2466)) ([b7c750c](https://github.com/olimorris/codecompanion.nvim/commit/b7c750c68617c3e6beba1b132741c4c5170dcf8e))
+* **prompt_library:** prompts can be markdown and exist in directories ([#2471](https://github.com/olimorris/codecompanion.nvim/issues/2471)) ([d14a50b](https://github.com/olimorris/codecompanion.nvim/commit/d14a50bdd0a78c92a8f2985b52e8a0a31c199eab))
+* **rules:** default_rules can be a function ([#2479](https://github.com/olimorris/codecompanion.nvim/issues/2479)) ([04f39a3](https://github.com/olimorris/codecompanion.nvim/commit/04f39a333415084688027bd44ecc1db7e4066b07))
+
+
+### Bug Fixes
+
+* **config:** map strategies to interactions ([#2493](https://github.com/olimorris/codecompanion.nvim/issues/2493)) ([2fd3306](https://github.com/olimorris/codecompanion.nvim/commit/2fd3306246fed987c46484d18cab2687e6d80571))
+* **rules:** CodeCompanion rules point to interactions ([#2495](https://github.com/olimorris/codecompanion.nvim/issues/2495)) ([e88933f](https://github.com/olimorris/codecompanion.nvim/commit/e88933f5804de17345ef268e304cd6f0c3631a32))
+* **slash_cmds:** compact prompt is now simpler ([#2488](https://github.com/olimorris/codecompanion.nvim/issues/2488)) ([07f4232](https://github.com/olimorris/codecompanion.nvim/commit/07f4232ecd431065b771b6ead2ac6af169c099e0))
+* **slash_cmds:** make compact prompt, simpler ([07f4232](https://github.com/olimorris/codecompanion.nvim/commit/07f4232ecd431065b771b6ead2ac6af169c099e0))
+* **ui:** closing floating windows ([#2453](https://github.com/olimorris/codecompanion.nvim/issues/2453)) ([196e4a4](https://github.com/olimorris/codecompanion.nvim/commit/196e4a45a15173a75c36259218aa2232878d0966))
+* **ui:** winbar timing with inline floating diff ([#2512](https://github.com/olimorris/codecompanion.nvim/issues/2512)) ([8172477](https://github.com/olimorris/codecompanion.nvim/commit/8172477225edcf73bcebdb0a9a2460287ba94186))
+* use scratch buffer for ACP to prevent orphan files ([#2447](https://github.com/olimorris/codecompanion.nvim/issues/2447)) ([df1e90e](https://github.com/olimorris/codecompanion.nvim/commit/df1e90e5c166012ecc9c1032a0598394e0aac172))
+
+
+### Performance Improvements
+
+* **adapters:** make copilot start faster ([#2503](https://github.com/olimorris/codecompanion.nvim/issues/2503)) ([2adedf7](https://github.com/olimorris/codecompanion.nvim/commit/2adedf70025617d8dd4cc7f874cff347776cd050))
+
+
+### Code Refactoring
+
+* `child_window` to `floating_window` ([#2452](https://github.com/olimorris/codecompanion.nvim/issues/2452)) ([fdf2d02](https://github.com/olimorris/codecompanion.nvim/commit/fdf2d028866835f45fae1e60da423bf7ae91ecc2))
+* `strategies` are now `interactions` ([#2485](https://github.com/olimorris/codecompanion.nvim/issues/2485)) ([2f1c887](https://github.com/olimorris/codecompanion.nvim/commit/2f1c887c9496ff72fb2852576fbf0f4305f3a274))
+* **adapters:** `condition` is now `enabled` ([cb14c7b](https://github.com/olimorris/codecompanion.nvim/commit/cb14c7bac869346e2d12b775c4bf258606add569))
+* **chat:** pins and watchers are now sync_all and sync_diff ([#2444](https://github.com/olimorris/codecompanion.nvim/issues/2444)) ([16cb55b](https://github.com/olimorris/codecompanion.nvim/commit/16cb55ba6f869e3852663fcb01774f9ab5e17f7c))
+* **chat:** rename memory to rules ([#2440](https://github.com/olimorris/codecompanion.nvim/issues/2440)) ([ba3fd6f](https://github.com/olimorris/codecompanion.nvim/commit/ba3fd6fc0d38904a2f7f1d42a0f2701cdcf2567d))
+* defaults become presets ([#2497](https://github.com/olimorris/codecompanion.nvim/issues/2497)) ([269c2ca](https://github.com/olimorris/codecompanion.nvim/commit/269c2ca3d34c56bb46c010e31c379fa495f6425a))
+* remove deprecations ([#2445](https://github.com/olimorris/codecompanion.nvim/issues/2445)) ([5a4847f](https://github.com/olimorris/codecompanion.nvim/commit/5a4847ff10a1e18422080c6f21c34f970e4c088f))
+* remove old system prompt config option ([#2484](https://github.com/olimorris/codecompanion.nvim/issues/2484)) ([0d197f6](https://github.com/olimorris/codecompanion.nvim/commit/0d197f62a2f64d5df3f7f99db44fa237bf7c5d97))
+* remove workspaces ([#2446](https://github.com/olimorris/codecompanion.nvim/issues/2446)) ([1a5bed2](https://github.com/olimorris/codecompanion.nvim/commit/1a5bed2f1b3cf5f6600743f3758a18d836e7b50a))
+* rename `catalog` to `builtin` ([#2482](https://github.com/olimorris/codecompanion.nvim/issues/2482)) ([d51296b](https://github.com/olimorris/codecompanion.nvim/commit/d51296b6d0923bad1cf0acbbee88f11f6515eff2))
+* **tools:** `requires_approval` is now `require_approval_before` ([7d54837](https://github.com/olimorris/codecompanion.nvim/commit/7d548376a1f7600628246adaeea805e935cd2158))
+* **tools:** `user_confirmation` is now `require_confirmation_after` ([#2450](https://github.com/olimorris/codecompanion.nvim/issues/2450)) ([6d7f1bb](https://github.com/olimorris/codecompanion.nvim/commit/6d7f1bb63e4262404e35ca7941053e643fac8fbe))
+* **workflows:** `is_workflow` replaces `strategy = workflow` ([fc1d87e](https://github.com/olimorris/codecompanion.nvim/commit/fc1d87e52434b7cc203d893e2e35a694499db59b))
+* **workflows:** `opts.is_workflow` defines a workflow ([#2487](https://github.com/olimorris/codecompanion.nvim/issues/2487)) ([fc1d87e](https://github.com/olimorris/codecompanion.nvim/commit/fc1d87e52434b7cc203d893e2e35a694499db59b))
+
 ## [17.33.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.32.0...v17.33.0) (2025-11-24)
 
 

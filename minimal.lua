@@ -16,9 +16,13 @@ local plugins = {
   {
     "olimorris/codecompanion.nvim",
     dependencies = {
-      -- needed to install additional parsers
-      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
+      {
+        "nvim-treesitter/nvim-treesitter",
+        lazy = false,
+        build = ":TSUpdate",
+      },
+
       -- Test with blink.cmp (delete if not required)
       {
         "saghen/blink.cmp",
@@ -36,12 +40,13 @@ local plugins = {
           },
         },
       },
+
       -- Test with nvim-cmp
       -- { "hrsh7th/nvim-cmp" },
     },
     opts = {
       --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
-      strategies = {
+      interactions = {
         --NOTE: Change the adapter as required
         chat = { adapter = "copilot" },
         inline = { adapter = "copilot" },
@@ -58,14 +63,17 @@ local plugins = {
 
 require("lazy.minit").repro({ spec = plugins })
 
+-- CONFIGURE PLUGINS HERE -----------------------------------------------------
+
 -- Setup Tree-sitter
-local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
-if ts_status then
-  treesitter.setup({
-    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml", "diff" },
-    highlight = { enable = true },
+require("nvim-treesitter")
+  .install({
+    "lua",
+    "markdown",
+    "markdown_inline",
+    "yaml",
   })
-end
+  :wait(300000)
 
 -- Setup nvim-cmp
 -- local cmp_status, cmp = pcall(require, "cmp")

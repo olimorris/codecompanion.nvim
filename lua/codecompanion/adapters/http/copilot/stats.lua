@@ -25,7 +25,7 @@ end
 local function get_statistics()
   log:debug("Copilot Adapter: Fetching Copilot usage statistics")
 
-  local oauth_token = token.fetch().oauth_token
+  local oauth_token = token.fetch({ force = true }).oauth_token
 
   local ok, response = pcall(function()
     return Curl.get("https://api.github.com/copilot_internal/user", {

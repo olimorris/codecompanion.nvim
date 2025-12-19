@@ -4,11 +4,11 @@ description: Learn how to use agents in CodeCompanion
 
 # Using Agents
 
-CodeCompanion implements the [Agent Client Protocol](https://agentclientprotocol.com) to enable you to work with coding agents from within Neovim. Please refer to the [Configuring Agent Client Protocol](/configuration/acp) if you've not setup an ACP adapter.
+CodeCompanion implements the [Agent Client Protocol](https://agentclientprotocol.com) to enable you to work with coding agents from within Neovim. Please refer to the [Configuring Agent Client Protocol](/configuration/adapters-acp) if you've not setup an ACP adapter.
 
 ## Getting Started
 
-To start coding with agents right away, ensure you've [set the authentication method](/configuration/adapters#changing-auth-method-of-an-acp-adapter) on your chosen adapter, correctly. Then, open a chat buffer with `:CodeCompanionChat` and [switch](/usage/chat-buffer/#changing-adapter) to an ACP adapter such as `gemini_cli`, if it's not set as your default.
+To start coding with agents right away, ensure you've [set the authentication method](/configuration/adapters-acp#setup-claude-code) on your chosen adapter, correctly. Then, open a chat buffer with `:CodeCompanionChat` and [switch](/usage/chat-buffer/#changing-adapter) to an ACP adapter such as `gemini_cli`, if it's not set as your default.
 
 A key difference in working with agents versus LLMs is the matter of state. LLMs, via _http_ adapters, are stateless. This means that CodeCompanion sends the entire message history over with every request. Agents differ in that they are the ones responsible for managing state. As a result, CodeCompanion only sends the latest messages over with every prompt. From a UX perspective however, neither of these have an impact on how it feels to work with CodeCompanion.
 
@@ -24,9 +24,9 @@ As outlined in the Agent Client Protocol [documentation](https://agentclientprot
 
 At various points during the agent's lifecycle, you may be prompted for [permission](https://agentclientprotocol.com/protocol/schema#session%2Frequest-permission) to execute a tool.
 
-If the agent wishes to edit a file, then you will be shown a diff and presented with the various options available to you. You can send a response back to the agent via the keymaps defined in your config at `strategies.chat.keymaps._acp_*` (which are also displayed to you in the diff). If there is no diff associated with the tool call then you will be prompted via [vim.fn.confirm](https://neovim.io/doc/user/editing.html#_6.-dialogs).
+If the agent wishes to edit a file, then you will be shown a diff and presented with the various options available to you. You can send a response back to the agent via the keymaps defined in your config at `interactions.chat.keymaps._acp_*` (which are also displayed to you in the diff). If there is no diff associated with the tool call then you will be prompted via [vim.fn.confirm](https://neovim.io/doc/user/editing.html#_6.-dialogs).
 
-By default, the chat buffer will wait for c. 30 mins for you to respond to a permission request. This can be configured in `strategies.chat.opts.wait_timeout` with the default response, after a timeout, being defined at `strategies.chat.opts.acp_timeout_response`.
+By default, the chat buffer will wait for c. 30 mins for you to respond to a permission request. This can be configured in `interactions.chat.opts.wait_timeout` with the default response, after a timeout, being defined at `interactions.chat.opts.acp_timeout_response`.
 
 ## Cancelling a Request
 

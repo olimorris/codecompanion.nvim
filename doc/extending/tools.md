@@ -2,7 +2,7 @@
 description: Learn how to create your own tools for use with agents in CodeCompanion
 ---
 
-# Creating Tools
+# Extending with Tools
 
 In CodeCompanion, tools offer pre-defined ways for LLMs to call functions on your machine, acting as an Agent in the process. This guide walks you through the implementation of tools, enabling you to create your own.
 
@@ -66,13 +66,13 @@ sequenceDiagram
 Before we begin, it's important to familiarise yourself with the directory structure of the tools implementation:
 
 ```
-strategies/chat/tools
+interactions/chat/tools
 ├── init.lua
 ├── orchestrator.lua
 ├── runtime/
 │   ├── queue.lua
 │   ├── runner.lua
-├── catalog/
+├── builtin/
 │   ├── cmd_runner.lua
 │   ├── insert_edit_into_file.lua
 │   ├── create_file.lua
@@ -84,7 +84,7 @@ When a tool is detected, the chat buffer sends any output to the `tools/init.lua
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/catalog/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 
@@ -165,7 +165,7 @@ end,
 ```
 
 > [!IMPORTANT]
-> Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/catalog/cmd_runner.lua) tool.
+> Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua) tool.
 
 **Function-based Tools**
 
@@ -325,7 +325,7 @@ system_prompt = [[## Calculator Tool (`calculator`)
 
 The _handlers_ table contains two functions that are executed before and after a tool completes:
 
-1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/catalog/cmd_runner.lua) tool.
+1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua) tool.
 2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table.
 3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
@@ -401,7 +401,7 @@ If we put this all together in our config:
 
 ````lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         calculator = {
@@ -549,18 +549,18 @@ You should see: `5000`, in the chat buffer.
 
 A big concern for users when they create and deploy their own tools is _"what if an LLM does something I'm not aware of or I don't approve?"_. To that end, CodeCompanion tries to make it easy for a user to be the "human in the loop" and approve tool use before execution.
 
-To enable this for any tool, simply add the `requires_approval = true` in a tool's `opts` table:
+To enable this for any tool, simply add the `require_approval_before = true` in a tool's `opts` table:
 
 ```lua
 require("codecompanion").setup({
-  strategies = {
+  interactions = {
     chat = {
       tools = {
         calculator = {
           description = "Perform calculations",
           callback = "as above",
           opts = {
-            requires_approval = true,
+            require_approval_before = true,
           },
         }
       }
@@ -570,7 +570,7 @@ require("codecompanion").setup({
 ```
 
 > [!NOTE]
-> `opts.requires_approval` can also be a function that receives the tool and tool system classes as parameters
+> `opts.require_approval_before` can also be a function that receives the tool and tool system classes as parameters
 
 To account for the user being prompted for an approval, we can add a `output.prompt` to the tool:
 
@@ -677,7 +677,7 @@ Some adapter tools can be a _hybrid_ in terms of their implementation. That is, 
   -- ...existing code here
   opts = {
     -- Allow a hybrid tool -> One that also has a client side implementation
-    client_tool = "strategies.chat.tools.memory",
+    client_tool = "interactions.chat.tools.memory",
   },
 },
 ```

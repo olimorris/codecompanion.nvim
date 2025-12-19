@@ -38,7 +38,7 @@ T["adapter cache"]["updates when ChatAdapter event fires"] = function()
     utils.fire("ChatAdapter", { bufnr = bufnr, adapter = adapter })
 
     -- Get slash commands with our test config
-    local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
+    local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
     local filtered = slash_command_filter.filter_enabled_slash_commands(test_slash_commands, { adapter = adapter })
 
     _G.test_result = filtered.test_cmd ~= nil
@@ -74,7 +74,7 @@ T["adapter cache"]["preserves adapter when ChatModel event without adapter fires
     utils.fire("ChatModel", { bufnr = bufnr, model = "some-model" })
 
     -- Adapter should still be in cache, so filtering should still work
-    local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
+    local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
     local filtered = slash_command_filter.filter_enabled_slash_commands(test_slash_commands, { adapter = adapter })
 
     _G.test_result = filtered.test_cmd ~= nil
@@ -110,7 +110,7 @@ T["adapter cache"]["clears when adapter explicitly set to nil"] = function()
     local adapter = { name = "test_adapter", type = "http" }
     utils.fire("ChatAdapter", { bufnr = bufnr, adapter = adapter })
 
-    local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
+    local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
     local filtered_before = slash_command_filter.filter_enabled_slash_commands(test_slash_commands, { adapter = adapter })
 
     -- Explicitly clear it
@@ -162,7 +162,7 @@ T["adapter cache"]["updates when switching from HTTP to ACP adapter"] = function
     utils.fire("ChatAdapter", { bufnr = bufnr, adapter = http_adapter })
 
     -- Command should not be available
-    local slash_command_filter = require("codecompanion.strategies.chat.slash_commands.filter")
+    local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
     local filtered_http = slash_command_filter.filter_enabled_slash_commands(
       test_slash_commands,
       { adapter = http_adapter }

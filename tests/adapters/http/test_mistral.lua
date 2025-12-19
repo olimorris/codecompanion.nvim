@@ -98,7 +98,7 @@ T["Mistral adapter"]["form_messages"]["it can form tools to be sent to the API"]
     },
   })
 
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
@@ -152,6 +152,25 @@ T["Mistral adapter"]["Streaming"]["can process tools"] = function()
   }
 
   h.eq(tool_output, tools)
+end
+
+T["Mistral adapter"]["Streaming"]["can process thinking"] = function()
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/mistral_thinking_streaming.txt")
+  local output = {}
+  for _, line in ipairs(lines) do
+    table.insert(output, adapter.handlers.chat_output(adapter, line, {}))
+  end
+
+  h.eq(output, {
+    {
+      status = "success",
+      output = { reasoning = { content = "Okay" } },
+    },
+    {
+      status = "success",
+      output = { reasoning = { content = ", that works" } },
+    },
+  })
 end
 
 -- No streaming ---------------------------------------------------------------

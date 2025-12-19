@@ -64,14 +64,58 @@ M.set_dot_repeat = function(name)
   vim.go.operatorfunc = string.format("v:lua.require'codecompanion'.%s", name)
 end
 
+---Extract placeholder names from a string
+---@param str string The string to search for placeholders
+---@return table List of unique placeholder names found (e.g. {"diff", "selection"})
+function M.extract_placeholders(str)
+  local placeholders = {}
+  local seen = {}
+
+  for placeholder in str:gmatch("%${([^}]+)}") do
+    if not seen[placeholder] then
+      seen[placeholder] = true
+      table.insert(placeholders, placeholder)
+    end
+  end
+
+  return placeholders
+end
+
+---Extract all placeholders from a prompts structure (recursively)
+---@param prompts table|string The prompts structure to search
+---@return table List of unique placeholder names found
+function M.extract_all_placeholders(prompts)
+  local all_placeholders = {}
+  local seen = {}
+
+  local function extract_recursive(value)
+    if type(value) == "string" then
+      local found = M.extract_placeholders(value)
+      for _, placeholder in ipairs(found) do
+        if not seen[placeholder] then
+          seen[placeholder] = true
+          table.insert(all_placeholders, placeholder)
+        end
+      end
+    elseif type(value) == "table" then
+      for _, v in pairs(value) do
+        extract_recursive(v)
+      end
+    end
+  end
+
+  extract_recursive(prompts)
+  return all_placeholders
+end
+
 ---Replace any placeholders (e.g. ${placeholder}) in a string or table
----@param t table|string
----@param replacements {placeholder: string, replacement: string}
----@return nil|string
+---@param t table|string The content to process
+---@param replacements table<string, string> Map of placeholder names to replacement values
+---@return string|nil The replaced string if input was string, or nil if input was table (modified in place)
 function M.replace_placeholders(t, replacements)
   if type(t) == "string" then
     for placeholder, replacement in pairs(replacements) do
-      t = t:gsub("%${" .. placeholder .. "}", replacement)
+      t = t:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
     end
     return t
   else
@@ -80,7 +124,7 @@ function M.replace_placeholders(t, replacements)
         M.replace_placeholders(value, replacements)
       elseif type(value) == "string" then
         for placeholder, replacement in pairs(replacements) do
-          value = value:gsub("%${" .. placeholder .. "}", replacement)
+          value = value:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
         end
         t[key] = value
       end
@@ -125,6 +169,7 @@ function M.set_option(bufnr, opt, value)
       buf = bufnr,
     })
   end
+
   if api.nvim_buf_set_option then
     return api.nvim_buf_set_option(bufnr, opt, value)
   end
@@ -167,7 +212,7 @@ end
 
 ---Resolve a nested table value using a dot-separated path string
 ---@param tbl table The table to traverse
----@param path string The dot-separated path (e.g. "strategies.chat.tools.memory")
+---@param path string The dot-separated path (e.g. "interactions.chat.tools.memory")
 ---@return any|nil The resolved value, or nil if the path doesn't exist
 function M.resolve_nested_value(tbl, path)
   local parts = vim.split(path, ".", { plain = true })

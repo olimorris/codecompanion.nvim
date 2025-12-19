@@ -204,7 +204,7 @@ T["Copilot adapter"]["it can form messages to be sent to the API"] = function()
 end
 
 T["Copilot adapter"]["it can form tools to be sent to the API"] = function()
-  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
@@ -419,6 +419,173 @@ T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = fu
     "**Dynamic elegance.**\\n\\nWhat specific aspect of Ruby would you like to explore further?",
     adapter.handlers.inline_output(adapter, json).output
   )
+end
+
+local token_child = MiniTest.new_child_neovim()
+
+T["Token initialization"] = new_set({
+  hooks = {
+    pre_case = function()
+      token_child.restart({ "-u", "scripts/minimal_init.lua" })
+    end,
+    post_once = token_child.stop,
+  },
+})
+
+T["Token initialization"]["defers token fetching during adapter resolution"] = function()
+  token_child.lua([[
+      -- Ensure the token state is clean
+      local token = require("codecompanion.adapters.http.copilot.token")
+      token._oauth_token = nil
+      token._copilot_token = nil
+
+      -- Mock token.init to track if it's called
+      _G.init_called = false
+      local original_init = token.init
+      token.init = function(...)
+        _G.init_called = true
+        return original_init(...)
+      end
+
+      local test_adapter = require("codecompanion.adapters").resolve("copilot")
+
+      token.init = original_init
+    ]])
+
+  -- Token initialization should not have been called during resolution
+  h.eq(token_child.lua_get("_G.init_called"), false)
+  h.eq(token_child.lua_get("require('codecompanion.adapters.http.copilot.token')._oauth_token"), vim.NIL)
+  h.eq(token_child.lua_get("require('codecompanion.adapters.http.copilot.token')._copilot_token"), vim.NIL)
+end
+
+T["Token initialization"]["initializes tokens when api_key is accessed"] = function()
+  token_child.lua([[
+    local token = require("codecompanion.adapters.http.copilot.token")
+    token._oauth_token = nil
+    token._copilot_token = nil
+
+    local original_fetch = token.fetch
+    token.fetch = function(force_init)
+      if force_init or token._oauth_token then
+        token._oauth_token = "test_oauth_token"
+        token._copilot_token = { token = "test_copilot_token" }
+      end
+      return {
+        oauth_token = token._oauth_token,
+        copilot_token = token._copilot_token,
+      }
+    end
+
+    local test_adapter = require("codecompanion.adapters").resolve("copilot")
+    _G.api_key_result = test_adapter.env.api_key()
+    _G.oauth_token_result = token._oauth_token
+    _G.copilot_token_result = token._copilot_token
+    token.fetch = original_fetch
+  ]])
+
+  h.eq(token_child.lua_get("_G.api_key_result"), { token = "test_copilot_token" })
+  h.eq(token_child.lua_get("_G.oauth_token_result"), "test_oauth_token")
+  h.eq(token_child.lua_get("_G.copilot_token_result.token"), "test_copilot_token")
+end
+
+T["Token initialization"]["forces token init for synchronous model fetching"] = function()
+  token_child.lua([[
+      -- Reset token state
+      local token = require("codecompanion.adapters.http.copilot.token")
+      token._oauth_token = nil
+      token._copilot_token = nil
+
+      _G.init_called = false
+      local original_init = token.init
+      token.init = function()
+        _G.init_called = true
+        token._oauth_token = "test_oauth_token"
+        token._copilot_token = { token = "test_copilot_token", endpoints = { api = "https://api.githubcopilot.com" } }
+        return true
+      end
+
+      local get_models = require("codecompanion.adapters.http.copilot.get_models")
+
+      -- Mock vim.wait to return immediately
+      local original_wait = vim.wait
+      vim.wait = function() return true end
+
+      local mock_adapter = { headers = {} }
+
+      -- Synchronous model fetch should force token initialization
+      local models = get_models.choices(mock_adapter, { async = false })
+
+      -- Restore originals
+      token.init = original_init
+      vim.wait = original_wait
+    ]])
+
+  -- Token initialization should have been called for sync request
+  h.eq(token_child.lua_get("_G.init_called"), true)
+end
+
+T["test model selection dialog works with copilot adapter"] = function()
+  local child = MiniTest.new_child_neovim()
+  child.restart({ "-u", "scripts/minimal_init.lua" })
+
+  local results = child.lua([[
+    -- Mock config
+    local config = require("codecompanion.config")
+    config.adapters = {
+      http = {
+        opts = { show_model_choices = true }
+      }
+    }
+
+    -- Mock token module to return tokens when forced
+    package.loaded["codecompanion.adapters.http.copilot.token"] = {
+      fetch = function()
+        return {
+          oauth_token = "test_oauth",
+          copilot_token = "test_token",
+          endpoints = { api = "https://api.githubcopilot.com" }
+        }
+      end,
+    }
+
+    -- Mock get_models to return multiple models when tokens are available
+    package.loaded["codecompanion.adapters.http.copilot.get_models"] = {
+      choices = function(adapter, opts)
+        opts = opts or {}
+        if opts.token and opts.token.copilot_token then
+          return {
+            ["gpt-4.1"] = { formatted_name = "GPT-4.1" },
+            ["gpt-4o"] = { formatted_name = "GPT-4o" },
+            ["claude-3.5-sonnet"] = { formatted_name = "Claude 3.5 Sonnet" }
+          }
+        end
+        return { ["gpt-4.1"] = { opts = {} } }
+      end,
+    }
+
+    local copilot = require("codecompanion.adapters.http.copilot")
+    local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
+
+    -- Test that get_models_list returns models for selection dialog
+    local models_list = change_adapter.get_models_list(copilot)
+
+    -- Return test results
+    return {
+      models_list_not_nil = models_list ~= nil,
+      models_list_type = type(models_list),
+      models_count = models_list and vim.tbl_count(models_list) or 0
+    }
+  ]])
+
+  child.stop()
+
+  h.eq(results.models_list_not_nil, true)
+  h.eq(results.models_list_type, "table")
+
+  -- Should have at least 2 models to show the selection dialog
+  if results.models_count < 2 then
+    error(string.format("Expected at least 2 models, but got %d", results.models_count))
+  end
 end
 
 return T
