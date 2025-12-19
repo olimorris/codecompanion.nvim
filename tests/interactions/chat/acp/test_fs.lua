@@ -140,6 +140,7 @@ T["read_text_file returns ENOENT when file missing"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return "shouldn't be called" end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -163,6 +164,7 @@ T["read_text_file returns full content when no opts provided"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -185,6 +187,7 @@ T["read_text_file returns from given line to EOF"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -207,6 +210,7 @@ T["read_text_file normalizes line 0 to 1"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -229,6 +233,7 @@ T["read_text_file limit larger than lines returns full content"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -251,6 +256,7 @@ T["read_text_file limit 2 returns first two lines"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -273,6 +279,7 @@ T["read_text_file line 2 limit 1 returns only second line"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -295,6 +302,7 @@ T["read_text_file limit 0 returns empty string"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -317,6 +325,7 @@ T["read_text_file start line beyond EOF returns empty string"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil
@@ -339,6 +348,7 @@ T["read_text_file treats vim.NIL opts as no opts"] = function()
 
     package.loaded["codecompanion.utils.files"] = {
       read = function(path) return %q end,
+      normalize_content = function(content) return content end
     }
 
     package.loaded["codecompanion.interactions.chat.acp.fs"] = nil

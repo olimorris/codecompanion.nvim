@@ -67,6 +67,34 @@ opts:
   }, "Frontmatter should be parsed correctly")
 end
 
+T["Markdown"]["parse_frontmatter normalizes and extracts yaml from dos fileformat markdown"] = function()
+  local frontmatter =
+    "---\r\nname: Explain\r\nstrategy: chat\r\ndescription: Explain how code in a buffer works\r\nopts:\r\n  auto_submit: true\r\n  is_slash_cmd: true\r\n  adapter:\r\n    name: copilot\r\n    model: gpt-4.1\r\n  modes:\r\n    - v\r\n  alias: explain\r\n  stop_context_insertion: true\r\n  user_prompt: false\r\n---\n"
+
+  local result = child.lua(
+    [[
+      require("tests.log")
+      return markdown.parse_frontmatter(...)
+    ]],
+    { frontmatter }
+  )
+
+  h.eq(result, {
+    interaction = "chat",
+    description = "Explain how code in a buffer works",
+    name = "Explain",
+    opts = {
+      auto_submit = true,
+      adapter = { name = "copilot", model = "gpt-4.1" },
+      is_slash_cmd = true,
+      modes = { "v" },
+      alias = "explain",
+      stop_context_insertion = true,
+      user_prompt = false,
+    },
+  }, "Frontmatter should be parsed correctly")
+end
+
 T["Markdown"]["parse_frontmatter extracts interactions"] = function()
   local frontmatter = [[---
 name: Explain

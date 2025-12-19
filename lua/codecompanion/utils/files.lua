@@ -430,4 +430,11 @@ function M.scan_directory(dir_path, opts)
   return files
 end
 
+---Normalizes extracted content to Unix format
+---@param content string
+---@return string
+function M.normalize_content(content)
+  return (content:gsub("\r\n", "\n"):gsub("\r", "\n"))
+end
+
 return M
