@@ -419,6 +419,13 @@ local _streaming = true
 function Inline:submit(prompt)
   log:info("[Inline] Request started")
 
+  -- it's the idiomatic behavior for visual mode commands in vim to leave visual
+  -- mode upon triggering them (#2538)
+  local mode = vim.fn.mode()
+  if mode:find("[Vv]") then
+    vim.cmd.normal({ mode, bang = true })
+  end
+
   -- Inline editing only works with streaming off - We should remember the current status
   _streaming = self.adapter.opts.stream
   self.adapter.opts.stream = false
