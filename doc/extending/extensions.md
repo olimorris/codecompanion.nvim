@@ -15,18 +15,17 @@ Extensions are configured in your CodeCompanion setup:
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "author/codecompanion_history.nvim" -- history extension
+    "ravitemer/codecompanion-history.nvim" -- history extension
   }
 }
 
 -- Configure in your setup
 require("codecompanion").setup({
   extensions = {
-    codecompanion_history = {
+    history = {
       enabled = true, -- defaults to true
       opts = {
-        history_file = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
-        max_history = 10, -- maximum number of chats to keep
+        dir_to_save = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
       }
     }
   }
