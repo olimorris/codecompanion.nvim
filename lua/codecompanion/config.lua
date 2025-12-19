@@ -128,6 +128,7 @@ local defaults = {
           callback = "interactions.chat.tools.builtin.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
+            allowed_in_yolo_mode = false,
             require_approval_before = true,
           },
         },
