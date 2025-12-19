@@ -342,8 +342,14 @@ local function yank_node(node)
   local cursor_position = vim.fn.getcurpos()
 
   -- Create marks for the node range
-  vim.api.nvim_buf_set_mark(0, "[", start_row + 1, start_col, {})
-  vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
+  local ok, _ = pcall(function()
+    vim.api.nvim_buf_set_mark(0, "[", start_row + 1, start_col, {})
+    vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
+  end)
+
+  if not ok then
+    return utils.notify("Failed to copy code block", vim.log.levels.WARN)
+  end
 
   -- Yank using marks
   vim.cmd(string.format('normal! `["%sy`]', config.interactions.chat.opts.register))
