@@ -15,12 +15,12 @@ local function add_adapter(interaction, opts)
 end
 
 ---@class CodeCompanion.Interactions
----@field buffer_context table
+---@field buffer_context CodeCompanion.BufferContext
 ---@field selected table
 local Interactions = {}
 
 ---@class CodeCompanion.InteractionArgs
----@field buffer_context table
+---@field buffer_context CodeCompanion.BufferContext
 ---@field selected table
 
 ---@param args CodeCompanion.InteractionArgs
@@ -274,9 +274,9 @@ end
 
 ---Evaluate a set of prompts based on conditionals and context
 ---@param prompts table
----@param context table
+---@param buffer_context CodeCompanion.BufferContext
 ---@return table
-function Interactions.evaluate_prompts(prompts, context)
+function Interactions.evaluate_prompts(prompts, buffer_context)
   if type(prompts) ~= "table" or vim.tbl_isempty(prompts) then
     return {}
   end
@@ -285,10 +285,10 @@ function Interactions.evaluate_prompts(prompts, context)
     .iter(prompts)
     :filter(function(prompt)
       return not (prompt.opts and prompt.opts.contains_code and not config.can_send_code())
-        and not (prompt.condition and not prompt.condition(context))
+        and not (prompt.condition and not prompt.condition(buffer_context))
     end)
     :map(function(prompt)
-      local content = type(prompt.content) == "function" and prompt.content(context) or prompt.content
+      local content = type(prompt.content) == "function" and prompt.content(buffer_context) or prompt.content
       if prompt.role == config.constants.SYSTEM_ROLE and not prompt.opts then
         prompt.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
       end
