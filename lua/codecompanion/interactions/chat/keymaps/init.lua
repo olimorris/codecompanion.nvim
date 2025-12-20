@@ -568,13 +568,8 @@ M.clear_rules = {
 M.yolo_mode = {
   desc = "Toggle YOLO mode",
   callback = function(chat)
-    if vim.g.codecompanion_yolo_mode then
-      vim.g.codecompanion_yolo_mode = nil
-      return utils.notify("YOLO mode disabled", vim.log.levels.INFO)
-    else
-      vim.g.codecompanion_yolo_mode = true
-      return utils.notify("YOLO mode enabled", vim.log.levels.INFO)
-    end
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    approvals:toggle_yolo_mode(chat.bufnr)
   end,
 }
 

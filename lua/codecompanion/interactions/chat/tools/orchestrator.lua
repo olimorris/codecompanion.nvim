@@ -1,3 +1,4 @@
+local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
 local log = require("codecompanion.utils.log")
@@ -250,7 +251,7 @@ function Orchestrator:setup_next_tool(input)
   log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and not vim.g.codecompanion_yolo_mode then
+  if self.tool.opts and not Approvals:is_approved(self.tools.bufnr, { tool_name = self.tool.name }) then
     local require_approval_before = self.tool.opts.require_approval_before
 
     if require_approval_before and type(require_approval_before) == "function" then
@@ -282,7 +283,7 @@ function Orchestrator:setup_next_tool(input)
 
         if choice == 1 or choice == 2 then
           if choice == 1 then
-            vim.g.codecompanion_yolo_mode = true
+            Approvals:add(self.tools.bufnr, { tool_name = self.tool.name })
           end
           return self:execute_tool({ cmd = cmd, input = input })
         elseif choice == 3 then

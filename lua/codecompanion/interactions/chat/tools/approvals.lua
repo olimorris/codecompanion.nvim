@@ -49,8 +49,9 @@ function Approvals:add(bufnr, args)
 end
 
 ---Check if a tool has been approved for a given chat buffer
+---If no tool_name is provided, checks if yolo mode is enabled
 ---@param bufnr number
----@param args { tool_name: string }
+---@param args { tool_name?: string }
 function Approvals:is_approved(bufnr, args)
   local approvals = approved[bufnr]
   if not approvals then
@@ -58,6 +59,10 @@ function Approvals:is_approved(bufnr, args)
   end
 
   if approvals.yolo_mode then
+    if not args or not args.tool_name then
+      return true
+    end
+
     local config = require("codecompanion.config")
     local tool_cfg = config.tools and config.tools[args.tool_name]
     if tool_cfg and tool_cfg.args then

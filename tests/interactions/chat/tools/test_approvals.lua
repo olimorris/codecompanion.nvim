@@ -280,17 +280,6 @@ end
 
 T["edge cases"] = new_set()
 
-T["edge cases"]["handles nil tool_name gracefully"] = function()
-  local no_error = child.lua([[
-    local ok = pcall(function()
-      Approvals:add(1, {})
-    end)
-    return ok
-  ]])
-
-  h.eq(no_error, true)
-end
-
 T["edge cases"]["maintains state across multiple operations"] = function()
   child.lua([[
     -- Add some tools

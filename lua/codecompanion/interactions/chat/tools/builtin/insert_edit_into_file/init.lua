@@ -44,6 +44,7 @@ file boundaries (start/end), and complete file overwrites.
 
 local Path = require("plenary.path")
 
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
@@ -786,7 +787,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     return output_handler(error_response(fmt("Error writing to `%s`: %s", action.filepath, write_err)))
   end
 
-  if vim.g.codecompanion_yolo_mode then
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     return output_handler(success_response(fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))))
   end
 
@@ -900,7 +901,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     ui_utils.scroll_to_line(bufnr, start_line)
   end
 
-  if vim.g.codecompanion_yolo_mode then
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
