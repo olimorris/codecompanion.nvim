@@ -71,6 +71,29 @@ T["Gemini adapter"]["Streaming"]["can output streamed data into the chat buffer"
   h.expect_starts_with("Elegant, dynamic", output)
 end
 
+T["Gemini adapter"]["Streaming"]["can output streamed data with reasoning into the chat buffer"] = function()
+  local output = ""
+  local reasoning = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.extra then
+      chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
+    end
+    if chat_output then
+      if chat_output.output.content then
+        output = output .. chat_output.output.content
+      end
+      if chat_output.output.reasoning then
+        reasoning = reasoning .. chat_output.output.reasoning.content
+      end
+    end
+  end
+
+  h.expect_starts_with("Elegant, dynamic", output)
+  h.expect_starts_with("This is a dummy reasoning segment", reasoning)
+end
+
 T["Gemini adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_tools_streaming.txt")
@@ -192,6 +215,22 @@ T["Gemini adapter"]["No Streaming"]["can output for the chat buffer"] = function
   local json = { body = data }
 
   h.expect_starts_with("Elegant, dynamic.", adapter.handlers.chat_output(adapter, json).output.content)
+end
+
+T["Gemini adapter"]["No Streaming"]["can output for the chat buffer with reasoning"] = function()
+  adapter.opts.stream = false
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_reasoning_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  local chat_output = adapter.handlers.chat_output(adapter, json)
+  if chat_output and chat_output.extra then
+    chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
+  end
+  h.expect_starts_with("Elegant, dynamic.", chat_output.output.content)
+  h.expect_starts_with("This is a dummy thinking summary", chat_output.output.reasoning.content)
 end
 
 T["Gemini adapter"]["No Streaming"]["can process tools"] = function()

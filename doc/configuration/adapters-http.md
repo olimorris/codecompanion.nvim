@@ -90,7 +90,7 @@ require("codecompanion").setup({
         return require("codecompanion.adapters").extend("openai_responses", {
           schema = {
             top_p = {
-              default = 0
+              default = 0,
             },
           },
         })
@@ -115,7 +115,7 @@ require("codecompanion").setup({
                   return false
                 end
                 return true
-              end
+              end,
             },
           },
         })
@@ -388,6 +388,47 @@ require("codecompanion").setup({
 })
 ```
 
+
+### Gemini
+> This is NOT the Gemini-CLI ACP adapter!
+
+The Gemini adapter uses Google's official [openai-compatible](https://ai.google.dev/gemini-api/docs/openai) endpoint, with one difference: the `reasoning_effort` key is replaced by `thinking_budget`, which controls the number of tokens used by the reasoning process.
+
+```lua 
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      gemini = function()
+        return require("codecompanion.adapters").extend("gemini", {
+          schema = {
+            thinking_budget = {
+              default = -1,
+            },
+          },
+        })
+      end,
+    },
+  },
+  strategies = {
+    chat = {
+      adapter = "gemini",
+    },
+    inline = {
+      adapter = "gemini",
+    },
+  },
+}),
+```
+
+The value of `thinking_budget` can be the following:
+
+- `-1`: dynamic thinking (default).
+- `0`: disable reasoning.
+- A valid positive integer (see [Google's documentation](https://ai.google.dev/gemini-api/docs/thinking#set-budget) for supported thinking budgets for each models).
+
+Note that, according to [Gemini documentation](https://ai.google.dev/gemini-api/docs/thinking#summaries), their API endpoints only return thinking _summaries_, not _raw thinking tokens_.
+Only the raw tokens are bounded by the `thinking_budget` parameter.
+The summary that we can see are not bounded by the budget.
 
 ### OpenAI Responses API
 
