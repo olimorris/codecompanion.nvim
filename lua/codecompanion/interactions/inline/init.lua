@@ -420,7 +420,7 @@ function Inline:submit(prompt)
   log:info("[Inline] Request started")
 
   if self.buffer_context.is_visual then
-    vim.cmd.normal({ vim.fn.mode(), bang = true })
+    pcall(vim.cmd.normal, { vim.fn.mode(), bang = true })
   end
 
   -- Inline editing only works with streaming off - We should remember the current status
