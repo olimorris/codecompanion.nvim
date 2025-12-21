@@ -8,9 +8,7 @@ local T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        Approvals = require('codecompanion.interactions.chat.tools.approvals')
-
-        -- Mock the config module
+        -- Mock the config module BEFORE requiring approvals
         package.loaded['codecompanion.config'] = {
           interactions = {
             chat = {
@@ -25,6 +23,8 @@ local T = new_set({
             },
           },
         }
+
+        Approvals = require('codecompanion.interactions.chat.tools.approvals')
       ]])
     end,
     post_case = function()
@@ -195,7 +195,6 @@ T["yolo mode"]["respects allowed_in_yolo_mode = false"] = function()
       allowed_value = tool_cfg and tool_cfg.opts and tool_cfg.opts.allowed_in_yolo_mode
     }
   ]])
-  print("Config check:", vim.inspect(config_check))
 
   local restricted = child.lua([[
     return Approvals:is_approved(1, { tool_name = 'restricted_tool' })
