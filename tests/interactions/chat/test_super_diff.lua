@@ -10,7 +10,7 @@ local T = new_set({
       child.lua([[
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
-        super_diff = require("codecompanion.interactions.chat.helpers.super_diff")
+        super_diff = require("codecompanion.interactions.chat.super_diff")
         edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
 
         -- Mock config to include floating_window
