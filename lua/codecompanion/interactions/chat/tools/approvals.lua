@@ -74,7 +74,11 @@ function Approvals:is_approved(bufnr, args)
     return true
   end
 
-  return approvals[args.tool_name] == true
+  if args and args.tool_name then
+    return approvals[args.tool_name] == true
+  end
+
+  return false
 end
 
 ---Toggle yolo mode for a given chat buffer

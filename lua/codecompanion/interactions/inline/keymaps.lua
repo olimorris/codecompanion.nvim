@@ -40,14 +40,14 @@ M.reject_change = {
 
 M.always_accept = {
   desc = "Accept and enable auto mode",
-  callback = function(inline)
+  callback = function(obj)
     local approvals = require("codecompanion.interactions.chat.tools.approvals")
-    approvals:toggle_yolo_mode(inline.bufnr)
+    approvals:always(obj.bufnr, { tool_name = obj.tool_name })
 
-    if inline.diff then
-      log:trace("[Inline] Auto-accepting diff for id=%s", tostring(inline.id))
-      inline.diff:accept()
-      clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
+    if obj.diff then
+      log:trace("[Inline] Auto-accepting diff for id=%s", tostring(obj.id))
+      obj.diff:accept()
+      clear_map(config.interactions.inline.keymaps, obj.diff.bufnr)
     end
   end,
 }

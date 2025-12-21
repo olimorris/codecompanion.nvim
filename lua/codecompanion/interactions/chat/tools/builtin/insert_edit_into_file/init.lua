@@ -792,10 +792,10 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   local diff_id = math.random(10000000)
-  local original_lines = vim.split(current_content, "\n", { plain = true })
   local should_diff = diff.create(path, diff_id, {
     chat_bufnr = chat_bufnr,
-    original_content = original_lines,
+    original_content = vim.split(current_content, "\n", { plain = true }),
+    tool_name = "insert_edit_into_file",
   })
 
   local final_success = success_response(fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)))
@@ -892,6 +892,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local should_diff = diff.create(bufnr, diff_id, {
     chat_bufnr = chat_bufnr,
     original_content = original_content,
+    tool_name = "insert_edit_into_file",
   })
 
   local start_line = nil

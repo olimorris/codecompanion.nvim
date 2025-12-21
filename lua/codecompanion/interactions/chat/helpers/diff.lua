@@ -304,7 +304,7 @@ end
 ---Create a diff for a buffer or file and set up keymaps
 ---@param bufnr_or_path number|string The buffer number or file path to create diff for
 ---@param diff_id number|string Unique identifier for this diff
----@param opts? { chat_bufnr?: number, original_content: string[], set_keymaps?: boolean }
+---@param opts? { chat_bufnr?: number, original_content: string[], set_keymaps?: boolean, tool_name?: string }
 ---@return table|nil diff The diff object, or nil if no diff was created
 function M.create(bufnr_or_path, diff_id, opts)
   opts = opts or {}
@@ -378,7 +378,7 @@ function M.setup_keymaps(diff, opts)
     .new({
       bufnr = diff.bufnr,
       callbacks = require("codecompanion.interactions.inline.keymaps"),
-      data = { diff = diff },
+      data = { bufnr = opts.chat_bufnr, diff = diff, tool_name = opts.tool_name },
       keymaps = inline_config.keymaps,
     })
     :set()
