@@ -87,38 +87,6 @@ function InlineDiff.new(args)
   return self
 end
 
----Calculate diff hunks between two content arrays
----@param args { context_lines?: number, new_lines: string[], old_lines: string[] }
----@return CodeCompanion.Diff.Utils.DiffHunk[] hunks
-function InlineDiff.calculate_hunks(args)
-  return diff_utils.calculate_hunks({
-    added_lines = args.new_lines,
-    context_lines = args.context_lines,
-    removed_lines = args.old_lines,
-  })
-end
-
----Apply visual highlights to hunks in a buffer with sign column indicators
----@param args { bufnr: number, hunks: CodeCompanion.Diff.Utils.DiffHunk[], line_offset?: number, ns_id: number, opts?: table }
----@return number[] extmark_ids
-function InlineDiff.apply_hunk_highlights(args)
-  return diff_utils.apply_hunk_highlights({
-    bufnr = args.bufnr,
-    hunks = args.hunks,
-    line_offset = args.line_offset,
-    ns_id = args.ns_id,
-    opts = args.opts,
-  })
-end
-
----Compares two content arrays for equality
----@param content1 string[] First content array
----@param content2 string[] Second content array
----@return boolean equal True if contents are identical
-function InlineDiff:is_equal(content1, content2)
-  return diff_utils.is_equal(content1, content2)
-end
-
 ---Add keymap hint extmark above the first hunk
 ---@param first_hunk CodeCompanion.Diff.Utils.DiffHunk First diff hunk
 ---@param inline_config table Inline diff configuration
@@ -221,6 +189,60 @@ function InlineDiff:_clear_highlights()
   self.extmark_ids = {}
 end
 
+---Clear winbar and winhighlight from the diff window
+---@return nil
+function InlineDiff:_restore_winbar()
+  if self.winnr and api.nvim_win_is_valid(self.winnr) then
+    pcall(function()
+      vim.wo[self.winnr].winbar = self.winbar.content
+      vim.wo[self.winnr].winhighlight = self.winbar.winhighlight
+    end)
+  end
+end
+
+---Close floating window if this diff is in a floating window
+---@return nil
+function InlineDiff:_close_floating_window()
+  if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
+    log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
+    pcall(api.nvim_win_close, self.winnr, true)
+    self.winnr = nil
+    require("codecompanion.utils.ui").close_background_window()
+  end
+end
+
+---Compares two content arrays for equality
+---@param content1 string[] First content array
+---@param content2 string[] Second content array
+---@return boolean equal True if contents are identical
+function InlineDiff:is_equal(content1, content2)
+  return diff_utils.is_equal(content1, content2)
+end
+
+---Apply visual highlights to hunks in a buffer with sign column indicators
+---@param args { bufnr: number, hunks: CodeCompanion.Diff.Utils.DiffHunk[], line_offset?: number, ns_id: number, opts?: table }
+---@return number[] extmark_ids
+function InlineDiff.apply_hunk_highlights(args)
+  return diff_utils.apply_hunk_highlights({
+    bufnr = args.bufnr,
+    hunks = args.hunks,
+    line_offset = args.line_offset,
+    ns_id = args.ns_id,
+    opts = args.opts,
+  })
+end
+
+---Calculate diff hunks between two content arrays
+---@param args { context_lines?: number, new_lines: string[], old_lines: string[] }
+---@return CodeCompanion.Diff.Utils.DiffHunk[] hunks
+function InlineDiff.calculate_hunks(args)
+  return diff_utils.calculate_hunks({
+    added_lines = args.new_lines,
+    context_lines = args.context_lines,
+    removed_lines = args.old_lines,
+  })
+end
+
 ---Accepts the diff changes and clears highlights
 ---@param opts? { save: boolean }
 ---@return nil
@@ -269,28 +291,6 @@ function InlineDiff:reject(opts)
   end
 
   self:teardown()
-end
-
----Clear winbar and winhighlight from the diff window
----@return nil
-function InlineDiff:_restore_winbar()
-  if self.winnr and api.nvim_win_is_valid(self.winnr) then
-    pcall(function()
-      vim.wo[self.winnr].winbar = self.winbar.content
-      vim.wo[self.winnr].winhighlight = self.winbar.winhighlight
-    end)
-  end
-end
-
----Close floating window if this diff is in a floating window
----@return nil
-function InlineDiff:_close_floating_window()
-  if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
-    log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
-    pcall(api.nvim_win_close, self.winnr, true)
-    self.winnr = nil
-    require("codecompanion.utils.ui").close_background_window()
-  end
 end
 
 ---Cleans up the diff instance and fires detachment event
