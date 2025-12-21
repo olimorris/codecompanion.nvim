@@ -737,11 +737,11 @@ function Inline:start_diff(original_content)
 
   self.diff = diff.new({
     bufnr = self.buffer_context.bufnr,
+    contents = original_content,
     cursor_pos = self.buffer_context.cursor_pos,
     filetype = self.buffer_context.filetype,
-    contents = original_content,
-    winnr = self.buffer_context.winnr,
     id = self.id,
+    winnr = self.buffer_context.winnr,
   })
 end
 
