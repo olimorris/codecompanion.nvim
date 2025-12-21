@@ -201,7 +201,7 @@ return {
         "high",
         "medium",
         "low",
-        "minimal"
+        "minimal",
         "none",
       },
     },
