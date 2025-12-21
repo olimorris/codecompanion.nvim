@@ -31,7 +31,8 @@ prompts = {
       opts = { auto_submit = false },
       content = function()
         -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
-        vim.g.codecompanion_yolo_mode = true
+        local approvals = require("codecompanion.interactions.chat.tools.approvals")
+        approvals:toggle_yolo_mode()
 
         -- Some clear instructions for the LLM to follow
         return [[### Instructions

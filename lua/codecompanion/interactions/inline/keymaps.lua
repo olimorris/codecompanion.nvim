@@ -1,6 +1,5 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 
 local M = {}
 
@@ -42,13 +41,14 @@ M.reject_change = {
 M.always_accept = {
   desc = "Accept and enable auto mode",
   callback = function(inline)
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    approvals:toggle_yolo_mode(inline.bufnr)
+
     if inline.diff then
       log:trace("[Inline] Auto-accepting diff for id=%s", tostring(inline.id))
       inline.diff:accept()
       clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
     end
-    vim.g.codecompanion_yolo_mode = true
-    log:trace("[Inline] YOLO mode enabled")
   end,
 }
 

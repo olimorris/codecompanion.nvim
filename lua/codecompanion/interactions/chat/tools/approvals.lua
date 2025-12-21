@@ -33,10 +33,10 @@ local approved = {}
 ---@class CodeCompanion.Tools.Approvals
 local Approvals = {}
 
----Add an approval to the cache
+---Always approve a given tool
 ---@param bufnr number
 ---@param args { tool_name: string }
-function Approvals:add(bufnr, args)
+function Approvals:always(bufnr, args)
   if not args or not args.tool_name then
     return
   end
@@ -64,10 +64,10 @@ function Approvals:is_approved(bufnr, args)
     end
 
     local config = require("codecompanion.config")
-    local tool_cfg = config.tools and config.tools[args.tool_name]
-    if tool_cfg and tool_cfg.args then
+    local tool_cfg = config.interactions.chat.tools and config.interactions.chat.tools[args.tool_name]
+    if tool_cfg and tool_cfg.opts then
       -- Allow users to designate certain tools as not allowed in yolo mode
-      if tool_cfg.args.allowed_in_yolo_mode == false then
+      if tool_cfg.opts.allowed_in_yolo_mode == false then
         return false
       end
     end
@@ -78,9 +78,13 @@ function Approvals:is_approved(bufnr, args)
 end
 
 ---Toggle yolo mode for a given chat buffer
----@param bufnr number
+---@param bufnr? number
 ---@return nil
 function Approvals:toggle_yolo_mode(bufnr)
+  if not bufnr or bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
+
   if not approved[bufnr] then
     approved[bufnr] = {}
   end
@@ -97,6 +101,12 @@ end
 ---@return nil
 function Approvals:reset(bufnr)
   approved[bufnr] = nil
+end
+
+---List all approvals
+---@return table<string, string[]>
+function Approvals.list()
+  return approved
 end
 
 return Approvals

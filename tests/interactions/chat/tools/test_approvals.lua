@@ -12,11 +12,15 @@ local T = new_set({
 
         -- Mock the config module
         package.loaded['codecompanion.config'] = {
-          tools = {
-            some_tool = {},
-            restricted_tool = {
-              args = {
-                allowed_in_yolo_mode = false,
+          interactions = {
+            chat = {
+              tools = {
+                some_tool = {},
+                restricted_tool = {
+                  opts = {
+                    allowed_in_yolo_mode = false,
+                  },
+                },
               },
             },
           },
@@ -35,11 +39,11 @@ local T = new_set({
   },
 })
 
-T["add()"] = new_set()
+T["always()"] = new_set()
 
-T["add()"]["creates approval cache for new buffer"] = function()
+T["always()"]["creates approval cache for new buffer"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
   ]])
 
   local result = child.lua([[
@@ -49,10 +53,10 @@ T["add()"]["creates approval cache for new buffer"] = function()
   h.eq(result, true)
 end
 
-T["add()"]["adds multiple tools to same buffer"] = function()
+T["always()"]["adds multiple tools to same buffer"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
-    Approvals:add(1, { tool_name = 'insert_edit_into_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'insert_edit_into_file' })
   ]])
 
   local read_approved = child.lua([[
@@ -66,10 +70,10 @@ T["add()"]["adds multiple tools to same buffer"] = function()
   h.eq(insert_approved, true)
 end
 
-T["add()"]["handles multiple buffers independently"] = function()
+T["always()"]["handles multiple buffers independently"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
-    Approvals:add(2, { tool_name = 'insert_edit_into_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
+    Approvals:always(2, { tool_name = 'insert_edit_into_file' })
   ]])
 
   local buf1_read = child.lua([[
@@ -103,7 +107,7 @@ end
 
 T["is_approved()"]["returns false for non-approved tool"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
   ]])
 
   local result = child.lua([[
@@ -115,7 +119,7 @@ end
 
 T["is_approved()"]["returns true for approved tool"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
   ]])
 
   local result = child.lua([[
@@ -188,7 +192,7 @@ end
 --TODO: Should not take precedence over individual approvals
 T["yolo mode"]["takes precedence over individual approvals"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
     Approvals:toggle_yolo_mode(1)
   ]])
 
@@ -220,8 +224,8 @@ T["reset()"] = new_set()
 
 T["reset()"]["clears all approvals for buffer"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
-    Approvals:add(1, { tool_name = 'insert_edit_into_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'insert_edit_into_file' })
     Approvals:reset(1)
   ]])
 
@@ -251,8 +255,8 @@ end
 
 T["reset()"]["only affects specified buffer"] = function()
   child.lua([[
-    Approvals:add(1, { tool_name = 'read_file' })
-    Approvals:add(2, { tool_name = 'read_file' })
+    Approvals:always(1, { tool_name = 'read_file' })
+    Approvals:always(2, { tool_name = 'read_file' })
     Approvals:reset(1)
   ]])
 
@@ -283,8 +287,8 @@ T["edge cases"] = new_set()
 T["edge cases"]["maintains state across multiple operations"] = function()
   child.lua([[
     -- Add some tools
-    Approvals:add(1, { tool_name = 'tool1' })
-    Approvals:add(1, { tool_name = 'tool2' })
+    Approvals:always(1, { tool_name = 'tool1' })
+    Approvals:always(1, { tool_name = 'tool2' })
 
     -- Enable yolo mode
     Approvals:toggle_yolo_mode(1)

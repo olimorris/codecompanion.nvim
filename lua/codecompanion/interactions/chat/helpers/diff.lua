@@ -1,3 +1,4 @@
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
@@ -303,7 +304,7 @@ end
 ---Create a diff for a buffer or file and set up keymaps
 ---@param bufnr_or_path number|string The buffer number or file path to create diff for
 ---@param diff_id number|string Unique identifier for this diff
----@param opts? { original_content: string[], set_keymaps?: boolean }
+---@param opts? { chat_bufnr?: number, original_content: string[], set_keymaps?: boolean }
 ---@return table|nil diff The diff object, or nil if no diff was created
 function M.create(bufnr_or_path, diff_id, opts)
   opts = opts or {}
@@ -313,26 +314,23 @@ function M.create(bufnr_or_path, diff_id, opts)
 
   log:debug("[builtin::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
-  if vim.g.codecompanion_yolo_mode or not config.display.diff.enabled then
+  if approvals:is_approved(opts.chat_bufnr) or not config.display.diff.enabled then
     return nil
   end
 
   local provider = config.display.diff.provider
   local ok, diff_module = pcall(require, "codecompanion.providers.diff." .. provider)
   if not ok then
-    log:error("[builtin::helpers::diff::create] Failed to load provider '%s'", provider)
-    return nil
+    return log:error("[builtin::helpers::diff::create] Failed to load provider '%s'", provider)
   end
 
   local bufnr, winnr = M.open_buffer_and_window(bufnr_or_path)
   if not bufnr then
-    log:warn("[builtin::helpers::diff::create] Failed to open buffer/file")
-    return nil
+    return log:warn("[builtin::helpers::diff::create] Failed to open buffer/file")
   end
 
   if vim.bo[bufnr].buftype == "terminal" then
-    log:debug("[builtin::helpers::diff::create] Skipping diff - terminal buffer")
-    return nil
+    return log:debug("[builtin::helpers::diff::create] Skipping diff - terminal buffer")
   end
 
   local provider_config = config.display.diff.provider_opts[provider] or {}
@@ -384,26 +382,6 @@ function M.setup_keymaps(diff, opts)
       keymaps = inline_config.keymaps,
     })
     :set()
-end
-
----Check if a diff should be created for this context
----@param bufnr number
----@return boolean should_create
----@return string|nil reason Why diff creation was skipped
-function M.should_create(bufnr)
-  if vim.g.codecompanion_yolo_mode then
-    return false, "yolo_mode"
-  end
-
-  if not config.display.diff.enabled then
-    return false, "diff_disabled"
-  end
-
-  if vim.bo[bufnr].buftype == "terminal" then
-    return false, "terminal_buffer"
-  end
-
-  return true, nil
 end
 
 return M

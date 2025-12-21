@@ -52,8 +52,6 @@ T["Basic Functionality"]["can edit a simple file"] = function()
       },
     }
 
-    -- Mock user confirmation to auto-accept
-    vim.g.codecompanion_yolo_mode = true
 
     tools:execute(chat, tool)
     vim.wait(10)
@@ -80,7 +78,6 @@ T["Basic Functionality"]["can handle multiple sequential edits"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -107,7 +104,6 @@ T["Basic Functionality"]["handles replaceAll option"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -136,7 +132,6 @@ T["Whitespace Handling"]["handles different indentation"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -162,7 +157,6 @@ T["Whitespace Handling"]["normalizes whitespace differences"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -188,7 +182,6 @@ T["Language-Specific Tests"]["handles Python indentation"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -220,7 +213,6 @@ T["Language-Specific Tests"]["handles JavaScript with special characters"] = fun
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -244,7 +236,6 @@ T["Language-Specific Tests"]["handles C++ templates"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -270,7 +261,6 @@ T["Edge Cases"]["handles empty file"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -294,7 +284,6 @@ T["Edge Cases"]["handles single line file"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -318,7 +307,6 @@ T["Edge Cases"]["handles file with unicode characters"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -346,7 +334,6 @@ T["Edge Cases"]["handles beginning of file edit"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -370,7 +357,6 @@ T["Edge Cases"]["handles end of file edit"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -440,7 +426,6 @@ T["Error Handling"]["handles text not found"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -468,7 +453,6 @@ T["JSON Parsing"]["handles Python-like boolean syntax"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -494,7 +478,6 @@ T["JSON Parsing"]["handles mixed quotes"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -522,7 +505,6 @@ T["Real LLM Scenarios"]["handles Claude-style function replacement"] = function(
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -548,7 +530,6 @@ T["Real LLM Scenarios"]["handles GPT-style code improvement"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -576,7 +557,6 @@ T["Real LLM Scenarios"]["handles Python class method addition"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -603,7 +583,6 @@ T["Real LLM Scenarios"]["handles configuration object update"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -631,7 +610,6 @@ T["Real LLM Scenarios"]["handles regex pattern with special characters"] = funct
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -656,7 +634,6 @@ T["Real LLM Scenarios"]["handles multi-line string literal replacement"] = funct
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -685,7 +662,6 @@ T["Strategy Testing"]["tests whitespace_normalized strategy"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -710,7 +686,6 @@ T["Strategy Testing"]["tests punctuation_normalized strategy"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -735,7 +710,6 @@ T["Strategy Testing"]["tests block_anchor strategy with method context"] = funct
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -762,7 +736,6 @@ T["Strategy Testing"]["tests trimmed_lines strategy"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -791,7 +764,6 @@ T["Complex LLM Patterns"]["handles JSON stringified edits"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -825,7 +797,6 @@ T["Complex LLM Patterns"]["handles Python-like dictionary syntax"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -850,7 +821,6 @@ T["Complex LLM Patterns"]["handles mixed content with code and comments"] = func
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -996,7 +966,6 @@ T["Performance"]["handles medium-sized file efficiently"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
 
@@ -1038,7 +1007,6 @@ T["Substring Replacement Tests"]["replaces all substring occurrences with replac
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1064,7 +1032,6 @@ T["Substring Replacement Tests"]["replaces API namespace prefix"] = function()
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1089,7 +1056,6 @@ T["Substring Replacement Tests"]["replaces keyword in middle of lines"] = functi
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1114,7 +1080,6 @@ T["Substring Replacement Tests"]["does not use substring mode for multi-line pat
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1140,7 +1105,6 @@ T["Substring Replacement Tests"]["handles special characters in substring"] = fu
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1165,7 +1129,6 @@ T["Substring Replacement Tests"]["substring mode only activates with replaceAll 
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1199,7 +1162,6 @@ T["Sequential Edits with Ambiguous Patterns"]["handles sequential edits where ea
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1239,7 +1201,6 @@ T["Sequential Edits with Ambiguous Patterns"]["handles Go-style sequential edits
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1281,7 +1242,6 @@ T["Comprehensive Real-World Tests"]["C language: substring replacements then com
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1327,7 +1287,6 @@ T["Comprehensive Real-World Tests"]["Go language: block edits then block replace
       },
     }
 
-    vim.g.codecompanion_yolo_mode = true
     tools:execute(chat, tool)
     vim.wait(10)
   ]])
@@ -1379,9 +1338,6 @@ T["Diff edit_file function"]["diff shows changes correctly after file write"] = 
     local initial = "function getName() {\n  return 'John';\n}"
     local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
     assert(ok == 0)
-
-    -- Disable yolo mode so diff is created
-    vim.g.codecompanion_yolo_mode = false
 
     local tool = {
       {

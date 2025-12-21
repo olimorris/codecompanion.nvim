@@ -794,6 +794,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   local diff_id = math.random(10000000)
   local original_lines = vim.split(current_content, "\n", { plain = true })
   local should_diff = diff.create(path, diff_id, {
+    chat_bufnr = chat_bufnr,
     original_content = original_lines,
   })
 
@@ -889,6 +890,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
   local should_diff = diff.create(bufnr, diff_id, {
+    chat_bufnr = chat_bufnr,
     original_content = original_content,
   })
 

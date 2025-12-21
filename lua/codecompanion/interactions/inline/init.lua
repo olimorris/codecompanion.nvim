@@ -715,7 +715,10 @@ end
 ---@return nil
 function Inline:start_diff(original_content)
   log:debug("[Inline] Starting diff with provider: %s", config.display.diff.provider)
-  if config.display.diff.enabled == false then
+
+  local approvals = require("codecompanion.interactions.chat.tools.approvals")
+
+  if approvals:is_approved(self.bufnr) or config.display.diff.enabled == false then
     return self:reset()
   end
 

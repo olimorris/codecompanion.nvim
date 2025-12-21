@@ -338,7 +338,7 @@ In the `openai_responses` adapter, the following tools are available:
 
 ### YOLO mode
 
-The plugin allows you to run tools on autopilot, with YOLO mode. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that tools may have edited. In the chat buffer, the keymap `gty` will toggle YOLO mode on/off. Alternatively, set the global variable `vim.g.codecompanion_yolo_mode` to enable this or set it to `nil` to undo this.
+The plugin allows you to run tools on autopilot, with YOLO mode. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that tools may have edited. In the chat buffer, the keymap `gty` will toggle YOLO mode on/off.
 
 ## Security and Approvals
 

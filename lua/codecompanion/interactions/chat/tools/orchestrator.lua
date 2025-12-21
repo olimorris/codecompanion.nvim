@@ -283,7 +283,7 @@ function Orchestrator:setup_next_tool(input)
 
         if choice == 1 or choice == 2 then
           if choice == 1 then
-            Approvals:add(self.tools.bufnr, { tool_name = self.tool.name })
+            Approvals:always(self.tools.bufnr, { tool_name = self.tool.name })
           end
           return self:execute_tool({ cmd = cmd, input = input })
         elseif choice == 3 then

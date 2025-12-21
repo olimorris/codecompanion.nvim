@@ -43,8 +43,9 @@ T["for_decision()"] = new_set()
 
 T["for_decision()"]["auto-approves when yolo_mode is enabled"] = function()
   child.lua([[
-    vim.g.codecompanion_yolo_mode = true
-    wait.for_decision("test_id", {"Accept", "Reject"}, _G.test_callback)
+    local Approve = require('codecompanion.interactions.chat.tools.approvals')
+    Approve:toggle_yolo_mode(chat.bufnr)
+    wait.for_decision("test_id", {"Accept", "Reject"}, _G.test_callback, { chat_bufnr = chat.bufnr })
   ]])
 
   local results = child.lua_get("_G.callback_results")
