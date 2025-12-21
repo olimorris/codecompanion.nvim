@@ -195,12 +195,13 @@ return {
         end
         return false
       end,
-      default = "medium",
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      default = "high",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response. See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/thinking for details and options.",
       choices = {
         "high",
         "medium",
         "low",
+        "minimal",
         "none",
       },
     },
