@@ -251,7 +251,7 @@ function Orchestrator:setup_next_tool(input)
   log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and not Approvals:is_approved(self.tools.bufnr, { tool_name = self.tool.name }) then
+  if self.tool.opts and not Approvals:is_approved(self.tools.bufnr, { cmd = cmd, tool_name = self.tool.name }) then
     local require_approval_before = self.tool.opts.require_approval_before
 
     if require_approval_before and type(require_approval_before) == "function" then

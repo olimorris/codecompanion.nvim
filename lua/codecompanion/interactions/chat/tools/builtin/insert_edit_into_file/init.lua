@@ -787,6 +787,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     return output_handler(error_response(fmt("Error writing to `%s`: %s", action.filepath, write_err)))
   end
 
+  -- If the tool has been approved then skip showing the diff
   if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     return output_handler(success_response(fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))))
   end
@@ -891,11 +892,11 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
 
+  -- If the tool has been approved then skip showing the diff
   if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
-
     return output_handler(success)
   end
 
