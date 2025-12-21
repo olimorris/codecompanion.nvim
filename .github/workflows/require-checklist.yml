@@ -9,8 +9,7 @@ on:
 jobs:
   check-tasks:
     runs-on: ubuntu-latest
-    # ignore pull requests raised by dependabot
-    if: github.event.pull_request.user.login != 'dependabot[bot]' and github.event.pull_request.user.login != 'olimorris'
+    if: github.event.pull_request.user.login != 'dependabot[bot]' and github.event.pull_request.user.login != 'olimorris' and github.event.pull_request.draft == false
     steps:
       - uses: mheap/require-checklist-action@v2
         with:
