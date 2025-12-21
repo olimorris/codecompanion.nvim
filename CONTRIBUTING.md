@@ -27,20 +27,13 @@ They're located [here](https://codecompanion.olimorris.dev) and are regularly up
 
 ### Use Rules
 
-When working inside the CodeCompanion repository, you have access to the built-in [rule](https://codecompanion.olimorris.dev/usage/chat-buffer/rules) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
+When working inside the CodeCompanion repository, you have access to the built-in [rule](https://codecompanion.olimorris.dev/usage/chat-buffer/rules) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, rules are a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
 
-You can load memory into the chat via the Action Palette:
+You can load rules into the chat via the Action Palette:
 
 <img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c">
 
-Or, via the `/rules` slash command. Currently, the memory files that have been added are:
-
-- ACP
-- Adapters
-- Chat
-- Tests
-- Tools
-- UI
+Or, via the `/rules` slash command.
 
 ### Refer to the Tests
 
