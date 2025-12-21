@@ -565,6 +565,15 @@ M.clear_rules = {
   end,
 }
 
+M.clear_approvals = {
+  desc = "Clear approvals in the current buffer",
+  callback = function(chat)
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    approvals:reset(chat.bufnr)
+    return utils.notify("Cleared the approvals", vim.log.levels.INFO)
+  end,
+}
+
 M.yolo_mode = {
   desc = "Toggle YOLO mode",
   callback = function(chat)

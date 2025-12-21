@@ -6,6 +6,13 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
+---Modify the path to be relative to the current working directory
+---@param path string
+---@return string
+local function modify_path(path)
+  return vim.fn.fnamemodify(path, ":.")
+end
+
 ---Read the contents of a file
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
 ---@return {status: "success"|"error", data: string}
@@ -166,14 +173,20 @@ return {
     end,
   },
   output = {
+    ---Returns the command that will be executed
+    ---@param self CodeCompanion.Tool.ReadFile
+    ---@param args { tools: CodeCompanion.Tools }
+    ---@return string
+    cmd_string = function(self, args)
+      return modify_path(self.args.filepath)
+    end,
+
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
     ---@param tools CodeCompanion.Tools
     ---@return nil|string
     prompt = function(self, tools)
-      local args = self.args
-      local filepath = vim.fn.fnamemodify(args.filepath, ":.")
-      return fmt("Read %s?", filepath)
+      return fmt("Read `%s`?", modify_path(self.args.filepath))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile

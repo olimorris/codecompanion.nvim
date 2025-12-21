@@ -154,13 +154,14 @@ function Orchestrator:_setup_handlers()
   }
 
   self.output = {
-    cmd = function()
+    cmd_string = function()
       if not self.tool then
         return
       end
-      if self.tool.output and self.tool.output.cmd then
-        return self.tool.output.cmd(self.tool, { tools = self.tools })
+      if self.tool.output and self.tool.output.cmd_string then
+        return self.tool.output.cmd_string(self.tool, { tools = self.tools })
       end
+      return nil
     end,
 
     prompt = function()
@@ -261,7 +262,7 @@ function Orchestrator:setup_next_tool(input)
   -- Check if the tool requires approval
   if
     self.tool.opts
-    and not Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd(), tool_name = self.tool.name })
+    and not Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
   then
     local require_approval_before = self.tool.opts.require_approval_before
 
@@ -294,7 +295,7 @@ function Orchestrator:setup_next_tool(input)
 
         if choice == 1 or choice == 2 then
           if choice == 1 then
-            Approvals:always(self.tools.bufnr, { cmd = self.output.cmd(), tool_name = self.tool.name })
+            Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
           end
           return self:execute_tool({ cmd = cmd, input = input })
         elseif choice == 3 then

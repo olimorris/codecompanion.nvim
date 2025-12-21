@@ -104,9 +104,10 @@ return {
     ---@param self CodeCompanion.Tool.CmdRunner
     ---@param args { tools: CodeCompanion.Tools }
     ---@return string
-    cmd = function(self, args)
+    cmd_string = function(self, args)
       return self.args.cmd
     end,
+
     ---Prompt the user to approve the execution of the command
     ---@param self CodeCompanion.Tool.CmdRunner
     ---@param tool CodeCompanion.Tools

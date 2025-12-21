@@ -130,6 +130,7 @@ local defaults = {
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
+            require_cmd_approval = true,
           },
         },
         ["insert_edit_into_file"] = {
@@ -149,6 +150,7 @@ local defaults = {
           description = "Create a file in the current working directory",
           opts = {
             require_approval_before = true,
+            require_cmd_approval = true,
           },
         },
         ["delete_file"] = {
@@ -156,6 +158,7 @@ local defaults = {
           description = "Delete a file in the current working directory",
           opts = {
             require_approval_before = true,
+            require_cmd_approval = true,
           },
         },
         ["fetch_webpage"] = {
@@ -170,6 +173,7 @@ local defaults = {
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
+            require_cmd_approval = true,
           },
         },
         ["get_changed_files"] = {
@@ -189,6 +193,8 @@ local defaults = {
           opts = {
             max_results = 100,
             respect_gitignore = true,
+            require_approval_before = true,
+            require_cmd_approval = true,
           },
         },
         ["memory"] = {
@@ -205,6 +211,10 @@ local defaults = {
         ["read_file"] = {
           callback = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
+          opts = {
+            require_approval_before = true,
+            require_cmd_approval = true,
+          },
         },
         ["web_search"] = {
           callback = "interactions.chat.tools.builtin.web_search",
@@ -464,7 +474,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { i = "<C-_>" },
           index = 1,
           callback = "keymaps.completion",
-          description = "Completion menu",
+          description = "[Chat] Completion menu",
         },
         send = {
           modes = {
@@ -473,13 +483,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
           index = 2,
           callback = "keymaps.send",
-          description = "Send message",
+          description = "[Request] Send response",
         },
         regenerate = {
           modes = { n = "gr" },
           index = 3,
           callback = "keymaps.regenerate",
-          description = "Regenerate last response",
+          description = "[Request] Regenerate",
         },
         close = {
           modes = {
@@ -488,121 +498,127 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
           index = 4,
           callback = "keymaps.close",
-          description = "Close chat",
+          description = "[Chat] Close",
         },
         stop = {
           modes = { n = "q" },
           index = 5,
           callback = "keymaps.stop",
-          description = "Stop request",
+          description = "[Request] Stop",
         },
         clear = {
           modes = { n = "gx" },
           index = 6,
           callback = "keymaps.clear",
-          description = "Clear chat",
+          description = "[Chat] Clear",
         },
         codeblock = {
           modes = { n = "gc" },
           index = 7,
           callback = "keymaps.codeblock",
-          description = "Insert codeblock",
+          description = "[Chat] Insert codeblock",
         },
         yank_code = {
           modes = { n = "gy" },
           index = 8,
           callback = "keymaps.yank_code",
-          description = "Yank code",
+          description = "[Chat] Yank code",
         },
         buffer_sync_all = {
           modes = { n = "gba" },
           index = 9,
           callback = "keymaps.buffer_sync_all",
-          description = "Toggle the syncing of the entire buffer",
+          description = "[Chat] Toggle buffer syncing",
         },
         buffer_sync_diff = {
           modes = { n = "gbd" },
           index = 10,
           callback = "keymaps.buffer_sync_diff",
-          description = "Toggle the syncing of the buffer to share it's diffs",
+          description = "[Chat] Toggle buffer diff syncing",
         },
         next_chat = {
           modes = { n = "}" },
           index = 11,
           callback = "keymaps.next_chat",
-          description = "Next chat",
+          description = "[Nav] Next chat",
         },
         previous_chat = {
           modes = { n = "{" },
           index = 12,
           callback = "keymaps.previous_chat",
-          description = "Previous chat",
+          description = "[Nav] Previous chat",
         },
         next_header = {
           modes = { n = "]]" },
           index = 13,
           callback = "keymaps.next_header",
-          description = "Next header",
+          description = "[Nav] Next header",
         },
         previous_header = {
           modes = { n = "[[" },
           index = 14,
           callback = "keymaps.previous_header",
-          description = "Previous header",
+          description = "[Nav] Previous header",
         },
         change_adapter = {
           modes = { n = "ga" },
           index = 15,
           callback = "keymaps.change_adapter",
-          description = "Change adapter",
+          description = "[Adapter] Change adapter and model",
         },
         fold_code = {
           modes = { n = "gf" },
           index = 15,
           callback = "keymaps.fold_code",
-          description = "Fold code",
+          description = "[Chat] Fold code",
         },
         debug = {
           modes = { n = "gd" },
           index = 16,
           callback = "keymaps.debug",
-          description = "View debug info",
+          description = "[Chat] View debug info",
         },
         system_prompt = {
           modes = { n = "gs" },
           index = 17,
           callback = "keymaps.toggle_system_prompt",
-          description = "Toggle system prompt",
+          description = "[Chat] Toggle system prompt",
         },
         rules = {
           modes = { n = "gM" },
           index = 18,
           callback = "keymaps.clear_rules",
-          description = "Clear Rules",
+          description = "[Chat] Clear Rules",
+        },
+        clear_approvals = {
+          modes = { n = "gtx" },
+          index = 19,
+          callback = "keymaps.clear_approvals",
+          description = "[Tools] Clear approvals",
         },
         yolo_mode = {
           modes = { n = "gty" },
-          index = 19,
+          index = 20,
           callback = "keymaps.yolo_mode",
-          description = "YOLO mode toggle",
+          description = "[Tools] Toggle YOLO mode",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
-          index = 20,
+          index = 21,
           callback = "keymaps.goto_file_under_cursor",
-          description = "Open file under cursor",
+          description = "[Chat] Open file under cursor",
         },
         copilot_stats = {
           modes = { n = "gS" },
-          index = 21,
+          index = 22,
           callback = "keymaps.copilot_stats",
-          description = "Show Copilot statistics",
+          description = "[Adapter] Copilot statistics",
         },
         super_diff = {
           modes = { n = "gD" },
-          index = 22,
+          index = 23,
           callback = "keymaps.super_diff",
-          description = "Show Super Diff",
+          description = "[Tools] Show Super Diff",
         },
         -- Keymaps for ACP permission requests
         _acp_allow_always = {
@@ -662,32 +678,32 @@ The user is working on a %s machine. Please respond with system specific command
     inline = {
       adapter = "copilot",
       keymaps = {
-        accept_change = {
-          modes = { n = "gda" },
-          opts = { nowait = true, noremap = true },
-          index = 1,
-          callback = "keymaps.accept_change",
-          description = "Accept change",
-        },
-        reject_change = {
-          modes = { n = "gdr" },
-          opts = { nowait = true, noremap = true },
-          index = 2,
-          callback = "keymaps.reject_change",
-          description = "Reject change",
-        },
         always_accept = {
+          callback = "keymaps.always_accept",
+          description = "Always accept changes in this buffer",
+          index = 1,
           modes = { n = "gdy" },
           opts = { nowait = true },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          description = "Accept change",
+          index = 2,
+          modes = { n = "gda" },
+          opts = { nowait = true, noremap = true },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          description = "Reject change",
           index = 3,
-          callback = "keymaps.always_accept",
-          description = "Accept and enable auto mode",
+          modes = { n = "gdr" },
+          opts = { nowait = true, noremap = true },
         },
         stop = {
-          modes = { n = "q" },
-          index = 4,
           callback = "keymaps.stop",
           description = "Stop request",
+          index = 4,
+          modes = { n = "q" },
         },
       },
       variables = {
