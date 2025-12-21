@@ -314,7 +314,7 @@ function M.create(bufnr_or_path, diff_id, opts)
 
   log:debug("[builtin::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
-  if approvals:is_approved(opts.chat_bufnr) or not config.display.diff.enabled then
+  if approvals:is_approved(opts.chat_bufnr, { tool_name = opts.tool_name }) or not config.display.diff.enabled then
     return nil
   end
 

@@ -889,6 +889,16 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local final_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
+  local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
+
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd("silent write")
+    end)
+
+    return output_handler(success)
+  end
+
   local should_diff = diff.create(bufnr, diff_id, {
     chat_bufnr = chat_bufnr,
     original_content = original_content,
@@ -902,16 +912,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   if start_line then
     ui_utils.scroll_to_line(bufnr, start_line)
-  end
-
-  local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
-
-  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd("silent write")
-    end)
-
-    return output_handler(success)
   end
 
   if should_diff and opts.require_confirmation_after then
