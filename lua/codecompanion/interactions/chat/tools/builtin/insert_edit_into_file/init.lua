@@ -904,13 +904,15 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     ui_utils.scroll_to_line(bufnr, start_line)
   end
 
+  local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
+
   if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
-  end
 
-  local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
+    return output_handler(success)
+  end
 
   if should_diff and opts.require_confirmation_after then
     return handle_user_decision({
@@ -922,9 +924,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
       success_response = success,
       output_handler = output_handler,
     })
-  else
-    return output_handler(success)
   end
+
+  return output_handler(success)
 end
 
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
