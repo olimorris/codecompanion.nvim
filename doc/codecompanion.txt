@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 21
+*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1539,28 +1539,9 @@ dependency and want to refresh the tool availability in the chat buffer.
 
 APPROVALS
 
-Some tools, such as |codecompanion-usage-chat-buffer-tools.html-cmd-runner|,
-require the user to approve any commands before they’re executed. This can be
-changed by altering the config for each tool:
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior
+to execution.
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          tools = {
-            ["cmd_runner"] = {
-              opts = {
-                require_approval_before = false,
-              },
-            },
-          }
-        }
-      }
-    })
-<
-
-You can also force any tool to require your approval by adding in
-`opts.require_approval_before = true`.
 
 
 AUTO SUBMIT (RECURSION)
@@ -1568,20 +1549,10 @@ AUTO SUBMIT (RECURSION)
 When a tool executes, it can be useful to automatically send its output back to
 the LLM. This can be achieved by the following options in your configuration:
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          tools = {
-            opts = {
-              auto_submit_errors = true, -- Send any errors to the LLM automatically?
-              auto_submit_success = true, -- Send any successful output to the LLM automatically?
-            },
-          }
-        }
-      }
-    })
-<
+`lua {6-7} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { auto_submit_errors = true, -- Send any errors to the LLM
+automatically? auto_submit_success = true, -- Send any successful output to the
+LLM automatically? }, } } } })`
 
 
 DEFAULT TOOLS
@@ -1589,22 +1560,8 @@ DEFAULT TOOLS
 You can configure the plugin to automatically add tools and tool groups to new
 chat buffers:
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          tools = {
-            opts = {
-              default_tools = {
-                "my_tool",
-                "my_tool_group"
-              }
-            },
-          }
-        }
-      }
-    })
-<
+`lua {6-9} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
 This also works for |codecompanion-configuration-extensions|.
 
@@ -3881,19 +3838,7 @@ In the `openai_responses` adapter, the following tools are available:
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
 
-USEFUL TIPS ~
-
-
-YOLO MODE
-
-The plugin allows you to run tools on autopilot, with YOLO mode. This
-automatically approves any tool use instead of prompting the user, disables any
-diffs, submits errors and success messages and automatically saves any buffers
-that tools may have edited. In the chat buffer, the keymap `gty` will toggle
-YOLO mode on/off.
-
-
-SECURITY AND APPROVALS ~
+SECURITY ~
 
 CodeCompanion takes security very seriously, especially in a world of agentic
 code development. To that end, every effort is made to ensure that LLMs are
@@ -3904,17 +3849,40 @@ is that the LLM can only work within the cwd when executing tools but will
 minimize actions that are hard to recover from
 <https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7>.
 
-The plugin also puts approvals at the heart of its workflow. Some tools, such
-as the |codecompanion--cmd-runner|, require the user to approve any actions
-before they can be executed. If the tool requires this a `vim.fn.confirm`
-dialog will prompt you for a response. You may also
-|codecompanion-configuration-chat-buffer-approvals| an approval for `any` tool.
 
-When using CodeCompanion’s in-built tools, there are three choices:
+APPROVALS
 
-1. **Approve** - The tool will be executed
-2. **Reject** - The tool will **NOT** be executed
-3. **Cancel** - All tools in the queue will **NOT** be executed
+
+  [!NOTE] This applies to CodeCompanion’s built-in tools only. ACP agents have
+  their own tools and approval systems.
+In order to give developers the confidence to use tools, CodeCompanion has
+implemented a comprehensive approval system for it’s built-in tools.
+
+CodeCompanion segregates tool approvals by chat buffer and by tool. This means
+that if you approve a tool in one chat buffer, it is `not` approved for use
+anywhere else. Similarly, if you approve a tool once, you’ll be prompted to
+approve it again next time it’s executed.
+
+When prompted, the user has four options available to them:
+
+- **Allow always** - Always allow this tool/cmd to be executed without further prompts
+- **Allow once** - Allow this tool/cmd to be executed this one time
+- **Reject** - Reject the execution of this tool/cmd and provide a reason
+- **Cancel** - Cancel this tool execution and all other pending tool executions
+
+Certain tools with potentially destructive capabilities have an additional
+layer of protection. Instead of being approved at a tool level, these are
+approved at a command level. Taking the `cmd_runner` tool as an example. If you
+approve an agent to always run `make format`, if it tries to run `make test`,
+you’ll be prompted to approve that command specifically.
+
+
+YOLO MODE
+
+To bypass the approval system, you can use `gty` in the chat buffer to enable
+YOLO mode. This will automatically approve all tool executions without
+prompting the user. However, note that some tools such as `cmd_runner` and
+`delete_file` are excluded from this.
 
 
 COMPATIBILITY ~

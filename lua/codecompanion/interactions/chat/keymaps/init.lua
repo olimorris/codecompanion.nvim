@@ -578,7 +578,11 @@ M.yolo_mode = {
   desc = "Toggle YOLO mode",
   callback = function(chat)
     local approvals = require("codecompanion.interactions.chat.tools.approvals")
-    approvals:toggle_yolo_mode(chat.bufnr)
+    local status = approvals:toggle_yolo_mode(chat.bufnr)
+    if status then
+      return utils.notify("YOLO mode enabled!", vim.log.levels.INFO)
+    end
+    return utils.notify("YOLO mode disabled!", vim.log.levels.INFO)
   end,
 }
 

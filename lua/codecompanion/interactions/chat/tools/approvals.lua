@@ -132,7 +132,7 @@ end
 
 ---Toggle yolo mode for a given chat buffer
 ---@param bufnr? number
----@return nil
+---@return boolean
 function Approvals:toggle_yolo_mode(bufnr)
   if not bufnr or bufnr == 0 then
     bufnr = vim.api.nvim_get_current_buf()
@@ -144,9 +144,11 @@ function Approvals:toggle_yolo_mode(bufnr)
 
   if approved[bufnr]["yolo_mode"] then
     approved[bufnr]["yolo_mode"] = nil
-  else
-    approved[bufnr]["yolo_mode"] = true
+    return false
   end
+
+  approved[bufnr]["yolo_mode"] = true
+  return true
 end
 
 ---Reset the approvals for a given chat buffer

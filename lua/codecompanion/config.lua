@@ -157,6 +157,7 @@ local defaults = {
           callback = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
+            allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
           },
