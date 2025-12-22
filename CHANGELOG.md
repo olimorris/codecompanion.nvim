@@ -1,5 +1,20 @@
 # Changelog
 
+## [18.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.1...v18.3.0) (2025-12-22)
+
+
+### Features
+
+* **adapters:** update Anthropic models ([#2556](https://github.com/olimorris/codecompanion.nvim/issues/2556)) ([4790ea4](https://github.com/olimorris/codecompanion.nvim/commit/4790ea4e413cd828165994a4dc023da728873fa1))
+* **chat:** system prompt to include filepath ([#2580](https://github.com/olimorris/codecompanion.nvim/issues/2580)) ([24a48e4](https://github.com/olimorris/codecompanion.nvim/commit/24a48e49792f28f35cb2343a298f6397f95ffe16))
+* **tools:** better approvals ([#2569](https://github.com/olimorris/codecompanion.nvim/issues/2569)) ([837514b](https://github.com/olimorris/codecompanion.nvim/commit/837514bae59ef25c3d86f54d2c748e6a239714c3))
+
+
+### Bug Fixes
+
+* **adapters:** gemini reasoning ([#2572](https://github.com/olimorris/codecompanion.nvim/issues/2572)) ([96b15d4](https://github.com/olimorris/codecompanion.nvim/commit/96b15d47561469f318c03f1ce11498340513c1ea)), closes [#2571](https://github.com/olimorris/codecompanion.nvim/issues/2571)
+* **inline:** leave visual mode after making inline request ([#2562](https://github.com/olimorris/codecompanion.nvim/issues/2562)) ([bdf697d](https://github.com/olimorris/codecompanion.nvim/commit/bdf697dae74de9a23b8b1842183261f2f538bb87))
+
 ## [18.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.0...v18.2.1) (2025-12-19)
 
 
