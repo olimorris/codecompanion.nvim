@@ -356,6 +356,8 @@ When prompted, the user has four options available to them:
 
 Certain tools with potentially destructive capabilities have an additional layer of protection. Instead of being approved at a tool level, these are approved at a command level. Taking the `cmd_runner` tool as an example. If you approve an agent to always run `make format`, if it tries to run `make test`, you'll be prompted to approve that command specifically.
 
+Approvals can be reset for the given chat buffer by using the `gtx` keymap.
+
 ### YOLO mode
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, note that some tools such as `cmd_runner` and `delete_file` are excluded from this.

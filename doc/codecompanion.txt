@@ -3876,6 +3876,8 @@ approved at a command level. Taking the `cmd_runner` tool as an example. If you
 approve an agent to always run `make format`, if it tries to run `make test`,
 you’ll be prompted to approve that command specifically.
 
+Approvals can be reset for the given chat buffer by using the `gtx` keymap.
+
 
 YOLO MODE
 
