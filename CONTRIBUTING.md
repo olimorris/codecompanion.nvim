@@ -8,6 +8,33 @@ Before contributing a PR, please open up a discussion to talk about it. While I 
 
 The plugin has adopted semantic versioning. As such, any PR which breaks the existing API is unlikely to be merged.
 
+### Plugin Philosophy
+
+**CodeCompanion enables developers to write better code, faster, through LLM interactions.**
+
+When proposing new features, please ensure they align with this philosophy:
+
+**In Scope:**
+- LLM interaction modes (chat, inline, cmd, workflows, agents)
+- Tools and context that extend LLM capabilities while coding
+- Integrations (MCP, adapters) that enhance LLM assistance
+- Essential infrastructure for reviewing and applying LLM-generated changes (diff providers, edit tracking, completion/action providers)
+
+**Out of Scope:**
+- Elaborate UIs (beyond basic diff/review needs) or features that do not facilitate LLM-assisted code generation
+- Features better served by standalone plugins
+- General development tools not tied to LLM interactions
+
+**Questions to ask:**
+1. Does this help the LLM write code?
+2. Is this essential for users to accept/reject LLM code?
+3. Or is this nice-to-have feature that belongs in a separate plugin?
+4. To add this feature, are we looking at > 1,000 LOC of new code?
+
+**If a feature is primarily about viewing what's already happened rather than enabling the next LLM interaction, it's out of scope.**
+
+If your feature doesn't directly support LLM-assisted code generation or isn't minimal essential infrastructure, consider publishing it as a standalone plugin that works alongside CodeCompanion.
+
 ## How to Contribute
 
 1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea.
