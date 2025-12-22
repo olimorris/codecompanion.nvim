@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "build:release": "NODE_ENV=production vitepress build",
+    "build:release": "NODE_ENV=production git fetch --unshallow && vitepress build",
     "preview": "vitepress preview"
   }
 }
