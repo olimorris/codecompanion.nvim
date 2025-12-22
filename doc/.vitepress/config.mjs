@@ -85,8 +85,16 @@ export default withMermaid(
     lang: "en",
     cleanUrls: true,
     head: headers,
-    sitemap: { hostname: siteUrl },
+    sitemap: {
+      hostname: siteUrl,
+    },
     themeConfig: {
+      lastUpdated: {
+        formatOptions: {
+          dateStyle: "medium",
+        },
+      },
+
       outline: "deep",
 
       logo: "https://github.com/user-attachments/assets/7083eeb1-2f6c-4cf6-82ff-bc3171cab801",
