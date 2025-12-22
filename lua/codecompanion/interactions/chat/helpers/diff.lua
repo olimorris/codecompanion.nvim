@@ -179,20 +179,17 @@ local function create_diff_floating_window(bufnr, path)
 
   local _, winnr = ui_utils.create_float(content, {
     bufnr = bufnr,
-    set_content = false, -- Don't overwrite existing buffer content
-    window = { width = window_config.width, height = window_config.height },
     row = window_config.row,
     col = window_config.col,
-    relative = window_config.relative,
     filetype = filetype,
-    title = ui_utils.build_float_title({
-      title_prefix = " Diff",
-      path = path,
-    }),
-    lock = false, -- Allow edits for diff
     ignore_keymaps = true,
+    lock = false, -- Allow edits for diff
     opts = window_config.opts,
+    overwrite_buffer = false,
+    relative = window_config.relative,
     show_dim = show_dim,
+    title = " Diff: " .. (path and vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(path)) or "[No Name]") .. " ",
+    window = { width = window_config.width, height = window_config.height },
   })
 
   return winnr

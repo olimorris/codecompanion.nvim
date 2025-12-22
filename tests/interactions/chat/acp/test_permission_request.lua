@@ -119,13 +119,6 @@ local function with_mocks(opts)
         })
         return w
       end,
-      build_float_title = function(opts)
-        opts = opts or {}
-        if opts.path then
-          return (opts.title_prefix or "Test") .. ": " .. vim.fn.fnamemodify(opts.path, ":t")
-        end
-        return opts.title or opts.title_prefix or "Test"
-      end
     }
 
     -- Mock wait helper

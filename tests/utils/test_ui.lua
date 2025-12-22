@@ -86,18 +86,18 @@ T["UI create_float Screenshots"]["Uses existing buffer without overwriting conte
     })
     vim.bo[existing_bufnr].filetype = "lua"
 
-    -- Use create_float with existing buffer and set_content = false
+    -- Use create_float with existing buffer and overwrite_buffer = false
     local dummy_lines = {"This should not appear", "These lines ignored"}
 
     local bufnr, winnr = ui.create_float(dummy_lines, {
       bufnr = existing_bufnr,
-      set_content = false,
-      window = { width = 45, height = 8 },
       row = "center",
       col = "center",
+      overwrite_buffer = false,
       relative = "editor",
-      title = "Existing Buffer Test",
       show_dim = true,
+      title = "Existing Buffer Test",
+      window = { width = 45, height = 8 },
     })
 
     -- Verify existing content was preserved
@@ -144,7 +144,7 @@ T["UI create_float Screenshots"]["Uses existing buffer with content overwrite (d
     -- Use create_float with existing buffer (debug.lua pattern)
     local bufnr, winnr = ui.create_float(new_debug_lines, {
       bufnr = existing_bufnr,
-      -- set_content is not specified, so defaults to true
+      -- overwrite_buffer is not specified, so defaults to true
       window = { width = 55, height = 16 },
       row = "center",
       col = "center",
