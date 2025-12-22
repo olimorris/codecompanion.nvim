@@ -96,8 +96,7 @@ M.create_float = function(lines, opts)
     zindex = opts.show_dim and 99 or nil, -- When dimming, set above background win but below notifications
   })
 
-  -- Only set content if we created a new buffer OR if not explicitly disabled
-  if not opts.bufnr or opts.set_content ~= false then
+  if not opts.bufnr or opts.overwrite_buffer ~= false then
     api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   end
 
@@ -135,25 +134,6 @@ M.create_float = function(lines, opts)
   vim.keymap.set("n", "q", close, { buffer = bufnr })
 
   return bufnr, winnr
-end
-
----Build a floating window title with smart path handling
----@param opts { title?: string, title_prefix?: string, path?: string }
----@return string title The formatted title
-function M.build_float_title(opts)
-  opts = opts or {}
-  local title = opts.title or opts.title_prefix or "CodeCompanion"
-
-  if opts.path then
-    local ok, relative_path = pcall(function()
-      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.path))
-    end)
-    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.path
-
-    title = " " .. (opts.title_prefix or " Diff") .. ": " .. path_to_use .. " "
-  end
-
-  return title
 end
 
 ---@param bufnr number
