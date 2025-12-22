@@ -1,6 +1,5 @@
 ---@class CodeCompanion.Tools
 ---@field adapter CodeCompanion.HTTPAdapter The adapter in use for the chat
----@field tools_config table The available tools for the tool system
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field constants table<string, string> The constants for the tool
@@ -11,10 +10,12 @@
 ---@field stdout table The stdout of the tool
 ---@field stderr table The stderr of the tool
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
+---@field tools_config table The available tools for the tool system
 ---@field tools_ns number The namespace for the virtual text that appears in the header
 
 local EditTracker = require("codecompanion.interactions.chat.edit_tracker")
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 
 local config = require("codecompanion.config")
@@ -258,7 +259,7 @@ function Tools:set_autocmds()
             })
           end
 
-          if vim.g.codecompanion_yolo_mode then
+          if approvals:is_approved(self.bufnr) then
             return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then

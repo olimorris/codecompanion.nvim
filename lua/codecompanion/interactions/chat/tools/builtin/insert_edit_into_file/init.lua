@@ -44,6 +44,7 @@ file boundaries (start/end), and complete file overwrites.
 
 local Path = require("plenary.path")
 
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
@@ -786,14 +787,16 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     return output_handler(error_response(fmt("Error writing to `%s`: %s", action.filepath, write_err)))
   end
 
-  if vim.g.codecompanion_yolo_mode then
+  -- If the tool has been approved then skip showing the diff
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     return output_handler(success_response(fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))))
   end
 
   local diff_id = math.random(10000000)
-  local original_lines = vim.split(current_content, "\n", { plain = true })
   local should_diff = diff.create(path, diff_id, {
-    original_content = original_lines,
+    chat_bufnr = chat_bufnr,
+    original_content = vim.split(current_content, "\n", { plain = true }),
+    tool_name = "insert_edit_into_file",
   })
 
   local final_success = success_response(fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)))
@@ -887,8 +890,20 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local final_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
+  local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
+
+  -- If the tool has been approved then skip showing the diff
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd("silent write")
+    end)
+    return output_handler(success)
+  end
+
   local should_diff = diff.create(bufnr, diff_id, {
+    chat_bufnr = chat_bufnr,
     original_content = original_content,
+    tool_name = "insert_edit_into_file",
   })
 
   local start_line = nil
@@ -900,14 +915,6 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     ui_utils.scroll_to_line(bufnr, start_line)
   end
 
-  if vim.g.codecompanion_yolo_mode then
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd("silent write")
-    end)
-  end
-
-  local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
-
   if should_diff and opts.require_confirmation_after then
     return handle_user_decision({
       diff_id = diff_id,
@@ -918,9 +925,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
       success_response = success,
       output_handler = output_handler,
     })
-  else
-    return output_handler(success)
   end
+
+  return output_handler(success)
 end
 
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool

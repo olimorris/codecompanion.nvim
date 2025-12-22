@@ -10,13 +10,12 @@ local M = {}
 ---@param id string|number Unique identifier for the decision context
 ---@param events table Name of events to wait for. First one is considered "accept"
 ---@param callback function Callback to execute when decision is made
----@param opts? table Optional configuration
+---@param opts? { chat_bufnr?: number, notify?: string, sub_text?: string, timeout?: number }
 function M.for_decision(id, events, callback, opts)
   opts = opts or {}
 
-  -- Auto-approve if in YOLO mode
-  -- Generally, most tools will avoid us reaching this point, but it's a good fallback
-  if vim.g.codecompanion_yolo_mode then
+  local approvals = require("codecompanion.interactions.chat.tools.approvals")
+  if approvals:is_approved(opts.chat_bufnr) then
     return callback({ accepted = true, auto_approved = true })
   end
 

@@ -715,7 +715,10 @@ end
 ---@return nil
 function Inline:start_diff(original_content)
   log:debug("[Inline] Starting diff with provider: %s", config.display.diff.provider)
-  if config.display.diff.enabled == false then
+
+  local approvals = require("codecompanion.interactions.chat.tools.approvals")
+
+  if approvals:is_approved(self.bufnr, { tool_name = "inline" }) or config.display.diff.enabled == false then
     return self:reset()
   end
 
@@ -723,7 +726,7 @@ function Inline:start_diff(original_content)
     return self:reset()
   end
 
-  self:set_keymaps(self.buffer_context.bufnr, { exclude_keymaps = { "stop" } })
+  self:set_keymaps(self.buffer_context.bufnr, { tool_name = "inline", exclude_keymaps = { "stop" } })
 
   local provider = config.display.diff.provider
   local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
@@ -734,11 +737,11 @@ function Inline:start_diff(original_content)
 
   self.diff = diff.new({
     bufnr = self.buffer_context.bufnr,
+    contents = original_content,
     cursor_pos = self.buffer_context.cursor_pos,
     filetype = self.buffer_context.filetype,
-    contents = original_content,
-    winnr = self.buffer_context.winnr,
     id = self.id,
+    winnr = self.buffer_context.winnr,
   })
 end
 

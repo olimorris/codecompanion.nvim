@@ -565,16 +565,24 @@ M.clear_rules = {
   end,
 }
 
+M.clear_approvals = {
+  desc = "Clear approvals in the current buffer",
+  callback = function(chat)
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    approvals:reset(chat.bufnr)
+    return utils.notify("Cleared the approvals", vim.log.levels.INFO)
+  end,
+}
+
 M.yolo_mode = {
   desc = "Toggle YOLO mode",
   callback = function(chat)
-    if vim.g.codecompanion_yolo_mode then
-      vim.g.codecompanion_yolo_mode = nil
-      return utils.notify("YOLO mode disabled", vim.log.levels.INFO)
-    else
-      vim.g.codecompanion_yolo_mode = true
-      return utils.notify("YOLO mode enabled", vim.log.levels.INFO)
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    local status = approvals:toggle_yolo_mode(chat.bufnr)
+    if status then
+      return utils.notify("YOLO mode enabled!", vim.log.levels.INFO)
     end
+    return utils.notify("YOLO mode disabled!", vim.log.levels.INFO)
   end,
 }
 

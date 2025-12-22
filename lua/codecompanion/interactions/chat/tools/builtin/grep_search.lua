@@ -201,14 +201,20 @@ return {
     end,
   },
   output = {
+    ---Returns the command that will be executed
+    ---@param self CodeCompanion.Tool.GrepSearch
+    ---@param args { tools: CodeCompanion.Tools }
+    ---@return string
+    cmd_string = function(self, args)
+      return self.args.query or ""
+    end,
+
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
     ---@param tools CodeCompanion.Tools
     ---@return nil|string
     prompt = function(self, tools)
-      local args = self.args
-      local query = args.query or ""
-      return fmt("Perform a grep search for %s?", query)
+      return fmt("Grep search for `%s`?", self.args.query)
     end,
 
     ---@param self CodeCompanion.Tool.GrepSearch
