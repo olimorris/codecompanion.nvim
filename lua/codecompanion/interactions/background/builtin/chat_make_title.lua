@@ -7,9 +7,25 @@ local M = {}
 ---Format the messages from a chat buffer
 ---@param messages CodeCompanion.Chat.Messages
 function M.format_messages(messages)
+  local exclude_tags = {
+    ["image"] = "[Image content omitted]",
+    ["rules"] = "",
+    ["system_prompt_from_config"] = "",
+  }
+
   local chat_messages = {}
-  for _, message in ipairs(messages or {}) do
-    table.insert(chat_messages, fmt("## %s\n%s", message.role, message.content))
+  for _, m in ipairs(messages or {}) do
+    local tag = m._meta and m._meta.tag
+    local replacement = exclude_tags[tag]
+
+    if replacement == "" then
+      goto continue
+    end
+
+    local content = replacement or m.content
+    table.insert(chat_messages, fmt("## %s\n%s", m.role, content))
+
+    ::continue::
   end
   return table.concat(chat_messages, "\n")
 end
