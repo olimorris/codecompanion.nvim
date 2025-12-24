@@ -13,6 +13,6 @@ jobs:
     steps:
       - uses: mheap/require-checklist-action@v2
         with:
-          requireChecklist: false
+          requireChecklist: true
           skipDescriptionRegex: .*\(optional\).*
           skipDescriptionRegexFlags: i
