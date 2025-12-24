@@ -138,8 +138,16 @@ function UI:open(opts)
     return vim.o.lines
   end
 
-  local width = window.width > 1 and window.width or math.floor(cols() * window.width)
+  --NOTE: Previously we allowed "auto" values for the width, so guarding against that here
+  if type(window.height) == "string" then
+    window.height = rows()
+  end
+  if type(window.width) == "string" then
+    window.width = cols()
+  end
+
   local height = window.height > 1 and window.height or math.floor(rows() * window.height)
+  local width = window.width > 1 and window.width or math.floor(cols() * window.width)
 
   if window.layout == "float" then
     local win_opts = {
