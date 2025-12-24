@@ -57,16 +57,34 @@ end
 M.create_float = function(lines, opts)
   local window = opts.window
 
+  ---TODO: Remove this and remove all background dimming
   -- Create background window for dimming effect if enabled
   if opts.show_dim then
     M.create_background_window()
   end
 
-  local config = require("codecompanion.config")
-  local window_width = config.resolve_value(window.width)
-  local width = window_width and (window_width > 1 and window_width or opts.width or 85) or opts.width or 85
-  local window_height = config.resolve_value(window.height)
-  local height = window_height and (window_height > 1 and window_height or opts.height or 17) or opts.height or 17
+  local cols = function()
+    return vim.o.columns
+  end
+  local rows = function()
+    return vim.o.lines
+  end
+
+  if type(window.height) == "function" then
+    window.height = window.height()
+  end
+  if type(window.width) == "function" then
+    window.width = window.width()
+  end
+  if type(window.height) == "string" then
+    window.height = rows()
+  end
+  if type(window.width) == "string" then
+    window.width = cols()
+  end
+
+  local width = window.width and (window.width > 1 and window.width or opts.width or 85) or opts.width or 85
+  local height = window.height and (window.height > 1 and window.height or opts.height or 17) or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
 
@@ -76,10 +94,10 @@ M.create_float = function(lines, opts)
   local row = opts.row or window.row or 10
   local col = opts.col or window.col or 0
   if row == "center" then
-    row = math.floor((vim.o.lines - height) / 2 - 1) -- Account for status line for better UX
+    row = math.floor((rows() - height) / 2 - 1) -- Account for status line for better UX
   end
   if col == "center" then
-    col = math.floor((vim.o.columns - width) / 2)
+    col = math.floor((cols() - width) / 2)
   end
 
   local winnr = api.nvim_open_win(bufnr, true, {
@@ -291,31 +309,6 @@ function M.scroll_to_line(bufnr, line_num)
     vim.cmd(":" .. tostring(line_num))
     vim.cmd("normal! zz")
   end)
-end
-
----Scroll to line and briefly highlight the edit area
----@param bufnr number The buffer number
----@param line_num number The line number to scroll to
----@param num_lines? number Number of lines that were changed
-function M.scroll_and_highlight(bufnr, line_num, num_lines)
-  num_lines = num_lines or 1
-
-  M.scroll_to_line(bufnr, line_num)
-
-  local ns_id = api.nvim_create_namespace("codecompanion_edit_highlight")
-
-  -- Highlight the edited lines
-  for i = 0, num_lines - 1 do
-    local highlight_line = line_num + i - 1 -- Convert to 0-based
-    if highlight_line >= 0 and highlight_line < api.nvim_buf_line_count(bufnr) then
-      api.nvim_buf_add_highlight(bufnr, ns_id, "DiffAdd", highlight_line, 0, -1)
-    end
-  end
-
-  -- Clear highlight after a short delay
-  vim.defer_fn(function()
-    api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-  end, 2000) -- 2 seconds
 end
 
 ---@param bufnr nil|number
