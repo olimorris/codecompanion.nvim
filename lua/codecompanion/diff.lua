@@ -113,7 +113,7 @@ end
 ---Calculate width of virtual lines
 ---@param virt_lines CodeCompanion.Text[]
 ---@return number
-local function lines_width(virt_lines)
+local function _lines_width(virt_lines)
   local max_width = 0
   for _, line in ipairs(virt_lines) do
     local width = 0
@@ -128,7 +128,7 @@ end
 ---Check if we need to offset for row 0 deletions and adjust positions
 ---@param diff CC.Diff
 ---@return boolean needs_offset
-local function should_offset(diff)
+local function _should_offset(diff)
   -- Check if any hunk starts at row 0 with deletions
   -- This is a problem because virtual lines with virt_lines_above=true at row 0
   -- don't render (there's nothing "above" row 0 in a buffer)
@@ -188,7 +188,7 @@ function M.diff_lines(diff)
     -- Calculate width from added lines
     if bc > 0 then
       local virt_lines = vim.list_slice(diff.to.virt_lines, bi, bi + bc - 1)
-      width = math.max(width, lines_width(virt_lines))
+      width = math.max(width, _lines_width(virt_lines))
     end
 
     -- Create extmark for deletions (all deleted lines in one extmark)
@@ -260,7 +260,7 @@ function M.create(args)
   -- Solution: Insert a blank line at row 0, shifting all content down by 1
   -- Then adjust all extmark positions to account for this shift
   -- This allows deletion virtual lines to appear "above" the first line of actual content
-  diff.should_offset = should_offset(diff)
+  diff.should_offset = _should_offset(diff)
 
   return diff
 end
