@@ -359,6 +359,7 @@ return {
           },
         },
       },
+      mcp = {},
       opts = {
         blank_prompt = "",
         wait_timeout = 3000,

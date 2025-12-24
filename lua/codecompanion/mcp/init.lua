@@ -26,11 +26,7 @@ local clients = {}
 
 ---Start all configured MCP servers if not already started
 function M.start_all_if_not_started()
-  local mcp_cfg = require("codecompanion.config").mcp
-  if not mcp_cfg then
-    return
-  end
-
+  local mcp_cfg = require("codecompanion.config").interactions.chat.mcp
   for name, cfg in pairs(mcp_cfg.servers or {}) do
     if not clients[name] then
       local client = Client:new(name, cfg)
