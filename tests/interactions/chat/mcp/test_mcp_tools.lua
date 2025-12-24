@@ -240,9 +240,9 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
   h.queue_mock_http_response(child, {
     content = "Call some tools",
     tools = {
-      { ["function"] = { name = "other_mcp_echo", arguments = { value = "ECHO REQ" } } },
       { ["function"] = { name = "other_mcp_say_hi" } },
-      { ["function"] = { name = "other_mcp_make_list", arguments = { count = 1, item = "xxx" } } },
+      { ["function"] = { name = "other_mcp_make_list", arguments = { count = 3, item = "xyz" } } },
+      { ["function"] = { name = "other_mcp_echo", arguments = { value = "ECHO REQ" } } },
     },
   })
 
@@ -260,6 +260,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
           },
           tool_overrides = {
             echo = {
+              timeout_ms = 100,
               output = {
                 prompt = function(self, tools)
                   return "Custom confirmation prompt for echo tool: " .. self.args.value
@@ -273,7 +274,15 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
               system_prompt = "TEST SYSTEM PROMPT FOR SAY_HI",
             },
             make_list = {
-              timeout_ms = 100,
+              output = {
+                success = function(self, tools, cmd, stdout)
+                  local output = vim.iter(stdout[#stdout]):map(function(block)
+                    assert(block.type == "text")
+                    return block.text
+                  end):join(",")
+                  tools.chat:add_tool_output(self, output)
+                end
+              },
             },
           }
         },
@@ -281,16 +290,20 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
     })
 
     OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
-      assert(params.name == "echo")
-      return "result", { content = { { type = "text", text = params.arguments.value } } }
-    end)
-    OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
       assert(params.name == "say_hi")
       return "result", { content = { { type = "text", text = "Hello there!" } } }
     end)
     OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
       assert(params.name == "make_list")
-      return "result", { content = {} }
+      local content = {}
+      for i = 1, params.arguments.count do
+        table.insert(content, { type = "text", text = params.arguments.item })
+      end
+      return "result", { content = content }
+    end)
+    OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
+      assert(params.name == "echo")
+      return "result", { content = { { type = "text", text = params.arguments.value } } }
     end, { latency_ms = 10 * 1000 })
 
     chat:add_buf_message({ role = "user", content = "@{other_mcp}" })
@@ -331,14 +344,14 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
     end)
     :totable()
   h.eq(tool_output_msgs, {
-    "ECHO REQ",
     "Hello there!",
+    "xyz,xyz,xyz",
     "MCP Tool execution failed:\nMCP JSONRPC error: [-32603] Request timeout after 100ms",
   })
 
   h.eq(#result.confirmations, 2)
-  h.eq(result.confirmations[1], "Custom confirmation prompt for echo tool: ECHO REQ")
-  h.expect_contains("make_list", result.confirmations[2])
+  h.expect_contains("make_list", result.confirmations[1])
+  h.eq(result.confirmations[2], "Custom confirmation prompt for echo tool: ECHO REQ")
 end
 
 return T

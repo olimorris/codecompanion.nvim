@@ -2,12 +2,25 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
+---Format the output content from an MCP tool
+---@param content string | MCP.ContentBlock[]
+---@return string
+function M.format_tool_result_content(content)
+  if type(content) == "table" then
+    if #content == 1 and content[1].type == "text" then
+      return content[1].text
+    end
+    return vim.inspect(content)
+  end
+  return content or ""
+end
+
 ---Default tool output callbacks
 local DefaultOutputCallbacks = {}
 
 function DefaultOutputCallbacks.success(self, tools, cmd, stdout)
   local chat = tools.chat
-  local output = stdout and stdout[#stdout]
+  local output = M.format_tool_result_content(stdout and stdout[#stdout])
   local args = vim.inspect(self.args)
   local for_user =
     string.format("MCP Tool [%s] executed successfully.\nArguments:\n%s\nOutput:\n%s", self.name, args, output)
@@ -16,7 +29,7 @@ end
 
 function DefaultOutputCallbacks.error(self, tools, cmd, stderr)
   local chat = tools.chat
-  local err_msg = stderr and stderr[#stderr] or "<NO ERROR MESSAGE>"
+  local err_msg = M.format_tool_result_content(stderr and stderr[#stderr] or "<NO ERROR MESSAGE>")
   local for_user = string.format(
     "MCP Tool [%s] execution failed.\nArguments:\n%s\nError Message:\n%s",
     self.name,
@@ -72,18 +85,12 @@ function M.build(client, mcp_tool)
             output = { status = "error", data = result_or_error }
           else
             local result = result_or_error
-            local output_str
-            if result and result.content and #result.content == 1 and result.content[1].type == "text" then
-              output_str = result.content[1].text -- just a single text block, make it simple
-            else
-              output_str = vim.inspect(result.content)
-            end
             if result.isError then
-              log:error("[MCP.%s] tool [%s] call returned error: %s", client.name, prefixed_name, output_str)
-              output = { status = "error", data = output_str }
+              log:error("[MCP.%s] tool [%s] call returned error", client.name, prefixed_name)
+              output = { status = "error", data = result.content }
             else
-              log:debug("[MCP.%s] tool [%s] call returned success: %s", client.name, prefixed_name, output_str)
-              output = { status = "success", data = output_str }
+              log:debug("[MCP.%s] tool [%s] call returned success", client.name, prefixed_name)
+              output = { status = "success", data = result.content }
             end
           end
           output_handler(output)
