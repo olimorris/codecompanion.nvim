@@ -146,6 +146,13 @@ function UI:open(opts)
     window.width = cols()
   end
 
+  if type(window.height) == "function" then
+    window.height = window.height()
+  end
+  if type(window.width) == "function" then
+    window.width = window.width()
+  end
+
   local height = window.height > 1 and window.height or math.floor(rows() * window.height)
   local width = window.width > 1 and window.width or math.floor(cols() * window.width)
 
