@@ -130,19 +130,39 @@ function UI:open(opts)
   else
     window = config.display.chat.window
   end
-  local width = math.floor(vim.o.columns * 0.45)
-  if window.width ~= "auto" then
-    width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
+
+  local function cols()
+    return vim.o.columns
   end
-  local height = window.height > 1 and window.height or math.floor(vim.o.lines * window.height)
+  local function rows()
+    return vim.o.lines
+  end
+
+  --NOTE: Previously we allowed "auto" values for the width, so guarding against that here
+  if type(window.height) == "string" then
+    window.height = rows()
+  end
+  if type(window.width) == "string" then
+    window.width = cols()
+  end
+
+  if type(window.height) == "function" then
+    window.height = window.height()
+  end
+  if type(window.width) == "function" then
+    window.width = window.width()
+  end
+
+  local height = window.height > 1 and window.height or math.floor(rows() * window.height)
+  local width = window.width > 1 and window.width or math.floor(cols() * window.width)
 
   if window.layout == "float" then
     local win_opts = {
       relative = window.relative,
       width = width,
       height = height,
-      row = window.row or math.floor((vim.o.lines - height) / 2),
-      col = window.col or math.floor((vim.o.columns - width) / 2),
+      col = window.col or math.floor((cols() - width) / 2),
+      row = window.row or math.floor((rows() - height) / 2),
       border = window.border,
       title = window.title or "CodeCompanion",
       title_pos = "center",
@@ -171,9 +191,7 @@ function UI:open(opts)
     if position == "right" and not vim.opt.splitright:get() then
       vim.cmd("wincmd l")
     end
-    if window.width ~= "auto" then
-      vim.cmd("vertical resize " .. width)
-    end
+    vim.cmd("vertical resize " .. width)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
     apply_window_config(self.winnr, self.chat_bufnr, window.opts)

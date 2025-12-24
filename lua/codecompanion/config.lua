@@ -882,8 +882,8 @@ The user is working on a %s machine. Please respond with system specific command
         full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
 
-        width = 0.5, ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
-        height = 0.8,
+        width = 0.5, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
         border = "single",
         relative = "editor",
 
@@ -1103,13 +1103,6 @@ M.can_send_code = function()
     return M.config.opts.send_code()
   end
   return false
-end
-
----Resolve a config value that might be a function or static value
----@param value any
----@return any
-function M.resolve_value(value)
-  return type(value) == "function" and value() or value
 end
 
 return setmetatable(M, {
