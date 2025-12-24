@@ -43,7 +43,7 @@ local DIFF_OPTS = {
 ---@field from CC.DiffText
 ---@field to CC.DiffText
 ---@field namespace number
----@field has_row_0_offset boolean Whether a blank line was inserted at row 0
+---@field should_offset boolean Should a blank line be placed at row 0 to accommodate deletions?
 
 ---@class CodeCompanion.diff.Hunk
 ---@field kind "add"|"delete"|"change"
@@ -76,12 +76,12 @@ function M._diff(a, b, opts)
   return vim.text.diff(txt_a, txt_b, opts)
 end
 
----Placeholder for treesitter virtual lines
----TODO: Implement proper treesitter highlighting
+---Placeholder for Tree-sitter virtual lines
 ---@param text string
 ---@param opts? {ft?: string, bg?: string}
 ---@return CodeCompanion.Text[]
 local function get_virtual_lines(text, opts)
+  ---TODO: Implement proper Tree-sitter highlighting
   local lines = vim.split(text, "\n", { plain = true })
   local virt_lines = {}
   for _, line in ipairs(lines) do
@@ -90,7 +90,7 @@ local function get_virtual_lines(text, opts)
   return virt_lines
 end
 
----Placeholder for treesitter block highlighting
+---Placeholder for Tree-sitter block highlighting
 ---TODO: Implement proper block highlighting with leading/trailing context
 ---@param virt_lines CodeCompanion.Text[]
 ---@param opts? {leading?: string, trailing?: string, block?: string, width?: number}
@@ -125,23 +125,10 @@ local function lines_width(virt_lines)
   return max_width
 end
 
----Build extmark options from extmark table (filters out row/col)
----@param extmark CodeCompanion.diff.Extmark
----@return table opts
-local function build_extmark_opts(extmark)
-  local opts = {}
-  for k, v in pairs(extmark) do
-    if k ~= "row" and k ~= "col" then
-      opts[k] = v
-    end
-  end
-  return opts
-end
-
 ---Check if we need to offset for row 0 deletions and adjust positions
 ---@param diff CC.Diff
 ---@return boolean needs_offset
-local function apply_row_0_offset(diff)
+local function should_offset(diff)
   -- Check if any hunk starts at row 0 with deletions
   -- This is a problem because virtual lines with virt_lines_above=true at row 0
   -- don't render (there's nothing "above" row 0 in a buffer)
@@ -250,22 +237,22 @@ function M.create(args)
     bufnr = args.bufnr,
     hunks = {},
     from = {
-      text = from_text,
       lines = args.from_lines,
+      text = from_text,
       virt_lines = get_virtual_lines(from_text, {
         ft = args.ft,
       }),
     },
     to = {
-      text = to_text,
       lines = args.to_lines,
+      text = to_text,
       virt_lines = get_virtual_lines(to_text, {
         ft = args.ft,
         bg = "CodeCompanionDiffAdd",
       }),
     },
     namespace = vim.api.nvim_create_namespace("codecompanion_diff"),
-    has_row_0_offset = false, -- Track if we added offset
+    should_offset = false,
   }
 
   M.diff_lines(diff)
@@ -273,7 +260,7 @@ function M.create(args)
   -- Solution: Insert a blank line at row 0, shifting all content down by 1
   -- Then adjust all extmark positions to account for this shift
   -- This allows deletion virtual lines to appear "above" the first line of actual content
-  diff.has_row_0_offset = apply_row_0_offset(diff)
+  diff.should_offset = should_offset(diff)
 
   return diff
 end
@@ -296,20 +283,20 @@ function M.apply(diff)
 
   -- Insert blank line at top if needed for row 0 deletions
   -- This creates visual space for deletion virtual lines to appear "above" first line
-  if diff.has_row_0_offset then
+  if diff.should_offset then
     vim.api.nvim_buf_set_lines(diff.bufnr, 0, 0, false, { "" })
   end
 
   for _, hunk in ipairs(diff.hunks) do
     for _, extmark in ipairs(hunk.extmarks) do
-      local row = extmark.row
-      local col = extmark.col
-      local opts = build_extmark_opts(extmark)
-
-      local ok, err = pcall(vim.api.nvim_buf_set_extmark, diff.bufnr, diff.namespace, row, col, opts)
-      if not ok then
-        vim.notify(string.format("Failed to set extmark at row %d: %s", row, err), vim.log.levels.ERROR)
+      local opts = {}
+      for k, v in pairs(extmark) do
+        if k ~= "row" and k ~= "col" then
+          opts[k] = v
+        end
       end
+
+      pcall(vim.api.nvim_buf_set_extmark, diff.bufnr, diff.namespace, extmark.row, extmark.col, opts)
     end
   end
 end
