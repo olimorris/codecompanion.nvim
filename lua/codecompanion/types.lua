@@ -49,7 +49,7 @@
 ---@field execution? table
 
 ---@class MCP.TextContent
----@field type string
+---@field type "text"
 ---@field text string
 
 ---@alias MCP.ContentBlock MCP.TextContent|any
