@@ -29,6 +29,9 @@ api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", defa
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatInfoBanner", { link = "WildMenu", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffAdd", { link = "DiffAdd", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffDelete", { link = "DiffDelete", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffContext", { link = "DiffTextAdd", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
 pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })
@@ -113,3 +116,6 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 vim.treesitter.language.register("markdown", "codecompanion")
+
+-- Setup visual test command for diff development
+require("codecompanion.utils.diff_test").setup()

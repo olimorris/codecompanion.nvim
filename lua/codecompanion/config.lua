@@ -1005,6 +1005,12 @@ The user is working on a %s machine. Please respond with system specific command
             "linematch:120",
           },
         },
+
+        -- Options for the codecompanion provider (simple inline diff)
+        codecompanion = {
+          -- Currently uses inline virtual text for all changes
+          -- Future: add navigation, per-hunk operations, etc.
+        },
       },
     },
     inline = {
