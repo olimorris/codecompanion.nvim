@@ -1,5 +1,12 @@
 # Changelog
 
+## [18.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.0...v18.3.1) (2025-12-24)
+
+
+### Bug Fixes
+
+* **chat:** remove images from title prompt ([#2586](https://github.com/olimorris/codecompanion.nvim/issues/2586)) ([274b2c6](https://github.com/olimorris/codecompanion.nvim/commit/274b2c69ea17d7f417999b132d81d63eb2cdb73f))
+
 ## [18.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.1...v18.3.0) (2025-12-22)
 
 
