@@ -123,7 +123,7 @@ T["MCP Client"]["tools are loaded in pages"] = function()
     start_client_and_wait_loaded()
 
     local chat_tools = require("codecompanion.config").interactions.chat.tools
-    local group = chat_tools.groups["testMcp"]
+    local group = chat_tools.groups["mcp.testMcp"]
     local tools = vim
       .iter(chat_tools)
       :filter(function(_, v)
@@ -151,7 +151,7 @@ T["MCP Client"]["tools are loaded in pages"] = function()
   h.eq(vim.tbl_count(tools), #mcp_tools)
   h.eq(#group.tools, #mcp_tools)
   for _, mcp_tool in ipairs(mcp_tools) do
-    local cc_tool_name = "testMcp_" .. mcp_tool.name
+    local cc_tool_name = "mcp_testMcp_" .. mcp_tool.name
     h.expect_tbl_contains(cc_tool_name, group.tools)
     local cc_tool = tools[cc_tool_name]
     h.expect_truthy(cc_tool)

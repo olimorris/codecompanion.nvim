@@ -58,7 +58,7 @@ function M.build(client, mcp_tool)
     return nil
   end
 
-  local prefixed_name = string.format("%s_%s", client.name, mcp_tool.name)
+  local prefixed_name = string.format("mcp_%s_%s", client.name, mcp_tool.name)
   local override = (client.cfg.tool_overrides and client.cfg.tool_overrides[mcp_tool.name]) or {}
   local tool_opts = vim.tbl_deep_extend("force", client.cfg.default_tool_opts or {}, override.opts or {})
   local output_callback = vim.tbl_deep_extend("force", DefaultOutputCallbacks, override.output or {})
@@ -157,7 +157,7 @@ function M.install_tools(client, mcp_tools)
     table.insert(server_prompts, final_server_instructions)
   end
 
-  chat_tools.groups[client.name] = {
+  chat_tools.groups[string.format("mcp.%s", client.name)] = {
     description = string.format("Tools from MCP Server '%s'", client.name),
     tools = installed_tools,
     prompt = table.concat(server_prompts, "\n"),
