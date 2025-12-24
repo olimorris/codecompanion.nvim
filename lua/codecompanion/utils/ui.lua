@@ -62,10 +62,9 @@ M.create_float = function(lines, opts)
     M.create_background_window()
   end
 
-  local config = require("codecompanion.config")
-  local window_width = config.resolve_value(window.width)
+  local window_width = type(window.width) == "function" and window.width() or window.width
   local width = window_width and (window_width > 1 and window_width or opts.width or 85) or opts.width or 85
-  local window_height = config.resolve_value(window.height)
+  local window_height = type(window.height) == "function" and window.height() or window.height
   local height = window_height and (window_height > 1 and window_height or opts.height or 17) or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
@@ -291,31 +290,6 @@ function M.scroll_to_line(bufnr, line_num)
     vim.cmd(":" .. tostring(line_num))
     vim.cmd("normal! zz")
   end)
-end
-
----Scroll to line and briefly highlight the edit area
----@param bufnr number The buffer number
----@param line_num number The line number to scroll to
----@param num_lines? number Number of lines that were changed
-function M.scroll_and_highlight(bufnr, line_num, num_lines)
-  num_lines = num_lines or 1
-
-  M.scroll_to_line(bufnr, line_num)
-
-  local ns_id = api.nvim_create_namespace("codecompanion_edit_highlight")
-
-  -- Highlight the edited lines
-  for i = 0, num_lines - 1 do
-    local highlight_line = line_num + i - 1 -- Convert to 0-based
-    if highlight_line >= 0 and highlight_line < api.nvim_buf_line_count(bufnr) then
-      api.nvim_buf_add_highlight(bufnr, ns_id, "DiffAdd", highlight_line, 0, -1)
-    end
-  end
-
-  -- Clear highlight after a short delay
-  vim.defer_fn(function()
-    api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-  end, 2000) -- 2 seconds
 end
 
 ---@param bufnr nil|number
