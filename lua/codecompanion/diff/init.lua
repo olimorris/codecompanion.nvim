@@ -22,6 +22,9 @@ local diff_utils = require("codecompanion.diff.utils")
 
 local M = {}
 
+local INLINE_MAX_LINES = 3
+local INLINE_MAX_INSERT_RATIO = 0.5
+
 ---@type vim.text.diff.Opts
 local DIFF_OPTS = {
   algorithm = "patience",
@@ -29,6 +32,16 @@ local DIFF_OPTS = {
   indent_heuristic = true,
   interhunkctxlen = 0,
   linematch = 10,
+  result_type = "indices",
+}
+
+---@type vim.text.diff.Opts
+local DIFF_INLINE_OPTS = {
+  algorithm = "minimal",
+  ctxlen = 0,
+  indent_heuristic = false,
+  interhunkctxlen = 4,
+  linematch = 0,
   result_type = "indices",
 }
 
@@ -118,8 +131,8 @@ end
 ---@param diff CC.Diff
 function M.diff_lines(diff)
   local hunks = M._diff(diff.from.lines, diff.to.lines, DIFF_OPTS)
-  local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
-  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
+  local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
+  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
 
   local width = 0
   for _, hunk in ipairs(hunks) do
@@ -135,15 +148,15 @@ function M.diff_lines(diff)
     }
     table.insert(diff.hunks, h)
     if ac > 0 then
-      for l = 0, ac - 1 do
-        dels[row + l] = { hunk = h }
-        width = math.max(width, diff_utils.get_width(diff.from.lines[ai + l] or ""))
-      end
+      local virt_lines = vim.list_slice(diff.from.virt_lines, ai, ai + ac - 1)
+      width = math.max(width, diff_utils.lines_width(virt_lines))
+      dels[row] = { hunk = h, virt_lines = virt_lines }
     end
     if bc > 0 then
-      local virt_lines = vim.list_slice(diff.to.virt_lines, bi, bi + bc - 1)
-      width = math.max(width, diff_utils.lines_width(virt_lines))
-      adds[row + (ac > 0 and ac - 1 or 0)] = { hunk = h, virt_lines = virt_lines }
+      for l = 0, bc - 1 do
+        adds[row + l] = { hunk = h }
+        width = math.max(width, diff_utils.get_width(diff.to.lines[bi + l] or ""))
+      end
     end
   end
 
@@ -151,9 +164,13 @@ function M.diff_lines(diff)
     table.insert(info.hunk.extmarks, {
       row = row,
       col = 0,
-      virt_text_win_col = width + 1,
-      virt_text = { { string.rep(" ", vim.o.columns), "CodeCompanionDiffContext" } },
-      line_hl_group = "CodeCompanionDiffDelete",
+      virt_lines_above = true,
+      virt_lines = diff_utils.highlight_block(info.virt_lines, {
+        leading = "CodeCompanionDiffContext",
+        trailing = "CodeCompanionDiffContext",
+        block = "CodeCompanionDiffDelete",
+        width = width + 1,
+      }),
     })
   end
 
@@ -161,13 +178,9 @@ function M.diff_lines(diff)
     table.insert(info.hunk.extmarks, {
       row = row,
       col = 0,
-      hl_eol = true,
-      virt_lines = diff_utils.highlight_block(info.virt_lines, {
-        leading = "CodeCompanionDiffContext",
-        trailing = "CodeCompanionDiffContext",
-        block = "CodeCompanionDiffAdd",
-        width = width + 1,
-      }),
+      virt_text_win_col = width + 1,
+      virt_text = { { string.rep(" ", vim.o.columns), "CodeCompanionDiffContext" } },
+      line_hl_group = "CodeCompanionDiffAdd",
     })
   end
 end
@@ -183,7 +196,7 @@ function M.create(args)
   local diff = {
     bufnr = args.bufnr,
     hunks = {},
-    range = { from = { 0, #args.from_lines - 1 }, to = { 0, #args.to_lines - 1 } },
+    range = { from = { 0, 0 }, to = { #args.from_lines - 1, 0 } },
     from = {
       lines = args.from_lines,
       text = from_text,
