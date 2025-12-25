@@ -1,5 +1,5 @@
 {"name":"echo","description":"Echoes back the input","inputSchema":{"type":"object","properties":{"value":{"type":"string","description":"A string value to echo back"}},"required":["value"]}}
-{"name":"say_hi","description":"Say Hi to you","inputSchema":{"type":"object","properties":{"name":{"type":"string","description":"Who are you?"}},"required":[""]}}
+{"name":"say_hi","description":"Say Hi to you","inputSchema":{"type":"object","properties":{"name":{"type":"string","description":"Who are you?"}},"required":[]}}
 {"name":"make_list","description":"Creates a list of items","inputSchema":{"type":"object","properties":{"count":{"type":"number","description":"Number of items"},"item":{"oneOf":[{"type":"string"},{"type":"number"}],"description":"The item to repeat in the list"}},"required":["count","item"]}}
 {"name":"math_add","title":"Math/Add","description":"Adds two numbers","inputSchema":{"type":"object","properties":{"a":{"type":"number","description":"The first number to add"},"b":{"type":"number","description":"The second number to add"}},"required":["a","b"]}}
 {"name":"math_mul","title":"Math/Mul","description":"Multiply two numbers","inputSchema":{"type":"object","properties":{"a":{"type":"number","description":"The first number to multiply"},"b":{"type":"number","description":"The second number to multiply"}},"required":["a","b"]}}

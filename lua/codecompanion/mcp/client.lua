@@ -204,9 +204,11 @@ Client.__index = Client
 
 Client.static = {}
 Client.static.methods = {
-  new_transport = { default = function(name, cfg, methods)
-    return StdioTransport:new(name, cfg, methods)
-  end },
+  new_transport = {
+    default = function(name, cfg, methods)
+      return StdioTransport:new(name, cfg, methods)
+    end,
+  },
   json_decode = { default = vim.json.decode },
   json_encode = { default = vim.json.encode },
   schedule_wrap = { default = vim.schedule_wrap },
@@ -233,7 +235,6 @@ function Client:new(name, cfg, methods)
     methods = static_methods,
   }, self)
 end
-
 
 ---Start the client.
 function Client:start()
@@ -272,7 +273,6 @@ function Client:_start_initialization()
   }, function(resp)
     if resp.error then
       log:error("[MCP.%s] initialization failed: %s", self.name, resp)
-
       return
     end
     log:info("[MCP.%s] initialized successfully.", self.name)
@@ -301,6 +301,14 @@ function Client:_on_transport_close(err)
     log:info("[MCP.%s] exited.", self.name)
   else
     log:warn("[MCP.%s] exited with error: %s", self.name, err)
+  end
+  for id, handler in pairs(self.resp_handlers) do
+    -- Notify all pending requests of the transport closure
+    pcall(handler, {
+      jsonrpc = "2.0",
+      id = id,
+      error = { code = JsonRpc.ERROR_INTERNAL, message = "MCP server connection closed" },
+    })
   end
   utils.fire("MCPServerExit", { name = self.name, err = err })
 end
@@ -510,7 +518,7 @@ end
 
 ---Call a tool on the MCP server
 ---@param name string The name of the tool to call
----@param args table<string, any> The arguments to pass to the tool
+---@param args? table<string, any> The arguments to pass to the tool
 ---@param callback fun(ok: boolean, result_or_error: MCP.CallToolResult | string) Callback function that receives (ok, result_or_error)
 ---@param opts? table { timeout_ms? integer }
 ---@return integer req_id
@@ -555,8 +563,8 @@ function Client:refresh_tools()
 
       -- pagination handling
       local next_cursor = resp.result and resp.result.nextCursor
-      if next_cursor and #tools >= MAX_TOOLS_PER_SERVER then
-        log:warn("[MCP.%s] returned too many tools (%d), stop further loading", self.name, #tools)
+      if next_cursor and #all_tools >= MAX_TOOLS_PER_SERVER then
+        log:warn("[MCP.%s] returned too many tools (%d), stop further loading", self.name, #all_tools)
       elseif next_cursor then
         log:info("[MCP.%s] loading more tools with cursor: %s", self.name, next_cursor)
         return load_tools(next_cursor)

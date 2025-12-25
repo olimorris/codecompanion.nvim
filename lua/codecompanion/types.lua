@@ -55,7 +55,7 @@
 ---@alias MCP.ContentBlock MCP.TextContent|any
 
 ---@class MCP.CallToolResult
----@field isError boolean
+---@field isError? boolean
 ---@field content MCP.ContentBlock[]
 
 ---@meta Tree-sitter
