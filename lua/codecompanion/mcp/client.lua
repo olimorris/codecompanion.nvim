@@ -238,14 +238,14 @@ function Client:_start_initialization()
     capabilities = capabilities,
   }, function(resp)
     if resp.error then
-      log:error("[MCP.%s] initialization failed: %s", self.name, vim.inspect(resp))
+      log:error("[MCP.%s] initialization failed: %s", self.name, resp)
 
       return
     end
     log:info("[MCP.%s] initialized successfully.", self.name)
     log:info("[MCP.%s] protocol version: %s", self.name, resp.result.protocolVersion)
-    log:info("[MCP.%s] info: %s", self.name, vim.inspect(resp.result.serverInfo))
-    log:info("[MCP.%s] capabilities: %s", self.name, vim.inspect(resp.result.capabilities))
+    log:info("[MCP.%s] info: %s", self.name, resp.result.serverInfo)
+    log:info("[MCP.%s] capabilities: %s", self.name, resp.result.capabilities)
     self:notify("notifications/initialized")
     self.server_capabilities = resp.result.capabilities
     self.server_instructions = resp.result.instructions
@@ -328,13 +328,7 @@ function Client:_handle_server_request(msg)
       log:error("[MCP.%s] handler for method %s failed for request %s: %s", self.name, msg.method, msg.id, status)
       resp.error = { code = JsonRpc.ERROR_INTERNAL, message = status }
     elseif status == "error" then
-      log:error(
-        "[MCP.%s] handler for method %s returned error for request %s: %s",
-        self.name,
-        msg.method,
-        msg.id,
-        vim.inspect(body)
-      )
+      log:error("[MCP.%s] handler for method %s returned error for request %s: %s", self.name, msg.method, msg.id, body)
       resp.error = body
     elseif status == "result" then
       log:debug("[MCP.%s] handler for method %s returned result for request %s", self.name, msg.method, msg.id)
@@ -457,7 +451,7 @@ function Client:_handler_server_roots_list(params)
   end
 
   if not roots or type(roots) ~= "table" then
-    log:error("[MCP.%s] roots function returned invalid result: %s", self.name, vim.inspect(roots))
+    log:error("[MCP.%s] roots function returned invalid result: %s", self.name, roots)
     return "error", { code = JsonRpc.ERROR_INTERNAL, message = "roots function returned invalid result" }
   end
 
@@ -495,7 +489,7 @@ function Client:call_tool(name, args, callback, opts)
     arguments = args,
   }, function(resp)
     if resp.error then
-      log:error("[MCP.%s] call_tool request failed for [%s]: %s", self.name, name, vim.inspect(resp))
+      log:error("[MCP.%s] call_tool request failed for [%s]: %s", self.name, name, resp)
       callback(false, string.format("MCP JSONRPC error: [%s] %s", resp.error.code, resp.error.message))
       return
     end
@@ -516,7 +510,7 @@ function Client:refresh_tools()
   local function load_tools(cursor)
     self:request("tools/list", { cursor = cursor }, function(resp)
       if resp.error then
-        log:error("[MCP.%s] tools/list request failed: %s", self.name, vim.inspect(resp))
+        log:error("[MCP.%s] tools/list request failed: %s", self.name, resp)
         return
       end
 
