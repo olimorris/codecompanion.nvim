@@ -24,6 +24,18 @@ local function next_msg_id()
   return last_msg_id
 end
 
+---Transform static methods for easier testing
+---@param class table The class with static.methods definition
+---@param methods? table<string, function> Optional method overrides for testing
+---@return table methods Transformed methods with overrides applied
+local function transform_static_methods(class, methods)
+  local ret = {}
+  for k, v in pairs(class.static.methods) do
+    ret[k] = (methods and methods[k]) or v.default
+  end
+  return ret
+end
+
 ---Abstraction over the IO transport to a MCP server
 ---@class CodeCompanion.MCP.Transport
 ---@field start fun(self: CodeCompanion.MCP.Transport, on_line_read: fun(line: string), on_close: fun(err?: string))
@@ -39,18 +51,27 @@ end
 ---@field _last_tail? string
 ---@field _on_line_read? fun(line: string)
 ---@field _on_close? fun(err?: string)
+---@field methods table<string, function>
 local StdioTransport = {}
 StdioTransport.__index = StdioTransport
+
+StdioTransport.static = {}
+StdioTransport.static.methods = {
+  system = { default = vim.system },
+  schedule_wrap = { default = vim.schedule_wrap },
+}
 
 ---Create a new StdioTransport for the given server configuration.
 ---@param name string
 ---@param cfg CodeCompanion.MCP.ServerConfig
+---@param methods? table<string, function> Optional method overrides for testing
 ---@return CodeCompanion.MCP.StdioTransport
-function StdioTransport:new(name, cfg)
+function StdioTransport:new(name, cfg, methods)
   return setmetatable({
     name = name,
     cmd = cfg.cmd,
     env = cfg.env,
+    methods = transform_static_methods(StdioTransport, methods),
   }, self)
 end
 
@@ -63,20 +84,20 @@ function StdioTransport:start(on_line_read, on_close)
   self._on_close = on_close
 
   adapter_utils.get_env_vars(self)
-  self._proc = vim.system(
+  self._proc = self.methods.system(
     self.cmd,
     {
       env = self.env_replaced or self.env,
       text = true,
       stdin = true,
-      stdout = vim.schedule_wrap(function(err, data)
+      stdout = self.methods.schedule_wrap(function(err, data)
         self:_handle_stdout(err, data)
       end),
-      stderr = vim.schedule_wrap(function(err, data)
+      stderr = self.methods.schedule_wrap(function(err, data)
         self:_handle_stderr(err, data)
       end),
     },
-    vim.schedule_wrap(function(out)
+    self.methods.schedule_wrap(function(out)
       self:_handle_exit(out)
     end)
   )
@@ -177,30 +198,42 @@ end
 ---@field server_request_handlers table<string, ServerRequestHandler>
 ---@field server_capabilities? table<string, any>
 ---@field server_instructions? string
-local Client = {
-  _transport_factory = function(name, cfg)
-    return StdioTransport:new(name, cfg)
-  end,
-}
+---@field methods table<string, function>
+local Client = {}
 Client.__index = Client
+
+Client.static = {}
+Client.static.methods = {
+  new_transport = { default = function(name, cfg, methods)
+    return StdioTransport:new(name, cfg, methods)
+  end },
+  json_decode = { default = vim.json.decode },
+  json_encode = { default = vim.json.encode },
+  schedule_wrap = { default = vim.schedule_wrap },
+  defer_fn = { default = vim.defer_fn },
+}
 
 ---Create a new MCP client instance bound to the provided server configuration.
 ---@param name string
 ---@param cfg CodeCompanion.MCP.ServerConfig
+---@param methods? table<string, function> Optional method overrides for testing
 ---@return CodeCompanion.MCP.Client
-function Client:new(name, cfg)
+function Client:new(name, cfg, methods)
+  local static_methods = transform_static_methods(Client, methods)
   return setmetatable({
     name = name,
     cfg = cfg,
     ready = false,
-    transport = self._transport_factory(name, cfg),
+    transport = static_methods.new_transport(name, cfg, methods),
     resp_handlers = {},
     server_request_handlers = {
       ["ping"] = self._handle_server_ping,
       ["roots/list"] = self._handler_server_roots_list,
     },
+    methods = static_methods,
   }, self)
 end
+
 
 ---Start the client.
 function Client:start()
@@ -278,7 +311,7 @@ function Client:_on_transport_line_read(line)
   if not line or line == "" then
     return
   end
-  local ok, msg = pcall(vim.json.decode, line, { luanil = { object = true } })
+  local ok, msg = pcall(self.methods.json_decode, line, { luanil = { object = true } })
   if not ok then
     log:error("[MCP.%s] failed to decode received line [%s]: %s", self.name, msg, line)
     return
@@ -344,7 +377,7 @@ function Client:_handle_server_request(msg)
       resp.error = { code = JsonRpc.ERROR_INTERNAL, message = "Internal server error" }
     end
   end
-  local resp_str = vim.json.encode(resp)
+  local resp_str = self.methods.json_encode(resp)
   self.transport:write({ resp_str })
 end
 
@@ -375,7 +408,7 @@ function Client:notify(method, params)
     method = method,
     params = params,
   }
-  local notif_str = vim.json.encode(notif)
+  local notif_str = self.methods.json_encode(notif)
   log:debug("[MCP.%s] sending notification: %s", self.name, notif_str)
   self.transport:write({ notif_str })
 end
@@ -401,13 +434,13 @@ function Client:request(method, params, resp_handler, opts)
   if resp_handler then
     self.resp_handlers[req_id] = resp_handler
   end
-  local req_str = vim.json.encode(req)
+  local req_str = self.methods.json_encode(req)
   log:debug("[MCP.%s] sending request %s: %s", self.name, req_id, req_str)
   self.transport:write({ req_str })
 
   local timeout_ms = opts and opts.timeout_ms
   if timeout_ms then
-    vim.defer_fn(function()
+    self.methods.defer_fn(function()
       if self.resp_handlers[req_id] then
         self.resp_handlers[req_id] = nil
         self:cancel_request(req_id, "timeout")
