@@ -1,41 +1,41 @@
 local log = require("codecompanion.utils.log")
 
----A mock implementation of `Connection`
----@class CodeCompanion.MCP.MockMCPClientConn : CodeCompanion.MCP.Connection
+---A mock implementation of `Transport`
+---@class CodeCompanion.MCP.MockMCPClientTransport : CodeCompanion.MCP.Transport
 ---@field private _started boolean
 ---@field private _on_line_read? fun(line: string)
 ---@field private _on_close? fun()
 ---@field private _line_handlers (fun(line: string): boolean)[]
-local MockMCPClientConn = {}
-MockMCPClientConn.__index = MockMCPClientConn
+local MockMCPClientTransport = {}
+MockMCPClientTransport.__index = MockMCPClientTransport
 
-function MockMCPClientConn:new()
+function MockMCPClientTransport:new()
   return setmetatable({
     _started = false,
     _line_handlers = {},
   }, self)
 end
 
-function MockMCPClientConn:start(on_line_read, on_close)
-  assert(not self._started, "Connection already started")
+function MockMCPClientTransport:start(on_line_read, on_close)
+  assert(not self._started, "Transport already started")
   self._on_line_read = on_line_read
   self._on_close = on_close
   self._started = true
 end
 
-function MockMCPClientConn:started()
+function MockMCPClientTransport:started()
   return self._started
 end
 
-function MockMCPClientConn:write(lines)
-  assert(self._started, "Connection not started")
+function MockMCPClientTransport:write(lines)
+  assert(self._started, "Transport not started")
   if lines == nil then
     self:close()
     return
   end
   vim.schedule(function()
     for _, line in ipairs(lines) do
-      log:info("MockMCPClientConn received line: %s", line)
+      log:info("MockMCPClientTransport received line: %s", line)
       assert(#self._line_handlers > 0, "No pending line handlers")
       local handler = self._line_handlers[1]
       local keep = handler(line)
@@ -46,17 +46,17 @@ function MockMCPClientConn:write(lines)
   end)
 end
 
-function MockMCPClientConn:write_line_to_client(line, latency_ms)
-  assert(self._started, "Connection not started")
+function MockMCPClientTransport:write_line_to_client(line, latency_ms)
+  assert(self._started, "Transport not started")
   vim.defer_fn(function()
-    log:info("MockMCPClientConn sending line to client: %s", line)
+    log:info("MockMCPClientTransport sending line to client: %s", line)
     self._on_line_read(line)
   end, latency_ms or 0)
 end
 
 ---@param handler fun(line: string): boolean handle a client written line; return true to preserve this handler for next line
----@return CodeCompanion.MCP.MockMCPClientConn self
-function MockMCPClientConn:expect_client_write_line(handler)
+---@return CodeCompanion.MCP.MockMCPClientTransport self
+function MockMCPClientTransport:expect_client_write_line(handler)
   table.insert(self._line_handlers, handler)
   return self
 end
@@ -64,8 +64,8 @@ end
 ---@param method string
 ---@param handler fun(params?: table): "result"|"error", table
 ---@param opts? { repeats?: integer, latency_ms?: integer }
----@return CodeCompanion.MCP.MockMCPClientConn self
-function MockMCPClientConn:expect_jsonrpc_call(method, handler, opts)
+---@return CodeCompanion.MCP.MockMCPClientTransport self
+function MockMCPClientTransport:expect_jsonrpc_call(method, handler, opts)
   local remaining_repeats = opts and opts.repeats or 1
   return self:expect_client_write_line(function(line)
     local function get_response()
@@ -104,8 +104,8 @@ end
 ---@param method string
 ---@param handler? fun(params?: table)
 ---@param opts? { repeats: integer }
----@return CodeCompanion.MCP.MockMCPClientConn self
-function MockMCPClientConn:expect_jsonrpc_notify(method, handler, opts)
+---@return CodeCompanion.MCP.MockMCPClientTransport self
+function MockMCPClientTransport:expect_jsonrpc_notify(method, handler, opts)
   local remaining_repeats = opts and opts.repeats or 1
   return self:expect_client_write_line(function(line)
     local ok, req = pcall(vim.json.decode, line, { luanil = { object = true } })
@@ -126,7 +126,7 @@ end
 ---@param method string
 ---@param params? table<string, any>
 ---@param resp_handler fun(status: "result"|"error", result_or_error: table)
-function MockMCPClientConn:send_request_to_client(method, params, resp_handler)
+function MockMCPClientTransport:send_request_to_client(method, params, resp_handler)
   assert(self:all_handlers_consumed(), "Cannot send request to client: pending line handlers exist")
   local req_id = math.random(1, 1e9)
   local req = { jsonrpc = "2.0", id = req_id, method = method, params = params }
@@ -148,13 +148,13 @@ function MockMCPClientConn:send_request_to_client(method, params, resp_handler)
   self:write_line_to_client(vim.json.encode(req))
 end
 
-function MockMCPClientConn:all_handlers_consumed()
+function MockMCPClientTransport:all_handlers_consumed()
   return #self._line_handlers == 0
 end
 
-function MockMCPClientConn:close()
+function MockMCPClientTransport:close()
   self._started = false
   self._on_close()
 end
 
-return MockMCPClientConn
+return MockMCPClientTransport
