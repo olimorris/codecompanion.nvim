@@ -17,6 +17,7 @@ return {
     function(self, args, _, cb)
       local opts = self.tool.opts
       local url = args.url
+      args.content_format = args.content_format or "text"
 
       if not opts or not opts.adapter then
         log:error("[Fetch Webpage Tool] No adapter set for `fetch_webpage`")
@@ -34,6 +35,13 @@ return {
       local tool_adapter = config.interactions.chat.tools.fetch_webpage.opts.adapter
       local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
       adapter.methods.tools.fetch_webpage.setup(adapter, args)
+
+      if args.content_format ~= "text" then
+        if type(self.chat.adapter.opts) == "table" and not self.chat.adapter.opts.vision then
+          log:warn("[Fetcg Webpage Tool] Setting `content_format` to text because the chat adapter disabled vision.")
+          args.content_format = "text"
+        end
+      end
 
       if not url:match("^https?://") then
         log:error("[Fetch Webpage Tool] Invalid URL: `%s`", url)
@@ -58,7 +66,14 @@ return {
                 return cb({ status = "error", data = fmt("Error processing `%s`\n%s", url, output.content) })
               end
 
-              return cb({ status = "success", data = output.content })
+              return cb({
+                status = "success",
+                data = {
+                  text = (args.content_format == "text") and output.content.text or nil,
+                  screenshot = (args.content_format == "screenshot") and output.content.screenshot or nil,
+                  pageshot = (args.content_format == "pageshot") and output.content.pageshot or nil,
+                },
+              })
             end
           end,
         })
@@ -76,8 +91,20 @@ return {
             type = "string",
             description = "The URL of the webpage to fetch content from",
           },
+          content_format = {
+            type = "string",
+            enum = { "text", "screenshot", "pageshot" },
+            description = [[How the result should be presented.
+- `text`: Returns `document.body.innerText`.
+- `screenshot`: Returns the image URL of a screenshot of the first screen.
+- `pageshot`: Returns the image URL of the full-page screenshot.
+Choose `screenshot` or `pageshot` if you need to know the layout, design or image information of the website AND you have vision capability.
+Otherwise, stick to `text`.
+When you receive a URL to the screenshot or pageshot, you should call the `fetch_images` tool to see the image.
+        ]],
+          },
         },
-        required = { "url" },
+        required = { "url", "content_format" },
       },
     },
   },
@@ -90,40 +117,19 @@ return {
       local args = self.args
       local chat = tools.chat
 
-      local content
-      if type(stdout) == "table" then
-        if #stdout == 1 and type(stdout[1]) == "string" then
-          content = stdout[1]
-        elseif #stdout == 1 and type(stdout[1]) == "table" then
-          -- If stdout[1] is a table, try to extract content
-          local first_item = stdout[1]
-          if type(first_item) == "table" and first_item.content then
-            content = first_item.content
-          else
-            -- Fallback: convert to string representation
-            content = vim.inspect(first_item)
-          end
-        else
-          -- Multiple items or other structure
-          content = vim
-            .iter(stdout)
-            :map(function(item)
-              if type(item) == "string" then
-                return item
-              elseif type(item) == "table" and item.content then
-                return item.content
-              else
-                return vim.inspect(item)
-              end
-            end)
-            :join("\n")
-        end
-      else
-        content = tostring(stdout)
+      local llm_output
+      local user_output
+      local output = stdout[#stdout]
+      if type(output.text) == "string" then
+        llm_output = fmt([[<attachment url="%s">%s</attachment>]], args.url, output.text)
+        user_output = fmt("Fetched content from `%s`", args.url)
+      elseif type(output.screenshot) == "string" then
+        llm_output = fmt([[<attachment image_url="%s">Screenshot of %s</attachment>]], output.screenshot, args.url)
+        user_output = fmt("Fetched screenshot of `%s`", args.url)
+      elseif type(output.pageshot) == "string" then
+        llm_output = fmt([[<attachment image_url="%s">Pageshot of %s</attachment>]], output.pageshot, args.url)
+        user_output = fmt("Fetched pageshot of `%s`", args.url)
       end
-
-      local llm_output = fmt([[<attachment url="%s">%s</attachment>]], args.url, content)
-      local user_output = fmt("Fetched content from `%s`", args.url)
 
       chat:add_tool_output(self, llm_output, user_output)
     end,

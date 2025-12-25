@@ -44,6 +44,8 @@ return {
               include_answer = opts.include_answer or false,
               include_raw_content = opts.include_raw_content or false,
               include_domains = data.domains,
+              include_images = data.include_images,
+              include_image_descriptions = data.include_images, -- always include descriptions when searching for images.
             }
 
             if opts.topic == "news" then
@@ -75,15 +77,15 @@ return {
           end
 
           -- Process results (move existing output logic here)
-          if body.results == nil or #body.results == 0 then
+          if (body.results == nil or #body.results == 0) and (body.images == nil or #body.images == 0) then
             return {
               status = "error",
               content = "No results found",
             }
           end
 
-          local output = vim
-            .iter(body.results)
+          local text_output = vim
+            .iter(body.results or {})
             :map(function(result)
               return {
                 content = result.content or "",
@@ -93,9 +95,24 @@ return {
             end)
             :totable()
 
+          local images = vim
+            .iter(body.images or {})
+            :map(function(result)
+              -- https://docs.tavily.com/documentation/api-reference/endpoint/search#response-images
+              if type(result) == "string" then
+                return { url = result }
+              elseif type(result) == "table" then
+                return { url = result.url, description = result.description }
+              end
+            end)
+            :totable()
+
           return {
             status = "success",
-            content = output,
+            content = {
+              text = text_output,
+              images = images,
+            },
           }
         end,
       },
