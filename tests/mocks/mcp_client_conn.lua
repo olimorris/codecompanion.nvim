@@ -3,8 +3,8 @@ local log = require("codecompanion.utils.log")
 ---A mock implementation of `Connection`
 ---@class CodeCompanion.MCP.MockMCPClientConn : CodeCompanion.MCP.Connection
 ---@field private _started boolean
----@field private _on_line_read fun(line: string)?
----@field private _on_close fun()?
+---@field private _on_line_read? fun(line: string)
+---@field private _on_close? fun()
 ---@field private _line_handlers (fun(line: string): boolean)[]
 local MockMCPClientConn = {}
 MockMCPClientConn.__index = MockMCPClientConn
@@ -62,8 +62,8 @@ function MockMCPClientConn:expect_client_write_line(handler)
 end
 
 ---@param method string
----@param handler fun(params: table?): "result"|"error", table
----@param opts { repeats: integer?, latency_ms: integer? }?
+---@param handler fun(params?: table): "result"|"error", table
+---@param opts? { repeats?: integer, latency_ms?: integer }
 ---@return CodeCompanion.MCP.MockMCPClientConn self
 function MockMCPClientConn:expect_jsonrpc_call(method, handler, opts)
   local remaining_repeats = opts and opts.repeats or 1
@@ -102,8 +102,8 @@ function MockMCPClientConn:expect_jsonrpc_call(method, handler, opts)
 end
 
 ---@param method string
----@param handler fun(params: table?)?
----@param opts { repeats: integer }?
+---@param handler? fun(params?: table)
+---@param opts? { repeats: integer }
 ---@return CodeCompanion.MCP.MockMCPClientConn self
 function MockMCPClientConn:expect_jsonrpc_notify(method, handler, opts)
   local remaining_repeats = opts and opts.repeats or 1
@@ -124,7 +124,7 @@ function MockMCPClientConn:expect_jsonrpc_notify(method, handler, opts)
 end
 
 ---@param method string
----@param params table<string, any>?
+---@param params? table<string, any>
 ---@param resp_handler fun(status: "result"|"error", result_or_error: table)
 function MockMCPClientConn:send_request_to_client(method, params, resp_handler)
   assert(self:all_handlers_consumed(), "Cannot send request to client: pending line handlers exist")
