@@ -10,7 +10,9 @@ local T = MiniTest.new_set({
         Client = require("codecompanion.mcp.client")
         MockMCPClientTransport = require("tests.mocks.mcp_client_transport")
         TRANSPORT = MockMCPClientTransport:new()
-        Client._transport_factory = function() return TRANSPORT end
+        function mock_new_transport()
+          return TRANSPORT
+        end
 
         function read_mcp_tools()
           return vim
@@ -46,7 +48,7 @@ local T = MiniTest.new_set({
             callback = function() tools_loaded = true end,
           })
 
-          CLI = Client:new("testMcp", { cmd = { "test-mcp" } })
+          CLI = Client:new("testMcp", { cmd = { "test-mcp" } }, { new_transport = mock_new_transport })
           CLI:start()
           vim.wait(1000, function() return tools_loaded end)
         end
@@ -82,7 +84,7 @@ T["MCP Client"]["start() starts and initializes the client once"] = function()
     TRANSPORT:expect_jsonrpc_notify("notifications/initialized", function() end)
 
     setup_tool_list()
-    CLI = Client:new("testMcp", { cmd = { "test-mcp" } })
+    CLI = Client:new("testMcp", { cmd = { "test-mcp" } }, { new_transport = mock_new_transport })
     CLI:start()
     CLI:start()  -- repeated call should be no-op
     CLI:start()
@@ -291,7 +293,7 @@ T["MCP Client"]["roots capability is declared when roots config is provided"] = 
     CLI = Client:new("testMcp", {
       cmd = { "test-mcp" },
       roots = function() return roots end,
-    })
+    }, { new_transport = mock_new_transport })
     CLI:start()
     vim.wait(1000, function() return CLI.ready end)
 
@@ -335,7 +337,7 @@ T["MCP Client"]["roots list changed notification is sent when roots change"] = f
       register_roots_list_changed = function(notify)
         notify_roots_list_changed = notify
       end,
-    })
+    }, { new_transport = mock_new_transport })
     CLI:start()
     vim.wait(1000, function() return CLI.ready end)
 

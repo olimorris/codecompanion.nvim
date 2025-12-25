@@ -30,7 +30,7 @@ local T = MiniTest.new_set({
           return not vim.startswith(tool.name, "math_")
         end):totable()
 
-        Client._transport_factory = function(name, cfg)
+        Client.static.methods.new_transport.default = function(name, cfg)
           local transport
           local tools
           if cfg.cmd[1] == "math_mcp" then
