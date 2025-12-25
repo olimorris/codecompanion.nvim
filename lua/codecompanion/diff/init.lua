@@ -18,6 +18,8 @@
 ===============================================================================
 --]]
 
+local diff_utils = require("codecompanion.diff.utils")
+
 local M = {}
 
 ---@type vim.text.diff.Opts
@@ -37,17 +39,20 @@ local DIFF_OPTS = {
 ---@field lines string[]
 ---@field virt_lines CodeCompanion.Text[]
 
+---@alias CodeCompanion.Pos {[1]:number, [2]:number}
+
 ---@class CC.Diff
 ---@field bufnr number
 ---@field hunks CodeCompanion.diff.Hunk[]
+---@field range { from: CodeCompanion.Pos, to: CodeCompanion.Pos }
 ---@field from CC.DiffText
 ---@field to CC.DiffText
 ---@field namespace number
----@field should_offset boolean Should a blank line be placed at row 0 to accommodate deletions?
+---@field should_offset boolean
 
 ---@class CodeCompanion.diff.Hunk
 ---@field kind "add"|"delete"|"change"
----@field pos [number, number] Position as [row, col]
+---@field pos CodeCompanion.Pos Starting position of the hunk in the "from" text
 ---@field cover number Number of lines covered in the "from" text
 ---@field extmarks CodeCompanion.diff.Extmark[]
 
@@ -68,61 +73,12 @@ local DIFF_OPTS = {
 ---@param a string[]
 ---@param b string[]
 ---@param opts? vim.text.diff.Opts
----@return integer[][]
+---@return number[][]
 function M._diff(a, b, opts)
   opts = opts or DIFF_OPTS
   local txt_a = table.concat(a, "\n")
   local txt_b = table.concat(b, "\n")
   return vim.text.diff(txt_a, txt_b, opts)
-end
-
----Placeholder for Tree-sitter virtual lines
----@param text string
----@param opts? {ft?: string, bg?: string}
----@return CodeCompanion.Text[]
-local function get_virtual_lines(text, opts)
-  ---TODO: Implement proper Tree-sitter highlighting
-  local lines = vim.split(text, "\n", { plain = true })
-  local virt_lines = {}
-  for _, line in ipairs(lines) do
-    table.insert(virt_lines, { { line, opts and opts.bg } })
-  end
-  return virt_lines
-end
-
----Placeholder for Tree-sitter block highlighting
----TODO: Implement proper block highlighting with leading/trailing context
----@param virt_lines CodeCompanion.Text[]
----@param opts? {leading?: string, trailing?: string, block?: string, width?: number}
----@return CodeCompanion.Text[]
----@diagnostic disable-next-line: unused-local
-local function highlight_block(virt_lines, opts)
-  -- For now, just return the lines as-is
-  -- The highlight groups are already applied in the virt_lines structure
-  return virt_lines
-end
-
----Calculate text width (placeholder)
----TODO: Use proper strwidth calculation
----@param text string
----@return number
-local function text_width(text)
-  return #text
-end
-
----Calculate width of virtual lines
----@param virt_lines CodeCompanion.Text[]
----@return number
-local function _lines_width(virt_lines)
-  local max_width = 0
-  for _, line in ipairs(virt_lines) do
-    local width = 0
-    for _, chunk in ipairs(line) do
-      width = width + text_width(chunk[1])
-    end
-    max_width = math.max(max_width, width)
-  end
-  return max_width
 end
 
 ---Check if we need to offset for row 0 deletions and adjust positions
@@ -162,13 +118,14 @@ end
 ---@param diff CC.Diff
 function M.diff_lines(diff)
   local hunks = M._diff(diff.from.lines, diff.to.lines, DIFF_OPTS)
-  local width = 0
+  local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
+  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
 
+  local width = 0
   for _, hunk in ipairs(hunks) do
     local ai, ac, bi, bc = unpack(hunk)
-    -- Use 'bi' (to/after index) for positioning since buffer has "after" content
-    local row = bi - 1 -- Convert to 0-indexed
 
+    local row = math.max(diff.range.from[1] + ai - 1, 0)
     ---@type CodeCompanion.diff.Hunk
     local h = {
       kind = ac > 0 and bc > 0 and "change" or ac > 0 and "delete" or "add",
@@ -177,51 +134,41 @@ function M.diff_lines(diff)
       extmarks = {},
     }
     table.insert(diff.hunks, h)
-
-    -- Calculate width from deleted lines
     if ac > 0 then
       for l = 0, ac - 1 do
-        width = math.max(width, text_width(diff.from.lines[ai + l] or ""))
+        dels[row + l] = { hunk = h }
+        width = math.max(width, diff_utils.get_width(diff.from.lines[ai + l] or ""))
       end
     end
-
-    -- Calculate width from added lines
     if bc > 0 then
       local virt_lines = vim.list_slice(diff.to.virt_lines, bi, bi + bc - 1)
-      width = math.max(width, _lines_width(virt_lines))
+      width = math.max(width, diff_utils.lines_width(virt_lines))
+      adds[row + (ac > 0 and ac - 1 or 0)] = { hunk = h, virt_lines = virt_lines }
     end
+  end
 
-    -- Create extmark for deletions (all deleted lines in one extmark)
-    -- Show above the corresponding "after" lines
-    if ac > 0 then
-      local del_virt_lines = {}
-      for l = 0, ac - 1 do
-        local line_idx = ai + l -- 1-indexed for from.lines
-        local line_content = diff.from.lines[line_idx] or ""
-        table.insert(del_virt_lines, { { line_content, "CodeCompanionDiffDelete" } })
-      end
+  for row, info in pairs(dels) do
+    table.insert(info.hunk.extmarks, {
+      row = row,
+      col = 0,
+      virt_text_win_col = width + 1,
+      virt_text = { { string.rep(" ", vim.o.columns), "CodeCompanionDiffContext" } },
+      line_hl_group = "CodeCompanionDiffDelete",
+    })
+  end
 
-      table.insert(h.extmarks, {
-        row = row,
-        col = 0,
-        virt_lines = del_virt_lines,
-        virt_lines_above = true,
-      })
-    end
-
-    -- For pure additions, show green highlight
-    -- For changes/deletions, user can see the changed content vs deletions above
-    -- Highlight both additions and changes for now
-    if bc > 0 then
-      for l = 0, bc - 1 do
-        table.insert(h.extmarks, {
-          row = row + l,
-          col = 0,
-          end_row = row + l + 1,
-          hl_group = "CodeCompanionDiffAdd",
-        })
-      end
-    end
+  for row, info in pairs(adds) do
+    table.insert(info.hunk.extmarks, {
+      row = row,
+      col = 0,
+      hl_eol = true,
+      virt_lines = diff_utils.highlight_block(info.virt_lines, {
+        leading = "CodeCompanionDiffContext",
+        trailing = "CodeCompanionDiffContext",
+        block = "CodeCompanionDiffAdd",
+        width = width + 1,
+      }),
+    })
   end
 end
 
@@ -236,17 +183,18 @@ function M.create(args)
   local diff = {
     bufnr = args.bufnr,
     hunks = {},
+    range = { from = { 0, #args.from_lines - 1 }, to = { 0, #args.to_lines - 1 } },
     from = {
       lines = args.from_lines,
       text = from_text,
-      virt_lines = get_virtual_lines(from_text, {
+      virt_lines = diff_utils.get_virtual_lines(from_text, {
         ft = args.ft,
       }),
     },
     to = {
       lines = args.to_lines,
       text = to_text,
-      virt_lines = get_virtual_lines(to_text, {
+      virt_lines = diff_utils.get_virtual_lines(to_text, {
         ft = args.ft,
         bg = "CodeCompanionDiffAdd",
       }),
