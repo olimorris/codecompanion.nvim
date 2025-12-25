@@ -16,6 +16,9 @@ local JsonRpc = {
 }
 
 local last_msg_id = 0
+
+---Increment and return the next unique message id used for JSON-RPC requests.
+---@return integer next_id
 local function next_msg_id()
   last_msg_id = last_msg_id + 1
   return last_msg_id
@@ -23,24 +26,26 @@ end
 
 ---Abstraction over the IO connection to a MCP server
 ---@class CodeCompanion.MCP.Connection
----@field start fun(self: CodeCompanion.MCP.Connection, on_line_read: fun(line: string), on_close: fun(err: string?))
+---@field start fun(self: CodeCompanion.MCP.Connection, on_line_read: fun(line: string), on_close: fun(err?: string))
 ---@field started fun(self: CodeCompanion.MCP.Connection): boolean
----@field write fun(self: CodeCompanion.MCP.Connection, lines: string[]?)
+---@field write fun(self: CodeCompanion.MCP.Connection, lines?: string[])
 
 ---Default Connection implementation backed by vim.system
 ---@class CodeCompanion.MCP.StdioConnection : CodeCompanion.MCP.Connection
 ---@field name string
 ---@field cmd string[]
----@field env table?
----@field _proc vim.SystemObj?
----@field _last_tail string?
----@field _on_line_read fun(line: string)?
----@field _on_close fun(err: string?)?
+---@field env? table
+---@field _proc? vim.SystemObj
+---@field _last_tail? string
+---@field _on_line_read? fun(line: string)
+---@field _on_close? fun(err?: string)
 local StdioConnection = {}
 StdioConnection.__index = StdioConnection
 
----@params name string
----@params cfg CodeCompanion.MCP.ServerConfig
+---Create a new StdioConnection for the given server configuration.
+---@param name string
+---@param cfg CodeCompanion.MCP.ServerConfig
+---@return CodeCompanion.MCP.StdioConnection
 function StdioConnection:new(name, cfg)
   return setmetatable({
     name = name,
@@ -49,6 +54,9 @@ function StdioConnection:new(name, cfg)
   }, self)
 end
 
+---Start the underlying process and attach stdout/stderr callbacks.
+---@param on_line_read fun(line: string)
+---@param on_close fun(err?: string)
 function StdioConnection:start(on_line_read, on_close)
   assert(not self._proc, "StdioConnection: start called when already started")
   self._on_line_read = on_line_read
@@ -74,10 +82,15 @@ function StdioConnection:start(on_line_read, on_close)
   )
 end
 
+---Return whether the connection process has been started.
+---@return boolean
 function StdioConnection:started()
   return self._proc ~= nil
 end
 
+---Handle stdout stream chunks, buffer incomplete lines and deliver complete lines to the on_line_read callback.
+---@param err? string
+---@param data? string
 function StdioConnection:_handle_stdout(err, data)
   if err then
     log:error("StdioConnection stdout error: %s", err)
@@ -114,6 +127,9 @@ function StdioConnection:_handle_stdout(err, data)
   end
 end
 
+---Handle stderr output from the process.
+---@param err? string
+---@param data? string
 function StdioConnection:_handle_stderr(err, data)
   if err then
     log:error("StdioConnection stderr error: %s", err)
@@ -124,6 +140,8 @@ function StdioConnection:_handle_stderr(err, data)
   end
 end
 
+---Handle process exit and invoke the on_close callback with an optional error message.
+---@param out vim.SystemCompleted The output object from vim.system containing code and signal fields.
 function StdioConnection:_handle_exit(out)
   local err_msg = nil
   if out and (out.code ~= 0) then
@@ -138,6 +156,8 @@ function StdioConnection:_handle_exit(out)
   end
 end
 
+---Write lines to the process stdin.
+---@param lines string[]
 function StdioConnection:write(lines)
   if not self._proc then
     error("StdioConnection: write called before start")
@@ -146,7 +166,7 @@ function StdioConnection:write(lines)
 end
 
 ---@alias ServerRequestHandler fun(cli: CodeCompanion.MCP.Client, params: table<string, any>?): "result" | "error", table<string, any>
----@alias ResponseHandler fun(resp: MCP.JSONRPCResultResponse|MCP.JSONRPCErrorResponse)
+---@alias ResponseHandler fun(resp: MCP.JSONRPCResultResponse | MCP.JSONRPCErrorResponse)
 
 ---@class CodeCompanion.MCP.Client
 ---@field name string
@@ -155,8 +175,8 @@ end
 ---@field connection CodeCompanion.MCP.Connection
 ---@field resp_handlers table<integer, ResponseHandler>
 ---@field server_request_handlers table<string, ServerRequestHandler>
----@field server_capabilities table<string, any>?
----@field server_instructions string?
+---@field server_capabilities? table<string, any>
+---@field server_instructions? string
 local Client = {
   _conn_factory = function(name, cfg)
     return StdioConnection:new(name, cfg)
@@ -164,8 +184,10 @@ local Client = {
 }
 Client.__index = Client
 
+---Create a new MCP client instance bound to the provided server configuration.
 ---@param name string
 ---@param cfg CodeCompanion.MCP.ServerConfig
+---@return CodeCompanion.MCP.Client
 function Client:new(name, cfg)
   return setmetatable({
     name = name,
@@ -180,7 +202,8 @@ function Client:new(name, cfg)
   }, self)
 end
 
-function Client:start_if_not_started()
+---Start the client.
+function Client:start()
   if self.connection:started() then
     return
   end
@@ -193,10 +216,11 @@ function Client:start_if_not_started()
   end)
   utils.fire("MCPServerStart", { name = self.name })
 
-  self:_start_init_mcp()
+  self:_start_initialization()
 end
 
-function Client:_start_init_mcp()
+---Start the MCP initialization procedure.
+function Client:_start_initialization()
   assert(self.connection:started(), "MCP Server process is not running.")
   assert(not self.ready, "MCP Server is already initialized.")
 
@@ -236,6 +260,8 @@ function Client:_start_init_mcp()
   end)
 end
 
+---Handle connection close events.
+---@param err string|nil
 function Client:_on_conn_close(err)
   self.ready = false
   if not err then
@@ -246,6 +272,8 @@ function Client:_on_conn_close(err)
   utils.fire("MCPServerExit", { name = self.name, err = err })
 end
 
+---Process a single JSON-RPC line received from the MCP server.
+---@param line string
 function Client:_on_conn_line_read(line)
   if not line or line == "" then
     return
@@ -282,6 +310,7 @@ function Client:_on_conn_line_read(line)
   end
 end
 
+---Handle an incoming JSON-RPC request from the MCP server.
 ---@param msg MCP.JSONRPCRequest
 function Client:_handle_server_request(msg)
   assert(self.connection:started(), "MCP Server process is not running.")
@@ -325,6 +354,23 @@ function Client:_handle_server_request(msg)
   self.connection:write({ resp_str })
 end
 
+---Get the server instructions, applying any overrides from the config
+---@return string?
+function Client:get_server_instructions()
+  assert(self.ready, "MCP Server is not ready.")
+  local override = self.cfg.server_instructions
+  if type(override) == "function" then
+    return override(self.server_instructions)
+  elseif type(override) == "string" then
+    return override
+  else
+    return self.server_instructions
+  end
+end
+
+---Send a JSON-RPC notification to the MCP server.
+---@param method string
+---@param params? table<string, any>
 function Client:notify(method, params)
   assert(self.connection:started(), "MCP Server process is not running.")
   if params and vim.tbl_isempty(params) then
@@ -340,10 +386,11 @@ function Client:notify(method, params)
   self.connection:write({ notif_str })
 end
 
+---Send a JSON-RPC request to the MCP server.
 ---@param method string
----@param params table<string, any>?
+---@param params? table<string, any>
 ---@param resp_handler ResponseHandler
----@param opts table? { timeout_ms: integer? }
+---@param opts? table { timeout_ms? integer }
 ---@return integer req_id
 function Client:request(method, params, resp_handler, opts)
   assert(self.connection:started(), "MCP Server process is not running.")
@@ -388,10 +435,16 @@ function Client:request(method, params, resp_handler, opts)
   return req_id
 end
 
+---Handler for 'ping' server requests.
+---@param params any
+---@return "result", table
 function Client:_handle_server_ping(params)
   return "result", {}
 end
 
+---Handler for 'roots/list' server requests.
+---@param params any
+---@return "result" | "error", table
 function Client:_handler_server_roots_list(params)
   if not self.cfg.roots then
     return "error", { code = JsonRpc.ERROR_METHOD_NOT_FOUND, message = "roots capability not enabled" }
@@ -411,13 +464,14 @@ function Client:_handler_server_roots_list(params)
   return "result", { roots = roots }
 end
 
+---Send a notification that the roots list changed.
 function Client:notify_roots_list_changed()
   self:notify("notifications/roots/list_changed")
 end
 
----Cancel a pending request to the MCP server
+---Cancel a pending request to the MCP server and notify the server of cancellation.
 ---@param req_id integer The ID of the request to cancel
----@param reason string? The reason for cancellation
+---@param reason? string The reason for cancellation
 function Client:cancel_request(req_id, reason)
   log:info("[MCP.%s] cancelling request %s: %s", self.name, req_id, reason or "<no reason>")
   self.resp_handlers[req_id] = nil
@@ -431,7 +485,7 @@ end
 ---@param name string The name of the tool to call
 ---@param args table<string, any> The arguments to pass to the tool
 ---@param callback fun(ok: boolean, result_or_error: MCP.CallToolResult | string) Callback function that receives (ok, result_or_error)
----@param opts table? { timeout_ms: integer? }
+---@param opts? table { timeout_ms? integer }
 ---@return integer req_id
 function Client:call_tool(name, args, callback, opts)
   assert(self.ready, "MCP Server is not ready.")
@@ -450,6 +504,7 @@ function Client:call_tool(name, args, callback, opts)
   end, opts)
 end
 
+---Refresh the list of tools available from the MCP server.
 function Client:refresh_tools()
   assert(self.ready, "MCP Server is not ready.")
   if not self.server_capabilities.tools then
@@ -480,8 +535,8 @@ function Client:refresh_tools()
         return load_tools(next_cursor)
       end
 
-      -- install tools into CodeCompanion
-      local installed_tools = tool_bridge.install_tools(self, all_tools)
+      -- setup tools into CodeCompanion
+      local installed_tools = tool_bridge.setup_tools(self, all_tools)
       utils.fire("MCPToolsLoaded", { server = self.name, tools = installed_tools })
     end)
   end

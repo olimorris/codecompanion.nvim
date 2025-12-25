@@ -47,7 +47,7 @@ local T = MiniTest.new_set({
           })
 
           CLI = Client:new("testMcp", { cmd = { "test-mcp" } })
-          CLI:start_if_not_started()
+          CLI:start()
           vim.wait(1000, function() return tools_loaded end)
         end
       ]])
@@ -60,7 +60,7 @@ local T = MiniTest.new_set({
 })
 
 T["MCP Client"] = MiniTest.new_set()
-T["MCP Client"]["start_if_not_started starts and initializes the client once"] = function()
+T["MCP Client"]["start() starts and initializes the client once"] = function()
   child.lua([[
     READY = false
     INIT_PARAMS = {}
@@ -83,12 +83,12 @@ T["MCP Client"]["start_if_not_started starts and initializes the client once"] =
 
     setup_tool_list()
     CLI = Client:new("testMcp", { cmd = { "test-mcp" } })
-    CLI:start_if_not_started()
-    CLI:start_if_not_started()  -- repeated call should be no-op
-    CLI:start_if_not_started()
+    CLI:start()
+    CLI:start()  -- repeated call should be no-op
+    CLI:start()
     vim.wait(1000, function() return READY end)
-    CLI:start_if_not_started()  -- repeated call should be no-op
-    CLI:start_if_not_started()
+    CLI:start()  -- repeated call should be no-op
+    CLI:start()
   ]])
 
   h.is_true(child.lua_get("READY"))
@@ -292,7 +292,7 @@ T["MCP Client"]["roots capability is declared when roots config is provided"] = 
       cmd = { "test-mcp" },
       roots = function() return roots end,
     })
-    CLI:start_if_not_started()
+    CLI:start()
     vim.wait(1000, function() return CLI.ready end)
 
     local received_resp
@@ -336,7 +336,7 @@ T["MCP Client"]["roots list changed notification is sent when roots change"] = f
         notify_roots_list_changed = notify
       end,
     })
-    CLI:start_if_not_started()
+    CLI:start()
     vim.wait(1000, function() return CLI.ready end)
 
     local received_resps = {}
