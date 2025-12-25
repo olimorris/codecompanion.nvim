@@ -8,9 +8,9 @@ local T = MiniTest.new_set({
       h.child_start(child)
       child.lua([[
         Client = require("codecompanion.mcp.client")
-        MockMCPClientConn = require("tests.mocks.mcp_client_conn")
-        CONN = MockMCPClientConn:new()
-        Client._conn_factory = function() return CONN end
+        MockMCPClientTransport = require("tests.mocks.mcp_client_transport")
+        TRANSPORT = MockMCPClientTransport:new()
+        Client._transport_factory = function() return TRANSPORT end
 
         function read_mcp_tools()
           return vim
@@ -22,18 +22,18 @@ local T = MiniTest.new_set({
         end
 
         function setup_default_initialization()
-          CONN:expect_jsonrpc_call("initialize", function(params)
+          TRANSPORT:expect_jsonrpc_call("initialize", function(params)
             return "result", {
               protocolVersion = params.protocolVersion,
               capabilities = { tools = {} },
               serverInfo = { name = "Test MCP Server", version = "1.0.0" },
             }
           end)
-          CONN:expect_jsonrpc_notify("notifications/initialized", function() end)
+          TRANSPORT:expect_jsonrpc_notify("notifications/initialized", function() end)
         end
 
         function setup_tool_list(tools)
-          CONN:expect_jsonrpc_call("tools/list", function()
+          TRANSPORT:expect_jsonrpc_call("tools/list", function()
             return "result", { tools = tools or read_mcp_tools() }
           end)
         end
@@ -53,7 +53,7 @@ local T = MiniTest.new_set({
       ]])
     end,
     post_case = function()
-      h.is_true(child.lua_get("CONN:all_handlers_consumed()"))
+      h.is_true(child.lua_get("TRANSPORT:all_handlers_consumed()"))
     end,
     post_once = child.stop,
   },
@@ -71,7 +71,7 @@ T["MCP Client"]["start() starts and initializes the client once"] = function()
       callback = function() READY = true end,
     })
 
-    CONN:expect_jsonrpc_call("initialize", function(params)
+    TRANSPORT:expect_jsonrpc_call("initialize", function(params)
       table.insert(INIT_PARAMS, params)
       return "result", {
         protocolVersion = params.protocolVersion,
@@ -79,7 +79,7 @@ T["MCP Client"]["start() starts and initializes the client once"] = function()
         serverInfo = { name = "Test MCP Server", version = "1.0.0" },
       }
     end)
-    CONN:expect_jsonrpc_notify("notifications/initialized", function() end)
+    TRANSPORT:expect_jsonrpc_notify("notifications/initialized", function() end)
 
     setup_tool_list()
     CLI = Client:new("testMcp", { cmd = { "test-mcp" } })
@@ -109,7 +109,7 @@ T["MCP Client"]["tools are loaded in pages"] = function()
 
     local mcp_tools = read_mcp_tools()
     local page_size = 2
-    CONN:expect_jsonrpc_call("tools/list", function(params)
+    TRANSPORT:expect_jsonrpc_call("tools/list", function(params)
       local start_idx = tonumber(params.cursor) or 1
       local end_idx = math.min(start_idx + page_size - 1, #mcp_tools)
       local page_tools = {}
@@ -177,7 +177,7 @@ T["MCP Client"]["can process tool calls"] = function()
     setup_tool_list()
     start_client_and_wait_loaded()
 
-    CONN:expect_jsonrpc_call("tools/call", function(params)
+    TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       if params.name == "echo" then
         local value = params.arguments.value
         if value == nil then
@@ -215,7 +215,7 @@ T["MCP Client"]["can handle reordered tool call responses"] = function()
 
     local latencies = { 300, 50, 150, 400 }
     for _, latency in ipairs(latencies) do
-      CONN:expect_jsonrpc_call("tools/call", function(params)
+      TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
         return "result", { content = { { type = "text", text = params.arguments.value } } }
       end, { latency_ms = latency })
     end
@@ -245,13 +245,13 @@ T["MCP Client"]["respects timeout option for tool calls"] = function()
     setup_tool_list()
     start_client_and_wait_loaded()
 
-    CONN:expect_jsonrpc_call("tools/call", function(params)
+    TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       return "result", { content = { { type = "text", text = "fast response" } } }
     end)
-    CONN:expect_jsonrpc_call("tools/call", function(params)
+    TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       return "result", { content = { { type = "text", text = "slow response" } } }
     end, { latency_ms = 200 })
-    CONN:expect_jsonrpc_call("tools/call", function(params)
+    TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       return "result", { content = { { type = "text", text = "very slow response" } } }
     end, { latency_ms = 200 })
 
@@ -296,7 +296,7 @@ T["MCP Client"]["roots capability is declared when roots config is provided"] = 
     vim.wait(1000, function() return CLI.ready end)
 
     local received_resp
-    CONN:send_request_to_client("roots/list", nil, function(status, result)
+    TRANSPORT:send_request_to_client("roots/list", nil, function(status, result)
       received_resp = { status, result }
     end)
 
@@ -342,12 +342,12 @@ T["MCP Client"]["roots list changed notification is sent when roots change"] = f
     local received_resps = {}
     for i = 1, #root_lists do
       if current_roots ~= nil then
-        CONN:expect_jsonrpc_notify("roots/listChanged", function() end)
+        TRANSPORT:expect_jsonrpc_notify("roots/listChanged", function() end)
         notify_roots_list_changed()
-        vim.wait(1000, function() return CONN:all_handlers_consumed() end)
+        vim.wait(1000, function() return TRANSPORT:all_handlers_consumed() end)
       end
       current_roots = root_lists[i]
-      CONN:send_request_to_client("roots/list", nil, function(status, result)
+      TRANSPORT:send_request_to_client("roots/list", nil, function(status, result)
         received_resps[i] = { status, result }
       end)
       vim.wait(1000, function() return received_resps[i] ~= nil end)

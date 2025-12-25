@@ -9,7 +9,7 @@ local T = MiniTest.new_set({
       child.lua([[
         local h = require("tests.helpers")
         Client = require("codecompanion.mcp.client")
-        MockMCPClientConn = require("tests.mocks.mcp_client_conn")
+        MockMCPClientTransport = require("tests.mocks.mcp_client_transport")
 
         MCP_TOOLS = vim
           .iter(vim.fn.readfile("tests/stubs/mcp/tools.jsonl"))
@@ -20,28 +20,28 @@ local T = MiniTest.new_set({
           end)
           :totable()
 
-        MATH_MCP_CONN = MockMCPClientConn:new()
+        MATH_MCP_TRANSPORT = MockMCPClientTransport:new()
         MATH_MCP_TOOLS = vim.iter(MCP_TOOLS):filter(function(tool)
           return vim.startswith(tool.name, "math_")
         end):totable()
 
-        OTHER_MCP_CONN = MockMCPClientConn:new()
+        OTHER_MCP_TRANSPORT = MockMCPClientTransport:new()
         OTHER_MCP_TOOLS = vim.iter(MCP_TOOLS):filter(function(tool)
           return not vim.startswith(tool.name, "math_")
         end):totable()
 
-        Client._conn_factory = function(name, cfg)
-          local conn
+        Client._transport_factory = function(name, cfg)
+          local transport
           local tools
           if cfg.cmd[1] == "math_mcp" then
-            conn = MATH_MCP_CONN
+            transport = MATH_MCP_TRANSPORT
             tools = MATH_MCP_TOOLS
           else
-            conn = OTHER_MCP_CONN
+            transport = OTHER_MCP_TRANSPORT
             tools = OTHER_MCP_TOOLS
           end
 
-          conn:expect_jsonrpc_call("initialize", function(params)
+          transport:expect_jsonrpc_call("initialize", function(params)
             return "result", {
               protocolVersion = params.protocolVersion,
               capabilities = { tools = {} },
@@ -49,11 +49,11 @@ local T = MiniTest.new_set({
               instructions = "Test MCP server instructions.",
             }
           end)
-          conn:expect_jsonrpc_notify("notifications/initialized", function(params) end)
-          conn:expect_jsonrpc_call("tools/list", function()
+          transport:expect_jsonrpc_notify("notifications/initialized", function(params) end)
+          transport:expect_jsonrpc_call("tools/list", function()
             return "result", { tools = tools }
           end)
-          return conn
+          return transport
         end
 
         local adapter = {
@@ -113,8 +113,8 @@ local T = MiniTest.new_set({
       ]])
     end,
     post_case = function()
-      h.is_true(child.lua_get("MATH_MCP_CONN:all_handlers_consumed()"))
-      h.is_true(child.lua_get("OTHER_MCP_CONN:all_handlers_consumed()"))
+      h.is_true(child.lua_get("MATH_MCP_TRANSPORT:all_handlers_consumed()"))
+      h.is_true(child.lua_get("OTHER_MCP_TRANSPORT:all_handlers_consumed()"))
     end,
     post_once = child.stop,
   },
@@ -134,7 +134,7 @@ T["MCP Tools"]["MCP tools can be used as CodeCompanion tools"] = function()
   })
   local chat_msgs = child.lua([[
     local chat = create_chat()
-    MATH_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
+    MATH_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       local retval
       if params.name == "math_add" then
         retval = params.arguments.a + params.arguments.b
@@ -200,7 +200,7 @@ T["MCP Tools"]["MCP tools should handle errors correctly"] = function()
 
   local chat_msgs = child.lua([[
     local chat = create_chat()
-    OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
+    OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       if params.name == "echo" then
         return "error", { code = -32603, message = "test jsonrpc error" }
       elseif params.name == "make_list" then
@@ -289,11 +289,11 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
       }
     })
 
-    OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
+    OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       assert(params.name == "say_hi")
       return "result", { content = { { type = "text", text = "Hello there!" } } }
     end)
-    OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
+    OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       assert(params.name == "make_list")
       local content = {}
       for i = 1, params.arguments.count do
@@ -301,7 +301,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
       end
       return "result", { content = content }
     end)
-    OTHER_MCP_CONN:expect_jsonrpc_call("tools/call", function(params)
+    OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       assert(params.name == "echo")
       return "result", { content = { { type = "text", text = params.arguments.value } } }
     end, { latency_ms = 10 * 1000 })

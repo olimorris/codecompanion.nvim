@@ -24,14 +24,14 @@ local function next_msg_id()
   return last_msg_id
 end
 
----Abstraction over the IO connection to a MCP server
----@class CodeCompanion.MCP.Connection
----@field start fun(self: CodeCompanion.MCP.Connection, on_line_read: fun(line: string), on_close: fun(err?: string))
----@field started fun(self: CodeCompanion.MCP.Connection): boolean
----@field write fun(self: CodeCompanion.MCP.Connection, lines?: string[])
+---Abstraction over the IO transport to a MCP server
+---@class CodeCompanion.MCP.Transport
+---@field start fun(self: CodeCompanion.MCP.Transport, on_line_read: fun(line: string), on_close: fun(err?: string))
+---@field started fun(self: CodeCompanion.MCP.Transport): boolean
+---@field write fun(self: CodeCompanion.MCP.Transport, lines?: string[])
 
----Default Connection implementation backed by vim.system
----@class CodeCompanion.MCP.StdioConnection : CodeCompanion.MCP.Connection
+---Default Transport implementation backed by vim.system
+---@class CodeCompanion.MCP.StdioTransport : CodeCompanion.MCP.Transport
 ---@field name string
 ---@field cmd string[]
 ---@field env? table
@@ -39,14 +39,14 @@ end
 ---@field _last_tail? string
 ---@field _on_line_read? fun(line: string)
 ---@field _on_close? fun(err?: string)
-local StdioConnection = {}
-StdioConnection.__index = StdioConnection
+local StdioTransport = {}
+StdioTransport.__index = StdioTransport
 
----Create a new StdioConnection for the given server configuration.
+---Create a new StdioTransport for the given server configuration.
 ---@param name string
 ---@param cfg CodeCompanion.MCP.ServerConfig
----@return CodeCompanion.MCP.StdioConnection
-function StdioConnection:new(name, cfg)
+---@return CodeCompanion.MCP.StdioTransport
+function StdioTransport:new(name, cfg)
   return setmetatable({
     name = name,
     cmd = cfg.cmd,
@@ -57,8 +57,8 @@ end
 ---Start the underlying process and attach stdout/stderr callbacks.
 ---@param on_line_read fun(line: string)
 ---@param on_close fun(err?: string)
-function StdioConnection:start(on_line_read, on_close)
-  assert(not self._proc, "StdioConnection: start called when already started")
+function StdioTransport:start(on_line_read, on_close)
+  assert(not self._proc, "StdioTransport: start called when already started")
   self._on_line_read = on_line_read
   self._on_close = on_close
 
@@ -82,18 +82,18 @@ function StdioConnection:start(on_line_read, on_close)
   )
 end
 
----Return whether the connection process has been started.
+---Return whether the transport process has been started.
 ---@return boolean
-function StdioConnection:started()
+function StdioTransport:started()
   return self._proc ~= nil
 end
 
 ---Handle stdout stream chunks, buffer incomplete lines and deliver complete lines to the on_line_read callback.
 ---@param err? string
 ---@param data? string
-function StdioConnection:_handle_stdout(err, data)
+function StdioTransport:_handle_stdout(err, data)
   if err then
-    log:error("StdioConnection stdout error: %s", err)
+    log:error("StdioTransport stdout error: %s", err)
     return
   end
   if not data or data == "" then
@@ -121,7 +121,7 @@ function StdioConnection:_handle_stdout(err, data)
     if line ~= "" and self._on_line_read then
       local ok, _ = pcall(self._on_line_read, line)
       if not ok then
-        log:error("StdioConnection on_line_read callback failed for line: %s", line)
+        log:error("StdioTransport on_line_read callback failed for line: %s", line)
       end
     end
   end
@@ -130,9 +130,9 @@ end
 ---Handle stderr output from the process.
 ---@param err? string
 ---@param data? string
-function StdioConnection:_handle_stderr(err, data)
+function StdioTransport:_handle_stderr(err, data)
   if err then
-    log:error("StdioConnection stderr error: %s", err)
+    log:error("StdioTransport stderr error: %s", err)
     return
   end
   if data then
@@ -142,7 +142,7 @@ end
 
 ---Handle process exit and invoke the on_close callback with an optional error message.
 ---@param out vim.SystemCompleted The output object from vim.system containing code and signal fields.
-function StdioConnection:_handle_exit(out)
+function StdioTransport:_handle_exit(out)
   local err_msg = nil
   if out and (out.code ~= 0) then
     err_msg = string.format("exit code %s, signal %s", tostring(out.code), tostring(out.signal))
@@ -151,16 +151,16 @@ function StdioConnection:_handle_exit(out)
   if self._on_close then
     local ok, _ = pcall(self._on_close, err_msg)
     if not ok then
-      log:error("StdioConnection on_close callback failed")
+      log:error("StdioTransport on_close callback failed")
     end
   end
 end
 
 ---Write lines to the process stdin.
 ---@param lines string[]
-function StdioConnection:write(lines)
+function StdioTransport:write(lines)
   if not self._proc then
-    error("StdioConnection: write called before start")
+    error("StdioTransport: write called before start")
   end
   self._proc:write(lines)
 end
@@ -172,14 +172,14 @@ end
 ---@field name string
 ---@field cfg CodeCompanion.MCP.ServerConfig
 ---@field ready boolean
----@field connection CodeCompanion.MCP.Connection
+---@field transport CodeCompanion.MCP.Transport
 ---@field resp_handlers table<integer, ResponseHandler>
 ---@field server_request_handlers table<string, ServerRequestHandler>
 ---@field server_capabilities? table<string, any>
 ---@field server_instructions? string
 local Client = {
-  _conn_factory = function(name, cfg)
-    return StdioConnection:new(name, cfg)
+  _transport_factory = function(name, cfg)
+    return StdioTransport:new(name, cfg)
   end,
 }
 Client.__index = Client
@@ -193,7 +193,7 @@ function Client:new(name, cfg)
     name = name,
     cfg = cfg,
     ready = false,
-    connection = self._conn_factory(name, cfg),
+    transport = self._transport_factory(name, cfg),
     resp_handlers = {},
     server_request_handlers = {
       ["ping"] = self._handle_server_ping,
@@ -204,15 +204,15 @@ end
 
 ---Start the client.
 function Client:start()
-  if self.connection:started() then
+  if self.transport:started() then
     return
   end
   log:info("[MCP.%s] Starting with command: %s", self.name, table.concat(self.cfg.cmd, " "))
 
-  self.connection:start(function(line)
-    self:_on_conn_line_read(line)
+  self.transport:start(function(line)
+    self:_on_transport_line_read(line)
   end, function(err)
-    self:_on_conn_close(err)
+    self:_on_transport_close(err)
   end)
   utils.fire("MCPServerStart", { name = self.name })
 
@@ -221,7 +221,7 @@ end
 
 ---Start the MCP initialization procedure.
 function Client:_start_initialization()
-  assert(self.connection:started(), "MCP Server process is not running.")
+  assert(self.transport:started(), "MCP Server process is not running.")
   assert(not self.ready, "MCP Server is already initialized.")
 
   local capabilities = vim.empty_dict()
@@ -260,9 +260,9 @@ function Client:_start_initialization()
   end)
 end
 
----Handle connection close events.
+---Handle transport close events.
 ---@param err string|nil
-function Client:_on_conn_close(err)
+function Client:_on_transport_close(err)
   self.ready = false
   if not err then
     log:info("[MCP.%s] exited.", self.name)
@@ -274,7 +274,7 @@ end
 
 ---Process a single JSON-RPC line received from the MCP server.
 ---@param line string
-function Client:_on_conn_line_read(line)
+function Client:_on_transport_line_read(line)
   if not line or line == "" then
     return
   end
@@ -313,7 +313,7 @@ end
 ---Handle an incoming JSON-RPC request from the MCP server.
 ---@param msg MCP.JSONRPCRequest
 function Client:_handle_server_request(msg)
-  assert(self.connection:started(), "MCP Server process is not running.")
+  assert(self.transport:started(), "MCP Server process is not running.")
   local resp = {
     jsonrpc = "2.0",
     id = msg.id,
@@ -351,7 +351,7 @@ function Client:_handle_server_request(msg)
     end
   end
   local resp_str = vim.json.encode(resp)
-  self.connection:write({ resp_str })
+  self.transport:write({ resp_str })
 end
 
 ---Get the server instructions, applying any overrides from the config
@@ -372,7 +372,7 @@ end
 ---@param method string
 ---@param params? table<string, any>
 function Client:notify(method, params)
-  assert(self.connection:started(), "MCP Server process is not running.")
+  assert(self.transport:started(), "MCP Server process is not running.")
   if params and vim.tbl_isempty(params) then
     params = vim.empty_dict()
   end
@@ -383,7 +383,7 @@ function Client:notify(method, params)
   }
   local notif_str = vim.json.encode(notif)
   log:debug("[MCP.%s] sending notification: %s", self.name, notif_str)
-  self.connection:write({ notif_str })
+  self.transport:write({ notif_str })
 end
 
 ---Send a JSON-RPC request to the MCP server.
@@ -393,7 +393,7 @@ end
 ---@param opts? table { timeout_ms? integer }
 ---@return integer req_id
 function Client:request(method, params, resp_handler, opts)
-  assert(self.connection:started(), "MCP Server process is not running.")
+  assert(self.transport:started(), "MCP Server process is not running.")
   local req_id = next_msg_id()
   if params and vim.tbl_isempty(params) then
     params = vim.empty_dict()
@@ -409,7 +409,7 @@ function Client:request(method, params, resp_handler, opts)
   end
   local req_str = vim.json.encode(req)
   log:debug("[MCP.%s] sending request %s: %s", self.name, req_id, req_str)
-  self.connection:write({ req_str })
+  self.transport:write({ req_str })
 
   local timeout_ms = opts and opts.timeout_ms
   if timeout_ms then
