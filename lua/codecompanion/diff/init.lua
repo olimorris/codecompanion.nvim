@@ -19,30 +19,22 @@
 --]]
 
 local diff_utils = require("codecompanion.diff.utils")
+local utils = require("codecompanion.utils")
+
+local api = vim.api
 
 local M = {}
 
-local INLINE_MAX_LINES = 3
-local INLINE_MAX_INSERT_RATIO = 0.5
-
 ---@type vim.text.diff.Opts
-local DIFF_OPTS = {
-  algorithm = "patience",
-  ctxlen = 0,
-  indent_heuristic = true,
-  interhunkctxlen = 0,
-  linematch = 10,
-  result_type = "indices",
-}
-
----@type vim.text.diff.Opts
-local DIFF_INLINE_OPTS = {
-  algorithm = "minimal",
-  ctxlen = 0,
-  indent_heuristic = false,
-  interhunkctxlen = 4,
-  linematch = 0,
-  result_type = "indices",
+local CONSTANTS = {
+  DIFF_LINE_OPTS = {
+    algorithm = "patience",
+    ctxlen = 0,
+    indent_heuristic = true,
+    interhunkctxlen = 0,
+    linematch = 10,
+    result_type = "indices",
+  },
 }
 
 ---@alias CodeCompanion.Text [string, string|string[]][]
@@ -82,25 +74,24 @@ local DIFF_INLINE_OPTS = {
 ---@field virt_lines? CodeCompanion.Text[]
 ---@field virt_lines_above? boolean
 
----Diff two strings using vim.text.diff
+---Diff two strings as arrays of lines
 ---@param a string[]
 ---@param b string[]
 ---@param opts? vim.text.diff.Opts
 ---@return number[][]
 function M._diff(a, b, opts)
-  opts = opts or DIFF_OPTS
+  opts = opts or CONSTANTS.DIFF_LINE_OPTS
   local txt_a = table.concat(a, "\n")
   local txt_b = table.concat(b, "\n")
   return vim.text.diff(txt_a, txt_b, opts)
 end
 
----Check if we need to offset for row 0 deletions and adjust positions
+---Check if any hunk starts at row 0 and has deletions. This causes a problem
+---because virtual lines that need to be rendered above row 0 have no space
+---to do so. We workaround this by offsetting the extmarks by 1.
 ---@param diff CC.Diff
----@return boolean needs_offset
+---@return boolean
 local function _should_offset(diff)
-  -- Check if any hunk starts at row 0 with deletions
-  -- This is a problem because virtual lines with virt_lines_above=true at row 0
-  -- don't render (there's nothing "above" row 0 in a buffer)
   local needs_offset = false
   for _, hunk in ipairs(diff.hunks) do
     if hunk.pos[1] == 0 and hunk.cover > 0 then
@@ -127,14 +118,14 @@ local function _should_offset(diff)
   return true
 end
 
----Process hunks to create extmarks for visualization
+---Process diff hunks to create extmarks for visualization
 ---@param diff CC.Diff
+---@return CC.Diff
 function M.diff_lines(diff)
-  local hunks = M._diff(diff.from.lines, diff.to.lines, DIFF_OPTS)
+  local hunks = M._diff(diff.from.lines, diff.to.lines, CONSTANTS.DIFF_LINE_OPTS)
   local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
   local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
 
-  local width = 0
   for _, hunk in ipairs(hunks) do
     local ai, ac, bi, bc = unpack(hunk)
 
@@ -149,13 +140,11 @@ function M.diff_lines(diff)
     table.insert(diff.hunks, h)
     if ac > 0 then
       local virt_lines = vim.list_slice(diff.from.virt_lines, ai, ai + ac - 1)
-      width = math.max(width, diff_utils.lines_width(virt_lines))
       dels[row] = { hunk = h, virt_lines = virt_lines }
     end
     if bc > 0 then
       for l = 0, bc - 1 do
         adds[row + l] = { hunk = h }
-        width = math.max(width, diff_utils.get_width(diff.to.lines[bi + l] or ""))
       end
     end
   end
@@ -165,12 +154,7 @@ function M.diff_lines(diff)
       row = row,
       col = 0,
       virt_lines_above = true,
-      virt_lines = diff_utils.highlight_block(info.virt_lines, {
-        leading = "CodeCompanionDiffContext",
-        trailing = "CodeCompanionDiffContext",
-        block = "CodeCompanionDiffDelete",
-        width = width + 1,
-      }),
+      virt_lines = diff_utils.extend_vl(info.virt_lines, "CodeCompanionDiffDelete"),
     })
   end
 
@@ -178,11 +162,11 @@ function M.diff_lines(diff)
     table.insert(info.hunk.extmarks, {
       row = row,
       col = 0,
-      virt_text_win_col = width + 1,
-      virt_text = { { string.rep(" ", vim.o.columns), "CodeCompanionDiffContext" } },
       line_hl_group = "CodeCompanionDiffAdd",
     })
   end
+
+  return diff
 end
 
 ---Create a diff between two sets of lines
@@ -192,35 +176,32 @@ function M.create(args)
   local from_text = table.concat(args.from_lines, "\n")
   local to_text = table.concat(args.to_lines, "\n")
 
-  ---@type CC.Diff
-  local diff = {
-    bufnr = args.bufnr,
-    hunks = {},
-    range = { from = { 0, 0 }, to = { #args.from_lines - 1, 0 } },
-    from = {
-      lines = args.from_lines,
-      text = from_text,
-      virt_lines = diff_utils.get_virtual_lines(from_text, {
-        ft = args.ft,
-      }),
-    },
-    to = {
-      lines = args.to_lines,
-      text = to_text,
-      virt_lines = diff_utils.get_virtual_lines(to_text, {
-        ft = args.ft,
-        bg = "CodeCompanionDiffAdd",
-      }),
-    },
-    namespace = vim.api.nvim_create_namespace("codecompanion_diff"),
-    should_offset = false,
-  }
-
-  M.diff_lines(diff)
-
-  -- Solution: Insert a blank line at row 0, shifting all content down by 1
-  -- Then adjust all extmark positions to account for this shift
-  -- This allows deletion virtual lines to appear "above" the first line of actual content
+  local diff = M.diff_lines(
+    ---@type CC.Diff
+    {
+      bufnr = args.bufnr,
+      hunks = {},
+      range = { from = { 0, 0 }, to = { #args.from_lines - 1, 0 } },
+      from = {
+        lines = args.from_lines,
+        text = from_text,
+        virt_lines = diff_utils.create_vl(from_text, {
+          ft = args.ft,
+          bg = "CodeCompanionDiffDelete",
+        }),
+      },
+      to = {
+        lines = args.to_lines,
+        text = to_text,
+        virt_lines = diff_utils.create_vl(to_text, {
+          ft = args.ft,
+          bg = "CodeCompanionDiffAdd",
+        }),
+      },
+      namespace = api.nvim_create_namespace("codecompanion_diff"),
+      should_offset = false,
+    }
+  )
   diff.should_offset = _should_offset(diff)
 
   return diff
@@ -228,26 +209,25 @@ end
 
 ---Clear diff extmarks from buffer
 ---@param diff CC.Diff
+---@return nil
 function M.clear(diff)
-  vim.api.nvim_buf_clear_namespace(diff.bufnr, diff.namespace, 0, -1)
+  api.nvim_buf_clear_namespace(diff.bufnr, diff.namespace, 0, -1)
 end
 
----Apply diff extmarks to buffer
+---Apply diff extmarks to a buffer
 ---@param diff CC.Diff
+---@return nil
 function M.apply(diff)
-  -- Ensure buffer has content
-  local line_count = vim.api.nvim_buf_line_count(diff.bufnr)
+  local line_count = api.nvim_buf_line_count(diff.bufnr)
   if line_count == 0 then
-    vim.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
-    return
+    return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
   end
 
-  -- Insert blank line at top if needed for row 0 deletions
-  -- This creates visual space for deletion virtual lines to appear "above" first line
   if diff.should_offset then
-    vim.api.nvim_buf_set_lines(diff.bufnr, 0, 0, false, { "" })
+    api.nvim_buf_set_lines(diff.bufnr, 0, 0, false, { "" })
   end
 
+  -- Apply the extmarks
   for _, hunk in ipairs(diff.hunks) do
     for _, extmark in ipairs(hunk.extmarks) do
       local opts = {}
@@ -257,7 +237,7 @@ function M.apply(diff)
         end
       end
 
-      pcall(vim.api.nvim_buf_set_extmark, diff.bufnr, diff.namespace, extmark.row, extmark.col, opts)
+      pcall(api.nvim_buf_set_extmark, diff.bufnr, diff.namespace, extmark.row, extmark.col, opts)
     end
   end
 end

@@ -14,7 +14,7 @@ M._scratch_buf = nil
 
 ---Create a scratch buffer to render content which we can then highlight
 ---@param content string
-function M.scratch_buf(content)
+local function _scratch_buf(content)
   if not (M._scratch_buf and api.nvim_buf_is_valid(M._scratch_buf)) then
     M._scratch_buf = api.nvim_create_buf(false, true)
     api.nvim_buf_set_name(M._scratch_buf, "codecompanion://diff")
@@ -27,13 +27,14 @@ function M.scratch_buf(content)
   return M._scratch_buf
 end
 
+---Get Tree-sitter highlights as extmarks
 ---@param source string|number
 ---@param opts? { ft: string, start_row?: number, end_row?: number }
-local function get_extmarks(source, opts)
+local function _ts_highlight(source, opts)
   opts = opts or {}
   assert(type(source) == "number" or opts.ft, "Either bufnr or ft should be specified")
 
-  local bufnr = type(source) == "number" and source or M.scratch_buf(source --[[@as string]])
+  local bufnr = type(source) == "number" and source or _scratch_buf(source --[[@as string]])
 
   local lang = vim.treesitter.language.get_lang(opts.ft or vim.bo[bufnr].filetype)
 
@@ -92,20 +93,23 @@ local function get_extmarks(source, opts)
   return ret
 end
 
+---Create the virtual lines and apply syntax highlighting via Tree-sitter
 ---@param source string|number
 ---@param opts? {ft:string, start_row?: integer, end_row?: integer, bg?: string}
 ---@return CodeCompanion.Text[]
-function M.get_virtual_lines(source, opts)
+function M.create_vl(source, opts)
   opts = opts or {}
 
   local lines = type(source) == "number"
-      and vim.api.nvim_buf_get_lines(source, opts.start_row or 0, opts.end_row or -1, false)
+      and api.nvim_buf_get_lines(source, opts.start_row or 0, opts.end_row or -1, false)
     or vim.split(source --[[@as string]], "\n")
 
-  local extmarks = get_extmarks(source, opts)
+  local extmarks = _ts_highlight(source, opts)
   if not extmarks then
+    -- No treesitter highlighting available, but still apply background if specified
     return vim.tbl_map(function(line)
-      return { { line } }
+      local hl = opts.bg and { "Normal", opts.bg } or nil
+      return { { line, hl } }
     end, lines)
   end
 
@@ -153,88 +157,15 @@ function M.get_virtual_lines(source, opts)
   return ret
 end
 
---- Highlight leading/trailing whitespace and EOL in virtual lines
----@param virtual_lines CodeCompanion.Text[]
----@param opts? {leading?:string, trailing?:string, block?:string, width?:number}
-function M.highlight_block(virtual_lines, opts)
-  if #virtual_lines == 0 then
-    return virtual_lines
-  end
-  opts = opts or {}
-  local indent = -1
-  local len = 0
-  local ts = vim.o.tabstop
-  local lengths = {} ---@type table<number, number>
-
-  ---@param str string
-  local function sw(str)
-    return vim.api.nvim_strwidth(str)
-  end
-
-  for l, vt in ipairs(virtual_lines) do
-    local line_len = 0
-    for c, chunk in ipairs(vt) do
-      -- normalize tabs
-      chunk[1] = chunk[1]:gsub("\t", string.rep(" ", ts))
-      line_len = line_len + sw(chunk[1])
-      if c == 1 then
-        local ws = chunk[1]:match("^%s*") ---@type string?
-        if ws then
-          indent = indent == -1 and #ws or math.min(indent, #ws)
-        end
-      end
-    end
-    lengths[l] = line_len
-    len = math.max(len, line_len)
-  end
-  len = opts.width or len
-
-  for l, vt in ipairs(virtual_lines) do
-    local line_len = lengths[l]
-    if opts.block and line_len < len then
-      table.insert(vt, { string.rep(" ", len - line_len), opts.block })
-    end
-    if opts.trailing then
-      table.insert(vt, { string.rep(" ", vim.o.columns), opts.trailing })
-    end
-    if opts.leading and indent > 0 then
-      local chunk = vt[1]
-      chunk[1] = chunk[1]:sub(indent + 1)
-      if #chunk[1] == 0 then
-        vt[1] = { string.rep(" ", indent), opts.leading }
-      else
-        table.insert(vt, 1, { string.rep(" ", indent), opts.leading })
-      end
-    end
-  end
-  return virtual_lines
-end
-
----Calculate the display width of a string
----@param str string
-function M.get_width(str)
-  str = str:gsub("\t", string.rep(" ", vim.o.tabstop))
-  return vim.api.nvim_strwidth(str)
-end
-
----@param vt CodeCompanion.Text
----@return integer
-local function width(vt)
-  local ret = 0
-  for _, chunk in ipairs(vt) do
-    ret = ret + M.get_width(chunk[1])
-  end
-  return ret
-end
-
----Calculate the display width of a virtual text line
+---Extend virtual lines to full window width with background highlight
 ---@param vl CodeCompanion.Text[]
-function M.lines_width(vl)
-  local ret = 0
+---@param hl_group string
+---@return CodeCompanion.Text[]
+function M.extend_vl(vl, hl_group)
   for _, vt in ipairs(vl) do
-    ret = math.max(ret, width(vt))
+    table.insert(vt, { string.rep(" ", vim.o.columns), hl_group })
   end
-  return ret
+  return vl
 end
 
 return M
