@@ -159,21 +159,23 @@ function M._diff_lines(diff)
       row = row,
       col = 0,
       virt_lines_above = true,
-      virt_lines = diff_utils.extend_vl(data.virt_lines, "CodeCompanionDiffDelete"),
+      virt_lines = data.virt_lines,
     })
   end
 
   for row, data in pairs(adds) do
-    table.insert(data.hunk.extmarks, {
-      row = row,
-      col = 0,
-      line_hl_group = "CodeCompanionDiffAdd",
-    })
-
-    -- Add word-level highlighting for "change" hunks
+    -- Add word-level highlighting for "change" hunks FIRST with higher priority
     if data.hunk.kind == "change" then
       M._diff_words(diff, row, data)
     end
+
+    -- Add line background spanning to next row with lower priority
+    table.insert(data.hunk.extmarks, {
+      row = row,
+      col = 0,
+      end_row = row + 1,
+      hl_group = "CodeCompanionDiffAdd",
+    })
   end
 
   return diff
@@ -227,7 +229,6 @@ function M._diff_words(diff, row, data)
           col = start_col,
           end_col = end_col,
           hl_group = "CodeCompanionDiffChange",
-          priority = 110,
         })
       end
     end
