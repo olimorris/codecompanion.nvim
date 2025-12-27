@@ -6,6 +6,20 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
+## Changing an Adapter
+
+You can select an ACP adapter to be the default for all chat interactions:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "gemini_cli",
+    },
+  },
+}),
+```
+
 ## Changing Adapter Settings
 
 To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:
