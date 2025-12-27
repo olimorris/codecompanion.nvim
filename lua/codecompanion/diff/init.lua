@@ -42,6 +42,9 @@ local CONSTANTS = {
   },
 }
 
+---@diagnostic disable-next-line: deprecated
+local diff_fn = vim.text.diff or vim.diff
+
 ---@alias CodeCompanion.Text [string, string|string[]][]
 
 ---@class CC.DiffText
@@ -88,7 +91,7 @@ function M._diff(a, b, opts)
   opts = opts or CONSTANTS.DIFF_LINE_OPTS
   local txt_a = table.concat(a, "\n")
   local txt_b = table.concat(b, "\n")
-  return vim.text.diff(txt_a, txt_b, opts)
+  return diff_fn(txt_a, txt_b, opts)
 end
 
 ---Check if any hunk starts at row 0 and has deletions. This causes a problem
@@ -164,12 +167,10 @@ function M._diff_lines(diff)
   end
 
   for row, data in pairs(adds) do
-    -- Add word-level highlighting for "change" hunks FIRST with higher priority
     if data.hunk.kind == "change" then
       M._diff_words(diff, row, data)
     end
 
-    -- Add line background spanning to next row with lower priority
     table.insert(data.hunk.extmarks, {
       row = row,
       col = 0,
@@ -210,10 +211,10 @@ function M._diff_words(diff, row, data)
     "\n"
   )
 
-  local word_hunks = vim.text.diff(old_text, new_text, CONSTANTS.DIFF_WORD_OPTS)
+  local hunks = diff_fn(old_text, new_text, CONSTANTS.DIFF_WORD_OPTS)
 
-  for _, word_hunk in ipairs(word_hunks) do
-    local _, _, bi, bc = unpack(word_hunk)
+  for _, hunk in ipairs(hunks) do
+    local _, _, bi, bc = unpack(hunk)
 
     -- Only highlight additions/changes in the new line
     if bc > 0 then
