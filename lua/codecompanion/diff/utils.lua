@@ -95,7 +95,7 @@ end
 
 ---Create the virtual lines and apply syntax highlighting via Tree-sitter
 ---@param source string|number
----@param opts? {ft:string, start_row?: integer, end_row?: integer, bg?: string}
+---@param opts? { ft: string, start_row?: number, end_row?: number, bg?: string }
 ---@return CodeCompanion.Text[]
 function M.create_vl(source, opts)
   opts = opts or {}
@@ -106,7 +106,7 @@ function M.create_vl(source, opts)
 
   local extmarks = _ts_highlight(source, opts)
   if not extmarks then
-    -- No treesitter highlighting available, but still apply background if specified
+    -- If there's no tree-sitter highlighting, still apply the hl
     return vim.tbl_map(function(line)
       local hl = opts.bg and { "Normal", opts.bg } or nil
       return { { line, hl } }
@@ -166,6 +166,53 @@ function M.extend_vl(vl, hl_group)
     table.insert(vt, { string.rep(" ", vim.o.columns), hl_group })
   end
   return vl
+end
+
+---Split a string into words and non-words with position tracking. UTF-8 aware
+---@param str string
+---@return { word: string, start_col: number, end_col: number }[]
+function M.split_words(str)
+  if str == "" then
+    return {}
+  end
+
+  local ret = {} ---@type { word: string, start_col: number, end_col: number }[]
+  local word_chars = {} ---@type string[]
+  local word_start = nil ---@type number?
+  local starts = vim.str_utf_pos(str)
+
+  local function flush(pos)
+    if #word_chars > 0 and word_start then
+      ret[#ret + 1] = {
+        word = table.concat(word_chars),
+        start_col = word_start,
+        end_col = pos,
+      }
+      word_chars = {}
+      word_start = nil
+    end
+  end
+
+  for idx, start in ipairs(starts) do
+    local stop = (starts[idx + 1] or (#str + 1)) - 1
+    local ch = str:sub(start, stop)
+    if vim.fn.charclass(ch) == 2 then -- iskeyword
+      if not word_start then
+        word_start = start - 1
+      end
+      word_chars[#word_chars + 1] = ch
+    else
+      flush(start - 1)
+      ret[#ret + 1] = {
+        word = ch,
+        start_col = start - 1,
+        end_col = stop,
+      }
+    end
+  end
+
+  flush(#str)
+  return ret
 end
 
 return M

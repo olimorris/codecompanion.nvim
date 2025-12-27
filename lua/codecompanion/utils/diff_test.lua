@@ -125,6 +125,28 @@ def process():
     step4()
 ]],
   },
+  {
+    name = "No treesitter parser - Fortran",
+    filetype = "fortran",
+    before = [[
+PROGRAM HelloWorld
+  IMPLICIT NONE
+  INTEGER :: counter
+  counter = 10
+  PRINT *, 'Hello, World!'
+  PRINT *, 'Counter:', counter
+END PROGRAM HelloWorld
+]],
+    after = [[
+PROGRAM HelloUniverse
+  IMPLICIT NONE
+  INTEGER :: count
+  count = 20
+  PRINT *, 'Hello, Universe!'
+  PRINT *, 'Count:', count
+END PROGRAM HelloUniverse
+]],
+  },
 }
 
 ---Create a test command for visual diff testing

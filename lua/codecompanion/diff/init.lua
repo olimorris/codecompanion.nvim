@@ -35,6 +35,11 @@ local CONSTANTS = {
     linematch = 10,
     result_type = "indices",
   },
+
+  DIFF_WORD_OPTS = {
+    algorithm = "histogram",
+    result_type = "indices",
+  },
 }
 
 ---@alias CodeCompanion.Text [string, string|string[]][]
@@ -121,10 +126,10 @@ end
 ---Process diff hunks to create extmarks for visualization
 ---@param diff CC.Diff
 ---@return CC.Diff
-function M.diff_lines(diff)
+function M._diff_lines(diff)
   local hunks = M._diff(diff.from.lines, diff.to.lines, CONSTANTS.DIFF_LINE_OPTS)
   local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
-  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
+  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number}>
 
   for _, hunk in ipairs(hunks) do
     local ai, ac, bi, bc = unpack(hunk)
@@ -144,29 +149,89 @@ function M.diff_lines(diff)
     end
     if bc > 0 then
       for l = 0, bc - 1 do
-        adds[row + l] = { hunk = h }
+        adds[row + l] = { hunk = h, old_idx = ai + l, new_idx = bi + l }
       end
     end
   end
 
-  for row, info in pairs(dels) do
-    table.insert(info.hunk.extmarks, {
+  for row, data in pairs(dels) do
+    table.insert(data.hunk.extmarks, {
       row = row,
       col = 0,
       virt_lines_above = true,
-      virt_lines = diff_utils.extend_vl(info.virt_lines, "CodeCompanionDiffDelete"),
+      virt_lines = diff_utils.extend_vl(data.virt_lines, "CodeCompanionDiffDelete"),
     })
   end
 
-  for row, info in pairs(adds) do
-    table.insert(info.hunk.extmarks, {
+  for row, data in pairs(adds) do
+    table.insert(data.hunk.extmarks, {
       row = row,
       col = 0,
       line_hl_group = "CodeCompanionDiffAdd",
     })
+
+    -- Add word-level highlighting for "change" hunks
+    if data.hunk.kind == "change" then
+      M._diff_words(diff, row, data)
+    end
   end
 
   return diff
+end
+
+---Perform word-level diff on changed lines
+---@param diff CC.Diff
+---@param row number The row number in the buffer
+---@param data { hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number }
+function M._diff_words(diff, row, data)
+  local old_line = diff.from.lines[data.old_idx] or ""
+  local new_line = diff.to.lines[data.new_idx] or ""
+
+  if old_line == "" or new_line == "" then
+    return
+  end
+
+  local old_words = diff_utils.split_words(old_line)
+  local new_words = diff_utils.split_words(new_line)
+
+  -- Extract just the word text for diffing
+  local old_text = table.concat(
+    vim.tbl_map(function(w)
+      return w.word
+    end, old_words),
+    "\n"
+  )
+  local new_text = table.concat(
+    vim.tbl_map(function(w)
+      return w.word
+    end, new_words),
+    "\n"
+  )
+
+  local word_hunks = vim.text.diff(old_text, new_text, CONSTANTS.DIFF_WORD_OPTS)
+
+  for _, word_hunk in ipairs(word_hunks) do
+    local _, _, bi, bc = unpack(word_hunk)
+
+    -- Only highlight additions/changes in the new line
+    if bc > 0 then
+      local start_word_idx = bi
+      local end_word_idx = bi + bc - 1
+
+      if new_words[start_word_idx] and new_words[end_word_idx] then
+        local start_col = new_words[start_word_idx].start_col
+        local end_col = new_words[end_word_idx].end_col
+
+        table.insert(data.hunk.extmarks, {
+          row = row,
+          col = start_col,
+          end_col = end_col,
+          hl_group = "CodeCompanionDiffChange",
+          priority = 110,
+        })
+      end
+    end
+  end
 end
 
 ---Create a diff between two sets of lines
@@ -176,7 +241,7 @@ function M.create(args)
   local from_text = table.concat(args.from_lines, "\n")
   local to_text = table.concat(args.to_lines, "\n")
 
-  local diff = M.diff_lines(
+  local diff = M._diff_lines(
     ---@type CC.Diff
     {
       bufnr = args.bufnr,
