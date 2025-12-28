@@ -157,6 +157,17 @@ function M.create_vl(source, opts)
   return ret
 end
 
+---Extend virtual lines to full window width with background highlight
+---@param vl CodeCompanion.Text[]
+---@param hl_group string
+---@return CodeCompanion.Text[]
+function M.extend_vl(vl, hl_group)
+  for _, vt in ipairs(vl) do
+    table.insert(vt, { string.rep(" ", vim.o.columns), hl_group })
+  end
+  return vl
+end
+
 ---Split a string into words and non-words with position tracking. UTF-8 aware
 ---@param str string
 ---@return { word: string, start_col: number, end_col: number }[]

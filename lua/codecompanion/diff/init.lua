@@ -50,7 +50,7 @@ local diff_fn = vim.text.diff or vim.diff
 ---@class CC.DiffText
 ---@field text string
 ---@field lines string[]
----@field virt_lines CodeCompanion.Text[]
+---@field virt_lines? CodeCompanion.Text[]
 
 ---@alias CodeCompanion.Pos {[1]:number, [2]:number}
 
@@ -164,7 +164,7 @@ function M._diff_lines(diff)
       row = row,
       col = 0,
       virt_lines_above = true,
-      virt_lines = data.virt_lines,
+      virt_lines = diff_utils.extend_vl(data.virt_lines, "CodeCompanionDiffDelete"),
     })
   end
 
@@ -178,6 +178,7 @@ function M._diff_lines(diff)
       col = 0,
       end_row = row + 1,
       hl_group = "CodeCompanionDiffAdd",
+      hl_eol = true,
     })
   end
 
@@ -262,10 +263,6 @@ function M.create(args)
       to = {
         lines = args.to_lines,
         text = to_text,
-        virt_lines = diff_utils.create_vl(to_text, {
-          ft = args.ft,
-          bg = "CodeCompanionDiffAdd",
-        }),
       },
       namespace = api.nvim_create_namespace("codecompanion_diff"),
       should_offset = false,
