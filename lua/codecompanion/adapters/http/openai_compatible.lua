@@ -40,7 +40,7 @@ local function get_models(self, opts)
     return {}
   end
 
-  adapter_utils.get_env_vars(adapter)
+  adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
   local url = adapter.env_replaced.url .. adapter.env_replaced.models_endpoint
 
   local headers = {

@@ -48,6 +48,9 @@ local defaults = {
         show_presets = true,
       },
     },
+    opts = {
+      cmd_timeout = 10e3, -- Timeout for commands that resolve env variables (milliseconds)
+    },
   },
   constants = constants,
   interactions = {

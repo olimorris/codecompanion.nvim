@@ -21,6 +21,7 @@
 local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
 local adapter_utils = require("codecompanion.utils.adapters")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local TIMEOUTS = {
@@ -348,7 +349,7 @@ end
 ---@return CodeCompanion.ACPAdapter
 function Connection:prepare_adapter()
   local adapter = vim.deepcopy(self.adapter)
-  adapter = adapter_utils.get_env_vars(adapter)
+  adapter = adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
   adapter.parameters = adapter_utils.set_env_vars(adapter, adapter.parameters)
   adapter.defaults.auth_method = adapter_utils.set_env_vars(adapter, adapter.defaults.auth_method)
   adapter.defaults.mcpServers = adapter_utils.set_env_vars(adapter, adapter.defaults.mcpServers)
