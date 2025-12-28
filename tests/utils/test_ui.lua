@@ -53,9 +53,6 @@ T["UI create_float Screenshots"]["Creates new buffer with content"] = function()
 
     local bufnr, winnr = ui.create_float(lines, {
       window = { width = 50, height = 10 },
-      row = "center",
-      col = "center",
-      relative = "editor",
       filetype = "lua",
       title = "New Buffer Test",
       show_dim = true,
@@ -91,8 +88,6 @@ T["UI create_float Screenshots"]["Uses existing buffer without overwriting conte
 
     local bufnr, winnr = ui.create_float(dummy_lines, {
       bufnr = existing_bufnr,
-      row = "center",
-      col = "center",
       overwrite_buffer = false,
       relative = "editor",
       show_dim = true,
@@ -146,8 +141,6 @@ T["UI create_float Screenshots"]["Uses existing buffer with content overwrite (d
       bufnr = existing_bufnr,
       -- overwrite_buffer is not specified, so defaults to true
       window = { width = 55, height = 16 },
-      row = "center",
-      col = "center",
       relative = "editor",
       filetype = "lua",
       title = "Debug Chat Info",
