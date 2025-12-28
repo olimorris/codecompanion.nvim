@@ -181,7 +181,7 @@ function Client:send_sync(payload, opts)
     return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
   end
 
-  adapter = adapter_utils.get_env_vars(adapter)
+  adapter = adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
 
   local body = self.methods.encode(
     vim.tbl_extend(
@@ -307,7 +307,7 @@ function Client:request(payload, actions, opts)
     return log:error("Failed to setup adapter")
   end
 
-  adapter = adapter_utils.get_env_vars(adapter)
+  adapter = adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
 
   local body = self.methods.encode(
     vim.tbl_extend(

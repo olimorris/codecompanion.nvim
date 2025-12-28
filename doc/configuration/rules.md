@@ -254,7 +254,7 @@ require("codecompanion").setup({
 
 Parsers allow CodeCompanion to transform rules, affecting how they are shared in the chat buffer. This is particularly useful if you reference files in your rules. Currently, the plugin has two in-built parsers:
 
-- `claude` - which will import files into the chat buffer in the same way Claude Code [does](https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports). Note, this requires rules to be `markdown` files
+- `claude` - which will import files into the chat buffer in the same way Claude Code [does](https://code.claude.com/docs/en/memory#claude-md-imports). Note, this requires rules to be `markdown` files
 - `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
 - `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
 
