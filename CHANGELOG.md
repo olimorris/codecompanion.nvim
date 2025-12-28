@@ -1,5 +1,13 @@
 # Changelog
 
+## [18.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.0...v18.3.1) (2025-12-28)
+
+
+### Bug Fixes
+
+* **adapters:** increase timeout for env var cmds ([#2601](https://github.com/olimorris/codecompanion.nvim/issues/2601)) ([c265e25](https://github.com/olimorris/codecompanion.nvim/commit/c265e25786ca0f2d1a07b4ceaa120ecbafcc5204)), closes [#2594](https://github.com/olimorris/codecompanion.nvim/issues/2594)
+* **chat:** remove images from title prompt ([#2586](https://github.com/olimorris/codecompanion.nvim/issues/2586)) ([274b2c6](https://github.com/olimorris/codecompanion.nvim/commit/274b2c69ea17d7f417999b132d81d63eb2cdb73f))
+
 ## [18.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.1...v18.3.0) (2025-12-22)
 
 
