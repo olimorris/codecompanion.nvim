@@ -69,6 +69,9 @@ return {
         roles = { user = "user", assistant = "assistant" },
       },
     },
+    opts = {
+      cmd_timeout = 10e3,
+    },
   },
   interactions = {
     background = {},

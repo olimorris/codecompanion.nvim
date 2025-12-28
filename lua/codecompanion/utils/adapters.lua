@@ -215,17 +215,16 @@ end
 
 ---Run the command in the environment variable
 ---@param var string
+---@param timeout number
 ---@return string|nil
-local function run_cmd(var)
+local function run_cmd(var, timeout)
   log:trace("[Adapters] Detected cmd in environment variable")
-
-  local timeout_ms = 5000 -- 5 second timeout
 
   local cmd = var:sub(5)
 
   local shell_cmd = require("codecompanion.utils.os").build_shell_command(cmd)
 
-  local obj = vim.system(shell_cmd, { text = true, timeout = timeout_ms })
+  local obj = vim.system(shell_cmd, { text = true, timeout = timeout })
   if not obj then
     return log:error("[Adapters] Could not execute cmd: %s", cmd)
   end
@@ -302,8 +301,9 @@ end
 
 ---Get the variables from the env key of the adapter
 ---@param adapter table
+---@param args? { timeout: number }
 ---@return table
-function M.get_env_vars(adapter)
+function M.get_env_vars(adapter, args)
   local env_vars = adapter.env or {}
 
   if not env_vars then
@@ -314,7 +314,8 @@ function M.get_env_vars(adapter)
 
   for k, v in pairs(env_vars) do
     if type(v) == "string" and is_cmd(v) then
-      adapter.env_replaced[k] = run_cmd(v)
+      local timeout = (args and args.timeout) or 5000
+      adapter.env_replaced[k] = run_cmd(v, timeout)
     elseif type(v) == "string" and is_env_var(v) then
       adapter.env_replaced[k] = get_env_var(v)
     elseif type(v) == "function" then
