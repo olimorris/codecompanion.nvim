@@ -91,6 +91,7 @@ function M._diff(a, b, opts)
   opts = opts or CONSTANTS.DIFF_LINE_OPTS
   local txt_a = table.concat(a, "\n")
   local txt_b = table.concat(b, "\n")
+
   return diff_fn(txt_a, txt_b, opts)
 end
 
@@ -131,6 +132,7 @@ end
 ---@return CC.Diff
 function M._diff_lines(diff)
   local hunks = M._diff(diff.from.lines, diff.to.lines, CONSTANTS.DIFF_LINE_OPTS)
+
   local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
   local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number}>
 
