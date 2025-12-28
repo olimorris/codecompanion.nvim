@@ -5,63 +5,34 @@ local api = vim.api
 
 local M = {}
 
--- Background window references for floating diff focus effect
-M._background_win = nil
-M._background_buf = nil
+---@class CodeCompanion.WindowOpts
+---@field bufnr? number Buffer number to use
+---@field row? number Row position of the floating window
+---@field col? number Column position of the floating window
+---@field filetype? string Filetype to set for the buffer
+---@field ignore_keymaps? boolean Whether to ignore default keymaps
+---@field lock? boolean Whether to lock the buffer (non-modifiable)
+---@field opts? table Window options to set
+---@field overwrite_buffer? boolean Whether to overwrite the buffer content
+---@field relative? string Relative position of the floating window
+---@field style? string Style of the floating window
+---@field title? string Title of the floating window
+---@field width? number Default width if not specified in window
+---@field height? number Default height if not specified in window
+---@field window CodeCompanion.WindowPosition
 
----Create a background window with winblend for focus effect
----@return number|nil winnr Background window number
-function M.create_background_window()
-  if M._background_win and api.nvim_win_is_valid(M._background_win) then
-    return M._background_win
-  end
-
-  local config = require("codecompanion.config")
-  local inline_config = config.display.diff.provider_opts.inline
-  local winblend = inline_config.opts.dim or 25
-
-  M._background_buf = api.nvim_create_buf(false, true)
-  M._background_win = api.nvim_open_win(M._background_buf, false, {
-    relative = "editor",
-    row = 0,
-    col = 0,
-    width = vim.o.columns,
-    height = vim.o.lines,
-    style = "minimal",
-    border = "none",
-    focusable = false,
-    noautocmd = true,
-    zindex = 50,
-  })
-
-  -- Set winblend for dimming effect
-  api.nvim_set_option_value("winblend", winblend, { win = M._background_win })
-
-  return M._background_win
-end
-
----Close the background window
----@return nil
-function M.close_background_window()
-  if M._background_win and api.nvim_win_is_valid(M._background_win) then
-    pcall(api.nvim_win_close, M._background_win, true)
-  end
-  M._background_win = nil
-  M._background_buf = nil
-end
+---@class CodeCompanion.WindowPosition
+---@field row? number|string Row position or "center"
+---@field col? number|string Column position or "center"
+---@field width? number|string Width of the window or percentage of screen
+---@field height? number|string Height of the window or percentage of screen
 
 ---Open a floating window with the provided lines
 ---@param lines table
----@param opts table
+---@param opts CodeCompanion.WindowOpts
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
   local window = opts.window
-
-  ---TODO: Remove this and remove all background dimming
-  -- Create background window for dimming effect if enabled
-  if opts.show_dim then
-    M.create_background_window()
-  end
 
   local cols = function()
     return vim.o.columns
@@ -83,25 +54,31 @@ M.create_float = function(lines, opts)
     window.width = cols()
   end
 
-  local width = window.width and (window.width > 1 and window.width or opts.width or 85) or opts.width or 85
-  local height = window.height and (window.height > 1 and window.height or opts.height or 17) or opts.height or 17
+  local width = window.width
+  if width and width > 0 and width < 1 then
+    width = math.floor(cols() * width)
+  end
+  width = (width and width >= 1 and width or opts.width or 85) ---@cast width number
+
+  local height = window.height
+  if height and height > 0 and height < 1 then
+    height = math.floor(rows() * height)
+  end
+  height = (height and height >= 1 and height or opts.height or 17) ---@cast height number
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
-
-  require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+  api.nvim_set_option_value("filetype", opts.filetype or "codecompanion", { buf = bufnr })
 
   -- Calculate center position if not specified
-  local row = opts.row or window.row or 10
-  local col = opts.col or window.col or 0
-  if row == "center" then
+  local row = opts.row or window.row ---@cast row number
+  local col = opts.col or window.col ---@cast col number
+  if not row or not col then
     row = math.floor((rows() - height) / 2 - 1) -- Account for status line for better UX
-  end
-  if col == "center" then
     col = math.floor((cols() - width) / 2)
   end
 
   local winnr = api.nvim_open_win(bufnr, true, {
-    relative = opts.relative or "cursor",
+    relative = opts.relative or "editor",
     -- thanks to @mini.nvim for this, it's for >= 0.11, to respect users winborder style
     border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
     width = width,
@@ -111,9 +88,9 @@ M.create_float = function(lines, opts)
     col = col,
     title = opts.title or "Options",
     title_pos = "center",
-    zindex = opts.show_dim and 99 or nil, -- When dimming, set above background win but below notifications
   })
 
+  -- TODO: Remove overwrite_buffer
   if not opts.bufnr or opts.overwrite_buffer ~= false then
     api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   end
@@ -125,17 +102,6 @@ M.create_float = function(lines, opts)
 
   if opts.opts then
     M.set_win_options(winnr, opts.opts)
-  end
-
-  -- Set up autocmd to clean up background window if dimming is enabled
-  if winnr and opts.show_dim then
-    api.nvim_create_autocmd("WinClosed", {
-      pattern = tostring(winnr),
-      callback = function()
-        M.close_background_window()
-      end,
-      once = true,
-    })
   end
 
   if opts.ignore_keymaps then

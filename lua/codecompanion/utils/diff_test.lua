@@ -153,27 +153,17 @@ END PROGRAM HelloUniverse
 function M.setup()
   vim.api.nvim_create_user_command("CodeCompanionDiffTest", function(opts)
     local test_num = tonumber(opts.args) or 1
-    M.run_visual_test(test_num, "new")
+    M.run_visual_test(test_num)
   end, {
     desc = "Test CodeCompanion diff provider (optional: test case number 1-" .. #M.test_cases .. ")",
-    nargs = "?",
-  })
-
-  vim.api.nvim_create_user_command("CodeCompanionDiffTestOld", function(opts)
-    local test_num = tonumber(opts.args) or 1
-    M.run_visual_test(test_num, "old")
-  end, {
-    desc = "Test old inline diff provider (optional: test case number 1-" .. #M.test_cases .. ")",
     nargs = "?",
   })
 end
 
 ---Run the visual diff test
 ---@param test_num? number Test case number (1-based)
----@param provider? "new"|"old" Which diff provider to use (default: "new")
-function M.run_visual_test(test_num, provider)
+function M.run_visual_test(test_num)
   test_num = test_num or 1
-  provider = provider or "new"
 
   if test_num < 1 or test_num > #M.test_cases then
     vim.notify(string.format("Invalid test case %d. Available: 1-%d", test_num, #M.test_cases), vim.log.levels.ERROR)
@@ -181,173 +171,76 @@ function M.run_visual_test(test_num, provider)
   end
 
   local test_case = M.test_cases[test_num]
-  local before_content = test_case.before
-  local after_content = test_case.after
+  local before_lines = vim.split(test_case.before, "\n", { plain = true })
+  local after_lines = vim.split(test_case.after, "\n", { plain = true })
 
-  -- Create a new buffer with the "after" content
-  local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_option(bufnr, "filetype", test_case.filetype)
+  local helpers = require("codecompanion.helpers")
+  local diff_id = math.random(10000000)
 
-  -- Split content into lines
-  local after_lines = vim.split(after_content, "\n", { plain = true })
-  local before_lines = vim.split(before_content, "\n", { plain = true })
+  local diff_obj, bufnr, winnr = helpers.show_diff({
+    from_lines = before_lines,
+    to_lines = after_lines,
+    ft = test_case.filetype,
+    title = string.format("%s (Test %d/%d)", test_case.name, test_num, #M.test_cases),
+    diff_id = diff_id,
+  })
 
-  -- Set buffer content to "after" state
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, after_lines)
-
-  -- Create floating window
-  local width = math.min(100, vim.o.columns - 10)
-  local height = math.min(25, vim.o.lines - 5)
-  local row = math.floor((vim.o.lines - height) / 2)
-  local col = math.floor((vim.o.columns - width) / 2)
-
-  local title = string.format(" %s (Test %d/%d) ", test_case.name, test_num, #M.test_cases)
-  local win_opts = {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    style = "minimal",
-    border = "rounded",
-    title = title,
-    title_pos = "center",
-  }
-
-  local winnr = vim.api.nvim_open_win(bufnr, true, win_opts)
-
-  -- Create the diff using the specified provider
-  local diff_obj
-  if provider == "old" then
-    local InlineDiff = require("codecompanion.providers.diff.inline")
-    diff_obj = InlineDiff.new({
-      bufnr = bufnr,
-      contents = before_lines,
-      id = "test_diff_old_" .. os.time(),
-      is_floating = true,
-      show_hints = false,
-      winnr = winnr,
-    })
-  else
-    -- New diff provider
-    local Diff = require("codecompanion.diff")
-    diff_obj = Diff.create({
-      bufnr = bufnr,
-      from_lines = before_lines,
-      to_lines = after_lines,
-      ft = test_case.filetype,
-    })
-
-    -- Apply the diff visualization
-    Diff.apply(diff_obj)
-  end
-
-  -- Set up keymaps for testing
-  local keymap_opts = { buffer = bufnr, silent = true }
-
-  -- Navigation keymaps (placeholder for future hunk navigation)
-  vim.keymap.set("n", "]c", function()
-    vim.notify("Hunk navigation not yet implemented", vim.log.levels.INFO)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Next hunk (TODO)" }))
-
-  vim.keymap.set("n", "[c", function()
-    vim.notify("Hunk navigation not yet implemented", vim.log.levels.INFO)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Previous hunk (TODO)" }))
-
-  vim.keymap.set("n", "ga", function()
-    vim.notify("Per-hunk accept not yet implemented", vim.log.levels.INFO)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Accept hunk (TODO)" }))
-
-  vim.keymap.set("n", "gr", function()
-    vim.notify("Per-hunk reject not yet implemented", vim.log.levels.INFO)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Reject hunk (TODO)" }))
-
-  vim.keymap.set("n", "gA", function()
-    -- Accept all: replace buffer with "to" lines
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, after_lines)
-
-    if provider == "new" then
-      local Diff = require("codecompanion.diff")
-      Diff.clear(diff_obj)
-    else
-      diff_obj:reject()
-    end
-
-    vim.notify("All changes accepted", vim.log.levels.INFO)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Accept all" }))
-
-  vim.keymap.set("n", "gR", function()
-    -- Reject all: replace buffer with "from" lines
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, before_lines)
-
-    if provider == "new" then
-      local Diff = require("codecompanion.diff")
-      Diff.clear(diff_obj)
-    else
-      diff_obj:reject()
-    end
-
-    vim.notify("All changes rejected", vim.log.levels.INFO)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Reject all" }))
+  -- Add keymaps for cycling through test cases
+  local keymap_opts = { buffer = bufnr, silent = true, nowait = true }
 
   vim.keymap.set("n", "n", function()
-    -- Cycle to next test case
     local next_test = test_num % #M.test_cases + 1
-
-    if provider == "new" then
-      local Diff = require("codecompanion.diff")
-      Diff.clear(diff_obj)
-    else
-      diff_obj:teardown()
-    end
-
+    local Diff = require("codecompanion.diff")
+    Diff.clear(diff_obj)
     if vim.api.nvim_win_is_valid(winnr) then
       vim.api.nvim_win_close(winnr, true)
     end
-    M.run_visual_test(next_test, provider)
+    M.run_visual_test(next_test)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Next test case" }))
 
   vim.keymap.set("n", "p", function()
-    -- Cycle to previous test case
     local prev_test = test_num == 1 and #M.test_cases or test_num - 1
-
-    if provider == "new" then
-      local Diff = require("codecompanion.diff")
-      Diff.clear(diff_obj)
-    else
-      diff_obj:teardown()
-    end
-
+    local Diff = require("codecompanion.diff")
+    Diff.clear(diff_obj)
     if vim.api.nvim_win_is_valid(winnr) then
       vim.api.nvim_win_close(winnr, true)
     end
-    M.run_visual_test(prev_test, provider)
+    M.run_visual_test(prev_test)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Previous test case" }))
 
-  vim.keymap.set("n", "q", function()
-    if provider == "new" then
-      local Diff = require("codecompanion.diff")
-      Diff.clear(diff_obj)
-    else
-      diff_obj:teardown()
-    end
+  -- Listen for diff events
+  local group = vim.api.nvim_create_augroup("CodeCompanionDiffTest_" .. diff_id, { clear = true })
 
-    if vim.api.nvim_win_is_valid(winnr) then
-      vim.api.nvim_win_close(winnr, true)
-    end
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Close" }))
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "CodeCompanionDiffAccepted",
+    group = group,
+    callback = function(event)
+      if event.data.diff_id == diff_id then
+        vim.notify(
+          string.format("Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
+          vim.log.levels.INFO,
+          { title = "CodeCompanion Diff Test" }
+        )
+        vim.api.nvim_del_augroup_by_id(group)
+      end
+    end,
+  })
 
-  -- Show instructions
-  local provider_name = provider == "old" and "Old Inline" or "New"
-  local keymaps_msg = "Keymaps:\n  n/p - Next/prev test case\n  gA/gR - Accept/reject all"
-  keymaps_msg = keymaps_msg .. "\n  ]c/[c/ga/gr - TODO (hunk navigation)"
-  keymaps_msg = keymaps_msg .. "\n  q - Quit"
-
-  vim.notify(
-    string.format("%s Diff Test %d/%d: %s\n\n%s", provider_name, test_num, #M.test_cases, test_case.name, keymaps_msg),
-    vim.log.levels.INFO,
-    { title = "CodeCompanion Diff Test" }
-  )
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "CodeCompanionDiffRejected",
+    group = group,
+    callback = function(event)
+      if event.data.diff_id == diff_id then
+        local status = event.data.timeout and "CLOSED" or "REJECTED"
+        vim.notify(
+          string.format("Test %d/%d: Changes %s", test_num, #M.test_cases, status),
+          vim.log.levels.WARN,
+          { title = "CodeCompanion Diff Test" }
+        )
+        vim.api.nvim_del_augroup_by_id(group)
+      end
+    end,
+  })
 
   return diff_obj
 end

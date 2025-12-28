@@ -686,22 +686,32 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.always_accept",
           description = "Always accept changes in this buffer",
           index = 1,
-          modes = { n = "gdy" },
+          modes = { n = "g1" },
           opts = { nowait = true },
         },
         accept_change = {
           callback = "keymaps.accept_change",
           description = "Accept change",
           index = 2,
-          modes = { n = "gda" },
+          modes = { n = "g2" },
           opts = { nowait = true, noremap = true },
         },
         reject_change = {
           callback = "keymaps.reject_change",
           description = "Reject change",
           index = 3,
-          modes = { n = "gdr" },
+          modes = { n = "g3" },
           opts = { nowait = true, noremap = true },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          description = "Go to next hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          description = "Go to previous hunk",
+          modes = { n = "{" },
         },
         stop = {
           callback = "keymaps.stop",
@@ -898,35 +908,18 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
 
-      -- Options for any windows that open within the chat buffer
+      -- Floating window options
       floating_window = {
-        ---@return number|fun(): number
-        width = function()
-          return vim.o.columns - 5
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 2
-        end,
-        row = "center",
-        col = "center",
+        width = 0.9, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
+        border = "single",
         relative = "editor",
         opts = {},
       },
 
-      -- Options for diff windows that open within the chat buffer
+      -- Options for any diff windows (extends from floating_window)
       diff_window = {
-        ---@return number|fun(): number
-        width = function()
-          return math.min(120, vim.o.columns - 10)
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 4
-        end,
-        opts = {
-          number = true,
-        },
+        opts = {},
       },
 
       -- Chat buffer options --------------------------------------------------

@@ -10,6 +10,10 @@
 
       It is heavily inspired by the awesome work in sidekick.nvim and Zed.
 
+      It works by computing line-level diffs between two versions of a text,
+      then further refining changed lines with word-level diffs. For any
+      text from an inline request, a separate diff is carried out.
+
       This code is licensed under the Apache-2.0 License.
 -------------------------------------------------------------------------------
     Attribution:
@@ -56,6 +60,7 @@ local diff_fn = vim.text.diff or vim.diff
 
 ---@class CC.Diff
 ---@field bufnr number
+---@field ft string
 ---@field hunks CodeCompanion.diff.Hunk[]
 ---@field range { from: CodeCompanion.Pos, to: CodeCompanion.Pos }
 ---@field from CC.DiffText
@@ -250,6 +255,7 @@ function M.create(args)
     ---@type CC.Diff
     {
       bufnr = args.bufnr,
+      ft = args.ft,
       hunks = {},
       range = { from = { 0, 0 }, to = { #args.from_lines - 1, 0 } },
       from = {
@@ -282,15 +288,16 @@ end
 
 ---Apply diff extmarks to a buffer
 ---@param diff CC.Diff
+---@param bufnr? number
 ---@return nil
-function M.apply(diff)
+function M.apply(diff, bufnr)
   local line_count = api.nvim_buf_line_count(diff.bufnr)
   if line_count == 0 then
     return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
   end
 
   if diff.should_offset then
-    api.nvim_buf_set_lines(diff.bufnr, 0, 0, false, { "" })
+    api.nvim_buf_set_lines(bufnr or diff.bufnr, 0, 0, false, { "" })
   end
 
   -- Apply the extmarks
@@ -303,7 +310,7 @@ function M.apply(diff)
         end
       end
 
-      pcall(api.nvim_buf_set_extmark, diff.bufnr, diff.namespace, extmark.row, extmark.col, opts)
+      pcall(api.nvim_buf_set_extmark, bufnr or diff.bufnr, diff.namespace, extmark.row, extmark.col, opts)
     end
   end
 end
