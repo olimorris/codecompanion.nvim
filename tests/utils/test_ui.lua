@@ -145,7 +145,6 @@ T["UI create_float Screenshots"]["Uses existing buffer with content overwrite (d
       filetype = "lua",
       title = "Debug Chat Info",
       style = "minimal",
-      show_dim = true,
     })
 
     -- Verify new content was set

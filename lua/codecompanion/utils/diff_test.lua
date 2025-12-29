@@ -177,7 +177,7 @@ function M.run_visual_test(test_num)
   local helpers = require("codecompanion.helpers")
   local diff_id = math.random(10000000)
 
-  local diff_obj, bufnr, winnr = helpers.show_diff({
+  local diff_ui = helpers.show_diff({
     from_lines = before_lines,
     to_lines = after_lines,
     ft = test_case.filetype,
@@ -186,14 +186,14 @@ function M.run_visual_test(test_num)
   })
 
   -- Add keymaps for cycling through test cases
-  local keymap_opts = { buffer = bufnr, silent = true, nowait = true }
+  local keymap_opts = { buffer = diff_ui.bufnr, silent = true, nowait = true }
 
   vim.keymap.set("n", "n", function()
     local next_test = test_num % #M.test_cases + 1
     local Diff = require("codecompanion.diff")
-    Diff.clear(diff_obj)
-    if vim.api.nvim_win_is_valid(winnr) then
-      vim.api.nvim_win_close(winnr, true)
+    Diff.clear(diff_ui.diff)
+    if vim.api.nvim_win_is_valid(diff_ui.winnr) then
+      vim.api.nvim_win_close(diff_ui.winnr, true)
     end
     M.run_visual_test(next_test)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Next test case" }))
@@ -201,9 +201,9 @@ function M.run_visual_test(test_num)
   vim.keymap.set("n", "p", function()
     local prev_test = test_num == 1 and #M.test_cases or test_num - 1
     local Diff = require("codecompanion.diff")
-    Diff.clear(diff_obj)
-    if vim.api.nvim_win_is_valid(winnr) then
-      vim.api.nvim_win_close(winnr, true)
+    Diff.clear(diff_ui.diff)
+    if vim.api.nvim_win_is_valid(diff_ui.winnr) then
+      vim.api.nvim_win_close(diff_ui.winnr, true)
     end
     M.run_visual_test(prev_test)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Previous test case" }))
@@ -242,7 +242,7 @@ function M.run_visual_test(test_num)
     end,
   })
 
-  return diff_obj
+  return diff_ui
 end
 
 return M

@@ -29,14 +29,20 @@ end
 
 ---Show instructions for diff interaction
 ---@param bufnr number
----@param namespace number
+---@param opts {namespace: number, line?: number, clear?: boolean}
 ---@return nil
-local function show_keymaps(bufnr, namespace)
+local function show_keymaps(bufnr, opts)
+  local namespace = "codecompanion_diff_ui_" .. tostring(opts.namespace)
+
   local always_accept = config.interactions.inline.keymaps.always_accept.modes.n
   local accept = config.interactions.inline.keymaps.accept_change.modes.n
   local reject = config.interactions.inline.keymaps.reject_change.modes.n
   local next_hunk = config.interactions.inline.keymaps.next_hunk.modes.n
   local previous_hunk = config.interactions.inline.keymaps.previous_hunk.modes.n
+
+  if opts.clear then
+    ui_utils.clear_notification(bufnr, { namespace = namespace })
+  end
 
   ui_utils.show_buffer_notification(bufnr, {
     text = string.format(
@@ -48,8 +54,8 @@ local function show_keymaps(bufnr, namespace)
       previous_hunk
     ),
     main_hl = "CodeCompanionChatSubtext",
-    line = 0,
-    namespace = "codecompanion_diff_ui_" .. namespace,
+    line = opts.line or 0,
+    namespace = namespace,
   })
 end
 
@@ -59,29 +65,35 @@ function DiffUI:next_hunk(line)
   for _, hunk in ipairs(self.diff.hunks) do
     local hunk_line = hunk.pos[1] + 1
     if hunk_line > line then
+      show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = hunk_line - 2 })
       return ui_utils.scroll_to_line(self.bufnr, hunk_line)
     end
   end
 
   if #self.diff.hunks > 0 then
-    ui_utils.scroll_to_line(self.bufnr, self.diff.hunks[1].pos[1] + 1)
+    line = self.diff.hunks[1].pos[1] + 1
+    show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = line - 2 })
+    ui_utils.scroll_to_line(self.bufnr, line)
   end
 end
 
 ---Navigate to previous hunk
 ---@param line number
 ---@return nil
-function DiffUI:prev_hunk(line)
+function DiffUI:previous_hunk(line)
   for i = #self.diff.hunks, 1, -1 do
     local hunk = self.diff.hunks[i]
     local hunk_line = hunk.pos[1] + 1
     if hunk_line < line then
+      show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = hunk_line - 2 })
       return ui_utils.scroll_to_line(self.bufnr, hunk_line)
     end
   end
 
   if #self.diff.hunks > 0 then
-    ui_utils.scroll_to_line(self.bufnr, self.diff.hunks[#self.diff.hunks].pos[1] + 1)
+    line = self.diff.hunks[#self.diff.hunks].pos[1] + 1
+    show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = line - 2 })
+    ui_utils.scroll_to_line(self.bufnr, line)
   end
 end
 
@@ -149,7 +161,7 @@ function M.show(diff, opts)
   -- Apply diff extmarks
   local Diff = require("codecompanion.diff")
   Diff.apply(diff, bufnr)
-  show_keymaps(bufnr, diff.namespace)
+  show_keymaps(bufnr, { namespace = diff.namespace })
 
   -- Lock the buffer so the user can't make any changes
   vim.bo[bufnr].modified = false

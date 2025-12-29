@@ -23,7 +23,7 @@ function M.get_prompt_aliases()
 end
 
 ---Create and show a diff in a floating window
----@param args { from_lines: string[], to_lines: string[], ft: string, chat_bufnr?: number, title?: string, diff_id: number, width?: number, height?: number }
+---@param args { from_lines: string[], to_lines: string[], ft: string, chat_bufnr?: number, tool_name?: string, title?: string, diff_id: number }
 ---@return CC.Diff diff, number bufnr, number winnr
 function M.show_diff(args)
   local bufnr = vim.api.nvim_create_buf(false, true)
@@ -38,12 +38,11 @@ function M.show_diff(args)
   })
 
   local diff_ui = require("codecompanion.diff.ui")
-  local bufnr, winnr = diff_ui.show(diff_obj, {
-    chat_bufnr = args.chat_bufnr,
+  return diff_ui.show(diff_obj, {
     diff_id = args.diff_id,
+    chat_bufnr = args.chat_bufnr,
+    tool_name = args.tool_name,
   })
-
-  return diff_obj, bufnr, winnr
 end
 
 return M

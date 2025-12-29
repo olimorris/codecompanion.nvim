@@ -38,7 +38,7 @@ end
 M.always_accept = {
   desc = "Always accept changes from this chat buffer",
   callback = function(diff_ui)
-    log:trace("[Diff] Accepting diff for id=%s", tostring(diff_ui.diff_id))
+    log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
     notify(diff_ui.diff_id, true)
 
     local approvals = require("codecompanion.interactions.chat.tools.approvals")
@@ -55,7 +55,7 @@ M.always_accept = {
 M.accept_change = {
   desc = "Accept all changes",
   callback = function(diff_ui)
-    log:trace("[Diff] Accepting diff for id=%s", tostring(diff_ui.diff_id))
+    log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
     notify(diff_ui.diff_id, true)
 
     local Diff = require("codecompanion.diff")
@@ -69,7 +69,7 @@ M.accept_change = {
 M.reject_change = {
   desc = "Reject all changes",
   callback = function(diff_ui)
-    log:trace("[Diff] Rejecting diff for id=%s", tostring(diff_ui.diff_id))
+    log:trace("[Diff] Rejecting diff for id=%s", diff_ui.diff_id)
     notify(diff_ui.diff_id, false)
 
     local Diff = require("codecompanion.diff")
@@ -83,7 +83,7 @@ M.reject_change = {
 M.close_window = {
   desc = "Close window and reject",
   callback = function(diff_ui)
-    log:trace("[Diff] Closing diff window for id=%s", tostring(diff_ui.diff_id))
+    log:trace("[Diff] Closing diff window for id=%s", diff_ui.diff_id)
     notify(diff_ui.diff_id, false, true)
 
     local Diff = require("codecompanion.diff")
@@ -102,11 +102,11 @@ M.next_hunk = {
   end,
 }
 
-M.prev_hunk = {
+M.previous_hunk = {
   desc = "Previous hunk",
   callback = function(diff_ui)
     local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
-    diff_ui:prev_hunk(cursor[1])
+    diff_ui:previous_hunk(cursor[1])
   end,
 }
 
