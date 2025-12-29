@@ -9,6 +9,8 @@ local M = {}
 ---@class CodeCompanion.DiffUI
 ---@field diff CC.Diff
 ---@field diff_id number
+---@field hunks number The total number of hunks in the diff
+---@field current_hunk number The current hunk index (1-based)
 ---@field bufnr number
 ---@field winnr number
 ---@field chat_bufnr? number If the diff has an associated chat buffer, pass in the chat buffer number
@@ -29,7 +31,7 @@ end
 
 ---Show instructions for diff interaction
 ---@param bufnr number
----@param opts {namespace: number, line?: number, overwrite?: boolean}
+---@param opts {current_hunk: number, hunks: number, namespace: number, line?: number, overwrite?: boolean}
 ---@return nil
 local function show_keymaps(bufnr, opts)
   local namespace = "codecompanion_diff_ui_" .. tostring(opts.namespace)
@@ -46,7 +48,9 @@ local function show_keymaps(bufnr, opts)
 
   ui_utils.show_buffer_notification(bufnr, {
     text = string.format(
-      "[%s] Always Accept | [%s] Accept | [%s] Reject | [%s]/[%s] Next/Prev hunks | [q] Close",
+      "(%d/%d)  [%s] Always Accept | [%s] Accept | [%s] Reject | [%s]/[%s] Next/Prev hunks | [q] Close",
+      opts.current_hunk or 1,
+      opts.hunks or 1,
       always_accept,
       accept,
       reject,
@@ -62,18 +66,33 @@ end
 ---Navigate to next hunk
 ---@param line number
 function DiffUI:next_hunk(line)
-  for _, hunk in ipairs(self.diff.hunks) do
+  for index, hunk in ipairs(self.diff.hunks) do
     local hunk_line = hunk.pos[1] + 1
     if hunk_line > line then
-      show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = hunk_line - 2 })
+      self.current_hunk = index
+      show_keymaps(self.bufnr, {
+        current_hunk = self.current_hunk,
+        hunks = self.hunks,
+        overwrite = true,
+        namespace = self.diff.namespace,
+        line = hunk_line - 2,
+      })
       return ui_utils.scroll_to_line(self.bufnr, hunk_line)
     end
   end
 
+  -- Wrap around to first hunk
   if #self.diff.hunks > 0 then
-    line = self.diff.hunks[1].pos[1] + 1
-    show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = line - 2 })
-    ui_utils.scroll_to_line(self.bufnr, line)
+    self.current_hunk = 1
+    local hunk_line = self.diff.hunks[1].pos[1] + 1
+    show_keymaps(self.bufnr, {
+      current_hunk = self.current_hunk,
+      hunks = self.hunks,
+      overwrite = true,
+      namespace = self.diff.namespace,
+      line = hunk_line - 2,
+    })
+    ui_utils.scroll_to_line(self.bufnr, hunk_line)
   end
 end
 
@@ -85,15 +104,30 @@ function DiffUI:previous_hunk(line)
     local hunk = self.diff.hunks[i]
     local hunk_line = hunk.pos[1] + 1
     if hunk_line < line then
-      show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = hunk_line - 2 })
+      self.current_hunk = i
+      show_keymaps(self.bufnr, {
+        current_hunk = self.current_hunk,
+        hunks = self.hunks,
+        overwrite = true,
+        namespace = self.diff.namespace,
+        line = hunk_line - 2,
+      })
       return ui_utils.scroll_to_line(self.bufnr, hunk_line)
     end
   end
 
+  -- Wrap around to last hunk
   if #self.diff.hunks > 0 then
-    line = self.diff.hunks[#self.diff.hunks].pos[1] + 1
-    show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = line - 2 })
-    ui_utils.scroll_to_line(self.bufnr, line)
+    self.current_hunk = #self.diff.hunks
+    local hunk_line = self.diff.hunks[#self.diff.hunks].pos[1] + 1
+    show_keymaps(self.bufnr, {
+      current_hunk = self.current_hunk,
+      hunks = self.hunks,
+      overwrite = true,
+      namespace = self.diff.namespace,
+      line = hunk_line - 2,
+    })
+    ui_utils.scroll_to_line(self.bufnr, hunk_line)
   end
 end
 
@@ -158,24 +192,26 @@ function M.show(diff, opts)
     title = opts.title or get_buf_name(diff.bufnr),
   })
 
-  -- Apply diff extmarks
-  local Diff = require("codecompanion.diff")
-  Diff.apply(diff, bufnr)
-  show_keymaps(bufnr, { namespace = diff.namespace })
-
-  -- Lock the buffer so the user can't make any changes
-  vim.bo[bufnr].modified = false
-  vim.bo[bufnr].modifiable = false
-
   ---@type CodeCompanion.DiffUI
   local diff_ui = setmetatable({
     diff = diff,
     diff_id = opts.diff_id or math.random(10000000),
+    hunks = #diff.hunks,
+    current_hunk = 1,
     bufnr = bufnr,
     winnr = winnr,
     chat_bufnr = opts.chat_bufnr,
     tool_name = opts.tool_name,
   }, DiffUI)
+
+  -- Apply diff extmarks
+  local Diff = require("codecompanion.diff")
+  Diff.apply(diff, bufnr)
+  show_keymaps(bufnr, { current_hunk = 1, hunks = #diff.hunks, namespace = diff.namespace })
+
+  -- Lock the buffer so the user can't make any changes
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].modifiable = false
 
   diff_ui:setup_keymaps()
 
