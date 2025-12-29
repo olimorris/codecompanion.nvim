@@ -29,7 +29,7 @@ end
 
 ---Show instructions for diff interaction
 ---@param bufnr number
----@param opts {namespace: number, line?: number, clear?: boolean}
+---@param opts {namespace: number, line?: number, overwrite?: boolean}
 ---@return nil
 local function show_keymaps(bufnr, opts)
   local namespace = "codecompanion_diff_ui_" .. tostring(opts.namespace)
@@ -40,7 +40,7 @@ local function show_keymaps(bufnr, opts)
   local next_hunk = config.interactions.inline.keymaps.next_hunk.modes.n
   local previous_hunk = config.interactions.inline.keymaps.previous_hunk.modes.n
 
-  if opts.clear then
+  if opts.overwrite then
     ui_utils.clear_notification(bufnr, { namespace = namespace })
   end
 
@@ -65,14 +65,14 @@ function DiffUI:next_hunk(line)
   for _, hunk in ipairs(self.diff.hunks) do
     local hunk_line = hunk.pos[1] + 1
     if hunk_line > line then
-      show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = hunk_line - 2 })
+      show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = hunk_line - 2 })
       return ui_utils.scroll_to_line(self.bufnr, hunk_line)
     end
   end
 
   if #self.diff.hunks > 0 then
     line = self.diff.hunks[1].pos[1] + 1
-    show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = line - 2 })
+    show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = line - 2 })
     ui_utils.scroll_to_line(self.bufnr, line)
   end
 end
@@ -85,14 +85,14 @@ function DiffUI:previous_hunk(line)
     local hunk = self.diff.hunks[i]
     local hunk_line = hunk.pos[1] + 1
     if hunk_line < line then
-      show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = hunk_line - 2 })
+      show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = hunk_line - 2 })
       return ui_utils.scroll_to_line(self.bufnr, hunk_line)
     end
   end
 
   if #self.diff.hunks > 0 then
     line = self.diff.hunks[#self.diff.hunks].pos[1] + 1
-    show_keymaps(self.bufnr, { clear = true, namespace = self.diff.namespace, line = line - 2 })
+    show_keymaps(self.bufnr, { overwrite = true, namespace = self.diff.namespace, line = line - 2 })
     ui_utils.scroll_to_line(self.bufnr, line)
   end
 end
