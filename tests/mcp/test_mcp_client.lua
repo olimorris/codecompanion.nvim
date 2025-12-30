@@ -364,4 +364,48 @@ T["MCP Client"]["roots list changed notification is sent when roots change"] = f
   end
 end
 
+T["MCP Client"]["transport closed automatically on initialization failure"] = function()
+  child.lua([[
+    TRANSPORT:expect_jsonrpc_call("initialize", function(params)
+      return "error", { code = -32603, message = "Initialization failed" }
+    end)
+
+    CLI = Client:new("testMcp", { cmd = { "test-mcp" } }, { new_transport = mock_new_transport })
+    CLI:start()
+    vim.wait(1000, function() return TRANSPORT:all_handlers_consumed() end)
+    vim.wait(1000, function() return not CLI.ready end)
+  ]])
+
+  h.is_false(child.lua_get("CLI.ready"))
+  h.is_false(child.lua_get("TRANSPORT:started()"))
+end
+
+T["MCP Client"]["stop() cleans up pending requests"] = function()
+  local call_result = child.lua([[
+    setup_default_initialization()
+    setup_tool_list()
+    start_client_and_wait_loaded()
+
+    -- initiate a SLOW tool call that won't respond before stop()
+    TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
+      return "result", { content = { { type = "text", text = "slow response" } } }
+    end, { latency_ms = 1000 })
+
+    local call_result
+    CLI:call_tool("echo", { value = "will be cancelled" }, function(ok, result_or_error)
+      call_result = { ok, result_or_error }
+    end)
+
+    vim.wait(50, function() return call_result ~= nil end)
+    CLI:stop()
+    vim.wait(1000, function() return call_result ~= nil end)
+    return call_result
+  ]])
+
+  h.is_false(child.lua_get("CLI.ready"))
+  h.is_false(child.lua_get("TRANSPORT:started()"))
+  h.is_false(call_result[1])
+  h.expect_contains("close", call_result[2])
+end
+
 return T

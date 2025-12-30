@@ -4,8 +4,12 @@ local log = require("codecompanion.utils.log")
 local tool_bridge = require("codecompanion.mcp.tool_bridge")
 local utils = require("codecompanion.utils")
 
--- We set a large but fixed limit on tools per server to avoid infinite pagination loops
-local MAX_TOOLS_PER_SERVER = 100
+-- Constants
+local constants = {
+  GRACEFUL_SHUTDOWN_TIMEOUT_MS = 3000, -- 3 seconds for graceful shutdown
+  SIGTERM_TIMEOUT_MS = 2000, -- 2 seconds after SIGTERM before SIGKILL
+  MAX_TOOLS_PER_SERVER = 100, -- Maximum tools per server to avoid infinite pagination
+}
 
 local JsonRpc = {
   ERROR_PARSE = -32700,
@@ -41,6 +45,7 @@ end
 ---@field start fun(self: CodeCompanion.MCP.Transport, on_line_read: fun(line: string), on_close: fun(err?: string))
 ---@field started fun(self: CodeCompanion.MCP.Transport): boolean
 ---@field write fun(self: CodeCompanion.MCP.Transport, lines?: string[])
+---@field stop fun(self: CodeCompanion.MCP.Transport)
 
 ---Default Transport implementation backed by vim.system
 ---@class CodeCompanion.MCP.StdioTransport : CodeCompanion.MCP.Transport
@@ -186,6 +191,42 @@ function StdioTransport:write(lines)
   self._proc:write(lines)
 end
 
+---Stop the MCP server process.
+function StdioTransport:stop()
+  if not self._proc then
+    return
+  end
+  log:debug("[MCP.%s] initiating graceful shutdown", self.name)
+
+  -- Step 1: Close stdin to signal the server to exit gracefully
+  local ok, err = pcall(function()
+    self._proc:write(nil) -- Close stdin
+  end)
+  if not ok then
+    log:warn("[MCP.%s] failed to close stdin: %s", self.name, err)
+  end
+
+  -- Step 2: Schedule SIGTERM if process doesn't exit within timeout
+  self.methods.defer_fn(function()
+    if self._proc then
+      log:warn("[MCP.%s] process did not exit gracefully, sending SIGTERM", self.name)
+      pcall(function()
+        self._proc:kill(vim.uv.constants.SIGTERM)
+      end)
+
+      -- Step 3: Schedule SIGKILL as last resort
+      self.methods.defer_fn(function()
+        if self._proc then
+          log:error("[MCP.%s] process still alive after SIGTERM, sending SIGKILL", self.name)
+          pcall(function()
+            self._proc:kill(vim.uv.constants.SIGKILL)
+          end)
+        end
+      end, constants.SIGTERM_TIMEOUT_MS)
+    end
+  end, constants.GRACEFUL_SHUTDOWN_TIMEOUT_MS)
+end
+
 ---@alias ServerRequestHandler fun(cli: CodeCompanion.MCP.Client, params: table<string, any>?): "result" | "error", table<string, any>
 ---@alias ResponseHandler fun(resp: MCP.JSONRPCResultResponse | MCP.JSONRPCErrorResponse)
 
@@ -253,6 +294,16 @@ function Client:start()
   self:_start_initialization()
 end
 
+---Stop the client.
+function Client:stop()
+  if not self.transport:started() then
+    return
+  end
+
+  log:info("[MCP.%s] stopping server", self.name)
+  self.transport:stop()
+end
+
 ---Start the MCP initialization procedure.
 function Client:_start_initialization()
   assert(self.transport:started(), "MCP Server process is not running.")
@@ -273,6 +324,7 @@ function Client:_start_initialization()
   }, function(resp)
     if resp.error then
       log:error("[MCP.%s] initialization failed: %s", self.name, resp)
+      self:stop()
       return
     end
     log:info("[MCP.%s] initialized successfully.", self.name)
@@ -563,7 +615,7 @@ function Client:refresh_tools()
 
       -- pagination handling
       local next_cursor = resp.result and resp.result.nextCursor
-      if next_cursor and #all_tools >= MAX_TOOLS_PER_SERVER then
+      if next_cursor and #all_tools >= constants.MAX_TOOLS_PER_SERVER then
         log:warn("[MCP.%s] returned too many tools (%d), stop further loading", self.name, #all_tools)
       elseif next_cursor then
         log:info("[MCP.%s] loading more tools with cursor: %s", self.name, next_cursor)

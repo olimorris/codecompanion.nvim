@@ -30,7 +30,7 @@ end
 function MockMCPClientTransport:write(lines)
   assert(self._started, "Transport not started")
   if lines == nil then
-    self:close()
+    self:stop()
     return
   end
   vim.schedule(function()
@@ -152,9 +152,18 @@ function MockMCPClientTransport:all_handlers_consumed()
   return #self._line_handlers == 0
 end
 
-function MockMCPClientTransport:close()
-  self._started = false
-  self._on_close()
+function MockMCPClientTransport:stop()
+  vim.schedule(function()
+    self._started = false
+    self._on_close()
+  end)
+end
+
+function MockMCPClientTransport:expect_transport_stop()
+  return self:expect_client_write_line(function(line)
+    assert(line == nil, "Expected transport to be stopped")
+    return false
+  end)
 end
 
 return MockMCPClientTransport
