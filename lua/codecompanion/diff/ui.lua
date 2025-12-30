@@ -7,14 +7,15 @@ local api = vim.api
 local M = {}
 
 ---@class CodeCompanion.DiffUI
+---@field bufnr number
+---@field chat_bufnr? number If the diff has an associated chat buffer, pass in the chat buffer number
+---@field current_hunk number The current hunk index (1-based)
 ---@field diff CC.Diff
 ---@field diff_id number
 ---@field hunks number The total number of hunks in the diff
----@field current_hunk number The current hunk index (1-based)
----@field bufnr number
----@field winnr number
----@field chat_bufnr? number If the diff has an associated chat buffer, pass in the chat buffer number
+---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string If the diff is associated with a tool, pass in the tool name
+---@field winnr number
 local DiffUI = {}
 DiffUI.__index = DiffUI
 
@@ -48,7 +49,7 @@ local function show_keymaps(bufnr, opts)
 
   ui_utils.show_buffer_notification(bufnr, {
     text = string.format(
-      "(%d/%d)  [%s] Always Accept | [%s] Accept | [%s] Reject | [%s]/[%s] Next/Prev hunks | [q] Close",
+      "[%d/%d]  %s Always Accept | %s Accept | %s Reject | %s/%s Next/Prev hunks | q Close",
       opts.current_hunk or 1,
       opts.hunks or 1,
       always_accept,
@@ -66,6 +67,10 @@ end
 ---Navigate to next hunk
 ---@param line number
 function DiffUI:next_hunk(line)
+  if self.hunks == 1 then
+    return
+  end
+
   for index, hunk in ipairs(self.diff.hunks) do
     local hunk_line = hunk.pos[1] + 1
     if hunk_line > line then
@@ -100,6 +105,10 @@ end
 ---@param line number
 ---@return nil
 function DiffUI:previous_hunk(line)
+  if self.hunks == 1 then
+    return
+  end
+
   for i = #self.diff.hunks, 1, -1 do
     local hunk = self.diff.hunks[i]
     local hunk_line = hunk.pos[1] + 1
@@ -179,6 +188,8 @@ function M.show(diff, opts)
 
   local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window, config.display.chat.diff_window or {})
 
+  local title = opts.title or get_buf_name(diff.bufnr)
+
   local bufnr, winnr = ui_utils.create_float(diff.to.lines, {
     window = {
       width = cfg.width,
@@ -189,19 +200,20 @@ function M.show(diff, opts)
     col = cfg.col,
     filetype = diff.ft or "text",
     ignore_keymaps = true,
-    title = opts.title or get_buf_name(diff.bufnr),
+    title = " " .. title .. " ",
   })
 
   ---@type CodeCompanion.DiffUI
   local diff_ui = setmetatable({
+    bufnr = bufnr,
+    chat_bufnr = opts.chat_bufnr,
+    current_hunk = 1,
     diff = diff,
     diff_id = opts.diff_id or math.random(10000000),
     hunks = #diff.hunks,
-    current_hunk = 1,
-    bufnr = bufnr,
-    winnr = winnr,
-    chat_bufnr = opts.chat_bufnr,
     tool_name = opts.tool_name,
+    resolved = false,
+    winnr = winnr,
   }, DiffUI)
 
   -- Apply diff extmarks

@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -18,28 +19,19 @@ local function clear_map(keymaps, bufnr)
   end
 end
 
----Fire diff decision event
----@param diff_id number
----@param accepted boolean
----@param timeout? boolean
----@return nil
-local function notify(diff_id, accepted, timeout)
-  local event_name = accepted and "CodeCompanionDiffAccepted" or "CodeCompanionDiffRejected"
-  api.nvim_exec_autocmds("User", {
-    pattern = event_name,
-    data = {
-      diff_id = diff_id,
-      accepted = accepted,
-      timeout = timeout or false,
-    },
-  })
-end
-
 M.always_accept = {
   desc = "Always accept changes from this chat buffer",
   callback = function(diff_ui)
+    -- There might be an edge case where a user has made a decision on the diff
+    -- and the window has then closed, causing `WinClosed` to fire. So we put
+    -- a guard here to check for this and repeat across all the keymaps.
+    if diff_ui.resolved then
+      return
+    end
+    diff_ui.resolved = true
+
     log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
-    notify(diff_ui.diff_id, true)
+    utils.fire("DiffAccepted", { id = diff_ui.diff_id })
 
     local approvals = require("codecompanion.interactions.chat.tools.approvals")
     approvals:always(diff_ui.chat_bufnr, diff_ui.tool_name)
@@ -55,8 +47,13 @@ M.always_accept = {
 M.accept_change = {
   desc = "Accept all changes",
   callback = function(diff_ui)
+    if diff_ui.resolved then
+      return
+    end
+    diff_ui.resolved = true
+
     log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
-    notify(diff_ui.diff_id, true)
+    utils.fire("DiffAccepted", { id = diff_ui.diff_id })
 
     local Diff = require("codecompanion.diff")
     Diff.clear(diff_ui.diff)
@@ -69,8 +66,13 @@ M.accept_change = {
 M.reject_change = {
   desc = "Reject all changes",
   callback = function(diff_ui)
+    if diff_ui.resolved then
+      return
+    end
+    diff_ui.resolved = true
+
     log:trace("[Diff] Rejecting diff for id=%s", diff_ui.diff_id)
-    notify(diff_ui.diff_id, false)
+    utils.fire("DiffRejected", { id = diff_ui.diff_id })
 
     local Diff = require("codecompanion.diff")
     Diff.clear(diff_ui.diff)
@@ -83,8 +85,13 @@ M.reject_change = {
 M.close_window = {
   desc = "Close window and reject",
   callback = function(diff_ui)
+    if diff_ui.resolved then
+      return
+    end
+    diff_ui.resolved = true
+
     log:trace("[Diff] Closing diff window for id=%s", diff_ui.diff_id)
-    notify(diff_ui.diff_id, false, true)
+    utils.fire("DiffRejected", { id = diff_ui.diff_id })
 
     local Diff = require("codecompanion.diff")
     Diff.clear(diff_ui.diff)

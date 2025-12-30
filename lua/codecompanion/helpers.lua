@@ -39,8 +39,9 @@ function M.show_diff(args)
 
   local diff_ui = require("codecompanion.diff.ui")
   return diff_ui.show(diff_obj, {
-    diff_id = args.diff_id,
     chat_bufnr = args.chat_bufnr,
+    diff_id = args.diff_id,
+    title = args.title,
     tool_name = args.tool_name,
   })
 end

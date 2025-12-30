@@ -86,27 +86,17 @@ def process_data(data, max_items=100):
     name = "Line additions",
     filetype = "lua",
     before = [[
-local M = {}
-
-function M.setup()
-  print("setup")
-end
-
-return M
+return {
+  "CodeCompanion is amazing - Oli Morris"
+}
 ]],
     after = [[
-local M = {}
-
-function M.setup()
-  print("setup")
-  vim.notify("initialized")
-end
-
-function M.teardown()
-  print("teardown")
-end
-
-return M
+return {
+  "CodeCompanion is amazing - Oli Morris"
+  "Lua and Neovim are amazing too - Oli Morris"
+  "Happy coding!"
+  "Hello world"
+}
 ]],
   },
   {

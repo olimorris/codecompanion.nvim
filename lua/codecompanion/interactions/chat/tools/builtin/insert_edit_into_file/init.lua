@@ -48,7 +48,6 @@ local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
-local diff = require("codecompanion.interactions.chat.helpers.diff")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
@@ -151,24 +150,19 @@ local function restore_file_content(path, content, file_info)
 end
 
 ---Handle user decision for edits with diff approval
----@param opts table Options containing: diff_id, chat_bufnr, display_name, should_diff, success_response, output_handler, bufnr (optional), on_reject (optional for files)
+---@param opts table Options containing: diff_id, chat_bufnr, display_name, diff_ui, success_response, output_handler, bufnr (optional), on_reject (optional for files)
 ---@return any Result of output_handler call
 local function handle_user_decision(opts)
-  local accept = config.interactions.inline.keymaps.accept_change.modes.n
-  local reject = config.interactions.inline.keymaps.reject_change.modes.n
-  local is_buffer = opts.bufnr ~= nil
-
   local wait_opts = {
     chat_bufnr = opts.chat_bufnr,
-    notify = config.display.icons.warning
-      .. (is_buffer and " Waiting for diff approval ..." or " Waiting for decision ..."),
-    sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
+    notify = config.display.icons.warning .. " Waiting for diff approval ...",
+    sub_text = "Review changes in the diff window",
   }
 
   return wait.for_decision(opts.diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
     local response
     if result.accepted then
-      if is_buffer then
+      if opts.bufnr then
         pcall(function()
           api.nvim_buf_call(opts.bufnr, function()
             vim.cmd("silent! w")
@@ -180,10 +174,7 @@ local function handle_user_decision(opts)
       return opts.output_handler(response)
     else
       get_rejection_reason(function(reason)
-        if is_buffer then
-          if result.timeout and opts.should_diff and opts.should_diff.reject then
-            opts.should_diff:reject()
-          end
+        if opts.bufnr then
           response = error_response(
             result.timeout and "User failed to accept the edits in time"
               or fmt('User rejected the edits for `%s`, with the reason "%s"', opts.display_name, reason)
@@ -201,9 +192,6 @@ local function handle_user_decision(opts)
               )
             )
           else
-            if result.timeout and opts.should_diff and opts.should_diff.reject then
-              opts.should_diff:reject()
-            end
             response = error_response(
               result.timeout and "User failed to accept the edits in time"
                 or fmt('User rejected the edits for `%s`, with the reason "%s"', opts.display_name, reason)
@@ -793,20 +781,31 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   local diff_id = math.random(10000000)
-  local should_diff = diff.create(path, diff_id, {
+  local from_lines = vim.split(current_content, "\n", { plain = true })
+  local to_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
+
+  -- Detect filetype from path
+  local ft = vim.filetype.match({ filename = path }) or "text"
+
+  local diff_helpers = require("codecompanion.helpers")
+  local diff_ui = diff_helpers.show_diff({
+    from_lines = from_lines,
+    to_lines = to_lines,
+    ft = ft,
+    title = action.filepath,
+    diff_id = diff_id,
     chat_bufnr = chat_bufnr,
-    original_content = vim.split(current_content, "\n", { plain = true }),
     tool_name = "insert_edit_into_file",
   })
 
   local final_success = success_response(fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)))
 
-  if should_diff and opts.require_confirmation_after then
+  if opts.require_confirmation_after then
     return handle_user_decision({
       diff_id = diff_id,
       chat_bufnr = chat_bufnr,
       display_name = action.filepath,
-      should_diff = should_diff,
+      diff_ui = diff_ui,
       success_response = final_success,
       on_reject = function()
         return restore_file_content(path, current_content, file_info)
@@ -900,28 +899,26 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     return output_handler(success)
   end
 
-  local should_diff = diff.create(bufnr, diff_id, {
+  local ft = vim.bo[bufnr].filetype or "text"
+
+  local diff_helpers = require("codecompanion.helpers")
+  local diff_ui = diff_helpers.show_diff({
     chat_bufnr = chat_bufnr,
-    original_content = original_content,
+    from_lines = original_content,
+    to_lines = final_lines,
+    ft = ft,
+    title = display_name,
+    diff_id = diff_id,
     tool_name = "insert_edit_into_file",
   })
 
-  local start_line = nil
-  if dry_run_result.edit_results[1] and dry_run_result.edit_results[1].start_line then
-    start_line = dry_run_result.edit_results[1].start_line
-  end
-
-  if start_line then
-    ui_utils.scroll_to_line(bufnr, start_line)
-  end
-
-  if should_diff and opts.require_confirmation_after then
+  if opts.require_confirmation_after then
     return handle_user_decision({
       diff_id = diff_id,
       chat_bufnr = chat_bufnr,
       display_name = display_name,
       bufnr = bufnr,
-      should_diff = should_diff,
+      diff_ui = diff_ui,
       success_response = success,
       output_handler = output_handler,
     })
