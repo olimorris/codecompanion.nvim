@@ -44,10 +44,9 @@ file boundaries (start/end), and complete file overwrites.
 
 local Path = require("plenary.path")
 
-local approvals = require("codecompanion.interactions.chat.tools.approvals")
-local codecompanion = require("codecompanion")
+local Approvals = require("codecompanion.interactions.chat.tools.approvals")
+local Constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
 local config = require("codecompanion.config")
-local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
@@ -148,7 +147,6 @@ local function handle_approval(opts)
           end)
         end)
       end
-      codecompanion.restore(opts.chat_bufnr)
       return opts.output_handler(mk_response("success", opts.success_msg))
     end
 
@@ -168,7 +166,6 @@ local function handle_approval(opts)
         end
       end
 
-      codecompanion.restore(opts.chat_bufnr)
       return opts.output_handler(mk_response("error", msg))
     end)
   end, wait_opts)
@@ -333,18 +330,18 @@ end
 ---@param edits table[]
 ---@return table[], table[]
 local function separate_edits(edits)
-  local substring = {}
-  local block = {}
+  local block_edits = {}
+  local substring_edits = {}
 
   for i, edit in ipairs(edits) do
     if edit.replaceAll and edit.oldText and not edit.oldText:find("\n") then
-      table.insert(substring, { edit = edit, original_index = i })
+      table.insert(substring_edits, { edit = edit, original_index = i })
     else
-      table.insert(block, { edit = edit, original_index = i })
+      table.insert(block_edits, { edit = edit, original_index = i })
     end
   end
 
-  return substring, block
+  return substring_edits, block_edits
 end
 
 ---Extract explanation from action (top level or fallback to first edit)
@@ -362,13 +359,12 @@ end
 
 ---Process substring replaceAll edits in parallel to avoid overlaps
 ---@param content string
----@param substring_edits table[]
----@return string|nil
----@return string|nil
-local function process_substring_edits_parallel(content, substring_edits)
-  local all_replacements = {}
+---@param edits table[]
+---@return string|nil content, string|nil error
+local function process_substring_edits(content, edits)
+  local replacements = {}
 
-  for i, edit in ipairs(substring_edits) do
+  for i, edit in ipairs(edits) do
     local matches = strategies.substring_exact_match(content, edit.oldText)
 
     if #matches == 0 then
@@ -376,7 +372,7 @@ local function process_substring_edits_parallel(content, substring_edits)
     end
 
     for _, match in ipairs(matches) do
-      table.insert(all_replacements, {
+      table.insert(replacements, {
         start_pos = match.start_pos,
         end_pos = match.end_pos,
         old_text = edit.oldText,
@@ -386,51 +382,55 @@ local function process_substring_edits_parallel(content, substring_edits)
     end
   end
 
-  table.sort(all_replacements, function(a, b)
+  table.sort(replacements, function(a, b)
     return a.start_pos > b.start_pos
   end)
 
-  local result_content = content
-  for _, replacement in ipairs(all_replacements) do
-    local before = result_content:sub(1, replacement.start_pos - 1)
-    local after = result_content:sub(replacement.end_pos + 1)
-    result_content = before .. replacement.new_text .. after
+  for _, replacement in ipairs(replacements) do
+    local before = content:sub(1, replacement.start_pos - 1)
+    local after = content:sub(replacement.end_pos + 1)
+    content = before .. replacement.new_text .. after
   end
 
-  return result_content, nil
+  return content, nil
+end
+
+---Extract edit objects from their wrapper structures
+---@param edits table[] Array of {edit: table, original_index: number} wrappers
+---@return table[] Array of unwrapped edit objects
+local function unwrap(edits)
+  return vim.tbl_map(function(item)
+    return item.edit
+  end, edits)
 end
 
 ---Apply substring edits in parallel and record results
 ---@param content string
----@param substring_edits table[]
----@return string|nil new_content, table|nil error_result
-local function apply_substring_edits(content, substring_edits)
-  local substring_edit_list = vim.tbl_map(function(item)
-    return item.edit
-  end, substring_edits)
+---@param edits table[]
+---@return string|nil content, table|nil error
+local function apply_substring_edits(content, edits)
+  local edited_content, error = process_substring_edits(content, unwrap(edits))
 
-  local new_content, error_result = process_substring_edits_parallel(content, substring_edit_list)
-
-  if error_result then
+  if error then
     return nil,
       {
-        success = false,
         error = "substring_parallel_processing_failed",
-        message = error_result,
+        message = error,
+        success = false,
       }
   end
 
-  return new_content, nil
+  return edited_content, nil
 end
 
 ---Create result entries for substring edits
----@param substring_edits table[]
+---@param edits table[]
 ---@return table[] results, table[] strategies
-local function create_substring_results(substring_edits)
+local function create_substring_results(edits)
   local results = {}
-  local match_strategies = {}
+  local selected_strategy = {}
 
-  for _, item in ipairs(substring_edits) do
+  for _, item in ipairs(edits) do
     table.insert(results, {
       edit_index = item.original_index,
       strategy = "substring_exact_match_parallel",
@@ -438,10 +438,10 @@ local function create_substring_results(substring_edits)
       selection_reason = "parallel_processing",
       auto_selected = true,
     })
-    table.insert(match_strategies, "substring_exact_match_parallel")
+    table.insert(selected_strategy, "substring_exact_match_parallel")
   end
 
-  return results, match_strategies
+  return results, selected_strategy
 end
 
 ---Handle special cases (empty file, overwrite mode)
@@ -453,7 +453,7 @@ local function handle_special_cases(content, edits, opts)
   if content == "" and #edits == 1 and (edits[1].oldText == "" or edits[1].oldText == nil) then
     return {
       success = true,
-      final_content = edits[1].newText,
+      content = edits[1].newText,
       edit_results = {
         {
           edit_index = 1,
@@ -463,14 +463,14 @@ local function handle_special_cases(content, edits, opts)
           auto_selected = true,
         },
       },
-      strategies_used = { "empty_file_append" },
+      strategies = { "empty_file_append" },
     }
   end
 
   if opts.mode == "overwrite" and #edits >= 1 then
     return {
       success = true,
-      final_content = edits[1].newText,
+      content = edits[1].newText,
       edit_results = {
         {
           edit_index = 1,
@@ -480,7 +480,7 @@ local function handle_special_cases(content, edits, opts)
           auto_selected = true,
         },
       },
-      strategies_used = { "overwrite_mode" },
+      strategies = { "overwrite_mode" },
     }
   end
 
@@ -550,7 +550,7 @@ end
 ---@param content string
 ---@param partial_results table[]
 ---@param opts table
----@return string|nil new_content, table|nil error_result, table|nil result_info
+---@return string|nil new_content, table|nil error, table|nil result_info
 local function process_single_edit(edit, index, content, partial_results, opts)
   local validation_error = validate_edit_fields(edit, index, content, opts, partial_results)
   if validation_error then
@@ -608,59 +608,59 @@ end
 ---@return table
 local function process_edits(content, edits, opts)
   opts = opts or {}
-  local current_content = content
-  local results = {}
-  local strategies_used = {}
 
-  local substring_edits, block_edits = separate_edits(edits)
+  local selected_strategies = {}
+  local block_edits = {}
 
-  if #substring_edits > 0 then
-    local new_content, error_result = apply_substring_edits(current_content, substring_edits)
-    if error_result then
-      return error_result
+  edits, block_edits = separate_edits(edits)
+
+  if #edits > 0 then
+    local edited_content, error = apply_substring_edits(content, edits)
+    if error then
+      return error
     end
 
-    current_content = new_content --[[@as string]]
-    local substring_results, substring_strategies = create_substring_results(substring_edits)
-    vim.list_extend(results, substring_results)
-    vim.list_extend(strategies_used, substring_strategies)
+    content = edited_content --[[@as string]]
+    local results, strategy_results = create_substring_results(edits)
+    vim.list_extend(results, results)
+    vim.list_extend(selected_strategies, strategy_results)
   end
 
-  local unwrapped_block_edits = vim.tbl_map(function(item)
-    return item.edit
-  end, block_edits)
+  local block_list = unwrap(block_edits)
 
-  local special_result = handle_special_cases(current_content, unwrapped_block_edits, opts)
-  if special_result then
-    return special_result
+  local special_cases = handle_special_cases(content, block_list, opts)
+  if special_cases then
+    return special_cases
   end
 
-  local conflict_result = check_for_conflicts(current_content, unwrapped_block_edits, opts)
-  if conflict_result then
-    return conflict_result
+  local conflicts = check_for_conflicts(content, block_list, opts)
+  if conflicts then
+    return conflicts
   end
+
+  local results = {}
 
   for _, edit_wrapper in ipairs(block_edits) do
     local edit = edit_wrapper.edit
     local original_index = edit_wrapper.original_index
-    local new_content, error_result, result_info =
-      process_single_edit(edit, original_index, current_content, results, opts)
+    local edited_content, error, result_info = process_single_edit(edit, original_index, content, results, opts)
 
-    if error_result then
-      return error_result
+    if error then
+      return error
     end
 
-    current_content = new_content--[[@as string]]
+    content = edited_content--[[@as string]]
     table.insert(results, result_info)
+
     ---@diagnostic disable-next-line: need-check-nil
-    table.insert(strategies_used, result_info.strategy)
+    table.insert(selected_strategies, result_info.strategy)
   end
 
   return {
     success = true,
-    final_content = current_content,
+    content = content,
     edit_results = results,
-    strategies_used = strategies_used,
+    strategies = selected_strategies,
   }
 end
 
@@ -688,35 +688,35 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     end
   end
 
-  if #current_content > constants.LIMITS.FILE_SIZE_MAX then
+  if #current_content > Constants.LIMITS.FILE_SIZE_MAX then
     return output_handler(
       mk_response(
         "error",
         fmt(
           "Error: File too large (%d bytes). Maximum supported size is %d bytes.",
           #current_content,
-          constants.LIMITS.FILE_SIZE_MAX
+          Constants.LIMITS.FILE_SIZE_MAX
         )
       )
     )
   end
 
-  local dry_run_result = process_edits(current_content, action.edits, {
+  local dry_run = process_edits(current_content, action.edits, {
     dry_run = true,
     path = path,
     file_info = file_info,
     mode = action.mode,
   })
 
-  if not dry_run_result.success then
-    local error_message = match_selector.format_helpful_error(dry_run_result, action.edits)
+  if not dry_run.success then
+    local error_message = match_selector.format_helpful_error(dry_run, action.edits)
     return output_handler(mk_response("error", error_message))
   end
 
   local strategies_summary = table.concat(
     vim.tbl_map(function(strategy)
       return strategy:gsub("_", " ")
-    end, dry_run_result.strategies_used),
+    end, dry_run.strategies),
     ", "
   )
 
@@ -739,13 +739,13 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     )
   end
 
-  local write_ok, write_err = write_file(path, dry_run_result.final_content, file_info)
+  local write_ok, write_err = write_file(path, dry_run.content, file_info)
   if not write_ok then
     return output_handler(mk_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
   end
 
   -- If the tool has been approved then skip showing the diff
-  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+  if Approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     return output_handler(
       mk_response("success", fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)))
     )
@@ -753,7 +753,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   local diff_id = math.random(10000000)
   local from_lines = vim.split(current_content, "\n", { plain = true })
-  local to_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
+  local to_lines = vim.split(dry_run.content, "\n", { plain = true })
 
   -- Detect filetype from path
   local ft = vim.filetype.match({ filename = path }) or "text"
@@ -817,7 +817,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     end
   end
 
-  local dry_run_result = process_edits(current_content, action.edits, {
+  local dry_run = process_edits(current_content, action.edits, {
     dry_run = true,
     buffer = bufnr,
     file_info = file_info,
@@ -827,8 +827,8 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local buffer_name = api.nvim_buf_get_name(bufnr)
   local display_name = buffer_name ~= "" and vim.fn.fnamemodify(buffer_name, ":.") or fmt("buffer %d", bufnr)
 
-  if not dry_run_result.success then
-    local error_message = match_selector.format_helpful_error(dry_run_result, action.edits)
+  if not dry_run.success then
+    local error_message = match_selector.format_helpful_error(dry_run, action.edits)
     return output_handler(
       mk_response("error", fmt("Error processing edits for `%s`:\n%s", display_name, error_message))
     )
@@ -837,7 +837,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local strategies_summary = table.concat(
     vim.tbl_map(function(strategy)
       return strategy:gsub("_", " ")
-    end, dry_run_result.strategies_used),
+    end, dry_run.strategies),
     ", "
   )
 
@@ -860,13 +860,13 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     )
   end
 
-  local final_lines = vim.split(dry_run_result.final_content, "\n", { plain = true })
+  local final_lines = vim.split(dry_run.content, "\n", { plain = true })
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
   local success_msg = fmt("Edited `%s` buffer%s", display_name, extract_explanation(action))
 
   -- If the tool has been approved then skip showing the diff
-  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+  if Approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
