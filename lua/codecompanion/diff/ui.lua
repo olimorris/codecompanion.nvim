@@ -186,7 +186,8 @@ end
 function M.show(diff, opts)
   opts = opts or {}
 
-  local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window, config.display.chat.diff_window or {})
+  local cfg =
+    vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
 
   local title = opts.title or get_buf_name(diff.bufnr)
 
