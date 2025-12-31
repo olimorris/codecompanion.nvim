@@ -46,12 +46,12 @@ local Path = require("plenary.path")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
-local helpers = require("codecompanion.interactions.chat.helpers")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
 local wait = require("codecompanion.interactions.chat.helpers.wait")
 
-local buffers = require("codecompanion.utils.buffers")
+local buf_utils = require("codecompanion.utils.buffers")
+local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -664,7 +664,7 @@ end
 ---@param opts table|nil
 local function edit_file(action, chat_bufnr, output_handler, opts)
   opts = opts or {}
-  local path = helpers.validate_and_normalize_path(action.filepath)
+  local path = file_utils.validate_and_normalize_path(action.filepath)
 
   if not path then
     return output_handler(mk_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath)))
@@ -914,7 +914,7 @@ return {
         args = fixed_args
       end
 
-      local bufnr = buffers.get_bufnr_from_path(args.filepath)
+      local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
         return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
       else
@@ -989,7 +989,7 @@ return {
     ---@return boolean
     prompt_condition = function(self, tools)
       local args = self.args
-      local bufnr = buffers.get_bufnr_from_path(args.filepath)
+      local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
         if self.opts.require_approval_before and self.opts.require_approval_before.buffer then
           return true

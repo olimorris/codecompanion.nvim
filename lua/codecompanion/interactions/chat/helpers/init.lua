@@ -77,36 +77,6 @@ function M.has_user_messages(messages)
   end)
 end
 
----Validate and normalize a path from tool args
----@param path string Raw path from tool args
----@return string|nil normalized_path Returns nil if path is invalid
-function M.validate_and_normalize_path(path)
-  local stat = vim.uv.fs_stat(vim.fs.normalize(path))
-  if stat then
-    return vim.fs.normalize(path)
-  end
-  local abs_path = vim.fs.abspath(path)
-  local normalized_path = vim.fs.normalize(abs_path)
-  stat = vim.uv.fs_stat(normalized_path)
-  if stat then
-    return normalized_path
-  end
-  -- Check for duplicate CWD and fix it
-  local cwd = vim.fs.normalize(vim.uv.cwd())
-  if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
-    local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
-    fixed_path = vim.fs.normalize(fixed_path)
-    stat = vim.uv.fs_stat(fixed_path)
-    if stat then
-      return fixed_path
-    end
-  end
-
-  -- For non-existent files, still return the normalized path
-  -- This allows tracking files that may be created during tool execution
-  return normalized_path
-end
-
 ---Helper function to update the chat settings and model if changed
 ---@param chat CodeCompanion.Chat
 ---@param settings table The new settings to apply
