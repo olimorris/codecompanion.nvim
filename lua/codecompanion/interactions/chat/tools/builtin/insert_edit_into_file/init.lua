@@ -1,45 +1,28 @@
 --[[
-Main orchestration for the insert_edit_into_file tool
+===============================================================================
+    File:       codecompanion/interactions/chat/tools/builtin/insert_edit_into_file/init.lua
+-------------------------------------------------------------------------------
+    Description:
+      Main orchestration for the insert_edit_into_file tool.
 
-This tool enables LLMs to make deterministic file edits through function calling.
-It supports various edit operations: standard replacements, replace-all, substring matching,
-file boundaries (start/end), and complete file overwrites.
+      This tool enables LLMs to make deterministic file edits through function
+      calling. It supports various edit operations: standard replacements,
+      replace-all, substring matching, file boundaries (start/end), and
+      complete file overwrites.
 
-## Architecture Overview:
+      Key features:
+      - Atomic operations: all edits succeed or none are applied
+      - Smart matching with multiple fallback strategies
+      - Substring mode for efficient token/keyword replacement
+      - Handles whitespace differences and indentation variations
+      - Size limits: 2MB file, 50KB search text
 
-1. **Entry Point (insert_edit_into_file / edit_buffer)**:
-   - Separates edits into substring vs block/line types
-   - Applies changes only if all edits succeed (atomic operation)
-
-2. **Edit Processing (process_edits)**:
-   - Handles substring edits in parallel (replaceAll with no newlines)
-   - Processes block/line edits sequentially
-   - Each edit sees the result of previous edits
-   - Detects conflicting edits
-
-3. **Matching (strategies module)**:
-   - Tries multiple matching strategies with fallback
-   - Exact match → Whitespace normalized → Block anchor
-   - For replaceAll + no newlines: uses efficient substring matching
-   - Returns confidence scores for match selection
-
-4. **Error Handling (match_selector module)**:
-   - Generates helpful error messages with context
-   - Suggests fixes for common mistakes
-   - Shows similar matches when exact match fails
-
-## Key Features:
-- Atomic operations: all edits succeed or none are applied
-- Smart matching with multiple fallback strategies
-- Substring mode for efficient token/keyword replacement (max 1000)
-- Handles whitespace differences and indentation variations
-- Size limits: 2MB file, 50KB search text
-
-## Special Cases:
-- Empty files: oldText="" for initial content
-- File boundaries: oldText="^" (start) or "$" (end)
-- Deletions: newText=""
-- Complete replacement: mode="overwrite"
+      This code is licensed under the Apache-2.0 License.
+-------------------------------------------------------------------------------
+    Attribution:
+      If you use or distribute this code, please credit:
+      CodeCompanion.nvim
+===============================================================================
 --]]
 
 local Path = require("plenary.path")
@@ -54,7 +37,6 @@ local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
-local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
@@ -165,76 +147,43 @@ local function handle_approval(opts)
   end, wait_opts)
 end
 
----Parse Python-like JSON syntax from LLMs
----@param edits string
----@return string
-local function parse_python_json(edits)
-  -- Fix booleans before quote conversion to prevent 'True' → "True" string conversion
-  local fixed = edits
-
-  -- Capture trailing delimiters ([,%]}%s]) to preserve structure
-  fixed = fixed:gsub(":%s*True([,%]}%s])", ": true%1")
-  fixed = fixed:gsub(":%s*False([,%]}%s])", ": false%1")
-  fixed = fixed:gsub("^%s*True([,%]}%s])", "true%1")
-  fixed = fixed:gsub("^%s*False([,%]}%s])", "false%1")
-  fixed = fixed:gsub(":%s*True$", ": true")
-  fixed = fixed:gsub(":%s*False$", ": false")
-
-  -- LLMs often double-escape: convert \\n to actual newline character
-  fixed = fixed:gsub("\\\\n", "\n")
-  fixed = fixed:gsub("\\\\t", "\t")
-  fixed = fixed:gsub("\\\\r", "\r")
-  fixed = fixed:gsub("\\\\\\\\", "\\")
-
-  -- Convert Python-style single quotes to JSON double quotes while preserving escaped quotes
-  local result = {}
-  local i = 1
-  local in_string = false
-  local escape_next = false
-
-  while i <= #fixed do
-    local char = fixed:sub(i, i)
-
-    if escape_next then
-      -- Previous character was backslash
-      if char == "'" and in_string then
-        -- Escaped single quote inside string - convert to literal single quote
-        table.insert(result, "'")
-      else
-        -- Other escaped character - keep as-is
-        table.insert(result, char)
-      end
-      escape_next = false
-    elseif char == "\\" and in_string then
-      -- Escape character in string - check what's being escaped
-      local next_char = fixed:sub(i + 1, i + 1)
-      if next_char == "'" then
-        -- This is escaping a single quote, we'll handle it in next iteration
-        escape_next = true
-      else
-        -- Other escape sequence, keep the backslash
-        table.insert(result, char)
-      end
-    elseif char == '"' and in_string then
-      -- Double quote inside a single-quoted string - escape it
-      table.insert(result, '\\"')
-    elseif char == "'" and not in_string then
-      -- Starting a string, convert to double quote
-      table.insert(result, '"')
-      in_string = true
-    elseif char == "'" and in_string then
-      -- Ending a string, convert to double quote
-      table.insert(result, '"')
-      in_string = false
-    else
-      -- Regular character
-      table.insert(result, char)
-    end
-
-    i = i + 1
+---Show diff and handle approval flow for edits
+---@param opts table
+---@return any
+local function show_diff_and_handle_approval(opts)
+  if opts.approved or diff_enabled == false then
+    return opts.apply_fn()
   end
 
-  return table.concat(result)
+  -- Show diff for user review
+  local diff_id = math.random(10000000)
+  local diff_helpers = require("codecompanion.helpers")
+  diff_helpers.show_diff({
+    chat_bufnr = opts.chat_bufnr,
+    diff_id = diff_id,
+    ft = opts.ft,
+    from_lines = opts.from_lines,
+    to_lines = opts.to_lines,
+    title = opts.title,
+    tool_name = "insert_edit_into_file",
+  })
+
+  -- If confirmation required, wait for user decision
+  if opts.require_confirmation then
+    return handle_approval({
+      chat_bufnr = opts.chat_bufnr,
+      diff_id = diff_id,
+      name = opts.title,
+      success_msg = opts.success_msg,
+      output_handler = function()
+        opts.apply_fn()
+      end,
+      on_reject = opts.on_reject,
+    })
+  end
+
+  -- Otherwise apply immediately after showing diff
+  return opts.apply_fn()
 end
 
 ---Fix edits field if it's a string instead of a table (handles LLM JSON formatting issues)
@@ -283,7 +232,8 @@ local function fix_edits_if_needed(args)
   end
 
   -- FALLBACK: Try enhanced Python-like parser
-  local python_converted = parse_python_json(args.edits)
+  local tool_utils = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.utils")
+  local python_converted = tool_utils.parse_python_json(args.edits)
   if python_converted then
     success, parsed_edits = pcall(vim.json.decode, python_converted)
     if success and type(parsed_edits) == "table" then
@@ -480,9 +430,8 @@ end
 ---Check for conflicting edits
 ---@param content string
 ---@param edits table[]
----@param opts table
 ---@return table|nil
-local function check_for_conflicts(content, edits, opts)
+local function check_for_conflicts(content, edits)
   local conflicts = match_selector.detect_edit_conflicts(content, edits)
   if #conflicts > 0 then
     return {
@@ -621,7 +570,7 @@ local function process_edits(content, edits, opts)
     return special_cases
   end
 
-  local conflicts = check_for_conflicts(content, block_list, opts)
+  local conflicts = check_for_conflicts(content, block_list)
   if conflicts then
     return conflicts
   end
@@ -651,20 +600,20 @@ local function process_edits(content, edits, opts)
 end
 
 ---@param action table
----@param chat_bufnr number
----@param output_handler function
 ---@param opts table|nil
-local function edit_file(action, chat_bufnr, output_handler, opts)
+local function edit_file(action, opts)
   opts = opts or {}
   local path = file_utils.validate_and_normalize_path(action.filepath)
 
   if not path then
-    return output_handler(make_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath)))
+    return opts.output_handler(
+      make_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath))
+    )
   end
 
   local original_content, read_err, file_info = read_file(path)
   if not original_content then
-    return output_handler(make_response("error", read_err or "Unknown error reading file"))
+    return opts.output_handler(make_response("error", read_err or "Unknown error reading file"))
   end
 
   if type(action.edits) == "string" then
@@ -675,7 +624,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   if #original_content > constants.LIMITS.FILE_SIZE_MAX then
-    return output_handler(
+    return opts.output_handler(
       make_response(
         "error",
         fmt(
@@ -695,63 +644,33 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
   if not edit.success then
     local error_message = match_selector.format_helpful_error(edit, action.edits)
-    return output_handler(make_response("error", error_message))
+    return opts.output_handler(make_response("error", error_message))
   end
 
   local success_msg = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))
 
-  local function apply_edits()
-    local write_ok, write_err = write_file(path, edit.content, file_info)
-    if not write_ok then
-      output_handler(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
-      return
-    end
-    output_handler(make_response("success", success_msg))
-  end
-
-  local approved = approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" })
-  if approved or diff_enabled == false then
-    return apply_edits()
-  end
-
-  -- Show diff for user review
-  local diff_id = math.random(10000000)
-  local from_lines = vim.split(original_content, "\n", { plain = true })
-  local to_lines = vim.split(edit.content, "\n", { plain = true })
-  local ft = vim.filetype.match({ filename = path }) or "text"
-
-  local diff_helpers = require("codecompanion.helpers")
-  diff_helpers.show_diff({
-    chat_bufnr = chat_bufnr,
-    diff_id = diff_id,
-    ft = ft,
-    from_lines = from_lines,
-    to_lines = to_lines,
+  return show_diff_and_handle_approval({
+    from_lines = vim.split(original_content, "\n", { plain = true }),
+    to_lines = vim.split(edit.content, "\n", { plain = true }),
+    apply_fn = function()
+      local write_ok, write_err = write_file(path, edit.content, file_info)
+      if not write_ok then
+        return opts.output_handler(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
+      end
+      opts.output_handler(make_response("success", success_msg))
+    end,
+    approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
+    chat_bufnr = opts.chat_bufnr,
+    ft = vim.filetype.match({ filename = path }) or "text",
+    require_confirmation = opts.tool_opts.require_confirmation_after,
+    success_msg = success_msg,
     title = action.filepath,
-    tool_name = "insert_edit_into_file",
   })
-
-  if opts.require_confirmation_after then
-    return handle_approval({
-      chat_bufnr = chat_bufnr,
-      diff_id = diff_id,
-      name = action.filepath,
-      success_msg = success_msg,
-      output_handler = function()
-        apply_edits()
-      end,
-    })
-  end
-
-  return apply_edits()
 end
 
 ---@param bufnr number
----@param chat_bufnr number
----@param action table
----@param output_handler function
 ---@param opts table|nil
-local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
+local function edit_buffer(bufnr, opts)
   opts = opts or {}
 
   if not api.nvim_buf_is_loaded(bufnr) then
@@ -766,74 +685,49 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     is_empty = original_content == "",
   }
 
-  if type(action.edits) == "string" then
-    local ok, parsed = pcall(vim.json.decode, action.edits)
+  if type(opts.action.edits) == "string" then
+    local ok, parsed = pcall(vim.json.decode, opts.action.edits)
     if ok and type(parsed) == "table" then
-      action.edits = parsed
+      opts.action.edits = parsed
     end
   end
 
-  local edit = process_edits(original_content, action.edits, {
+  local edit = process_edits(original_content, opts.action.edits, {
     buffer = bufnr,
     file_info = file_info,
-    mode = action.mode,
+    mode = opts.action.mode,
   })
 
   local buffer_name = api.nvim_buf_get_name(bufnr)
   local display_name = buffer_name ~= "" and vim.fn.fnamemodify(buffer_name, ":.") or fmt("buffer %d", bufnr)
 
   if not edit.success then
-    local error_message = match_selector.format_helpful_error(edit, action.edits)
-    return output_handler(
+    local error_message = match_selector.format_helpful_error(edit, opts.action.edits)
+    return opts.output_handler(
       make_response("error", fmt("Error processing edits for `%s`:\n%s", display_name, error_message))
     )
   end
 
   local content = vim.split(edit.content, "\n", { plain = true })
-  local success_msg = fmt("Edited `%s` buffer%s", display_name, extract_explanation(action))
+  local success_msg = fmt("Edited `%s` buffer%s", display_name, extract_explanation(opts.action))
 
-  local function apply_edits()
-    api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd("silent write")
-    end)
-    output_handler(make_response("success", success_msg))
-  end
-
-  local approved = approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" })
-  if approved or diff_enabled == false then
-    return apply_edits()
-  end
-
-  local ft = vim.bo[bufnr].filetype or "text"
-
-  -- A user may want to see the diff even though they don't need to approve it
-  local diff_id = math.random(10000000)
-  local diff_helpers = require("codecompanion.helpers")
-  diff_helpers.show_diff({
-    chat_bufnr = chat_bufnr,
+  return show_diff_and_handle_approval({
     from_lines = vim.deepcopy(lines),
     to_lines = content,
-    ft = ft,
+    apply_fn = function()
+      api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
+      api.nvim_buf_call(bufnr, function()
+        vim.cmd("silent write")
+      end)
+      opts.output_handler(make_response("success", success_msg))
+    end,
+    approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
+    chat_bufnr = opts.chat_bufnr,
+    ft = vim.bo[bufnr].filetype or "text",
+    require_confirmation = opts.tool_opts.require_confirmation_after,
+    success_msg = success_msg,
     title = display_name,
-    diff_id = diff_id,
-    tool_name = "insert_edit_into_file",
   })
-
-  if opts.require_confirmation_after then
-    return handle_approval({
-      bufnr = bufnr,
-      chat_bufnr = chat_bufnr,
-      diff_id = diff_id,
-      name = display_name,
-      success_msg = success_msg,
-      output_handler = function()
-        apply_edits()
-      end,
-    })
-  end
-
-  return apply_edits()
 end
 
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
@@ -857,10 +751,15 @@ return {
 
       local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
-        return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
-      else
-        return edit_file(args, self.chat.bufnr, output_handler, self.tool.opts)
+        return edit_buffer(
+          bufnr,
+          { chat_bufnr = self.chat.bufnr, action = args, output_handler = output_handler, tool_opts = self.tool.opts }
+        )
       end
+      return edit_file(
+        args,
+        { chat_bufnr = self.chat.bufnr, output_handler = output_handler, tool_opts = self.tool.opts }
+      )
     end,
   },
   schema = {

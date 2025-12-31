@@ -14,7 +14,7 @@
       Background interactions must log or error silently so as not to impact
       the user experience.
 
-      This code is licensed under the MIT License.
+      This code is licensed under the Apache-2.0 License.
 -------------------------------------------------------------------------------
     Attribution:
       If you use or distribute this code, please credit:
