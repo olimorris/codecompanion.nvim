@@ -330,14 +330,15 @@ end
 ---@param edits table[]
 ---@return table[], table[]
 local function partition_edits_by_type(edits)
-  local block_edits = {}
   local substring_edits = {}
+  local block_edits = {}
 
   for i, edit in ipairs(edits) do
+    local wrapper = { edit = edit, original_index = i }
     if edit.replaceAll and edit.oldText and not edit.oldText:find("\n") then
-      table.insert(substring_edits, { edit = edit, original_index = i })
+      table.insert(substring_edits, wrapper)
     else
-      table.insert(block_edits, { edit = edit, original_index = i })
+      table.insert(block_edits, wrapper)
     end
   end
 
@@ -349,17 +350,12 @@ end
 ---@return string
 local function extract_explanation(action)
   local explanation = action.explanation or (action.edits and action.edits[1] and action.edits[1].explanation)
-
-  if explanation and explanation ~= "" then
-    return "\n" .. explanation
-  end
-
-  return ""
+  return (explanation and explanation ~= "") and ("\n" .. explanation) or ""
 end
 
----Process substring replaceAll edits in parallel to avoid overlaps
+---Execute substring replacements in parallel to avoid overlaps
 ---@param content string
----@param edits table[]
+---@param edits table[] Array of unwrapped edit objects
 ---@return string|nil content, string|nil error
 local function process_substring_edits(content, edits)
   local replacements = {}
@@ -404,9 +400,9 @@ local function extract_edits(edits)
   end, edits)
 end
 
----Apply substring edits in parallel and record results
+---Validate and process substring edits in parallel
 ---@param content string
----@param edits table[]
+---@param edits table[] Array of {edit: table, original_index: number} wrappers
 ---@return string|nil content, table|nil error
 local function validate_and_process_substring_edits(content, edits)
   local edited_content, error = process_substring_edits(content, extract_edits(edits))
@@ -423,22 +419,22 @@ local function validate_and_process_substring_edits(content, edits)
   return edited_content, nil
 end
 
----Build metadata for substring edits
----@param edits table[]
----@return table[] results, table[] strategies
+---Build metadata for successfully processed substring edits
+---@param edits table[] Array of {edit: table, original_index: number} wrappers
+---@return table[] results, table[] selected_strategy
 local function build_substring_metadata(edits)
   local results = {}
   local selected_strategy = {}
+  local metadata = {
+    strategy = "substring_exact_match_parallel",
+    confidence = 1.0,
+    selection_reason = "parallel_processing",
+    auto_selected = true,
+  }
 
   for _, item in ipairs(edits) do
-    table.insert(results, {
-      edit_index = item.original_index,
-      strategy = "substring_exact_match_parallel",
-      confidence = 1.0,
-      selection_reason = "parallel_processing",
-      auto_selected = true,
-    })
-    table.insert(selected_strategy, "substring_exact_match_parallel")
+    table.insert(results, vim.tbl_extend("force", metadata, { edit_index = item.original_index }))
+    table.insert(selected_strategy, metadata.strategy)
   end
 
   return results, selected_strategy
@@ -609,8 +605,9 @@ end
 local function process_edits(content, edits, opts)
   opts = opts or {}
 
-  local selected_strategies = {}
+  local results = {}
   local block_edits = {}
+  local selected_strategies = {}
 
   edits, block_edits = partition_edits_by_type(edits)
 
@@ -621,9 +618,9 @@ local function process_edits(content, edits, opts)
     end
 
     content = edited_content --[[@as string]]
-    local results, strategy_results = build_substring_metadata(edits)
-    vim.list_extend(results, results)
-    vim.list_extend(selected_strategies, strategy_results)
+    local substring_results, substring_strategies = build_substring_metadata(edits)
+    vim.list_extend(results, substring_results)
+    vim.list_extend(selected_strategies, substring_strategies)
   end
 
   local block_list = extract_edits(block_edits)
@@ -637,8 +634,6 @@ local function process_edits(content, edits, opts)
   if conflicts then
     return conflicts
   end
-
-  local results = {}
 
   for _, edit_wrapper in ipairs(block_edits) do
     local edit = edit_wrapper.edit
