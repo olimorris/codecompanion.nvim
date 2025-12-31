@@ -59,6 +59,8 @@ local utils = require("codecompanion.utils")
 local api = vim.api
 local fmt = string.format
 
+local diff_enabled = config.display.diff.enabled == true
+
 ---Load prompt from markdown file
 ---@return string The prompt content
 local function load_prompt()
@@ -74,7 +76,7 @@ local PROMPT = load_prompt()
 ---@param status "success"|"error"
 ---@param msg string
 ---@return table
-local function mk_response(status, msg)
+local function make_response(status, msg)
   return { status = status, data = msg }
 end
 
@@ -139,14 +141,7 @@ local function handle_approval(opts)
 
   return wait.for_decision(opts.diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
     if result.accepted then
-      if opts.bufnr then
-        pcall(function()
-          api.nvim_buf_call(opts.bufnr, function()
-            vim.cmd("silent! w")
-          end)
-        end)
-      end
-      return opts.output_handler(mk_response("success", opts.success_msg))
+      return opts.output_handler()
     end
 
     get_rejection_reason(function(reason)
@@ -165,7 +160,7 @@ local function handle_approval(opts)
         end
       end
 
-      return opts.output_handler(mk_response("error", msg))
+      return opts.output_handler(make_response("error", msg))
     end)
   end, wait_opts)
 end
@@ -488,20 +483,17 @@ end
 ---@param opts table
 ---@return table|nil
 local function check_for_conflicts(content, edits, opts)
-  if not opts.dry_run then
-    local conflicts = match_selector.detect_edit_conflicts(content, edits)
-    if #conflicts > 0 then
-      return {
-        success = false,
-        error = "conflicting_edits",
-        conflicts = conflicts,
-        conflict_descriptions = vim.tbl_map(function(c)
-          return c.description
-        end, conflicts),
-      }
-    end
+  local conflicts = match_selector.detect_edit_conflicts(content, edits)
+  if #conflicts > 0 then
+    return {
+      success = false,
+      error = "conflicting_edits",
+      conflicts = conflicts,
+      conflict_descriptions = vim.tbl_map(function(c)
+        return c.description
+      end, conflicts),
+    }
   end
-  return nil
 end
 
 ---Validate required fields for a single edit
@@ -667,12 +659,12 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   local path = file_utils.validate_and_normalize_path(action.filepath)
 
   if not path then
-    return output_handler(mk_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath)))
+    return output_handler(make_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath)))
   end
 
-  local current_content, read_err, file_info = read_file(path)
-  if not current_content then
-    return output_handler(mk_response("error", read_err or "Unknown error reading file"))
+  local original_content, read_err, file_info = read_file(path)
+  if not original_content then
+    return output_handler(make_response("error", read_err or "Unknown error reading file"))
   end
 
   if type(action.edits) == "string" then
@@ -682,104 +674,76 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     end
   end
 
-  if #current_content > constants.LIMITS.FILE_SIZE_MAX then
+  if #original_content > constants.LIMITS.FILE_SIZE_MAX then
     return output_handler(
-      mk_response(
+      make_response(
         "error",
         fmt(
           "Error: File too large (%d bytes). Maximum supported size is %d bytes.",
-          #current_content,
+          #original_content,
           constants.LIMITS.FILE_SIZE_MAX
         )
       )
     )
   end
 
-  local dry_run = process_edits(current_content, action.edits, {
-    dry_run = true,
+  local edit = process_edits(original_content, action.edits, {
     path = path,
     file_info = file_info,
     mode = action.mode,
   })
 
-  if not dry_run.success then
-    local error_message = match_selector.format_helpful_error(dry_run, action.edits)
-    return output_handler(mk_response("error", error_message))
+  if not edit.success then
+    local error_message = match_selector.format_helpful_error(edit, action.edits)
+    return output_handler(make_response("error", error_message))
   end
-
-  local strategies_summary = table.concat(
-    vim.tbl_map(function(strategy)
-      return strategy:gsub("_", " ")
-    end, dry_run.strategies),
-    ", "
-  )
-
-  if action.dryRun then
-    local ok, edit_word = pcall(utils.pluralize, #action.edits, "edit")
-    if not ok then
-      edit_word = "edit(s)"
-    end
-    return output_handler(
-      mk_response(
-        "success",
-        fmt(
-          "DRY RUN - Successfully processed %d %s using strategies: %s\nFile: `%s`\n\nTo apply these changes, set 'dryRun': false",
-          #action.edits,
-          edit_word,
-          strategies_summary,
-          action.filepath
-        )
-      )
-    )
-  end
-
-  local write_ok, write_err = write_file(path, dry_run.content, file_info)
-  if not write_ok then
-    return output_handler(mk_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
-  end
-
-  -- If the tool has been approved then skip showing the diff
-  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
-    return output_handler(
-      mk_response("success", fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)))
-    )
-  end
-
-  local diff_id = math.random(10000000)
-  local from_lines = vim.split(current_content, "\n", { plain = true })
-  local to_lines = vim.split(dry_run.content, "\n", { plain = true })
-
-  -- Detect filetype from path
-  local ft = vim.filetype.match({ filename = path }) or "text"
-
-  local diff_helpers = require("codecompanion.helpers")
-  local diff_ui = diff_helpers.show_diff({
-    from_lines = from_lines,
-    to_lines = to_lines,
-    ft = ft,
-    title = action.filepath,
-    diff_id = diff_id,
-    chat_bufnr = chat_bufnr,
-    tool_name = "insert_edit_into_file",
-  })
 
   local success_msg = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))
 
+  local function apply_edits()
+    local write_ok, write_err = write_file(path, edit.content, file_info)
+    if not write_ok then
+      output_handler(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
+      return
+    end
+    output_handler(make_response("success", success_msg))
+  end
+
+  local approved = approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" })
+  if approved or diff_enabled == false then
+    return apply_edits()
+  end
+
+  -- Show diff for user review
+  local diff_id = math.random(10000000)
+  local from_lines = vim.split(original_content, "\n", { plain = true })
+  local to_lines = vim.split(edit.content, "\n", { plain = true })
+  local ft = vim.filetype.match({ filename = path }) or "text"
+
+  local diff_helpers = require("codecompanion.helpers")
+  diff_helpers.show_diff({
+    chat_bufnr = chat_bufnr,
+    diff_id = diff_id,
+    ft = ft,
+    from_lines = from_lines,
+    to_lines = to_lines,
+    title = action.filepath,
+    tool_name = "insert_edit_into_file",
+  })
+
   if opts.require_confirmation_after then
     return handle_approval({
-      diff_id = diff_id,
       chat_bufnr = chat_bufnr,
+      diff_id = diff_id,
       name = action.filepath,
-      diff_ui = diff_ui,
       success_msg = success_msg,
-      on_reject = function()
-        return write_file(path, current_content, file_info)
+      output_handler = function()
+        apply_edits()
       end,
-      output_handler = output_handler,
     })
-  else
-    return output_handler(mk_response("success", success_msg))
   end
+
+  return apply_edits()
 end
 
 ---@param bufnr number
@@ -789,19 +753,17 @@ end
 ---@param opts table|nil
 local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   opts = opts or {}
-  local diff_id = math.random(10000000)
 
   if not api.nvim_buf_is_loaded(bufnr) then
     vim.fn.bufload(bufnr)
   end
 
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local current_content = table.concat(lines, "\n")
-  local original_content = vim.deepcopy(lines)
+  local original_content = table.concat(lines, "\n")
 
   local file_info = {
-    has_trailing_newline = current_content:match("\n$") ~= nil,
-    is_empty = current_content == "",
+    has_trailing_newline = original_content:match("\n$") ~= nil,
+    is_empty = original_content == "",
   }
 
   if type(action.edits) == "string" then
@@ -811,8 +773,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     end
   end
 
-  local dry_run = process_edits(current_content, action.edits, {
-    dry_run = true,
+  local edit = process_edits(original_content, action.edits, {
     buffer = bufnr,
     file_info = file_info,
     mode = action.mode,
@@ -821,59 +782,38 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local buffer_name = api.nvim_buf_get_name(bufnr)
   local display_name = buffer_name ~= "" and vim.fn.fnamemodify(buffer_name, ":.") or fmt("buffer %d", bufnr)
 
-  if not dry_run.success then
-    local error_message = match_selector.format_helpful_error(dry_run, action.edits)
+  if not edit.success then
+    local error_message = match_selector.format_helpful_error(edit, action.edits)
     return output_handler(
-      mk_response("error", fmt("Error processing edits for `%s`:\n%s", display_name, error_message))
+      make_response("error", fmt("Error processing edits for `%s`:\n%s", display_name, error_message))
     )
   end
 
-  local strategies_summary = table.concat(
-    vim.tbl_map(function(strategy)
-      return strategy:gsub("_", " ")
-    end, dry_run.strategies),
-    ", "
-  )
-
-  if action.dryRun then
-    local ok, edit_word = pcall(utils.pluralize, #action.edits, "edit")
-    if not ok then
-      edit_word = "edit(s)"
-    end
-    return output_handler(
-      mk_response(
-        "success",
-        fmt(
-          "DRY RUN - Successfully processed %d %s using strategies: %s\nBuffer: `%s`\n\nTo apply these changes, set 'dryRun': false",
-          #action.edits,
-          edit_word,
-          strategies_summary,
-          display_name
-        )
-      )
-    )
-  end
-
-  local final_lines = vim.split(dry_run.content, "\n", { plain = true })
-  api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
-
+  local content = vim.split(edit.content, "\n", { plain = true })
   local success_msg = fmt("Edited `%s` buffer%s", display_name, extract_explanation(action))
 
-  -- If the tool has been approved then skip showing the diff
-  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+  local function apply_edits()
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
-    return output_handler(mk_response("success", success_msg))
+    output_handler(make_response("success", success_msg))
+  end
+
+  local approved = approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" })
+  if approved or diff_enabled == false then
+    return apply_edits()
   end
 
   local ft = vim.bo[bufnr].filetype or "text"
 
+  -- A user may want to see the diff even though they don't need to approve it
+  local diff_id = math.random(10000000)
   local diff_helpers = require("codecompanion.helpers")
-  local diff_ui = diff_helpers.show_diff({
+  diff_helpers.show_diff({
     chat_bufnr = chat_bufnr,
-    from_lines = original_content,
-    to_lines = final_lines,
+    from_lines = vim.deepcopy(lines),
+    to_lines = content,
     ft = ft,
     title = display_name,
     diff_id = diff_id,
@@ -882,17 +822,18 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   if opts.require_confirmation_after then
     return handle_approval({
-      diff_id = diff_id,
-      chat_bufnr = chat_bufnr,
-      name = display_name,
       bufnr = bufnr,
-      diff_ui = diff_ui,
+      chat_bufnr = chat_bufnr,
+      diff_id = diff_id,
+      name = display_name,
       success_msg = success_msg,
-      output_handler = output_handler,
+      output_handler = function()
+        apply_edits()
+      end,
     })
   end
 
-  return output_handler(mk_response("success", success_msg))
+  return apply_edits()
 end
 
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
@@ -909,7 +850,7 @@ return {
       if args.edits then
         local fixed_args, error_msg = fix_edits_if_needed(args)
         if not fixed_args then
-          return output_handler(mk_response("error", fmt("Invalid edits format: %s", error_msg)))
+          return output_handler(make_response("error", fmt("Invalid edits format: %s", error_msg)))
         end
         args = fixed_args
       end
@@ -958,11 +899,6 @@ return {
               additionalProperties = false,
             },
           },
-          dryRun = {
-            type = "boolean",
-            default = false,
-            description = "When true, validates edits and shows what would be changed without applying them. Only use when explicitly requested.",
-          },
           mode = {
             type = "string",
             enum = { "append", "overwrite" },
@@ -974,7 +910,7 @@ return {
             description = "Brief explanation of what the edits accomplish",
           },
         },
-        required = { "filepath", "edits", "explanation", "mode", "dryRun" },
+        required = { "filepath", "edits", "explanation", "mode" },
         additionalProperties = false,
       },
       strict = true,

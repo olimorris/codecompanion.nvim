@@ -83,26 +83,6 @@ T["Core Functionality"]["handles multiple sequential edits"] = function()
   )
 end
 
-T["Core Functionality"]["supports dry run mode"] = function()
-  child.lua([[
-    local initial = "const x = 1;"
-    vim.fn.writefile({ initial }, _G.TEST_TMPFILE)
-
-    local tool = {{
-      ["function"] = {
-        name = "insert_edit_into_file",
-        arguments = string.format('{"filepath": "%s", "dryRun": true, "edits": [{"oldText": "const x = 1;", "newText": "const x = 2;"}]}', _G.TEST_TMPFILE)
-      },
-    }}
-
-    tools:execute(chat, tool)
-    vim.wait(10)
-  ]])
-
-  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
-  h.eq(output, { "const x = 1;" }, "Dry run should not modify file")
-end
-
 -- ============================================================================
 -- Edit Types Tests
 -- ============================================================================
