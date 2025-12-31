@@ -329,7 +329,7 @@ end
 ---Separate edits into substring and block types
 ---@param edits table[]
 ---@return table[], table[]
-local function separate_edits(edits)
+local function partition_edits_by_type(edits)
   local block_edits = {}
   local substring_edits = {}
 
@@ -398,7 +398,7 @@ end
 ---Extract edit objects from their wrapper structures
 ---@param edits table[] Array of {edit: table, original_index: number} wrappers
 ---@return table[] Array of unwrapped edit objects
-local function unwrap(edits)
+local function extract_edits(edits)
   return vim.tbl_map(function(item)
     return item.edit
   end, edits)
@@ -408,8 +408,8 @@ end
 ---@param content string
 ---@param edits table[]
 ---@return string|nil content, table|nil error
-local function apply_substring_edits(content, edits)
-  local edited_content, error = process_substring_edits(content, unwrap(edits))
+local function validate_and_process_substring_edits(content, edits)
+  local edited_content, error = process_substring_edits(content, extract_edits(edits))
 
   if error then
     return nil,
@@ -423,10 +423,10 @@ local function apply_substring_edits(content, edits)
   return edited_content, nil
 end
 
----Create result entries for substring edits
+---Build metadata for substring edits
 ---@param edits table[]
 ---@return table[] results, table[] strategies
-local function create_substring_results(edits)
+local function build_substring_metadata(edits)
   local results = {}
   local selected_strategy = {}
 
@@ -612,21 +612,21 @@ local function process_edits(content, edits, opts)
   local selected_strategies = {}
   local block_edits = {}
 
-  edits, block_edits = separate_edits(edits)
+  edits, block_edits = partition_edits_by_type(edits)
 
   if #edits > 0 then
-    local edited_content, error = apply_substring_edits(content, edits)
+    local edited_content, error = validate_and_process_substring_edits(content, edits)
     if error then
       return error
     end
 
     content = edited_content --[[@as string]]
-    local results, strategy_results = create_substring_results(edits)
+    local results, strategy_results = build_substring_metadata(edits)
     vim.list_extend(results, results)
     vim.list_extend(selected_strategies, strategy_results)
   end
 
-  local block_list = unwrap(block_edits)
+  local block_list = extract_edits(block_edits)
 
   local special_cases = handle_special_cases(content, block_list, opts)
   if special_cases then
