@@ -43,10 +43,9 @@ file boundaries (start/end), and complete file overwrites.
 --]]
 
 local Path = require("plenary.path")
-
-local Approvals = require("codecompanion.interactions.chat.tools.approvals")
-local Constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
+local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
@@ -683,14 +682,14 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
     end
   end
 
-  if #current_content > Constants.LIMITS.FILE_SIZE_MAX then
+  if #current_content > constants.LIMITS.FILE_SIZE_MAX then
     return output_handler(
       mk_response(
         "error",
         fmt(
           "Error: File too large (%d bytes). Maximum supported size is %d bytes.",
           #current_content,
-          Constants.LIMITS.FILE_SIZE_MAX
+          constants.LIMITS.FILE_SIZE_MAX
         )
       )
     )
@@ -740,7 +739,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- If the tool has been approved then skip showing the diff
-  if Approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     return output_handler(
       mk_response("success", fmt("Edited `%s` file%s", action.filepath, extract_explanation(action)))
     )
@@ -861,7 +860,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local success_msg = fmt("Edited `%s` buffer%s", display_name, extract_explanation(action))
 
   -- If the tool has been approved then skip showing the diff
-  if Approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
