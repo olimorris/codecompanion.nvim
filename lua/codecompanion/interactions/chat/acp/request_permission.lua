@@ -158,7 +158,6 @@ local function place_banner(winnr, normalized, kind_map)
 end
 
 ---Setup autocmds that cancel the permission if the diff is closed manually
----
 ---@param bufnr number
 ---@param winnr number
 ---@param finish fun(accepted: boolean, timed_out: boolean, kind: string|nil)
