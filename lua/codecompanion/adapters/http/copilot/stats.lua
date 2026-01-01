@@ -108,7 +108,8 @@ function M.show()
   if is_limited then
     table.insert(lines, "## Limited Copilot ")
   elseif premium then
-    table.insert(lines, "## Premium Interactions ")
+    table.insert(lines, "## Premium Interactions")
+    table.insert(lines, "")
     local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
     table.insert(lines, fmt("- Used: %d / %d ", used, premium.entitlement))
     local bar = make_progress_bar(usage_percent, PROGRESS_BAR_WIDTH)
@@ -171,8 +172,7 @@ function M.show()
     title = "   Copilot Stats ",
     lock = true,
     relative = "editor",
-    row = "center",
-    col = "center",
+    filetype = "markdown",
     window = {
       width = 43,
       height = math.min(#lines + 2, 20),
