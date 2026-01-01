@@ -121,7 +121,7 @@ function M.add_line_numbers(content)
 
   content = vim.split(content, "\n")
   for i, line in ipairs(content) do
-    table.insert(formatted, string.format("%d:  %s", i, line))
+    table.insert(formatted, string.format("%d |%s", i, line))
   end
 
   return table.concat(formatted, "\n")
