@@ -29,6 +29,7 @@ local Path = require("plenary.path")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
+local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
 local wait = require("codecompanion.interactions.chat.helpers.wait")
@@ -112,7 +113,7 @@ local function write_file(path, content, info)
 end
 
 ---Handle user decision for diff approval
----@param opts table { diff_id, chat_bufnr, name, success_msg, output_handler, bufnr?, on_reject? }
+---@param opts { diff_id: number, chat_bufnr: number, name: string, success_msg: string, output_handler: function, bufnr: number }
 ---@return any
 local function handle_approval(opts)
   local wait_opts = {
@@ -134,14 +135,6 @@ local function handle_approval(opts)
         msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.name, reason)
       end
 
-      if opts.on_reject then
-        local ok, err = opts.on_reject()
-        if not ok then
-          log:error("Failed to restore original content: %s", err)
-          msg = fmt("%s\n\nWARNING: Failed to restore: %s. File may be inconsistent.", msg, err)
-        end
-      end
-
       return opts.output_handler(make_response("error", msg))
     end)
   end, wait_opts)
@@ -150,12 +143,11 @@ end
 ---Show diff and handle approval flow for edits
 ---@param opts table
 ---@return any
-local function show_diff_and_handle_approval(opts)
-  if opts.approved or diff_enabled == false then
+local function approve_and_diff(opts)
+  if opts.approved or diff_enabled == false or opts.require_confirmation_after == false then
     return opts.apply_fn()
   end
 
-  -- Show diff for user review
   local diff_id = math.random(10000000)
   local diff_helpers = require("codecompanion.helpers")
   diff_helpers.show_diff({
@@ -168,22 +160,19 @@ local function show_diff_and_handle_approval(opts)
     tool_name = "insert_edit_into_file",
   })
 
-  -- If confirmation required, wait for user decision
-  if opts.require_confirmation then
-    return handle_approval({
-      chat_bufnr = opts.chat_bufnr,
-      diff_id = diff_id,
-      name = opts.title,
-      success_msg = opts.success_msg,
-      output_handler = function()
-        opts.apply_fn()
-      end,
-      on_reject = opts.on_reject,
-    })
-  end
-
-  -- Otherwise apply immediately after showing diff
-  return opts.apply_fn()
+  return handle_approval({
+    chat_bufnr = opts.chat_bufnr,
+    diff_id = diff_id,
+    name = opts.title,
+    success_msg = opts.success_msg,
+    output_handler = function(response)
+      if response and response.status == "error" then
+        return opts.output_handler(response)
+      end
+      opts.apply_fn()
+    end,
+    on_reject = opts.on_reject,
+  })
 end
 
 ---Fix edits field if it's a string instead of a table (handles LLM JSON formatting issues)
@@ -649,7 +638,7 @@ local function edit_file(action, opts)
 
   local success_msg = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))
 
-  return show_diff_and_handle_approval({
+  return approve_and_diff({
     from_lines = vim.split(original_content, "\n", { plain = true }),
     to_lines = vim.split(edit.content, "\n", { plain = true }),
     apply_fn = function()
@@ -662,7 +651,8 @@ local function edit_file(action, opts)
     approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
     chat_bufnr = opts.chat_bufnr,
     ft = vim.filetype.match({ filename = path }) or "text",
-    require_confirmation = opts.tool_opts.require_confirmation_after,
+    output_handler = opts.output_handler,
+    require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
     title = action.filepath,
   })
@@ -711,7 +701,7 @@ local function edit_buffer(bufnr, opts)
   local content = vim.split(edit.content, "\n", { plain = true })
   local success_msg = fmt("Edited `%s` buffer%s", display_name, extract_explanation(opts.action))
 
-  return show_diff_and_handle_approval({
+  return approve_and_diff({
     from_lines = vim.deepcopy(lines),
     to_lines = content,
     apply_fn = function()
@@ -724,13 +714,14 @@ local function edit_buffer(bufnr, opts)
     approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
     chat_bufnr = opts.chat_bufnr,
     ft = vim.bo[bufnr].filetype or "text",
-    require_confirmation = opts.tool_opts.require_confirmation_after,
+    output_handler = opts.output_handler,
+    require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
     title = display_name,
   })
 end
 
----@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
+---@class CodeCompanion.Tool.InsertEditIntoFile: CodeCompanion.Tools.Tool
 return {
   name = "insert_edit_into_file",
   cmds = {
@@ -815,11 +806,9 @@ return {
       strict = true,
     },
   },
-  system_prompt = [[- Always use insert_edit_into_file to modify existing files by providing exact oldText to match and newText to replace it.
-- Include enough surrounding context in oldText to make matches unique and unambiguous. All edits are atomic: either all succeed or none are applied.]],
   handlers = {
     ---The handler to determine whether to prompt the user for approval
-    ---@param self CodeCompanion.Tool.EditFile
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param tools CodeCompanion.Tools
     ---@return boolean
     prompt_condition = function(self, tools)
@@ -843,7 +832,7 @@ return {
     on_exit = function(tools) end,
   },
   output = {
-    ---@param self CodeCompanion.Tool.EditFile
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param tools CodeCompanion.Tools
     ---@return nil|string
     prompt = function(self, tools)
@@ -853,7 +842,7 @@ return {
       return fmt("Apply %d edit(s) to `%s`?", edit_count, filepath)
     end,
 
-    ---@param self CodeCompanion.Tool.EditFile
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param tool CodeCompanion.Tools
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
@@ -863,7 +852,7 @@ return {
       chat:add_tool_output(self, llm_output)
     end,
 
-    ---@param self CodeCompanion.Tool.EditFile
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param tool CodeCompanion.Tools
     ---@param cmd table
     ---@param stderr table The error output from the command
