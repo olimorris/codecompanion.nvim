@@ -47,9 +47,9 @@ T["Utils->Buffers"]["add_line_numbers works"] = function()
     return _G.buf_utils.add_line_numbers(content)
   ]])
 
-  h.expect_match(result, "1:  hello")
-  h.expect_match(result, "2:  world")
-  h.expect_match(result, "3:  test")
+  h.expect_match(result, "1 |hello")
+  h.expect_match(result, "2 |world")
+  h.expect_match(result, "3 |test")
 end
 
 return T

@@ -10,7 +10,7 @@ function M.get_code(start_line, end_line, opts)
   for line_num = start_line, end_line do
     local line
     if opts and opts.show_line_numbers then
-      line = string.format("%d: %s", line_num, vim.fn.getline(line_num))
+      line = string.format("%d |%s", line_num, vim.fn.getline(line_num))
     else
       line = string.format("%s", vim.fn.getline(line_num))
     end
