@@ -12,47 +12,34 @@ concurrency:
 
 jobs:
   tests:
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
-          - os: ubuntu-latest
-            url: https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-linux-x86_64.tar.gz
+        os: [ubuntu-latest]
+        nvim_tag: [nightly, v0.11.0]
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      NVIM: ${{ matrix.os == 'windows-latest' && 'nvim-win64\\bin\\nvim.exe' || 'nvim' }}
 
     steps:
       - name: Checkout 📋
-        uses: actions/checkout@v4
-
-      - run: date +%F > todays-date
-
-      - name: Restore from todays cache 📂
-        uses: actions/cache@v4
-        with:
-          path: _neovim
-          key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}
-
-      - name: Prepare Neovim 🚧
-        run: |
-          sudo apt-get install ripgrep
-          test -d _neovim || {
-            mkdir -p _neovim
-            curl -sL ${{ matrix.url }} | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
-          }
-          mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+        uses: actions/checkout@v6
 
       - name: Install Tree-sitter 🌳
+        uses: tree-sitter/setup-action/cli@v2
+
+      - name: Prepare Neovim 🚧
+        env:
+          NVIM_TAG: ${{ matrix.nvim_tag }}
         run: |
-          # Required for Tree-sitter main
-          npm install -g tree-sitter-cli
+          bash ./scripts/ci-install.sh
+
+      - name: Install Tree-sitter parsers 🌳
+        run: $NVIM -l ./scripts/install-parsers.lua --max-jobs=10
 
       - name: Run tests 🧪
         run: |
-          export PATH="${PWD}/_neovim/bin:${PATH}"
-          export VIM="${PWD}/_neovim/share/nvim/runtime"
-          nvim --version
+          $NVIM --version
           make test
 
