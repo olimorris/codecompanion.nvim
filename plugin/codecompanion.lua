@@ -29,6 +29,7 @@ api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", defa
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatInfoBanner", { link = "WildMenu", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffBanner", { link = "CodeCompanionChatInfoBanner", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffAdd", { link = "DiffAdd", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffChange", { link = "DiffChange", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffDelete", { link = "DiffDelete", default = true })

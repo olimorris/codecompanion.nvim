@@ -1,7 +1,9 @@
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.diff.keymaps")
 local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
+local fmt = string.format
 local api = vim.api
 
 local M = {}
@@ -15,7 +17,7 @@ local M = {}
 ---@field diff_id number
 ---@field hunks number The total number of hunks in the diff
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
----@field tool_name? string If the diff is associated with a tool, pass in the tool name
+---@field tool_name? string This is essential for approvals to work with tools
 ---@field winnr number
 local DiffUI = {}
 DiffUI.__index = DiffUI
@@ -28,7 +30,7 @@ local function get_buf_name(bufnr)
   if name ~= "" then
     return vim.fn.fnamemodify(name, ":.")
   end
-  return string.format("buffer %d", bufnr)
+  return fmt("buffer %d", bufnr)
 end
 
 ---Build the default keymaps from config for display
@@ -40,7 +42,7 @@ local function build_default_banner()
   local next_hunk = config.interactions.inline.keymaps.next_hunk.modes.n
   local previous_hunk = config.interactions.inline.keymaps.previous_hunk.modes.n
 
-  return string.format(
+  return fmt(
     "%s Always Accept | %s Accept | %s Reject | %s/%s Next/Prev hunks | q Close",
     always_accept,
     accept,
@@ -53,36 +55,25 @@ end
 ---Show banner in the diff buffer
 ---@param bufnr number
 ---@param opts { banner?: string, current_hunk: number, hunks: number, namespace: number, line?: number, overwrite?: boolean }
----@return nil
-local function show_banner(bufnr, opts)
-  local namespace = "codecompanion_diff_ui_" .. tostring(opts.namespace)
+---@return number The namespace ID used for the banner extmark
+local function banner_virt_text(bufnr, opts)
+  local ns_id = api.nvim_create_namespace("codecompanion_diff_ui_" .. tostring(opts.namespace))
 
   if opts.overwrite then
-    ui_utils.clear_notification(bufnr, { namespace = namespace })
+    pcall(api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
   end
 
-  local banner = opts.banner or build_default_banner()
+  local text = fmt("[%d/%d]  %s", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
 
-  ui_utils.show_buffer_notification(bufnr, {
-    text = string.format("[%d/%d]  %s", opts.current_hunk or 1, opts.hunks or 1, banner),
-    main_hl = "CodeCompanionChatSubtext",
-    line = opts.line or 0,
-    namespace = namespace,
+  api.nvim_buf_set_extmark(bufnr, ns_id, vim.fn.line("w0") - 1, 0, {
+    virt_text = {
+      { text, "CodeCompanionDiffBanner" },
+    },
+    virt_text_pos = "right_align",
+    priority = 125,
   })
-end
 
----Show banner for the current hunk
----@param hunk number
----@return nil
-function DiffUI:show_banner(hunk)
-  show_banner(self.bufnr, {
-    banner = self.banner,
-    current_hunk = self.current_hunk,
-    hunks = self.hunks,
-    overwrite = true,
-    namespace = self.diff.namespace,
-    line = hunk,
-  })
+  return ns_id
 end
 
 ---Navigate to next hunk
@@ -96,8 +87,8 @@ function DiffUI:next_hunk(line)
     local hunk_line = hunk.pos[1] + 1
     if hunk_line > line then
       self.current_hunk = index
-      self:show_banner(hunk_line - 2)
-      return ui_utils.scroll_to_line(self.bufnr, hunk_line)
+      ui_utils.scroll_to_line(self.bufnr, hunk_line)
+      return utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
     end
   end
 
@@ -105,8 +96,8 @@ function DiffUI:next_hunk(line)
   if #self.diff.hunks > 0 then
     self.current_hunk = 1
     local hunk_line = self.diff.hunks[1].pos[1] + 1
-    self:show_banner(hunk_line - 2)
     ui_utils.scroll_to_line(self.bufnr, hunk_line)
+    return utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
   end
 end
 
@@ -123,8 +114,8 @@ function DiffUI:previous_hunk(line)
     local hunk_line = hunk.pos[1] + 1
     if hunk_line < line then
       self.current_hunk = i
-      self:show_banner(hunk_line - 2)
-      return ui_utils.scroll_to_line(self.bufnr, hunk_line)
+      ui_utils.scroll_to_line(self.bufnr, hunk_line)
+      return utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
     end
   end
 
@@ -132,8 +123,8 @@ function DiffUI:previous_hunk(line)
   if #self.diff.hunks > 0 then
     self.current_hunk = #self.diff.hunks
     local hunk_line = self.diff.hunks[#self.diff.hunks].pos[1] + 1
-    self:show_banner(hunk_line - 2)
     ui_utils.scroll_to_line(self.bufnr, hunk_line)
+    return utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
   end
 end
 
@@ -212,8 +203,6 @@ function M.show(diff, opts)
   local cfg =
     vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
 
-  local title = opts.title or get_buf_name(diff.bufnr)
-
   local bufnr, winnr = ui_utils.create_float(diff.to.lines, {
     window = {
       width = cfg.width,
@@ -224,8 +213,10 @@ function M.show(diff, opts)
     col = cfg.col,
     filetype = diff.ft or "text",
     ignore_keymaps = true,
-    title = " " .. title .. " ",
+    title = " " .. opts.title or get_buf_name(diff.bufnr) .. " ",
   })
+
+  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
 
   ---@type CodeCompanion.DiffUI
   local diff_ui = setmetatable({
@@ -244,16 +235,57 @@ function M.show(diff, opts)
   -- Apply diff extmarks
   local Diff = require("codecompanion.diff")
   Diff.apply(diff, bufnr)
-  show_banner(bufnr, {
-    banner = opts.banner,
-    current_hunk = 1,
-    hunks = #diff.hunks,
-    namespace = diff.namespace,
-  })
+
+  local function show_banner(args)
+    args = args or {}
+
+    return banner_virt_text(bufnr, {
+      banner = opts.banner,
+      current_hunk = diff_ui.current_hunk,
+      hunks = #diff.hunks,
+      namespace = diff.namespace,
+      overwrite = args.overwrite or false,
+    })
+  end
+
+  show_banner()
 
   -- Lock the buffer so the user can't make any changes
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
+
+  -- Scroll to first hunk
+  if #diff.hunks > 0 then
+    vim.schedule(function()
+      ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
+    end)
+  end
+
+  -- Ensure that the banner always follows the cursor
+  vim.api.nvim_create_autocmd({ "User" }, {
+    pattern = "CodeCompanionDiffHunkChanged",
+    group = group,
+    callback = function(event)
+      if event.data.bufnr ~= bufnr then
+        return
+      end
+      show_banner({ overwrite = true })
+    end,
+  })
+  api.nvim_create_autocmd({ "WinScrolled", "WinResized" }, {
+    group = group,
+    buffer = bufnr,
+    callback = function()
+      show_banner({ overwrite = true })
+    end,
+  })
+  api.nvim_create_autocmd({ "WinClosed", "BufDelete" }, {
+    group = group,
+    buffer = bufnr,
+    callback = function()
+      pcall(api.nvim_clear_autocmds, { group = group })
+    end,
+  })
 
   diff_ui:setup_keymaps({ skip_action_keymaps = opts.skip_action_keymaps or false })
 
@@ -261,19 +293,13 @@ function M.show(diff, opts)
   if not opts.skip_action_keymaps then
     vim.api.nvim_clear_autocmds({ buffer = bufnr, event = "WinClosed" })
     api.nvim_create_autocmd("WinClosed", {
+      group = group,
       buffer = bufnr,
       once = true,
       callback = function()
         keymaps.close_window.callback(diff_ui)
       end,
     })
-  end
-
-  -- Scroll to first hunk
-  if #diff.hunks > 0 then
-    vim.schedule(function()
-      ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
-    end)
   end
 
   return diff_ui
