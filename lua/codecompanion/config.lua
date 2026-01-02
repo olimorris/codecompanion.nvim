@@ -467,6 +467,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
       },
+      mcp = {
+        servers = {},
+      },
       keymaps = {
         options = {
           modes = { n = "?" },

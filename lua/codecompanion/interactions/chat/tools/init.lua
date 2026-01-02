@@ -127,7 +127,7 @@ function Tools:_resolve_and_prepare_tool(tool)
       end
       local decoded
       local json_ok = xpcall(function()
-        decoded = vim.json.decode(args)
+        decoded = vim.json.decode(args, { luanil = { object = true } })
       end, function(err)
         log:error("Couldn't decode the tool arguments: %s", args)
         self.chat:add_tool_output(
