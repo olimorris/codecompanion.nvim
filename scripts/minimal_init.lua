@@ -14,6 +14,7 @@ require("nvim-treesitter").setup({
 local ok, err_or_ok = require("nvim-treesitter")
   .install({
     "lua",
+    "make",
     "markdown",
     "markdown_inline",
     "yaml",
