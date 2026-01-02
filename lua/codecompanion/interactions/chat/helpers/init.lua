@@ -16,19 +16,6 @@ function M.create_acp_connection(chat)
   return handler:ensure_connection()
 end
 
----Hide chat if floating diff is being used
----@param chat CodeCompanion.Chat The chat instance
----@return nil
-function M.hide_chat_for_floating_diff(chat)
-  local inline_config = config.display.diff.provider_opts.inline
-  local diff_layout = inline_config.layout
-  if diff_layout == "float" and config.display.chat.window.layout == "float" then
-    if chat and chat.ui:is_visible() then
-      chat.ui:hide()
-    end
-  end
-end
-
 ---Format the given role without any separator
 ---@param role string
 ---@return string
