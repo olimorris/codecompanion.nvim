@@ -859,13 +859,13 @@ The user is working on a %s machine. Please respond with system specific command
     action_palette = {
       width = 95,
       height = 10,
-      prompt = "Prompt ", -- Prompt used for interactive LLM calls
+      prompt = "Prompt ", -- Title used for interactive LLM calls
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
-        show_preset_actions = true, -- Show the preset actions in the action palette?
-        show_preset_prompts = true, -- Show the preset prompts in the action palette?
-        show_preset_rules = true, -- Show the preset rules in the action palette?
-        title = "CodeCompanion actions", -- The title of the action palette
+        show_preset_actions = true,
+        show_preset_prompts = true,
+        show_preset_rules = true,
+        title = "CodeCompanion actions",
       },
     },
     chat = {
@@ -902,7 +902,7 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
 
-      -- Floating window options
+      -- Options for an floating windows
       floating_window = {
         width = 0.9, ---@return number|fun(): number
         height = 0.8, ---@return number|fun(): number
@@ -937,6 +937,7 @@ The user is working on a %s machine. Please respond with system specific command
       ---The function to display the token count
       ---@param tokens number
       ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+      ---@return string
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
@@ -998,7 +999,7 @@ M.setup = function(args)
     )
   end
 
-  -- TODO: Remove in v19.0.0
+  -- TODO: Remove in v20.0.0
   if args.strategies then
     args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
     args.strategies = nil

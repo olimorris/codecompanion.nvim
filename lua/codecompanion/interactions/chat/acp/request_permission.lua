@@ -86,7 +86,7 @@ local function build_banner(normalized, kind_map)
   for _, kind in ipairs(sorted_kinds) do
     local lhs = normalized[kind]
     if lhs then
-      local label = CONSTANTS.LABELS[kind] or kind:gsub("_", " ")
+      local label = CONSTANTS.LABELS[kind]:sub(3) or kind:gsub("_", " ")
       table.insert(parts, string.format("%s %s", lhs, label))
     end
   end
@@ -180,7 +180,6 @@ local function setup_diff_keymaps(diff_ui, normalized, kind_map, request)
       return
     end
     diff_ui.resolved = true
-    log:debug("[acp::request_permission] User pressed q, rejecting")
 
     local rejected
     for _, opt in ipairs(request.options or {}) do
@@ -272,8 +271,8 @@ function M.confirm(chat, request)
     return show_diff(chat, request)
   end
 
-  log:debug("[acp::request_permission] Showing confirm for permission request")
   local prompt, choices, index_to_option = build_choices(request)
+  log:debug("[acp::request_permission] Available choices %s", choices)
 
   local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
   if picked > 0 and index_to_option[picked] then
