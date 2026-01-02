@@ -11,6 +11,11 @@ T["UI create_float Screenshots"] = MiniTest.new_set({
       h.child_start(child)
       child.lua([[
         _G.h = require('tests.helpers')
+
+        -- Force consistent highlighting
+        vim.cmd('syntax off')
+        vim.cmd('highlight clear')
+
         h.setup_plugin()
       ]])
     end,
