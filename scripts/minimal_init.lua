@@ -6,6 +6,11 @@ vim.cmd("set rtp+=deps/nvim-treesitter")
 -- Ensure mini.test is available
 require("mini.test").setup()
 
+-- Ensure consistent rendering
+vim.o.termguicolors = true
+vim.o.background = "dark"
+vim.cmd("colorscheme default")
+
 -- Install and setup Tree-sitter
 require("nvim-treesitter").setup({
   install_dir = "deps/parsers",
