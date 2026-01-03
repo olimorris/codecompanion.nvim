@@ -267,15 +267,14 @@ function Debug:render()
     })
     :set()
 
-  local window_config = config.display.chat.floating_window
-
-  ui_utils.create_float(lines, {
-    bufnr = self.bufnr,
-    filetype = "lua",
-    opts = window_config.opts,
-    title = "Debug Chat",
-    window = window_config,
-  })
+  ui_utils.create_float(
+    lines,
+    vim.tbl_extend("force", config.display.chat.floating_window, {
+      bufnr = self.bufnr,
+      ft = "lua",
+      title = "Debug Chat",
+    })
+  )
 
   self:setup_window()
 

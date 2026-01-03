@@ -169,16 +169,14 @@ function M.show()
 
   -- Create floating window
   local float_opts = {
-    title = "   Copilot Stats ",
+    ft = "markdown",
+    ignore_keymaps = false,
     lock = true,
     relative = "editor",
-    filetype = "markdown",
-    window = {
-      width = 43,
-      height = math.min(#lines + 2, 20),
-    },
-    ignore_keymaps = false,
     style = "minimal",
+    title = "   Copilot Stats ",
+    width = 43,
+    height = math.min(#lines + 2, 20),
   }
   local _, winnr = ui_utils.create_float(lines, float_opts)
 

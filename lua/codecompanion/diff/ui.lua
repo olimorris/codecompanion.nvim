@@ -63,13 +63,14 @@ local function banner_virt_text(bufnr, opts)
     pcall(api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
   end
 
-  local text = fmt("[%d/%d]  %s", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
+  local text = fmt(" [%d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
 
   api.nvim_buf_set_extmark(bufnr, ns_id, vim.fn.line("w0") - 1, 0, {
     virt_text = {
       { text, "CodeCompanionDiffBanner" },
     },
     virt_text_pos = "right_align",
+    hl_mode = "combine",
     priority = 125,
   })
 
@@ -136,12 +137,12 @@ function DiffUI:close()
 end
 
 ---Set up keymaps in the diff buffer
----@param opts { skip_action_keymaps?: boolean }
+---@param opts { skip_default_keymaps?: boolean }
 ---@return nil
 function DiffUI:setup_keymaps(opts)
   opts = opts or {}
-  if not opts.skip_action_keymaps then
-    -- Set up default action keymaps from config
+
+  if not opts.skip_default_keymaps then
     local diff_keymaps = config.interactions.inline.keymaps
     for name, keymap in pairs(diff_keymaps) do
       local handler = keymaps[name]
@@ -194,27 +195,41 @@ function DiffUI:setup_keymaps(opts)
 end
 
 ---Show a diff in a floating window
+---@param opts { diff: CC.Diff, cfg: CodeCompanion.WindowOpts, title?: string }
+---@return number, number Buffer and window numbers
+local function show_in_float(opts)
+  return ui_utils.create_float(opts.diff.to.lines, {
+    width = opts.cfg.width,
+    height = opts.cfg.height,
+    row = opts.cfg.row,
+    col = opts.cfg.col,
+    ft = opts.diff.ft or "text",
+    ignore_keymaps = true,
+    opts = opts.cfg.opts,
+    title = " " .. opts.title or get_buf_name(opts.diff.bufnr) .. " ",
+  })
+end
+
+---Show a diff in a floating window
 ---@param diff CC.Diff The diff object from diff.create()
----@param opts? { diff_id?: number, title?: string, banner?: string, skip_action_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
+---@param opts? { diff_id?: number, float?: boolean, title?: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
 ---@return CodeCompanion.DiffUI
 function M.show(diff, opts)
-  opts = opts or {}
+  opts = vim.tbl_extend("force", { float = true }, opts or {})
 
+  local bufnr
+  local winnr
+  ---@type CodeCompanion.WindowOpts
   local cfg =
     vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
 
-  local bufnr, winnr = ui_utils.create_float(diff.to.lines, {
-    window = {
-      width = cfg.width,
-      height = cfg.height,
-      opts = cfg.opts,
-    },
-    row = cfg.row,
-    col = cfg.col,
-    filetype = diff.ft or "text",
-    ignore_keymaps = true,
-    title = " " .. opts.title or get_buf_name(diff.bufnr) .. " ",
-  })
+  if opts.float then
+    bufnr, winnr = show_in_float({
+      diff = diff,
+      cfg = cfg,
+      title = opts.title,
+    })
+  end
 
   local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
 
@@ -227,8 +242,8 @@ function M.show(diff, opts)
     diff = diff,
     diff_id = opts.diff_id or math.random(10000000),
     hunks = #diff.hunks,
-    tool_name = opts.tool_name,
     resolved = false,
+    tool_name = opts.tool_name,
     winnr = winnr,
   }, DiffUI)
 
@@ -242,8 +257,7 @@ function M.show(diff, opts)
     return banner_virt_text(bufnr, {
       banner = opts.banner,
       current_hunk = diff_ui.current_hunk,
-      hunks = #diff.hunks,
-      namespace = diff.namespace,
+      hunks = diff_ui.hunks,
       overwrite = args.overwrite or false,
     })
   end
@@ -261,7 +275,6 @@ function M.show(diff, opts)
     end)
   end
 
-  -- Ensure that the banner always follows the cursor
   vim.api.nvim_create_autocmd({ "User" }, {
     pattern = "CodeCompanionDiffHunkChanged",
     group = group,
@@ -272,6 +285,7 @@ function M.show(diff, opts)
       show_banner({ overwrite = true })
     end,
   })
+  -- Ensure that the banner always follows the cursor
   api.nvim_create_autocmd({ "WinScrolled", "WinResized" }, {
     group = group,
     buffer = bufnr,
@@ -287,10 +301,10 @@ function M.show(diff, opts)
     end,
   })
 
-  diff_ui:setup_keymaps({ skip_action_keymaps = opts.skip_action_keymaps or false })
+  diff_ui:setup_keymaps({ skip_default_keymaps = opts.skip_default_keymaps or false })
 
   -- If the user closes a window prematurely then reject the diff
-  if not opts.skip_action_keymaps then
+  if not opts.skip_default_keymaps then
     vim.api.nvim_clear_autocmds({ buffer = bufnr, event = "WinClosed" })
     api.nvim_create_autocmd("WinClosed", {
       group = group,

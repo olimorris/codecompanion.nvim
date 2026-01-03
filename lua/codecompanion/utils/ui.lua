@@ -9,7 +9,7 @@ local M = {}
 ---@field bufnr? number Buffer number to use
 ---@field row? number Row position of the floating window
 ---@field col? number Column position of the floating window
----@field filetype? string Filetype to set for the buffer
+---@field ft? string Filetype to set for the buffer
 ---@field ignore_keymaps? boolean Whether to ignore default keymaps
 ---@field lock? boolean Whether to lock the buffer (non-modifiable)
 ---@field opts? table Window options to set
@@ -19,21 +19,12 @@ local M = {}
 ---@field title? string Title of the floating window
 ---@field width? number Default width if not specified in window
 ---@field height? number Default height if not specified in window
----@field window CodeCompanion.WindowPosition
-
----@class CodeCompanion.WindowPosition
----@field row? number|string Row position or "center"
----@field col? number|string Column position or "center"
----@field width? number|string Width of the window or percentage of screen
----@field height? number|string Height of the window or percentage of screen
 
 ---Open a floating window with the provided lines
 ---@param lines table
 ---@param opts CodeCompanion.WindowOpts
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
-  local window = opts.window
-
   local cols = function()
     return vim.o.columns
   end
@@ -41,37 +32,37 @@ M.create_float = function(lines, opts)
     return vim.o.lines
   end
 
-  if type(window.height) == "function" then
-    window.height = window.height()
+  if type(opts.height) == "function" then
+    opts.height = opts.height()
   end
-  if type(window.width) == "function" then
-    window.width = window.width()
+  if type(opts.width) == "function" then
+    opts.width = opts.width()
   end
-  if type(window.height) == "string" then
-    window.height = rows()
+  if type(opts.height) == "string" then
+    opts.height = rows()
   end
-  if type(window.width) == "string" then
-    window.width = cols()
+  if type(opts.width) == "string" then
+    opts.width = cols()
   end
 
-  local width = window.width
+  local width = opts.width
   if width and width > 0 and width < 1 then
     width = math.floor(cols() * width)
   end
   width = (width and width >= 1 and width or opts.width or 85) ---@cast width number
 
-  local height = window.height
+  local height = opts.height
   if height and height > 0 and height < 1 then
     height = math.floor(rows() * height)
   end
   height = (height and height >= 1 and height or opts.height or 17) ---@cast height number
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
-  api.nvim_set_option_value("filetype", opts.filetype or "codecompanion", { buf = bufnr })
+  api.nvim_set_option_value("filetype", opts.ft or "codecompanion", { buf = bufnr })
 
   -- Calculate center position if not specified
-  local row = opts.row or window.row ---@cast row number
-  local col = opts.col or window.col ---@cast col number
+  local row = opts.row or opts.row ---@cast row number
+  local col = opts.col or opts.col ---@cast col number
   if not row or not col then
     row = math.floor((rows() - height) / 2 - 1) -- Account for status line for better UX
     col = math.floor((cols() - width) / 2)
@@ -90,7 +81,6 @@ M.create_float = function(lines, opts)
     title_pos = "center",
   })
 
-  -- TODO: Remove overwrite_buffer
   if not opts.bufnr or opts.overwrite_buffer ~= false then
     api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   end
@@ -107,6 +97,8 @@ M.create_float = function(lines, opts)
   if opts.ignore_keymaps then
     return bufnr, winnr
   end
+
+  -- Set some sensible keymaps for closing the window
 
   local function close()
     pcall(function()

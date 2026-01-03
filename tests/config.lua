@@ -478,6 +478,8 @@ return {
           wrap = true,
         },
       },
+      floating_window = {},
+
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
       show_tools_processing = false, -- Show the loading message when tools are being executed?
     },

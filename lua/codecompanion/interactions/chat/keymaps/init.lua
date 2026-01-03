@@ -13,13 +13,12 @@ local M = {}
 local _cached_options = {}
 M.options = {
   callback = function()
-    local float_opts = {
-      filetype = "codecompanion",
+    local float_opts = vim.tbl_extend("force", config.display.chat.floating_window, {
+      ft = "codecompanion",
       lock = true,
       style = "minimal",
       title = "Options",
-      window = config.display.chat.window,
-    }
+    })
 
     if next(_cached_options) ~= nil then
       return ui_utils.create_float(_cached_options, float_opts)

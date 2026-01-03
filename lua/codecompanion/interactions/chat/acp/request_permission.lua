@@ -227,7 +227,7 @@ local function show_diff(chat, request)
     chat_bufnr = chat.bufnr,
     diff_id = diff_id,
     ft = ft or "text",
-    skip_action_keymaps = true,
+    skip_default_keymaps = true,
     title = d.path,
   })
 

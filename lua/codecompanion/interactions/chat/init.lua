@@ -949,7 +949,7 @@ end
 
 ---Add an image to the chat buffer
 ---@param image CodeCompanion.Image The image object containing the path and other metadata
----@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@param opts? {role?: "user"|string, source?: string, bufnr?: number} Options for adding the image
 ---@return nil
 function Chat:add_image_message(image, opts)
   opts = vim.tbl_deep_extend("force", {

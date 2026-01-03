@@ -164,11 +164,8 @@ end
 
 T["Chat"]["can bring up keymap options in the chat buffer"] = function()
   child.lua([[
-    -- Open the chat buffer
     require("codecompanion").chat()
-
-    -- Ensure we're in normal mode
-    vim.cmd("stopinsert")
+    vim.cmd("stopinsert") -- Ensure we're in normal mode
   ]])
 
   child.type_keys("?")

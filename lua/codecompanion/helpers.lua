@@ -23,7 +23,7 @@ function M.get_prompt_aliases()
 end
 
 ---Create and show a diff in a floating window
----@param args { from_lines: string[], to_lines: string[], ft: string, banner?: string, skip_action_keymaps?: boolean, chat_bufnr?: number, tool_name?: string, title?: string, diff_id: number }
+---@param args { from_lines: string[], to_lines: string[], ft: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string, title?: string, diff_id: number }
 ---@return CodeCompanion.DiffUI
 function M.show_diff(args)
   local bufnr = vim.api.nvim_create_buf(false, true)
@@ -42,7 +42,7 @@ function M.show_diff(args)
     banner = args.banner,
     chat_bufnr = args.chat_bufnr,
     diff_id = args.diff_id,
-    skip_action_keymaps = args.skip_action_keymaps,
+    skip_default_keymaps = args.skip_default_keymaps,
     title = args.title,
     tool_name = args.tool_name,
   })

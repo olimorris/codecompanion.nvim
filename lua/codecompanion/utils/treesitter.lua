@@ -99,9 +99,9 @@ end
 ---comment
 ---@param range number[]
 ---@param buf number|nil
----@return number, integer, integer, integer
+---@return number, number, number, number
 function M.get_vim_range(range, buf)
-  ---@type number, integer, integer, integer
+  ---@type number, number, number, number
   local srow, scol, erow, ecol = unpack(range)
   srow = srow + 1
   scol = scol + 1
