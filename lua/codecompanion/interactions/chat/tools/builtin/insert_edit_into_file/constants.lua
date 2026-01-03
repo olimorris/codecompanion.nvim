@@ -1,5 +1,3 @@
----Constants for the insert_edit_into_file tool
-
 local config = require("codecompanion.config")
 
 local M = {}

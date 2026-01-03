@@ -29,6 +29,10 @@ api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", defa
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatInfoBanner", { link = "WildMenu", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffBanner", { link = "Comment", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffAdd", { link = "DiffAdd", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffChange", { link = "DiffChange", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffDelete", { link = "DiffDelete", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
 pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })
@@ -36,7 +40,7 @@ pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, de
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
 
 -- Setup syntax highlighting for the chat buffer
----@param bufnr? integer
+---@param bufnr? number
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   local config = require("codecompanion.config")
 
@@ -113,3 +117,6 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 vim.treesitter.language.register("markdown", "codecompanion")
+
+-- Setup visual test command for diff development
+require("codecompanion.utils.diff_test").setup()

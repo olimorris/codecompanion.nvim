@@ -13,7 +13,6 @@
 ---@field tools_config table The available tools for the tool system
 ---@field tools_ns number The namespace for the virtual text that appears in the header
 
-local EditTracker = require("codecompanion.interactions.chat.edit_tracker")
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
@@ -159,28 +158,6 @@ function Tools:_resolve_and_prepare_tool(tool)
   return prepared_tool, nil, false
 end
 
----Start edit tracking for all tools
----@param tools table The tools to track
----@return nil
-function Tools:_start_edit_tracking(tools)
-  for _, tool in ipairs(tools) do
-    local tool_name = tool["function"].name
-    local tool_args = tool["function"].arguments
-
-    -- Handle argument parsing more robustly, like the original code
-    if type(tool_args) == "string" then
-      local success, decoded = pcall(vim.json.decode, tool_args)
-      if success then
-        tool_args = decoded
-      else
-        tool_args = nil
-      end
-    end
-
-    EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
-  end
-end
-
 -- Public interface methods
 
 ---@param args table
@@ -283,9 +260,6 @@ end
 function Tools:execute(chat, tools)
   local id = math.random(10000000)
   self.chat = chat
-
-  -- Start edit tracking for all tools
-  self:_start_edit_tracking(tools)
 
   -- Wrap the entire tool execution in error handling
   local function safe_execute()

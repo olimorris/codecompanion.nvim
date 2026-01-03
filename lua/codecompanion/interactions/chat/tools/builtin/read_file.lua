@@ -1,7 +1,7 @@
 local Path = require("plenary.path")
-local helpers = require("codecompanion.interactions.chat.helpers")
 local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 
+local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -17,7 +17,7 @@ end
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
 ---@return {status: "success"|"error", data: string}
 local function read(action)
-  local path = helpers.validate_and_normalize_path(action.filepath)
+  local path = file_utils.validate_and_normalize_path(action.filepath)
   local p = Path:new(path)
   if not p:exists() or not p:is_file() then
     return {

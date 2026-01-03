@@ -189,4 +189,75 @@ function M.calculate_line_similarity(line1, line2)
   return M.similarity_score(trimmed1, trimmed2)
 end
 
+---Parse Python-like JSON syntax from LLMs
+---@param edits string
+---@return string
+function M.parse_python_json(edits)
+  -- Fix booleans before quote conversion to prevent 'True' → "True" string conversion
+
+  -- Capture trailing delimiters ([,%]}%s]) to preserve structure
+  edits = edits:gsub(":%s*True([,%]}%s])", ": true%1")
+  edits = edits:gsub(":%s*False([,%]}%s])", ": false%1")
+  edits = edits:gsub("^%s*True([,%]}%s])", "true%1")
+  edits = edits:gsub("^%s*False([,%]}%s])", "false%1")
+  edits = edits:gsub(":%s*True$", ": true")
+  edits = edits:gsub(":%s*False$", ": false")
+
+  -- LLMs often double-escape: convert \\n to actual newline character
+  edits = edits:gsub("\\\\n", "\n")
+  edits = edits:gsub("\\\\t", "\t")
+  edits = edits:gsub("\\\\r", "\r")
+  edits = edits:gsub("\\\\\\\\", "\\")
+
+  -- Convert Python-style single quotes to JSON double quotes while preserving escaped quotes
+  local result = {}
+  local i = 1
+  local in_string = false
+  local escape_next = false
+
+  while i <= #edits do
+    local char = edits:sub(i, i)
+
+    if escape_next then
+      -- Previous character was backslash
+      if char == "'" and in_string then
+        -- Escaped single quote inside string - convert to literal single quote
+        table.insert(result, "'")
+      else
+        -- Other escaped character - keep as-is
+        table.insert(result, char)
+      end
+      escape_next = false
+    elseif char == "\\" and in_string then
+      -- Escape character in string - check what's being escaped
+      local next_char = edits:sub(i + 1, i + 1)
+      if next_char == "'" then
+        -- This is escaping a single quote, we'll handle it in next iteration
+        escape_next = true
+      else
+        -- Other escape sequence, keep the backslash
+        table.insert(result, char)
+      end
+    elseif char == '"' and in_string then
+      -- Double quote inside a single-quoted string - escape it
+      table.insert(result, '\\"')
+    elseif char == "'" and not in_string then
+      -- Starting a string, convert to double quote
+      table.insert(result, '"')
+      in_string = true
+    elseif char == "'" and in_string then
+      -- Ending a string, convert to double quote
+      table.insert(result, '"')
+      in_string = false
+    else
+      -- Regular character
+      table.insert(result, char)
+    end
+
+    i = i + 1
+  end
+
+  return table.concat(result)
+end
+
 return M

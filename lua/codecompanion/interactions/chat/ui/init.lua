@@ -493,7 +493,7 @@ function UI:clear_virtual_text(extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
----@return number, integer, integer
+---@return number, number, number
 function UI:last()
   local line_count = api.nvim_buf_line_count(self.chat_bufnr)
 

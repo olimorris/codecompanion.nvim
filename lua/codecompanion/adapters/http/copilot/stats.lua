@@ -108,7 +108,8 @@ function M.show()
   if is_limited then
     table.insert(lines, "## Limited Copilot ")
   elseif premium then
-    table.insert(lines, "## Premium Interactions ")
+    table.insert(lines, "## Premium Interactions")
+    table.insert(lines, "")
     local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
     table.insert(lines, fmt("- Used: %d / %d ", used, premium.entitlement))
     local bar = make_progress_bar(usage_percent, PROGRESS_BAR_WIDTH)
@@ -168,17 +169,14 @@ function M.show()
 
   -- Create floating window
   local float_opts = {
-    title = "   Copilot Stats ",
+    ft = "markdown",
+    ignore_keymaps = false,
     lock = true,
     relative = "editor",
-    row = "center",
-    col = "center",
-    window = {
-      width = 43,
-      height = math.min(#lines + 2, 20),
-    },
-    ignore_keymaps = false,
     style = "minimal",
+    title = "   Copilot Stats ",
+    width = 43,
+    height = math.min(#lines + 2, 20),
   }
   local _, winnr = ui_utils.create_float(lines, float_opts)
 
