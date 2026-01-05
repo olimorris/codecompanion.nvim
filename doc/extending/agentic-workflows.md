@@ -18,7 +18,70 @@ When initiated from the [Action Palette](/usage/action-palette), workflows attac
 
 By combining a workflow with tools, we can use an LLM to act as an Agent and do some impressive things!
 
-A great example of that is the `Edit<->Test` workflow that come with the plugin. This workflow asks the LLM to edit code in a buffer and then run a test suite, feeding the output back to the LLM to then make future edits if required.
+A great example of that is the `Edit<->Test` workflow that originally came with the plugin. This workflow asked the LLM to edit code in a buffer and then run a test suite, feeding the output back to the LLM to then make future edits if required.
+
+::: details The full `Edit<->Test` workflow code can be found below:
+```lua
+require("codecompanion").setup({
+  prompt_library = {
+    ["Edit<->Test workflow"] = {
+      strategy = "workflow",
+      description = "Use a workflow to repeatedly edit then test code",
+      opts = {
+        index = 5,
+        is_default = true,
+        short_name = "et",
+      },
+      prompts = {
+        {
+          {
+            name = "Setup Test",
+            role = "user",
+            opts = { auto_submit = false },
+            content = function()
+              -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
+              local approvals = require("codecompanion.interactions.chat.tools.approvals")
+              approvals:toggle_yolo_mode()
+
+              return [[### Instructions
+
+Your instructions here
+
+### Steps to Follow
+
+You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
+
+1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
+2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+3. Make sure you trigger both tools in the same response
+
+We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
+            end,
+          },
+        },
+        {
+          {
+            name = "Repeat On Failure",
+            role = "user",
+            opts = { auto_submit = true },
+            -- Scope this prompt to the cmd_runner tool
+            condition = function()
+              return _G.codecompanion_current_tool == "cmd_runner"
+            end,
+            -- Repeat until the tests pass, as indicated by the testing flag
+            -- which the cmd_runner tool sets on the chat buffer
+            repeat_until = function(chat)
+              return chat.tool_registry.flags.testing == true
+            end,
+            content = "The tests have failed. Can you edit the buffer and run the test suite again?",
+          },
+        },
+      },
+    },
+  },
+})
+```
+:::
 
 Let's breakdown the prompts in that workflow:
 
@@ -27,7 +90,7 @@ prompts = {
   {
     {
       name = "Setup Test",
-      role = constants.USER_ROLE,
+      role = "user",
       opts = { auto_submit = false },
       content = function()
         -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
@@ -68,7 +131,7 @@ Now let's look at how we trigger the automated reflection prompts:
     {
       {
         name = "Repeat On Failure",
-        role = constants.USER_ROLE,
+        role = "user",
         opts = { auto_submit = true },
         -- Scope this prompt to only run when the cmd_runner tool is active
         condition = function()
