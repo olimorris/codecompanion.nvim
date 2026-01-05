@@ -262,8 +262,6 @@ function M.show(diff, opts)
     })
   end
 
-  show_banner()
-
   -- Lock the buffer so the user can't make any changes
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
@@ -274,6 +272,9 @@ function M.show(diff, opts)
       ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
     end)
   end
+
+  -- Show the banner after scrolling to the first hunk
+  show_banner()
 
   vim.api.nvim_create_autocmd({ "User" }, {
     pattern = "CodeCompanionDiffHunkChanged",

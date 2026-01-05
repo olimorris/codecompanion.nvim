@@ -1,7 +1,3 @@
----@brief Visual testing utility for CodeCompanion diff implementation
----
----This module provides a command to visually test the diff provider with multiple test cases.
-
 local M = {}
 
 ---Test cases for diff visualization
@@ -22,64 +18,6 @@ async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
         .ars(["build", "--message-format=json"])
         .stddddouttt(Stdio::piped())
 }
-]],
-  },
-  {
-    name = "Simple rename",
-    filetype = "lua",
-    before = [[
-local function calculate_sum(numbers)
-  local total = 0
-  for _, num in ipairs(numbers) do
-    total = total + num
-  end
-  return total
-end
-]],
-    after = [[
-local function compute_total(numbers)
-  local total = 0
-  for _, num in ipairs(numbers) do
-    total = total + num
-  end
-  return total
-end
-]],
-  },
-  {
-    name = "Word additions",
-    filetype = "javascript",
-    before = [[
-function fetchData(url) {
-  return fetch(url)
-    .then(response => response.json())
-    .catch(error => console.error(error));
-}
-]],
-    after = [[
-async function fetchUserData(url) {
-  return fetch(url)
-    .then(response => response.json())
-    .catch(error => console.error("Failed:", error));
-}
-]],
-  },
-  {
-    name = "Inline parameter change",
-    filetype = "python",
-    before = [[
-def process_data(data, limit=10):
-    results = []
-    for item in data[:limit]:
-        results.append(item.upper())
-    return results
-]],
-    after = [[
-def process_data(data, max_items=100):
-    results = []
-    for item in data[:max_items]:
-        results.append(item.upper())
-    return results
 ]],
   },
   {
@@ -116,25 +54,341 @@ def process():
 ]],
   },
   {
-    name = "No treesitter parser - Fortran",
-    filetype = "fortran",
+    name = "Long file - Variable rename and deletion",
+    filetype = "lua",
     before = [[
-PROGRAM HelloWorld
-  IMPLICIT NONE
-  INTEGER :: counter
-  counter = 10
-  PRINT *, 'Hello, World!'
-  PRINT *, 'Counter:', counter
-END PROGRAM HelloWorld
+local M = {}
+
+---@class ConfigManager
+---@field options table
+---@field defaults table
+---@field callbacks table
+local ConfigManager = {}
+ConfigManager.__index = ConfigManager
+
+---Create a new config manager instance
+---@param opts? table
+---@return ConfigManager
+function ConfigManager.new(opts)
+  local self = setmetatable({}, ConfigManager)
+  self.defaults = {
+    enable_logging = true,
+    log_level = "info",
+    cache_enabled = true,
+    max_cache_size = 1000,
+    timeout = 5000,
+  }
+  self.options = vim.tbl_deep_extend("force", self.defaults, opts or {})
+  self.callbacks = {}
+  return self
+end
+
+---Get a configuration value
+---@param key string
+---@return any
+function ConfigManager:get(key)
+  return self.options[key]
+end
+
+---Set a configuration value
+---@param key string
+---@param value any
+function ConfigManager:set(key, value)
+  local old_value = self.options[key]
+  self.options[key] = value
+  self:_notify_changed(key, old_value, value)
+end
+
+---Register a callback for config changes
+---@param callback function
+function ConfigManager:on_change(callback)
+  table.insert(self.callbacks, callback)
+end
+
+---Notify callbacks of changes
+---@param key string
+---@param old_value any
+---@param new_value any
+function ConfigManager:_notify_changed(key, old_value, new_value)
+  for _, callback in ipairs(self.callbacks) do
+    callback(key, old_value, new_value)
+  end
+end
+
+---Reset to defaults
+function ConfigManager:reset()
+  self.options = vim.deepcopy(self.defaults)
+end
+
+M.ConfigManager = ConfigManager
+return M
 ]],
     after = [[
-PROGRAM HelloUniverse
-  IMPLICIT NONE
-  INTEGER :: count
-  count = 20
-  PRINT *, 'Hello, Universe!'
-  PRINT *, 'Count:', count
-END PROGRAM HelloUniverse
+local M = {}
+
+---@class ConfigManager
+---@field settings table
+---@field defaults table
+---@field callbacks table
+local ConfigManager = {}
+ConfigManager.__index = ConfigManager
+
+---Create a new config manager instance
+---@param opts? table
+---@return ConfigManager
+function ConfigManager.new(opts)
+  local self = setmetatable({}, ConfigManager)
+  self.defaults = {
+    enable_logging = true,
+    log_level = "info",
+    cache_enabled = true,
+    max_cache_size = 1000,
+    timeout = 5000,
+  }
+  self.settings = vim.tbl_deep_extend("force", self.defaults, opts or {})
+  self.callbacks = {}
+  return self
+end
+
+---Get a configuration value
+---@param key string
+---@return any
+function ConfigManager:get(key)
+  return self.settings[key]
+end
+
+---Set a configuration value
+---@param key string
+---@param value any
+function ConfigManager:set(key, value)
+  local old_value = self.settings[key]
+  self.settings[key] = value
+  self:_notify_changed(key, old_value, value)
+end
+
+---Register a callback for config changes
+---@param callback function
+function ConfigManager:on_change(callback)
+  table.insert(self.callbacks, callback)
+end
+
+---Notify callbacks of changes
+---@param key string
+---@param old_value any
+---@param new_value any
+function ConfigManager:_notify_changed(key, old_value, new_value)
+  for _, callback in ipairs(self.callbacks) do
+    callback(key, old_value, new_value)
+  end
+end
+
+M.ConfigManager = ConfigManager
+return M
+]],
+  },
+  {
+    name = "Long file - Comment and import changes",
+    filetype = "typescript",
+    before = [[
+import { useState, useEffect, useCallback } from 'react';
+import { debounce } from 'lodash';
+import { ApiClient } from './api/client';
+import { Logger } from './utils/logger';
+import type { User, UserPreferences, ApiResponse } from './types';
+
+/**
+ * Custom hook for managing user state and preferences
+ * @param userId - The unique identifier for the user
+ * @returns User data and preference management functions
+ */
+export function useUserManager(userId: string) {
+  const [user, setUser] = useState<User | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiClient = new ApiClient();
+  const logger = new Logger('useUserManager');
+
+  /**
+   * Fetch user data from the API
+   */
+  const fetchUser = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response: ApiResponse<User> = await apiClient.get(`/users/${userId}`);
+
+      if (response.success) {
+        setUser(response.data);
+        logger.info('User data fetched successfully', { userId });
+      } else {
+        throw new Error(response.error || 'Failed to fetch user');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      logger.error('Failed to fetch user', { userId, error: errorMessage });
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  /**
+   * Fetch user preferences from the API
+   */
+  const fetchPreferences = useCallback(async () => {
+    try {
+      const response: ApiResponse<UserPreferences> = await apiClient.get(
+        `/users/${userId}/preferences`
+      );
+
+      if (response.success) {
+        setPreferences(response.data);
+        logger.info('Preferences fetched successfully', { userId });
+      }
+    } catch (err) {
+      logger.error('Failed to fetch preferences', { userId, error: err });
+    }
+  }, [userId]);
+
+  /**
+   * Update user preferences with debouncing
+   */
+  const updatePreferences = useCallback(
+    debounce(async (newPreferences: Partial<UserPreferences>) => {
+      try {
+        const response = await apiClient.patch(
+          `/users/${userId}/preferences`,
+          newPreferences
+        );
+
+        if (response.success) {
+          setPreferences(prev => ({ ...prev, ...newPreferences } as UserPreferences));
+          logger.info('Preferences updated successfully', { userId });
+        }
+      } catch (err) {
+        logger.error('Failed to update preferences', { userId, error: err });
+      }
+    }, 500),
+    [userId]
+  );
+
+  useEffect(() => {
+    if (userId) {
+      fetchUser();
+      fetchPreferences();
+    }
+  }, [userId, fetchUser, fetchPreferences]);
+
+  return {
+    user,
+    preferences,
+    loading,
+    error,
+    updatePreferences,
+    refetch: fetchUser,
+  };
+}
+]],
+    after = [[
+import { useState, useEffect, useCallback } from 'react';
+import { debounce } from 'lodash';
+import { ApiClient } from './api/client';
+import type { User, UserPreferences, ApiResponse } from './types';
+
+/**
+ * Hook for managing user state and preferences
+ * Provides real-time user data synchronization
+ * @param userId - The unique identifier for the user
+ * @returns User data and preference management functions
+ */
+export function useUserManager(userId: string) {
+  const [user, setUser] = useState<User | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiClient = new ApiClient();
+
+  /**
+   * Fetch user data from the API
+   */
+  const fetchUser = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response: ApiResponse<User> = await apiClient.get(`/users/${userId}`);
+
+      if (response.success) {
+        setUser(response.data);
+      } else {
+        throw new Error(response.error || 'Failed to fetch user');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  /**
+   * Fetch user preferences from the API
+   */
+  const fetchPreferences = useCallback(async () => {
+    try {
+      const response: ApiResponse<UserPreferences> = await apiClient.get(
+        `/users/${userId}/preferences`
+      );
+
+      if (response.success) {
+        setPreferences(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch preferences', { userId, error: err });
+    }
+  }, [userId]);
+
+  /**
+   * Update user preferences with debouncing
+   */
+  const updatePreferences = useCallback(
+    debounce(async (newPreferences: Partial<UserPreferences>) => {
+      try {
+        const response = await apiClient.patch(
+          `/users/${userId}/preferences`,
+          newPreferences
+        );
+
+        if (response.success) {
+          setPreferences(prev => ({ ...prev, ...newPreferences } as UserPreferences));
+        }
+      } catch (err) {
+        console.error('Failed to update preferences', { userId, error: err });
+      }
+    }, 500),
+    [userId]
+  );
+
+  useEffect(() => {
+    if (userId) {
+      fetchUser();
+      fetchPreferences();
+    }
+  }, [userId, fetchUser, fetchPreferences]);
+
+  return {
+    user,
+    preferences,
+    loading,
+    error,
+    updatePreferences,
+    refetch: fetchUser,
+  };
+}
 ]],
   },
 }
@@ -176,27 +430,27 @@ function M.run_visual_test(test_num)
   })
 
   -- Add keymaps for cycling through test cases
-  local keymap_opts = { buffer = diff_ui.bufnr, silent = true, nowait = true }
-
-  vim.keymap.set("n", "n", function()
-    local next_test = test_num % #M.test_cases + 1
-    local Diff = require("codecompanion.diff")
-    Diff.clear(diff_ui.diff)
-    if vim.api.nvim_win_is_valid(diff_ui.winnr) then
-      vim.api.nvim_win_close(diff_ui.winnr, true)
-    end
-    M.run_visual_test(next_test)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Next test case" }))
-
-  vim.keymap.set("n", "p", function()
-    local prev_test = test_num == 1 and #M.test_cases or test_num - 1
-    local Diff = require("codecompanion.diff")
-    Diff.clear(diff_ui.diff)
-    if vim.api.nvim_win_is_valid(diff_ui.winnr) then
-      vim.api.nvim_win_close(diff_ui.winnr, true)
-    end
-    M.run_visual_test(prev_test)
-  end, vim.tbl_extend("force", keymap_opts, { desc = "Previous test case" }))
+  -- local keymap_opts = { buffer = diff_ui.bufnr, silent = true, nowait = true }
+  --
+  -- vim.keymap.set("n", "n", function()
+  --   local next_test = test_num % #M.test_cases + 1
+  --   local Diff = require("codecompanion.diff")
+  --   Diff.clear(diff_ui.diff)
+  --   if vim.api.nvim_win_is_valid(diff_ui.winnr) then
+  --     vim.api.nvim_win_close(diff_ui.winnr, true)
+  --   end
+  --   M.run_visual_test(next_test)
+  -- end, vim.tbl_extend("force", keymap_opts, { desc = "Next test case" }))
+  --
+  -- vim.keymap.set("n", "p", function()
+  --   local prev_test = test_num == 1 and #M.test_cases or test_num - 1
+  --   local Diff = require("codecompanion.diff")
+  --   Diff.clear(diff_ui.diff)
+  --   if vim.api.nvim_win_is_valid(diff_ui.winnr) then
+  --     vim.api.nvim_win_close(diff_ui.winnr, true)
+  --   end
+  --   M.run_visual_test(prev_test)
+  -- end, vim.tbl_extend("force", keymap_opts, { desc = "Previous test case" }))
 
   -- Listen for diff events
   local group = vim.api.nvim_create_augroup("CodeCompanionDiffTest_" .. diff_id, { clear = true })
