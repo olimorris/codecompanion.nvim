@@ -236,7 +236,7 @@ return {
     after
   ))
 
-  expect.reference_screenshot(child.get_screenshot(), nil, { force = true })
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T

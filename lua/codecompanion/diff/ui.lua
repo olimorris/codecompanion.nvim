@@ -226,7 +226,7 @@ end
 ---@param opts { diff: CC.Diff, cfg: CodeCompanion.WindowOpts, title?: string }
 ---@return number, number Buffer and window numbers
 local function show_in_float(opts)
-  return ui_utils.create_float(opts.diff.to.lines, {
+  return ui_utils.create_float(opts.diff.from.lines, {
     width = opts.cfg.width,
     height = opts.cfg.height,
     row = opts.cfg.row,
