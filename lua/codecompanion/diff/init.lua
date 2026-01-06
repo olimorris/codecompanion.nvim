@@ -67,6 +67,8 @@ local diff_fn = vim.text.diff or vim.diff
 ---@field to CC.DiffText
 ---@field namespace number
 ---@field should_offset boolean
+---@field marker_add? string
+---@field marker_delete? string
 
 ---@class CodeCompanion.diff.Hunk
 ---@field kind "add"|"delete"|"change"
@@ -138,8 +140,8 @@ end
 function M._diff_lines(diff)
   local hunks = M._diff(diff.from.lines, diff.to.lines, CONSTANTS.DIFF_LINE_OPTS)
 
-  local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, virt_lines: CodeCompanion.Text[]}>
-  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number}>
+  local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
+  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number, virt_lines: CodeCompanion.Text[]}>
 
   for _, hunk in ipairs(hunks) do
     local ai, ac, bi, bc = unpack(hunk)
@@ -154,37 +156,64 @@ function M._diff_lines(diff)
     }
     table.insert(diff.hunks, h)
     if ac > 0 then
-      local virt_lines = vim.list_slice(diff.from.virt_lines, ai, ai + ac - 1)
-      dels[row] = { hunk = h, virt_lines = virt_lines }
+      -- Deletions: highlight the lines being deleted
+      for l = 0, ac - 1 do
+        dels[row + l] = { hunk = h }
+      end
     end
     if bc > 0 then
+      -- Additions: prepare virtual lines to show below
+      local virt_lines = vim.list_slice(diff.to.virt_lines, bi, bi + bc - 1)
       for l = 0, bc - 1 do
-        adds[row + l] = { hunk = h, old_idx = ai + l, new_idx = bi + l }
+        adds[row + l] = { hunk = h, old_idx = ai + l, new_idx = bi + l, virt_lines = virt_lines }
       end
     end
   end
 
+  -- Apply line highlighting for deletions
   for row, data in pairs(dels) do
-    table.insert(data.hunk.extmarks, {
+    local extmark = {
       row = row,
       col = 0,
-      virt_lines_above = true,
-      virt_lines = diff_utils.extend_vl(data.virt_lines, "CodeCompanionDiffDelete"),
-    })
+      line_hl_group = "CodeCompanionDiffDelete",
+    }
+
+    -- Add marker for deletions if provided
+    if diff.marker_delete then
+      extmark.sign_text = diff.marker_delete
+      extmark.sign_hl_group = "CodeCompanionDiffDelete"
+    end
+
+    table.insert(data.hunk.extmarks, extmark)
   end
 
+  -- Apply virtual lines for additions
   for row, data in pairs(adds) do
     if data.hunk.kind == "change" then
       M._diff_words(diff, row, data)
     end
 
-    table.insert(data.hunk.extmarks, {
-      row = row,
-      col = 0,
-      end_row = row + 1,
-      hl_group = "CodeCompanionDiffAdd",
-      hl_eol = true,
-    })
+    -- Only add virtual lines once per hunk at the first addition row
+    if row == data.hunk.pos[1] then
+      -- For change hunks, position additions after all deletions
+      local virt_line_row = row
+      if data.hunk.kind == "change" and data.hunk.cover > 0 then
+        virt_line_row = data.hunk.pos[1] + data.hunk.cover - 1
+      end
+
+      local virt_lines = diff_utils.extend_vl(data.virt_lines, "CodeCompanionDiffAdd")
+
+      -- Add marker to each virtual line if provided
+      if diff.marker_add then
+        virt_lines = diff_utils.prepend_marker(virt_lines, diff.marker_add, "CodeCompanionDiffAdd")
+      end
+
+      table.insert(data.hunk.extmarks, {
+        row = virt_line_row,
+        col = 0,
+        virt_lines = virt_lines,
+      })
+    end
   end
 
   return diff
@@ -245,7 +274,7 @@ function M._diff_words(diff, row, data)
 end
 
 ---Create a diff between two sets of lines
----@param args {bufnr: number, from_lines: string[], to_lines: string[], ft?: string}
+---@param args {bufnr: number, from_lines: string[], to_lines: string[], ft?: string, marker_add?: string, marker_delete?: string}
 ---@return CC.Diff
 function M.create(args)
   local from_text = table.concat(args.from_lines, "\n")
@@ -261,58 +290,24 @@ function M.create(args)
       from = {
         lines = args.from_lines,
         text = from_text,
-        virt_lines = diff_utils.create_vl(from_text, {
-          ft = args.ft,
-          bg = "CodeCompanionDiffDelete",
-        }),
       },
       to = {
         lines = args.to_lines,
         text = to_text,
+        virt_lines = diff_utils.create_vl(to_text, {
+          ft = args.ft,
+          bg = "CodeCompanionDiffAdd",
+        }),
       },
       namespace = api.nvim_create_namespace("codecompanion_diff"),
       should_offset = false,
+      marker_add = args.marker_add,
+      marker_delete = args.marker_delete,
     }
   )
   diff.should_offset = _should_offset(diff)
 
   return diff
-end
-
----Clear diff extmarks from buffer
----@param diff CC.Diff
----@return nil
-function M.clear(diff)
-  api.nvim_buf_clear_namespace(diff.bufnr, diff.namespace, 0, -1)
-end
-
----Apply diff extmarks to a buffer
----@param diff CC.Diff
----@param bufnr? number
----@return nil
-function M.apply(diff, bufnr)
-  local line_count = api.nvim_buf_line_count(diff.bufnr)
-  if line_count == 0 then
-    return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
-  end
-
-  if diff.should_offset then
-    api.nvim_buf_set_lines(bufnr or diff.bufnr, 0, 0, false, { "" })
-  end
-
-  -- Apply the extmarks
-  for _, hunk in ipairs(diff.hunks) do
-    for _, extmark in ipairs(hunk.extmarks) do
-      local opts = {}
-      for k, v in pairs(extmark) do
-        if k ~= "row" and k ~= "col" then
-          opts[k] = v
-        end
-      end
-
-      pcall(api.nvim_buf_set_extmark, bufnr or diff.bufnr, diff.namespace, extmark.row, extmark.col, opts)
-    end
-  end
 end
 
 return M

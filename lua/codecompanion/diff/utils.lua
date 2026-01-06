@@ -168,6 +168,23 @@ function M.extend_vl(vl, hl_group)
   return vl
 end
 
+---Prepend a marker to each virtual line
+---@param vl CodeCompanion.Text[]
+---@param marker string
+---@param hl_group string
+---@return CodeCompanion.Text[]
+function M.prepend_marker(vl, marker, hl_group)
+  local result = {}
+  for _, vt in ipairs(vl) do
+    local new_vt = { { marker .. " ", hl_group } }
+    for _, segment in ipairs(vt) do
+      table.insert(new_vt, segment)
+    end
+    table.insert(result, new_vt)
+  end
+  return result
+end
+
 ---Split a string into words and non-words with position tracking. UTF-8 aware
 ---@param str string
 ---@return { word: string, start_col: number, end_col: number }[]

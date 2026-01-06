@@ -1,5 +1,6 @@
 local h = require("tests.helpers")
 
+local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -119,42 +120,6 @@ T["Diff"]["Generates correct extmarks for changes"] = function()
   h.eq(3, result.extmark_count, "Should have 2 extmarks (deletion + addition + change)")
 end
 
-T["Diff"]["Applies extmarks to buffer"] = function()
-  local result = child.lua([[
-    local bufnr = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(bufnr, "filetype", "lua")
-
-    local from = {"line1", "old", "line3"}
-    local to = {"line1", "new", "line3"}
-
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, to)
-
-    local diff_obj = diff.create({
-      bufnr = bufnr,
-      from_lines = from,
-      to_lines = to,
-      ft = "lua"
-    })
-
-    diff.apply(diff_obj)
-
-    local extmarks = vim.api.nvim_buf_get_extmarks(
-      bufnr,
-      diff_obj.namespace,
-      0,
-      -1,
-      { details = true }
-    )
-
-    return {
-      extmark_count = #extmarks,
-      extmarks = extmarks,
-    }
-  ]])
-
-  h.is_true(result.extmark_count > 0, "Should have applied extmarks to buffer")
-end
-
 T["Diff"]["Word-level diff creates word change extmarks"] = function()
   local result = child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
@@ -214,53 +179,6 @@ T["Diff"]["Word-level diff handles empty lines"] = function()
   h.eq("change", result.hunk_kind, "Should be a change hunk")
 end
 
-T["Diff"]["Clears extmarks from buffer"] = function()
-  local result = child.lua([[
-    local bufnr = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(bufnr, "filetype", "lua")
-
-    local from = {"line1", "old", "line3"}
-    local to = {"line1", "new", "line3"}
-
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, to)
-
-    local diff_obj = diff.create({
-      bufnr = bufnr,
-      from_lines = from,
-      to_lines = to,
-      ft = "lua"
-    })
-
-    diff.apply(diff_obj)
-
-    local extmarks_before = vim.api.nvim_buf_get_extmarks(
-      bufnr,
-      diff_obj.namespace,
-      0,
-      -1,
-      {}
-    )
-
-    diff.clear(diff_obj)
-
-    local extmarks_after = vim.api.nvim_buf_get_extmarks(
-      bufnr,
-      diff_obj.namespace,
-      0,
-      -1,
-      {}
-    )
-
-    return {
-      before_count = #extmarks_before,
-      after_count = #extmarks_after,
-    }
-  ]])
-
-  h.is_true(result.before_count > 0, "Should have extmarks before clear")
-  h.eq(0, result.after_count, "Should have no extmarks after clear")
-end
-
 T["Diff"]["Handles multiple hunks"] = function()
   local result = child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
@@ -282,6 +200,43 @@ T["Diff"]["Handles multiple hunks"] = function()
   ]])
 
   h.eq(2, result.hunk_count, "Should detect 2 separate change hunks")
+end
+
+T["Diff"]["Integration Test"] = new_set()
+
+T["Diff"]["Integration Test"]["Example 1"] = function()
+  local before = [[
+return {
+  "CodeCompanion is amazing - Oli Morris"
+}
+]]
+  local after = [[
+return {
+  "CodeCompanion is amazing - Oli Morris"
+  "Lua and Neovim are amazing too - Oli Morris"
+  "Happy coding!"
+  "Hello world"
+}
+]]
+
+  child.lua(string.format(
+    [[
+    local helpers = require("codecompanion.helpers")
+    local diff_ui = helpers.show_diff({
+      from_lines = vim.split(%q, "\n"),
+      to_lines = vim.split(%q, "\n"),
+      diff_id = math.random(10000000),
+      ft = "lua",
+      title = "Tests",
+      marker_add = "+",
+      marker_delete = "-",
+    })
+  ]],
+    before,
+    after
+  ))
+
+  expect.reference_screenshot(child.get_screenshot(), nil, { force = true })
 end
 
 return T

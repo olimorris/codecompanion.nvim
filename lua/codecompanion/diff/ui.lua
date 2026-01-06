@@ -194,6 +194,34 @@ function DiffUI:setup_keymaps(opts)
   })
 end
 
+---Apply diff extmarks to a buffer
+---@param diff CC.Diff
+---@return nil
+function DiffUI:apply_extmarks(diff, bufnr)
+  local line_count = api.nvim_buf_line_count(bufnr)
+  if line_count == 0 then
+    return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
+  end
+
+  if diff.should_offset then
+    api.nvim_buf_set_lines(bufnr, 0, 0, false, { "" })
+  end
+
+  -- Apply the extmarks
+  for _, hunk in ipairs(diff.hunks) do
+    for _, extmark in ipairs(hunk.extmarks) do
+      local opts = {}
+      for k, v in pairs(extmark) do
+        if k ~= "row" and k ~= "col" then
+          opts[k] = v
+        end
+      end
+
+      pcall(api.nvim_buf_set_extmark, bufnr, diff.namespace, extmark.row, extmark.col, opts)
+    end
+  end
+end
+
 ---Show a diff in a floating window
 ---@param opts { diff: CC.Diff, cfg: CodeCompanion.WindowOpts, title?: string }
 ---@return number, number Buffer and window numbers
@@ -247,9 +275,7 @@ function M.show(diff, opts)
     winnr = winnr,
   }, DiffUI)
 
-  -- Apply diff extmarks
-  local Diff = require("codecompanion.diff")
-  Diff.apply(diff, bufnr)
+  DiffUI:apply_extmarks(diff, bufnr)
 
   local function show_banner(args)
     args = args or {}
