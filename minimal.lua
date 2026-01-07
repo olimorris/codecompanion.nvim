@@ -66,14 +66,15 @@ require("lazy.minit").repro({ spec = plugins })
 -- CONFIGURE PLUGINS HERE -----------------------------------------------------
 
 -- Setup Tree-sitter
+-- NOTE: Please restart Neovim to ensure parsers are loaded correctly
 require("nvim-treesitter")
   .install({
     "lua",
     "markdown",
     "markdown_inline",
     "yaml",
-  })
-  :wait(300000)
+  }, { summary = true, max_jobs = 10 })
+  :wait(1800000)
 
 -- Setup nvim-cmp
 -- local cmp_status, cmp = pcall(require, "cmp")
