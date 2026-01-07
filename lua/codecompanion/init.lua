@@ -87,7 +87,7 @@ CodeCompanion.add = function(args)
   local chat = CodeCompanion.last_chat()
 
   if not chat then
-    chat = CodeCompanion.chat({ context = {} })
+    chat = CodeCompanion.chat()
 
     if not chat then
       return log:warn("Could not create chat buffer")
