@@ -415,6 +415,7 @@ return {
           if json.type == "message_start" then
             self.temp.input_tokens = (json.message.usage.input_tokens or 0)
               + (json.message.usage.cache_creation_input_tokens or 0)
+              + (json.message.usage.cache_read_input_tokens or 0)
 
             self.temp.output_tokens = json.message.usage.output_tokens or 0
           elseif json.type == "message_delta" then
