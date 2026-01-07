@@ -100,6 +100,16 @@ This tools enables an LLM to fetch the content from a specific webpage. It will 
 Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 ```
 
+This tool supports 3 modes when fetching a website: 
+
+- `text` (default): Returns `document.body.innerText`.
+- `screenshot`: Returns the image URL of a screenshot of the first screen.
+- `pageshot`: Returns the image URL of the full-page screenshot. 
+
+The LLM choose which mode to use when they call the tool, and you can ask the LLM to use a specific mode in the chat.
+Keep in mind that the `screenshot` and `pageshot` mode only make sense if you're using a multi-modal LLM, in which case you should also give it the `@{fetch_images}` tool so that it can fetch the screenshot/pageshot from the returned URL.
+
+
 **Options:**
 - `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`)
 
@@ -238,6 +248,20 @@ Use @{web_search} to search neovim.io and explain how I can configure a new lang
 
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+This tool also supports image results in the search that can be consumed by multi-modal LLMs.
+To achieve that, you'd also need to give the `@{fetch_images}` tool to the LLM so that it can fetch the images from the URL.
+
+### `fetch_images`
+
+This tool allows the LLM to fetch images from URLs. 
+Any URL that directly points to an image would work with this tool. 
+While you could certainly copy-paste URLs to the chat buffer, it's probably more convenient to use this with the `@search_web` tool:
+
+```md
+Using the @{web_search} and @{fetch_images} tools, tell me what the logo of codecompanion.nvim look like.
+```
+
+**You should only use this tool with a multi-modal LLM.**
 
 ## Tool Groups
 
