@@ -236,6 +236,79 @@ return {
     after
   ))
 
+  -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-1"
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Diff"]["Integration Test"]["Example 2"] = function()
+  local before = [[
+async fn run_cargo_build_json() -> io::Result<Option<String>> {
+    let mut child = Command::new("cargo")
+        .args(["build", "--message-format=json"])
+        .stdout(Stdio::piped())
+}
+]]
+  local after = [[
+async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
+    let mut childddd = Command::new("cargo")
+        .ars(["build", "--message-format=json"])
+        .stddddouttt(Stdio::piped())
+}
+]]
+
+  child.lua(string.format(
+    [[
+    local helpers = require("codecompanion.helpers")
+    local diff_ui = helpers.show_diff({
+      from_lines = vim.split(%q, "\n"),
+      to_lines = vim.split(%q, "\n"),
+      diff_id = math.random(10000000),
+      ft = "rust",
+      title = "Tests",
+      marker_add = "+",
+      marker_delete = "-",
+    })
+  ]],
+    before,
+    after
+  ))
+
+  -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-2"
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Diff"]["Integration Test"]["Example 3"] = function()
+  local before = [[
+def process():
+    step1()
+    step2()
+    step3()
+    step4()
+]]
+  local after = [[
+def process():
+    step1()
+    step4()
+]]
+
+  child.lua(string.format(
+    [[
+    local helpers = require("codecompanion.helpers")
+    local diff_ui = helpers.show_diff({
+      from_lines = vim.split(%q, "\n"),
+      to_lines = vim.split(%q, "\n"),
+      diff_id = math.random(10000000),
+      ft = "python",
+      title = "Tests",
+      marker_add = "+",
+      marker_delete = "-",
+    })
+  ]],
+    before,
+    after
+  ))
+
+  -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-3"
   expect.reference_screenshot(child.get_screenshot())
 end
 
