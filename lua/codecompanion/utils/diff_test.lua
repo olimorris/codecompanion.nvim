@@ -187,208 +187,98 @@ return M
 ]],
   },
   {
-    name = "Long file - Comment and import changes",
+    name = "TypeScript - Import and logger changes",
     filetype = "typescript",
     before = [[
-import { useState, useEffect, useCallback } from 'react';
-import { debounce } from 'lodash';
 import { ApiClient } from './api/client';
 import { Logger } from './utils/logger';
 import type { User, UserPreferences, ApiResponse } from './types';
 
+const apiClient = new ApiClient();
+const logger = new Logger('useUserManager');
+
 /**
- * Custom hook for managing user state and preferences
- * @param userId - The unique identifier for the user
- * @returns User data and preference management functions
+ * Fetch user preferences from the API
  */
-export function useUserManager(userId: string) {
-  const [user, setUser] = useState<User | null>(null);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const fetchPreferences = async (userId: string) => {
+  try {
+    const response: ApiResponse<UserPreferences> = await apiClient.get(
+      `/users/${userId}/preferences`
+    );
 
-  const apiClient = new ApiClient();
-  const logger = new Logger('useUserManager');
-
-  /**
-   * Fetch user data from the API
-   */
-  const fetchUser = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response: ApiResponse<User> = await apiClient.get(`/users/${userId}`);
-
-      if (response.success) {
-        setUser(response.data);
-        logger.info('User data fetched successfully', { userId });
-      } else {
-        throw new Error(response.error || 'Failed to fetch user');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      logger.error('Failed to fetch user', { userId, error: errorMessage });
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setPreferences(response.data);
+      logger.info('Preferences fetched successfully', { userId });
     }
-  }, [userId]);
+  } catch (err) {
+    logger.error('Failed to fetch preferences', { userId, error: err });
+  }
 
-  /**
-   * Fetch user preferences from the API
-   */
-  const fetchPreferences = useCallback(async () => {
+  return { user: currentUser, timeout: 500 };
+};
+
+const updatePreferences = useCallback(
+  debounce(async (newPreferences: Partial<UserPreferences>) => {
     try {
-      const response: ApiResponse<UserPreferences> = await apiClient.get(
-        `/users/${userId}/preferences`
+      const response = await apiClient.patch(
+        `/users/${userId}/preferences`,
+        newPreferences
       );
 
       if (response.success) {
-        setPreferences(response.data);
-        logger.info('Preferences fetched successfully', { userId });
+        setPreferences(prev => ({ ...prev, ...newPreferences } as UserPreferences));
+        logger.info('Preferences updated successfully', { userId });
       }
     } catch (err) {
-      logger.error('Failed to fetch preferences', { userId, error: err });
+      logger.error('Failed to update preferences', { error: err });
     }
-  }, [userId]);
-
-  /**
-   * Update user preferences with debouncing
-   */
-  const updatePreferences = useCallback(
-    debounce(async (newPreferences: Partial<UserPreferences>) => {
-      try {
-        const response = await apiClient.patch(
-          `/users/${userId}/preferences`,
-          newPreferences
-        );
-
-        if (response.success) {
-          setPreferences(prev => ({ ...prev, ...newPreferences } as UserPreferences));
-          logger.info('Preferences updated successfully', { userId });
-        }
-      } catch (err) {
-        logger.error('Failed to update preferences', { userId, error: err });
-      }
-    }, 500),
-    [userId]
-  );
-
-  useEffect(() => {
-    if (userId) {
-      fetchUser();
-      fetchPreferences();
-    }
-  }, [userId, fetchUser, fetchPreferences]);
-
-  return {
-    user,
-    preferences,
-    loading,
-    error,
-    updatePreferences,
-    refetch: fetchUser,
-  };
-}
+  }),
+  []
+);
 ]],
     after = [[
-import { useState, useEffect, useCallback } from 'react';
-import { debounce } from 'lodash';
 import { ApiClient } from './api/client';
-import type { User, UserPreferences, ApiResponse } from './types';
+import type { UserPreferences, ApiResponse } from './types';
+
+const apiClient = new ApiClient();
 
 /**
- * Hook for managing user state and preferences
- * Provides real-time user data synchronization
- * @param userId - The unique identifier for the user
- * @returns User data and preference management functions
+ * Fetch user preferences
+ * Retrieves preferences for the given user ID
  */
-export function useUserManager(userId: string) {
-  const [user, setUser] = useState<User | null>(null);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const fetchPreferences = async (userId: string) => {
+  try {
+    const response: ApiResponse<UserPreferences> = await apiClient.get(
+      `/users/${userId}/preferences`
+    );
 
-  const apiClient = new ApiClient();
-
-  /**
-   * Fetch user data from the API
-   */
-  const fetchUser = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response: ApiResponse<User> = await apiClient.get(`/users/${userId}`);
-
-      if (response.success) {
-        setUser(response.data);
-      } else {
-        throw new Error(response.error || 'Failed to fetch user');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setPreferences(response.data);
     }
-  }, [userId]);
+  } catch (err) {
+    console.error('Failed to fetch preferences', { userId, error: err });
+  }
 
-  /**
-   * Fetch user preferences from the API
-   */
-  const fetchPreferences = useCallback(async () => {
+  return { timeout: 500 };
+};
+
+const updatePreferences = useCallback(
+  debounce(async (newPreferences: Partial<UserPreferences>) => {
     try {
-      const response: ApiResponse<UserPreferences> = await apiClient.get(
-        `/users/${userId}/preferences`
+      const response = await apiClient.patch(
+        `/users/${userId}/preferences`,
+        newPreferences
       );
 
       if (response.success) {
-        setPreferences(response.data);
+        setPreferences(prev => ({ ...prev, ...newPreferences } as UserPreferences));
       }
     } catch (err) {
-      console.error('Failed to fetch preferences', { userId, error: err });
+      console.error('Failed to update preferences', { userId, error: err });
     }
-  }, [userId]);
-
-  /**
-   * Update user preferences with debouncing
-   */
-  const updatePreferences = useCallback(
-    debounce(async (newPreferences: Partial<UserPreferences>) => {
-      try {
-        const response = await apiClient.patch(
-          `/users/${userId}/preferences`,
-          newPreferences
-        );
-
-        if (response.success) {
-          setPreferences(prev => ({ ...prev, ...newPreferences } as UserPreferences));
-        }
-      } catch (err) {
-        console.error('Failed to update preferences', { userId, error: err });
-      }
-    }, 500),
-    [userId]
-  );
-
-  useEffect(() => {
-    if (userId) {
-      fetchUser();
-      fetchPreferences();
-    }
-  }, [userId, fetchUser, fetchPreferences]);
-
-  return {
-    user,
-    preferences,
-    loading,
-    error,
-    updatePreferences,
-    refetch: fetchUser,
-  };
-}
+  }, 500),
+  [userId]
+);
 ]],
   },
 }
