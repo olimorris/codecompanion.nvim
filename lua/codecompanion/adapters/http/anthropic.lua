@@ -3,9 +3,6 @@ local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
 local transform = require("codecompanion.utils.tool_transformers")
 
-local input_tokens = 0
-local output_tokens = 0
-
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
   name = "anthropic",
@@ -35,7 +32,10 @@ return {
     ["anthropic-version"] = "2023-06-01",
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
-  temp = {},
+  temp = {
+    input_tokens = 0,
+    output_tokens = 0,
+  },
   available_tools = {
     ["code_execution"] = {
       description = "The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment",
@@ -413,12 +413,12 @@ return {
 
         if ok then
           if json.type == "message_start" then
-            input_tokens = (json.message.usage.input_tokens or 0)
+            self.temp.input_tokens = (json.message.usage.input_tokens or 0)
               + (json.message.usage.cache_creation_input_tokens or 0)
 
-            output_tokens = json.message.usage.output_tokens or 0
+            self.temp.output_tokens = json.message.usage.output_tokens or 0
           elseif json.type == "message_delta" then
-            return (input_tokens + output_tokens + json.usage.output_tokens)
+            return (self.temp.input_tokens + self.temp.output_tokens + json.usage.output_tokens)
           elseif json.type == "message" then
             return (json.usage.input_tokens + json.usage.output_tokens)
           end
