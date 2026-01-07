@@ -982,6 +982,43 @@ function Chat:add_image_message(image, opts)
   })
 end
 
+---Add a document to the chat buffer
+---@param document CodeCompanion.Document The document object containing the path and other metadata
+---@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the document
+---@return nil
+function Chat:add_document_message(document, opts)
+  opts = vim.tbl_deep_extend("force", {
+    role = config.constants.USER_ROLE,
+    source = "codecompanion.interactions.chat.slash_commands.document",
+    bufnr = document.bufnr,
+  }, opts or {})
+
+  local id = "<document>" .. (document.id or document.path) .. "</document>"
+
+  self:add_message({
+    role = opts.role,
+    content = document.base64 or "",
+  }, {
+    context = {
+      id = id,
+      media_type = document.media_type,
+      path = document.path or document.id,
+      source = document.source,
+      url = document.url,
+      file_id = document.file_id,
+    },
+    _meta = { tag = "document" },
+    visible = false,
+  })
+
+  self.context:add({
+    bufnr = opts.bufnr,
+    id = id,
+    path = document.path or document.url or document.file_id,
+    source = opts.source,
+  })
+end
+
 ---Apply any tools or variables that a user has tagged in their message
 ---@param message table
 ---@return nil

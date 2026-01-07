@@ -198,6 +198,51 @@ return {
           end
         end
 
+        -- 3a. Account for any documents (PDFs)
+        if m._meta and m._meta.tag == "document" and m.context then
+          if self.opts and self.opts.vision then -- PDF support uses vision capability
+            if m.context.source == "url" then
+              -- URL-based document
+              m.content = {
+                {
+                  type = "document",
+                  source = {
+                    type = "url",
+                    url = m.context.url,
+                  },
+                },
+              }
+            elseif m.context.source == "file" then
+              -- Files API reference
+              m.content = {
+                {
+                  type = "document",
+                  source = {
+                    type = "file",
+                    file_id = m.context.file_id,
+                  },
+                },
+              }
+            else
+              -- Base64-encoded document
+              local content_data = m.content
+              m.content = {
+                {
+                  type = "document",
+                  source = {
+                    type = "base64",
+                    media_type = m.context.media_type or "application/pdf",
+                    data = content_data,
+                  },
+                },
+              }
+            end
+          else
+            -- Remove the message if vision/PDF support is not enabled
+            return nil
+          end
+        end
+
         -- 4. Remove disallowed keys
         m = adapter_utils.filter_out_messages({
           message = m,
@@ -379,7 +424,7 @@ return {
     ---@return table|nil
     form_tools = function(self, tools)
       if not self.opts.tools or not tools then
-        return
+        return nil
       end
 
       local transformed = {}

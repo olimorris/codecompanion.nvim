@@ -116,6 +116,38 @@ function Default:images(paths, filetypes)
   return self
 end
 
+---Find documents in a set of paths
+---@param paths table
+---@param filetypes table
+function Default:documents(paths, filetypes)
+  local files = {}
+  for _, path in ipairs(paths) do
+    local p = Path:new(path)
+
+    local file = scan.scan_dir(p:absolute(), {
+      hidden = false,
+      depth = 5,
+      add_dirs = false,
+      search_pattern = filetypes,
+    })
+
+    vim.list_extend(files, file)
+  end
+
+  self.to_display = vim
+    .iter(files)
+    :map(function(f)
+      return { relative_path = f, path = f }
+    end)
+    :totable()
+
+  self.to_format = function(item)
+    return item.relative_path
+  end
+
+  return self
+end
+
 ---The function to display the provider
 ---@return function
 function Default:display()
