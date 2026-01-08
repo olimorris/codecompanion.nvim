@@ -54,7 +54,7 @@ end
 
 ---Show banner in the diff buffer
 ---@param bufnr number
----@param opts { banner?: string, current_hunk: number, hunks: number, namespace: number, line?: number, overwrite?: boolean }
+---@param opts { banner?: string, current_hunk: number, hunks: number, inline?: boolean, namespace: number, line?: number, overwrite?: boolean }
 ---@return number The namespace ID used for the banner extmark
 local function banner_virt_text(bufnr, opts)
   local ns_id = api.nvim_create_namespace("codecompanion_diff_ui_" .. tostring(opts.namespace))
@@ -67,10 +67,9 @@ local function banner_virt_text(bufnr, opts)
 
   api.nvim_buf_set_extmark(bufnr, ns_id, vim.fn.line("w0") - 1, 0, {
     virt_text = {
-      { text, "CodeCompanionDiffBanner" },
+      { text, opts.inline and "CodeCompanionDiffHintInline" or "CodeCompanionDiffHint" },
     },
     virt_text_pos = "right_align",
-    hl_mode = "combine",
     priority = 125,
   })
 
