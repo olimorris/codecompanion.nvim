@@ -950,10 +950,7 @@ followed their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
 
-<<<<<<< HEAD You will need to configure a default model in your
-`~/.config/opencode/config.json` file: ======= You can specify a custom model
-in your `~/.config/opencode/config.json` file: >>>>>>>
-5894748009c1282c07cc51d250286725820aed89
+You can specify a custom model in your `~/.config/opencode/config.json` file:
 
 >json
     {
@@ -961,56 +958,6 @@ in your `~/.config/opencode/config.json` file: >>>>>>>
         "model": "github-copilot/claude-sonnet-4.5",
     }
 <
-
-<<<<<<< HEAD
-
-Alternatively, you can set up various models in the adapter itself:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          opencode = function()
-            return require("codecompanion.adapters").extend("opencode", {
-              commands = {
-                -- The default uses the opencode/config.json value
-                default = {
-                  "opencode",
-                  "acp",
-                },
-                copilot_sonnet_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "github-copilot/claude-sonnet-4.5",
-                },
-                copilot_opus_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "github-copilot/claude-opus-4.5",
-                },
-                anthropic_sonnet_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "anthropic/claude-sonnet-4.5",
-                },
-                anthropic_opus_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "anthropic/claude-opus-4.5",
-                },
-              },
-            })
-          end,
-        },
-      },
-    })
-<
-
-======= >>>>>>> 5894748009c1282c07cc51d250286725820aed89
 
 
 HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
@@ -4049,6 +3996,27 @@ Also, multiple files can be selected and added to the chat buffer:
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
+
+
+/DOCUMENT ~
+
+
+  [!NOTE] Currently only available with the Anthropic adapter
+The `document` slash command allows you to add document files (PDF, DOCX, RTF,
+CSV, XLSX) to the chat buffer for analysis and discussion with the LLM. The
+command provides three different sources for documents:
+
+- **File**: Browse and select document files from your file system using native, `Telescope`, `mini.pick`, `fzf.lua` or `snacks.nvim` providers
+- **URL**: Provide a URL to a publicly accessible document (the URL must end with a supported file extension)
+- **Files API**: Reference a document previously uploaded via Anthropic’s Files API by providing the `file_id`
+
+Documents are automatically validated for: - Size limit (32MB maximum per
+Anthropic API requirements) - Supported file types (pdf, rtf, docx, csv, xlsx)
+
+In the config for the slash command, you can specify directories (`opts.dirs`)
+and filetypes (`opts.filetypes`) to customize the document picker’s search
+scope. By default, it searches the current working directory for all supported
+document types.
 
 
 /HELP ~
