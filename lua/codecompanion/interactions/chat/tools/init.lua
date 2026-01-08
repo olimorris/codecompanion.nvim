@@ -87,10 +87,11 @@ end
 
 ---Resolve and prepare a tool for execution
 ---@param tool table The tool call from the LLM
----@return table|nil resolved_tool The resolved tool or nil if failed
----@return string|nil error_msg Error message if resolution failed
----@return boolean|nil is_json_error Whether this is a JSON parsing error that needs special handling
-function Tools:_resolve_and_prepare_tool(tool)
+---@param id number The execution ID for event firing
+---@return table|nil The resolved tool or nil if failed
+---@return string|nil Error message if resolution failed
+---@return boolean|nil Whether this is a JSON parsing error that needs special handling
+function Tools:_resolve_and_prepare_tool(tool, id)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
@@ -112,6 +113,8 @@ function Tools:_resolve_and_prepare_tool(tool)
     return nil, string.format("Couldn't resolve the tool `%s`", name), false
   end
 
+  -- NOTE: We deepcopy here to avoid mutating the original tool definition which
+  -- has disastrous side effects.
   local prepared_tool = vim.deepcopy(resolved_tool)
   prepared_tool.name = name
   prepared_tool.function_call = tool
@@ -124,20 +127,16 @@ function Tools:_resolve_and_prepare_tool(tool)
       if args == "" then
         args = "{}"
       end
-      local decoded
-      local json_ok = xpcall(function()
-        decoded = vim.json.decode(args)
-      end, function(err)
+      local ok, decoded = pcall(vim.json.decode, args)
+      if not ok then
         log:error("Couldn't decode the tool arguments: %s", args)
         self.chat:add_tool_output(
           prepared_tool,
-          string.format('You made an error in calling the %s tool: "%s"', name, err),
+          string.format('You made an error in calling the %s tool: "%s"', name, decoded),
           ""
         )
-        return utils.fire("ToolsFinished", { bufnr = self.bufnr })
-      end)
-
-      if not json_ok then
+        self.status = CONSTANTS.STATUS_ERROR
+        utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
       end
 
@@ -263,11 +262,13 @@ function Tools:execute(chat, tools)
 
   -- Wrap the entire tool execution in error handling
   local function safe_execute()
+    -- NOTE: Set autocmds early so that errors can be handled properly
+    self:set_autocmds()
+
     local orchestrator = Orchestrator.new(self, id)
 
-    -- Process each tool
     for _, tool in ipairs(tools) do
-      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
+      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool, id)
 
       if not resolved_tool then
         if is_json_error then
@@ -282,16 +283,11 @@ function Tools:execute(chat, tools)
       orchestrator.queue:push(resolved_tool)
     end
 
-    self:set_autocmds()
     utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
     orchestrator:setup_next_tool()
   end
 
-  -- Execute all tools with error handling
-  local ok, err = xpcall(safe_execute, function(error_msg)
-    return debug.traceback(error_msg, 2)
-  end)
-
+  local ok, err = pcall(safe_execute)
   if not ok then
     log:error("chat::tools::init::execute - Execution error %s", err)
     self.status = CONSTANTS.STATUS_ERROR
