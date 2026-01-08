@@ -1,6 +1,24 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local openai = require("codecompanion.adapters.http.openai")
 
+---Fix Gemini's bug where it concatenates multiple tool call arguments
+---Ref: #2620
+---@param tool_call table The tool call object to fix
+---@return nil
+local function fix_concatenated_tools(tool_call)
+  if tool_call["function"] and tool_call["function"]["arguments"] then
+    local args = tool_call["function"]["arguments"]
+
+    -- Check for concatenated JSON objects: }{
+    if type(args) == "string" and args:match("}%s*{") then
+      local first_obj_end = args:find("}%s*{")
+      if first_obj_end then
+        tool_call["function"]["arguments"] = args:sub(1, first_obj_end)
+      end
+    end
+  end
+end
+
 ---@class CodeCompanion.HTTPAdapter.Gemini : CodeCompanion.HTTPAdapter
 return {
   name = "gemini",
@@ -94,12 +112,26 @@ return {
             end
           end
         end
+
+        if msg.tool_calls then
+          for _, tool_call in ipairs(msg.tool_calls) do
+            fix_concatenated_tools(tool_call)
+          end
+        end
       end
 
       return result
     end,
     chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
+      local result = openai.handlers.chat_output(self, data, tools)
+
+      if self.opts.tools and tools and #tools > 0 then
+        for _, tool in ipairs(tools) do
+          fix_concatenated_tools(tool)
+        end
+      end
+
+      return result
     end,
     tools = {
       format_tool_calls = function(self, tools)

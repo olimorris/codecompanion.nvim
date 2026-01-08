@@ -172,6 +172,60 @@ T["Gemini adapter"]["Streaming"]["can send thought signatures back in messages"]
   h.eq("Eo123", assistant_message.tool_calls[1].extra_content.google.thought_signature)
 end
 
+T["Gemini adapter"]["Streaming"]["can fix concatenated tool arguments in message history"] = function()
+  local messages = {
+    {
+      content = "Read all files",
+      role = "user",
+    },
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            id = "function-call-123",
+            type = "function",
+            ["function"] = {
+              name = "read_file",
+              -- Gemini's bug: concatenates multiple JSON objects
+              arguments = '{"filepath":"1.md","start":0,"end":-1}{"filepath":"2.md","start":0,"end":-1}{"filepath":"3.md","start":0,"end":-1}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages)
+
+  -- Verify the concatenated arguments were cleaned to just the first object
+  local assistant_message = output.messages[2]
+  h.eq('{"filepath":"1.md","start":0,"end":-1}', assistant_message.tool_calls[1]["function"]["arguments"])
+end
+
+T["Gemini adapter"]["Streaming"]["can fix concatenated tool arguments in chat output"] = function()
+  local tools = {
+    {
+      _index = 1,
+      id = "function-call-456",
+      type = "function",
+      ["function"] = {
+        name = "read_file",
+        -- Gemini's bug: concatenates multiple JSON objects in streaming response
+        arguments = '{"filepath":"test.lua","start":0,"end":-1}{"filepath":"other.lua","start":0,"end":-1}',
+      },
+    },
+  }
+
+  -- Process through chat_output to trigger the fix
+  local data = 'data: {"choices":[{"delta":{},"index":0}]}\n\n'
+  adapter.handlers.chat_output(adapter, data, tools)
+
+  -- Verify the concatenated arguments were cleaned
+  h.eq('{"filepath":"test.lua","start":0,"end":-1}', tools[1]["function"]["arguments"])
+end
+
 T["Gemini adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
