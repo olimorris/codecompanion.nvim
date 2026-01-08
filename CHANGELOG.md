@@ -1,5 +1,14 @@
 # Changelog
 
+## [18.3.2](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.1...v18.3.2) (2026-01-08)
+
+
+### Bug Fixes
+
+* **adapters:** anthropic token count fixes ([#2624](https://github.com/olimorris/codecompanion.nvim/issues/2624)) ([3c1b2e3](https://github.com/olimorris/codecompanion.nvim/commit/3c1b2e31ada2e25932fbaab6917db23c313084db))
+* **chat:** add context via visual selector ([#2622](https://github.com/olimorris/codecompanion.nvim/issues/2622)) ([bae898d](https://github.com/olimorris/codecompanion.nvim/commit/bae898dd0dcfffd03a78856e4df57cbe78e8ac79))
+* **tools:** gemini incorrect tool args ([#2629](https://github.com/olimorris/codecompanion.nvim/issues/2629)) ([848f3de](https://github.com/olimorris/codecompanion.nvim/commit/848f3dea824e5483d1bcc1cfb63d7158b81d95f6)), closes [#2620](https://github.com/olimorris/codecompanion.nvim/issues/2620)
+
 ## [18.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.0...v18.3.1) (2025-12-28)
 
 
