@@ -438,7 +438,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           ---@return boolean
           enabled = function(opts)
             if opts.adapter and opts.adapter.opts then
-              return opts.adapter.opts.vision == true -- PDF support uses vision capability
+              return opts.adapter.opts.doc_upload == true
             end
             return false
           end,

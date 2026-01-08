@@ -51,6 +51,23 @@ The _file_ slash command allows you to add the contents of a file in the current
 
 Please note that these mappings may be different depending on your provider.
 
+## /document
+
+> [!NOTE]
+> Currently only available with the Anthropic adapter
+
+The _document_ slash command allows you to add document files (PDF, DOCX, RTF, CSV, XLSX) to the chat buffer for analysis and discussion with the LLM. The command provides three different sources for documents:
+
+- **File**: Browse and select document files from your file system using native, _Telescope_, _mini.pick_, _fzf.lua_ or _snacks.nvim_ providers
+- **URL**: Provide a URL to a publicly accessible document (the URL must end with a supported file extension)
+- **Files API**: Reference a document previously uploaded via Anthropic's Files API by providing the `file_id`
+
+Documents are automatically validated for:
+- Size limit (32MB maximum per Anthropic API requirements)
+- Supported file types (pdf, rtf, docx, csv, xlsx)
+
+In the config for the slash command, you can specify directories (`opts.dirs`) and filetypes (`opts.filetypes`) to customize the document picker's search scope. By default, it searches the current working directory for all supported document types.
+
 ## /help
 
 The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
