@@ -124,7 +124,7 @@ function M.replace_placeholders(t, replacements)
         M.replace_placeholders(value, replacements)
       elseif type(value) == "string" then
         for placeholder, replacement in pairs(replacements) do
-          value = value:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
+          value = value:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement:gsub("%%", "%%%%"))
         end
         t[key] = value
       end
