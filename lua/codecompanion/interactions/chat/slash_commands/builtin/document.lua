@@ -283,10 +283,8 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return boolean, string
 function SlashCommand.enabled(chat)
-  -- Check if adapter supports PDF/document processing
-  -- PDF support is part of vision capabilities in Claude
-  local supports_docs = chat.adapter.opts and chat.adapter.opts.vision -- PDF support piggybacks on vision for now
-    or false
+  -- Check if adapter supports document upload
+  local supports_docs = chat.adapter.opts and chat.adapter.opts.doc_upload or false
 
   return supports_docs, "The document Slash Command is not enabled for this adapter"
 end

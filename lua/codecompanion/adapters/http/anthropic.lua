@@ -21,6 +21,7 @@ return {
     stream = true,
     tools = true,
     vision = true,
+    doc_upload = true,
   },
   url = "https://api.anthropic.com/v1/messages",
   env = {
@@ -111,6 +112,9 @@ return {
         if not model_opts.opts.has_vision then
           self.opts.vision = false
         end
+        if not model_opts.opts.has_doc_upload then
+          self.opts.doc_upload = false
+        end
       end
 
       -- Add the extended output header if enabled
@@ -200,7 +204,7 @@ return {
 
         -- 3a. Account for any documents (PDFs)
         if m._meta and m._meta.tag == "document" and m.context then
-          if self.opts and self.opts.vision then -- PDF support uses vision capability
+          if self.opts and self.opts.doc_upload then
             if m.context.source == "url" then
               -- URL-based document
               m.content = {
@@ -238,7 +242,7 @@ return {
               }
             end
           else
-            -- Remove the message if vision/PDF support is not enabled
+            -- Remove the message if document upload support is not enabled
             return nil
           end
         end
@@ -656,35 +660,35 @@ return {
       choices = {
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
         },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
         },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
         },
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
         },
         ["claude-opus-4-0"] = {
           formatted_name = "Claude Opus 4",
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
         },
         ["claude-sonnet-4-0"] = {
           formatted_name = "Claude Sonnet 4",
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
         },
         ["claude-3-7-sonnet-latest"] = {
           formatted_name = "Claude Sonnet 3.7",
-          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
+          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true, has_doc_upload = true },
         },
         ["claude-3-5-haiku-latest"] = {
           formatted_name = "Claude Haiku 3.5",
-          opts = { has_vision = true },
+          opts = { has_vision = true, has_doc_upload = true },
         },
       },
     },
