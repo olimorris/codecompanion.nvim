@@ -37,8 +37,8 @@ require("codecompanion").setup({
     },
     opts = {
       chat = {
+        autoload = "default", -- The rule groups to load
         enabled = true,
-        default_rules = "default", -- The rule groups to load
       },
     },
   },

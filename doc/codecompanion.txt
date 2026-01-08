@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 05
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -935,60 +935,13 @@ followed their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
 
-You will need to configure a default model in your
-`~/.config/opencode/config.json` file:
+You can specify a custom model in your `~/.config/opencode/config.json` file:
 
 >json
     {
         "$schema": "https://opencode.ai/config.json",
         "model": "github-copilot/claude-sonnet-4.5",
     }
-<
-
-Alternatively, you can set up various models in the adapter itself:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          opencode = function()
-            return require("codecompanion.adapters").extend("opencode", {
-              commands = {
-                -- The default uses the opencode/config.json value
-                default = {
-                  "opencode",
-                  "acp",
-                },
-                copilot_sonnet_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "github-copilot/claude-sonnet-4.5",
-                },
-                copilot_opus_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "github-copilot/claude-opus-4.5",
-                },
-                anthropic_sonnet_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "anthropic/claude-sonnet-4.5",
-                },
-                anthropic_opus_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "anthropic/claude-opus-4.5",
-                },
-              },
-            })
-          end,
-        },
-      },
-    })
 <
 
 
@@ -2995,7 +2948,7 @@ The plugin also contains two built-in workflows, `Code workflow` and `Edit test
 repeat workflow`. See the |codecompanion-usage-workflows| for more information.
 
 The built-in prompts can be turned off by setting
-`display.action_palette.show_preset_prompts = false`.
+`display.action_palette.opts.show_preset_prompts = false`.
 
 You can also refresh the markdown prompts in your prompt library with
 `:CodeCompanionActions refresh`
