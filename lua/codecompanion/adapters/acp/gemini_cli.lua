@@ -11,6 +11,7 @@ return {
   },
   opts = {
     vision = true,
+    doc_upload = true,
   },
   commands = {
     default = {

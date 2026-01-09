@@ -1001,7 +1001,7 @@ function Chat:add_document_message(document, opts)
   }, {
     context = {
       id = id,
-      media_type = document.media_type,
+      mimetype = document.mimetype,
       path = document.path or document.id,
       source = document.source,
       url = document.url,
