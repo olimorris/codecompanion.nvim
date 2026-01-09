@@ -147,9 +147,11 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function M.select_model(chat)
+  local adapter_type = chat.adapter.type
   local current_model = nil
   local models_list = nil
-  if chat.adapter.type == "http" then
+
+  if adapter_type == "http" then
     ---@diagnostic disable-next-line: param-type-mismatch
     models_list = M.list_http_models(chat)
     if not models_list then
@@ -157,7 +159,7 @@ function M.select_model(chat)
     end
     current_model = models_list[1]
   end
-  if chat.adapter.type == "acp" then
+  if adapter_type == "acp" then
     ---@diagnostic disable-next-line: param-type-mismatch
     local acp_models = M.list_acp_models(chat)
     models_list = acp_models and acp_models.availableModels or nil
@@ -185,7 +187,11 @@ function M.select_model(chat)
       local display
 
       if type(model) == "table" then
-        display = model.description or model.formatted_name or model.id or "Unknown"
+        if adapter_type == "http" then
+          display = model.description or model.formatted_name or model.id or "Unknown"
+        elseif adapter_type == "acp" then
+          display = string.format("%s - %s", model.name, model.description)
+        end
       else
         display = model
       end
