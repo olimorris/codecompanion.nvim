@@ -44,13 +44,13 @@ T["Diff"]["Creates diff with hunks and extmarks"] = function()
     return {
       hunk_count = #diff_obj.hunks,
       first_hunk = diff_obj.hunks[1],
-      namespace = diff_obj.namespace
+      ns = diff_obj.ns
     }
   ]])
 
   h.eq(1, result.hunk_count, "Should have 1 hunk")
   h.eq("change", result.first_hunk.kind, "Should be a change hunk")
-  h.is_true(result.namespace > 0, "Should create namespace")
+  h.is_true(result.ns > 0, "Should create namespace")
 end
 
 T["Diff"]["Detects correct hunk indices"] = function()

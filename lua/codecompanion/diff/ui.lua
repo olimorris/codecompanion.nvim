@@ -210,17 +210,44 @@ function DiffUI:apply_extmarks(diff, bufnr)
     api.nvim_buf_set_lines(bufnr, 0, 0, false, { "" })
   end
 
-  -- Apply the extmarks
+  local diff_utils = require("codecompanion.diff.utils")
+
+  -- Apply the extmarks with styling
   for _, hunk in ipairs(diff.hunks) do
     for _, extmark in ipairs(hunk.extmarks) do
       local opts = {}
+
+      -- Copy base extmark properties
       for k, v in pairs(extmark) do
-        if k ~= "row" and k ~= "col" then
+        if k ~= "row" and k ~= "col" and k ~= "type" and k ~= "virt_lines" then
           opts[k] = v
         end
       end
 
-      pcall(api.nvim_buf_set_extmark, bufnr, diff.namespace, extmark.row, extmark.col, opts)
+      if extmark.type == "deletion" then
+        opts.line_hl_group = "CodeCompanionDiffDelete"
+        if diff.marker_delete then
+          opts.sign_text = diff.marker_delete
+          opts.sign_hl_group = "CodeCompanionDiffDelete"
+        end
+      elseif extmark.type == "addition" and extmark.virt_lines then
+        local virt_lines = extmark.virt_lines
+
+        if config.display.diff.word_highlights and hunk.word_ranges then
+          virt_lines = diff_utils.apply_word_highlights(virt_lines, hunk.word_ranges, "CodeCompanionDiffChange")
+        end
+
+        virt_lines = diff_utils.extend_vl(virt_lines, "CodeCompanionDiffAdd")
+
+        -- TEST: Allow for markers to be added to virtual lines for screenshot testing
+        if diff.marker_add then
+          virt_lines = diff_utils.prepend_marker(virt_lines, diff.marker_add, "CodeCompanionDiffAdd")
+        end
+
+        opts.virt_lines = virt_lines
+      end
+
+      pcall(api.nvim_buf_set_extmark, bufnr, diff.ns, extmark.row, extmark.col, opts)
     end
   end
 end
@@ -229,7 +256,7 @@ end
 ---@return nil
 function DiffUI:clear()
   if self.inline then
-    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.diff.namespace, 0, -1)
+    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.diff.ns, 0, -1)
   end
 end
 

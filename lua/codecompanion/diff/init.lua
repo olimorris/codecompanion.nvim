@@ -21,7 +21,6 @@
       Oli Morris (https://github.com/olimorris)
 ===============================================================================
 --]]
-local config = require("codecompanion.config")
 local diff_utils = require("codecompanion.diff.utils")
 
 local api = vim.api
@@ -64,29 +63,24 @@ local diff_fn = vim.text.diff or vim.diff
 ---@field range { from: CodeCompanion.Pos, to: CodeCompanion.Pos }
 ---@field from CC.DiffText
 ---@field to CC.DiffText
----@field namespace number
+---@field ns number The namespace
 ---@field should_offset boolean
----@field marker_add? string
----@field marker_delete? string
+---@field marker_add? string The marker to signify a line addition
+---@field marker_delete? string The marker to signify a line deletion
 
 ---@class CodeCompanion.diff.Hunk
 ---@field kind "add"|"delete"|"change"
 ---@field pos CodeCompanion.Pos Starting position of the hunk in the "from" text
 ---@field cover number Number of lines covered in the "from" text
 ---@field extmarks CodeCompanion.diff.Extmark[]
+---@field word_ranges? { line_idx: number, start_col: number, end_col: number }[]
 
 ---@class CodeCompanion.diff.Extmark
 ---@field row number
 ---@field col number
----@field end_col? number
----@field end_row? number  -- Added for line range highlights
----@field hl_group? string
----@field line_hl_group? string
----@field hl_eol? boolean
----@field virt_text? [string, string|string[]][]
----@field virt_text_win_col? number
+---@field type? "addition"|"deletion" Type of extmark for styling
+---@field end_row? number
 ---@field virt_lines? CodeCompanion.Text[]
----@field virt_lines_above? boolean
 
 ---Diff two strings as arrays of lines
 ---@param a string[]
@@ -175,21 +169,13 @@ function M._diff_lines(diff)
     end
   end
 
-  -- Apply line highlighting for deletions
+  -- Create deletion extmarks (without styling)
   for row, data in pairs(dels) do
-    local extmark = {
+    table.insert(data.hunk.extmarks, {
       row = row,
       col = 0,
-      line_hl_group = "CodeCompanionDiffDelete",
-    }
-
-    -- Add marker for deletions if provided
-    if diff.marker_delete then
-      extmark.sign_text = diff.marker_delete
-      extmark.sign_hl_group = "CodeCompanionDiffDelete"
-    end
-
-    table.insert(data.hunk.extmarks, extmark)
+      type = "deletion",
+    })
   end
 
   -- Collect word-level changes for all changed lines
@@ -204,7 +190,12 @@ function M._diff_lines(diff)
     end
   end
 
-  -- Create virtual line extmarks with word highlights
+  -- Store word ranges in hunks for later styling
+  for hunk, ranges in pairs(word_ranges_by_hunk) do
+    hunk.word_ranges = ranges
+  end
+
+  -- Create addition extmarks (without styling)
   for row, data in pairs(adds) do
     if row == data.hunk.pos[1] then
       local virt_line_row = row
@@ -212,23 +203,11 @@ function M._diff_lines(diff)
         virt_line_row = data.hunk.pos[1] + data.hunk.cover - 1
       end
 
-      local virt_lines = data.virt_lines
-
-      if config.display.diff.word_highlights and word_ranges_by_hunk[data.hunk] then
-        virt_lines =
-          diff_utils.apply_word_highlights(virt_lines, word_ranges_by_hunk[data.hunk], "CodeCompanionDiffChange")
-      end
-
-      virt_lines = diff_utils.extend_vl(virt_lines, "CodeCompanionDiffAdd")
-
-      if diff.marker_add then
-        virt_lines = diff_utils.prepend_marker(virt_lines, diff.marker_add, "CodeCompanionDiffAdd")
-      end
-
       table.insert(data.hunk.extmarks, {
         row = virt_line_row,
         col = 0,
-        virt_lines = virt_lines,
+        type = "addition",
+        virt_lines = data.virt_lines,
       })
     end
   end
@@ -324,7 +303,7 @@ function M.create(args)
           bg = "CodeCompanionDiffAdd",
         }),
       },
-      namespace = api.nvim_create_namespace("codecompanion_diff"),
+      ns = api.nvim_create_namespace("codecompanion_diff"),
       should_offset = false,
       marker_add = args.marker_add,
       marker_delete = args.marker_delete,
