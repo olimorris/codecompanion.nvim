@@ -16,6 +16,7 @@ local M = {}
 ---@field diff CC.Diff
 ---@field diff_id number
 ---@field hunks number The total number of hunks in the diff
+---@field inline? boolean Whether the diff is shown inline or in a floating window
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string This is essential for approvals to work with tools
 ---@field winnr number
@@ -131,6 +132,9 @@ end
 ---Close the diff window
 ---@return nil
 function DiffUI:close()
+  if self.inline then
+    return
+  end
   pcall(api.nvim_win_close, self.winnr, true)
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
 end
@@ -221,6 +225,14 @@ function DiffUI:apply_extmarks(diff, bufnr)
   end
 end
 
+---Clear diff extmarks from buffer
+---@return nil
+function DiffUI:clear()
+  if self.inline then
+    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.diff.namespace, 0, -1)
+  end
+end
+
 ---Show a diff in a floating window
 ---@param opts { diff: CC.Diff, cfg: CodeCompanion.WindowOpts, title?: string }
 ---@return number, number Buffer and window numbers
@@ -269,6 +281,7 @@ function M.show(diff, opts)
     diff = diff,
     diff_id = opts.diff_id or math.random(10000000),
     hunks = #diff.hunks,
+    inline = opts.inline,
     resolved = false,
     tool_name = opts.tool_name,
     winnr = winnr,

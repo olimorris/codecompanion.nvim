@@ -98,7 +98,13 @@ function M._diff(a, b, opts)
   local txt_a = table.concat(a, "\n")
   local txt_b = table.concat(b, "\n")
 
-  return diff_fn(txt_a, txt_b, opts)
+  local result = diff_fn(txt_a, txt_b, opts)
+
+  if type(result) == "table" then
+    return result
+  end
+
+  return {}
 end
 
 ---Check if any hunk starts at row 0 and has deletions. This causes a problem
@@ -140,7 +146,7 @@ function M._diff_lines(diff)
   local hunks = M._diff(diff.from.lines, diff.to.lines, CONSTANTS.DIFF_LINE_OPTS)
 
   local dels = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk}>
-  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number, virt_lines: CodeCompanion.Text[]}>
+  local adds = {} ---@type table<number, {hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number, virt_lines: CodeCompanion.Text[], first_line_idx: number}>
 
   for _, hunk in ipairs(hunks) do
     local ai, ac, bi, bc = unpack(hunk)
@@ -260,10 +266,13 @@ function M._diff_words(diff, row, data)
     "\n"
   )
 
-  local hunks = diff_fn(old_text, new_text, CONSTANTS.DIFF_WORD_OPTS)
-  local word_ranges = {}
+  local result = diff_fn(old_text, new_text, CONSTANTS.DIFF_WORD_OPTS)
+  if type(result) ~= "table" then
+    return nil
+  end
 
-  for _, hunk in ipairs(hunks) do
+  local word_ranges = {}
+  for _, hunk in ipairs(result) do
     local ai, ac, bi, bc = unpack(hunk)
 
     -- Highlight deletions in buffer

@@ -36,9 +36,7 @@ M.always_accept = {
     local approvals = require("codecompanion.interactions.chat.tools.approvals")
     approvals:always(diff_ui.chat_bufnr, diff_ui.tool_name)
 
-    local Diff = require("codecompanion.diff")
-    Diff.clear(diff_ui.diff)
-
+    diff_ui:clear()
     diff_ui:close()
     clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
   end,
@@ -55,9 +53,7 @@ M.accept_change = {
     log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
     utils.fire("DiffAccepted", { id = diff_ui.diff_id })
 
-    local Diff = require("codecompanion.diff")
-    Diff.clear(diff_ui.diff)
-
+    diff_ui:clear()
     diff_ui:close()
     clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
   end,
@@ -74,9 +70,7 @@ M.reject_change = {
     log:trace("[Diff] Rejecting diff for id=%s", diff_ui.diff_id)
     utils.fire("DiffRejected", { id = diff_ui.diff_id })
 
-    local Diff = require("codecompanion.diff")
-    Diff.clear(diff_ui.diff)
-
+    diff_ui:clear()
     diff_ui:close()
     clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
   end,
@@ -93,9 +87,7 @@ M.close_window = {
     log:trace("[Diff] Closing diff window for id=%s", diff_ui.diff_id)
     utils.fire("DiffRejected", { id = diff_ui.diff_id })
 
-    local Diff = require("codecompanion.diff")
-    Diff.clear(diff_ui.diff)
-
+    diff_ui:clear()
     diff_ui:close()
     clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
   end,
