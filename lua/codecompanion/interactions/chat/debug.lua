@@ -112,8 +112,21 @@ function Debug:render()
     end
     table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
 
-    -- Show current mode if available
     if self.chat.acp_connection then
+      -- Show current model if available
+      local acp_models = self.chat.acp_connection:get_models()
+      if acp_models and acp_models.currentModelId then
+        local model = acp_models.currentModelId
+        for _, m in ipairs(acp_models or {}) do
+          if m.modelId == acp_models.currentModelId then
+            model = m.name .. " (" .. m.modelId .. ")"
+            break
+          end
+        end
+        table.insert(lines, '-- Using Model: "' .. model .. '"')
+      end
+
+      -- Show current mode if available
       local modes = self.chat.acp_connection:get_modes()
       if modes and modes.currentModeId then
         local mode_name = modes.currentModeId

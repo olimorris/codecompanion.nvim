@@ -675,22 +675,19 @@ function Chat:apply_settings(settings)
 end
 
 ---Change the adapter in the chat buffer
----@param name string
----@param model? string
-function Chat:change_adapter(name, model)
+---@param adapter string
+function Chat:change_adapter(adapter)
   local function fire()
     return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
-  self.adapter = require("codecompanion.adapters").resolve(name)
+  self.adapter = require("codecompanion.adapters").resolve(adapter)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    return
-  end
-
-  if model then
-    self:apply_model_or_command({ model = model })
+    -- We need to ensure the connection is created before proceeding so that
+    -- users are given a choice of models to select from
+    helpers.create_acp_connection(self)
     return fire()
   end
 
@@ -701,26 +698,29 @@ function Chat:change_adapter(name, model)
 end
 
 ---Set a model in the chat buffer
----@param args { model?: string, command?: table }
+---@param args { model?: string }
 ---@return CodeCompanion.Chat
-function Chat:apply_model_or_command(args)
-  if args and args.command then
-    self.adapter.commands.selected = args.command
-    helpers.create_acp_connection(self)
-  elseif args.model then
+function Chat:change_model(args)
+  local function apply()
+    return adapters.set_model({ acp_connection = self.acp_connection, adapter = self.adapter, model = args.model })
+  end
+
+  if self.adapter.type == "http" then
     self.settings.model = args.model
     self.adapter.schema.model.default = args.model
-    self.adapter = adapters.set_model(self.adapter)
+    self.adapter = apply()
 
     self:set_system_prompt()
     self:apply_settings()
+  elseif self.adapter.type == "acp" then
+    apply()
   end
 
   self:update_metadata()
   utils.fire("ChatModel", {
-    bufnr = self.bufnr,
     adapter = adapters.make_safe(self.adapter),
-    model = args.model or args.command,
+    bufnr = self.bufnr,
+    model = args.model,
   })
 
   return self

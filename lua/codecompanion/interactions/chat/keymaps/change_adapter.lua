@@ -45,10 +45,10 @@ function M.get_adapters_list(current_adapter)
 end
 
 ---Get list of available models for an adapter
----@param adapter CodeCompanion.HTTPAdapter
+---@param chat CodeCompanion.Chat
 ---@return table|nil
-function M.get_models_list(adapter)
-  local models = adapter.schema.model.choices
+function M.list_http_models(chat)
+  local models = chat.adapter.schema.model.choices
 
   -- Check if we should show model choices or just the default
   local show_choices = config.adapters
@@ -57,19 +57,19 @@ function M.get_models_list(adapter)
     and config.adapters.http.opts.show_model_choices
 
   if not show_choices then
-    models = { adapter.schema.model.default }
+    models = { chat.adapter.schema.model.default }
   end
   if type(models) == "function" then
     -- When user explicitly wants to change models, force token creation
-    models = models(adapter, { async = false })
+    models = models(chat.adapter, { async = false })
   end
   if not models or vim.tbl_count(models) < 2 then
     return nil
   end
 
-  local current_model_id = adapter.schema.model.default
+  local current_model_id = chat.adapter.schema.model.default
   if type(current_model_id) == "function" then
-    current_model_id = current_model_id(adapter)
+    current_model_id = current_model_id(chat.adapter)
   end
 
   local current_model = nil
@@ -120,33 +120,19 @@ function M.get_models_list(adapter)
   return models_list
 end
 
----Get list of available commands for an ACP adapter
----@param adapter CodeCompanion.ACPAdapter
+---List available models for an ACP adapter
+---@param chat CodeCompanion.Chat
 ---@return table|nil
-function M.get_commands_list(adapter)
-  local commands = adapter.commands
-  if not commands or vim.tbl_count(commands) < 2 then
+function M.list_acp_models(chat)
+  local models = chat.acp_connection:get_models()
+  if not models or vim.tbl_count(models) < 2 then
     return nil
   end
 
-  local commands_list = vim
-    .iter(commands)
-    :map(function(key, _)
-      if type(key) == "string" then
-        return key
-      end
-    end)
-    :filter(function(key)
-      return key ~= "selected"
-    end)
-    :totable()
-
-  table.sort(commands_list)
-
-  return commands_list
+  return models
 end
 
----Update system prompt after adapter change
+---Update the system prompt after adapter change
 ---@param chat CodeCompanion.Chat
 function M.update_system_prompt(chat)
   local system_prompt = config.interactions.chat.opts.system_prompt
@@ -161,15 +147,32 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function M.select_model(chat)
-  local models_list = M.get_models_list(chat.adapter)
+  local current_model = nil
+  local models_list = nil
+  if chat.adapter.type == "http" then
+    ---@diagnostic disable-next-line: param-type-mismatch
+    models_list = M.list_http_models(chat)
+    if not models_list then
+      return utils.notify("No models to select", vim.log.levels.INFO)
+    end
+    current_model = models_list[1]
+  end
+  if chat.adapter.type == "acp" then
+    ---@diagnostic disable-next-line: param-type-mismatch
+    local acp_models = M.list_acp_models(chat)
+    models_list = acp_models and acp_models.availableModels or nil
+    if not acp_models or not models_list then
+      return utils.notify("No models to select", vim.log.levels.INFO)
+    end
+    current_model = acp_models.currentModelId
+  end
+
   if not models_list then
     return
   end
 
-  local current_model = models_list[1]
-
   local function get_model_id(model)
-    return type(model) == "table" and model.id or model
+    return type(model) == "table" and model.id or model.modelId or model
   end
 
   local current_id = get_model_id(current_model)
@@ -200,25 +203,7 @@ function M.select_model(chat)
       return
     end
     local model_id = get_model_id(selected_model)
-    chat:apply_model_or_command({ model = model_id })
-  end)
-end
-
----Handle command selection for ACP adapters
----@param chat CodeCompanion.Chat
----@return nil
-function M.select_command(chat)
-  local commands_list = M.get_commands_list(chat.adapter)
-  if not commands_list then
-    return
-  end
-
-  vim.ui.select(commands_list, select_opts("Select a Command", commands_list[1]), function(selected_command)
-    if not selected_command then
-      return
-    end
-    local selected = chat.adapter.commands[selected_command]
-    chat:apply_model_or_command({ command = selected })
+    chat:change_model({ model = model_id })
   end)
 end
 
@@ -239,7 +224,7 @@ function M.callback(chat)
     end
 
     if current_adapter ~= selected_adapter then
-      chat.acp_connection = nil
+      chat.acp_connection = nil -- Ensure we reset this
       chat:change_adapter(selected_adapter)
     end
 
@@ -249,13 +234,7 @@ function M.callback(chat)
       M.update_system_prompt(chat)
     end
 
-    if chat.adapter.type == "http" then
-      M.select_model(chat)
-    end
-
-    if chat.adapter.type == "acp" then
-      M.select_command(chat)
-    end
+    return M.select_model(chat)
   end)
 end
 

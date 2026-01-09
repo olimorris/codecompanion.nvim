@@ -69,10 +69,13 @@ function M.make_safe(adapter)
 end
 
 ---Backwards compatibility: expose HTTP methods directly at root level
----@param adapter CodeCompanion.HTTPAdapter
+---@param args { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter, acp_connection?: CodeCompanion.ACP.Connection, model?: string }
 ---@return CodeCompanion.HTTPAdapter
-function M.set_model(adapter)
-  return require("codecompanion.adapters.http").set_model(adapter)
+function M.set_model(args)
+  if adapter_type(args.adapter) == "acp" then
+    return require("codecompanion.adapters.acp").set_model(args)
+  end
+  return require("codecompanion.adapters.http").set_model(args)
 end
 
 ---Get a handler function from an adapter with backwards compatibility

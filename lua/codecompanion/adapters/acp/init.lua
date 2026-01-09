@@ -133,4 +133,11 @@ function Adapter.make_safe(adapter)
   }
 end
 
+---Set the ACP model
+---@param args { acp_connection: CodeCompanion.ACP.Connection, adapter: CodeCompanion.ACPAdapter, model: string }
+---@return boolean
+function Adapter.set_model(args)
+  return args.acp_connection:set_model(args.model)
+end
+
 return Adapter

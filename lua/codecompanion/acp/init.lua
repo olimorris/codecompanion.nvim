@@ -47,6 +47,7 @@ local uv = vim.uv
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
 ---@field _state {handle: table, next_id: number, stdout_buffer: string}
 ---@field _modes {currentModeId: string, availableModes: table[]}|nil
+---@field _models {currentModelId: string, availableModels: table[]}|nil
 ---@field methods table
 local Connection = {}
 Connection.static = {}
@@ -126,6 +127,8 @@ function Connection:connect_and_initialize()
       return log:error("[acp::connect_and_initialize] Failed to initialize")
     end
     self._agent_info = initialized
+
+    log:debug("[acp::connect_and_initialize] Agent info: %s", initialized)
 
     -- Ensure the protocol version matches
     if
@@ -220,9 +223,14 @@ function Connection:connect_and_initialize()
     end
     self.session_id = new_session.sessionId
 
-    -- Cache session modes if provided
+    -- Cache session modes and models if provided
     if new_session.modes then
       self._modes = new_session.modes
+      log:debug("[acp::connect_and_initialize] Available modes: %s", new_session.modes)
+    end
+    if new_session.models then
+      self._models = new_session.models
+      log:debug("[acp::connect_and_initialize] Available models: %s", new_session.models)
     end
   end
 
@@ -706,8 +714,8 @@ function Connection:set_mode(mode_id)
   end
 
   local ok = self:send_rpc_request(METHODS.SESSION_SET_MODE, {
-    sessionId = self.session_id,
     modeId = mode_id,
+    sessionId = self.session_id,
   })
 
   if not ok then
@@ -718,6 +726,62 @@ function Connection:set_mode(mode_id)
   -- Update our cached current mode
   self._modes.currentModeId = mode_id
   log:debug("[acp::set_mode] Successfully set mode to %s", mode_id)
+
+  return true
+end
+
+---Get the available models
+---@return table|nil modes {currentModelId: string, availableModels: table[]} or nil if not supported
+function Connection:get_models()
+  return self._models
+end
+
+---Set a model
+---@param model_id string The ID of the model to switch to
+---@return boolean success
+function Connection:set_model(model_id)
+  if not self.session_id then
+    log:error("[acp::set_model] Connection not established")
+    return false
+  end
+
+  if not self._models then
+    log:error("[acp::set_model] Agent does not support changing models")
+    return false
+  end
+
+  -- Validate the model_id exists
+  local valid = false
+  for _, model in ipairs(self._models.availableModels or {}) do
+    if model.modelId == model_id then
+      valid = true
+      break
+    end
+  end
+
+  if not valid then
+    log:error("[acp::set_model] Invalid model ID: %s", model_id)
+    return false
+  end
+
+  -- Don't set if already selected
+  if model_id == self._models.currentModelId then
+    return false
+  end
+
+  local ok = self:send_rpc_request(METHODS.SESSION_SET_MODEL, {
+    modelId = model_id,
+    sessionId = self.session_id,
+  })
+
+  if not ok then
+    log:error("[acp::set_model] Failed to set model to %s", model_id)
+    return false
+  end
+
+  -- Update our cached current mode
+  self._models.currentModelId = model_id
+  log:debug("[acp::set_model] Changed model to %s", model_id)
 
   return true
 end
