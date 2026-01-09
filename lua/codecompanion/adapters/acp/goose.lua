@@ -41,7 +41,7 @@ return {
 
     ---@param self CodeCompanion.ACPAdapter
     ---@param messages table
-    ---@param capabilities table
+    ---@param capabilities ACP.agentCapabilities
     ---@return table
     form_messages = function(self, messages, capabilities)
       return helpers.form_messages(self, messages, capabilities)
