@@ -221,6 +221,10 @@ function M.get_mimetype(path)
     png = "image/png",
     webp = "image/webp",
     pdf = "application/pdf",
+    rtf = "text/rtf",
+    xslx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    csv = "text/csv",
+    docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   }
 
   local extension = vim.fn.fnamemodify(path, ":e")
