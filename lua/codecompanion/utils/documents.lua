@@ -18,7 +18,7 @@ local CONSTANTS = {
 ---@field path string
 ---@field bufnr? integer
 ---@field base64? string
----@field media_type? string
+---@field mimetype? string
 ---@field source? string "base64"|"url"|"file"
 ---@field url? string
 ---@field file_id? string
@@ -55,7 +55,7 @@ local function validate_document(path)
   return true, nil
 end
 
----Base64 encode the given document and generate the corresponding media_type
+---Base64 encode the given document and generate the corresponding mimetype
 ---@param document CodeCompanion.Document
 ---@return CodeCompanion.Document|string The encoded document or error message
 function M.encode_document(document)
@@ -85,11 +85,11 @@ function M.encode_document(document)
 
   document.base64 = assert(b64_content, "base64_encode_file must return content when no error")
 
-  if not document.media_type then
+  if not document.mimetype then
     local ext = path:match("%.([^%.]+)$")
     if ext then
       ext = ext:lower()
-      document.media_type = CONSTANTS.SUPPORTED_TYPES[ext] or "application/octet-stream"
+      document.mimetype = CONSTANTS.SUPPORTED_TYPES[ext] or "application/octet-stream"
     end
   end
 
@@ -122,12 +122,12 @@ function M.from_path(path, _, cb)
   -- Expand to full path
   local full_path = vim.fn.expand(path)
 
-  -- Extract extension and set media_type
+  -- Extract extension and set mimetype
   local ext = full_path:match("%.([^%.]+)$")
-  local media_type = "application/octet-stream" -- default fallback
+  local mimetype = "application/octet-stream" -- default fallback
   if ext then
     ext = ext:lower()
-    media_type = CONSTANTS.SUPPORTED_TYPES[ext] or media_type
+    mimetype = CONSTANTS.SUPPORTED_TYPES[ext] or mimetype
   end
 
   -- Create document object
@@ -135,7 +135,7 @@ function M.from_path(path, _, cb)
   local document = {
     path = full_path,
     id = full_path,
-    media_type = media_type,
+    mimetype = mimetype,
     source = "base64",
   }
 

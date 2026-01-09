@@ -244,7 +244,7 @@ return {
                   type = "document",
                   source = {
                     type = "base64",
-                    media_type = m.context.media_type or "application/pdf",
+                    media_type = m.context.mimetype or "application/pdf",
                     data = content_data,
                   },
                 },
