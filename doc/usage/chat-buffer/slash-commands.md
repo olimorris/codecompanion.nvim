@@ -56,11 +56,11 @@ Please note that these mappings may be different depending on your provider.
 > [!NOTE]
 > Currently only available with the Anthropic adapter
 
-The _document_ slash command allows you to add document files (PDF, DOCX, RTF, CSV, XLSX) to the chat buffer for analysis and discussion with the LLM. The command provides three different sources for documents:
+The _document_ slash command allows you to add document files (PDF, DOCX, RTF, CSV, XLSX) to the chat buffer for analysis and discussion with the LLM. The command provides different sources for documents depending on adapter capabilities:
 
 - **File**: Browse and select document files from your file system using native, _Telescope_, _mini.pick_, _fzf.lua_ or _snacks.nvim_ providers
 - **URL**: Provide a URL to a publicly accessible document (the URL must end with a supported file extension)
-- **Files API**: Reference a document previously uploaded via Anthropic's Files API by providing the `file_id`
+- **Files API**: Reference a document previously uploaded via Anthropic's Files API by providing the `file_id` (only available if the adapter supports the Files API)
 
 Documents are automatically validated for:
 - Size limit (32MB maximum per Anthropic API requirements)

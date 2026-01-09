@@ -22,6 +22,7 @@ return {
     tools = true,
     vision = true,
     doc_upload = true,
+    file_api = true,
   },
   url = "https://api.anthropic.com/v1/messages",
   env = {
@@ -114,6 +115,9 @@ return {
         end
         if not model_opts.opts.has_doc_upload then
           self.opts.doc_upload = false
+        end
+        if not model_opts.opts.has_file_api then
+          self.opts.file_api = false
         end
       end
 
@@ -217,16 +221,21 @@ return {
                 },
               }
             elseif m.context.source == "file" then
-              -- Files API reference
-              m.content = {
-                {
-                  type = "document",
-                  source = {
-                    type = "file",
-                    file_id = m.context.file_id,
+              -- Files API reference - requires file_api capability
+              if self.opts.file_api then
+                m.content = {
+                  {
+                    type = "document",
+                    source = {
+                      type = "file",
+                      file_id = m.context.file_id,
+                    },
                   },
-                },
-              }
+                }
+              else
+                -- Remove the message if file_api is not supported
+                return nil
+              end
             else
               -- Base64-encoded document
               local content_data = m.content
@@ -660,35 +669,41 @@ return {
       choices = {
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
         },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
         },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
         },
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
         },
         ["claude-opus-4-0"] = {
           formatted_name = "Claude Opus 4",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
         },
         ["claude-sonnet-4-0"] = {
           formatted_name = "Claude Sonnet 4",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true },
+          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
         },
         ["claude-3-7-sonnet-latest"] = {
           formatted_name = "Claude Sonnet 3.7",
-          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true, has_doc_upload = true },
+          opts = {
+            can_reason = true,
+            has_vision = true,
+            has_token_efficient_tools = true,
+            has_doc_upload = true,
+            has_file_api = true,
+          },
         },
         ["claude-3-5-haiku-latest"] = {
           formatted_name = "Claude Haiku 3.5",
-          opts = { has_vision = true, has_doc_upload = true },
+          opts = { has_vision = true, has_doc_upload = true, has_file_api = true },
         },
       },
     },

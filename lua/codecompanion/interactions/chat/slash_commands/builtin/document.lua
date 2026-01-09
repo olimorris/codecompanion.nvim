@@ -252,7 +252,15 @@ end
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
 function SlashCommand:execute(SlashCommands)
-  vim.ui.select({ "URL", "File", "Files API" }, {
+  -- Build options based on adapter capabilities
+  local options = { "URL", "File" }
+
+  -- Only show Files API option if adapter supports it
+  if self.Chat.adapter.opts and self.Chat.adapter.opts.file_api then
+    table.insert(options, "Files API")
+  end
+
+  vim.ui.select(options, {
     prompt = "Select a document source",
   }, function(selected)
     if not selected then
