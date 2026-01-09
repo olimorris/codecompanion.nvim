@@ -138,6 +138,14 @@ return {
     ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
+      -- Ensure models are fetched synchronously before checking capabilities
+      -- This prevents features from being disabled due to missing model info
+      local fetched_token = token.fetch({ force = true })
+      if fetched_token and fetched_token.copilot_token then
+        -- Force synchronous model fetch to ensure we have model capabilities
+        get_models.choices(self, { token = fetched_token, async = false })
+      end
+
       local model_opts = resolve_model_opts(self)
 
       if (self.opts and self.opts.stream) and (model_opts and model_opts.opts and model_opts.opts.can_stream) then
@@ -199,10 +207,10 @@ return {
           -- From investigating Copilot Chat's output, tool_calls are merged
           -- into a single message per role with reasoning data
           if
-            i < #result.messages
-            and result.messages[i + 1].role == current.role
-            and result.messages[i + 1].tool_calls
-            and not result.messages[i + 1].content
+              i < #result.messages
+              and result.messages[i + 1].role == current.role
+              and result.messages[i + 1].tool_calls
+              and not result.messages[i + 1].content
           then
             current.tool_calls = result.messages[i + 1].tool_calls
             i = i + 1 -- Skip the next message since we merged it
@@ -221,14 +229,14 @@ return {
     end,
     form_reasoning = function(self, data)
       local content = vim
-        .iter(data)
-        :map(function(item)
-          return item.content
-        end)
-        :filter(function(content)
-          return content ~= nil
-        end)
-        :join("")
+          .iter(data)
+          :map(function(item)
+            return item.content
+          end)
+          :filter(function(content)
+            return content ~= nil
+          end)
+          :join("")
 
       local opaque
       for _, item in ipairs(data) do
@@ -319,7 +327,8 @@ return {
       order = 1,
       mapping = "parameters",
       type = "enum",
-      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      desc =
+      "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
       default = "gpt-4.1",
       ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
@@ -349,7 +358,8 @@ return {
         end
         return not vim.startswith(model, "o1") and not model:find("codex") and not vim.startswith(model, "gpt-5")
       end,
-      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      desc =
+      "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
     max_tokens = {
       order = 4,
@@ -362,7 +372,8 @@ return {
         end
         return 16384
       end,
-      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      desc =
+      "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     ---@type CodeCompanion.Schema
     top_p = {
@@ -378,7 +389,8 @@ return {
         end
         return not vim.startswith(model, "o1")
       end,
-      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
+      desc =
+      "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
     ---@type CodeCompanion.Schema
     n = {
