@@ -232,4 +232,81 @@ function M.split_words(str)
   return ret
 end
 
+---Apply word-level highlighting to virtual lines by splitting segments
+---@param virt_lines CodeCompanion.Text[]
+---@param word_ranges { line_idx: number, start_col: number, end_col: number }[]
+---@param change_hl string Highlight group for changed words
+---@return CodeCompanion.Text[]
+function M.apply_word_highlights(virt_lines, word_ranges, change_hl)
+  if not word_ranges or #word_ranges == 0 then
+    return virt_lines
+  end
+
+  local result = {}
+
+  for line_idx, virt_line in ipairs(virt_lines) do
+    local line_ranges = vim.tbl_filter(function(r)
+      return r.line_idx == line_idx
+    end, word_ranges)
+
+    if #line_ranges == 0 then
+      result[line_idx] = virt_line
+    else
+      table.sort(line_ranges, function(a, b)
+        return a.start_col < b.start_col
+      end)
+
+      local new_virt_line = {}
+      local col_offset = 0
+
+      for _, segment in ipairs(virt_line) do
+        local text = segment[1]
+        local base_hl = segment[2]
+        local seg_start = col_offset
+        local seg_end = col_offset + #text
+
+        -- Find ranges that intersect this segment
+        local intersections = {}
+        for _, range in ipairs(line_ranges) do
+          if range.start_col < seg_end and range.end_col > seg_start then
+            table.insert(intersections, {
+              start_col = math.max(range.start_col, seg_start) - seg_start,
+              end_col = math.min(range.end_col, seg_end) - seg_start,
+            })
+          end
+        end
+
+        if #intersections == 0 then
+          table.insert(new_virt_line, segment)
+        else
+          local pos = 0
+          for _, irange in ipairs(intersections) do
+            if irange.start_col > pos then
+              table.insert(new_virt_line, { text:sub(pos + 1, irange.start_col), base_hl })
+            end
+
+            -- Replace background highlight, keep foreground
+            local hl = type(base_hl) == "table" and { base_hl[1], change_hl }
+              or base_hl and { base_hl, change_hl }
+              or change_hl
+
+            table.insert(new_virt_line, { text:sub(irange.start_col + 1, irange.end_col), hl })
+            pos = irange.end_col
+          end
+
+          if pos < #text then
+            table.insert(new_virt_line, { text:sub(pos + 1), base_hl })
+          end
+        end
+
+        col_offset = seg_end
+      end
+
+      result[line_idx] = new_virt_line
+    end
+  end
+
+  return result
+end
+
 return M

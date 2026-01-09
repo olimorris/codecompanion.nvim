@@ -21,9 +21,8 @@
       Oli Morris (https://github.com/olimorris)
 ===============================================================================
 --]]
-
+local config = require("codecompanion.config")
 local diff_utils = require("codecompanion.diff.utils")
-local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -165,7 +164,7 @@ function M._diff_lines(diff)
       -- Additions: prepare virtual lines to show below
       local virt_lines = vim.list_slice(diff.to.virt_lines, bi, bi + bc - 1)
       for l = 0, bc - 1 do
-        adds[row + l] = { hunk = h, old_idx = ai + l, new_idx = bi + l, virt_lines = virt_lines }
+        adds[row + l] = { hunk = h, old_idx = ai + l, new_idx = bi + l, virt_lines = virt_lines, first_line_idx = bi }
       end
     end
   end
@@ -187,23 +186,35 @@ function M._diff_lines(diff)
     table.insert(data.hunk.extmarks, extmark)
   end
 
-  -- Apply virtual lines for additions
+  -- Collect word-level changes for all changed lines
+  local word_ranges_by_hunk = {} ---@type table<CodeCompanion.diff.Hunk, { line_idx: number, start_col: number, end_col: number }[]>
   for row, data in pairs(adds) do
     if data.hunk.kind == "change" then
-      M._diff_words(diff, row, data)
+      local word_ranges = M._diff_words(diff, row, data)
+      if word_ranges then
+        word_ranges_by_hunk[data.hunk] = word_ranges_by_hunk[data.hunk] or {}
+        vim.list_extend(word_ranges_by_hunk[data.hunk], word_ranges)
+      end
     end
+  end
 
-    -- Only add virtual lines once per hunk at the first addition row
+  -- Create virtual line extmarks with word highlights
+  for row, data in pairs(adds) do
     if row == data.hunk.pos[1] then
-      -- For change hunks, position additions after all deletions
       local virt_line_row = row
       if data.hunk.kind == "change" and data.hunk.cover > 0 then
         virt_line_row = data.hunk.pos[1] + data.hunk.cover - 1
       end
 
-      local virt_lines = diff_utils.extend_vl(data.virt_lines, "CodeCompanionDiffAdd")
+      local virt_lines = data.virt_lines
 
-      -- Add marker to each virtual line if provided
+      if config.display.diff.word_highlights and word_ranges_by_hunk[data.hunk] then
+        virt_lines =
+          diff_utils.apply_word_highlights(virt_lines, word_ranges_by_hunk[data.hunk], "CodeCompanionDiffChange")
+      end
+
+      virt_lines = diff_utils.extend_vl(virt_lines, "CodeCompanionDiffAdd")
+
       if diff.marker_add then
         virt_lines = diff_utils.prepend_marker(virt_lines, diff.marker_add, "CodeCompanionDiffAdd")
       end
@@ -222,19 +233,20 @@ end
 ---Perform word-level diff on changed lines
 ---@param diff CC.Diff
 ---@param row number The row number in the buffer
----@param data { hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number }
+---@param data { hunk: CodeCompanion.diff.Hunk, old_idx: number, new_idx: number, first_line_idx: number }
+---@return { line_idx: number, start_col: number, end_col: number }[]?
 function M._diff_words(diff, row, data)
   local old_line = diff.from.lines[data.old_idx] or ""
   local new_line = diff.to.lines[data.new_idx] or ""
 
   if old_line == "" or new_line == "" then
-    return
+    return nil
   end
 
   local old_words = diff_utils.split_words(old_line)
   local new_words = diff_utils.split_words(new_line)
 
-  -- Extract just the word text for diffing
+  -- Convert words to text for diffing
   local old_text = table.concat(
     vim.tbl_map(function(w)
       return w.word
@@ -249,28 +261,32 @@ function M._diff_words(diff, row, data)
   )
 
   local hunks = diff_fn(old_text, new_text, CONSTANTS.DIFF_WORD_OPTS)
+  local word_ranges = {}
 
   for _, hunk in ipairs(hunks) do
-    local _, _, bi, bc = unpack(hunk)
+    local ai, ac, bi, bc = unpack(hunk)
 
-    -- Only highlight additions/changes in the new line
-    if bc > 0 then
-      local start_word_idx = bi
-      local end_word_idx = bi + bc - 1
+    -- Highlight deletions in buffer
+    if ac > 0 and old_words[ai] and old_words[ai + ac - 1] then
+      table.insert(data.hunk.extmarks, {
+        row = row,
+        col = old_words[ai].start_col,
+        end_col = old_words[ai + ac - 1].end_col,
+        hl_group = "CodeCompanionDiffChange",
+      })
+    end
 
-      if new_words[start_word_idx] and new_words[end_word_idx] then
-        local start_col = new_words[start_word_idx].start_col
-        local end_col = new_words[end_word_idx].end_col
-
-        table.insert(data.hunk.extmarks, {
-          row = row,
-          col = start_col,
-          end_col = end_col,
-          hl_group = "CodeCompanionDiffChange",
-        })
-      end
+    -- Track additions for virtual lines
+    if bc > 0 and new_words[bi] and new_words[bi + bc - 1] then
+      table.insert(word_ranges, {
+        line_idx = data.new_idx - data.first_line_idx + 1,
+        start_col = new_words[bi].start_col,
+        end_col = new_words[bi + bc - 1].end_col,
+      })
     end
   end
+
+  return #word_ranges > 0 and word_ranges or nil
 end
 
 ---Create a diff between two sets of lines

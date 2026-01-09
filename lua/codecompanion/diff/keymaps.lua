@@ -93,6 +93,9 @@ M.close_window = {
     log:trace("[Diff] Closing diff window for id=%s", diff_ui.diff_id)
     utils.fire("DiffRejected", { id = diff_ui.diff_id })
 
+    local Diff = require("codecompanion.diff")
+    Diff.clear(diff_ui.diff)
+
     diff_ui:close()
     clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
   end,
