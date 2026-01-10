@@ -50,7 +50,8 @@ function Adapter.extend(adapter, opts)
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters.acp." .. adapter)
     if not ok then
-      adapter_config = config.adapters[adapter]
+      -- Check acp adapters first, then fall back to root adapters
+      adapter_config = (config.adapters.acp and config.adapters.acp[adapter]) or config.adapters[adapter]
       if type(adapter_config) == "function" then
         adapter_config = adapter_config()
       end
@@ -88,21 +89,16 @@ function Adapter.resolve(adapter, opts)
       return Adapter.resolve(adapter.name)
     end
 
-    -- For fully-formed adapter tables, validate the type
-    if adapter.type and adapter.type ~= "acp" then
-      return log:error("[adapters::acp::resolve] Adapter is not an ACP adapter")
+    if opts.model then
+      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
+        defaults = { model = opts.model },
+      })
     end
 
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
     if not config.adapters.acp or not config.adapters.acp[adapter] then
       return log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
-    end
-    -- Merge model into defaults if provided in opts
-    if opts.model then
-      opts = vim.tbl_deep_extend("force", opts, {
-        defaults = { model = opts.model },
-      })
     end
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)
   elseif type(adapter) == "function" then

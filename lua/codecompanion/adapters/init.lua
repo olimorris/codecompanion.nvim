@@ -3,9 +3,14 @@ local config = require("codecompanion.config")
 local M = {}
 
 ---Determine the adapter type
----@param adapter string|table
+---@param adapter string|table|nil
 ---@return string
 local function adapter_type(adapter)
+  -- If no adapter provided, use the default from config
+  if adapter == nil then
+    adapter = config.interactions.chat.adapter
+  end
+
   if type(adapter) == "table" and adapter.type then
     return adapter.type
   end
