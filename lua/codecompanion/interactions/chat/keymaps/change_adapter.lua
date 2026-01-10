@@ -190,7 +190,11 @@ function M.select_model(chat)
         if adapter_type == "http" then
           display = model.description or model.formatted_name or model.id or "Unknown"
         elseif adapter_type == "acp" then
-          display = string.format("%s - %s", model.name, model.description)
+          if not model.description then
+            display = model.name
+          else
+            display = string.format("%s - %s", model.name, model.description)
+          end
         end
       else
         display = model
