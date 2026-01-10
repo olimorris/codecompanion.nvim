@@ -39,6 +39,7 @@
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
+---@field acp_command? string The command to use to connect via ACP
 ---@field acp_session_id? string The ACP session ID which links to this chat buffer
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
@@ -493,6 +494,9 @@ function Chat.new(args)
     -- Initialize ACP connection early to receive available_commands_update
     -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
     vim.schedule(function()
+      if args.acp_command then
+        self.adapter.commands.selected = self.adapter.commands[args.acp_command]
+      end
       helpers.create_acp_connection(self)
     end)
   end
@@ -673,23 +677,19 @@ function Chat:apply_settings(settings)
 end
 
 ---Change the adapter in the chat buffer
----@param name string
----@param model? string
-function Chat:change_adapter(name, model)
+---@param adapter string
+function Chat:change_adapter(adapter)
   local function fire()
     return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
-  self.adapter = require("codecompanion.adapters").resolve(name)
+  self.adapter = require("codecompanion.adapters").resolve(adapter)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    return
-  end
-
-  if model then
-    self:apply_model_or_command({ model = model })
-    return fire()
+    -- We need to ensure the connection is created before proceeding so that
+    -- users are given a choice of models to select from
+    helpers.create_acp_connection(self)
   end
 
   self:set_system_prompt()
@@ -699,26 +699,29 @@ function Chat:change_adapter(name, model)
 end
 
 ---Set a model in the chat buffer
----@param args { model?: string, command?: table }
+---@param args { model?: string }
 ---@return CodeCompanion.Chat
-function Chat:apply_model_or_command(args)
-  if args and args.command then
-    self.adapter.commands.selected = args.command
-    helpers.create_acp_connection(self)
-  elseif args.model then
+function Chat:change_model(args)
+  local function apply()
+    return adapters.set_model({ acp_connection = self.acp_connection, adapter = self.adapter, model = args.model })
+  end
+
+  if self.adapter.type == "http" then
     self.settings.model = args.model
     self.adapter.schema.model.default = args.model
-    self.adapter = adapters.set_model(self.adapter)
+    self.adapter = apply()
 
     self:set_system_prompt()
     self:apply_settings()
+  elseif self.adapter.type == "acp" then
+    apply()
   end
 
   self:update_metadata()
   utils.fire("ChatModel", {
-    bufnr = self.bufnr,
     adapter = adapters.make_safe(self.adapter),
-    model = args.model or args.command,
+    bufnr = self.bufnr,
+    model = args.model,
   })
 
   return self
@@ -1624,22 +1627,25 @@ end
 ---@return nil
 function Chat:update_metadata()
   local model
+  local mode_info
+
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
-  end
+  elseif self.adapter.type == "acp" and self.acp_connection then
+    model = self.acp_connection._models and self.acp_connection._models.currentModelId or "default"
 
-  local mode_info
-  if self.adapter.type == "acp" and self.acp_connection then
-    local modes = self.acp_connection:get_modes()
-    if modes and modes.currentModeId then
-      mode_info = {
-        current = modes.currentModeId,
-      }
-      -- Get the mode name for display
-      for _, mode in ipairs(modes.availableModes or {}) do
-        if mode.id == modes.currentModeId then
-          mode_info.name = mode.name
-          break
+    if self.acp_connection.get_modes then
+      local modes = self.acp_connection:get_modes()
+      if modes and modes.currentModeId then
+        mode_info = {
+          current = modes.currentModeId,
+        }
+        -- Get the mode name for display
+        for _, mode in ipairs(modes.availableModes or {}) do
+          if mode.id == modes.currentModeId then
+            mode_info.name = mode.name
+            break
+          end
         end
       end
     end

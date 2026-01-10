@@ -11,6 +11,35 @@ T = new_set({
         h = require('tests.helpers')
         utils = require("codecompanion.utils.adapters")
 
+        _G.test_acp_adapter = {
+          name = "test_acp",
+          formatted_name = "Test ACP",
+          type = "acp",
+          roles = {
+            llm = "assistant",
+            user = "user",
+          },
+          commands = {
+            default = { "node", "test-agent.js" },
+            yolo = { "node", "test-agent.js", "--yolo" },
+          },
+          defaults = {
+            mcpServers = {},
+            timeout = 10000,
+          },
+          parameters = {
+            protocolVersion = 1,
+          },
+          handlers = {
+            setup = function(self)
+              return true
+            end,
+            form_messages = function(self, messages, capabilities)
+              return messages
+            end,
+          },
+        }
+
         _G.test_adapter = {
           name = "TestAdapter",
           url = "https://api.testgenai.com/v1/chat/completions",
@@ -106,7 +135,13 @@ T = new_set({
 
 T["Adapter"] = new_set()
 
-T["Adapter"]["can form parameters from a chat buffer's settings"] = function()
+--=============================================================================
+-- HTTP Adapter Tests
+--=============================================================================
+
+T["HTTP Adapter"] = new_set()
+
+T["HTTP Adapter"]["can form parameters from a chat buffer's settings"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend("openai")
     local result = adapter:map_schema_to_params(_G.chat_buffer_settings)
@@ -121,7 +156,7 @@ T["Adapter"]["can form parameters from a chat buffer's settings"] = function()
   h.eq(child.lua_get([[_G.chat_buffer_settings]]), result)
 end
 
-T["Adapter"]["can use schema to created nested parameters"] = function()
+T["HTTP Adapter"]["can use schema to created nested parameters"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend("openai", {
       schema = {
@@ -151,7 +186,7 @@ T["Adapter"]["can use schema to created nested parameters"] = function()
   h.eq(expected, result.reasoning)
 end
 
-T["Adapter"]["can nest parameters based on an adapter's schema"] = function()
+T["HTTP Adapter"]["can nest parameters based on an adapter's schema"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(_G.test_adapter)
     return adapter:map_schema_to_params(_G.chat_buffer_settings).parameters
@@ -171,7 +206,7 @@ T["Adapter"]["can nest parameters based on an adapter's schema"] = function()
   h.eq(expected, result)
 end
 
-T["Adapter"]["can form environment variables"] = function()
+T["HTTP Adapter"]["can form environment variables"] = function()
   local result = child.lua([[
     local utils = require("codecompanion.utils.adapters")
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
@@ -182,7 +217,7 @@ T["Adapter"]["can form environment variables"] = function()
   h.eq(os.getenv("HOME"), result.env_replaced.home)
 end
 
-T["Adapter"]["can set environment variables in the adapter"] = function()
+T["HTTP Adapter"]["can set environment variables in the adapter"] = function()
   local result = child.lua([[
     local utils = require("codecompanion.utils.adapters")
     adapter = require("codecompanion.adapters").extend(_G.test_adapter2)
@@ -203,7 +238,7 @@ T["Adapter"]["can set environment variables in the adapter"] = function()
   }, headers)
 end
 
-T["Adapter"]["will not set environment variables if it doesn't need to"] = function()
+T["HTTP Adapter"]["will not set environment variables if it doesn't need to"] = function()
   local params = child.lua([[
     local utils = require("codecompanion.utils.adapters")
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
@@ -214,7 +249,7 @@ T["Adapter"]["will not set environment variables if it doesn't need to"] = funct
   h.eq(child.lua_get([[_G.test_adapter2.parameters]]), params)
 end
 
-T["Adapter"]["environment variables can be functions"] = function()
+T["HTTP Adapter"]["environment variables can be functions"] = function()
   local result = child.lua([[
     local utils = require("codecompanion.utils.adapters")
     local adapter = require("codecompanion.adapters").extend("openai", {
@@ -230,7 +265,7 @@ T["Adapter"]["environment variables can be functions"] = function()
   h.eq("test_api_key", result)
 end
 
-T["Adapter"]["can update a model on the adapter"] = function()
+T["HTTP Adapter"]["can update a model on the adapter"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(test_adapter)
     return adapter.resolve(adapter).model
@@ -264,7 +299,7 @@ T["Adapter"]["can update a model on the adapter"] = function()
   }, result)
 end
 
-T["Adapter"]["can update schema"] = function()
+T["HTTP Adapter"]["can update schema"] = function()
   local adapter = require("codecompanion.adapters").extend("openai", {
     schema = {
       model = {
@@ -281,7 +316,7 @@ T["Adapter"]["can update schema"] = function()
   h.eq("my-new-adapter", adapter.schema.model.choices[1])
 end
 
-T["Adapter"]["can resolve custom adapters"] = function()
+T["HTTP Adapter"]["can resolve custom adapters"] = function()
   local result = child.lua([[
     require("codecompanion").setup({
       adapters = {
@@ -308,7 +343,7 @@ T["Adapter"]["can resolve custom adapters"] = function()
   h.eq("abc_123", result)
 end
 
-T["Adapter"]["can pass in the name of the model"] = function()
+T["HTTP Adapter"]["can pass in the name of the model"] = function()
   local result = child.lua([[
     h.setup_plugin({
       interactions = {
@@ -326,7 +361,7 @@ T["Adapter"]["can pass in the name of the model"] = function()
   h.eq("some_made_up_model", result)
 end
 
-T["Adapter"]["can extend an adapter"] = function()
+T["HTTP Adapter"]["can extend an adapter"] = function()
   local result = child.lua([[
     return require("codecompanion.adapters").extend("openai", {
       env = {
@@ -337,6 +372,149 @@ T["Adapter"]["can extend an adapter"] = function()
 
   h.eq("test_api_key", result)
 end
+
+--=============================================================================
+-- ACP Adapter Tests
+--=============================================================================
+
+T["ACP Adapter"] = new_set()
+
+T["ACP Adapter"]["can extend an adapter"] = function()
+  local result = child.lua([[
+    local adapter = require("codecompanion.adapters").extend(_G.test_acp_adapter)
+    return {
+      name = adapter.name,
+      type = adapter.type,
+      formatted_name = adapter.formatted_name,
+    }
+  ]])
+
+  h.eq("test_acp", result.name)
+  h.eq("acp", result.type)
+  h.eq("Test ACP", result.formatted_name)
+end
+
+T["ACP Adapter"]["can extend with defaults.model"] = function()
+  local result = child.lua([[
+    local adapter = require("codecompanion.adapters").extend(_G.test_acp_adapter, {
+      defaults = {
+        model = "sonnet"
+      }
+    })
+    return {
+      name = adapter.name,
+      type = adapter.type,
+      default_model = adapter.defaults.model,
+    }
+  ]])
+
+  h.eq("test_acp", result.name)
+  h.eq("acp", result.type)
+  h.eq("sonnet", result.default_model)
+end
+
+T["ACP Adapter"]["model in opts gets merged into defaults"] = function()
+  local result = child.lua([[
+    -- This tests the internal flow when { name, model } is resolved
+    local acp_adapter = require("codecompanion.adapters.acp")
+    local adapter = acp_adapter.resolve(_G.test_acp_adapter, { model = "haiku" })
+    return {
+      name = adapter.name,
+      default_model = adapter.defaults and adapter.defaults.model,
+    }
+  ]])
+
+  h.eq("test_acp", result.name)
+  h.eq("haiku", result.default_model)
+end
+
+T["ACP Adapter"]["preserves other defaults when setting model"] = function()
+  local result = child.lua([[
+    local acp_adapter = require("codecompanion.adapters.acp")
+    local adapter = acp_adapter.resolve(_G.test_acp_adapter, { model = "opus" })
+    return {
+      model = adapter.defaults.model,
+      -- Check that other defaults are preserved
+      has_timeout = adapter.defaults.timeout ~= nil,
+      has_mcp_servers = adapter.defaults.mcpServers ~= nil,
+    }
+  ]])
+
+  h.eq("opus", result.model)
+  h.eq(true, result.has_timeout)
+  h.eq(true, result.has_mcp_servers)
+end
+
+T["ACP Adapter"]["can be checked if resolved"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+    local acp_adapter = require("codecompanion.adapters.acp")
+
+    local unresolved = { name = "test_acp" }
+    local resolved = acp_adapter.extend(_G.test_acp_adapter)
+
+    return {
+      unresolved_check = acp_adapter.resolved(unresolved),
+      resolved_check = acp_adapter.resolved(resolved),
+    }
+  ]])
+
+  h.eq(false, result.unresolved_check)
+  h.eq(true, result.resolved_check)
+end
+
+T["ACP Adapter"]["make_safe returns expected fields"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+    local adapter = adapters.extend(_G.test_acp_adapter)
+    local safe = adapters.make_safe(adapter)
+
+    return {
+      has_name = safe.name ~= nil,
+      has_formatted_name = safe.formatted_name ~= nil,
+      has_type = safe.type ~= nil,
+      has_defaults = safe.defaults ~= nil,
+      type_value = safe.type,
+    }
+  ]])
+
+  h.eq(true, result.has_name)
+  h.eq(true, result.has_formatted_name)
+  h.eq(true, result.has_type)
+  h.eq(true, result.has_defaults)
+  h.eq("acp", result.type_value)
+end
+
+T["ACP Adapter"]["can configure custom adapter with default model function"] = function()
+  local result = child.lua([[
+    local acp_adapter = require("codecompanion.adapters.acp")
+
+    -- Create an adapter with a function for default model
+    local custom_adapter = vim.tbl_deep_extend("force", _G.test_acp_adapter, {
+      defaults = {
+        model = function(adapter)
+          return "dynamic_" .. adapter.name
+        end,
+      },
+    })
+
+    local adapter = acp_adapter.extend(custom_adapter)
+    return {
+      name = adapter.name,
+      type = adapter.type,
+      -- The function is stored, not evaluated at extend time
+      has_model_function = type(adapter.defaults.model) == "function",
+    }
+  ]])
+
+  h.eq("test_acp", result.name)
+  h.eq("acp", result.type)
+  h.eq(true, result.has_model_function)
+end
+
+--=============================================================================
+-- General Adapter Utils Tests
+--=============================================================================
 
 T["Adapter"]["utils"] = new_set()
 

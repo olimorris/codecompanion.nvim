@@ -6,7 +6,7 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
-## Changing an Adapter
+## Changing the Default Adapter
 
 You can select an ACP adapter to be the default for all chat interactions:
 
@@ -19,6 +19,65 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Changing the Default Model
+
+You can change the default model used by an ACP adapter. For example, to change the default model for the Claude Code adapter:
+
+::: code-group
+
+```lua [For Interactions] {4-7}
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = {
+        name = "claude_code",
+        model = "opus",
+      },
+    },
+  },
+}),
+```
+
+```lua [Adapters: Text] {6-8}
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            model = "opus"
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+```lua [Adapters: Function] {6-12}
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            ---@param self CodeCompanion.ACPAdapter
+            ---@return string
+            model = function(self)
+              return "opus"
+            end,
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+:::
+
+Using a _function_ is useful for working around the [limitations](https://github.com/zed-industries/claude-code-acp/issues/225) in the Claude Code SDK (which enables ACP support).
 
 ## Changing Adapter Settings
 

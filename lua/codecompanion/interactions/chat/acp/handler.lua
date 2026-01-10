@@ -78,6 +78,8 @@ function ACPHandler:ensure_connection()
       local acp_commands = require("codecompanion.interactions.chat.acp.commands")
       acp_commands.link_buffer_to_session(self.chat.bufnr, self.chat.acp_connection.session_id)
     end
+
+    self.chat:update_metadata()
   end
   return true
 end

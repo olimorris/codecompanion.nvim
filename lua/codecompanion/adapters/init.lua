@@ -3,17 +3,25 @@ local config = require("codecompanion.config")
 local M = {}
 
 ---Determine the adapter type
----@param adapter string|table
+---@param adapter string|table|nil
 ---@return string
 local function adapter_type(adapter)
+  -- If no adapter provided, use the default from config
+  if adapter == nil then
+    adapter = config.interactions.chat.adapter
+  end
+
   if type(adapter) == "table" and adapter.type then
     return adapter.type
   end
-  if type(adapter) == "string" then
-    if config.adapters.acp and config.adapters.acp[adapter] then
+
+  -- Check by name (for tables like { name = "claude_code", model = "opus" })
+  local name = type(adapter) == "string" and adapter or (type(adapter) == "table" and adapter.name)
+  if name then
+    if config.adapters.acp and config.adapters.acp[name] then
       return "acp"
     end
-    if config.adapters.http and config.adapters.http[adapter] then
+    if config.adapters.http and config.adapters.http[name] then
       return "http"
     end
   end
@@ -69,10 +77,13 @@ function M.make_safe(adapter)
 end
 
 ---Backwards compatibility: expose HTTP methods directly at root level
----@param adapter CodeCompanion.HTTPAdapter
+---@param args { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter, acp_connection?: CodeCompanion.ACP.Connection, model?: string }
 ---@return CodeCompanion.HTTPAdapter
-function M.set_model(adapter)
-  return require("codecompanion.adapters.http").set_model(adapter)
+function M.set_model(args)
+  if adapter_type(args.adapter) == "acp" then
+    return require("codecompanion.adapters.acp").set_model(args)
+  end
+  return require("codecompanion.adapters.http").set_model(args)
 end
 
 ---Get a handler function from an adapter with backwards compatibility
