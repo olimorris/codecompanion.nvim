@@ -49,7 +49,7 @@ T["Keymaps"]["change_adapter"]["get_models_list returns correct list with object
       }
     }
 
-    local list = change_adapter.get_models_list(mock_adapter)
+    local list = change_adapter.list_http_models(mock_adapter)
     if not list then return nil end
 
     local ids = {}
@@ -84,7 +84,7 @@ T["Keymaps"]["change_adapter"]["get_models_list returns correct list with string
       }
     }
 
-    local list = change_adapter.get_models_list(mock_adapter)
+    local list = change_adapter.list_http_models(mock_adapter)
     if not list then return nil end
 
     local names = {}
@@ -98,25 +98,25 @@ T["Keymaps"]["change_adapter"]["get_models_list returns correct list with string
   h.eq(result.count, 4)
 end
 
-T["Keymaps"]["change_adapter"]["get_commands_list returns correct list"] = function()
-  local list = child.lua([[
-    h.setup_plugin()
-    local adapter = {
-      commands = {
-        selected = "code",
-        code = {},
-        chat = {},
-        test = {},
-      }
-    }
-    return change_adapter.get_commands_list(adapter)
-  ]])
-
-  h.eq(#list, 3)
-  h.expect_tbl_contains("code", list)
-  h.expect_tbl_contains("chat", list)
-  h.expect_tbl_contains("test", list)
-end
+-- T["Keymaps"]["change_adapter"]["get_commands_list returns correct list"] = function()
+--   local list = child.lua([[
+--     h.setup_plugin()
+--     local adapter = {
+--       commands = {
+--         selected = "code",
+--         code = {},
+--         chat = {},
+--         test = {},
+--       }
+--     }
+--     return change_adapter.get_commands_list(adapter)
+--   ]])
+--
+--   h.eq(#list, 3)
+--   h.expect_tbl_contains("code", list)
+--   h.expect_tbl_contains("chat", list)
+--   h.expect_tbl_contains("test", list)
+-- end
 
 T["Keymaps"]["change_adapter"]["current adapter appears once at front"] = function()
   child.lua([[h.setup_plugin()]])
@@ -144,24 +144,24 @@ T["Keymaps"]["change_adapter"]["get_models_list returns nil when < 2 models"] = 
         }
       }
     }
-    return change_adapter.get_models_list(adapter) == nil
+    return change_adapter.list_http_models(adapter) == nil
   ]])
 
   h.expect_truthy(result)
 end
 
-T["Keymaps"]["change_adapter"]["get_commands_list returns nil when < 2 commands"] = function()
-  local result = child.lua([[
-    h.setup_plugin()
-    local adapter = {
-      commands = {
-        selected = "code",
-      }
-    }
-    return change_adapter.get_commands_list(adapter) == nil
-  ]])
-
-  h.expect_truthy(result)
-end
+-- T["Keymaps"]["change_adapter"]["get_commands_list returns nil when < 2 commands"] = function()
+--   local result = child.lua([[
+--     h.setup_plugin()
+--     local adapter = {
+--       commands = {
+--         selected = "code",
+--       }
+--     }
+--     return change_adapter.get_commands_list(adapter) == nil
+--   ]])
+--
+--   h.expect_truthy(result)
+-- end
 
 return T

@@ -45,10 +45,10 @@ function M.get_adapters_list(current_adapter)
 end
 
 ---Get list of available models for an adapter
----@param chat CodeCompanion.Chat
+---@param adapter CodeCompanion.HTTPAdapter
 ---@return table|nil
-function M.list_http_models(chat)
-  local models = chat.adapter.schema.model.choices
+function M.list_http_models(adapter)
+  local models = adapter.schema.model.choices
 
   -- Check if we should show model choices or just the default
   local show_choices = config.adapters
@@ -57,19 +57,19 @@ function M.list_http_models(chat)
     and config.adapters.http.opts.show_model_choices
 
   if not show_choices then
-    models = { chat.adapter.schema.model.default }
+    models = { adapter.schema.model.default }
   end
   if type(models) == "function" then
     -- When user explicitly wants to change models, force token creation
-    models = models(chat.adapter, { async = false })
+    models = models(adapter, { async = false })
   end
   if not models or vim.tbl_count(models) < 2 then
     return nil
   end
 
-  local current_model_id = chat.adapter.schema.model.default
+  local current_model_id = adapter.schema.model.default
   if type(current_model_id) == "function" then
-    current_model_id = current_model_id(chat.adapter)
+    current_model_id = current_model_id(adapter)
   end
 
   local current_model = nil
@@ -121,10 +121,10 @@ function M.list_http_models(chat)
 end
 
 ---List available models for an ACP adapter
----@param chat CodeCompanion.Chat
+---@param connection CodeCompanion.ACP.Connection
 ---@return table|nil
-function M.list_acp_models(chat)
-  local models = chat.acp_connection:get_models()
+function M.list_acp_models(connection)
+  local models = connection:get_models()
   if not models or vim.tbl_count(models) < 2 then
     return nil
   end
@@ -153,7 +153,7 @@ function M.select_model(chat)
 
   if adapter_type == "http" then
     ---@diagnostic disable-next-line: param-type-mismatch
-    models_list = M.list_http_models(chat)
+    models_list = M.list_http_models(chat.adapter)
     if not models_list then
       return utils.notify("No models to select", vim.log.levels.INFO)
     end
@@ -161,7 +161,7 @@ function M.select_model(chat)
   end
   if adapter_type == "acp" then
     ---@diagnostic disable-next-line: param-type-mismatch
-    local acp_models = M.list_acp_models(chat)
+    local acp_models = M.list_acp_models(chat.acp_connection)
     models_list = acp_models and acp_models.availableModels or nil
     if not acp_models or not models_list then
       return utils.notify("No models to select", vim.log.levels.INFO)
