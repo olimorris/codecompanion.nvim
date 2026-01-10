@@ -37,8 +37,8 @@ function M.load_from_dir(dir, context)
       break
     end
 
-    -- Only process .md files
-    if type == "file" and name:match("%.md$") then
+    -- Only process .md files (including symlinks)
+    if (type == "file" or type == "link") and name:match("%.md$") then
       local path = vim.fs.joinpath(dir, name)
       local ok, prompt = pcall(M.parse_file, path, context)
 
