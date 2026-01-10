@@ -1633,12 +1633,13 @@ end
 ---@return nil
 function Chat:update_metadata()
   local model
+  local mode_info
+
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
-  end
+  elseif self.adapter.type == "acp" and self.acp_connection then
+    model = self.acp_connection._models and self.acp_connection._models.currentModelId
 
-  local mode_info
-  if self.adapter.type == "acp" and self.acp_connection then
     local modes = self.acp_connection:get_modes()
     if modes and modes.currentModeId then
       mode_info = {
