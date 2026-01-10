@@ -4,6 +4,7 @@ local shared = require("codecompanion.adapters.shared")
 
 ---@class CodeCompanion.ACPAdapter
 ---@field name string The name of the adapter
+---@field model string The model to use with the adapter
 ---@field type string|"acp" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
@@ -49,7 +50,8 @@ function Adapter.extend(adapter, opts)
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters.acp." .. adapter)
     if not ok then
-      adapter_config = config.adapters[adapter]
+      -- Check acp adapters first, then fall back to root adapters
+      adapter_config = (config.adapters.acp and config.adapters.acp[adapter]) or config.adapters[adapter]
       if type(adapter_config) == "function" then
         adapter_config = adapter_config()
       end
@@ -78,22 +80,25 @@ function Adapter.resolve(adapter, opts)
   opts = opts or {}
 
   if type(adapter) == "table" then
-    if (adapter.type and adapter.type ~= "acp") or not adapter.type then
-      log:error("[adapters::acp::resolve] Adapter is not an ACP adapter")
-      error("Adapter is not an ACP adapter")
-    end
-    if adapter.name and Adapter.resolved(adapter) then
-      log:trace("[adapters::acp::resolve] Returning existing resolved adapter: %s", adapter.name)
-      adapter = Adapter.new(adapter)
-    elseif adapter.name then
+    -- Handle { name = "claude_code", model = "opus" } style config first
+    if adapter.name and adapter.model and not adapter.type then
+      log:trace("[adapters::acp::resolve] Table adapter with model: %s", adapter.name)
+      return Adapter.resolve(adapter.name, { model = adapter.model })
+    elseif adapter.name and not adapter.type then
       log:trace("[adapters::acp::resolve] Table adapter: %s", adapter.name)
-      adapter = Adapter.resolve(adapter.name)
+      return Adapter.resolve(adapter.name)
     end
+
+    if opts.model then
+      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
+        defaults = { model = opts.model },
+      })
+    end
+
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
     if not config.adapters.acp or not config.adapters.acp[adapter] then
-      log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
-      error("Adapter not found: " .. adapter)
+      return log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
     end
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
@@ -131,6 +136,13 @@ function Adapter.make_safe(adapter)
     opts = adapter.opts,
     handlers = adapter.handlers,
   }
+end
+
+---Set the ACP model
+---@param args { acp_connection: CodeCompanion.ACP.Connection, adapter: CodeCompanion.ACPAdapter, model: string }
+---@return boolean
+function Adapter.set_model(args)
+  return args.acp_connection:set_model(args.model)
 end
 
 return Adapter

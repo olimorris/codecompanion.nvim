@@ -264,9 +264,11 @@ function Adapter.extend(adapter, opts)
 end
 
 ---Set the model name and options on the adapter for convenience
----@param adapter CodeCompanion.HTTPAdapter
+---@param args { adapter: CodeCompanion.HTTPAdapter }
 ---@return CodeCompanion.HTTPAdapter
-function Adapter.set_model(adapter)
+function Adapter.set_model(args)
+  local adapter = args.adapter
+
   -- Set the model dictionary as a convenience for the user. This can be string
   -- or function values. If they're functions, these are likely to make http
   -- requests to obtain a list of available models. This is expensive, so
@@ -298,7 +300,7 @@ function Adapter.resolve(adapter, opts)
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
       log:trace("[adapters:http:resolve] Returning existing resolved adapter: %s", adapter.name)
-      return Adapter.set_model(adapter)
+      return Adapter.set_model({ adapter = adapter })
     elseif adapter.name and adapter.model then
       log:trace("[adapters:http:resolve] Table adapter: %s", adapter.name)
       local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
@@ -334,7 +336,7 @@ function Adapter.resolve(adapter, opts)
     adapter.handlers.resolve(adapter)
   end
 
-  return Adapter.set_model(adapter)
+  return Adapter.set_model({ adapter = adapter })
 end
 
 ---Check if an adapter has already been resolved
