@@ -1,5 +1,19 @@
 # Changelog
 
+## [18.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.2...v18.4.0) (2026-01-10)
+
+
+### Features
+
+* **acp:** select models and improved config ux ([#2641](https://github.com/olimorris/codecompanion.nvim/issues/2641)) ([c52042d](https://github.com/olimorris/codecompanion.nvim/commit/c52042d4ee2ba21fcb072678919735e013fb7943))
+
+
+### Bug Fixes
+
+* **adapters:** ensure Copilot models have correct capabilities ([#2638](https://github.com/olimorris/codecompanion.nvim/issues/2638)) ([b4d8040](https://github.com/olimorris/codecompanion.nvim/commit/b4d8040079dbbeea3d87fc594f6caa79b94fc427)), closes [#2637](https://github.com/olimorris/codecompanion.nvim/issues/2637)
+* **prompts:** allow symlinks for Markdown prompt files ([#2633](https://github.com/olimorris/codecompanion.nvim/issues/2633)) ([b1f2aaf](https://github.com/olimorris/codecompanion.nvim/commit/b1f2aaf9efe4251b4c77f82ded1cd9e33a025b42))
+* **prompts:** can comment out frontmatter ([8ec7628](https://github.com/olimorris/codecompanion.nvim/commit/8ec76289580e6e656f0827e0760aadbbf04062ad))
+
 ## [18.3.2](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.1...v18.3.2) (2026-01-08)
 
 
