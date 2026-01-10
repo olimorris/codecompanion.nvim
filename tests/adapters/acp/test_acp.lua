@@ -39,13 +39,11 @@ end
 T["ACP Adapter"]["handles missing adapter gracefully"] = function()
   local result = child.lua([[
     -- Try to resolve a non-existent ACP adapter
-    local ok, err = pcall(function()
-      return require("codecompanion.adapters.acp").resolve("non_existent_adapter")
-    end)
-    return { ok = ok, has_error = err ~= nil }
+    local adapter = require("codecompanion.adapters.acp").resolve("non_existent_adapter")
+    return { adapter_is_nil = adapter == nil }
   ]])
 
-  h.eq(false, result.ok)
+  h.eq(true, result.adapter_is_nil)
 end
 
 T["ACP Adapter"]["can make adapter safe for serialization"] = function()
