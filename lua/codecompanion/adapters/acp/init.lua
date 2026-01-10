@@ -4,6 +4,7 @@ local shared = require("codecompanion.adapters.shared")
 
 ---@class CodeCompanion.ACPAdapter
 ---@field name string The name of the adapter
+---@field model string The model to use with the adapter
 ---@field type string|"acp" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
@@ -78,22 +79,30 @@ function Adapter.resolve(adapter, opts)
   opts = opts or {}
 
   if type(adapter) == "table" then
-    if (adapter.type and adapter.type ~= "acp") or not adapter.type then
-      log:error("[adapters::acp::resolve] Adapter is not an ACP adapter")
-      error("Adapter is not an ACP adapter")
-    end
-    if adapter.name and Adapter.resolved(adapter) then
-      log:trace("[adapters::acp::resolve] Returning existing resolved adapter: %s", adapter.name)
-      adapter = Adapter.new(adapter)
-    elseif adapter.name then
+    -- Handle { name = "claude_code", model = "opus" } style config first
+    if adapter.name and adapter.model and not adapter.type then
+      log:trace("[adapters::acp::resolve] Table adapter with model: %s", adapter.name)
+      return Adapter.resolve(adapter.name, { model = adapter.model })
+    elseif adapter.name and not adapter.type then
       log:trace("[adapters::acp::resolve] Table adapter: %s", adapter.name)
-      adapter = Adapter.resolve(adapter.name)
+      return Adapter.resolve(adapter.name)
     end
+
+    -- For fully-formed adapter tables, validate the type
+    if adapter.type and adapter.type ~= "acp" then
+      return log:error("[adapters::acp::resolve] Adapter is not an ACP adapter")
+    end
+
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
     if not config.adapters.acp or not config.adapters.acp[adapter] then
-      log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
-      error("Adapter not found: " .. adapter)
+      return log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
+    end
+    -- Merge model into defaults if provided in opts
+    if opts.model then
+      opts = vim.tbl_deep_extend("force", opts, {
+        defaults = { model = opts.model },
+      })
     end
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)
   elseif type(adapter) == "function" then

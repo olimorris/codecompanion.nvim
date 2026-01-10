@@ -1639,16 +1639,18 @@ function Chat:update_metadata()
   elseif self.adapter.type == "acp" and self.acp_connection then
     model = self.acp_connection._models and self.acp_connection._models.currentModelId or "default"
 
-    local modes = self.acp_connection:get_modes()
-    if modes and modes.currentModeId then
-      mode_info = {
-        current = modes.currentModeId,
-      }
-      -- Get the mode name for display
-      for _, mode in ipairs(modes.availableModes or {}) do
-        if mode.id == modes.currentModeId then
-          mode_info.name = mode.name
-          break
+    if self.acp_connection.get_modes then
+      local modes = self.acp_connection:get_modes()
+      if modes and modes.currentModeId then
+        mode_info = {
+          current = modes.currentModeId,
+        }
+        -- Get the mode name for display
+        for _, mode in ipairs(modes.availableModes or {}) do
+          if mode.id == modes.currentModeId then
+            mode_info.name = mode.name
+            break
+          end
         end
       end
     end

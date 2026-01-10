@@ -9,11 +9,14 @@ local function adapter_type(adapter)
   if type(adapter) == "table" and adapter.type then
     return adapter.type
   end
-  if type(adapter) == "string" then
-    if config.adapters.acp and config.adapters.acp[adapter] then
+
+  -- Check by name (for tables like { name = "claude_code", model = "opus" })
+  local name = type(adapter) == "string" and adapter or (type(adapter) == "table" and adapter.name)
+  if name then
+    if config.adapters.acp and config.adapters.acp[name] then
       return "acp"
     end
-    if config.adapters.http and config.adapters.http[adapter] then
+    if config.adapters.http and config.adapters.http[name] then
       return "http"
     end
   end

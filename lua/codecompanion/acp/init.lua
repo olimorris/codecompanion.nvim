@@ -234,7 +234,59 @@ function Connection:connect_and_initialize()
     end
   end
 
+  -- Apply default model from adapter config if specified
+  self:apply_default_model()
+
   return self
+end
+
+---Apply the default model from the adapter config
+---@return boolean
+function Connection:apply_default_model()
+  if not self._models then
+    return false
+  end
+
+  local default_model = self.adapter_modified
+    and self.adapter_modified.defaults
+    and self.adapter_modified.defaults.model
+  if not default_model then
+    return false
+  end
+
+  -- Support function values for default model
+  if type(default_model) == "function" then
+    default_model = default_model(self.adapter_modified)
+  end
+
+  if type(default_model) ~= "string" or default_model == "" then
+    return false
+  end
+
+  -- Check if the requested model is available
+  local model_id = nil
+  for _, model in ipairs(self._models.availableModels or {}) do
+    -- Match by modelId and then by partial name match (e.g., "opus" matches "claude-opus-4")
+    if model.modelId == default_model then
+      model_id = model.modelId
+      break
+    elseif model.modelId:lower():find(default_model:lower(), 1, true) then
+      model_id = model.modelId
+      break
+    end
+  end
+
+  if not model_id then
+    log:warn("[acp::apply_default_model] Model `%s` not found in available models", default_model)
+    return false
+  end
+
+  if model_id == self._models.currentModelId then
+    log:debug("[acp::apply_default_model] Model `%s` is already selected", model_id)
+    return true
+  end
+
+  return self:set_model(model_id)
 end
 
 ---Create the ACP process
