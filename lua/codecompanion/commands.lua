@@ -205,6 +205,9 @@ return {
               if ok and adapter.commands then
                 local commands_list = vim
                   .iter(adapter.commands)
+                  :filter(function(k, _)
+                    return k ~= "selected"
+                  end)
                   :map(function(key, _)
                     if type(key) == "string" then
                       return key

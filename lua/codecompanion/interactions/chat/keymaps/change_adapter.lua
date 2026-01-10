@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
 local M = {}
@@ -155,7 +156,7 @@ function M.select_model(chat)
     ---@diagnostic disable-next-line: param-type-mismatch
     models_list = M.list_http_models(chat.adapter)
     if not models_list then
-      return utils.notify("No models to select", vim.log.levels.INFO)
+      return log:debug("No models to select for the HTTP adapter")
     end
     current_model = models_list[1]
   end
@@ -164,7 +165,7 @@ function M.select_model(chat)
     local acp_models = M.list_acp_models(chat.acp_connection)
     models_list = acp_models and acp_models.availableModels or nil
     if not acp_models or not models_list then
-      return utils.notify("No models to select", vim.log.levels.INFO)
+      return log:debug("No models to select for the HTTP adapter")
     end
     current_model = acp_models.currentModelId
   end

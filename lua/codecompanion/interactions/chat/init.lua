@@ -692,7 +692,6 @@ function Chat:change_adapter(adapter)
     -- We need to ensure the connection is created before proceeding so that
     -- users are given a choice of models to select from
     helpers.create_acp_connection(self)
-    return fire()
   end
 
   self:set_system_prompt()
@@ -1638,7 +1637,7 @@ function Chat:update_metadata()
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
   elseif self.adapter.type == "acp" and self.acp_connection then
-    model = self.acp_connection._models and self.acp_connection._models.currentModelId
+    model = self.acp_connection._models and self.acp_connection._models.currentModelId or "default"
 
     local modes = self.acp_connection:get_modes()
     if modes and modes.currentModeId then

@@ -25,13 +25,17 @@ require("codecompanion").toggle({ window_opts = { layout = "float", width = 0.6 
 
 The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
 
-## Changing Adapter
+## Changing Adapter and Model
 
 <img src="https://github.com/user-attachments/assets/e19ade4f-1daa-4634-b071-4ecd400371eb" />
 
 One of the joys of working with CodeCompanion is being able to switch between conversing with an LLM and an agent, all from within the chat buffer.
 
 To do this, simply press `ga` to open up the _Select Adapter_ select window. If your chosen adapter has more than one model then you'll be prompted to make another selection. This works for both _HTTP_ and _ACP_ adapters.
+
+## Changing ACP Command
+
+ACP adapters are initiated via a command in the configuration. By default, this will be the `default` command. Some ACP adapters have additional commands and these can be triggered via the cmd line with something like `:CodeCompanionChat adapter=gemini_cli command=yolo`, or you can use the [/command](/usage/chat-buffer/slash-commands#command) slash command within the chat buffer.
 
 ## Completion
 

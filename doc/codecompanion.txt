@@ -2994,7 +2994,7 @@ then streamed back into the buffer. A response is sent to the LLM by pressing
 |codecompanion--keymaps| section.
 
 
-CHANGING ADAPTER ~
+CHANGING ADAPTER AND MODEL ~
 
 
 
@@ -3004,6 +3004,16 @@ conversing with an LLM and an agent, all from within the chat buffer.
 To do this, simply press `ga` to open up the `Select Adapter` select window. If
 your chosen adapter has more than one model then you’ll be prompted to make
 another selection. This works for both `HTTP` and `ACP` adapters.
+
+
+CHANGING ACP COMMAND ~
+
+ACP adapters are initiated via a command in the configuration. By default, this
+will be the `default` command. Some ACP adapters have additional commands and
+these can be triggered via the cmd line with something like `:CodeCompanionChat
+adapter=gemini_cli command=yolo`, or you can use the
+|codecompanion-usage-chat-buffer-slash-commands-command| slash command within
+the chat buffer.
 
 
 COMPLETION ~
@@ -3926,6 +3936,16 @@ in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 selected and added to the chat buffer as per the video above.
 
 
+/COMMAND ~
+
+The `command` slash command is specific to
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
+between different adapter commands. For instance, some ACP adapters may allow
+you to run the agent command with a specific flag. Be mindful that switching
+commands is destructive and essentially resets the chat buffer for the purposes
+of a conversation with an agent.
+
+
 /COMPACT ~
 
 The `compact` slash command, based on Claude Code’s
@@ -3991,7 +4011,7 @@ The `rules` slash command allows you to add
 /MODE ~
 
 The `mode` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters allows users to switch
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
 between different agent operating modes, as per the protocol
 <https://agentclientprotocol.com/protocol/session-modes> docs.
 
