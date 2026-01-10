@@ -123,7 +123,17 @@ function Debug:render()
             break
           end
         end
-        table.insert(lines, '-- Using Model: "' .. model .. '"')
+        local models_list = vim
+          .iter(acp_models.availableModels)
+          :map(function(m)
+            return m.modelId
+          end)
+          :totable()
+        table.sort(models_list)
+        table.insert(
+          lines,
+          '-- Using Model: "' .. model .. '" (Available models: ' .. table.concat(models_list, ", ") .. ")"
+        )
       end
 
       -- Show current mode if available

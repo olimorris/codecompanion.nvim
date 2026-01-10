@@ -6,7 +6,7 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
-## Changing an Adapter
+## Changing the Default Adapter
 
 You can select an ACP adapter to be the default for all chat interactions:
 

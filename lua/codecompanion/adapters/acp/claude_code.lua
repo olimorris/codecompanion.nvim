@@ -16,6 +16,10 @@ return {
     default = {
       "claude-code-acp",
     },
+    yolo = {
+      "claude-code-acp",
+      "--yolo",
+    },
   },
   defaults = {
     mcpServers = {},

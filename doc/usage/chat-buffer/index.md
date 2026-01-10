@@ -31,7 +31,7 @@ The chat buffer uses markdown as its syntax and `H2` headers separate the user a
 
 One of the joys of working with CodeCompanion is being able to switch between conversing with an LLM and an agent, all from within the chat buffer.
 
-To do this, simply press `ga` to open up the _Select Adapter_ select window. If your chosen adapter has more than one model (in the case of HTTP adapters) or command (in the case of ACP adapters) then you'll be prompted to make another selection.
+To do this, simply press `ga` to open up the _Select Adapter_ select window. If your chosen adapter has more than one model then you'll be prompted to make another selection. This works for both _HTTP_ and _ACP_ adapters.
 
 ## Completion
 

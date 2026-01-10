@@ -21,6 +21,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **Permissions** | ✅ Full | Interactive UI with diff preview for tool approval |
 | **Content Types** | ✅ Full | Text, images, embedded resources |
 | **Tool Calls** | ✅ Full | Content blocks, file diffs, status updates |
+| **Set Models** | ✅ Full | Select a model for a given session (not in the spec) |
 | **Session Modes** | ✅ Full | Mode switching and state management |
 | **MCP Integration** | ✅ Full | Stdio, HTTP, and SSE transports |
 | **Agent Plans** | ❌ | Visual display of an agent's execution plan |
@@ -85,6 +86,10 @@ When sending files as embedded resources to agents, CodeCompanion re-reads the f
 ### Slash Commands
 
 ACP agents can advertise their own slash commands dynamically. You can access them with `\command` in the chat buffer. CodeCompanion transforms this to `/command` before sending your prompt to the agent.
+
+### Model Selection
+
+CodeCompanion implements a `session/set_model` method that allows you to select a model for the current session. This feature is not part of the [official ACP specification](https://agentclientprotocol.com/protocol/draft/schema#session-set_model) and is subject to change in future versions.
 
 ### Graceful Degradation
 

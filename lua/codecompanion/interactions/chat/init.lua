@@ -40,6 +40,7 @@
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
+---@field acp_command? string The command to use to connect via ACP
 ---@field acp_session_id? string The ACP session ID which links to this chat buffer
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
@@ -495,6 +496,9 @@ function Chat.new(args)
     -- Initialize ACP connection early to receive available_commands_update
     -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
     vim.schedule(function()
+      if args.acp_command then
+        self.adapter.commands.selected = self.adapter.commands[args.acp_command]
+      end
       helpers.create_acp_connection(self)
     end)
   end

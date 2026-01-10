@@ -162,43 +162,70 @@ return {
           -- Extract the adapter from the command line
           local adapter_name = cmdline:match("adapter=(%S+)")
           if adapter_name then
-            local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
+            local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.http)
             local adapter_config = config_adapters[adapter_name]
             if adapter_config then
-              -- Resolve the adapter to get the full schema
               local ok, adapter = pcall(require("codecompanion.adapters").resolve, adapter_config)
-              if ok and adapter and adapter.schema and adapter.schema.model and adapter.schema.model.choices then
-                local choices = adapter.schema.model.choices
 
-                -- Handle function choices
-                if type(choices) == "function" then
-                  local ok_fn, result = pcall(choices, adapter, { async = false })
-                  if ok_fn and result then
-                    choices = result
-                  else
-                    -- If the function call fails or returns nil, return empty
-                    return {}
+              if ok and adapter and adapter.type == "http" then
+                if adapter.schema and adapter.schema.model and adapter.schema.model.choices then
+                  local choices = adapter.schema.model.choices
+
+                  if type(choices) == "function" then
+                    local ok_fn, result = pcall(choices, adapter, { async = false })
+                    if ok_fn and result then
+                      choices = result
+                    else
+                      return {}
+                    end
                   end
-                end
 
-                -- Extract model names from choices (if choices is not nil)
-                if type(choices) == "table" then
-                  if vim.islist(choices) then
-                    return choices
-                  else
-                    return vim.tbl_keys(choices)
+                  -- Extract model names from choices (if choices is not nil)
+                  if type(choices) == "table" then
+                    if vim.islist(choices) then
+                      return choices
+                    else
+                      return vim.tbl_keys(choices)
+                    end
                   end
                 end
               end
             end
           end
           return {}
+        elseif param_key == "command" then
+          -- Extract the adapter from the command line
+          local adapter_name = cmdline:match("adapter=(%S+)")
+          if adapter_name then
+            local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp)
+            local adapter_config = config_adapters[adapter_name]
+            if adapter_config then
+              local ok, adapter = pcall(require("codecompanion.adapters").resolve, adapter_config)
+
+              if ok and adapter.commands then
+                local commands_list = vim
+                  .iter(adapter.commands)
+                  :map(function(key, _)
+                    if type(key) == "string" then
+                      return key
+                    end
+                  end)
+                  :totable()
+
+                table.sort(commands_list)
+
+                return commands_list
+              end
+              return {}
+            end
+          end
         end
 
         -- Only show general completions when at the start (no partial param typed)
         if cmdline:match("^['<,'>]*CodeCompanionChat[!]*%s+$") or arg_lead == "" then
           local completions = {
             "adapter=",
+            "command=",
             "model=",
             "Toggle",
             "Add",

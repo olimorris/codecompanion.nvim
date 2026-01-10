@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 09
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -684,7 +684,7 @@ This section contains configuration which is specific to Agent Client Protocol
 recommended you read the two pages together.
 
 
-CHANGING AN ADAPTER ~
+CHANGING THE DEFAULT ADAPTER ~
 
 You can select an ACP adapter to be the default for all chat interactions:
 
@@ -970,7 +970,7 @@ enabling `yolo` mode). As there is a lot of shared functionality between the
 two adapters, it is recommend that you read this page alongside the ACP one.
 
 
-CHANGING AN ADAPTER ~
+CHANGING THE DEFAULT ADAPTER ~
 
 You can change the default adapter for each interaction as follows:
 
@@ -991,7 +991,7 @@ You can change the default adapter for each interaction as follows:
 <
 
 
-CHANGING A MODEL ~
+CHANGING THE DEFAULT MODEL ~
 
 A core part of working with CodeCompanion is being able to easily switch
 between adapters and LLMs. Below are two examples of how this can be achieved.
@@ -2761,6 +2761,11 @@ CodeCompanion provides comprehensive support for the ACP specification:
                                                            file diffs,
                                                            status updates
 
+  Set Models                     ✅ Full                   Select a model
+                                                           for a given
+                                                           session (not in
+                                                           the spec)
+
   Session Modes                  ✅ Full                   Mode switching
                                                            and state
                                                            management
@@ -2858,6 +2863,15 @@ SLASH COMMANDS
 ACP agents can advertise their own slash commands dynamically. You can access
 them with `\command` in the chat buffer. CodeCompanion transforms this to
 `/command` before sending your prompt to the agent.
+
+
+MODEL SELECTION
+
+CodeCompanion implements a `session/set_model` method that allows you to select
+a model for the current session. This feature is not part of the official ACP
+specification
+<https://agentclientprotocol.com/protocol/draft/schema#session-set_model> and
+is subject to change in future versions.
 
 
 GRACEFUL DEGRADATION
@@ -2988,9 +3002,8 @@ One of the joys of working with CodeCompanion is being able to switch between
 conversing with an LLM and an agent, all from within the chat buffer.
 
 To do this, simply press `ga` to open up the `Select Adapter` select window. If
-your chosen adapter has more than one model (in the case of HTTP adapters) or
-command (in the case of ACP adapters) then you’ll be prompted to make another
-selection.
+your chosen adapter has more than one model then you’ll be prompted to make
+another selection. This works for both `HTTP` and `ACP` adapters.
 
 
 COMPLETION ~
