@@ -138,6 +138,14 @@ return {
     ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
+      -- Ensure models are fetched synchronously before checking capabilities
+      -- This prevents features from being disabled due to missing model info
+      local fetched_token = token.fetch({ force = true })
+      if fetched_token and fetched_token.copilot_token then
+        -- Force synchronous model fetch to ensure we have model capabilities
+        get_models.choices(self, { token = fetched_token, async = false })
+      end
+
       local model_opts = resolve_model_opts(self)
 
       if (self.opts and self.opts.stream) and (model_opts and model_opts.opts and model_opts.opts.can_stream) then
