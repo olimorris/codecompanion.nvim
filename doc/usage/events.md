@@ -32,10 +32,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
-- `CodeCompanionDiffAttached` - Fired when in Diff mode
-- `CodeCompanionDiffDetached` - Fired when exiting Diff mode
-- `CodeCompanionDiffAccepted` - Fired when a user accepts a change
-- `CodeCompanionDiffRejected` - Fired when a user rejects a change
+- `CodeCompanionDiffAccepted` - Fired when a user accepts a diff
+- `CodeCompanionDiffRejected` - Fired when a user rejects a diff
+- `CodeCompanionDiffHunkChanged` - Fired when a user moves between diff hunks
 
 There are also events that can be utilized to trigger commands from within the plugin:
 

@@ -284,7 +284,7 @@ function ACPHandler:handle_permission_request(request)
     end
   end
 
-  return require("codecompanion.interactions.chat.acp.request_permission").show(self.chat, request)
+  return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end
 
 ---Handle completion

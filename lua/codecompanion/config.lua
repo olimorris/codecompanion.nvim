@@ -633,12 +633,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.copilot_stats",
           description = "[Adapter] Copilot statistics",
         },
-        super_diff = {
-          modes = { n = "gD" },
-          index = 23,
-          callback = "keymaps.super_diff",
-          description = "[Tools] Show Super Diff",
-        },
         -- Keymaps for ACP permission requests
         _acp_allow_always = {
           modes = { n = "g1" },
@@ -701,22 +695,32 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.always_accept",
           description = "Always accept changes in this buffer",
           index = 1,
-          modes = { n = "gdy" },
+          modes = { n = "g1" },
           opts = { nowait = true },
         },
         accept_change = {
           callback = "keymaps.accept_change",
           description = "Accept change",
           index = 2,
-          modes = { n = "gda" },
+          modes = { n = "g2" },
           opts = { nowait = true, noremap = true },
         },
         reject_change = {
           callback = "keymaps.reject_change",
           description = "Reject change",
           index = 3,
-          modes = { n = "gdr" },
+          modes = { n = "g3" },
           opts = { nowait = true, noremap = true },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          description = "Go to next hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          description = "Go to previous hunk",
+          modes = { n = "{" },
         },
         stop = {
           callback = "keymaps.stop",
@@ -870,13 +874,13 @@ The user is working on a %s machine. Please respond with system specific command
     action_palette = {
       width = 95,
       height = 10,
-      prompt = "Prompt ", -- Prompt used for interactive LLM calls
+      prompt = "Prompt ", -- Title used for interactive LLM calls
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
-        show_preset_actions = true, -- Show the preset actions in the action palette?
-        show_preset_prompts = true, -- Show the preset prompts in the action palette?
-        show_preset_rules = true, -- Show the preset rules in the action palette?
-        title = "CodeCompanion actions", -- The title of the action palette
+        show_preset_actions = true,
+        show_preset_prompts = true,
+        show_preset_rules = true,
+        title = "CodeCompanion actions",
       },
     },
     chat = {
@@ -913,35 +917,18 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
 
-      -- Options for any windows that open within the chat buffer
+      -- Options for an floating windows
       floating_window = {
-        ---@return number|fun(): number
-        width = function()
-          return vim.o.columns - 5
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 2
-        end,
-        row = "center",
-        col = "center",
+        width = 0.9, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
+        border = "single",
         relative = "editor",
         opts = {},
       },
 
-      -- Options for diff windows that open within the chat buffer
+      -- Options for any diff windows (extends from floating_window)
       diff_window = {
-        ---@return number|fun(): number
-        width = function()
-          return math.min(120, vim.o.columns - 10)
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 4
-        end,
-        opts = {
-          number = true,
-        },
+        opts = {},
       },
 
       -- Chat buffer options --------------------------------------------------
@@ -965,65 +952,14 @@ The user is working on a %s machine. Please respond with system specific command
       ---The function to display the token count
       ---@param tokens number
       ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+      ---@return string
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
     },
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|split|inline
-
-      provider_opts = {
-        -- Options for inline diff provider
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-
-          diff_signs = {
-            signs = {
-              text = "▌", -- Sign text for normal changes
-              reject = "✗", -- Sign text for rejected changes in super_diff
-              highlight_groups = {
-                addition = "DiagnosticOk",
-                deletion = "DiagnosticError",
-                modification = "DiagnosticWarn",
-              },
-            },
-            -- Super Diff options
-            icons = {
-              accepted = " ",
-              rejected = " ",
-            },
-            colors = {
-              accepted = "DiagnosticOk",
-              rejected = "DiagnosticError",
-            },
-          },
-
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            show_dim = true, -- Enable dimming background for floating windows (applies to both diff and super_diff)
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
-
-        -- Options for the split provider
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
-      },
+      word_highlights = true,
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
@@ -1079,7 +1015,7 @@ M.setup = function(args)
     )
   end
 
-  -- TODO: Remove in v19.0.0
+  -- TODO: Remove in v20.0.0
   if args.strategies then
     args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
     args.strategies = nil
