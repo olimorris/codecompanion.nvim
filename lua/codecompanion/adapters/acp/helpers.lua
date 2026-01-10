@@ -28,6 +28,43 @@ M.form_messages = function(self, messages, capabilities)
           }
         end
       end
+
+      if msg._meta and msg._meta.tag == "document" and msg.context and msg.context.mimetype then
+        if has.embeddedContext then
+          if msg.context.source == "url" then
+            -- URL-based document
+            return {
+              type = "resource_link",
+              resource = {
+                uri = "file://" .. msg.context.url,
+                name = "",
+                mimeType = msg.context.mimetype,
+              },
+            }
+          elseif msg.context.source == "file" then
+            -- Files API reference - requires file_api capability
+            log:warn("The %s agent does not support Files API", self.formatted_name)
+            -- Remove the message if file_api is not supported
+            return nil
+          else
+            -- Base64-encoded document
+            return {
+              type = "resource",
+              resource = {
+                uri = "file://" .. msg.context.path,
+                name = vim.fn.fnamemodify(msg.context.path, ":t"),
+                mimeType = msg.context.mimetype,
+                blob = msg.content,
+              },
+            }
+          end
+        else
+          log:warn("The %s agent does not support receiving documents", self.formatted_name)
+          -- Remove the message if document upload support is not enabled
+          return nil
+        end
+      end
+
       if msg.content and msg.content ~= "" then
         if msg._meta and msg._meta.tag == "file" then
           -- If we can't send the file as a resource, send as text
