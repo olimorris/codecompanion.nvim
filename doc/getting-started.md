@@ -72,13 +72,13 @@ An adapter is what connects Neovim to an LLM (via _HTTP_) or an agent (via [ACP]
 require("codecompanion").setup({
   interactions = {
     chat = {
-      -- You can specify an adapter by name and model
+      -- You can specify an adapter by name and model (both ACP and HTTP)
       adapter = {
         name = "copilot",
         model = "gpt-4.1",
       },
     },
-    -- Or just specify the adapter by name
+    -- Or, just specify the adapter by name
     inline = {
       adapter = "anthropic",
     },
@@ -95,10 +95,10 @@ require("codecompanion").setup({
 })
 ```
 
-In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline. You can mix and match as you see fit.
+In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline. We're also using something cheap for the background adapter (although these interactions are opt-in). You can mix and match adapters as you see fit for your workflow.
 
 > [!IMPORTANT]
-> [ACP adapters](/configuration/adapters-acp) are only supported for the chat interction.
+> [ACP adapters](/configuration/adapters-acp) are only supported for the chat interaction.
 
 There are two "types" of adapter in CodeCompanion; [HTTP](/configuration/adapters-http) adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
@@ -140,9 +140,6 @@ Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by 
 
 You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
 
-> [!IMPORTANT]
-> As of `v17.5.0`, variables and tools are now wrapped in curly braces, such as `#{buffer}` or `@{files}`
-
 ### Variables
 
 _Variables_, accessed via `#`, contain data about the present state of Neovim. You can find a list of available variables, [here](/usage/chat-buffer/variables.html). The buffer variable will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
@@ -162,7 +159,9 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 _Tools_, accessed via `@`, allow the LLM to function as an agent and leverage external tools. You can find a list of available tools as well as how to use them, [here](usage/chat-buffer/tools.html#available-tools).
 
 > [!TIP]
-> Use them in your prompt like: `Can you use the @{grep_search} tool to find occurrences of "add_message"`
+> Use them in your prompt like:
+>
+> `Can you use @{grep_search} to find occurrences of "hello world"`
 
 ## Inline Assistant
 
@@ -215,9 +214,10 @@ However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
-- `CodeCompanion /<prompt library>` - Call an item from the [prompt library](configuration/prompt-library)
+- `CodeCompanion /<prompt library>` - Call an item via its alias from the [prompt library](configuration/prompt-library)
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific adapter and model
+- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
+- `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer

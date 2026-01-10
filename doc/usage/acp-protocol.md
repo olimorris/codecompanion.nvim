@@ -21,11 +21,11 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **Permissions** | ✅ Full | Interactive UI with diff preview for tool approval |
 | **Content Types** | ✅ Full | Text, images, embedded resources |
 | **Tool Calls** | ✅ Full | Content blocks, file diffs, status updates |
-| **Set Models** | ✅ Full | Select a model for a given session (not in the spec) |
 | **Session Modes** | ✅ Full | Mode switching and state management |
 | **MCP Integration** | ✅ Full | Stdio, HTTP, and SSE transports |
 | **Agent Plans** | ❌ | Visual display of an agent's execution plan |
 | **Terminal Operations** | ❌        | Terminal capabilities not implemented |
+
 
 ### Supported Adapters
 
@@ -47,6 +47,7 @@ CodeCompanion advertises the following capabilities to ACP agents:
 
 ### Content Support
 
+
 | Content Type | Send to Agent | Receive from Agent |
 |--------------|---------------|-------------------|
 | Text | ✅ | ✅ |
@@ -54,6 +55,7 @@ CodeCompanion advertises the following capabilities to ACP agents:
 | Embedded Resources | ✅ | ✅ |
 | Audio | ❌ | ❌ |
 | File Diffs | N/A | ✅ |
+
 
 ### Session Updates Handled
 
@@ -120,10 +122,6 @@ The protocol version is negotiated during initialization. If an agent selects a 
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`, `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion doesn't advertise terminal capabilities to agents.
 
 - **Agent Plan Rendering**: [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
-
-- **Cancellation**: The `session/cancel` notification isn't currently sent by the client, though CodeCompanion properly handles cancelled states when agents report them.
-
-- **Model Selection**: The `session/set_model` method isn't implemented, as this feature is currently marked as unstable in the ACP specification.
 
 - **Audio Content**: Audio content blocks aren't sent in prompts, despite capability detection.
 
