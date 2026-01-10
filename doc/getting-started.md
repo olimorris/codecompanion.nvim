@@ -66,17 +66,19 @@ The plugin uses the notion of _interactions_ to describe the many different ways
 > [!NOTE]
 > The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters-http#community-adapters)
 
-An adapter is what connects Neovim to an LLM or an agent. It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
+An adapter is what connects Neovim to an LLM (via _HTTP_) or an agent (via [ACP](https://agentclientprotocol.com/overview/introduction)). It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
+      -- You can specify an adapter by name and model
       adapter = {
         name = "copilot",
         model = "gpt-4.1",
       },
     },
+    -- Or just specify the adapter by name
     inline = {
       adapter = "anthropic",
     },
@@ -93,10 +95,10 @@ require("codecompanion").setup({
 })
 ```
 
-In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline.
+In the example above, we're using the Copilot adapter for the chat interaction and the Anthropic one for the inline. You can mix and match as you see fit.
 
 > [!IMPORTANT]
-> ACP adapters are only supported for the chat interction.
+> [ACP adapters](/configuration/adapters-acp) are only supported for the chat interction.
 
 There are two "types" of adapter in CodeCompanion; [HTTP](/configuration/adapters-http) adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 

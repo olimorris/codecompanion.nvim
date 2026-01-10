@@ -20,6 +20,65 @@ require("codecompanion").setup({
 }),
 ```
 
+## Changing the Default Model
+
+You can change the default model used by an ACP adapter. For example, to change the default model for the Claude Code adapter:
+
+::: code-group
+
+```lua [For Interactions] {4-7}
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = {
+        name = "claude_code",
+        model = "opus",
+      },
+    },
+  },
+}),
+```
+
+```lua [Adapters: Text] {6-8}
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            model = "opus"
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+```lua [Adapters: Function] {6-12}
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            ---@param self CodeCompanion.ACPAdapter
+            ---@return string
+            model = function(self)
+              return "opus"
+            end,
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+:::
+
+Using a _function_ is useful for working around the [limitations](https://github.com/zed-industries/claude-code-acp/issues/225) in the Claude Code SDK (which enables ACP support).
+
 ## Changing Adapter Settings
 
 To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:

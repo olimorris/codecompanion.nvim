@@ -40,7 +40,7 @@ A core part of working with CodeCompanion is being able to easily switch between
 
 ::: code-group
 
-```lua [For Interactions]
+```lua [For Interactions] {4-7}
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -53,7 +53,7 @@ require("codecompanion").setup({
 }),
 ```
 
-```lua [For Adapters]
+```lua [For Adapters] {6-10}
 require("codecompanion").setup({
   adapters = {
     http = {
