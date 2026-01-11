@@ -188,7 +188,6 @@ T["Gemini adapter"]["Streaming"]["can fix concatenated tool arguments in message
             type = "function",
             ["function"] = {
               name = "read_file",
-              -- Gemini's bug: concatenates multiple JSON objects
               arguments = '{"filepath":"1.md","start":0,"end":-1}{"filepath":"2.md","start":0,"end":-1}{"filepath":"3.md","start":0,"end":-1}',
             },
           },
@@ -200,8 +199,16 @@ T["Gemini adapter"]["Streaming"]["can fix concatenated tool arguments in message
   local output = adapter.handlers.form_messages(adapter, messages)
 
   -- Verify the concatenated arguments were cleaned to just the first object
+  -- and that all fields from the first object are preserved
   local assistant_message = output.messages[2]
-  h.eq('{"filepath":"1.md","start":0,"end":-1}', assistant_message.tool_calls[1]["function"]["arguments"])
+  local fixed_args = assistant_message.tool_calls[1]["function"]["arguments"]
+  h.eq('{"filepath":"1.md","start":0,"end":-1}', fixed_args)
+
+  -- Verify the fixed arguments are valid JSON with all expected fields
+  local decoded = vim.json.decode(fixed_args)
+  h.eq("1.md", decoded.filepath)
+  h.eq(0, decoded.start)
+  h.eq(-1, decoded["end"])
 end
 
 T["Gemini adapter"]["Streaming"]["can fix concatenated tool arguments in chat output"] = function()
@@ -222,8 +229,44 @@ T["Gemini adapter"]["Streaming"]["can fix concatenated tool arguments in chat ou
   local data = 'data: {"choices":[{"delta":{},"index":0}]}\n\n'
   adapter.handlers.chat_output(adapter, data, tools)
 
-  -- Verify the concatenated arguments were cleaned
-  h.eq('{"filepath":"test.lua","start":0,"end":-1}', tools[1]["function"]["arguments"])
+  -- Verify the concatenated arguments were cleaned and all fields preserved
+  local fixed_args = tools[1]["function"]["arguments"]
+  h.eq('{"filepath":"test.lua","start":0,"end":-1}', fixed_args)
+
+  -- Verify the fixed arguments are valid JSON with all expected fields
+  local decoded = vim.json.decode(fixed_args)
+  h.eq("test.lua", decoded.filepath)
+  h.eq(0, decoded.start)
+  h.eq(-1, decoded["end"])
+end
+
+T["Gemini adapter"]["Streaming"]["does not corrupt valid JSON with braces in strings"] = function()
+  local tools = {
+    {
+      _index = 1,
+      id = "function-call-789",
+      type = "function",
+      ["function"] = {
+        name = "create_file",
+        -- Valid JSON containing }{ inside a string value - should NOT be modified
+        arguments = '{"filepath":"test.js","content":"function foo(){} { bar(); }"}',
+      },
+    },
+  }
+
+  local original_args = tools[1]["function"]["arguments"]
+
+  -- Process through chat_output
+  local data = 'data: {"choices":[{"delta":{},"index":0}]}\n\n'
+  adapter.handlers.chat_output(adapter, data, tools)
+
+  -- Verify the valid JSON was NOT modified
+  h.eq(original_args, tools[1]["function"]["arguments"])
+
+  -- Verify the arguments are still valid JSON with correct content
+  local decoded = vim.json.decode(tools[1]["function"]["arguments"])
+  h.eq("test.js", decoded.filepath)
+  h.eq("function foo(){} { bar(); }", decoded.content)
 end
 
 T["Gemini adapter"]["No Streaming"] = new_set({
