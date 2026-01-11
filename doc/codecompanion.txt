@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 08
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -307,7 +307,8 @@ WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
   Or, see the user contributed adapters
   |codecompanion-configuration-adapters-http-community-adapters|
-An adapter is what connects Neovim to an LLM or an agent. It’s the interface
+An adapter is what connects Neovim to an LLM (via `HTTP`) or an agent (via ACP
+<https://agentclientprotocol.com/overview/introduction>). It’s the interface
 that allows data to be sent, received and processed. In order to use the
 plugin, you need to make sure you’ve configured an adapter first:
 
@@ -315,11 +316,13 @@ plugin, you need to make sure you’ve configured an adapter first:
     require("codecompanion").setup({
       interactions = {
         chat = {
+          -- You can specify an adapter by name and model (both ACP and HTTP)
           adapter = {
             name = "copilot",
             model = "gpt-4.1",
           },
         },
+        -- Or, just specify the adapter by name
         inline = {
           adapter = "anthropic",
         },
@@ -337,10 +340,13 @@ plugin, you need to make sure you’ve configured an adapter first:
 <
 
 In the example above, we’re using the Copilot adapter for the chat
-interaction and the Anthropic one for the inline.
+interaction and the Anthropic one for the inline. We’re also using something
+cheap for the background adapter (although these interactions are opt-in). You
+can mix and match adapters as you see fit for your workflow.
 
 
-  [!IMPORTANT] ACP adapters are only supported for the chat interction.
+  [!IMPORTANT] |codecompanion-configuration-adapters-acp| are only supported for
+  the chat interaction.
 There are two "types" of adapter in CodeCompanion;
 |codecompanion-configuration-adapters-http| adapters which connect you to an
 LLM and |codecompanion-configuration-adapters-acp| adapters which leverage the
@@ -400,9 +406,6 @@ You can add context from your code base by using `Variables` and `Slash
 Commands` in the chat buffer.
 
 
-  [!IMPORTANT] As of `v17.5.0`, variables and tools are now wrapped in curly
-  braces, such as `#{buffer}` or `@{files}`
-
 VARIABLES ~
 
 `Variables`, accessed via `#`, contain data about the present state of Neovim.
@@ -433,8 +436,8 @@ external tools. You can find a list of available tools as well as how to use
 them, |codecompanion-usage-chat-buffer-tools.html-available-tools|.
 
 
-  [!TIP] Use them in your prompt like: `Can you use the @{grep_search} tool to
-  find occurrences of "add_message"`
+  [!TIP] Use them in your prompt like:
+  `Can you use @{grep_search} to find occurrences of "hello world"`
 
 INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
 
@@ -498,9 +501,10 @@ However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
-- `CodeCompanion /<prompt library>` - Call an item from the |codecompanion-configuration-prompt-library|
+- `CodeCompanion /<prompt library>` - Call an item via its alias from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific adapter and model
+- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
+- `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
@@ -684,7 +688,7 @@ This section contains configuration which is specific to Agent Client Protocol
 recommended you read the two pages together.
 
 
-CHANGING AN ADAPTER ~
+CHANGING THE DEFAULT ADAPTER ~
 
 You can select an ACP adapter to be the default for all chat interactions:
 
@@ -697,6 +701,17 @@ You can select an ACP adapter to be the default for all chat interactions:
       },
     }),
 <
+
+
+CHANGING THE DEFAULT MODEL ~
+
+You can change the default model used by an ACP adapter. For example, to change
+the default model for the Claude Code adapter:
+
+
+Using a `function` is useful for working around the limitations
+<https://github.com/zed-industries/claude-code-acp/issues/225> in the Claude
+Code SDK (which enables ACP support).
 
 
 CHANGING ADAPTER SETTINGS ~
@@ -970,7 +985,7 @@ enabling `yolo` mode). As there is a lot of shared functionality between the
 two adapters, it is recommend that you read this page alongside the ACP one.
 
 
-CHANGING AN ADAPTER ~
+CHANGING THE DEFAULT ADAPTER ~
 
 You can change the default adapter for each interaction as follows:
 
@@ -991,7 +1006,7 @@ You can change the default adapter for each interaction as follows:
 <
 
 
-CHANGING A MODEL ~
+CHANGING THE DEFAULT MODEL ~
 
 A core part of working with CodeCompanion is being able to easily switch
 between adapters and LLMs. Below are two examples of how this can be achieved.
@@ -2860,6 +2875,15 @@ them with `\command` in the chat buffer. CodeCompanion transforms this to
 `/command` before sending your prompt to the agent.
 
 
+MODEL SELECTION
+
+CodeCompanion implements a `session/set_model` method that allows you to select
+a model for the current session. This feature is not part of the official ACP
+specification
+<https://agentclientprotocol.com/protocol/draft/schema#session-set_model> and
+is subject to change in future versions.
+
+
 GRACEFUL DEGRADATION
 
 CodeCompanion checks an agent’s capabilities during initialization and
@@ -2903,11 +2927,6 @@ KNOWN LIMITATIONS ~
     <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they’re not currently rendered in the chat buffer
     UI.
-- **Cancellation**: The `session/cancel` notification isn’t currently sent by
-    the client, though CodeCompanion properly handles cancelled states when agents
-    report them.
-- **Model Selection**: The `session/set_model` method isn’t implemented, as
-    this feature is currently marked as unstable in the ACP specification.
 - **Audio Content**: Audio content blocks aren’t sent in prompts, despite
     capability detection.
 
@@ -2980,7 +2999,7 @@ then streamed back into the buffer. A response is sent to the LLM by pressing
 |codecompanion--keymaps| section.
 
 
-CHANGING ADAPTER ~
+CHANGING ADAPTER AND MODEL ~
 
 
 
@@ -2988,9 +3007,18 @@ One of the joys of working with CodeCompanion is being able to switch between
 conversing with an LLM and an agent, all from within the chat buffer.
 
 To do this, simply press `ga` to open up the `Select Adapter` select window. If
-your chosen adapter has more than one model (in the case of HTTP adapters) or
-command (in the case of ACP adapters) then you’ll be prompted to make another
-selection.
+your chosen adapter has more than one model then you’ll be prompted to make
+another selection. This works for both `HTTP` and `ACP` adapters.
+
+
+CHANGING ACP COMMAND ~
+
+ACP adapters are initiated via a command in the configuration. By default, this
+will be the `default` command. Some ACP adapters have additional commands and
+these can be triggered via the cmd line with something like `:CodeCompanionChat
+adapter=gemini_cli command=yolo`, or you can use the
+|codecompanion-usage-chat-buffer-slash-commands-command| slash command within
+the chat buffer.
 
 
 COMPLETION ~
@@ -3211,6 +3239,15 @@ are the ones responsible for managing state. As a result, CodeCompanion only
 sends the latest messages over with every prompt. From a UX perspective
 however, neither of these have an impact on how it feels to work with
 CodeCompanion.
+
+
+CHANGING MODEL ~
+
+
+
+Sometimes it can be helpful to switch between models if you’re conscious of
+token consumption or changing workloads. You can do this within the chat buffer
+by pressing `ga` to open the change adapter/model picker.
 
 
 PROMPTING ~
@@ -3913,6 +3950,16 @@ in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 selected and added to the chat buffer as per the video above.
 
 
+/COMMAND ~
+
+The `command` slash command is specific to
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
+between different adapter commands. For instance, some ACP adapters may allow
+you to run the agent command with a specific flag. Be mindful that switching
+commands is destructive and essentially resets the chat buffer for the purposes
+of a conversation with an agent.
+
+
 /COMPACT ~
 
 The `compact` slash command, based on Claude Code’s
@@ -3978,7 +4025,7 @@ The `rules` slash command allows you to add
 /MODE ~
 
 The `mode` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters allows users to switch
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
 between different agent operating modes, as per the protocol
 <https://agentclientprotocol.com/protocol/session-modes> docs.
 

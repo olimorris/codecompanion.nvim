@@ -12,6 +12,12 @@ To start coding with agents right away, ensure you've [set the authentication me
 
 A key difference in working with agents versus LLMs is the matter of state. LLMs, via _http_ adapters, are stateless. This means that CodeCompanion sends the entire message history over with every request. Agents differ in that they are the ones responsible for managing state. As a result, CodeCompanion only sends the latest messages over with every prompt. From a UX perspective however, neither of these have an impact on how it feels to work with CodeCompanion.
 
+## Changing Model
+
+<img src="https://github.com/user-attachments/assets/e83bc6ce-9fa8-47df-a3fd-facc9e85085d" alt="Change Agent Model Picker">
+
+Sometimes it can be helpful to switch between models if you're conscious of token consumption or changing workloads. You can do this within the chat buffer by pressing `ga` to open the change adapter/model picker.
+
 ## Prompting
 
 Conversing with an agent in CodeCompanion is done in exactly the same way as with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or `<CR>` in normal mode to send it to the agent.

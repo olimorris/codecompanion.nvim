@@ -6,16 +6,50 @@ local openai = require("codecompanion.adapters.http.openai")
 ---@param tool_call table The tool call object to fix
 ---@return nil
 local function fix_concatenated_tools(tool_call)
-  if tool_call["function"] and tool_call["function"]["arguments"] then
-    local args = tool_call["function"]["arguments"]
+  if not (tool_call["function"] and tool_call["function"]["arguments"]) then
+    return
+  end
 
-    -- Check for concatenated JSON objects: }{
-    if type(args) == "string" and args:match("}%s*{") then
-      local first_obj_end = args:find("}%s*{")
-      if first_obj_end then
-        tool_call["function"]["arguments"] = args:sub(1, first_obj_end)
+  local args = tool_call["function"]["arguments"]
+  if type(args) ~= "string" then
+    return
+  end
+
+  local ok = pcall(vim.json.decode, args)
+  if ok then
+    return
+  end
+
+  -- Extract the first complete JSON node by finding balanced braces
+  local depth = 0
+  local escaped = false
+  local in_string = false
+  local node_end = nil
+
+  for i = 1, #args do
+    local char = args:sub(i, i)
+
+    if escaped then
+      escaped = false
+    elseif char == "\\" and in_string then
+      escaped = true
+    elseif char == '"' then
+      in_string = not in_string
+    elseif not in_string then
+      if char == "{" then
+        depth = depth + 1
+      elseif char == "}" then
+        depth = depth - 1
+        if depth == 0 then
+          node_end = i
+          break
+        end
       end
     end
+  end
+
+  if node_end and node_end < #args then
+    tool_call["function"]["arguments"] = args:sub(1, node_end)
   end
 end
 

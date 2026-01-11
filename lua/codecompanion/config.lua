@@ -352,6 +352,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["command"] = {
+          callback = "interactions.chat.slash_commands.builtin.command",
+          description = "Change the command used to start the ACP adapter",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["compact"] = {
           callback = "interactions.chat.slash_commands.builtin.compact",
           description = "Clears some of the chat history, keeping a summary in context",

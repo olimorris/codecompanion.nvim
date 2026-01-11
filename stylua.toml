@@ -4,6 +4,7 @@ indent_width = 2
 line_endings = "Unix"
 quote_style = "AutoPreferDouble"
 no_call_parentheses = false
+syntax = "Lua52"
 
 [sort_requires]
 enabled = true
