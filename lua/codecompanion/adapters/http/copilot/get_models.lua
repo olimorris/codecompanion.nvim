@@ -28,6 +28,7 @@ local _fetch_in_progress = false
 ---@return nil
 function M.reset_cache()
   _cached_adapter = nil
+  _cached_headers = nil
 end
 
 ---Refresh the cache expiry timestamp
