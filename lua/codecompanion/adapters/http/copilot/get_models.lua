@@ -1,5 +1,6 @@
 local Curl = require("plenary.curl")
 
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local token = require("codecompanion.adapters.http.copilot.token")
@@ -19,6 +20,7 @@ local M = {}
 -- Cache / state
 local _cached_models
 local _cached_adapter
+local _cached_headers
 local _cache_expires
 local _fetch_in_progress = false
 
@@ -66,6 +68,8 @@ local function fetch_async(adapter, opts)
 
   if not _cached_adapter then
     _cached_adapter = adapter
+    adapter_utils.get_env_vars(_cached_adapter, { timeout = config.adapters.opts.cmd_timeout })
+    _cached_headers = adapter_utils.set_env_vars(_cached_adapter, _cached_adapter.headers) or {}
   end
 
   local fresh_token = opts.token or token.fetch({ force = opts.force })
@@ -79,7 +83,7 @@ local function fetch_async(adapter, opts)
   local base_url = (fresh_token.endpoints and fresh_token.endpoints.api) or "https://api.githubcopilot.com"
   local url = base_url .. "/models"
 
-  local headers = vim.deepcopy(_cached_adapter.headers or {})
+  local headers = vim.deepcopy(_cached_headers)
   headers["Authorization"] = "Bearer " .. fresh_token.copilot_token
   headers["X-Github-Api-Version"] = "2025-10-01"
 
