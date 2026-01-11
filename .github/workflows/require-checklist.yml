@@ -1,13 +1,20 @@
 name: Require Checklist
 
 on:
-  pull_request: ~
-  issues: ~
+  pull_request:
+    types: [opened, edited, synchronize]
+  issues:
+    types: [opened, edited, deleted]
 
 jobs:
   check-tasks:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login != 'dependabot[bot]' and github.event.pull_request.user.login != 'olimorris' and github.event.pull_request.draft == false
+    if: |
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.user.login != 'dependabot[bot]' &&
+       github.event.pull_request.user.login != 'olimorris' &&
+       github.event.pull_request.draft == false) ||
+      (github.event_name == 'issues')
     steps:
       - uses: mheap/require-checklist-action@v2
         with:
