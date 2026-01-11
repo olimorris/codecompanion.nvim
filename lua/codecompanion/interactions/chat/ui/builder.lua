@@ -17,6 +17,8 @@
 local config = require("codecompanion.config")
 
 local Icons = require("codecompanion.interactions.chat.ui.icons")
+local Plan = require("codecompanion.interactions.chat.ui.formatters.plan")
+local PlanIcons = require("codecompanion.interactions.chat.ui.plan_icons")
 local Reasoning = require("codecompanion.interactions.chat.ui.formatters.reasoning")
 local Standard = require("codecompanion.interactions.chat.ui.formatters.standard")
 local Tools = require("codecompanion.interactions.chat.ui.formatters.tools")
@@ -99,6 +101,7 @@ function Builder.new(args)
     _formatters = {
       Tools:new(args.chat),
       Reasoning:new(args.chat),
+      Plan:new(args.chat),
       Standard:new(args.chat),
     },
     _fmt_state = setmetatable({}, EPHEMERAL_STATE),
@@ -276,7 +279,12 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   if opts._icon_info and opts._icon_info.has_icon then
     vim.schedule(function()
       local target_line = last_line + (opts._icon_info.line_offset or 0)
-      Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status)
+      -- Use PlanIcons for plan messages, Icons for tool messages
+      if opts.type == self.chat.MESSAGE_TYPES.PLAN_MESSAGE then
+        PlanIcons.apply(self.chat.bufnr, target_line)
+      else
+        Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status)
+      end
     end)
   end
 
@@ -309,6 +317,14 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
     local range_end = insert_line
     vim.schedule(function()
       self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, range_end)
+    end)
+  end
+
+  -- Trigger treesitter reparse for plan messages to ensure markdown styling renders
+  if opts.type == self.chat.MESSAGE_TYPES.PLAN_MESSAGE and self.chat.chat_parser then
+    vim.schedule(function()
+      self.chat.chat_parser:invalidate(true)
+      self.chat.chat_parser:parse()
     end)
   end
 

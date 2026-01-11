@@ -4,6 +4,7 @@
 
 ---@class CodeCompanion.Chat
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
+---@field acp_plan? CodeCompanion.Chat.ACPPlan ACP plan state for tracking plan updates in-place (lazy-initialized by ACP handler)
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -394,6 +395,7 @@ local Chat = {}
 
 Chat.MESSAGE_TYPES = {
   LLM_MESSAGE = "llm_message",
+  PLAN_MESSAGE = "plan_message",
   REASONING_MESSAGE = "reasoning_message",
   SYSTEM_MESSAGE = "system_message",
   TOOL_MESSAGE = "tool_message",
@@ -423,6 +425,12 @@ function Chat.new(args)
     create_buf = function()
       local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
+
+      -- Set filetype early to trigger markdown plugins (e.g., Markview)
+      -- Note: This is also set in apply_window_config for proper variable highlighting
+      -- Note: MarkView doesn't love the filetype being set later
+      -- and misses rendering some elements
+      api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
 
       -- Safely attach treesitter
       vim.schedule(function()
