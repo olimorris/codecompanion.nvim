@@ -43,9 +43,8 @@ local function fetch_async(adapter, opts)
   local url = adapter.env_replaced.url
   running = true
   _cached_models[url] = _cached_models[url] or {}
-  local headers = {
-    ["content-type"] = "application/json",
-  }
+
+  local headers = adapter_utils.set_env_vars(adapter, adapter.headers) or {}
 
   local auth_header = "Bearer "
   if adapter.env_replaced.authorization then

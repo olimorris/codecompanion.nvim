@@ -22,6 +22,9 @@ return {
     tokens = true,
   },
   url = "${url}/api/chat",
+  headers = {
+    ["Content-Type"] = "application/json",
+  },
   env = {
     url = "http://localhost:11434",
   },
