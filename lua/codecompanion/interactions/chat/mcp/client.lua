@@ -1,28 +1,26 @@
----MCP Client implementation
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local tool_bridge = require("codecompanion.mcp.tool_bridge")
+local tool_bridge = require("codecompanion.interactions.chat.mcp.tool_bridge")
 local utils = require("codecompanion.utils")
 
--- Constants
-local constants = {
-  GRACEFUL_SHUTDOWN_TIMEOUT_MS = 3000, -- 3 seconds for graceful shutdown
-  SIGTERM_TIMEOUT_MS = 2000, -- 2 seconds after SIGTERM before SIGKILL
+local CONSTANTS = {
+  GRACEFUL_SHUTDOWN_TIMEOUT_MS = 3000,
+  SIGTERM_TIMEOUT_MS = 2000, -- After SIGTERM before SIGKILL
   MAX_TOOLS_PER_SERVER = 100, -- Maximum tools per server to avoid infinite pagination
-}
 
-local JsonRpc = {
-  ERROR_PARSE = -32700,
-  ERROR_INVALID_REQUEST = -32600,
-  ERROR_METHOD_NOT_FOUND = -32601,
-  ERROR_INVALID_PARAMS = -32602,
-  ERROR_INTERNAL = -32603,
+  JSONRPC = {
+    ERROR_PARSE = -32700,
+    ERROR_INVALID_REQUEST = -32600,
+    ERROR_METHOD_NOT_FOUND = -32601,
+    ERROR_INVALID_PARAMS = -32602,
+    ERROR_INTERNAL = -32603,
+  },
 }
 
 local last_msg_id = 0
 
 ---Increment and return the next unique message id used for JSON-RPC requests.
----@return integer next_id
+---@return number next_id
 local function next_msg_id()
   last_msg_id = last_msg_id + 1
   return last_msg_id
@@ -222,9 +220,9 @@ function StdioTransport:stop()
             self._proc:kill(vim.uv.constants.SIGKILL)
           end)
         end
-      end, constants.SIGTERM_TIMEOUT_MS)
+      end, CONSTANTS.SIGTERM_TIMEOUT_MS)
     end
-  end, constants.GRACEFUL_SHUTDOWN_TIMEOUT_MS)
+  end, CONSTANTS.GRACEFUL_SHUTDOWN_TIMEOUT_MS)
 end
 
 ---@alias ServerRequestHandler fun(cli: CodeCompanion.MCP.Client, params: table<string, any>?): "result" | "error", table<string, any>
@@ -235,7 +233,7 @@ end
 ---@field cfg CodeCompanion.MCP.ServerConfig
 ---@field ready boolean
 ---@field transport CodeCompanion.MCP.Transport
----@field resp_handlers table<integer, ResponseHandler>
+---@field resp_handlers table<number, ResponseHandler>
 ---@field server_request_handlers table<string, ServerRequestHandler>
 ---@field server_capabilities? table<string, any>
 ---@field server_instructions? string
@@ -294,7 +292,8 @@ function Client:start()
   self:_start_initialization()
 end
 
----Stop the client.
+---Stop the client
+---@return nil
 function Client:stop()
   if not self.transport:started() then
     return
@@ -304,7 +303,8 @@ function Client:stop()
   self.transport:stop()
 end
 
----Start the MCP initialization procedure.
+---Start the MCP initialization procedure
+---@return nil
 function Client:_start_initialization()
   assert(self.transport:started(), "MCP Server process is not running.")
   assert(not self.ready, "MCP Server is already initialized.")
@@ -359,7 +359,7 @@ function Client:_on_transport_close(err)
     pcall(handler, {
       jsonrpc = "2.0",
       id = id,
-      error = { code = JsonRpc.ERROR_INTERNAL, message = "MCP server connection closed" },
+      error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "MCP server connection closed" },
     })
   end
   utils.fire("MCPServerExit", { name = self.name, err = err })
@@ -414,12 +414,12 @@ function Client:_handle_server_request(msg)
   local handler = self.server_request_handlers[msg.method]
   if not handler then
     log:warn("[MCP.%s] received request %s with unknown method %s", self.name, msg.id, msg.method)
-    resp.error = { code = JsonRpc.ERROR_METHOD_NOT_FOUND, message = "Method not found" }
+    resp.error = { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "Method not found" }
   else
     local ok, status, body = pcall(handler, self, msg.params)
     if not ok then
       log:error("[MCP.%s] handler for method %s failed for request %s: %s", self.name, msg.method, msg.id, status)
-      resp.error = { code = JsonRpc.ERROR_INTERNAL, message = status }
+      resp.error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = status }
     elseif status == "error" then
       log:error("[MCP.%s] handler for method %s returned error for request %s: %s", self.name, msg.method, msg.id, body)
       resp.error = body
@@ -434,7 +434,7 @@ function Client:_handle_server_request(msg)
         status,
         msg.id
       )
-      resp.error = { code = JsonRpc.ERROR_INTERNAL, message = "Internal server error" }
+      resp.error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "Internal server error" }
     end
   end
   local resp_str = self.methods.json_encode(resp)
@@ -477,8 +477,8 @@ end
 ---@param method string
 ---@param params? table<string, any>
 ---@param resp_handler ResponseHandler
----@param opts? table { timeout_ms? integer }
----@return integer req_id
+---@param opts? table { timeout_ms? number }
+---@return number req_id
 function Client:request(method, params, resp_handler, opts)
   assert(self.transport:started(), "MCP Server process is not running.")
   local req_id = next_msg_id()
@@ -509,7 +509,7 @@ function Client:request(method, params, resp_handler, opts)
           local ok, _ = pcall(resp_handler, {
             jsonrpc = "2.0",
             id = req_id,
-            error = { code = JsonRpc.ERROR_INTERNAL, message = timeout_msg },
+            error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = timeout_msg },
           })
           if not ok then
             log:error("[MCP.%s] response handler failed to handle timeout for request %s", self.name, req_id)
@@ -534,31 +534,33 @@ end
 ---@return "result" | "error", table
 function Client:_handler_server_roots_list(params)
   if not self.cfg.roots then
-    return "error", { code = JsonRpc.ERROR_METHOD_NOT_FOUND, message = "roots capability not enabled" }
+    return "error", { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "roots capability not enabled" }
   end
 
   local ok, roots = pcall(self.cfg.roots)
   if not ok then
     log:error("[MCP.%s] roots function failed: %s", self.name, roots)
-    return "error", { code = JsonRpc.ERROR_INTERNAL, message = "roots function failed" }
+    return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function failed" }
   end
 
   if not roots or type(roots) ~= "table" then
     log:error("[MCP.%s] roots function returned invalid result: %s", self.name, roots)
-    return "error", { code = JsonRpc.ERROR_INTERNAL, message = "roots function returned invalid result" }
+    return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function returned invalid result" }
   end
 
   return "result", { roots = roots }
 end
 
 ---Send a notification that the roots list changed.
+---@return nil
 function Client:notify_roots_list_changed()
   self:notify("notifications/roots/list_changed")
 end
 
 ---Cancel a pending request to the MCP server and notify the server of cancellation.
----@param req_id integer The ID of the request to cancel
+---@param req_id number The ID of the request to cancel
 ---@param reason? string The reason for cancellation
+---@return nil
 function Client:cancel_request(req_id, reason)
   log:info("[MCP.%s] cancelling request %s: %s", self.name, req_id, reason or "<no reason>")
   self.resp_handlers[req_id] = nil
@@ -572,8 +574,8 @@ end
 ---@param name string The name of the tool to call
 ---@param args? table<string, any> The arguments to pass to the tool
 ---@param callback fun(ok: boolean, result_or_error: MCP.CallToolResult | string) Callback function that receives (ok, result_or_error)
----@param opts? table { timeout_ms? integer }
----@return integer req_id
+---@param opts? table { timeout_ms? number }
+---@return number req_id
 function Client:call_tool(name, args, callback, opts)
   assert(self.ready, "MCP Server is not ready.")
 
@@ -592,6 +594,7 @@ function Client:call_tool(name, args, callback, opts)
 end
 
 ---Refresh the list of tools available from the MCP server.
+---@return nil
 function Client:refresh_tools()
   assert(self.ready, "MCP Server is not ready.")
   if not self.server_capabilities.tools then
@@ -609,22 +612,21 @@ function Client:refresh_tools()
 
       local tools = resp.result and resp.result.tools or {}
       for _, tool in ipairs(tools) do
-        log:info("[MCP.%s] provides tool [%s]: %s", self.name, tool.name, tool.title or "<NO TITLE>")
+        log:info("[MCP.%s] provides tool `%s`: %s", self.name, tool.name, tool.title or "<NO TITLE>")
         table.insert(all_tools, tool)
       end
 
       -- pagination handling
       local next_cursor = resp.result and resp.result.nextCursor
-      if next_cursor and #all_tools >= constants.MAX_TOOLS_PER_SERVER then
-        log:warn("[MCP.%s] returned too many tools (%d), stop further loading", self.name, #all_tools)
+      if next_cursor and #all_tools >= CONSTANTS.MAX_TOOLS_PER_SERVER then
+        log:warn("[MCP.%s] returned too many tools (%d), stopping further loading", self.name, #all_tools)
       elseif next_cursor then
         log:info("[MCP.%s] loading more tools with cursor: %s", self.name, next_cursor)
         return load_tools(next_cursor)
       end
 
-      -- setup tools into CodeCompanion
       local installed_tools = tool_bridge.setup_tools(self, all_tools)
-      utils.fire("MCPToolsLoaded", { server = self.name, tools = installed_tools })
+      utils.fire("ChatMCPToolsLoaded", { server = self.name, tools = installed_tools })
     end)
   end
 

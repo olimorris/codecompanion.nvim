@@ -1,5 +1,15 @@
 local log = require("codecompanion.utils.log")
 
+local CONSTANTS = {
+  TOOL_PREFIX = "mcp:",
+  MESSAGES = {
+    TOOL_ACCESS = "I'm giving you access to tools from an MCP server",
+    TOOL_GROUPS = "Tools from MCP Server `%s`",
+  },
+}
+
+local fmt = string.format
+
 local M = {}
 
 ---Format the output content from an MCP tool
@@ -16,32 +26,55 @@ function M.format_tool_result_content(content)
 end
 
 ---Default tool output callbacks that may be overridden by user config
+---@class CodeCompanion.Tool.MCPToolBridge: CodeCompanion.Tools.Tool
 local default_output = {
+  ---@param self CodeCompanion.Tool.MCPToolBridge
+  ---@param tools CodeCompanion.Tools
+  ---@param cmd table The command that was executed
+  ---@param stdout table The output from the command
   success = function(self, tools, cmd, stdout)
     local chat = tools.chat
     local output = M.format_tool_result_content(stdout and stdout[#stdout])
     local args = vim.inspect(self.args)
-    local for_user =
-      string.format("MCP Tool [%s] executed successfully.\nArguments:\n%s\nOutput:\n%s", self.name, args, output)
+    local for_user = fmt(
+      [[MCP Tool [%s] executed successfully.
+Arguments:
+%s
+Output:
+%s]],
+      self.name,
+      args,
+      output
+    )
     chat:add_tool_output(self, output, for_user)
   end,
+
+  ---@param self CodeCompanion.Tool.MCPToolBridge
+  ---@param tools CodeCompanion.Tools
+  ---@param cmd table
+  ---@param stderr table The error output from the command
   error = function(self, tools, cmd, stderr)
     local chat = tools.chat
     local err_msg = M.format_tool_result_content(stderr and stderr[#stderr] or "<NO ERROR MESSAGE>")
-    local for_user = string.format(
-      "MCP Tool [%s] execution failed.\nArguments:\n%s\nError Message:\n%s",
+    local for_user = fmt(
+      [[MCP Tool `%s` execution failed.
+Arguments:
+%s
+Error Message:
+%s]],
       self.name,
       vim.inspect(self.args),
       err_msg
     )
     chat:add_tool_output(self, "MCP Tool execution failed:\n" .. err_msg, for_user)
   end,
+
+  ---The message which is shared with the user when asking for their approval
+  ---@param self CodeCompanion.Tool.MCPToolBridge
+  ---@param tools CodeCompanion.Tools
+  ---@return nil|string
   prompt = function(self, tools)
-    return string.format(
-      "Please confirm to execute the MCP tool [%s] with arguments:\n%s",
-      self.name,
-      vim.inspect(self.args)
-    )
+    return fmt("Execute the `%s` MCP tool?", self.name)
   end,
 }
 
@@ -52,11 +85,14 @@ local default_output = {
 ---@return table? tool_config
 function M.build(client, mcp_tool)
   if mcp_tool.execution and mcp_tool.execution.taskSupport == "required" then
-    log:warn("[MCP.%s] tool [%s] requires task execution support, which is not supported", client.name, mcp_tool.name)
-    return nil
+    return log:warn(
+      "[MCP.%s] tool `%s` requires task execution support, which is not supported",
+      client.name,
+      mcp_tool.name
+    )
   end
 
-  local prefixed_name = string.format("mcp_%s_%s", client.name, mcp_tool.name)
+  local prefixed_name = fmt("mcp_%s_%s", client.name, mcp_tool.name)
   local override = (client.cfg.tool_overrides and client.cfg.tool_overrides[mcp_tool.name]) or {}
   local tool_opts = vim.tbl_deep_extend("force", client.cfg.default_tool_opts or {}, override.opts or {})
   local output_callback = vim.tbl_deep_extend("force", default_output, override.output or {})
@@ -75,6 +111,12 @@ function M.build(client, mcp_tool)
     },
     system_prompt = override.system_prompt,
     cmds = {
+      ---Execute the MCP tool
+      ---@param self CodeCompanion.Tool.MCPToolBridge
+      ---@param args table The arguments from the LLM's tool call
+      ---@param input? any The output from the previous function call
+      ---@param output_handler function Async callback for completion
+      ---@return nil|table
       function(self, args, input, output_handler)
         client:call_tool(mcp_tool.name, args, function(ok, result_or_error)
           local output
@@ -99,7 +141,7 @@ function M.build(client, mcp_tool)
     description = mcp_tool.title or mcp_tool.name,
     callback = tool,
     enabled = override.enabled,
-    -- user should use the generated tool group instead of individual tools
+    -- User should use the generated tool group instead of individual tools
     visible = false,
     -- `_mcp_info` marks the tool as originating from an MCP server
     opts = { _mcp_info = { server = client.name } },
@@ -129,19 +171,18 @@ function M.setup_tools(client, mcp_tools)
     return {}
   end
 
-  -- The prompt should contain the list of tools.
   local server_prompt = {
-    string.format("I'm giving you access to tools from MCP server '%s': %s.", client.name, table.concat(tools, ", ")),
+    fmt("%s `%s`: %s.", CONSTANTS.MESSAGES.TOOL_ACCESS, client.name, table.concat(tools, ", ")),
   }
 
   -- The prompt should also contain instructions from the server, if any.
   local server_instructions = client:get_server_instructions()
   if server_instructions and server_instructions ~= "" then
-    table.insert(server_prompt, "Detailed instructions of this MCP server:")
+    table.insert(server_prompt, "Detailed instructions for this MCP server:")
     table.insert(server_prompt, server_instructions)
   end
 
-  chat_tools.groups[string.format("mcp.%s", client.name)] = {
+  chat_tools.groups[fmt("%s%s", CONSTANTS.TOOL_PREFIX, client.name)] = {
     description = string.format("Tools from MCP Server '%s'", client.name),
     tools = tools,
     prompt = table.concat(server_prompt, "\n"),

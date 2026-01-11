@@ -8,7 +8,7 @@ local T = MiniTest.new_set({
       h.child_start(child)
       child.lua([[
         local h = require("tests.helpers")
-        Client = require("codecompanion.mcp.client")
+        Client = require("codecompanion.interactions.chat.mcp.client")
         MockMCPClientTransport = require("tests.mocks.mcp_client_transport")
 
         MCP_TOOLS = vim
@@ -150,7 +150,7 @@ T["MCP Tools"]["MCP tools can be used as CodeCompanion tools"] = function()
 
     chat:add_buf_message({
       role = "user",
-      content = "@{mcp.math_mcp} Use some tools.",
+      content = "@{mcp:math_mcp} Use some tools.",
     })
     chat:submit()
     vim.wait(1000, function() return vim.bo[chat.bufnr].modifiable end)
@@ -306,7 +306,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
       return "result", { content = { { type = "text", text = params.arguments.value } } }
     end, { latency_ms = 10 * 1000 })
 
-    chat:add_buf_message({ role = "user", content = "@{mcp.other_mcp}" })
+    chat:add_buf_message({ role = "user", content = "@{mcp:other_mcp}" })
 
     local confirmations = {}
     local ui = require("codecompanion.utils.ui")

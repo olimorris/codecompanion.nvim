@@ -7,7 +7,7 @@ local T = MiniTest.new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        Client = require("codecompanion.mcp.client")
+        Client = require("codecompanion.interactions.chat.mcp.client")
         MockMCPClientTransport = require("tests.mocks.mcp_client_transport")
         TRANSPORT = MockMCPClientTransport:new()
         function mock_new_transport()
@@ -125,7 +125,7 @@ T["MCP Client"]["tools are loaded in pages"] = function()
     start_client_and_wait_loaded()
 
     local chat_tools = require("codecompanion.config").interactions.chat.tools
-    local group = chat_tools.groups["mcp.testMcp"]
+    local group = chat_tools.groups["mcp:testMcp"]
     local tools = vim
       .iter(chat_tools)
       :filter(function(_, v)

@@ -253,7 +253,6 @@ return {
               "cmd",
             },
           },
-
           ["tool_group"] = {
             description = "Tool Group",
             system_prompt = "My tool group system prompt",

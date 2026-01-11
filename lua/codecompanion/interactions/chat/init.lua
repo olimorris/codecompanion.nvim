@@ -527,7 +527,7 @@ function Chat.new(args)
 
   self:update_metadata()
 
-  require("codecompanion.mcp").start_all()
+  require("codecompanion.interactions.chat.mcp").start_servers()
 
   -- Likely this hasn't been set by the time the user opens the chat buffer
   if not _G.codecompanion_current_context then

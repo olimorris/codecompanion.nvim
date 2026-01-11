@@ -1,4 +1,4 @@
-local Client = require("codecompanion.mcp.client")
+local Client = require("codecompanion.interactions.chat.mcp.client")
 
 local M = {}
 
@@ -7,7 +7,7 @@ local M = {}
 ---@field enabled nil | boolean | fun(): boolean
 ---@field system_prompt? string
 ---@field output? table<string, any>
----@field timeout_ms? integer
+---@field timeout_ms? number
 
 ---@class CodeCompanion.MCP.ServerConfig
 ---@field cmd string[]
@@ -25,7 +25,8 @@ local M = {}
 local clients = {}
 
 ---Start all configured MCP servers if not already started
-function M.start_all()
+---@return nil
+function M.start_servers()
   local mcp_cfg = require("codecompanion.config").interactions.chat.mcp
   for name, cfg in pairs(mcp_cfg.servers or {}) do
     if not clients[name] then
