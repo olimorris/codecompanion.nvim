@@ -53,6 +53,13 @@ local function build_default_banner()
   )
 end
 
+---Get the banner text for display
+---@param opts { banner?: string, current_hunk: number, hunks: number }
+---@return string
+local function build_banner_text(opts)
+  return fmt(" [%d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
+end
+
 ---Show banner in the diff buffer
 ---@param bufnr number
 ---@param opts { banner?: string, current_hunk: number, hunks: number, inline?: boolean, namespace: number, line?: number, overwrite?: boolean }
@@ -64,7 +71,7 @@ local function banner_virt_text(bufnr, opts)
     pcall(api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
   end
 
-  local text = fmt(" [%d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
+  local text = build_banner_text(opts)
 
   api.nvim_buf_set_extmark(bufnr, ns_id, vim.fn.line("w0") - 1, 0, {
     virt_text = {
@@ -283,19 +290,26 @@ end
 function M.show(diff, opts)
   opts = vim.tbl_extend("force", { float = true }, opts or {})
 
-  local bufnr
+  local is_float = opts.float ~= false
+
+  local bufnr = diff.bufnr
   local winnr
   ---@type CodeCompanion.WindowOpts
   local cfg =
     vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
 
-  if opts.float then
+  if is_float then
     bufnr, winnr = show_in_float({
       diff = diff,
       cfg = cfg,
       title = opts.title,
     })
-    ui_utils.set_winbar(winnr, opts.banner, "CodeCompanionDiffHint")
+  else
+    winnr = ui_utils.buf_get_win(bufnr)
+    if not winnr or not api.nvim_win_is_valid(winnr) then
+      winnr = api.nvim_get_current_win()
+      api.nvim_win_set_buf(winnr, bufnr)
+    end
   end
 
   local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
@@ -309,28 +323,45 @@ function M.show(diff, opts)
     diff = diff,
     diff_id = opts.diff_id or math.random(10000000),
     hunks = #diff.hunks,
-    inline = opts.inline,
+    inline = opts.inline or not is_float,
     resolved = false,
     tool_name = opts.tool_name,
     winnr = winnr,
   }, DiffUI)
 
-  DiffUI:apply_extmarks(diff, bufnr)
+  if ui_utils.buf_is_empty(bufnr) then
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, diff.from.lines)
+  end
+
+  diff_ui:apply_extmarks(diff, bufnr)
 
   local function show_banner(args)
     args = args or {}
+
+    if is_float then
+      local text = build_banner_text({
+        banner = opts.banner,
+        current_hunk = diff_ui.current_hunk,
+        hunks = diff_ui.hunks,
+      })
+      return ui_utils.set_winbar(diff_ui.winnr, text, "CodeCompanionDiffHint")
+    end
 
     return banner_virt_text(bufnr, {
       banner = opts.banner,
       current_hunk = diff_ui.current_hunk,
       hunks = diff_ui.hunks,
+      inline = true,
+      namespace = diff_ui.diff_id,
       overwrite = args.overwrite or false,
     })
   end
 
   -- Lock the buffer so the user can't make any changes
-  vim.bo[bufnr].modified = false
-  vim.bo[bufnr].modifiable = false
+  if is_float then
+    vim.bo[bufnr].modified = false
+    vim.bo[bufnr].modifiable = false
+  end
 
   -- Scroll to first hunk
   if #diff.hunks > 0 then
@@ -353,13 +384,15 @@ function M.show(diff, opts)
     end,
   })
   -- Ensure that the banner always follows the cursor
-  api.nvim_create_autocmd({ "WinScrolled", "WinResized" }, {
-    group = group,
-    buffer = bufnr,
-    callback = function()
-      show_banner({ overwrite = true })
-    end,
-  })
+  if not is_float then
+    api.nvim_create_autocmd({ "WinScrolled", "WinResized" }, {
+      group = group,
+      buffer = bufnr,
+      callback = function()
+        show_banner({ overwrite = true })
+      end,
+    })
+  end
   api.nvim_create_autocmd({ "WinClosed", "BufDelete" }, {
     group = group,
     buffer = bufnr,
