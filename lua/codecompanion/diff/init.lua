@@ -64,7 +64,6 @@ local diff_fn = vim.text.diff or vim.diff
 ---@field from CC.DiffText
 ---@field to CC.DiffText
 ---@field ns number The namespace
----@field should_offset boolean
 ---@field marker_add? string The marker to signify a line addition
 ---@field marker_delete? string The marker to signify a line deletion
 
@@ -99,38 +98,6 @@ function M._diff(a, b, opts)
   end
 
   return {}
-end
-
----Check if any hunk starts at row 0 and has deletions. This causes a problem
----because virtual lines that need to be rendered above row 0 have no space
----to do so. We workaround this by offsetting the extmarks by 1.
----@param diff CC.Diff
----@return boolean
-local function _should_offset(diff)
-  local needs_offset = false
-  for _, hunk in ipairs(diff.hunks) do
-    if hunk.pos[1] == 0 and hunk.cover > 0 then
-      needs_offset = true
-      break
-    end
-  end
-
-  if not needs_offset then
-    return false
-  end
-
-  -- Shift all positions down by 1 to account for the blank line we'll insert
-  for _, hunk in ipairs(diff.hunks) do
-    hunk.pos[1] = hunk.pos[1] + 1
-    for _, extmark in ipairs(hunk.extmarks) do
-      extmark.row = extmark.row + 1
-      if extmark.end_row then
-        extmark.end_row = extmark.end_row + 1
-      end
-    end
-  end
-
-  return true
 end
 
 ---Process diff hunks to create extmarks for visualization
@@ -304,12 +271,10 @@ function M.create(args)
         }),
       },
       ns = api.nvim_create_namespace("codecompanion_diff"),
-      should_offset = false,
       marker_add = args.marker_add,
       marker_delete = args.marker_delete,
     }
   )
-  diff.should_offset = _should_offset(diff)
 
   return diff
 end

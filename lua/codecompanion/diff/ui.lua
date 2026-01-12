@@ -57,7 +57,7 @@ end
 ---@param opts { banner?: string, current_hunk: number, hunks: number }
 ---@return string
 local function build_banner_text(opts)
-  return fmt(" [%d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
+  return fmt(" [Hunk: %d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
 end
 
 ---Show banner in the diff buffer
@@ -206,15 +206,12 @@ end
 
 ---Apply diff extmarks to a buffer
 ---@param diff CC.Diff
+---@param bufnr number
 ---@return nil
 function DiffUI:apply_extmarks(diff, bufnr)
   local line_count = api.nvim_buf_line_count(bufnr)
   if line_count == 0 then
     return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
-  end
-
-  if diff.should_offset then
-    api.nvim_buf_set_lines(bufnr, 0, 0, false, { "" })
   end
 
   local diff_utils = require("codecompanion.diff.utils")
