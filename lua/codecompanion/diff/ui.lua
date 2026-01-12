@@ -145,6 +145,9 @@ end
 function DiffUI:setup_keymaps(opts)
   opts = opts or {}
 
+  local next_hunk_key = config.interactions.inline.keymaps.next_hunk.modes.n
+  local prev_hunk_key = config.interactions.inline.keymaps.previous_hunk.modes.n
+
   if not opts.skip_default_keymaps then
     local diff_keymaps = config.interactions.inline.keymaps
     for name, keymap in pairs(diff_keymaps) do
@@ -162,29 +165,26 @@ function DiffUI:setup_keymaps(opts)
         end
       end
     end
+  else
+    -- Provide minimal navigation controls when skipping defaults
+    vim.keymap.set("n", next_hunk_key, function()
+      keymaps.next_hunk.callback(self)
+    end, {
+      buffer = self.bufnr,
+      desc = "Next hunk",
+      silent = true,
+      nowait = true,
+    })
+
+    vim.keymap.set("n", prev_hunk_key, function()
+      keymaps.previous_hunk.callback(self)
+    end, {
+      buffer = self.bufnr,
+      desc = "Previous hunk",
+      silent = true,
+      nowait = true,
+    })
   end
-
-  -- Always set up navigation keymaps
-  local next_hunk_key = config.interactions.inline.keymaps.next_hunk.modes.n
-  local prev_hunk_key = config.interactions.inline.keymaps.previous_hunk.modes.n
-
-  vim.keymap.set("n", next_hunk_key, function()
-    keymaps.next_hunk.callback(self)
-  end, {
-    buffer = self.bufnr,
-    desc = "Next hunk",
-    silent = true,
-    nowait = true,
-  })
-
-  vim.keymap.set("n", prev_hunk_key, function()
-    keymaps.previous_hunk.callback(self)
-  end, {
-    buffer = self.bufnr,
-    desc = "Previous hunk",
-    silent = true,
-    nowait = true,
-  })
 
   -- Always add 'q' to close
   vim.keymap.set("n", "q", function()
@@ -272,7 +272,7 @@ local function show_in_float(opts)
     ft = opts.diff.ft or "text",
     ignore_keymaps = true,
     opts = opts.cfg.opts,
-    title = " " .. opts.title or get_buf_name(opts.diff.bufnr) .. " ",
+    title = " " .. (opts.title or get_buf_name(opts.diff.bufnr)) .. " ",
   })
 end
 
@@ -295,6 +295,7 @@ function M.show(diff, opts)
       cfg = cfg,
       title = opts.title,
     })
+    ui_utils.set_winbar(winnr, opts.banner, "CodeCompanionDiffHint")
   end
 
   local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
