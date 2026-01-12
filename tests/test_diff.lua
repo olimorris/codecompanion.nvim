@@ -117,10 +117,10 @@ T["Diff"]["Generates correct extmarks for changes"] = function()
   h.eq(1, result.hunk_count, "Should have 1 hunk")
   h.eq("change", result.hunk.kind, "Should be change type")
   h.eq({ 1, 0 }, result.hunk.pos, "Should be at row 1, col 0")
-  h.eq(3, result.extmark_count, "Should have 2 extmarks (deletion + addition + change)")
+  h.eq(2, result.extmark_count, "Should have 2 extmarks (addition + change)")
 end
 
-T["Diff"]["Word-level diff creates word change extmarks"] = function()
+T["Diff"]["Word-level diff creates word ranges for virtual lines"] = function()
   local result = child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_option(bufnr, "filetype", "lua")
@@ -135,23 +135,21 @@ T["Diff"]["Word-level diff creates word change extmarks"] = function()
       ft = "lua"
     })
 
-    local word_extmarks = 0
+    local word_range_count = 0
     for _, hunk in ipairs(diff_obj.hunks) do
-      for _, extmark in ipairs(hunk.extmarks) do
-        if extmark.end_col and extmark.hl_group == "CodeCompanionDiffChange" then
-          word_extmarks = word_extmarks + 1
-        end
+      if hunk.word_ranges then
+        word_range_count = word_range_count + #hunk.word_ranges
       end
     end
 
     return {
       hunk_kind = diff_obj.hunks[1].kind,
-      word_extmark_count = word_extmarks,
+      word_range_count = word_range_count,
     }
   ]])
 
   h.eq("change", result.hunk_kind, "Should be a change hunk")
-  h.is_true(result.word_extmark_count > 0, "Should create word-level change extmarks")
+  h.is_true(result.word_range_count > 0, "Should create word ranges for virtual line highlighting")
 end
 
 T["Diff"]["Word-level diff handles empty lines"] = function()
