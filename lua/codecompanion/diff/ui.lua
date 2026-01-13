@@ -17,6 +17,7 @@ local M = {}
 ---@field diff_id number
 ---@field hunks number The total number of hunks in the diff
 ---@field inline? boolean Whether the diff is shown inline or in a floating window
+---@field ns number The namespace ID for diff extmarks
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string This is essential for approvals to work with tools
 ---@field winnr number
@@ -222,7 +223,7 @@ function DiffUI:setup_keymaps(opts)
   })
 end
 
----Apply diff extmarks to a buffer
+---Apply diff highlighting to merged lines in a buffer
 ---@param diff CC.Diff
 ---@param bufnr number
 ---@return nil
@@ -232,53 +233,46 @@ function DiffUI:apply_extmarks(diff, bufnr)
     return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
   end
 
-  local diff_utils = require("codecompanion.diff.utils")
   local word_highlights = resolve_word_highlights()
 
-  -- Apply the extmarks with styling
-  for _, hunk in ipairs(diff.hunks) do
-    for _, extmark in ipairs(hunk.extmarks) do
+  -- Apply line highlights from the merged highlights data
+  for _, hl in ipairs(diff.merged.highlights) do
+    local row = hl.row - 1 -- Convert to 0-indexed
+
+    if row >= 0 and row < line_count then
       local opts = {}
-      local apply = true
 
-      -- Copy base extmark properties
-      for k, v in pairs(extmark) do
-        if k ~= "row" and k ~= "col" and k ~= "type" and k ~= "virt_lines" then
-          opts[k] = v
-        end
-      end
-
-      if extmark.type == "deletion" then
+      if hl.type == "deletion" then
         opts.line_hl_group = "CodeCompanionDiffDelete"
         if diff.marker_delete then
           opts.sign_text = diff.marker_delete
           opts.sign_hl_group = "CodeCompanionDiffDelete"
         end
-      elseif extmark.type == "change" then
-        if word_highlights.deletions then
-          opts.hl_group = "CodeCompanionDiffDeleteWord"
-        else
-          apply = false
-        end
-      elseif extmark.type == "addition" and extmark.virt_lines then
-        local virt_lines = extmark.virt_lines
-
-        if word_highlights.additions and hunk.word_ranges then
-          virt_lines = diff_utils.apply_word_highlights(virt_lines, hunk.word_ranges, "CodeCompanionDiffChange")
-        end
-
-        virt_lines = diff_utils.extend_vl(virt_lines, "CodeCompanionDiffAdd")
-
-        -- TEST: Allow for markers to be added to virtual lines for screenshot testing
+      elseif hl.type == "addition" then
+        opts.line_hl_group = "CodeCompanionDiffAdd"
         if diff.marker_add then
-          virt_lines = diff_utils.prepend_marker(virt_lines, diff.marker_add, "CodeCompanionDiffAdd")
+          opts.sign_text = diff.marker_add
+          opts.sign_hl_group = "CodeCompanionDiffAdd"
         end
-
-        opts.virt_lines = virt_lines
       end
 
-      if apply then
-        pcall(api.nvim_buf_set_extmark, bufnr, diff.ns, extmark.row, extmark.col, opts)
+      pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, 0, opts)
+
+      -- Apply word-level highlights if available
+      if hl.word_hl and #hl.word_hl > 0 then
+        local word_hl_group = hl.type == "deletion" and word_highlights.deletions and "CodeCompanionDiffDeleteWord"
+          or hl.type == "addition" and word_highlights.additions and "CodeCompanionDiffAddWord"
+          or nil
+
+        if word_hl_group then
+          for _, range in ipairs(hl.word_hl) do
+            pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, range.col, {
+              end_col = range.end_col,
+              hl_group = word_hl_group,
+              priority = 200,
+            })
+          end
+        end
       end
     end
   end
@@ -288,7 +282,7 @@ end
 ---@return nil
 function DiffUI:clear()
   if self.inline then
-    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.diff.ns, 0, -1)
+    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.ns, 0, -1)
   end
 end
 
@@ -296,7 +290,7 @@ end
 ---@param opts { diff: CC.Diff, cfg: CodeCompanion.WindowOpts, title?: string }
 ---@return number, number Buffer and window numbers
 local function show_in_float(opts)
-  return ui_utils.create_float(opts.diff.from.lines, {
+  return ui_utils.create_float(opts.diff.merged.lines, {
     width = opts.cfg.width,
     height = opts.cfg.height,
     row = opts.cfg.row,
@@ -339,6 +333,8 @@ function M.show(diff, opts)
 
   local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
 
+  local id = opts.diff_id or math.random(10000000)
+
   ---@type CodeCompanion.DiffUI
   local diff_ui = setmetatable({
     banner = opts.banner,
@@ -346,16 +342,17 @@ function M.show(diff, opts)
     chat_bufnr = opts.chat_bufnr,
     current_hunk = 1,
     diff = diff,
-    diff_id = opts.diff_id or math.random(10000000),
+    diff_id = id,
     hunks = #diff.hunks,
     inline = opts.inline or not is_float,
+    ns = api.nvim_create_namespace("codecompanion_diff_" .. tostring(id)),
     resolved = false,
     tool_name = opts.tool_name,
     winnr = winnr,
   }, DiffUI)
 
   if ui_utils.buf_is_empty(bufnr) then
-    api.nvim_buf_set_lines(bufnr, 0, -1, false, diff.from.lines)
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, diff.merged.lines)
   end
 
   diff_ui:apply_extmarks(diff, bufnr)

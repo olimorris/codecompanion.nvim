@@ -50,7 +50,6 @@ T["Diff"]["Creates diff with hunks and extmarks"] = function()
 
   h.eq(1, result.hunk_count, "Should have 1 hunk")
   h.eq("change", result.first_hunk.kind, "Should be a change hunk")
-  h.is_true(result.ns > 0, "Should create namespace")
 end
 
 T["Diff"]["Detects correct hunk indices"] = function()
@@ -116,11 +115,11 @@ T["Diff"]["Generates correct extmarks for changes"] = function()
 
   h.eq(1, result.hunk_count, "Should have 1 hunk")
   h.eq("change", result.hunk.kind, "Should be change type")
-  h.eq({ 1, 0 }, result.hunk.pos, "Should be at row 1, col 0")
-  h.eq(3, result.extmark_count, "Should have 2 extmarks (addition + change)")
+  h.eq({ 1, 0 }, result.hunk.pos, "Should be at row 1, col 0 (merged view, after unchanged line)")
+  h.eq(2, result.extmark_count, "Should have 2 extmarks (deletion + addition)")
 end
 
-T["Diff"]["Word-level diff creates word ranges for virtual lines"] = function()
+T["Diff"]["Word-level diff creates word highlights for merged lines"] = function()
   local result = child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_option(bufnr, "filetype", "lua")
@@ -135,21 +134,21 @@ T["Diff"]["Word-level diff creates word ranges for virtual lines"] = function()
       ft = "lua"
     })
 
-    local word_range_count = 0
-    for _, hunk in ipairs(diff_obj.hunks) do
-      if hunk.word_ranges then
-        word_range_count = word_range_count + #hunk.word_ranges
+    local word_hl_count = 0
+    for _, hl in ipairs(diff_obj.merged.highlights) do
+      if hl.word_hl then
+        word_hl_count = word_hl_count + #hl.word_hl
       end
     end
 
     return {
       hunk_kind = diff_obj.hunks[1].kind,
-      word_range_count = word_range_count,
+      word_hl_count = word_hl_count,
     }
   ]])
 
   h.eq("change", result.hunk_kind, "Should be a change hunk")
-  h.is_true(result.word_range_count > 0, "Should create word ranges for virtual line highlighting")
+  h.is_true(result.word_hl_count > 0, "Should create word highlights for merged line display")
 end
 
 T["Diff"]["Word-level diff handles empty lines"] = function()

@@ -281,6 +281,154 @@ const updatePreferences = useCallback(
 );
 ]],
   },
+  {
+    name = "Large addition - Scroll issue demo",
+    filetype = "lua",
+    before = [[
+-- A simple module
+local M = {}
+
+return M
+]],
+    after = [[
+-- A comprehensive module with many functions
+local M = {}
+
+---@class User
+---@field id number
+---@field name string
+---@field email string
+---@field created_at number
+---@field updated_at number
+
+---@class UserManager
+---@field users table<number, User>
+---@field next_id number
+local UserManager = {}
+UserManager.__index = UserManager
+
+---Create a new UserManager instance
+---@return UserManager
+function UserManager.new()
+  local self = setmetatable({}, UserManager)
+  self.users = {}
+  self.next_id = 1
+  return self
+end
+
+---Create a new user
+---@param name string
+---@param email string
+---@return User
+function UserManager:create(name, email)
+  local user = {
+    id = self.next_id,
+    name = name,
+    email = email,
+    created_at = os.time(),
+    updated_at = os.time(),
+  }
+  self.users[user.id] = user
+  self.next_id = self.next_id + 1
+  return user
+end
+
+---Get a user by ID
+---@param id number
+---@return User?
+function UserManager:get(id)
+  return self.users[id]
+end
+
+---Update a user
+---@param id number
+---@param updates table
+---@return User?
+function UserManager:update(id, updates)
+  local user = self.users[id]
+  if not user then
+    return nil
+  end
+  for key, value in pairs(updates) do
+    if key ~= "id" and key ~= "created_at" then
+      user[key] = value
+    end
+  end
+  user.updated_at = os.time()
+  return user
+end
+
+---Delete a user
+---@param id number
+---@return boolean
+function UserManager:delete(id)
+  if self.users[id] then
+    self.users[id] = nil
+    return true
+  end
+  return false
+end
+
+---List all users
+---@return User[]
+function UserManager:list()
+  local result = {}
+  for _, user in pairs(self.users) do
+    table.insert(result, user)
+  end
+  return result
+end
+
+---Find users by name pattern
+---@param pattern string
+---@return User[]
+function UserManager:find_by_name(pattern)
+  local result = {}
+  for _, user in pairs(self.users) do
+    if user.name:match(pattern) then
+      table.insert(result, user)
+    end
+  end
+  return result
+end
+
+---Find user by email
+---@param email string
+---@return User?
+function UserManager:find_by_email(email)
+  for _, user in pairs(self.users) do
+    if user.email == email then
+      return user
+    end
+  end
+  return nil
+end
+
+---Count total users
+---@return number
+function UserManager:count()
+  local count = 0
+  for _ in pairs(self.users) do
+    count = count + 1
+  end
+  return count
+end
+
+---Export users to JSON-like table
+---@return table
+function UserManager:export()
+  return {
+    users = self:list(),
+    total = self:count(),
+    exported_at = os.time(),
+  }
+end
+
+M.UserManager = UserManager
+
+return M
+]],
+  },
 }
 
 ---Create a test command for visual diff testing
