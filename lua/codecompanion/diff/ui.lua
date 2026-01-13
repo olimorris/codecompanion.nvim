@@ -302,28 +302,22 @@ local function show_in_float(opts)
   })
 end
 
----Show a diff in a floating window
----@param diff CC.Diff The diff object from diff.create()
----@param opts? { diff_id?: number, float?: boolean, title?: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
----@return CodeCompanion.DiffUI
-function M.show(diff, opts)
-  opts = vim.tbl_extend("force", { float = true }, opts or {})
+---Create and configure the diff window
+---@param diff CC.Diff
+---@param opts { float: boolean, title?: string, cfg: CodeCompanion.WindowOpts }
+---@return number bufnr
+---@return number winnr
+local function create_diff_display(diff, opts)
+  local bufnr, winnr
 
-  local is_float = opts.float ~= false
-
-  local bufnr = diff.bufnr
-  local winnr
-  ---@type CodeCompanion.WindowOpts
-  local cfg =
-    vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
-
-  if is_float then
+  if opts.float then
     bufnr, winnr = show_in_float({
       diff = diff,
-      cfg = cfg,
+      cfg = opts.cfg,
       title = opts.title,
     })
   else
+    bufnr = diff.bufnr
     winnr = ui_utils.buf_get_win(bufnr)
     if not winnr or not api.nvim_win_is_valid(winnr) then
       winnr = api.nvim_get_current_win()
@@ -331,36 +325,32 @@ function M.show(diff, opts)
     end
   end
 
-  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
+  -- Lock the buffer for floating windows
+  if opts.float then
+    vim.bo[bufnr].modified = false
+    vim.bo[bufnr].modifiable = false
+  end
 
-  local id = opts.diff_id or math.random(10000000)
-
-  ---@type CodeCompanion.DiffUI
-  local diff_ui = setmetatable({
-    banner = opts.banner,
-    bufnr = bufnr,
-    chat_bufnr = opts.chat_bufnr,
-    current_hunk = 1,
-    diff = diff,
-    diff_id = id,
-    hunks = #diff.hunks,
-    inline = opts.inline or not is_float,
-    ns = api.nvim_create_namespace("codecompanion_diff_" .. tostring(id)),
-    resolved = false,
-    tool_name = opts.tool_name,
-    winnr = winnr,
-  }, DiffUI)
-
+  -- Populate buffer if empty
   if ui_utils.buf_is_empty(bufnr) then
     api.nvim_buf_set_lines(bufnr, 0, -1, false, diff.merged.lines)
   end
 
-  diff_ui:apply_extmarks(diff, bufnr)
+  return bufnr, winnr
+end
+
+---Set up banner display and tracking
+---@param diff_ui CodeCompanion.DiffUI
+---@param opts { banner?: string, is_float: boolean }
+---@return number group Autocommand group ID
+local function setup_banner(diff_ui, opts)
+  local bufnr = diff_ui.bufnr
+  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
 
   local function show_banner(args)
     args = args or {}
 
-    if is_float then
+    if opts.is_float then
       local text = build_banner_text({
         banner = opts.banner,
         current_hunk = diff_ui.current_hunk,
@@ -379,23 +369,11 @@ function M.show(diff, opts)
     })
   end
 
-  -- Lock the buffer so the user can't make any changes
-  if is_float then
-    vim.bo[bufnr].modified = false
-    vim.bo[bufnr].modifiable = false
-  end
-
-  -- Scroll to first hunk
-  if #diff.hunks > 0 then
-    vim.schedule(function()
-      ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
-    end)
-  end
-
-  -- Show the banner after scrolling to the first hunk
+  -- Initial banner
   show_banner()
 
-  vim.api.nvim_create_autocmd({ "User" }, {
+  -- Track hunk changes
+  vim.api.nvim_create_autocmd("User", {
     pattern = "CodeCompanionDiffHunkChanged",
     group = group,
     callback = function(event)
@@ -405,8 +383,9 @@ function M.show(diff, opts)
       show_banner({ overwrite = true })
     end,
   })
-  -- Ensure that the banner always follows the cursor
-  if not is_float then
+
+  -- Track window scrolling for inline banners
+  if not opts.is_float then
     api.nvim_create_autocmd({ "WinScrolled", "WinResized" }, {
       group = group,
       buffer = bufnr,
@@ -415,6 +394,18 @@ function M.show(diff, opts)
       end,
     })
   end
+
+  return group
+end
+
+---Set up window close handler
+---@param diff_ui CodeCompanion.DiffUI
+---@param group number Autocommand group ID
+---@param skip_default_keymaps boolean
+local function setup_close_handler(diff_ui, group, skip_default_keymaps)
+  local bufnr = diff_ui.bufnr
+
+  -- Clean up on window/buffer close
   api.nvim_create_autocmd({ "WinClosed", "BufDelete" }, {
     group = group,
     buffer = bufnr,
@@ -423,10 +414,8 @@ function M.show(diff, opts)
     end,
   })
 
-  diff_ui:setup_keymaps({ skip_default_keymaps = opts.skip_default_keymaps or false })
-
-  -- If the user closes a window prematurely then reject the diff
-  if not opts.skip_default_keymaps then
+  -- Auto-reject on premature close (only if using default keymaps)
+  if not skip_default_keymaps then
     vim.api.nvim_clear_autocmds({ buffer = bufnr, event = "WinClosed" })
     api.nvim_create_autocmd("WinClosed", {
       group = group,
@@ -437,6 +426,61 @@ function M.show(diff, opts)
       end,
     })
   end
+end
+
+---Show a diff in a floating window
+---@param diff CC.Diff The diff object from diff.create()
+---@param opts? { diff_id?: number, float?: boolean, title?: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
+---@return CodeCompanion.DiffUI
+function M.show(diff, opts)
+  opts = vim.tbl_extend("force", { float = true }, opts or {})
+
+  local is_float = opts.float ~= false
+  local cfg =
+    vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
+
+  -- Create window or inline display
+  local bufnr, winnr = create_diff_display(diff, {
+    float = is_float,
+    title = opts.title,
+    cfg = cfg,
+  })
+
+  local diff_id = opts.diff_id or math.random(10000000)
+
+  -- Create diff UI object
+  ---@type CodeCompanion.DiffUI
+  local diff_ui = setmetatable({
+    banner = opts.banner,
+    bufnr = bufnr,
+    chat_bufnr = opts.chat_bufnr,
+    current_hunk = 1,
+    diff = diff,
+    diff_id = diff_id,
+    hunks = #diff.hunks,
+    inline = opts.inline or not is_float,
+    ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
+    resolved = false,
+    tool_name = opts.tool_name,
+    winnr = winnr,
+  }, DiffUI)
+
+  diff_ui:apply_extmarks(diff, bufnr)
+  diff_ui:setup_keymaps({ skip_default_keymaps = opts.skip_default_keymaps or false })
+
+  -- Scroll to first hunk
+  if #diff.hunks > 0 then
+    vim.schedule(function()
+      ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
+    end)
+  end
+
+  local group = setup_banner(diff_ui, {
+    banner = opts.banner,
+    is_float = is_float,
+  })
+
+  setup_close_handler(diff_ui, group, opts.skip_default_keymaps or false)
 
   return diff_ui
 end
