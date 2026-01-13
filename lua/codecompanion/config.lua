@@ -959,7 +959,10 @@ The user is working on a %s machine. Please respond with system specific command
     },
     diff = {
       enabled = true,
-      word_highlights = true,
+      word_highlights = {
+        additions = true,
+        deletions = true,
+      },
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?

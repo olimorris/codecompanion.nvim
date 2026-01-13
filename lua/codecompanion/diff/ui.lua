@@ -53,6 +53,24 @@ local function build_default_banner()
   )
 end
 
+---Resolve word highlight options from config
+---@return { additions: boolean, deletions: boolean }
+local function resolve_word_highlights()
+  local word_highlights = config.display.diff.word_highlights
+  if type(word_highlights) == "table" then
+    return {
+      additions = word_highlights.additions ~= false,
+      deletions = word_highlights.deletions ~= false,
+    }
+  end
+
+  if word_highlights == true then
+    return { additions = true, deletions = true }
+  end
+
+  return { additions = false, deletions = false }
+end
+
 ---Get the banner text for display
 ---@param opts { banner?: string, current_hunk: number, hunks: number }
 ---@return string
@@ -215,11 +233,13 @@ function DiffUI:apply_extmarks(diff, bufnr)
   end
 
   local diff_utils = require("codecompanion.diff.utils")
+  local word_highlights = resolve_word_highlights()
 
   -- Apply the extmarks with styling
   for _, hunk in ipairs(diff.hunks) do
     for _, extmark in ipairs(hunk.extmarks) do
       local opts = {}
+      local apply = true
 
       -- Copy base extmark properties
       for k, v in pairs(extmark) do
@@ -234,10 +254,16 @@ function DiffUI:apply_extmarks(diff, bufnr)
           opts.sign_text = diff.marker_delete
           opts.sign_hl_group = "CodeCompanionDiffDelete"
         end
+      elseif extmark.type == "change" then
+        if word_highlights.deletions then
+          opts.hl_group = "CodeCompanionDiffDeleteWord"
+        else
+          apply = false
+        end
       elseif extmark.type == "addition" and extmark.virt_lines then
         local virt_lines = extmark.virt_lines
 
-        if config.display.diff.word_highlights and hunk.word_ranges then
+        if word_highlights.additions and hunk.word_ranges then
           virt_lines = diff_utils.apply_word_highlights(virt_lines, hunk.word_ranges, "CodeCompanionDiffChange")
         end
 
@@ -251,7 +277,9 @@ function DiffUI:apply_extmarks(diff, bufnr)
         opts.virt_lines = virt_lines
       end
 
-      pcall(api.nvim_buf_set_extmark, bufnr, diff.ns, extmark.row, extmark.col, opts)
+      if apply then
+        pcall(api.nvim_buf_set_extmark, bufnr, diff.ns, extmark.row, extmark.col, opts)
+      end
     end
   end
 end

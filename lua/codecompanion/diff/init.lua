@@ -227,7 +227,7 @@ function M._diff_words(diff, row, data)
         row = row,
         col = old_words[ai].start_col,
         end_col = old_words[ai + ac - 1].end_col,
-        hl_group = "CodeCompanionDiffChange",
+        type = "change",
       })
     end
 
