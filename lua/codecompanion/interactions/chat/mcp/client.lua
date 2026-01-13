@@ -50,6 +50,7 @@ end
 ---@field name string
 ---@field cmd string[]
 ---@field env? table
+---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field _proc? vim.SystemObj
 ---@field _last_tail? string
 ---@field _on_line_read? fun(line: string)
@@ -523,16 +524,14 @@ function Client:request(method, params, resp_handler, opts)
 end
 
 ---Handler for 'ping' server requests.
----@param params any
 ---@return "result", table
-function Client:_handle_server_ping(params)
+function Client:_handle_server_ping()
   return "result", {}
 end
 
 ---Handler for 'roots/list' server requests.
----@param params any
 ---@return "result" | "error", table
-function Client:_handler_server_roots_list(params)
+function Client:_handler_server_roots_list()
   if not self.cfg.roots then
     return "error", { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "roots capability not enabled" }
   end
@@ -589,7 +588,14 @@ function Client:call_tool(name, args, callback, opts)
       return
     end
 
-    callback(true, resp.result)
+    if not resp.result or not resp.result.content then
+      log:error("[MCP.%s] call_tool received malformed response for [%s]: %s", self.name, name, resp)
+      callback(false, "MCP call_tool received malformed response")
+      return
+    end
+    local result = resp.result --[[@as MCP.CallToolResult]]
+
+    callback(true, result)
   end, opts)
 end
 
@@ -626,7 +632,7 @@ function Client:refresh_tools()
       end
 
       local installed_tools = tool_bridge.setup_tools(self, all_tools)
-      utils.fire("ChatMCPToolsLoaded", { server = self.name, tools = installed_tools })
+      utils.fire("MCPToolsLoaded", { server = self.name, tools = installed_tools })
     end)
   end
 
