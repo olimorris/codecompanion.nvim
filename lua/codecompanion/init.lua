@@ -35,7 +35,10 @@ end
 ---@return nil
 CodeCompanion.inline = function(args)
   local context = get_context(api.nvim_get_current_buf(), args)
-  return require("codecompanion.interactions.inline").new({ buffer_context = context }):prompt(args.args)
+  local inline = require("codecompanion.interactions.inline").new({ buffer_context = context })
+  if inline then
+    inline:prompt(args.args)
+  end
 end
 
 ---Accept the next word of code completion
@@ -185,35 +188,37 @@ end
 CodeCompanion.cmd = function(args)
   local context = get_context(api.nvim_get_current_buf(), args)
 
-  return require("codecompanion.interactions.cmd")
-    .new({
-      buffer_context = context,
-      prompts = {
-        {
-          role = config.constants.SYSTEM_ROLE,
-          content = string.format(
-            [[Some additional context which **may** be useful:
+  local command = require("codecompanion.interactions.cmd").new({
+    buffer_context = context,
+    prompts = {
+      {
+        role = config.constants.SYSTEM_ROLE,
+        content = string.format(
+          [[Some additional context which **may** be useful:
 
 - The user is currently working in a %s file
 - It has %d lines
 - The user is currently on line %d
 - The file's full path is %s]],
-            context.filetype,
-            context.line_count,
-            context.cursor_pos[1],
-            context.filename
-          ),
-          opts = {
-            visible = false,
-          },
-        },
-        {
-          role = config.constants.USER_ROLE,
-          content = args.args,
+          context.filetype,
+          context.line_count,
+          context.cursor_pos[1],
+          context.filename
+        ),
+        opts = {
+          visible = false,
         },
       },
-    })
-    :start(args)
+      {
+        role = config.constants.USER_ROLE,
+        content = args.args,
+      },
+    },
+  })
+
+  if command then
+    command:start(args)
+  end
 end
 
 ---Toggle the chat buffer
