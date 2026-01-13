@@ -15,6 +15,18 @@ local CONSTANTS = {
 
 local M = {}
 
+---Find the first reject option from the request options
+---@param options table
+---@return string|nil optionId
+local function find_reject_option(options)
+  for _, opt in ipairs(options or {}) do
+    if opt.kind:find("^reject", 1, true) then
+      return opt.optionId
+    end
+  end
+  return nil
+end
+
 ---Build out the choices available to the user from the request
 ---@param request table
 ---@return string, string[], table<number, string>
@@ -77,10 +89,7 @@ local function build_banner(normalized, kind_map)
   local previous_hunk = config.interactions.inline.keymaps.previous_hunk.modes.n
 
   local parts = {}
-  local sorted_kinds = {}
-  for kind, _ in pairs(kind_map) do
-    table.insert(sorted_kinds, kind)
-  end
+  local sorted_kinds = vim.tbl_keys(kind_map)
   table.sort(sorted_kinds)
 
   for _, kind in ipairs(sorted_kinds) do
@@ -101,21 +110,12 @@ end
 ---@param tool_call table
 ---@return boolean
 local function requires_diff(tool_call)
-  if
-    tool_call.content
-    and tool_call.content[1]
-    and tool_call.content[1].type
-    and tool_call.content[1].type == "diff"
-  then
-    local content = tool_call.content[1]
-    if (content.oldText == nil or content.oldText == "") and (content.newText == nil or content.newText == "") then
-      return false
-    end
-
-    return true
+  local content = tool_call.content and tool_call.content[1]
+  if not content or content.type ~= "diff" then
+    return false
   end
-
-  return false
+  -- Empty diff shouldn't show UI
+  return not ((content.oldText == nil or content.oldText == "") and (content.newText == nil or content.newText == ""))
 end
 
 ---Get the diff object from the tool call
@@ -181,14 +181,7 @@ local function setup_diff_keymaps(diff_ui, normalized, kind_map, request)
     end
     diff_ui.resolved = true
 
-    local rejected
-    for _, opt in ipairs(request.options or {}) do
-      if opt.kind:find("^reject", 1, true) then
-        rejected = opt.optionId
-        break
-      end
-    end
-
+    local rejected = find_reject_option(request.options)
     if rejected then
       request.respond(rejected, false)
     else
@@ -243,18 +236,10 @@ local function show_diff(chat, request)
         diff_ui.resolved = true
         log:debug("[acp::request_permission] Diff window closed without selection, rejecting")
 
-        local rejected
-        for _, opt in ipairs(request.options or {}) do
-          if opt.kind:find("^reject", 1, true) then
-            rejected = opt.optionId
-            break
-          end
-        end
-
+        local rejected = find_reject_option(request.options)
         if rejected then
           return request.respond(rejected, false)
         end
-
         return request.respond(nil, true)
       end
     end,
