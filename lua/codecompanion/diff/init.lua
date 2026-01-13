@@ -219,7 +219,17 @@ function M._diff_words(diff, row, data)
 
   local word_ranges = {}
   for _, hunk in ipairs(result) do
-    local _, _, bi, bc = unpack(hunk)
+    local ai, ac, bi, bc = unpack(hunk)
+
+    -- Highlight deletions in buffer
+    if ac > 0 and old_words[ai] and old_words[ai + ac - 1] then
+      table.insert(data.hunk.extmarks, {
+        row = row,
+        col = old_words[ai].start_col,
+        end_col = old_words[ai + ac - 1].end_col,
+        hl_group = "CodeCompanionDiffChange",
+      })
+    end
 
     -- Track additions for virtual lines
     if bc > 0 and new_words[bi] and new_words[bi + bc - 1] then
