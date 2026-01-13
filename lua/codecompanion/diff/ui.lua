@@ -276,7 +276,7 @@ local function show_in_float(opts)
     ft = opts.diff.ft or "text",
     ignore_keymaps = true,
     opts = opts.cfg.opts,
-    title = " " .. (opts.title or get_buf_name(opts.diff.bufnr)) .. " ",
+    title = opts.title or get_buf_name(opts.diff.bufnr),
   })
 end
 

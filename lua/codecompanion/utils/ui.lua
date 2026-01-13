@@ -77,7 +77,7 @@ M.create_float = function(lines, opts)
     style = opts.style,
     row = row,
     col = col,
-    title = opts.title or "Options",
+    title = opts.title and (" " .. opts.title .. " ") or " Options ",
     title_pos = "center",
   })
 
