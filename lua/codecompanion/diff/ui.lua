@@ -269,6 +269,7 @@ function DiffUI:apply_extmarks(diff, bufnr)
             pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, range.col, {
               end_col = range.end_col,
               hl_group = word_hl_group,
+              hl_mode = "combine",
               priority = 200,
             })
           end
