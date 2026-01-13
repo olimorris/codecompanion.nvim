@@ -28,7 +28,7 @@ local function ensure_sign_defined()
     -- "▌" - left half block (medium weight) [default]
     -- "▐" - right half block (alternative)
     -- "║" - box drawing double vertical (decorative)
-    
+
     vim.fn.sign_define(CONSTANTS.SIGN_NAME, {
       text = sign_char, -- Configurable sign character
       texthl = "CodeCompanionChatFold", -- Same as fold styling for consistency
