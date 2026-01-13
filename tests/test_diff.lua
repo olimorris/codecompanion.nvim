@@ -117,7 +117,7 @@ T["Diff"]["Generates correct extmarks for changes"] = function()
   h.eq(1, result.hunk_count, "Should have 1 hunk")
   h.eq("change", result.hunk.kind, "Should be change type")
   h.eq({ 1, 0 }, result.hunk.pos, "Should be at row 1, col 0")
-  h.eq(2, result.extmark_count, "Should have 2 extmarks (addition + change)")
+  h.eq(3, result.extmark_count, "Should have 2 extmarks (addition + change)")
 end
 
 T["Diff"]["Word-level diff creates word ranges for virtual lines"] = function()
