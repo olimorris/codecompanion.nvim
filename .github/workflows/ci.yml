@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         nvim_tag: [nightly, v0.11.0]
-    name: ${{ matrix.os }}
+    name: ${{ matrix.os }} / ${{ matrix.nvim_tag }}
     runs-on: ${{ matrix.os }}
     env:
       NVIM: ${{ matrix.os == 'windows-latest' && 'nvim-win64\\bin\\nvim.exe' || 'nvim' }}
