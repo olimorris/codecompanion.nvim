@@ -36,6 +36,15 @@ local CONSTANTS = {
     result_type = "indices",
   },
 
+  DIFF_INLINE_OPTS = {
+    algorithm = "minimal",
+    ctxlen = 0,
+    indent_heuristic = false,
+    interhunkctxlen = 4,
+    linematch = 0,
+    result_type = "indices",
+  },
+
   DIFF_WORD_OPTS = {
     algorithm = "histogram",
     result_type = "indices",
