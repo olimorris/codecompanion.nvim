@@ -221,7 +221,6 @@ local function show_diff(chat, request)
     diff_id = diff_id,
     ft = ft or "text",
     skip_default_keymaps = true,
-    title = d.path,
   })
 
   setup_diff_keymaps(diff_ui, normalized, kind_map, request)

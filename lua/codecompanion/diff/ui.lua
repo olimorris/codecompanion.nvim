@@ -302,7 +302,7 @@ end
 
 ---Create and configure the diff window
 ---@param diff CC.Diff
----@param opts { float: boolean, title?: string, cfg: CodeCompanion.WindowOpts }
+---@param opts { cfg: CodeCompanion.WindowOpts, float: boolean, title?: string }
 ---@return number bufnr
 ---@return number winnr
 local function create_diff_display(diff, opts)
