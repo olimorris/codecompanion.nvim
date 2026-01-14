@@ -58,18 +58,10 @@ end
 ---@return { additions: boolean, deletions: boolean }
 local function resolve_word_highlights()
   local word_highlights = config.display.diff.word_highlights
-  if type(word_highlights) == "table" then
-    return {
-      additions = word_highlights.additions ~= false,
-      deletions = word_highlights.deletions ~= false,
-    }
-  end
-
-  if word_highlights == true then
-    return { additions = true, deletions = true }
-  end
-
-  return { additions = false, deletions = false }
+  return {
+    additions = word_highlights.additions ~= false,
+    deletions = word_highlights.deletions ~= false,
+  }
 end
 
 ---Get the banner text for display
@@ -94,7 +86,7 @@ local function banner_virt_text(bufnr, opts)
 
   api.nvim_buf_set_extmark(bufnr, ns_id, vim.fn.line("w0") - 1, 0, {
     virt_text = {
-      { text, opts.inline and "CodeCompanionDiffHintInline" or "CodeCompanionDiffHint" },
+      { text, opts.inline and "CodeCompanionDiffBannerInline" or "CodeCompanionDiffBanner" },
     },
     virt_text_pos = "right_align",
     priority = 125,
@@ -233,7 +225,7 @@ function DiffUI:apply_extmarks(diff, bufnr)
     return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
   end
 
-  local word_highlights = resolve_word_highlights()
+  local show_word_highlights = resolve_word_highlights()
 
   -- Apply line highlights from the merged highlights data
   for _, hl in ipairs(diff.merged.highlights) do
@@ -258,20 +250,25 @@ function DiffUI:apply_extmarks(diff, bufnr)
 
       pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, 0, opts)
 
-      -- Apply word-level highlights if available
+      -- Apply word-level highlights using virtual text overlay
+      -- This allows word highlights to show background colors over line highlights
       if hl.word_hl and #hl.word_hl > 0 then
-        local word_hl_group = hl.type == "deletion" and word_highlights.deletions and "CodeCompanionDiffDeleteWord"
-          or hl.type == "addition" and word_highlights.additions and "CodeCompanionDiffAddWord"
+        local word_hl_group = hl.type == "deletion" and show_word_highlights.deletions and "CodeCompanionDiffTextDelete"
+          or hl.type == "addition" and show_word_highlights.additions and "CodeCompanionDiffText"
           or nil
 
         if word_hl_group then
+          local line = api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1] or ""
           for _, range in ipairs(hl.word_hl) do
-            pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, range.col, {
-              end_col = range.end_col,
-              hl_group = word_hl_group,
-              hl_mode = "combine",
-              priority = 200,
-            })
+            local word_text = line:sub(range.col + 1, range.end_col)
+            if word_text ~= "" then
+              pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, range.col, {
+                virt_text = { { word_text, word_hl_group } },
+                virt_text_pos = "overlay",
+                hl_mode = "combine",
+                priority = 150,
+              })
+            end
           end
         end
       end
@@ -357,7 +354,7 @@ local function setup_banner(diff_ui, opts)
         current_hunk = diff_ui.current_hunk,
         hunks = diff_ui.hunks,
       })
-      return ui_utils.set_winbar(diff_ui.winnr, text, "CodeCompanionDiffHint")
+      return ui_utils.set_winbar(diff_ui.winnr, text, "CodeCompanionDiffBanner")
     end
 
     return banner_virt_text(bufnr, {
