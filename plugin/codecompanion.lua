@@ -117,6 +117,3 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 vim.treesitter.language.register("markdown", "codecompanion")
-
--- Setup visual test command for diff development
-require("codecompanion.utils.diff_test").setup()
