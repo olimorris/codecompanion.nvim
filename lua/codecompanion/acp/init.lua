@@ -693,9 +693,6 @@ function Connection:handle_current_mode_update(session_id, mode_id)
 
   -- Update the current mode
   self._modes.currentModeId = mode_id
-
-  local utils = require("codecompanion.utils")
-  utils.fire("ChatACPModeChanged", { session_id = session_id, mode_id = mode_id })
 end
 
 ---Handle process exit
