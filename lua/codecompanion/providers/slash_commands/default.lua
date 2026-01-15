@@ -116,10 +116,10 @@ function Default:images(paths, filetypes)
   return self
 end
 
----Find documents in a set of paths
+---Find attachments in a set of paths
 ---@param paths table
 ---@param filetypes table
-function Default:documents(paths, filetypes)
+function Default:attachments(paths, filetypes)
   local files = {}
   for _, path in ipairs(paths) do
     local p = Path:new(path)

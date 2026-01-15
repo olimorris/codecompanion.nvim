@@ -63,7 +63,7 @@ local providers = {
         SlashCommand = SlashCommand,
         title = CONSTANTS.PROMPT,
       })
-      :documents(dirs, ft)
+      :attachments(dirs, ft)
       :display()
   end,
 
