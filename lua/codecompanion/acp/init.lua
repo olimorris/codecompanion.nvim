@@ -234,10 +234,68 @@ function Connection:connect_and_initialize()
     end
   end
 
-  -- Apply default model from adapter config if specified
   self:apply_default_model()
+  self:apply_default_mode()
 
   return self
+end
+
+---Selects and applies a default value for model or mode, matching by id.
+---@param self CodeCompanion.ACP.Connection -- Connection instance
+---@param item_label string                 -- 'model' or 'mode' (for logging)
+---@param set_func function                 -- setter method; called as set_func(self, id)
+---@param available_items table[]           -- list of available options
+---@param id_key string                     -- field name holding id on each option
+---@param current_id string                 -- currently selected id
+---@return boolean                          -- true if applied/already selected, false if not found
+local function _apply_default_value(self, item_label, set_func, available_items, id_key, current_id)
+  if not available_items then
+    return false
+  end
+
+  local defaults = self.adapter_modified and self.adapter_modified.defaults
+  local default_id = defaults and defaults[item_label]
+
+  -- Support function values for default model
+  if type(default_id) == "function" then
+    return default_id(self.adapter_modified)
+  end
+
+  if type(default_id) ~= "string" or default_id == "" then
+    return false
+  end
+
+  -- Check if the requested value is available
+  local found_id = nil
+  for _, entry in ipairs(available_items) do
+    -- Match by modelId and then by partial name match (e.g., "opus" matches "claude-opus-4")
+    local candidate_id = entry[id_key]
+    if candidate_id == default_id then
+      found_id = candidate_id
+      break
+    elseif candidate_id and candidate_id:lower():find(default_id:lower(), 1, true) then
+      found_id = candidate_id
+      break
+    end
+  end
+
+  if not found_id then
+    log:warn(
+      "[acp::apply_default_%s] %s `%s` not found in available %ss",
+      item_label,
+      item_label,
+      default_id,
+      item_label
+    )
+    return false
+  end
+
+  if found_id == current_id then
+    log:debug("[acp::apply_default_%s] %s `%s` is already selected", item_label, item_label, found_id)
+    return true
+  end
+
+  return set_func(self, found_id)
 end
 
 ---Apply the default model from the adapter config
@@ -246,47 +304,23 @@ function Connection:apply_default_model()
   if not self._models then
     return false
   end
+  return _apply_default_value(
+    self,
+    "model",
+    self.set_model,
+    self._models.availableModels,
+    "modelId",
+    self._models.currentModelId
+  )
+end
 
-  local default_model = self.adapter_modified
-    and self.adapter_modified.defaults
-    and self.adapter_modified.defaults.model
-  if not default_model then
+---Apply the default mode from the adapter config
+---@return boolean
+function Connection:apply_default_mode()
+  if not self._modes then
     return false
   end
-
-  -- Support function values for default model
-  if type(default_model) == "function" then
-    default_model = default_model(self.adapter_modified)
-  end
-
-  if type(default_model) ~= "string" or default_model == "" then
-    return false
-  end
-
-  -- Check if the requested model is available
-  local model_id = nil
-  for _, model in ipairs(self._models.availableModels or {}) do
-    -- Match by modelId and then by partial name match (e.g., "opus" matches "claude-opus-4")
-    if model.modelId == default_model then
-      model_id = model.modelId
-      break
-    elseif model.modelId:lower():find(default_model:lower(), 1, true) then
-      model_id = model.modelId
-      break
-    end
-  end
-
-  if not model_id then
-    log:warn("[acp::apply_default_model] Model `%s` not found in available models", default_model)
-    return false
-  end
-
-  if model_id == self._models.currentModelId then
-    log:debug("[acp::apply_default_model] Model `%s` is already selected", model_id)
-    return true
-  end
-
-  return self:set_model(model_id)
+  return _apply_default_value(self, "mode", self.set_mode, self._modes.availableModes, "id", self._modes.currentModeId)
 end
 
 ---Create the ACP process
