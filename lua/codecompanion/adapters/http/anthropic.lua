@@ -21,7 +21,7 @@ return {
     stream = true,
     tools = true,
     vision = true,
-    doc_upload = true,
+    attachment_upload = true,
     file_api = true,
   },
   url = "https://api.anthropic.com/v1/messages",
@@ -113,8 +113,8 @@ return {
         if not model_opts.opts.has_vision then
           self.opts.vision = false
         end
-        if not model_opts.opts.has_doc_upload then
-          self.opts.doc_upload = false
+        if not model_opts.opts.has_attachment_upload then
+          self.opts.attachment_upload = false
         end
         if not model_opts.opts.has_file_api then
           self.opts.file_api = false
@@ -208,7 +208,7 @@ return {
 
         -- 3a. Account for any attachments (PDFs, documents)
         if m._meta and m._meta.tag == "attachment" and m.context then
-          if self.opts and self.opts.doc_upload then
+          if self.opts and self.opts.attachment_upload then
             if m.context.source == "url" then
               -- URL-based document
               m.content = {
@@ -669,27 +669,27 @@ return {
       choices = {
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { can_reason = true, has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { can_reason = true, has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { can_reason = true, has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { can_reason = true, has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
         ["claude-opus-4-0"] = {
           formatted_name = "Claude Opus 4",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { can_reason = true, has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
         ["claude-sonnet-4-0"] = {
           formatted_name = "Claude Sonnet 4",
-          opts = { can_reason = true, has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { can_reason = true, has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
         ["claude-3-7-sonnet-latest"] = {
           formatted_name = "Claude Sonnet 3.7",
@@ -697,13 +697,13 @@ return {
             can_reason = true,
             has_vision = true,
             has_token_efficient_tools = true,
-            has_doc_upload = true,
+            has_attachment_upload = true,
             has_file_api = true,
           },
         },
         ["claude-3-5-haiku-latest"] = {
           formatted_name = "Claude Haiku 3.5",
-          opts = { has_vision = true, has_doc_upload = true, has_file_api = true },
+          opts = { has_vision = true, has_attachment_upload = true, has_file_api = true },
         },
       },
     },

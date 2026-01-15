@@ -309,8 +309,8 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return boolean, string
 function SlashCommand.enabled(chat)
-  -- Check if adapter supports document upload or vision
-  local supports_docs = chat.adapter.opts and chat.adapter.opts.doc_upload or false
+  -- Check if adapter supports attachment upload or vision
+  local supports_docs = chat.adapter.opts and chat.adapter.opts.attachment_upload or false
   local supports_images = chat.adapter.opts and chat.adapter.opts.vision or false
 
   if supports_docs or supports_images then
