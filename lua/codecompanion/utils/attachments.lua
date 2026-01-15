@@ -32,15 +32,19 @@ local function build_attachment_types()
 end
 
 ---Attachment-specific MIME types (fallback for types not in files_utils)
+---These are document and extended image types not in the minimal files.lua map
 ---@type table<string, string>
 local ATTACHMENT_MIME_TYPES = {
-  -- Images
+  -- Extended image types
   bmp = "image/bmp",
   tiff = "image/tiff",
   svg = "image/svg+xml",
-  -- Documents
+  -- Document types
+  rtf = "text/rtf",
   xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx = "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  csv = "text/csv",
+  docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
 ---Get image file extensions from config
