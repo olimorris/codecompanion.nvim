@@ -9,14 +9,6 @@
   - Document file types are now configurable via `interactions.chat.slash_commands["attachment"].opts.filetypes`
   - Attachment types dynamically built from user configuration
 
-### BREAKING CHANGES
-
-* **chat:** `/document` slash command removed - use `/attachment` instead
-  - The `/attachment` command provides all functionality of the old `/document` command
-  - No configuration migration needed - attachment config already exists in default settings
-  - API method `Chat:add_document_message()` renamed to `Chat:add_attachment_message()` (no backwards compatibility alias)
-  - Internal utilities moved from `utils.documents` to `utils.attachments`
-
 ## [18.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.2...v18.4.0) (2026-01-10)
 
 
