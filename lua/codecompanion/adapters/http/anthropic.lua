@@ -206,8 +206,8 @@ return {
           end
         end
 
-        -- 3a. Account for any documents (PDFs)
-        if m._meta and m._meta.tag == "document" and m.context then
+        -- 3a. Account for any attachments (PDFs, documents)
+        if m._meta and m._meta.tag == "attachment" and m.context then
           if self.opts and self.opts.doc_upload then
             if m.context.source == "url" then
               -- URL-based document

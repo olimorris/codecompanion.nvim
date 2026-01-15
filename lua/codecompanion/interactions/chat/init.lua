@@ -982,39 +982,39 @@ function Chat:add_image_message(image, opts)
   })
 end
 
----Add a document to the chat buffer
----@param document CodeCompanion.Document The document object containing the path and other metadata
----@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the document
+---Add an attachment (document or image) to the chat buffer
+---@param attachment CodeCompanion.Attachment The attachment object containing the path and other metadata
+---@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the attachment
 ---@return nil
-function Chat:add_document_message(document, opts)
+function Chat:add_attachment_message(attachment, opts)
   opts = vim.tbl_deep_extend("force", {
     role = config.constants.USER_ROLE,
-    source = "codecompanion.interactions.chat.slash_commands.document",
-    bufnr = document.bufnr,
+    source = "codecompanion.interactions.chat.slash_commands.attachment",
+    bufnr = attachment.bufnr,
   }, opts or {})
 
-  local id = "<document>" .. (document.id or document.path) .. "</document>"
+  local id = "<attachment>" .. (attachment.id or attachment.path) .. "</attachment>"
 
   self:add_message({
     role = opts.role,
-    content = document.base64 or "",
+    content = attachment.base64 or "",
   }, {
     context = {
       id = id,
-      mimetype = document.mimetype,
-      path = document.path or document.id,
-      source = document.source,
-      url = document.url,
-      file_id = document.file_id,
+      mimetype = attachment.mimetype,
+      path = attachment.path or attachment.id,
+      source = attachment.source,
+      url = attachment.url,
+      file_id = attachment.file_id,
     },
-    _meta = { tag = "document" },
+    _meta = { tag = "attachment" },
     visible = false,
   })
 
   self.context:add({
     bufnr = opts.bufnr,
     id = id,
-    path = document.path or document.url or document.file_id,
+    path = attachment.path or attachment.url or attachment.file_id,
     source = opts.source,
   })
 end

@@ -29,7 +29,7 @@ M.form_messages = function(self, messages, capabilities)
         end
       end
 
-      if msg._meta and msg._meta.tag == "document" and msg.context and msg.context.mimetype then
+      if msg._meta and msg._meta.tag == "attachment" and msg.context and msg.context.mimetype then
         if has.embeddedContext then
           if msg.context.source == "url" then
             -- URL-based document
@@ -59,8 +59,8 @@ M.form_messages = function(self, messages, capabilities)
             }
           end
         else
-          log:warn("The %s agent does not support receiving documents", self.formatted_name)
-          -- Remove the message if document upload support is not enabled
+          log:warn("The %s agent does not support receiving attachments", self.formatted_name)
+          -- Remove the message if attachment upload support is not enabled
           return nil
         end
       end

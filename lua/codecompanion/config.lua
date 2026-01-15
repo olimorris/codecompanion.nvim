@@ -431,20 +431,20 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
-        ["document"] = {
-          callback = "interactions.chat.slash_commands.builtin.document",
-          description = "Insert a document (PDF)",
+        ["attachment"] = {
+          callback = "interactions.chat.slash_commands.builtin.attachment",
+          description = "Insert an attachment (image or document)",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
           enabled = function(opts)
             if opts.adapter and opts.adapter.opts then
-              return opts.adapter.opts.doc_upload == true
+              return opts.adapter.opts.doc_upload == true or opts.adapter.opts.vision == true
             end
             return false
           end,
           opts = {
-            dirs = {}, -- Directories to search for documents
-            filetypes = { "pdf", "rtf", "docx", "csv", "xslx" }, -- Filetypes to search for
+            dirs = {}, -- Directories to search for attachments
+            filetypes = { "pdf", "docx", "xlsx", "pptx", "rtf", "csv" }, -- Document filetypes to search for
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
