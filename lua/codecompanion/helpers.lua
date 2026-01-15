@@ -23,11 +23,21 @@ function M.get_prompt_aliases()
 end
 
 ---Create and show a diff in a floating window
----@param args { from_lines: string[], to_lines: string[], ft: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, inline?: boolean, tool_name?: string, title?: string, diff_id: number, marker_add?: string, marker_delete?: string }
+---@param args { from_lines: string[], to_lines: string[], ft: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, inline?: boolean, tool_name?: string, title?: string, diff_id: number, marker_add?: string, marker_delete?: string, bufnr?: number }
 ---@return CodeCompanion.DiffUI
 function M.show_diff(args)
-  local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_set_option_value("filetype", args.ft, { buf = bufnr })
+  local bufnr = args.bufnr
+  if args.inline and not bufnr then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
+
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    bufnr = vim.api.nvim_create_buf(false, true)
+  end
+
+  if args.ft then
+    vim.api.nvim_set_option_value("filetype", args.ft, { buf = bufnr })
+  end
 
   local diff = require("codecompanion.diff")
   local ui = require("codecompanion.diff.ui")
@@ -40,6 +50,7 @@ function M.show_diff(args)
       to_lines = args.to_lines,
       marker_add = args.marker_add,
       marker_delete = args.marker_delete,
+      inline = args.inline,
     }),
     {
       banner = args.banner,

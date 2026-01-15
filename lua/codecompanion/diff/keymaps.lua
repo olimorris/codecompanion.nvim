@@ -19,77 +19,62 @@ local function clear_map(keymaps, bufnr)
   end
 end
 
+---Resolve a diff with common cleanup logic
+---@param diff_ui CodeCompanion.DiffUI
+---@param opts { event: string, log_action: string, before_cleanup?: fun(diff_ui: CodeCompanion.DiffUI) }
+---@return boolean success Returns false if already resolved
+local function resolve_diff(diff_ui, opts)
+  if diff_ui.resolved then
+    return false
+  end
+  diff_ui.resolved = true
+
+  log:trace("[Diff] %s diff for id=%s", opts.log_action, diff_ui.diff_id)
+  utils.fire(opts.event, { id = diff_ui.diff_id })
+
+  if opts.before_cleanup then
+    opts.before_cleanup(diff_ui)
+  end
+
+  diff_ui:clear()
+  diff_ui:close()
+  clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
+
+  return true
+end
+
 M.always_accept = {
   desc = "Always accept changes from this chat buffer",
   callback = function(diff_ui)
-    -- There might be an edge case where a user has made a decision on the diff
-    -- and the window has then closed, causing `WinClosed` to fire. So we put
-    -- a guard here to check for this and repeat across all the keymaps.
-    if diff_ui.resolved then
-      return
-    end
-    diff_ui.resolved = true
-
-    log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
-    utils.fire("DiffAccepted", { id = diff_ui.diff_id })
-
-    local approvals = require("codecompanion.interactions.chat.tools.approvals")
-    approvals:always(diff_ui.chat_bufnr, diff_ui.tool_name)
-
-    diff_ui:clear()
-    diff_ui:close()
-    clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
+    resolve_diff(diff_ui, {
+      event = "DiffAccepted",
+      log_action = "Accepting",
+      before_cleanup = function(ui)
+        local approvals = require("codecompanion.interactions.chat.tools.approvals")
+        approvals:always(ui.chat_bufnr, ui.tool_name)
+      end,
+    })
   end,
 }
 
 M.accept_change = {
   desc = "Accept all changes",
   callback = function(diff_ui)
-    if diff_ui.resolved then
-      return
-    end
-    diff_ui.resolved = true
-
-    log:trace("[Diff] Accepting diff for id=%s", diff_ui.diff_id)
-    utils.fire("DiffAccepted", { id = diff_ui.diff_id })
-
-    diff_ui:clear()
-    diff_ui:close()
-    clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
+    resolve_diff(diff_ui, { event = "DiffAccepted", log_action = "Accepting" })
   end,
 }
 
 M.reject_change = {
   desc = "Reject all changes",
   callback = function(diff_ui)
-    if diff_ui.resolved then
-      return
-    end
-    diff_ui.resolved = true
-
-    log:trace("[Diff] Rejecting diff for id=%s", diff_ui.diff_id)
-    utils.fire("DiffRejected", { id = diff_ui.diff_id })
-
-    diff_ui:clear()
-    diff_ui:close()
-    clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
+    resolve_diff(diff_ui, { event = "DiffRejected", log_action = "Rejecting" })
   end,
 }
 
 M.close_window = {
   desc = "Close window and reject",
   callback = function(diff_ui)
-    if diff_ui.resolved then
-      return
-    end
-    diff_ui.resolved = true
-
-    log:trace("[Diff] Closing diff window for id=%s", diff_ui.diff_id)
-    utils.fire("DiffRejected", { id = diff_ui.diff_id })
-
-    diff_ui:clear()
-    diff_ui:close()
-    clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
+    resolve_diff(diff_ui, { event = "DiffRejected", log_action = "Closing" })
   end,
 }
 

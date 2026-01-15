@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local diff_utils = require("codecompanion.diff.utils")
 local keymaps = require("codecompanion.diff.keymaps")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -24,51 +25,44 @@ local M = {}
 local DiffUI = {}
 DiffUI.__index = DiffUI
 
+-- Cache for computed values that depend only on config
+local _cached_default_banner = nil
+
 ---Get the display name for a buffer
 ---@param bufnr number
 ---@return string
 local function get_buf_name(bufnr)
   local name = api.nvim_buf_get_name(bufnr)
-  if name ~= "" then
+  if not name or name ~= "" then
     return vim.fn.fnamemodify(name, ":.")
   end
   return fmt("buffer %d", bufnr)
 end
 
----Build the default keymaps from config for display
+---Build the default keymaps from config for display (cached)
 ---@return string
-local function build_default_banner()
-  local always_accept = config.interactions.inline.keymaps.always_accept.modes.n
-  local accept = config.interactions.inline.keymaps.accept_change.modes.n
-  local reject = config.interactions.inline.keymaps.reject_change.modes.n
-  local next_hunk = config.interactions.inline.keymaps.next_hunk.modes.n
-  local previous_hunk = config.interactions.inline.keymaps.previous_hunk.modes.n
+local function get_default_banner()
+  if _cached_default_banner then
+    return _cached_default_banner
+  end
 
-  return fmt(
+  local inline_keymaps = config.interactions.inline.keymaps
+  _cached_default_banner = fmt(
     "%s Always Accept | %s Accept | %s Reject | %s/%s Next/Prev hunks | q Close",
-    always_accept,
-    accept,
-    reject,
-    next_hunk,
-    previous_hunk
+    inline_keymaps.always_accept.modes.n,
+    inline_keymaps.accept_change.modes.n,
+    inline_keymaps.reject_change.modes.n,
+    inline_keymaps.next_hunk.modes.n,
+    inline_keymaps.previous_hunk.modes.n
   )
-end
-
----Resolve word highlight options from config
----@return { additions: boolean, deletions: boolean }
-local function resolve_word_highlights()
-  local word_highlights = config.display.diff.word_highlights
-  return {
-    additions = word_highlights.additions ~= false,
-    deletions = word_highlights.deletions ~= false,
-  }
+  return _cached_default_banner
 end
 
 ---Get the banner text for display
 ---@param opts { banner?: string, current_hunk: number, hunks: number }
 ---@return string
 local function build_banner_text(opts)
-  return fmt(" [Hunk: %d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or build_default_banner())
+  return fmt(" [Hunk: %d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
 end
 
 ---Show banner in the diff buffer
@@ -83,14 +77,23 @@ local function banner_virt_text(bufnr, opts)
   end
 
   local text = build_banner_text(opts)
+  local line = opts.line or (vim.fn.line("w0") - 1)
 
-  api.nvim_buf_set_extmark(bufnr, ns_id, vim.fn.line("w0") - 1, 0, {
-    virt_text = {
-      { text, opts.inline and "CodeCompanionDiffBannerInline" or "CodeCompanionDiffBanner" },
-    },
-    virt_text_pos = "right_align",
-    priority = 125,
-  })
+  if opts.inline then
+    api.nvim_buf_set_extmark(bufnr, ns_id, line, 0, {
+      virt_lines = { { { text, "CodeCompanionDiffBannerInline" } } },
+      virt_lines_above = true,
+      priority = 125,
+    })
+  else
+    api.nvim_buf_set_extmark(bufnr, ns_id, line, 0, {
+      virt_text = {
+        { text, "CodeCompanionDiffBanner" },
+      },
+      virt_text_pos = "right_align",
+      priority = 125,
+    })
+  end
 
   return ns_id
 end
@@ -157,62 +160,47 @@ function DiffUI:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
 end
 
+---Set a single keymap for the diff buffer
+---@param mode string
+---@param lhs string
+---@param handler { callback: function, desc: string }
+---@return nil
+function DiffUI:_set_keymap(mode, lhs, handler)
+  vim.keymap.set(mode, lhs, function()
+    handler.callback(self)
+  end, {
+    buffer = self.bufnr,
+    desc = handler.desc,
+    silent = true,
+    nowait = true,
+  })
+end
+
 ---Set up keymaps in the diff buffer
 ---@param opts { skip_default_keymaps?: boolean }
 ---@return nil
 function DiffUI:setup_keymaps(opts)
   opts = opts or {}
 
-  local next_hunk_key = config.interactions.inline.keymaps.next_hunk.modes.n
-  local prev_hunk_key = config.interactions.inline.keymaps.previous_hunk.modes.n
+  local inline_keymaps = config.interactions.inline.keymaps
 
   if not opts.skip_default_keymaps then
-    local diff_keymaps = config.interactions.inline.keymaps
-    for name, keymap in pairs(diff_keymaps) do
+    for name, keymap in pairs(inline_keymaps) do
       local handler = keymaps[name]
       if handler then
         for mode, lhs in pairs(keymap.modes) do
-          vim.keymap.set(mode, lhs, function()
-            handler.callback(self)
-          end, {
-            buffer = self.bufnr,
-            desc = handler.desc,
-            silent = true,
-            nowait = true,
-          })
+          self:_set_keymap(mode, lhs, handler)
         end
       end
     end
   else
     -- Provide minimal navigation controls when skipping defaults
-    vim.keymap.set("n", next_hunk_key, function()
-      keymaps.next_hunk.callback(self)
-    end, {
-      buffer = self.bufnr,
-      desc = "Next hunk",
-      silent = true,
-      nowait = true,
-    })
-
-    vim.keymap.set("n", prev_hunk_key, function()
-      keymaps.previous_hunk.callback(self)
-    end, {
-      buffer = self.bufnr,
-      desc = "Previous hunk",
-      silent = true,
-      nowait = true,
-    })
+    self:_set_keymap("n", inline_keymaps.next_hunk.modes.n, keymaps.next_hunk)
+    self:_set_keymap("n", inline_keymaps.previous_hunk.modes.n, keymaps.previous_hunk)
   end
 
   -- Always add 'q' to close
-  vim.keymap.set("n", "q", function()
-    keymaps.close_window.callback(self)
-  end, {
-    buffer = self.bufnr,
-    desc = "Close and reject",
-    silent = true,
-    nowait = true,
-  })
+  self:_set_keymap("n", "q", keymaps.close_window)
 end
 
 ---Apply diff highlighting to merged lines in a buffer
@@ -225,7 +213,9 @@ function DiffUI:apply_extmarks(diff, bufnr)
     return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
   end
 
-  local show_word_highlights = resolve_word_highlights()
+  local word_highlights = config.display.diff.word_highlights
+  local show_word_additions = word_highlights.additions ~= false
+  local show_word_deletions = word_highlights.deletions ~= false
 
   -- Apply line highlights from the merged highlights data
   for _, hl in ipairs(diff.merged.highlights) do
@@ -253,8 +243,8 @@ function DiffUI:apply_extmarks(diff, bufnr)
       -- Apply word-level highlights using virtual text overlay
       -- This allows word highlights to show background colors over line highlights
       if hl.word_hl and #hl.word_hl > 0 then
-        local word_hl_group = hl.type == "deletion" and show_word_highlights.deletions and "CodeCompanionDiffTextDelete"
-          or hl.type == "addition" and show_word_highlights.additions and "CodeCompanionDiffText"
+        local word_hl_group = hl.type == "deletion" and show_word_deletions and "CodeCompanionDiffTextDelete"
+          or hl.type == "addition" and show_word_additions and "CodeCompanionDiffText"
           or nil
 
         if word_hl_group then
@@ -280,7 +270,118 @@ end
 ---@return nil
 function DiffUI:clear()
   if self.inline then
+    if self.inline_spacer_mark then
+      local pos = api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.inline_spacer_mark, {})
+      if pos and pos[1] then
+        pcall(api.nvim_buf_set_lines, self.bufnr, pos[1], pos[1] + 1, false, {})
+      end
+      self.inline_spacer_mark = nil
+    end
     return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.ns, 0, -1)
+  end
+end
+
+---Apply inline diff changes and virtual deletion lines
+---@param diff CC.Diff
+---@param bufnr number
+---@return nil
+function DiffUI:apply_inline(diff, bufnr)
+  local function slice(lines, start_index, count)
+    local out = {}
+    for i = 0, count - 1 do
+      out[#out + 1] = lines[start_index + i]
+    end
+    return out
+  end
+
+  local line_offset = 0
+  for _, hunk in ipairs(diff.hunks) do
+    if hunk.from_start == 1 and hunk.from_count > 0 then
+      line_offset = 1
+      break
+    end
+  end
+
+  if line_offset > 0 then
+    api.nvim_buf_set_lines(bufnr, 0, 0, false, { "" })
+    self.inline_spacer_mark = api.nvim_buf_set_extmark(bufnr, self.ns, 0, 0, {})
+  end
+
+  for i = #diff.hunks, 1, -1 do
+    local hunk = diff.hunks[i]
+    local from_start = hunk.from_start
+    local from_count = hunk.from_count
+    local to_start = hunk.to_start
+    local to_count = hunk.to_count
+    local from_index = from_start - 1 + line_offset
+    local marker_add = diff.marker_add
+    local marker_delete = diff.marker_delete
+    if from_count == 0 then
+      from_index = from_start + line_offset
+    end
+    local deleted_lines = {}
+
+    if from_count > 0 then
+      deleted_lines = slice(diff.from.lines, from_start, from_count)
+      api.nvim_buf_set_lines(bufnr, from_index, from_index + from_count, false, {})
+    end
+
+    if to_count > 0 then
+      local added_lines = slice(diff.to.lines, to_start, to_count)
+      api.nvim_buf_set_lines(bufnr, from_index, from_index, false, added_lines)
+      for j = 0, to_count - 1 do
+        pcall(api.nvim_buf_set_extmark, bufnr, self.ns, from_index + j, 0, {
+          line_hl_group = "CodeCompanionDiffAdd",
+          virt_text = marker_add and { { marker_add .. " ", "CodeCompanionDiffAdd" } } or nil,
+          virt_text_pos = marker_add and "inline" or nil,
+          hl_mode = marker_add and "combine" or nil,
+          priority = 150,
+        })
+      end
+    end
+
+    if #deleted_lines > 0 then
+      local line_count = api.nvim_buf_line_count(bufnr)
+      local anchor_row = 0
+      local virt_above = false
+      local hl_group = "CodeCompanionDiffDelete"
+      if line_count == 0 then
+        anchor_row = 0
+        virt_above = false
+      elseif from_index >= line_count then
+        anchor_row = line_count - 1
+        virt_above = false
+      else
+        anchor_row = from_index
+        virt_above = true
+      end
+      local virt_lines = diff_utils.create_vl(table.concat(deleted_lines, "\n"), {
+        ft = diff.ft or vim.bo[bufnr].filetype,
+        bg = hl_group,
+      })
+      if marker_delete then
+        virt_lines = diff_utils.prepend_marker(virt_lines, marker_delete, hl_group)
+      end
+      virt_lines = diff_utils.extend_vl(virt_lines, hl_group)
+
+      pcall(api.nvim_buf_set_extmark, bufnr, self.ns, anchor_row, 0, {
+        virt_lines = virt_lines,
+        virt_lines_above = virt_above,
+        hl_mode = "combine",
+        priority = 150,
+      })
+    end
+  end
+
+  local line_count = api.nvim_buf_line_count(bufnr)
+  for _, hunk in ipairs(diff.hunks) do
+    local target_row = (hunk.to_start or 1) - 1 + line_offset
+    if line_count > 0 then
+      target_row = math.min(math.max(target_row, 0), line_count - 1)
+    else
+      target_row = 0
+    end
+    hunk.pos = { target_row, 0 }
   end
 end
 
@@ -339,7 +440,7 @@ end
 
 ---Set up banner display and tracking
 ---@param diff_ui CodeCompanion.DiffUI
----@param opts { banner?: string, is_float: boolean }
+---@param opts { banner?: string, is_float: boolean, inline: boolean }
 ---@return number group Autocommand group ID
 local function setup_banner(diff_ui, opts)
   local bufnr = diff_ui.bufnr
@@ -357,11 +458,15 @@ local function setup_banner(diff_ui, opts)
       return ui_utils.set_winbar(diff_ui.winnr, text, "CodeCompanionDiffBanner")
     end
 
+    local hunk = diff_ui.diff.hunks[diff_ui.current_hunk]
+    local target_line = opts.inline and hunk and hunk.pos[1] or nil
+
     return banner_virt_text(bufnr, {
       banner = opts.banner,
       current_hunk = diff_ui.current_hunk,
       hunks = diff_ui.hunks,
       inline = true,
+      line = target_line,
       namespace = diff_ui.diff_id,
       overwrite = args.overwrite or false,
     })
@@ -428,12 +533,13 @@ end
 
 ---Show a diff in a floating window
 ---@param diff CC.Diff The diff object from diff.create()
----@param opts? { diff_id?: number, float?: boolean, title?: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
+---@param opts? { diff_id?: number, float?: boolean, inline?: boolean, title?: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
 ---@return CodeCompanion.DiffUI
 function M.show(diff, opts)
   opts = vim.tbl_extend("force", { float = true }, opts or {})
 
-  local is_float = opts.float ~= false
+  local is_inline = opts.inline == true
+  local is_float = opts.float ~= false and not is_inline
   local cfg =
     vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
 
@@ -463,7 +569,11 @@ function M.show(diff, opts)
     winnr = winnr,
   }, DiffUI)
 
-  diff_ui:apply_extmarks(diff, bufnr)
+  if is_inline then
+    diff_ui:apply_inline(diff, bufnr)
+  else
+    diff_ui:apply_extmarks(diff, bufnr)
+  end
   diff_ui:setup_keymaps({ skip_default_keymaps = opts.skip_default_keymaps or false })
 
   -- Scroll to first hunk
@@ -476,6 +586,7 @@ function M.show(diff, opts)
   local group = setup_banner(diff_ui, {
     banner = opts.banner,
     is_float = is_float,
+    inline = is_inline,
   })
 
   setup_close_handler(diff_ui, group, opts.skip_default_keymaps or false)

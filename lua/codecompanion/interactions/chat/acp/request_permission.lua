@@ -202,45 +202,38 @@ end
 ---@return nil
 local function show_diff(chat, request)
   local d = get_diff(request.tool_call)
-  local old_lines = vim.split(d.old or "", "\n", { plain = true })
-  local new_lines = vim.split(d.new or "", "\n", { plain = true })
-  local ft = vim.filetype.match({ filename = d.path })
 
+  local diff_id = math.random(1000000)
   local kind_map = build_kind_map(request.options)
   local normalized = normalize_maps(config.interactions.chat.keymaps)
-  local banner = build_banner(normalized, kind_map)
 
-  local diff_id = math.random(10000000)
-  local helpers = require("codecompanion.helpers")
-
-  local diff_ui = helpers.show_diff({
-    from_lines = old_lines,
-    to_lines = new_lines,
-    banner = banner,
+  local diff_ui = require("codecompanion.helpers").show_diff({
+    from_lines = vim.split(d.old or "", "\n", { plain = true }),
+    to_lines = vim.split(d.new or "", "\n", { plain = true }),
+    banner = build_banner(normalized, kind_map),
     chat_bufnr = chat.bufnr,
     diff_id = diff_id,
-    ft = ft or "text",
+    ft = vim.filetype.match({ filename = d.path }) or "text",
     skip_default_keymaps = true,
+    title = vim.fn.fnamemodify(d.path, ":."),
   })
 
   setup_diff_keymaps(diff_ui, normalized, kind_map, request)
 
-  -- We set WinClosed autocmds to detect for when a user has made a selection
-  -- WinClosed fires with the window ID as the match, so we need to use pattern
-  vim.api.nvim_create_autocmd("WinClosed", {
-    pattern = tostring(diff_ui.winnr),
-    once = true,
-    callback = function()
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "CodeCompanionDiffRejected",
+    callback = function(event)
+      if event.data.id ~= diff_id then
+        return
+      end
+      if diff_ui.resolved then
+        return
+      end
       if not diff_ui.resolved then
         diff_ui.resolved = true
-        log:debug("[acp::request_permission] Diff window closed without selection, rejecting")
-
-        local rejected = find_reject_option(request.options)
-        if rejected then
-          return request.respond(rejected, false)
-        end
-        return request.respond(nil, true)
       end
+      local rejected = find_reject_option(request.options)
+      return request.respond(rejected, false)
     end,
   })
 end

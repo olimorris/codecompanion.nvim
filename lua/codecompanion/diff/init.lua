@@ -75,7 +75,11 @@ local diff_fn = vim.text.diff or vim.diff
 ---@class CodeCompanion.diff.Hunk
 ---@field extmarks CodeCompanion.diff.Extmark[]
 ---@field kind "add"|"delete"|"change"
----@field pos CodeCompanion.Pos Starting position of the hunk in the "from" text
+---@field pos CodeCompanion.Pos Starting position of the hunk in the merged view
+---@field from_start number
+---@field from_count number
+---@field to_start number
+---@field to_count number
 
 ---@class CodeCompanion.diff.Extmark
 ---@field row number
@@ -125,9 +129,10 @@ end
 
 ---Process diff hunks to create merged lines for display
 ---@param diff CC.Diff
+---@param opts? vim.text.diff.Opts
 ---@return CC.Diff
-function M._diff_lines(diff)
-  local hunks = M._diff(diff.from.lines, diff.to.lines, CONSTANTS.DIFF_LINE_OPTS)
+function M._diff_lines(diff, opts)
+  local hunks = M._diff(diff.from.lines, diff.to.lines, opts or CONSTANTS.DIFF_LINE_OPTS)
 
   -- Instead of using virtual text, we create a merged view of the lines and we
   -- build out the highlights for the possible hunk types
@@ -157,6 +162,10 @@ function M._diff_lines(diff)
       extmarks = {},
       kind = kind,
       pos = { merged_row, 0 },
+      from_start = from_start,
+      from_count = from_count,
+      to_start = to_start,
+      to_count = to_count,
     }
     table.insert(diff.hunks, h)
 
@@ -265,11 +274,12 @@ function M._diff_words(old_line, new_line)
 end
 
 ---Create a diff between two sets of lines
----@param args {bufnr: number, from_lines: string[], to_lines: string[], ft?: string, marker_add?: string, marker_delete?: string}
+---@param args {bufnr: number, from_lines: string[], to_lines: string[], ft?: string, marker_add?: string, marker_delete?: string, inline?: boolean}
 ---@return CC.Diff
 function M.create(args)
   local from_text = table.concat(args.from_lines, "\n")
   local to_text = table.concat(args.to_lines, "\n")
+  local diff_opts = args.inline and CONSTANTS.DIFF_INLINE_OPTS or CONSTANTS.DIFF_LINE_OPTS
 
   local diff = M._diff_lines(
     ---@type CC.Diff
@@ -288,7 +298,8 @@ function M.create(args)
       merged = { lines = {}, highlights = {} },
       marker_add = args.marker_add,
       marker_delete = args.marker_delete,
-    }
+    },
+    diff_opts
   )
 
   return diff
