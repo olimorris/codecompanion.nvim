@@ -9,7 +9,7 @@ local M = {}
 ---@return table<string, { extensions: string[], max_size_mb: number }>
 local function build_attachment_types()
   local types = {}
-  
+
   -- Get image extensions from /image slash command config
   local image_cmd = config.interactions.chat.slash_commands["image"]
   if image_cmd and image_cmd.opts and image_cmd.opts.filetypes then
@@ -18,7 +18,7 @@ local function build_attachment_types()
       max_size_mb = 10, -- Image size limit
     }
   end
-  
+
   -- Get attachment (document) extensions from /attachment slash command config
   local attachment_cmd = config.interactions.chat.slash_commands["attachment"]
   if attachment_cmd and attachment_cmd.opts and attachment_cmd.opts.filetypes then
@@ -27,7 +27,7 @@ local function build_attachment_types()
       max_size_mb = 32, -- Document size limit
     }
   end
-  
+
   return types
 end
 
@@ -56,8 +56,6 @@ function M.get_attachment_filetypes()
   local types = build_attachment_types()
   return types.attachment and vim.deepcopy(types.attachment.extensions) or {}
 end
-
-
 
 ---Get all supported file extensions as a flat list
 ---@return string[]
