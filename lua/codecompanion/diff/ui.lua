@@ -11,6 +11,7 @@ local M = {}
 
 ---@class CodeCompanion.DiffUI
 ---@field banner? string The banner of keymaps to display above each hunk
+---@field banner_ns? number The namespace ID for the banner extmark
 ---@field bufnr number The buffer number of the diff window
 ---@field chat_bufnr? number If the diff has an associated chat buffer, pass in the chat buffer number
 ---@field current_hunk number The current hunk index (1-based)
@@ -269,6 +270,11 @@ end
 ---Clear diff extmarks from buffer
 ---@return nil
 function DiffUI:clear()
+  -- Clear the banner namespace
+  if self.banner_ns then
+    pcall(api.nvim_buf_clear_namespace, self.bufnr, self.banner_ns, 0, -1)
+  end
+
   if self.inline then
     if self.inline_spacer_mark then
       local pos = api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.inline_spacer_mark, {})
@@ -461,7 +467,7 @@ local function setup_banner(diff_ui, opts)
     local hunk = diff_ui.diff.hunks[diff_ui.current_hunk]
     local target_line = opts.inline and hunk and hunk.pos[1] or nil
 
-    return banner_virt_text(bufnr, {
+    local ns_id = banner_virt_text(bufnr, {
       banner = opts.banner,
       current_hunk = diff_ui.current_hunk,
       hunks = diff_ui.hunks,
@@ -470,6 +476,10 @@ local function setup_banner(diff_ui, opts)
       namespace = diff_ui.diff_id,
       overwrite = args.overwrite or false,
     })
+
+    -- Store the banner namespace for cleanup
+    diff_ui.banner_ns = ns_id
+    return ns_id
   end
 
   -- Initial banner
