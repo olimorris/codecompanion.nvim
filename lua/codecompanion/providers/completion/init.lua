@@ -35,7 +35,7 @@ local function _vars_cache_setup()
 
   _vars_aug = api.nvim_create_augroup("codecompanion.chat.variables", { clear = true })
 
-  -- Keep track of the curret buffer state across Neovim
+  -- Keep track of the current buffer state across Neovim
   api.nvim_create_autocmd({
     "BufAdd",
     "BufDelete",
