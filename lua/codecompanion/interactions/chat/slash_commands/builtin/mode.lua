@@ -73,6 +73,11 @@ function SlashCommand:execute()
       if Chat.update_metadata then
         Chat:update_metadata()
       end
+
+      utils.fire("ChatACPModeChanged", {
+        session_id = Chat.acp_connection.session_id,
+        mode_id = Chat.acp_connection._modes.currentModeId,
+      })
     else
       utils.notify("Failed to switch mode", vim.log.levels.ERROR)
     end

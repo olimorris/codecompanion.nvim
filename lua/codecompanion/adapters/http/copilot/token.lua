@@ -146,7 +146,9 @@ local function get_copilot_token()
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
       on_error = function(err)
-        log:error("Copilot Adapter: Token request error %s", err)
+        vim.schedule(function()
+          log:error("Copilot Adapter: Token request error %s", err)
+        end)
       end,
     })
   end)

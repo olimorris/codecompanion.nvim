@@ -206,6 +206,9 @@ function Inline.new(args)
   if not self.adapter then
     return log:error("[Inline] No adapter found")
   end
+  if self.adapter.type ~= "http" then
+    return log:warn("Only HTTP adapters are supported for inline interactions")
+  end
 
   -- Check if the user has manually overridden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then

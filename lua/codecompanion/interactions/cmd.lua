@@ -22,7 +22,10 @@ function Cmd.new(args)
 
   self.adapter = adapters.resolve(config.interactions.cmd.adapter)
   if not self.adapter then
-    return log:error("No adapter found")
+    return log:error("[Command] No adapter found")
+  end
+  if self.adapter.type ~= "http" then
+    return log:warn("Only HTTP adapters are supported for command interactions")
   end
 
   -- Check if the user has manually overridden the adapter
