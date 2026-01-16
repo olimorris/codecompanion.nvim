@@ -121,8 +121,8 @@ function Variable.replace(prefix, message, bufnr)
   local result = message
 
   -- Handle #{buffer:filename}{param} - display option with parameters
-  local display_option_with_params_pattern = prefix .. "{buffer:([^}]*)}{[^}]*}"
-  result = result:gsub(display_option_with_params_pattern, function(target)
+  local display = prefix .. "{buffer:([^}]*)}{[^}]*}"
+  result = result:gsub(display, function(target)
     local found = Variable._find_buffer(target)
     if found then
       local bufname = buf_utils.name_from_bufnr(found)

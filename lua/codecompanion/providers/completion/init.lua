@@ -35,7 +35,7 @@ local function _vars_cache_setup()
 
   _vars_aug = api.nvim_create_augroup("codecompanion.chat.variables", { clear = true })
 
-  -- Invalidate the cache on the following events
+  -- Keep track of the curret buffer state across Neovim
   api.nvim_create_autocmd({
     "BufAdd",
     "BufDelete",
@@ -334,7 +334,7 @@ function M.variables()
     :map(function(buf)
       local name
       if name_counts[buf.name] > 1 then
-        name = buf.short_path
+        name = buf.relative_path
       else
         name = buf.name
       end
