@@ -20,13 +20,16 @@ function source:get_keyword_pattern()
   return [[\%(@\|#\|/\)\k*]]
 end
 
-function source:complete(_, callback)
+function source:complete(params, callback)
   local items = require("codecompanion.providers.completion").variables()
   local kind = require("cmp").lsp.CompletionItemKind.Variable
 
   vim.iter(items):map(function(item)
     item.kind = kind
-    item.insertText = string.format("#{%s}", item.label:sub(2))
+    item.context = {
+      bufnr = params.context.bufnr,
+      cursor = params.context.cursor,
+    }
     return item
   end)
 
@@ -34,6 +37,13 @@ function source:complete(_, callback)
     items = items,
     isIncomplete = false,
   })
+end
+
+function source:execute(item, callback)
+  local text = string.format("#{%s}", item.label:sub(2))
+  vim.api.nvim_set_current_line(text)
+  vim.api.nvim_win_set_cursor(0, { vim.fn.line("."), #text })
+  callback(item)
 end
 
 return source

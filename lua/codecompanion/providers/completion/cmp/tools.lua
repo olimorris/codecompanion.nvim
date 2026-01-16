@@ -31,8 +31,8 @@ function source:complete(params, callback)
     item.config = self.config
     item.context = {
       bufnr = params.context.bufnr,
+      cursor = params.context.cursor,
     }
-    item.insertText = string.format("@{%s}", item.label:sub(2))
     return item
   end)
 
@@ -40,6 +40,13 @@ function source:complete(params, callback)
     items = items,
     isIncomplete = false,
   })
+end
+
+function source:execute(item, callback)
+  local text = string.format("@{%s}", item.label:sub(2))
+  vim.api.nvim_set_current_line(text)
+  vim.api.nvim_win_set_cursor(0, { vim.fn.line("."), #text })
+  callback(item)
 end
 
 return source
