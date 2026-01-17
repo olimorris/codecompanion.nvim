@@ -364,6 +364,7 @@ return {
       },
       opts = {
         blank_prompt = "",
+        debounce = 0,
         wait_timeout = 3000,
         system_prompt = "default system prompt",
       },
