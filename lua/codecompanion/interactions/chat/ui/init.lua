@@ -59,6 +59,7 @@ end
 
 ---@class CodeCompanion.Chat.UIArgs
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field aug number The autocmd group ID
 ---@field chat_bufnr number
 ---@field chat_id number
 ---@field roles table
@@ -74,6 +75,7 @@ local UI = {}
 function UI.new(args)
   local self = setmetatable({
     adapter = args.adapter,
+    aug = args.aug,
     chat_bufnr = args.chat_bufnr,
     chat_id = args.chat_id,
     cursor = {
@@ -87,9 +89,6 @@ function UI.new(args)
     window_opts = args.window_opts,
   }, { __index = UI })
 
-  self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
-    clear = false,
-  })
   self.folds = require("codecompanion.interactions.chat.ui.folds")
 
   api.nvim_create_autocmd("InsertEnter", {
