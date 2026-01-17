@@ -101,74 +101,76 @@ function UI.new(args)
     end,
   })
 
-  local debounce = nil
-  local debounce_ms = config.interactions.chat.opts.debounce or 0
+  if config.display.chat.auto_scroll then
+    local debounce = nil
+    local debounce_ms = config.interactions.chat.opts.debounce or 0
 
-  api.nvim_create_autocmd("CursorMoved", {
-    group = self.aug,
-    buffer = self.chat_bufnr,
-    desc = "Track the cursor in a CodeCompanion buffer",
-    callback = function()
-      if not self:is_visible() then
-        return
-      end
-
-      ---@return nil
-      local function get_cursor_pos()
+    api.nvim_create_autocmd("CursorMoved", {
+      group = self.aug,
+      buffer = self.chat_bufnr,
+      desc = "Track the cursor in a CodeCompanion buffer",
+      callback = function()
         if not self:is_visible() then
           return
         end
 
-        local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
-        if not ok then
-          return
+        ---@return nil
+        local function get_cursor_pos()
+          if not self:is_visible() then
+            return
+          end
+
+          local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
+          if not ok then
+            return
+          end
+
+          local last_line = self:last()
+
+          -- Check that the cursor is not on the last line. This likely means the
+          -- user has moved it and is likely reading the LLM's response. We do
+          -- not want to force an autoscroll so we save the cursor position
+          if cursor[1] ~= last_line + 1 then
+            self.cursor.has_moved = true
+            self.cursor.pos = { cursor[1], cursor[2] }
+          else
+            self.cursor.has_moved = false
+            self.cursor.pos = nil
+          end
         end
 
-        local last_line = self:last()
-
-        -- Check that the cursor is not on the last line. This likely means the
-        -- user has moved it and is likely reading the LLM's response. We do
-        -- not want to force an autoscroll so we save the cursor position
-        if cursor[1] ~= last_line + 1 then
-          self.cursor.has_moved = true
-          self.cursor.pos = { cursor[1], cursor[2] }
-        else
-          self.cursor.has_moved = false
-          self.cursor.pos = nil
+        -- PERF: If we're testing, skip the debounce
+        if debounce_ms == 0 then
+          return get_cursor_pos()
         end
-      end
 
-      -- PERF: If we're testing, skip the debounce
-      if debounce_ms == 0 then
-        return get_cursor_pos()
-      end
-
-      if debounce then
-        pcall(function()
-          debounce:stop()
-        end)
-      end
-
-      debounce = vim.defer_fn(function()
-        debounce = nil
-        get_cursor_pos()
-      end, debounce_ms)
-    end,
-  })
-
-  api.nvim_create_autocmd("WinLeave", {
-    group = self.aug,
-    buffer = self.chat_bufnr,
-    desc = "Save cursor position when leaving a CodeCompanion chat buffer",
-    callback = function()
-      if self:is_visible() and self.cursor.has_moved then
-        local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
-        if ok then
-          self.cursor.pos = { cursor[1], cursor[2] }
+        if debounce then
+          pcall(function()
+            debounce:stop()
+          end)
         end
-      end
-    end,
-  })
+
+        debounce = vim.defer_fn(function()
+          debounce = nil
+          get_cursor_pos()
+        end, debounce_ms)
+      end,
+    })
+
+    api.nvim_create_autocmd("WinLeave", {
+      group = self.aug,
+      buffer = self.chat_bufnr,
+      desc = "Save cursor position when leaving a CodeCompanion chat buffer",
+      callback = function()
+        if self:is_visible() and self.cursor.has_moved then
+          local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
+          if ok then
+            self.cursor.pos = { cursor[1], cursor[2] }
+          end
+        end
+      end,
+    })
+  end
 
   return self
 end
