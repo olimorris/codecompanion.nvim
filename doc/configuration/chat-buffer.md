@@ -40,7 +40,7 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- inline|split|mini.diff
+      provider = providers.diff, -- inline|split|mini_diff
     },
   },
 })
