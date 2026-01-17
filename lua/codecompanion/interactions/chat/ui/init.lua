@@ -157,11 +157,10 @@ function UI.new(args)
     end,
   })
 
-  -- Save cursor position when leaving the window
   api.nvim_create_autocmd("WinLeave", {
     group = self.aug,
     buffer = self.chat_bufnr,
-    desc = "Save cursor position when leaving CodeCompanion chat buffer",
+    desc = "Save cursor position when leaving a CodeCompanion chat buffer",
     callback = function()
       if self:is_visible() and self.cursor.has_moved then
         local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
