@@ -108,7 +108,7 @@ function UI.new(args)
   api.nvim_create_autocmd("CursorMoved", {
     group = self.aug,
     buffer = self.chat_bufnr,
-    desc = "Track user cursor movement in the CodeCompanion chat buffer",
+    desc = "Track the cursor in a CodeCompanion buffer",
     callback = function()
       if not self:is_visible() then
         return
