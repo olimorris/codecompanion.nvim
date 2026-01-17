@@ -48,7 +48,7 @@ end
 ---@field aug number The autocmd group ID
 ---@field chat_bufnr number The buffer number of the chat
 ---@field chat_id number The unique ID of the chat
----@field cursor { saved?: table, has_moved: boolean } Cursor state tracking
+---@field cursor { has_moved: boolean, pos?: table } Cursor state tracking
 ---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
 ---@field header_ns number The namespace for the header
 ---@field roles table The roles in the chat
@@ -77,8 +77,8 @@ function UI.new(args)
     chat_bufnr = args.chat_bufnr,
     chat_id = args.chat_id,
     cursor = {
-      saved = nil,
       has_moved = false,
+      pos = nil,
     },
     roles = args.roles,
     settings = args.settings,
@@ -132,10 +132,10 @@ function UI.new(args)
         -- not want to force an autoscroll so we save the cursor position
         if cursor[1] ~= last_line + 1 then
           self.cursor.has_moved = true
-          self.cursor.saved = { cursor[1], cursor[2] }
+          self.cursor.pos = { cursor[1], cursor[2] }
         else
           self.cursor.has_moved = false
-          self.cursor.saved = nil
+          self.cursor.pos = nil
         end
       end
 
@@ -166,7 +166,7 @@ function UI.new(args)
       if self:is_visible() and self.cursor.has_moved then
         local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
         if ok then
-          self.cursor.saved = { cursor[1], cursor[2] }
+          self.cursor.pos = { cursor[1], cursor[2] }
         end
       end
     end,
@@ -295,11 +295,11 @@ function UI:open(opts)
   vim.bo[self.chat_bufnr].textwidth = 0
 
   if not opts.toggled then
-    -- Restore the cursor position
-    if self.cursor.saved and self.cursor.has_moved then
+    -- Put the cursor back in the original position
+    if self.cursor.has_moved and self.cursor.pos then
       vim.schedule(function()
         if self:is_visible() then
-          pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.saved)
+          pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.pos)
         end
       end)
     else
@@ -693,7 +693,7 @@ function UI:move_cursor(cursor_has_moved)
         -- If already on last line, allow following
         if cursor[1] == last_line + 1 then
           self.cursor.has_moved = false
-          self.cursor.saved = nil
+          self.cursor.pos = nil
         end
       end
     end
