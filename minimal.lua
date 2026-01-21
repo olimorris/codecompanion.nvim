@@ -15,6 +15,8 @@ load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/ma
 local plugins = {
   {
     "olimorris/codecompanion.nvim",
+    -- Test with local version (delete if not required)
+    -- dir = "~/Code/Neovim/codecompanion.nvim",
     dependencies = {
       { "nvim-lua/plenary.nvim" },
       {
@@ -23,11 +25,10 @@ local plugins = {
         build = ":TSUpdate",
       },
 
-      -- Test with blink.cmp (delete if not required)
+      -- Test with blink.cmp
       {
         "saghen/blink.cmp",
-        lazy = false,
-        version = "*",
+        version = "1.*",
         opts = {
           keymap = {
             preset = "enter",
@@ -41,7 +42,7 @@ local plugins = {
         },
       },
 
-      -- Test with nvim-cmp
+      -- Or, test with nvim-cmp
       -- { "hrsh7th/nvim-cmp" },
     },
     opts = {
@@ -60,6 +61,7 @@ local plugins = {
 
 -- Leaving this comment in to see if the issue author notices ;-)
 -- This is so I can tell if they've really tested with their own minimal.lua file
+-- or if they're just copy-pasting from the docs and pasting it into the issue
 
 require("lazy.minit").repro({ spec = plugins })
 
