@@ -1447,7 +1447,6 @@ function Chat:stop()
     local tool_job = self.current_tool
     self.current_tool = nil
 
-    _G.codecompanion_cancel_tool = true
     pcall(function()
       tool_job.cancel()
     end)

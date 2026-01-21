@@ -141,7 +141,7 @@ Markdown prompts consist of two main parts:
 
 **Optional frontmatter fields:**
 - `opts` - Additional options (see [Options](#options) section)
-- `context` - Pre-loaded context (see [Prompts with Context](#prompts-with-context) section)
+- `context` - Pre-loaded context (see [Context Placeholders](#context-placeholders) section)
 
 **Prompt sections:**
 - `## system` - System messages that set the LLM's behaviour
