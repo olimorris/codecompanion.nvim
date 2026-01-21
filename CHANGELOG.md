@@ -1,5 +1,17 @@
 # Changelog
 
+## [18.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.4.1...v18.5.0) (2026-01-21)
+
+
+### Features
+
+* **ui:** better cursor scrolling in the chat ([#2670](https://github.com/olimorris/codecompanion.nvim/issues/2670)) ([6657e6f](https://github.com/olimorris/codecompanion.nvim/commit/6657e6fd594d3c9f6dd3ab9e26a0c76b8e7082e1))
+
+
+### Bug Fixes
+
+* **chat:** buffers with duplicate short_paths ([#2665](https://github.com/olimorris/codecompanion.nvim/issues/2665)) ([e0780fa](https://github.com/olimorris/codecompanion.nvim/commit/e0780fa9fda504ffb89307cabcb6cbe1ce8eb60c))
+
 ## [18.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.4.0...v18.4.1) (2026-01-16)
 
 
