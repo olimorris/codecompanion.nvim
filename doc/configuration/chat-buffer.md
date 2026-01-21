@@ -582,22 +582,6 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Debug Window]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      -- Alter the sizing of the debug window
-      debug_window = {
-        ---@return number|fun(): number
-        width = vim.o.columns - 5,
-        ---@return number|fun(): number
-        height = vim.o.lines - 2,
-      },
-    },
-  },
-})
-```
-
 ```lua [Floating Window]
 require("codecompanion").setup({
   display = {

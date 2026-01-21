@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 10
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 21
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2048,7 +2048,7 @@ Palette - `description` - Description shown in the Action Palette -
 
 **Optional frontmatter fields:** - `opts` - Additional options (see
 |codecompanion--options| section) - `context` - Pre-loaded context (see
-|codecompanion--prompts-with-context| section)
+|codecompanion--context-placeholders| section)
 
 **Prompt sections:** - `## system` - System messages that set the LLM’s
 behaviour - `## user` - User messages containing your requests
