@@ -20,7 +20,6 @@ T = new_set({
       child.lua([[
         h.teardown_chat_buffer()
         _G.chat = nil
-        _G.codecompanion_current_tool = nil
       ]])
     end,
     post_once = child.stop,
