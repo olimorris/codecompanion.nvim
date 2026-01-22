@@ -39,29 +39,25 @@ function M.show_diff(args)
     vim.api.nvim_set_option_value("filetype", args.ft, { buf = bufnr })
   end
 
-  local diff = require("codecompanion.diff")
-  local ui = require("codecompanion.diff.ui")
+  local diff = require("codecompanion.diff").create({
+    bufnr = bufnr,
+    ft = args.ft,
+    from_lines = args.from_lines,
+    to_lines = args.to_lines,
+    marker_add = args.marker_add,
+    marker_delete = args.marker_delete,
+    inline = args.inline,
+  })
 
-  return ui.show(
-    diff.create({
-      bufnr = bufnr,
-      ft = args.ft,
-      from_lines = args.from_lines,
-      to_lines = args.to_lines,
-      marker_add = args.marker_add,
-      marker_delete = args.marker_delete,
-      inline = args.inline,
-    }),
-    {
-      banner = args.banner,
-      chat_bufnr = args.chat_bufnr,
-      diff_id = args.diff_id,
-      inline = args.inline or false,
-      skip_default_keymaps = args.skip_default_keymaps,
-      title = args.title,
-      tool_name = args.tool_name,
-    }
-  )
+  return require("codecompanion.diff.ui").show(diff, {
+    banner = args.banner,
+    chat_bufnr = args.chat_bufnr,
+    diff_id = args.diff_id,
+    inline = args.inline or false,
+    skip_default_keymaps = args.skip_default_keymaps,
+    title = args.title,
+    tool_name = args.tool_name,
+  })
 end
 
 return M

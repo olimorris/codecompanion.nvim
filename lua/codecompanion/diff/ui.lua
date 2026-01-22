@@ -102,10 +102,6 @@ end
 ---Navigate to next hunk
 ---@param line number
 function DiffUI:next_hunk(line)
-  if self.hunks == 1 then
-    return
-  end
-
   for index, hunk in ipairs(self.diff.hunks) do
     local hunk_line = hunk.pos[1] + 1
     if hunk_line > line then
@@ -128,10 +124,6 @@ end
 ---@param line number
 ---@return nil
 function DiffUI:previous_hunk(line)
-  if self.hunks == 1 then
-    return
-  end
-
   for i = #self.diff.hunks, 1, -1 do
     local hunk = self.diff.hunks[i]
     local hunk_line = hunk.pos[1] + 1

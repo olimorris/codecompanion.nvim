@@ -21,7 +21,7 @@ end
 
 ---Resolve a diff with common cleanup logic
 ---@param diff_ui CodeCompanion.DiffUI
----@param opts { event: string, log_action: string, before_cleanup?: fun(diff_ui: CodeCompanion.DiffUI) }
+---@param opts { event: string, log_action: string, callback?: fun(diff_ui: CodeCompanion.DiffUI) }
 ---@return boolean success Returns false if already resolved
 local function resolve_diff(diff_ui, opts)
   if diff_ui.resolved then
@@ -32,8 +32,8 @@ local function resolve_diff(diff_ui, opts)
   log:trace("[Diff] %s diff for id=%s", opts.log_action, diff_ui.diff_id)
   utils.fire(opts.event, { id = diff_ui.diff_id })
 
-  if opts.before_cleanup then
-    opts.before_cleanup(diff_ui)
+  if opts.callback then
+    opts.callback(diff_ui)
   end
 
   diff_ui:clear()
@@ -45,11 +45,14 @@ end
 
 M.always_accept = {
   desc = "Always accept changes from this chat buffer",
-  callback = function(diff_ui)
+  callback = function(diff_ui, cb)
     resolve_diff(diff_ui, {
       event = "DiffAccepted",
       log_action = "Accepting",
-      before_cleanup = function(ui)
+      callback = function(ui)
+        if cb then
+          return cb(ui)
+        end
         local approvals = require("codecompanion.interactions.chat.tools.approvals")
         approvals:always(ui.chat_bufnr, ui.tool_name)
       end,
