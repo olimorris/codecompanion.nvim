@@ -40,6 +40,7 @@ local uv = vim.uv
 ---@field adapter CodeCompanion.ACPAdapter
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
 ---@field pending_responses table<number, CodeCompanion.ACP.Connection.PendingResponse>
+---@field pending_callbacks table<number, fun(result: any, err: any)> Async callbacks for RPC requests
 ---@field session_id string|nil
 ---@field _agent_info {agentCapabilities: ACP.agentCapabilities, authMethods: ACP.authMethods, protocolVersion: number}|nil
 ---@field _initialized boolean
@@ -93,6 +94,7 @@ function Connection.new(args)
     adapter = args.adapter,
     adapter_modified = {},
     pending_responses = {},
+    pending_callbacks = {},
     session_id = args.session_id,
     methods = transform_static_methods(args.opts),
     _initialized = false,
@@ -240,6 +242,194 @@ function Connection:connect_and_initialize()
   return self
 end
 
+---Connect and initialize the ACP process asynchronously (non-blocking)
+---This is the async version that doesn't block the UI
+---@param callback fun(connection: CodeCompanion.ACP.Connection|nil, err: string|nil)
+---@return nil
+function Connection:connect_and_initialize_async(callback)
+  if self:is_connected() then
+    callback(self, nil)
+    return
+  end
+
+  if not self:start_agent_process() then
+    callback(nil, "Failed to start agent process")
+    return
+  end
+
+  -- Step 1: Initialize
+  self:send_rpc_request_async(METHODS.INITIALIZE, self.adapter_modified.parameters, function(initialized, err)
+    if err or not initialized then
+      log:error("[acp::connect_and_initialize_async] Failed to initialize: %s", err and err.message or "unknown")
+      callback(nil, "Failed to initialize")
+      return
+    end
+
+    self._agent_info = initialized
+    log:debug("[acp::connect_and_initialize_async] Agent info: %s", initialized)
+
+    -- Ensure the protocol version matches
+    if
+      initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
+    then
+      log:warn(
+        "[acp::connect_and_initialize_async] Agent selected protocolVersion=%s (client sent=%s)",
+        initialized.protocolVersion,
+        self.adapter_modified.parameters.protocolVersion
+      )
+    end
+
+    self._initialized = true
+
+    -- Ensure that we ALWAYS disconnect when exiting Neovim
+    api.nvim_create_autocmd("VimLeavePre", {
+      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
+      callback = function()
+        pcall(function()
+          return self:disconnect()
+        end)
+      end,
+    })
+
+    -- Step 2: Handle authentication
+    self:_async_authenticate(function(auth_ok, auth_err)
+      if not auth_ok then
+        callback(nil, auth_err or "Authentication failed")
+        return
+      end
+
+      -- Step 3: Create/load session
+      self:_async_create_session(function(session_ok, session_err)
+        if not session_ok then
+          callback(nil, session_err or "Session creation failed")
+          return
+        end
+
+        -- Apply default model (sync, doesn't need async)
+        self:apply_default_model()
+
+        callback(self, nil)
+      end)
+    end)
+  end)
+end
+
+---Async authentication step
+---@param callback fun(success: boolean, err: string|nil)
+---@private
+function Connection:_async_authenticate(callback)
+  -- Allow adapters to handle authentication themselves
+  if
+    not self._authenticated
+    and self.adapter_modified
+    and self.adapter_modified.handlers
+    and self.adapter_modified.handlers.auth
+  then
+    local ok, adapter_authenticated = pcall(self.adapter_modified.handlers.auth, self.adapter_modified)
+    if not ok then
+      log:error("[acp::_async_authenticate] Adapter auth hook failed: %s", adapter_authenticated)
+      callback(false, "Adapter auth hook failed")
+      return
+    end
+    if adapter_authenticated == true then
+      self._authenticated = true
+    end
+  end
+
+  -- Authenticate only if agent supports it (authMethods not empty)
+  if not self._authenticated then
+    local auth_methods = (self._agent_info and self._agent_info.authMethods) or {}
+    if #auth_methods > 0 then
+      local wanted = self.adapter_modified.defaults.auth_method
+      local methodId
+      for _, m in ipairs(auth_methods) do
+        if m.id == wanted then
+          methodId = m.id
+          break
+        end
+      end
+      methodId = methodId or (auth_methods[1] and auth_methods[1].id)
+
+      if methodId then
+        self:send_rpc_request_async(METHODS.AUTHENTICATE, { methodId = methodId }, function(result, err)
+          if err then
+            log:error("[acp::_async_authenticate] Failed to authenticate with method %s", methodId)
+            callback(false, "Failed to authenticate")
+            return
+          end
+          self._authenticated = true
+          callback(true, nil)
+        end)
+        return
+      end
+    end
+    self._authenticated = true
+  end
+
+  callback(true, nil)
+end
+
+---Async session creation step
+---@param callback fun(success: boolean, err: string|nil)
+---@private
+function Connection:_async_create_session(callback)
+  local can_load = self._agent_info
+    and self._agent_info.agentCapabilities
+    and self._agent_info.agentCapabilities.loadSession
+  local session_args = {
+    cwd = vim.fn.getcwd(),
+    mcpServers = self.adapter_modified.defaults.mcpServers or {},
+  }
+
+  -- Try to load existing session
+  if self.session_id and can_load then
+    self:send_rpc_request_async(
+      METHODS.SESSION_LOAD,
+      vim.tbl_extend("force", session_args, { sessionId = self.session_id }),
+      function(result, err)
+        if err then
+          -- Load failed, create new session
+          self:_async_create_new_session(session_args, callback)
+        else
+          callback(true, nil)
+        end
+      end
+    )
+    return
+  end
+
+  -- Create new session
+  self:_async_create_new_session(session_args, callback)
+end
+
+---Async new session creation
+---@param session_args table
+---@param callback fun(success: boolean, err: string|nil)
+---@private
+function Connection:_async_create_new_session(session_args, callback)
+  self:send_rpc_request_async(METHODS.SESSION_NEW, session_args, function(new_session, err)
+    if err or not new_session or not new_session.sessionId then
+      log:error("[acp::_async_create_new_session] Failed to create session")
+      callback(false, "Failed to create session")
+      return
+    end
+
+    self.session_id = new_session.sessionId
+
+    -- Cache session modes and models if provided
+    if new_session.modes then
+      self._modes = new_session.modes
+      log:debug("[acp::connect_and_initialize_async] Available modes: %s", new_session.modes)
+    end
+    if new_session.models then
+      self._models = new_session.models
+      log:debug("[acp::connect_and_initialize_async] Available models: %s", new_session.models)
+    end
+
+    callback(true, nil)
+  end)
+end
+
 ---Apply the default model from the adapter config
 ---@return boolean
 function Connection:apply_default_model()
@@ -364,6 +554,43 @@ function Connection:send_rpc_request(method, params)
   return self:wait_for_rpc_response(id)
 end
 
+---Send an async request and invoke callback when response arrives (non-blocking)
+---@param method string
+---@param params table
+---@param callback fun(result: any, err: any)
+---@return boolean success Whether the request was sent
+function Connection:send_rpc_request_async(method, params, callback)
+  if not self._state.handle then
+    if callback then
+      callback(nil, { message = "Process not running" })
+    end
+    return false
+  end
+
+  local id = self._state.next_id
+  self._state.next_id = id + 1
+
+  local request = {
+    jsonrpc = "2.0",
+    id = id,
+    method = method,
+    params = params or {},
+  }
+
+  -- Register callback before sending to avoid race condition
+  self.pending_callbacks[id] = callback
+
+  if not self:write_message(self.methods.encode(request) .. "\n") then
+    self.pending_callbacks[id] = nil
+    if callback then
+      callback(nil, { message = "Failed to write message" })
+    end
+    return false
+  end
+
+  return true
+end
+
 ---Send a result response to the ACP process
 ---@param id number
 ---@param result table
@@ -386,23 +613,22 @@ end
 
 ---Wait for a specific response ID
 ---@param id number
----@return nil
+---@return table|nil
 function Connection:wait_for_rpc_response(id)
-  local start_time = uv.hrtime()
-  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
+  local timeout = self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT
 
-  while uv.hrtime() - start_time < timeout do
-    vim.wait(TIMEOUTS.RESPONSE_POLL)
+  local ok = vim.wait(timeout, function()
+    return self.pending_responses[id] ~= nil
+  end, TIMEOUTS.RESPONSE_POLL)
 
-    if self.pending_responses[id] then
-      local result, err = unpack(self.pending_responses[id])
-      self.pending_responses[id] = nil
-      return err and nil or result
-    end
+  if not ok then
+    log:error("[acp::wait_for_rpc_response] Request timeout ID %s", id)
+    return nil
   end
 
-  log:error("[acp::wait_for_rpc_response] Request timeout ID %s", id)
-  return nil
+  local result, err = unpack(self.pending_responses[id])
+  self.pending_responses[id] = nil
+  return err and nil or result
 end
 
 ---Setup the adapter, making a copy and setting environment variables
@@ -488,8 +714,24 @@ end
 ---Handle response to our request
 ---@param response table
 function Connection:store_rpc_response(response)
+  local id = response.id
+
+  -- Check for async callback first
+  local callback = self.pending_callbacks[id]
+  if callback then
+    self.pending_callbacks[id] = nil
+    if response.error then
+      callback(nil, response.error)
+    else
+      callback(response.result, nil)
+    end
+    -- Don't store in pending_responses for async requests
+    return
+  end
+
+  -- Synchronous request handling (for vim.wait polling)
   if response.error then
-    self.pending_responses[response.id] = { nil, response.error }
+    self.pending_responses[id] = { nil, response.error }
 
     -- Sometimes errors are passed as part of the response so we need to handle them
     if self._active_prompt and self._active_prompt.handle_error then
@@ -504,7 +746,7 @@ function Connection:store_rpc_response(response)
     end
     return
   end
-  self.pending_responses[response.id] = { response.result, nil }
+  self.pending_responses[id] = { response.result, nil }
 end
 
 ---Send a notification to the ACP process

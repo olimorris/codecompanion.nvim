@@ -62,6 +62,23 @@ end
 ---Ensure ACP connection is established
 ---@return boolean success
 function ACPHandler:ensure_connection()
+  -- If connection already exists and is connected, we're good
+  if self.chat.acp_connection and self.chat.acp_connection:is_connected() then
+    return true
+  end
+
+  -- If connection exists but isn't connected yet (async connection in progress),
+  -- we need to wait for it or establish a new sync connection
+  if self.chat.acp_connection and not self.chat.acp_connection:is_connected() then
+    -- Connection was started async but not yet complete
+    -- Use synchronous connect to complete it (this will be fast if process already started)
+    local connected = self.chat.acp_connection:connect_and_initialize()
+    if not connected then
+      return false
+    end
+  end
+
+  -- No connection exists, create one synchronously
   if not self.chat.acp_connection then
     self.chat.acp_connection = get_client().new({
       adapter = self.chat.adapter, --[[@type CodeCompanion.ACPAdapter]]
