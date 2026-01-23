@@ -55,13 +55,10 @@ M.always_accept = {
     resolve_diff(diff_ui, {
       event = "DiffAccepted",
       log_action = "Accepting",
-      custom_handler = diff_ui.keymaps.on_accept or diff_ui.on_accept,
+      custom_handler = diff_ui.keymaps.on_accept,
       callback = function(ui)
         if ui.keymaps.on_always_accept then
           return ui.keymaps.on_always_accept(ui)
-        end
-        if ui.on_always_accept then
-          return ui.on_always_accept(ui)
         end
 
         -- Default action: add the buffer to the approval class list
