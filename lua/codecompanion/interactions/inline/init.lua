@@ -780,7 +780,7 @@ function Inline:start_diff(args)
 
   local approvals = require("codecompanion.interactions.chat.tools.approvals")
 
-  -- If already approved, write directly and skip diff
+  -- If the buffer has been added to the auto approval list, skip the diff
   if approvals:is_approved(self.bufnr, { tool_name = "inline" }) then
     self:place(args.placement)
     pcall(vim.cmd.undojoin)
@@ -801,32 +801,14 @@ function Inline:start_diff(args)
     ft = self.buffer_context.filetype,
     inline = true,
     banner = self:build_diff_banner(),
-  })
-
-  -- Listen for diff events
-  self:setup_diff_listeners()
-end
-
----Set up autocmd listeners for diff accept/reject events
----@return nil
-function Inline:setup_diff_listeners()
-  api.nvim_create_autocmd("User", {
-    group = self.aug,
-    pattern = "CodeCompanionDiffAccepted",
-    callback = function(event)
-      if event.data and event.data.id == self.id then
-        self:on_diff_accepted()
-      end
+    on_accept = function()
+      self:on_diff_accepted()
     end,
-  })
-
-  api.nvim_create_autocmd("User", {
-    group = self.aug,
-    pattern = "CodeCompanionDiffRejected",
-    callback = function(event)
-      if event.data and event.data.id == self.id then
-        self:on_diff_rejected()
-      end
+    on_reject = function()
+      self:on_diff_rejected()
+    end,
+    on_always_accept = function()
+      approvals:always(self.buffer_context.bufnr, "inline")
     end,
   })
 end

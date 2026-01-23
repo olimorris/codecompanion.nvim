@@ -1,6 +1,5 @@
 local config = require("codecompanion.config")
 local diff_utils = require("codecompanion.diff.utils")
-local keymaps = require("codecompanion.diff.keymaps")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
@@ -19,7 +18,11 @@ local M = {}
 ---@field diff_id number
 ---@field hunks number The total number of hunks in the diff
 ---@field inline? boolean Whether the diff is shown inline or in a floating window
+---@field keymaps table<string, fun(diff_ui: CodeCompanion.DiffUI)> Custom keymap callbacks (on_accept, on_reject, on_always_accept)
 ---@field ns number The namespace ID for diff extmarks
+---@field on_accept? fun(diff_ui: CodeCompanion.DiffUI) Custom callback to override default accept behavior (deprecated, use keymaps.on_accept)
+---@field on_always_accept? fun(diff_ui: CodeCompanion.DiffUI) Custom callback to override default always-accept approval behavior (deprecated, use keymaps.on_always_accept)
+---@field on_reject? fun(diff_ui: CodeCompanion.DiffUI) Custom callback to override default reject behavior (deprecated, use keymaps.on_reject)
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string This is essential for approvals to work with tools
 ---@field winnr number
@@ -174,6 +177,8 @@ end
 ---@return nil
 function DiffUI:setup_keymaps(opts)
   opts = opts or {}
+
+  local keymaps = require("codecompanion.diff.keymaps")
 
   local inline_keymaps = config.interactions.inline.keymaps
 
@@ -527,15 +532,28 @@ local function setup_close_handler(diff_ui, group, skip_default_keymaps)
       buffer = bufnr,
       once = true,
       callback = function()
-        keymaps.close_window.callback(diff_ui)
+        require("codecompanion.diff.keymaps").close_window.callback(diff_ui)
       end,
     })
   end
 end
 
+---@class CodeCompanion.DiffUIOptions
+---@field chat_bufnr? number
+---@field banner? string
+---@field diff_id? number
+---@field float? boolean
+---@field inline? boolean
+---@field keymaps.on_always_accept? fun(diff_ui: CodeCompanion.DiffUI)
+---@field keymaps.on_accept? fun(diff_ui: CodeCompanion.DiffUI)
+---@field keymaps.on_reject? fun(diff_ui: CodeCompanion.DiffUI)
+---@field skip_default_keymaps? boolean
+---@field title? string
+---@field tool_name? string
+
 ---Show a diff in a floating window
 ---@param diff CC.Diff The diff object from diff.create()
----@param opts? { diff_id?: number, float?: boolean, inline?: boolean, title?: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, tool_name?: string }
+---@param opts? CodeCompanion.DiffUIOptions
 ---@return CodeCompanion.DiffUI
 function M.show(diff, opts)
   opts = vim.tbl_extend("force", { float = true }, opts or {})
@@ -554,6 +572,18 @@ function M.show(diff, opts)
 
   local diff_id = opts.diff_id or math.random(10000000)
 
+  -- Support both opts.keymaps.on_* and opts.on_* for backward compatibility
+  local keymaps = opts.keymaps or {}
+  if opts.on_accept then
+    keymaps.on_accept = opts.on_accept
+  end
+  if opts.on_reject then
+    keymaps.on_reject = opts.on_reject
+  end
+  if opts.on_always_accept then
+    keymaps.on_always_accept = opts.on_always_accept
+  end
+
   -- Create diff UI object
   ---@type CodeCompanion.DiffUI
   local diff_ui = setmetatable({
@@ -565,7 +595,11 @@ function M.show(diff, opts)
     diff_id = diff_id,
     hunks = #diff.hunks,
     inline = opts.inline or not is_float,
+    keymaps = keymaps,
     ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
+    on_accept = opts.on_accept,
+    on_always_accept = opts.on_always_accept,
+    on_reject = opts.on_reject,
     resolved = false,
     tool_name = opts.tool_name,
     winnr = winnr,
