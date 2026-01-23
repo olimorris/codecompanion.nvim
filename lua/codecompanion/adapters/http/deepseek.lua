@@ -134,7 +134,7 @@ return {
       choices = {
         ["deepseek-reasoner"] = {
           formatted_name = "DeepSeek Reasoner",
-          opts = { can_reason = true, can_use_tools = false },
+          opts = { can_reason = true, can_use_tools = true },
         },
         ["deepseek-chat"] = { formatted_name = "DeepSeek Chat", opts = { can_use_tools = true } },
       },
