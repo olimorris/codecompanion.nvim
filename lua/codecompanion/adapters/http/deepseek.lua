@@ -59,6 +59,7 @@ return {
       messages = adapter_utils.merge_messages(messages)
       messages = adapter_utils.merge_system_messages(messages)
 
+      local adapter = self
       messages = vim
         .iter(messages)
         :map(function(msg)
@@ -79,6 +80,21 @@ return {
               msg.tool_call_id = msg.tools.call_id
             end
             msg.tools = nil
+          end
+
+          -- Process reasoning for DeepSeek Reasoner model
+          if msg.reasoning then
+            if type(msg.reasoning) == "table" and msg.reasoning.content then
+              msg.reasoning_content = msg.reasoning.content
+            elseif type(msg.reasoning) == "string" then
+              msg.reasoning_content = msg.reasoning
+            end
+            msg.reasoning = nil
+          end
+
+          -- Ensure reasoning_content field exists for assistant messages in reasoning mode
+          if adapter.opts.can_reason and msg.role == adapter.roles.llm then
+            msg.reasoning_content = msg.reasoning_content or ""
           end
 
           return msg
