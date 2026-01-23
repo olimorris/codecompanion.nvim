@@ -463,7 +463,7 @@ return {
         if data and data ~= "" then
           local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
 
-          if not ok or not json.out then
+          if not ok or not json.output then
             log:error("Error decoding JSON: %s", data.body)
             return { status = "error", output = json }
           end
