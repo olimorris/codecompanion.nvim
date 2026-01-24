@@ -16,42 +16,6 @@ local function clear_map(keymaps, bufnr)
   end
 end
 
-M.accept_change = {
-  desc = "Accept the change from the LLM",
-  callback = function(inline)
-    if inline.diff then
-      log:trace("[Inline] Accepting diff for id=%s", tostring(inline.id))
-      inline.diff:accept()
-      clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
-    end
-  end,
-}
-
-M.reject_change = {
-  desc = "Reject the change from the LLM",
-  callback = function(inline)
-    if inline.diff then
-      log:trace("[Inline] Rejecting diff for id=%d", tostring(inline.id))
-      inline.diff:reject()
-      clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
-    end
-  end,
-}
-
-M.always_accept = {
-  desc = "Accept and enable auto mode",
-  callback = function(obj)
-    local approvals = require("codecompanion.interactions.chat.tools.approvals")
-    approvals:always(obj.bufnr, { tool_name = obj.tool_name })
-
-    if obj.diff then
-      log:trace("[Inline] Auto-accepting diff for id=%s", tostring(obj.id))
-      obj.diff:accept()
-      clear_map(config.interactions.inline.keymaps, obj.diff.bufnr)
-    end
-  end,
-}
-
 M.stop = {
   callback = function(inline)
     inline:stop()

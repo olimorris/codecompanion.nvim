@@ -29,6 +29,11 @@ local function get_adapters()
   return _cached_adapters
 end
 
+-- Setup the commands used during testing
+if config.opts.test_mode then
+  require("codecompanion.commands.diff").setup()
+end
+
 ---@type CodeCompanion.Command[]
 return {
   {
