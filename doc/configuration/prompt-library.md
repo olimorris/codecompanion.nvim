@@ -14,7 +14,7 @@ CodeCompanion enables you to leverage prompt templates to quickly interact with 
 > [!NOTE]
 > See the [Creating Prompts](#creating-prompts) section to learn how to create your own.
 
-There are two ways to add prompts to the prompt library. You can either define them directly in your configuration file as Lua tables, or you can store them as markdown files in your filesystem and reference them in your configuration. The files can be nested and can also be symlinked.
+There are two ways to add prompts to the prompt library. You can either define them directly in your configuration file as Lua tables, or you can store them as markdown files in your filesystem and reference them in your configuration. The files can be nested and symlinked.
 
 ::: code-group
 
