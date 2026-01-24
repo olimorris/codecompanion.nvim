@@ -5280,8 +5280,8 @@ required.
                 role = "user",
                 opts = { auto_submit = true },
                 -- Scope this prompt to the cmd_runner tool
-                condition = function()
-                  return _G.codecompanion_current_tool == "cmd_runner"
+                condition = function(chat)
+                  return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
                 end,
                 -- Repeat until the tests pass, as indicated by the testing flag
                 -- which the cmd_runner tool sets on the chat buffer
