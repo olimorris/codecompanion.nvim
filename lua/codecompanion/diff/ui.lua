@@ -47,14 +47,14 @@ local function get_default_banner()
     return _cached_default_banner
   end
 
-  local inline_keymaps = config.interactions.inline.keymaps
+  local shared_keymaps = config.interactions.shared.keymaps
   _cached_default_banner = fmt(
     "%s Always Accept | %s Accept | %s Reject | %s/%s Next/Prev hunks | q Close",
-    inline_keymaps.always_accept.modes.n,
-    inline_keymaps.accept_change.modes.n,
-    inline_keymaps.reject_change.modes.n,
-    inline_keymaps.next_hunk.modes.n,
-    inline_keymaps.previous_hunk.modes.n
+    shared_keymaps.always_accept.modes.n,
+    shared_keymaps.accept_change.modes.n,
+    shared_keymaps.reject_change.modes.n,
+    shared_keymaps.next_hunk.modes.n,
+    shared_keymaps.previous_hunk.modes.n
   )
   return _cached_default_banner
 end
@@ -177,10 +177,10 @@ function DiffUI:setup_keymaps(opts)
 
   local keymaps = require("codecompanion.diff.keymaps")
 
-  local inline_keymaps = config.interactions.inline.keymaps
+  local shared_keymaps = config.interactions.shared.keymaps
 
   if not opts.skip_default_keymaps then
-    for name, keymap in pairs(inline_keymaps) do
+    for name, keymap in pairs(shared_keymaps) do
       local handler = keymaps[name]
       if handler then
         for mode, lhs in pairs(keymap.modes) do
@@ -190,8 +190,8 @@ function DiffUI:setup_keymaps(opts)
     end
   else
     -- Provide minimal navigation controls when skipping defaults
-    self:_set_keymap("n", inline_keymaps.next_hunk.modes.n, keymaps.next_hunk)
-    self:_set_keymap("n", inline_keymaps.previous_hunk.modes.n, keymaps.previous_hunk)
+    self:_set_keymap("n", shared_keymaps.next_hunk.modes.n, keymaps.next_hunk)
+    self:_set_keymap("n", shared_keymaps.previous_hunk.modes.n, keymaps.previous_hunk)
   end
 
   -- Always add 'q' to close
@@ -557,8 +557,7 @@ function M.show(diff, opts)
 
   local is_inline = opts.inline == true
   local is_float = opts.float ~= false and not is_inline
-  local cfg =
-    vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.chat.diff_window or {})
+  local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.diff.window or {})
 
   -- Create window or inline display
   local bufnr, winnr = create_diff_display(diff, {

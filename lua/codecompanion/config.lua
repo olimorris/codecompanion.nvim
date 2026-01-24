@@ -693,37 +693,6 @@ The user is working on a %s machine. Please respond with system specific command
     inline = {
       adapter = "copilot",
       keymaps = {
-        always_accept = {
-          callback = "keymaps.always_accept",
-          description = "Always accept changes in this buffer",
-          index = 1,
-          modes = { n = "g1" },
-          opts = { nowait = true },
-        },
-        accept_change = {
-          callback = "keymaps.accept_change",
-          description = "Accept change",
-          index = 2,
-          modes = { n = "g2" },
-          opts = { nowait = true, noremap = true },
-        },
-        reject_change = {
-          callback = "keymaps.reject_change",
-          description = "Reject change",
-          index = 3,
-          modes = { n = "g3" },
-          opts = { nowait = true, noremap = true },
-        },
-        next_hunk = {
-          callback = "keymaps.next_hunk",
-          description = "Go to next hunk",
-          modes = { n = "}" },
-        },
-        previous_hunk = {
-          callback = "keymaps.previous_hunk",
-          description = "Go to previous hunk",
-          modes = { n = "{" },
-        },
         stop = {
           callback = "keymaps.stop",
           description = "Stop request",
@@ -767,6 +736,41 @@ The user is working on a %s machine. Please respond with system specific command
 - Do not provide any explanations
 - Generate an command that is valid and can be run in Neovim
 - Ensure the command is relevant to the user's request]],
+      },
+    },
+    shared = {
+      keymaps = {
+        always_accept = {
+          callback = "keymaps.always_accept",
+          description = "Always accept changes in this buffer",
+          index = 1,
+          modes = { n = "g1" },
+          opts = { nowait = true },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          description = "Accept change",
+          index = 2,
+          modes = { n = "g2" },
+          opts = { nowait = true, noremap = true },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          description = "Reject change",
+          index = 3,
+          modes = { n = "g3" },
+          opts = { nowait = true, noremap = true },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          description = "Go to next hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          description = "Go to previous hunk",
+          modes = { n = "{" },
+        },
       },
     },
   },
@@ -928,11 +932,6 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {},
       },
 
-      -- Options for any diff windows (extends from floating_window)
-      diff_window = {
-        opts = {},
-      },
-
       -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
@@ -947,8 +946,8 @@ The user is working on a %s machine. Please respond with system specific command
       show_reasoning = true, -- Show reasoning content in the chat buffer?
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---The function to display the token count
@@ -961,6 +960,10 @@ The user is working on a %s machine. Please respond with system specific command
     },
     diff = {
       enabled = true,
+      -- Options for any diff windows (extends from floating_window)
+      window = {
+        opts = {},
+      },
       word_highlights = {
         additions = true,
         deletions = true,
@@ -1030,8 +1033,8 @@ M.setup = function(args)
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
+  M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
 
-  -- Set the diagnostic namespace for the chat buffer settings
   M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
 

@@ -40,7 +40,7 @@ local function resolve_diff(diff_ui, opts)
 
   diff_ui:clear()
   diff_ui:close()
-  clear_map(config.interactions.inline.keymaps, diff_ui.bufnr)
+  clear_map(config.interactions.shared.keymaps, diff_ui.bufnr)
 
   return true
 end

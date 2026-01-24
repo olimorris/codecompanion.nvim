@@ -85,8 +85,8 @@ end
 ---@param kind_map table<string, string> kind -> optionId
 ---@return string
 local function build_banner(normalized, kind_map)
-  local next_hunk = config.interactions.inline.keymaps.next_hunk.modes.n
-  local previous_hunk = config.interactions.inline.keymaps.previous_hunk.modes.n
+  local next_hunk = config.interactions.shared.keymaps.next_hunk.modes.n
+  local previous_hunk = config.interactions.shared.keymaps.previous_hunk.modes.n
 
   local parts = {}
   local sorted_kinds = vim.tbl_keys(kind_map)

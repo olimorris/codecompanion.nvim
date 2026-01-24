@@ -17,13 +17,13 @@ T = new_set({
         cfg.display.chat.floating_window = cfg.display.chat.floating_window or {
           width = 60, height = 12, row = "center", col = "center", relative = "editor", opts = {},
         }
-        cfg.display.chat.diff_window = cfg.display.chat.diff_window or {}
+        cfg.display.diff.window = cfg.display.diff.window or {}
         cfg.interactions = cfg.interactions or {}
         cfg.interactions.chat = cfg.interactions.chat or {}
         cfg.interactions.chat.opts = cfg.interactions.chat.opts or {}
         cfg.interactions.chat.keymaps = cfg.interactions.chat.keymaps or {}
         cfg.interactions.inline = cfg.interactions.inline or {}
-        cfg.interactions.inline.keymaps = cfg.interactions.inline.keymaps or {
+        cfg.interactions.shared.keymaps = cfg.interactions.shared.keymaps or {
           next_hunk = { modes = { n = "}" } },
           previous_hunk = { modes = { n = "{" } },
           accept_change = { modes = { n = "ga" } },

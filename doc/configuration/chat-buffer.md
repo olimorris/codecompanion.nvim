@@ -37,67 +37,26 @@ There are a number of configuration option available to you:
 
 ::: code-group
 
-```lua [Select Provider]
+```lua [Display]
 require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- inline|split|mini_diff
-    },
-  },
-})
-```
-
-```lua [Inline Provider]
-require("codecompanion").setup({
-  display = {
-    diff = {
-      provider_opts = {
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
+      word_highlights = {
+        additions = true,
+        deletions = true,
       },
     },
   },
 })
 ```
 
-```lua [Split Provider]
+```lua [Window Opts] {5-17}
 require("codecompanion").setup({
   display = {
     diff = {
-      provider_opts = {
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Diff Windows]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      diff_window = {
+      enabled = true,
+      window = {
         ---@return number|fun(): number
         width = function()
           return math.min(120, vim.o.columns - 10)
@@ -110,6 +69,10 @@ require("codecompanion").setup({
           number = true,
         },
       },
+      word_highlights = {
+        additions = true,
+        deletions = true,
+      },
     },
   },
 })
@@ -117,36 +80,16 @@ require("codecompanion").setup({
 
 :::
 
-The keymaps for accepting and rejecting the diff sit within the `inline` interaction configuration and can be changed via:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    inline = {
-      keymaps = {
-        accept_change = {
-          modes = { n = "gda" }, -- Remember this as DiffAccept
-        },
-        reject_change = {
-          modes = { n = "gdr" }, -- Remember this as DiffReject
-        },
-        always_accept = {
-          modes = { n = "gdy" }, -- Remember this as DiffYolo
-        },
-      },
-    },
-  },
-})
-```
-
 ## Keymaps
 
 > [!NOTE]
 > The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
 
-You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
+You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc.
 
-```lua
+::: code-group
+
+```lua [Chat] {3}
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -159,18 +102,70 @@ require("codecompanion").setup({
           modes = { n = "<C-c>", i = "<C-c>" },
           opts = {},
         },
-        -- Add further custom keymaps here
+        -- Change further custom keymaps here
+        -- ...
+        -- Set a keymap to be false to disable it
+        some_other_keymap = false,
       },
     },
   },
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
+```lua [Inline] {3}
+require("codecompanion").setup({
+  interactions = {
+    inline = {
+      keymaps = {
+        stop = {
+          callback = "keymaps.stop",
+          description = "Stop request",
+          modes = { n = "q" },
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [Diff] {3}
+require("codecompanion").setup({
+  interactions = {
+    shared = {
+      keymaps = {
+        always_accept = {
+          callback = "keymaps.always_accept",
+          modes = { n = "g1" },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          modes = { n = "g2" },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          modes = { n = "g3" },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          modes = { n = "{" },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+For the chat interaction, the keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Prompt Decorator
 
-It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
+It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
 
 ```lua
 require("codecompanion").setup({
@@ -192,8 +187,6 @@ require("codecompanion").setup({
 ```
 
 The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).
-
-
 
 ## Slash Commands
 
@@ -374,7 +367,7 @@ require("codecompanion").setup({
 
 ### Approvals
 
-CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution.
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/tools/#approvals) section for more information.
 
 ::: code-group
 

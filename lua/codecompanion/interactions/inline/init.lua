@@ -763,12 +763,12 @@ end
 ---Build the banner text for the inline diff
 ---@return string
 function Inline:build_diff_banner()
-  local inline_keymaps = config.interactions.inline.keymaps
+  local keys = config.interactions.shared.keymaps
   return fmt(
     "%s Accept | %s Reject | %s Always Accept",
-    inline_keymaps.accept_change.modes.n,
-    inline_keymaps.reject_change.modes.n,
-    inline_keymaps.always_accept.modes.n
+    keys.accept_change.modes.n,
+    keys.reject_change.modes.n,
+    keys.always_accept.modes.n
   )
 end
 

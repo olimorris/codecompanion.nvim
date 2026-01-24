@@ -486,6 +486,9 @@ return {
     },
     diff = {
       enabled = false,
+      window = {
+        opts = {},
+      },
     },
     icons = {
       loading = " ",
