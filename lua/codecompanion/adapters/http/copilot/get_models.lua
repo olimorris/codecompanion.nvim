@@ -112,9 +112,6 @@ local function fetch_async(adapter, opts)
               if endpoint == "/responses" then
                 internal_endpoint = "responses"
                 break
-              elseif endpoint ~= "/chat/completions" then
-                log:debug("Copilot Adapter: Skipping unsupported endpoint '%s' for model '%s'", endpoint, model.id)
-                goto continue
               end
             end
           end
