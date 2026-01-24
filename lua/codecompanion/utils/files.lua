@@ -392,13 +392,18 @@ end
 
 ---Recursively scan a directory and return all file paths
 ---@param dir_path string The directory path to scan
----@param opts? { patterns?: string|string[] } Optional patterns to filter files
+---@param opts? { patterns?: string|string[], max_depth?: number } Optional patterns to filter files and max recursion depth
 ---@return string[] files List of absolute file paths
 function M.scan_directory(dir_path, opts)
   opts = opts or {}
   local files = {}
+  local max_depth = opts.max_depth
 
-  local function scan_recursively(path)
+  local function scan_recursively(path, depth)
+    if max_depth and depth > max_depth then
+      return
+    end
+
     local handle = uv.fs_scandir(path)
     if not handle then
       return
@@ -413,8 +418,8 @@ function M.scan_directory(dir_path, opts)
       local full_path = vim.fs.joinpath(path, name)
 
       if type == "directory" then
-        scan_recursively(full_path)
-      elseif type == "file" then
+        scan_recursively(full_path, depth + 1)
+      elseif type == "file" or type == "link" then
         if opts.patterns then
           if M.match_patterns(name, opts.patterns) then
             table.insert(files, full_path)
@@ -426,7 +431,7 @@ function M.scan_directory(dir_path, opts)
     end
   end
 
-  scan_recursively(dir_path)
+  scan_recursively(dir_path, 0)
   return files
 end
 
