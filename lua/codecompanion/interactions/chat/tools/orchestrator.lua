@@ -114,8 +114,6 @@ function Orchestrator.new(tools, id)
     tools = tools,
   }, { __index = Orchestrator })
 
-  _G.codecompanion_cancel_tool = false
-
   return self
 end
 
@@ -127,7 +125,6 @@ function Orchestrator:_setup_handlers()
       if not self.tool then
         return
       end
-      _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         return self.tool.handlers.setup(self.tool, self.tools)
       end
@@ -234,6 +231,7 @@ end
 ---@param self CodeCompanion.Tools.Orchestrator
 ---@return nil
 function Orchestrator:_finalize_tools()
+  self.tools.tool = nil
   return utils.fire("ToolsFinished", { id = self.id, bufnr = self.tools.bufnr })
 end
 

@@ -518,6 +518,7 @@ function Chat.new(args)
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
+    aug = self.aug,
     chat_id = self.id,
     chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
@@ -1448,7 +1449,6 @@ function Chat:stop()
     local tool_job = self.current_tool
     self.current_tool = nil
 
-    _G.codecompanion_cancel_tool = true
     pcall(function()
       tool_job.cancel()
     end)
@@ -1509,9 +1509,6 @@ function Chat:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
-  end
-  if self.ui.aug then
-    api.nvim_clear_autocmds({ group = self.ui.aug })
   end
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()

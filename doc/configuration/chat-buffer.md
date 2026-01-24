@@ -40,7 +40,7 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- inline|split|mini.diff
+      provider = providers.diff, -- inline|split|mini_diff
     },
   },
 })
@@ -576,22 +576,6 @@ require("codecompanion").setup({
           linebreak = true,
           wrap = true,
         },
-      },
-    },
-  },
-})
-```
-
-```lua [Debug Window]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      -- Alter the sizing of the debug window
-      debug_window = {
-        ---@return number|fun(): number
-        width = vim.o.columns - 5,
-        ---@return number|fun(): number
-        height = vim.o.lines - 2,
       },
     },
   },

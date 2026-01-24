@@ -17,7 +17,6 @@ T = new_set({
     post_case = function()
       child.lua([[
         _G.chat = nil
-        _G.codecompanion_current_tool = nil
       ]])
     end,
     post_once = child.stop,
@@ -66,8 +65,8 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
                 name = "Repeat On Failure",
                 role = "user",
                 opts = { auto_submit = false },
-                condition = function()
-                  return _G.codecompanion_current_tool == "cmd_runner"
+                condition = function(chat)
+                  return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
                 end,
                 repeat_until = function(chat)
                   return chat.tool_registry.flags.testing == true
@@ -80,8 +79,8 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
                 name = "Success",
                 role = "user",
                 opts = { auto_submit = false },
-                condition = function()
-                  return not _G.codecompanion_current_tool
+                condition = function(chat)
+                  return not chat.tools.tool
                 end,
                 content = "Tests passed!",
               },
@@ -100,7 +99,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   h.eq("First prompt", last_line)
 
   -- Mock failing tool, twice
-  child.lua([[_G.codecompanion_current_tool = "cmd_runner"]])
+  child.lua([[_G.chat.tools.tool = { name = "cmd_runner" }]])
   child.lua([[h.send_to_llm(_G.chat, "Calling a tool...")]])
   last_line = child.lua([[
     local lines = h.get_buf_lines(_G.chat.bufnr)
@@ -108,7 +107,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   ]])
   h.eq("The tests have failed", last_line)
 
-  child.lua([[_G.codecompanion_current_tool = "cmd_runner"]])
+  child.lua([[_G.chat.tools.tool = { name = "cmd_runner" }]])
   child.lua([[h.send_to_llm(_G.chat, "Calling a tool...")]])
   last_line = child.lua([[
     local lines = h.get_buf_lines(_G.chat.bufnr)
@@ -119,7 +118,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   -- Now pass tests; unset tool after this turn
   child.lua([[
     _G.chat.tool_registry.flags.testing = true
-    h.send_to_llm(_G.chat, "Calling a tool...", function() _G.codecompanion_current_tool = nil end)
+    h.send_to_llm(_G.chat, "Calling a tool...", function() _G.chat.tools.tool = nil end)
   ]])
   last_line = child.lua([[
     local lines = h.get_buf_lines(_G.chat.bufnr)
