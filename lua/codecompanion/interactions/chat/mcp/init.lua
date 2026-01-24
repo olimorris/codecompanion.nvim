@@ -38,6 +38,24 @@ function M.start_servers()
   for _, client in pairs(clients) do
     client:start()
   end
+
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    group = vim.api.nvim_create_augroup("codecompanion.mcp.stop", { clear = true }),
+    callback = function()
+      pcall(function()
+        M.stop_servers()
+      end)
+    end,
+  })
+end
+
+---Stop all MCP servers
+---@return nil
+function M.stop_servers()
+  for _, client in pairs(clients) do
+    client:stop()
+  end
+  clients = {}
 end
 
 return M
