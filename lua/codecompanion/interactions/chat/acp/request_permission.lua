@@ -214,28 +214,17 @@ local function show_diff(chat, request)
     chat_bufnr = chat.bufnr,
     diff_id = diff_id,
     ft = vim.filetype.match({ filename = d.path }) or "text",
+    keymaps = {
+      on_reject = function()
+        local rejected = find_reject_option(request.options)
+        request.respond(rejected, false)
+      end,
+    },
     skip_default_keymaps = true,
     title = vim.fn.fnamemodify(d.path, ":."),
   })
 
   setup_diff_keymaps(diff_ui, normalized, kind_map, request)
-
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "CodeCompanionDiffRejected",
-    callback = function(event)
-      if event.data.id ~= diff_id then
-        return
-      end
-      if diff_ui.resolved then
-        return
-      end
-      if not diff_ui.resolved then
-        diff_ui.resolved = true
-      end
-      local rejected = find_reject_option(request.options)
-      return request.respond(rejected, false)
-    end,
-  })
 end
 
 ---Show the permission request to the user and handle their response

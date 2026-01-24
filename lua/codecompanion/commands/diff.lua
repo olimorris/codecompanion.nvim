@@ -473,62 +473,19 @@ function M.run_visual_test(test_num)
     ft = test_case.filetype,
     title = string.format("%s (Test %d/%d)", test_case.name, test_num, #M.test_cases),
     diff_id = diff_id,
-  })
-
-  -- Add keymaps for cycling through test cases
-  -- local keymap_opts = { buffer = diff_ui.bufnr, silent = true, nowait = true }
-  --
-  -- vim.keymap.set("n", "n", function()
-  --   local next_test = test_num % #M.test_cases + 1
-  --   local Diff = require("codecompanion.diff")
-  --   Diff.clear(diff_ui.diff)
-  --   if vim.api.nvim_win_is_valid(diff_ui.winnr) then
-  --     vim.api.nvim_win_close(diff_ui.winnr, true)
-  --   end
-  --   M.run_visual_test(next_test)
-  -- end, vim.tbl_extend("force", keymap_opts, { desc = "Next test case" }))
-  --
-  -- vim.keymap.set("n", "p", function()
-  --   local prev_test = test_num == 1 and #M.test_cases or test_num - 1
-  --   local Diff = require("codecompanion.diff")
-  --   Diff.clear(diff_ui.diff)
-  --   if vim.api.nvim_win_is_valid(diff_ui.winnr) then
-  --     vim.api.nvim_win_close(diff_ui.winnr, true)
-  --   end
-  --   M.run_visual_test(prev_test)
-  -- end, vim.tbl_extend("force", keymap_opts, { desc = "Previous test case" }))
-
-  -- Listen for diff events
-  local group = vim.api.nvim_create_augroup("CodeCompanionDiffTest_" .. diff_id, { clear = true })
-
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "CodeCompanionDiffAccepted",
-    group = group,
-    callback = function(event)
-      if event.data.diff_id == diff_id then
-        vim.notify(
-          string.format("Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
-          vim.log.levels.INFO,
-          { title = "CodeCompanion Diff Test" }
-        )
-        vim.api.nvim_del_augroup_by_id(group)
-      end
+    on_accept = function()
+      vim.notify(
+        string.format("Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
+        vim.log.levels.INFO,
+        { title = "CodeCompanion Diff Test" }
+      )
     end,
-  })
-
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "CodeCompanionDiffRejected",
-    group = group,
-    callback = function(event)
-      if event.data.diff_id == diff_id then
-        local status = event.data.timeout and "CLOSED" or "REJECTED"
-        vim.notify(
-          string.format("Test %d/%d: Changes %s", test_num, #M.test_cases, status),
-          vim.log.levels.WARN,
-          { title = "CodeCompanion Diff Test" }
-        )
-        vim.api.nvim_del_augroup_by_id(group)
-      end
+    on_reject = function()
+      vim.notify(
+        string.format("Test %d/%d: Changes REJECTED", test_num, #M.test_cases),
+        vim.log.levels.WARN,
+        { title = "CodeCompanion Diff Test" }
+      )
     end,
   })
 
@@ -565,38 +522,19 @@ function M.run_inline_test(test_num)
     diff_id = diff_id,
     bufnr = bufnr,
     inline = true,
-  })
-
-  local group = vim.api.nvim_create_augroup("CodeCompanionDiffInlineTest_" .. diff_id, { clear = true })
-
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "CodeCompanionDiffAccepted",
-    group = group,
-    callback = function(event)
-      if event.data.diff_id == diff_id then
-        vim.notify(
-          string.format("Inline Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
-          vim.log.levels.INFO,
-          { title = "CodeCompanion Diff Inline Test" }
-        )
-        vim.api.nvim_del_augroup_by_id(group)
-      end
+    on_accept = function()
+      vim.notify(
+        string.format("Inline Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
+        vim.log.levels.INFO,
+        { title = "CodeCompanion Diff Inline Test" }
+      )
     end,
-  })
-
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "CodeCompanionDiffRejected",
-    group = group,
-    callback = function(event)
-      if event.data.diff_id == diff_id then
-        local status = event.data.timeout and "CLOSED" or "REJECTED"
-        vim.notify(
-          string.format("Inline Test %d/%d: Changes %s", test_num, #M.test_cases, status),
-          vim.log.levels.WARN,
-          { title = "CodeCompanion Diff Inline Test" }
-        )
-        vim.api.nvim_del_augroup_by_id(group)
-      end
+    on_reject = function()
+      vim.notify(
+        string.format("Inline Test %d/%d: Changes REJECTED", test_num, #M.test_cases),
+        vim.log.levels.WARN,
+        { title = "CodeCompanion Diff Inline Test" }
+      )
     end,
   })
 

@@ -1,6 +1,5 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -21,7 +20,7 @@ end
 
 ---Resolve a diff with common cleanup logic
 ---@param diff_ui CodeCompanion.DiffUI
----@param opts { event: string, log_action: string, callback?: fun(diff_ui: CodeCompanion.DiffUI), custom_handler?: fun(diff_ui: CodeCompanion.DiffUI)|nil }
+---@param opts { log_action: string, callback?: fun(diff_ui: CodeCompanion.DiffUI), handler?: fun(diff_ui: CodeCompanion.DiffUI)|nil }
 ---@return boolean success Returns false if already resolved
 local function resolve_diff(diff_ui, opts)
   if diff_ui.resolved then
@@ -31,11 +30,8 @@ local function resolve_diff(diff_ui, opts)
 
   log:trace("[Diff] %s diff for id=%s", opts.log_action, diff_ui.diff_id)
 
-  -- If a custom handler is provided, call it instead of the default event
-  if opts.custom_handler then
-    opts.custom_handler(diff_ui)
-  else
-    utils.fire(opts.event, { id = diff_ui.diff_id })
+  if opts.handler then
+    opts.handler(diff_ui)
   end
 
   if opts.callback then
@@ -53,9 +49,8 @@ M.always_accept = {
   desc = "Always accept changes from this chat buffer",
   callback = function(diff_ui)
     resolve_diff(diff_ui, {
-      event = "DiffAccepted",
       log_action = "Accepting",
-      custom_handler = diff_ui.keymaps.on_accept,
+      handler = diff_ui.keymaps.on_accept,
       callback = function(ui)
         if ui.keymaps.on_always_accept then
           return ui.keymaps.on_always_accept(ui)
@@ -73,9 +68,8 @@ M.accept_change = {
   desc = "Accept all changes",
   callback = function(diff_ui)
     resolve_diff(diff_ui, {
-      event = "DiffAccepted",
       log_action = "Accepting",
-      custom_handler = diff_ui.keymaps.on_accept or diff_ui.on_accept,
+      handler = diff_ui.keymaps.on_accept,
     })
   end,
 }
@@ -84,9 +78,8 @@ M.reject_change = {
   desc = "Reject all changes",
   callback = function(diff_ui)
     resolve_diff(diff_ui, {
-      event = "DiffRejected",
       log_action = "Rejecting",
-      custom_handler = diff_ui.keymaps.on_reject or diff_ui.on_reject,
+      handler = diff_ui.keymaps.on_reject,
     })
   end,
 }
@@ -95,9 +88,8 @@ M.close_window = {
   desc = "Close window and reject",
   callback = function(diff_ui)
     resolve_diff(diff_ui, {
-      event = "DiffRejected",
       log_action = "Closing",
-      custom_handler = diff_ui.keymaps.on_reject or diff_ui.on_reject,
+      handler = diff_ui.keymaps.on_reject,
     })
   end,
 }

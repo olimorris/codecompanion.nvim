@@ -29,14 +29,11 @@ local Path = require("plenary.path")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
-local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
-local wait = require("codecompanion.interactions.chat.helpers.wait")
 
 local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
-local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
 
 local api = vim.api
@@ -112,34 +109,6 @@ local function write_file(path, content, info)
   return true, nil
 end
 
----Handle user decision for diff approval
----@param opts { diff_id: number, chat_bufnr: number, name: string, success_msg: string, output_handler: function, bufnr: number }
----@return any
-local function handle_approval(opts)
-  local wait_opts = {
-    chat_bufnr = opts.chat_bufnr,
-    notify = config.display.icons.warning .. " Waiting for diff approval ...",
-    sub_text = "Review changes in the diff window",
-  }
-
-  return wait.for_decision(opts.diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
-    if result.accepted then
-      return opts.output_handler()
-    end
-
-    get_rejection_reason(function(reason)
-      local msg
-      if result.timeout then
-        msg = "User failed to accept the edits in time"
-      else
-        msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.name, reason)
-      end
-
-      return opts.output_handler(make_response("error", msg))
-    end)
-  end, wait_opts)
-end
-
 ---Show diff and handle approval flow for edits
 ---@param opts table
 ---@return any
@@ -150,28 +119,28 @@ local function approve_and_diff(opts)
 
   local diff_id = math.random(10000000)
   local diff_helpers = require("codecompanion.helpers")
+
   diff_helpers.show_diff({
+    from_lines = opts.from_lines,
+    to_lines = opts.to_lines,
     chat_bufnr = opts.chat_bufnr,
     diff_id = diff_id,
     ft = opts.ft,
-    from_lines = opts.from_lines,
-    to_lines = opts.to_lines,
+    keymaps = {
+      on_always_accept = function()
+        approvals:always(opts.chat_bufnr, "insert_edit_into_file")
+      end,
+      on_accept = function()
+        opts.apply_fn()
+      end,
+      on_reject = function()
+        get_rejection_reason(function(reason)
+          local msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.title, reason)
+          opts.output_handler(make_response("error", msg))
+        end)
+      end,
+    },
     title = opts.title,
-    tool_name = "insert_edit_into_file",
-  })
-
-  return handle_approval({
-    chat_bufnr = opts.chat_bufnr,
-    diff_id = diff_id,
-    name = opts.title,
-    success_msg = opts.success_msg,
-    output_handler = function(response)
-      if response and response.status == "error" then
-        return opts.output_handler(response)
-      end
-      opts.apply_fn()
-    end,
-    on_reject = opts.on_reject,
   })
 end
 
