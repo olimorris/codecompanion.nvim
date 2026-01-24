@@ -529,7 +529,7 @@ require("codecompanion").setup({
 
 ### Layout
 
-The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [Super Diff](/usage/chat-buffer/#super-diff), [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
+The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
 
 ::: code-group
 

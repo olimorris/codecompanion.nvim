@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 21
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -79,7 +79,6 @@ FEATURES                                      *codecompanion-welcome-features*
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
--  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Variables and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
@@ -1623,11 +1622,10 @@ impact, the context can be folded:
 LAYOUT
 
 The plugin leverages floating windows to display content to a user in a variety
-of scenarios, such as with the |codecompanion-usage-chat-buffer--super-diff|,
-|codecompanion-usage-chat-buffer--messages| or agent
-|codecompanion-usage-chat-buffer-agents.html-permissions|. You can change the
-appearance of the chat buffer by changing the `display.chat.window` table in
-your configuration.
+of scenarios, such as with the |codecompanion-usage-chat-buffer--messages| or
+agent |codecompanion-usage-chat-buffer-agents.html-permissions|. You can change
+the appearance of the chat buffer by changing the `display.chat.window` table
+in your configuration.
 
 
 
@@ -3138,7 +3136,6 @@ The keymaps available to the user in normal mode are:
 - `gbd` to sync only a buffers diff on every turn
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer’s contents
-- `gD` to view the chat buffer’s super diff feature
 - `gf` to fold any codeblocks in the chat buffer
 - `gM` to clear all rules from the chat buffer
 - `gr` to regenerate the last response
@@ -3196,24 +3193,6 @@ enabled (`display.chat.show_settings = true`), then a yaml block will be
 present at the top of the chat buffer which can be modified in between
 responses. The yaml block is simply a representation of an adapter’s schema
 table.
-
-
-SUPER DIFF ~
-
-
-
-When an LLM uses tools like
-|codecompanion-usage-chat-buffer-tools-insert-edit-into-file| to make changes
-across multiple files and buffers, it can be difficult to keep track. This is
-amplified if the tools are working without requiring approvals (perhaps via
-|codecompanion-usage-chat-buffer-tools.html-automatic-tool-mode|) and it simply
-isn’t impossible to keep track of what an LLM has added, deleted or modified.
-
-Super Diff gives you a single, unified view of all edits made in via the chat
-buffer. Open it with `gD` to review every change, grouped by file, with visual
-diffs and status indicators. You can accept or reject changes before they’re
-applied, keeping you in control of your codebase. You can even send changes to
-the quickfix list for easier navigation and review.
 
 
 AGENTS                                            *codecompanion-usage-agents*
@@ -4187,10 +4166,6 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
-- `CodeCompanionDiffAttached` - Fired when in Diff mode
-- `CodeCompanionDiffDetached` - Fired when exiting Diff mode
-- `CodeCompanionDiffAccepted` - Fired when a user accepts a change
-- `CodeCompanionDiffRejected` - Fired when a user rejects a change
 
 There are also events that can be utilized to trigger commands from within the
 plugin:
@@ -4390,8 +4365,6 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatFold` - For any folds in the chat buffer (not including tool output)
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
-- `CodeCompanionSuperDiffDirectory` - Highlight directories in a Super Diff buffer
-- `CodeCompanionSuperDiffFilename` - Highlight filenames in a Super Diff buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
@@ -5331,8 +5304,8 @@ required.
                 role = "user",
                 opts = { auto_submit = true },
                 -- Scope this prompt to the cmd_runner tool
-                condition = function(chat)
-                  return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
+                condition = function()
+                  return _G.codecompanion_current_tool == "cmd_runner"
                 end,
                 -- Repeat until the tests pass, as indicated by the testing flag
                 -- which the cmd_runner tool sets on the chat buffer
