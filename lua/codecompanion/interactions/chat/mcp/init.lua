@@ -58,4 +58,26 @@ function M.stop_servers()
   clients = {}
 end
 
+---Get status of all MCP servers
+---@return table<string, { ready: boolean, tool_count: number, started: boolean }>
+function M.get_status()
+  local status = {}
+
+  for name, client in pairs(clients) do
+    local tool_count = 0
+    if client.ready then
+      local tools = require("codecompanion.config").interactions.chat.tools.groups["mcp:" .. name]
+      tool_count = tools and #tools.tools or 0
+    end
+
+    status[name] = {
+      ready = client.ready,
+      tool_count = tool_count,
+      started = client.transport:started(),
+    }
+  end
+
+  return status
+end
+
 return M
