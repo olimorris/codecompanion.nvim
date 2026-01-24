@@ -29,9 +29,11 @@ See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/
 
 ## Diff
 
-CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
+<img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
 
-Depending on which provider you choose, there are different configuration options available to you:
+CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
+
+There are a number of configuration option available to you:
 
 ::: code-group
 
