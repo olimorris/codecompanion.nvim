@@ -121,14 +121,16 @@ local function approve_and_diff(opts)
   local diff_helpers = require("codecompanion.helpers")
 
   diff_helpers.show_diff({
-    from_lines = opts.from_lines,
-    to_lines = opts.to_lines,
     chat_bufnr = opts.chat_bufnr,
     diff_id = diff_id,
     ft = opts.ft,
+    from_lines = opts.from_lines,
+    to_lines = opts.to_lines,
+    title = opts.title,
+    tool_name = "insert_edit_into_file",
     keymaps = {
       on_always_accept = function()
-        approvals:always(opts.chat_bufnr, "insert_edit_into_file")
+        approvals:always(opts.chat_bufnr, { tool_name = "insert_edit_into_file" })
       end,
       on_accept = function()
         opts.apply_fn()
@@ -140,7 +142,6 @@ local function approve_and_diff(opts)
         end)
       end,
     },
-    title = opts.title,
   })
 end
 

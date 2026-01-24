@@ -801,15 +801,17 @@ function Inline:start_diff(args)
     ft = self.buffer_context.filetype,
     inline = true,
     banner = self:build_diff_banner(),
-    on_accept = function()
-      self:on_diff_accepted()
-    end,
-    on_reject = function()
-      self:on_diff_rejected()
-    end,
-    on_always_accept = function()
-      approvals:always(self.buffer_context.bufnr, "inline")
-    end,
+    keymaps = {
+      on_accept = function()
+        self:on_diff_accepted()
+      end,
+      on_reject = function()
+        self:on_diff_rejected()
+      end,
+      on_always_accept = function()
+        approvals:always(self.buffer_context.bufnr, { tool_name = "inline" })
+      end,
+    },
   })
 end
 

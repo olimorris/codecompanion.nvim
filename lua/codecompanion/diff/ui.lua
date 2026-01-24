@@ -20,9 +20,6 @@ local M = {}
 ---@field inline? boolean Whether the diff is shown inline or in a floating window
 ---@field keymaps table<string, fun(diff_ui: CodeCompanion.DiffUI)> Custom keymap callbacks (on_accept, on_reject, on_always_accept)
 ---@field ns number The namespace ID for diff extmarks
----@field on_accept? fun(diff_ui: CodeCompanion.DiffUI) Custom callback to override default accept behavior (deprecated, use keymaps.on_accept)
----@field on_always_accept? fun(diff_ui: CodeCompanion.DiffUI) Custom callback to override default always-accept approval behavior (deprecated, use keymaps.on_always_accept)
----@field on_reject? fun(diff_ui: CodeCompanion.DiffUI) Custom callback to override default reject behavior (deprecated, use keymaps.on_reject)
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string This is essential for approvals to work with tools
 ---@field winnr number
@@ -572,18 +569,6 @@ function M.show(diff, opts)
 
   local diff_id = opts.diff_id or math.random(10000000)
 
-  -- Support both opts.keymaps.on_* and opts.on_* for backward compatibility
-  local keymaps = opts.keymaps or {}
-  if opts.on_accept then
-    keymaps.on_accept = opts.on_accept
-  end
-  if opts.on_reject then
-    keymaps.on_reject = opts.on_reject
-  end
-  if opts.on_always_accept then
-    keymaps.on_always_accept = opts.on_always_accept
-  end
-
   -- Create diff UI object
   ---@type CodeCompanion.DiffUI
   local diff_ui = setmetatable({
@@ -595,11 +580,8 @@ function M.show(diff, opts)
     diff_id = diff_id,
     hunks = #diff.hunks,
     inline = opts.inline or not is_float,
-    keymaps = keymaps,
+    keymaps = opts.keymaps or {},
     ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
-    on_accept = opts.on_accept,
-    on_always_accept = opts.on_always_accept,
-    on_reject = opts.on_reject,
     resolved = false,
     tool_name = opts.tool_name,
     winnr = winnr,

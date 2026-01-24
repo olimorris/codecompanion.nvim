@@ -473,20 +473,22 @@ function M.run_visual_test(test_num)
     ft = test_case.filetype,
     title = string.format("%s (Test %d/%d)", test_case.name, test_num, #M.test_cases),
     diff_id = diff_id,
-    on_accept = function()
-      vim.notify(
-        string.format("Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
-        vim.log.levels.INFO,
-        { title = "CodeCompanion Diff Test" }
-      )
-    end,
-    on_reject = function()
-      vim.notify(
-        string.format("Test %d/%d: Changes REJECTED", test_num, #M.test_cases),
-        vim.log.levels.WARN,
-        { title = "CodeCompanion Diff Test" }
-      )
-    end,
+    keymaps = {
+      on_accept = function()
+        vim.notify(
+          string.format("Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
+          vim.log.levels.INFO,
+          { title = "CodeCompanion Diff Test" }
+        )
+      end,
+      on_reject = function()
+        vim.notify(
+          string.format("Test %d/%d: Changes REJECTED", test_num, #M.test_cases),
+          vim.log.levels.WARN,
+          { title = "CodeCompanion Diff Test" }
+        )
+      end,
+    },
   })
 
   return diff_ui
@@ -522,20 +524,22 @@ function M.run_inline_test(test_num)
     diff_id = diff_id,
     bufnr = bufnr,
     inline = true,
-    on_accept = function()
-      vim.notify(
-        string.format("Inline Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
-        vim.log.levels.INFO,
-        { title = "CodeCompanion Diff Inline Test" }
-      )
-    end,
-    on_reject = function()
-      vim.notify(
-        string.format("Inline Test %d/%d: Changes REJECTED", test_num, #M.test_cases),
-        vim.log.levels.WARN,
-        { title = "CodeCompanion Diff Inline Test" }
-      )
-    end,
+    keymaps = {
+      on_accept = function()
+        vim.notify(
+          string.format("Inline Test %d/%d: Changes ACCEPTED", test_num, #M.test_cases),
+          vim.log.levels.INFO,
+          { title = "CodeCompanion Diff Inline Test" }
+        )
+      end,
+      on_reject = function()
+        vim.notify(
+          string.format("Inline Test %d/%d: Changes REJECTED", test_num, #M.test_cases),
+          vim.log.levels.WARN,
+          { title = "CodeCompanion Diff Inline Test" }
+        )
+      end,
+    },
   })
 
   return diff_ui
