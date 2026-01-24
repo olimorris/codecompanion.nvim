@@ -765,10 +765,10 @@ end
 function Inline:build_diff_banner()
   local keys = config.interactions.shared.keymaps
   return fmt(
-    "%s Accept | %s Reject | %s Always Accept",
+    "%s Always Accept | %s Accept | %s Reject",
+    keys.always_accept.modes.n,
     keys.accept_change.modes.n,
-    keys.reject_change.modes.n,
-    keys.always_accept.modes.n
+    keys.reject_change.modes.n
   )
 end
 
