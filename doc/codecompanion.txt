@@ -25,6 +25,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - List of Commands          |codecompanion-getting-started-list-of-commands|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Upgrading General                         |codecompanion-upgrading-general|
+  - v18.6.0 to v19.0.0    |codecompanion-upgrading-general-v18.6.0-to-v19.0.0|
   - v17.33.0 to v18.0.0  |codecompanion-upgrading-general-v17.33.0-to-v18.0.0|
   - default_memory has been renamed to autoload (#2509)|codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)|
 5. Configuration                                 |codecompanion-configuration|
@@ -537,6 +538,18 @@ CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
 breaking changes, it is recommended to pin the plugin to a specific version in
 your Neovim configuration. The |codecompanion-installation| provides more
 information on how to do this.
+
+
+V18.6.0 TO V19.0.0        *codecompanion-upgrading-general-v18.6.0-to-v19.0.0*
+
+- The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+
+
+CONFIG ~
+
+- Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 
 
 V17.33.0 TO V18.0.0      *codecompanion-upgrading-general-v17.33.0-to-v18.0.0*
@@ -1335,37 +1348,15 @@ See the section on |codecompanion-configuration-adapters-acp| and
 
 DIFF ~
 
-CodeCompanion has built-in inline and split diffs available to you. If you
-utilize the `insert_edit_into_file` tool, then the plugin can update files and
-buffers and a diff will be created so you can see the changes made by the LLM.
-The `inline` is the default diff.
-
-Depending on which provider you choose, there are different configuration
-options available to you:
 
 
-The keymaps for accepting and rejecting the diff sit within the `inline`
-interaction configuration and can be changed via:
+CodeCompanion has a built-in diff engine that’s leveraged throughout the
+plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter,
+then the plugin will update files and buffers, displaying the changes in a
+floating window.
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        inline = {
-          keymaps = {
-            accept_change = {
-              modes = { n = "gda" }, -- Remember this as DiffAccept
-            },
-            reject_change = {
-              modes = { n = "gdr" }, -- Remember this as DiffReject
-            },
-            always_accept = {
-              modes = { n = "gdy" }, -- Remember this as DiffYolo
-            },
-          },
-        },
-      },
-    })
-<
+There are a number of configuration option available to you:
+
 
 
 KEYMAPS ~
@@ -1375,40 +1366,22 @@ KEYMAPS ~
   only.
 You can define or override the default keymaps
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178>
-to send messages, regenerate responses, close the buffer, etc. Example:
+to send messages, regenerate responses, close the buffer, etc.
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          keymaps = {
-            send = {
-              modes = { n = "<C-s>", i = "<C-s>" },
-              opts = {},
-            },
-            close = {
-              modes = { n = "<C-c>", i = "<C-c>" },
-              opts = {},
-            },
-            -- Add further custom keymaps here
-          },
-        },
-      },
-    })
-<
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing
-in both normal and insert modes. To set other `:map-arguments`, you can use the
-optional `opts` table which will be fed to `vim.keymap.set`.
+For the chat interaction, the keymaps are mapped to `<C-s>` for sending a
+message and `<C-c>` for closing in both normal and insert modes. To set other
+`:map-arguments`, you can use the optional `opts` table which will be fed to
+`vim.keymap.set`.
 
 
 PROMPT DECORATOR ~
 
-It can be useful to decorate your prompt, prior to sending to an LLM, with
-additional information. For example, the GitHub Copilot prompt in VS Code,
-wraps a user’s prompt between `<prompt></prompt>` tags, presumably to
-differentiate the user’s ask from additional context. This can also be
-achieved in CodeCompanion:
+It can be useful to decorate your prompt with additional information, prior to
+sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a
+user’s prompt between `<prompt></prompt>` tags, presumably to differentiate
+the user’s ask from additional context. This can also be achieved in
+CodeCompanion:
 
 >lua
     require("codecompanion").setup({
@@ -1522,7 +1495,8 @@ dependency and want to refresh the tool availability in the chat buffer.
 APPROVALS
 
 CodeCompanion allows you to apply safety mechanisms to its built-in tools prior
-to execution.
+to execution. See the |codecompanion-usage-chat-buffer-tools-approvals| section
+for more information.
 
 
 
@@ -3856,9 +3830,10 @@ When prompted, the user has four options available to them:
 
 Certain tools with potentially destructive capabilities have an additional
 layer of protection. Instead of being approved at a tool level, these are
-approved at a command level. Taking the `cmd_runner` tool as an example. If you
-approve an agent to always run `make format`, if it tries to run `make test`,
-you’ll be prompted to approve that command specifically.
+approved at a command level (`require_cmd_approval = true`). Taking the
+`cmd_runner` tool as an example. If you approve an agent to always run `make
+format`, if it tries to run `make test`, you’ll be prompted to approve that
+command specifically.
 
 Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
@@ -3868,7 +3843,8 @@ YOLO MODE
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
 prompting the user. However, note that some tools such as `cmd_runner` and
-`delete_file` are excluded from this.
+`delete_file` are excluded from this as they have `allowed_in_yolo_mode =
+false` set.
 
 
 COMPATIBILITY ~
@@ -4147,8 +4123,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
-- `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
+- `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatSubmitted` - Fired after a chat has been submitted
 - `CodeCompanionChatDone` - Fired after a chat has received the response
 - `CodeCompanionChatStopped` - Fired after a chat has been stopped

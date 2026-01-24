@@ -367,7 +367,7 @@ require("codecompanion").setup({
 
 ### Approvals
 
-CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/tools/#approvals) section for more information.
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/tools#approvals) section for more information.
 
 ::: code-group
 
