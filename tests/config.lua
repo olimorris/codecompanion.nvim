@@ -147,10 +147,6 @@ return {
           callback = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
-        ["list_code_usages"] = {
-          callback = "interactions.chat.tools.builtin.list_code_usages",
-          description = "Find code symbol context",
-        },
         ["weather"] = {
           callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather.lua",
           description = "Get the latest weather",
