@@ -48,7 +48,7 @@ local T = MiniTest.new_set({
             callback = function() tools_loaded = true end,
           })
 
-          CLI = Client:new("testMcp", { cmd = { "test-mcp" } }, { new_transport = mock_new_transport })
+          CLI = Client.new({ name = "testMcp", cfg = { cmd = { "test-mcp" } }, methods = { new_transport = mock_new_transport } })
           CLI:start()
           vim.wait(1000, function() return tools_loaded end)
         end
@@ -84,7 +84,7 @@ T["MCP Client"]["start() starts and initializes the client once"] = function()
     TRANSPORT:expect_jsonrpc_notify("notifications/initialized", function() end)
 
     setup_tool_list()
-    CLI = Client:new("testMcp", { cmd = { "test-mcp" } }, { new_transport = mock_new_transport })
+    CLI = Client.new({ name = "testMcp", cfg = { cmd = { "test-mcp" } }, methods = { new_transport = mock_new_transport } })
     CLI:start()
     CLI:start()  -- repeated call should be no-op
     CLI:start()
@@ -290,10 +290,14 @@ T["MCP Client"]["roots capability is declared when roots config is provided"] = 
       { uri = "file:///home/user/project2", name = "Project 2" },
     }
 
-    CLI = Client:new("testMcp", {
-      cmd = { "test-mcp" },
-      roots = function() return roots end,
-    }, { new_transport = mock_new_transport })
+    CLI = Client.new({
+      name = "testMcp",
+      cfg = {
+        cmd = { "test-mcp" },
+        roots = function() return roots end,
+      },
+      methods = { new_transport = mock_new_transport },
+    })
     CLI:start()
     vim.wait(1000, function() return CLI.ready end)
 
@@ -331,13 +335,17 @@ T["MCP Client"]["roots list changed notification is sent when roots change"] = f
     local current_roots
 
     local notify_roots_list_changed
-    CLI = Client:new("testMcp", {
-      cmd = { "test-mcp" },
-      roots = function() return current_roots end,
-      register_roots_list_changed = function(notify)
-        notify_roots_list_changed = notify
-      end,
-    }, { new_transport = mock_new_transport })
+    CLI = Client.new({
+      name = "testMcp",
+      cfg = {
+        cmd = { "test-mcp" },
+        roots = function() return current_roots end,
+        register_roots_list_changed = function(notify)
+          notify_roots_list_changed = notify
+        end,
+      },
+      methods = { new_transport = mock_new_transport },
+    })
     CLI:start()
     vim.wait(1000, function() return CLI.ready end)
 
@@ -370,7 +378,7 @@ T["MCP Client"]["transport closed automatically on initialization failure"] = fu
       return "error", { code = -32603, message = "Initialization failed" }
     end)
 
-    CLI = Client:new("testMcp", { cmd = { "test-mcp" } }, { new_transport = mock_new_transport })
+    CLI = Client.new({ name = "testMcp", cfg = { cmd = { "test-mcp" } }, methods = { new_transport = mock_new_transport } })
     CLI:start()
     vim.wait(1000, function() return TRANSPORT:all_handlers_consumed() end)
     vim.wait(1000, function() return not CLI.ready end)

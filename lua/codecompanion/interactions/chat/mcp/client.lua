@@ -65,18 +65,21 @@ StdioTransport.static.methods = {
   schedule_wrap = { default = vim.schedule_wrap },
 }
 
+---@class CodeCompanion.MCP.StdioTransportArgs
+---@field name string
+---@field cfg CodeCompanion.MCP.ServerConfig
+---@field methods? table<string, function> Optional method overrides for testing
+
 ---Create a new StdioTransport for the given server configuration.
----@param name string
----@param cfg CodeCompanion.MCP.ServerConfig
----@param methods? table<string, function> Optional method overrides for testing
+---@param args CodeCompanion.MCP.StdioTransportArgs
 ---@return CodeCompanion.MCP.StdioTransport
-function StdioTransport:new(name, cfg, methods)
+function StdioTransport.new(args)
   return setmetatable({
-    name = name,
-    cmd = cfg.cmd,
-    env = cfg.env,
-    methods = transform_static_methods(StdioTransport, methods),
-  }, self)
+    name = args.name,
+    cmd = args.cfg.cmd,
+    env = args.cfg.env,
+    methods = transform_static_methods(StdioTransport, args.methods),
+  }, StdioTransport)
 end
 
 ---Start the underlying process and attach stdout/stderr callbacks.
@@ -245,8 +248,8 @@ Client.__index = Client
 Client.static = {}
 Client.static.methods = {
   new_transport = {
-    default = function(name, cfg, methods)
-      return StdioTransport:new(name, cfg, methods)
+    default = function(args)
+      return StdioTransport.new(args)
     end,
   },
   json_decode = { default = vim.json.decode },
@@ -255,25 +258,36 @@ Client.static.methods = {
   defer_fn = { default = vim.defer_fn },
 }
 
+---@class CodeCompanion.MCP.ClientArgs
+---@field name string
+---@field cfg CodeCompanion.MCP.ServerConfig
+---@field methods? table<string, function> Optional method overrides for testing
+
 ---Create a new MCP client instance bound to the provided server configuration.
----@param name string
----@param cfg CodeCompanion.MCP.ServerConfig
----@param methods? table<string, function> Optional method overrides for testing
+---@param args CodeCompanion.MCP.ClientArgs
 ---@return CodeCompanion.MCP.Client
-function Client:new(name, cfg, methods)
-  local static_methods = transform_static_methods(Client, methods)
-  return setmetatable({
-    name = name,
-    cfg = cfg,
+function Client.new(args)
+  local static_methods = transform_static_methods(Client, args.methods)
+  local self = setmetatable({
+    name = args.name,
+    cfg = args.cfg,
     ready = false,
-    transport = static_methods.new_transport(name, cfg, methods),
+    transport = static_methods.new_transport({ name = args.name, cfg = args.cfg, methods = args.methods }),
     resp_handlers = {},
-    server_request_handlers = {
-      ["ping"] = self._handle_server_ping,
-      ["roots/list"] = self._handler_server_roots_list,
-    },
+    server_request_handlers = {},
     methods = static_methods,
-  }, self)
+  }, Client)
+
+  self.server_request_handlers = {
+    ["ping"] = function()
+      return self:_handle_server_ping()
+    end,
+    ["roots/list"] = function()
+      return self:_handle_server_roots_list()
+    end,
+  }
+
+  return self
 end
 
 ---Start the client.
@@ -531,7 +545,7 @@ end
 
 ---Handler for 'roots/list' server requests.
 ---@return "result" | "error", table
-function Client:_handler_server_roots_list()
+function Client:_handle_server_roots_list()
   if not self.cfg.roots then
     return "error", { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "roots capability not enabled" }
   end

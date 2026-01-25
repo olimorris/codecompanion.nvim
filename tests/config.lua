@@ -357,7 +357,9 @@ return {
           },
         },
       },
-      mcp = {},
+      mcp = {
+        enabled = true,
+      },
       opts = {
         blank_prompt = "",
         debounce = 0,

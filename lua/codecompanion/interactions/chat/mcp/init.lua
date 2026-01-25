@@ -30,7 +30,7 @@ function M.start_servers()
   local mcp_cfg = require("codecompanion.config").interactions.chat.mcp
   for name, cfg in pairs(mcp_cfg.servers or {}) do
     if not clients[name] then
-      local client = Client:new(name, cfg)
+      local client = Client.new({ name = name, cfg = cfg })
       clients[name] = client
     end
   end
@@ -56,6 +56,35 @@ function M.stop_servers()
     client:stop()
   end
   clients = {}
+end
+
+---Restart all MCP servers
+---@return nil
+function M.restart_servers()
+  M.stop_servers()
+  M.start_servers()
+end
+
+---Refresh configuration and restart servers
+---This allows users to update their MCP config and apply changes without restarting Neovim
+---@return nil
+function M.refresh()
+  M.stop_servers()
+
+  -- Clear cached tool groups and tools from config
+  local chat_tools = require("codecompanion.config").interactions.chat.tools
+  for name, _ in pairs(chat_tools.groups) do
+    if name:match("^mcp:") then
+      chat_tools.groups[name] = nil
+    end
+  end
+  for name, tool in pairs(chat_tools) do
+    if type(tool) == "table" and vim.tbl_get(tool, "opts", "_mcp_info") then
+      chat_tools[name] = nil
+    end
+  end
+
+  M.start_servers()
 end
 
 ---Get status of all MCP servers
