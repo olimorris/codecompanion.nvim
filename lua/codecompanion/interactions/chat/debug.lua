@@ -156,7 +156,7 @@ function Debug:render()
   end
 
   -- Add MCP status
-  local mcp_status = require("codecompanion.interactions.chat.mcp").get_status()
+  local mcp_status = require("codecompanion.mcp").get_status()
   if vim.tbl_count(mcp_status) > 0 then
     table.insert(lines, "")
     table.insert(lines, "-- MCP Servers:")

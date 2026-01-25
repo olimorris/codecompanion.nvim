@@ -86,7 +86,7 @@ Error Message:
 function M.build(client, mcp_tool)
   if mcp_tool.execution and mcp_tool.execution.taskSupport == "required" then
     return log:warn(
-      "[MCP.%s] tool `%s` requires task execution support, which is not supported",
+      "[MCP::Tool Bridge::%s] tool `%s` requires task execution support, which is not supported",
       client.name,
       mcp_tool.name
     )
@@ -167,7 +167,7 @@ function M.setup_tools(client, mcp_tools)
   end
 
   if #tools == 0 then
-    log:warn("[MCP.%s] has no valid tools to configure", client.name)
+    log:warn("[MCP::Tool Bridge::%s] has no valid tools to configure", client.name)
     return {}
   end
 

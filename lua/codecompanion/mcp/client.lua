@@ -1,6 +1,7 @@
+local tool_bridge = require("codecompanion.mcp.tool_bridge")
+
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local tool_bridge = require("codecompanion.interactions.chat.mcp.tool_bridge")
 local utils = require("codecompanion.utils")
 
 local CONSTANTS = {
@@ -8,7 +9,7 @@ local CONSTANTS = {
   SIGTERM_TIMEOUT_MS = 2000, -- After SIGTERM before SIGKILL
   MAX_TOOLS_PER_SERVER = 100, -- Maximum tools per server to avoid infinite pagination
 
-  JSONRPC = {
+  JSONRPC = { -- Some of these are unusues
     ERROR_PARSE = -32700,
     ERROR_INVALID_REQUEST = -32600,
     ERROR_METHOD_NOT_FOUND = -32601,
@@ -121,8 +122,7 @@ end
 ---@param data? string
 function StdioTransport:_handle_stdout(err, data)
   if err then
-    log:error("StdioTransport stdout error: %s", err)
-    return
+    return log:debug("[MCP::Client] stdout error: %s", err)
   end
   if not data or data == "" then
     return
@@ -149,7 +149,7 @@ function StdioTransport:_handle_stdout(err, data)
     if line ~= "" and self._on_line_read then
       local ok, _ = pcall(self._on_line_read, line)
       if not ok then
-        log:error("StdioTransport on_line_read callback failed for line: %s", line)
+        log:debug("[MCP::Client] on_line_read callback failed for line: %s", line)
       end
     end
   end
@@ -160,11 +160,10 @@ end
 ---@param data? string
 function StdioTransport:_handle_stderr(err, data)
   if err then
-    log:error("StdioTransport stderr error: %s", err)
-    return
+    return log:debug("[MCP::Client] stderr error: %s", err)
   end
   if data then
-    log:info("[MCP.%s] stderr: %s", self.name, data)
+    log:debug("[MCP::Client::%s] stderr: %s", self.name, data)
   end
 end
 
@@ -179,7 +178,7 @@ function StdioTransport:_handle_exit(out)
   if self._on_close then
     local ok, _ = pcall(self._on_close, err_msg)
     if not ok then
-      log:error("StdioTransport on_close callback failed")
+      log:debug("[MCP::Client] on_close callback failed")
     end
   end
 end
@@ -198,20 +197,15 @@ function StdioTransport:stop()
   if not self._proc then
     return
   end
-  log:debug("[MCP.%s] initiating graceful shutdown", self.name)
 
   -- Step 1: Close stdin to signal the server to exit gracefully
-  local ok, err = pcall(function()
+  pcall(function()
     self._proc:write(nil) -- Close stdin
   end)
-  if not ok then
-    log:warn("[MCP.%s] failed to close stdin: %s", self.name, err)
-  end
 
   -- Step 2: Schedule SIGTERM if process doesn't exit within timeout
   self.methods.defer_fn(function()
     if self._proc then
-      log:warn("[MCP.%s] process did not exit gracefully, sending SIGTERM", self.name)
       pcall(function()
         self._proc:kill(vim.uv.constants.SIGTERM)
       end)
@@ -219,7 +213,6 @@ function StdioTransport:stop()
       -- Step 3: Schedule SIGKILL as last resort
       self.methods.defer_fn(function()
         if self._proc then
-          log:error("[MCP.%s] process still alive after SIGTERM, sending SIGKILL", self.name)
           pcall(function()
             self._proc:kill(vim.uv.constants.SIGKILL)
           end)
@@ -295,14 +288,14 @@ function Client:start()
   if self.transport:started() then
     return
   end
-  log:info("[MCP.%s] Starting with command: %s", self.name, table.concat(self.cfg.cmd, " "))
+  log:debug("[MCP::Client::%s] Starting with command: %s", self.name, table.concat(self.cfg.cmd, " "))
 
   self.transport:start(function(line)
     self:_on_transport_line_read(line)
   end, function(err)
     self:_on_transport_close(err)
   end)
-  utils.fire("MCPServerStart", { name = self.name })
+  utils.fire("MCPServerStart", { server = self.name })
 
   self:_start_initialization()
 end
@@ -314,7 +307,7 @@ function Client:stop()
     return
   end
 
-  log:info("[MCP.%s] stopping server", self.name)
+  log:debug("[MCP::Client::%s] Stopping server", self.name)
   self.transport:stop()
 end
 
@@ -338,14 +331,17 @@ function Client:_start_initialization()
     capabilities = capabilities,
   }, function(resp)
     if resp.error then
-      log:error("[MCP.%s] initialization failed: %s", self.name, resp)
+      log:error("[MCP::Client::%s] Initialization failed: %s", self.name, vim.inspect(resp.error))
       self:stop()
       return
     end
-    log:info("[MCP.%s] initialized successfully.", self.name)
-    log:info("[MCP.%s] protocol version: %s", self.name, resp.result.protocolVersion)
-    log:info("[MCP.%s] info: %s", self.name, resp.result.serverInfo)
-    log:info("[MCP.%s] capabilities: %s", self.name, resp.result.capabilities)
+    log:debug(
+      "[MCP::Client::%s] Initialized: version=%s, server=%s, capabilities=%s",
+      self.name,
+      resp.result.protocolVersion,
+      vim.inspect(resp.result.serverInfo),
+      vim.inspect(resp.result.capabilities)
+    )
     self:notify("notifications/initialized")
     self.server_capabilities = resp.result.capabilities
     self.server_instructions = resp.result.instructions
@@ -355,7 +351,7 @@ function Client:_start_initialization()
         self:notify_roots_list_changed()
       end)
     end
-    utils.fire("MCPServerReady", { name = self.name })
+    utils.fire("MCPServerReady", { server = self.name })
     self:refresh_tools()
   end)
 end
@@ -364,11 +360,6 @@ end
 ---@param err string|nil
 function Client:_on_transport_close(err)
   self.ready = false
-  if not err then
-    log:info("[MCP.%s] exited.", self.name)
-  else
-    log:warn("[MCP.%s] exited with error: %s", self.name, err)
-  end
   for id, handler in pairs(self.resp_handlers) do
     -- Notify all pending requests of the transport closure
     pcall(handler, {
@@ -377,7 +368,7 @@ function Client:_on_transport_close(err)
       error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "MCP server connection closed" },
     })
   end
-  utils.fire("MCPServerExit", { name = self.name, err = err })
+  utils.fire("MCPServerClosed", { server = self.name, err = err })
 end
 
 ---Process a single JSON-RPC line received from the MCP server.
@@ -386,18 +377,16 @@ function Client:_on_transport_line_read(line)
   if not line or line == "" then
     return
   end
+  log:debug("[MCP::Client::%s] Received: %s", self.name, line)
   local ok, msg = pcall(self.methods.json_decode, line, { luanil = { object = true } })
   if not ok then
-    log:error("[MCP.%s] failed to decode received line [%s]: %s", self.name, msg, line)
-    return
+    return log:debug("[MCP::Client::%s] Failed to decode: %s", self.name, line)
   end
   if type(msg) ~= "table" or msg.jsonrpc ~= "2.0" then
-    log:error("[MCP.%s] received invalid MCP message: %s", self.name, line)
-    return
+    return log:debug("[MCP::Client::%s] Invalid message: %s", self.name, line)
   end
   if msg.id == nil then
-    log:info("[MCP.%s] received notification: %s", self.name, line)
-    return
+    return -- Notification already logged above
   end
 
   if msg.method then
@@ -407,13 +396,9 @@ function Client:_on_transport_line_read(line)
     if handler then
       self.resp_handlers[msg.id] = nil
       local handle_ok, handle_result = pcall(handler, msg)
-      if handle_ok then
-        log:debug("[MCP.%s] response handler succeeded for request %s", self.name, msg.id)
-      else
-        log:error("[MCP.%s] response handler failed for request %s: %s", self.name, msg.id, handle_result)
+      if not handle_ok then
+        log:debug("[MCP::Client::%s] Response handler failed for request %s: %s", self.name, msg.id, handle_result)
       end
-    else
-      log:warn("[MCP.%s] received response with unknown id %s: %s", self.name, msg.id, line)
     end
   end
 end
@@ -428,31 +413,22 @@ function Client:_handle_server_request(msg)
   }
   local handler = self.server_request_handlers[msg.method]
   if not handler then
-    log:warn("[MCP.%s] received request %s with unknown method %s", self.name, msg.id, msg.method)
     resp.error = { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "Method not found" }
   else
     local ok, status, body = pcall(handler, self, msg.params)
     if not ok then
-      log:error("[MCP.%s] handler for method %s failed for request %s: %s", self.name, msg.method, msg.id, status)
+      log:debug("[MCP::Client::%s] Handler for %s failed: %s", self.name, msg.method, status)
       resp.error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = status }
     elseif status == "error" then
-      log:error("[MCP.%s] handler for method %s returned error for request %s: %s", self.name, msg.method, msg.id, body)
       resp.error = body
     elseif status == "result" then
-      log:debug("[MCP.%s] handler for method %s returned result for request %s", self.name, msg.method, msg.id)
       resp.result = body
     else
-      log:error(
-        "[MCP.%s] handler for method %s returned invalid status %s for request %s",
-        self.name,
-        msg.method,
-        status,
-        msg.id
-      )
       resp.error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "Internal server error" }
     end
   end
   local resp_str = self.methods.json_encode(resp)
+  log:debug("[MCP::Client::%s] Sending: %s", self.name, resp_str)
   self.transport:write({ resp_str })
 end
 
@@ -484,7 +460,7 @@ function Client:notify(method, params)
     params = params,
   }
   local notif_str = self.methods.json_encode(notif)
-  log:debug("[MCP.%s] sending notification: %s", self.name, notif_str)
+  log:debug("[MCP::Client::%s] Sending: %s", self.name, notif_str)
   self.transport:write({ notif_str })
 end
 
@@ -510,7 +486,7 @@ function Client:request(method, params, resp_handler, opts)
     self.resp_handlers[req_id] = resp_handler
   end
   local req_str = self.methods.json_encode(req)
-  log:debug("[MCP.%s] sending request %s: %s", self.name, req_id, req_str)
+  log:debug("[MCP::Client::%s] Sending: %s", self.name, req_str)
   self.transport:write({ req_str })
 
   local timeout_ms = opts and opts.timeout_ms
@@ -527,7 +503,7 @@ function Client:request(method, params, resp_handler, opts)
             error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = timeout_msg },
           })
           if not ok then
-            log:error("[MCP.%s] response handler failed to handle timeout for request %s", self.name, req_id)
+            log:debug("[MCP::Client::%s] Timeout handler failed for request %s", self.name, req_id)
           end
         end
       end
@@ -552,12 +528,12 @@ function Client:_handle_server_roots_list()
 
   local ok, roots = pcall(self.cfg.roots)
   if not ok then
-    log:error("[MCP.%s] roots function failed: %s", self.name, roots)
+    log:debug("[MCP::Client::%s] Roots function failed: %s", self.name, roots)
     return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function failed" }
   end
 
   if not roots or type(roots) ~= "table" then
-    log:error("[MCP.%s] roots function returned invalid result: %s", self.name, roots)
+    log:debug("[MCP::Client::%s] Roots function returned invalid result: %s", self.name, vim.inspect(roots))
     return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function returned invalid result" }
   end
 
@@ -575,7 +551,7 @@ end
 ---@param reason? string The reason for cancellation
 ---@return nil
 function Client:cancel_request(req_id, reason)
-  log:info("[MCP.%s] cancelling request %s: %s", self.name, req_id, reason or "<no reason>")
+  log:debug("[MCP::Client::%s] Cancelling request %s: %s", self.name, req_id, reason or "<no reason>")
   self.resp_handlers[req_id] = nil
   self:notify("notifications/cancelled", {
     requestId = req_id,
@@ -597,13 +573,19 @@ function Client:call_tool(name, args, callback, opts)
     arguments = args,
   }, function(resp)
     if resp.error then
-      log:error("[MCP.%s] call_tool request failed for [%s]: %s", self.name, name, resp)
+      log:error(
+        "[MCP::Client::%s] Tool call failed for %s: [%s] %s",
+        self.name,
+        name,
+        resp.error.code,
+        resp.error.message
+      )
       callback(false, string.format("MCP JSONRPC error: [%s] %s", resp.error.code, resp.error.message))
       return
     end
 
     if not resp.result or not resp.result.content then
-      log:error("[MCP.%s] call_tool received malformed response for [%s]: %s", self.name, name, resp)
+      log:debug("[MCP::Client::%s] Malformed tool response for %s", self.name, name)
       callback(false, "MCP call_tool received malformed response")
       return
     end
@@ -618,7 +600,7 @@ end
 function Client:refresh_tools()
   assert(self.ready, "MCP Server is not ready.")
   if not self.server_capabilities.tools then
-    log:warn("[MCP.%s] does not support tools", self.name)
+    log:debug("[MCP::Client::%s] Server does not support tools", self.name)
     return
   end
 
@@ -626,27 +608,24 @@ function Client:refresh_tools()
   local function load_tools(cursor)
     self:request("tools/list", { cursor = cursor }, function(resp)
       if resp.error then
-        log:error("[MCP.%s] tools/list request failed: %s", self.name, resp)
+        log:debug("[MCP::Client::%s] tools/list failed: [%s] %s", self.name, resp.error.code, resp.error.message)
         return
       end
 
       local tools = resp.result and resp.result.tools or {}
       for _, tool in ipairs(tools) do
-        log:info("[MCP.%s] provides tool `%s`: %s", self.name, tool.name, tool.title or "<NO TITLE>")
         table.insert(all_tools, tool)
       end
 
       -- pagination handling
       local next_cursor = resp.result and resp.result.nextCursor
-      if next_cursor and #all_tools >= CONSTANTS.MAX_TOOLS_PER_SERVER then
-        log:warn("[MCP.%s] returned too many tools (%d), stopping further loading", self.name, #all_tools)
-      elseif next_cursor then
-        log:info("[MCP.%s] loading more tools with cursor: %s", self.name, next_cursor)
+      if next_cursor then
         return load_tools(next_cursor)
       end
 
+      log:debug("[MCP::Client::%s] Loaded %d tools", self.name, #all_tools)
       local installed_tools = tool_bridge.setup_tools(self, all_tools)
-      utils.fire("MCPToolsLoaded", { server = self.name, tools = installed_tools })
+      utils.fire("MCPServerToolsLoaded", { server = self.name, tools = installed_tools })
     end)
   end
 

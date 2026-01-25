@@ -8,7 +8,7 @@ local T = MiniTest.new_set({
       h.child_start(child)
       child.lua([[
         local h = require("tests.helpers")
-        Client = require("codecompanion.interactions.chat.mcp.client")
+        Client = require("codecompanion.mcp.client")
         MockMCPClientTransport = require("tests.mocks.mcp_client_transport")
 
         MCP_TOOLS = vim
@@ -94,8 +94,9 @@ local T = MiniTest.new_set({
             },
           }
           local loading = vim.tbl_count(mcp_cfg.servers)
+          -- NOTE: We rely on this event to know when tools are loaded
           vim.api.nvim_create_autocmd("User", {
-            pattern = "CodeCompanionMCPToolsLoaded",
+            pattern = "CodeCompanionMCPServerToolsLoaded",
             callback = function()
               loading = loading - 1
               return loading == 0
