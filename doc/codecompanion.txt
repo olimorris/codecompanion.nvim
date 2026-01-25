@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 10
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -25,6 +25,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - List of Commands          |codecompanion-getting-started-list-of-commands|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Upgrading General                         |codecompanion-upgrading-general|
+  - v18.6.0 to v19.0.0    |codecompanion-upgrading-general-v18.6.0-to-v19.0.0|
   - v17.33.0 to v18.0.0  |codecompanion-upgrading-general-v17.33.0-to-v18.0.0|
   - default_memory has been renamed to autoload (#2509)|codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)|
 5. Configuration                                 |codecompanion-configuration|
@@ -79,7 +80,6 @@ FEATURES                                      *codecompanion-welcome-features*
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
--  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Variables and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
@@ -538,6 +538,18 @@ CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
 breaking changes, it is recommended to pin the plugin to a specific version in
 your Neovim configuration. The |codecompanion-installation| provides more
 information on how to do this.
+
+
+V18.6.0 TO V19.0.0        *codecompanion-upgrading-general-v18.6.0-to-v19.0.0*
+
+- The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+
+
+CONFIG ~
+
+- Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 
 
 V17.33.0 TO V18.0.0      *codecompanion-upgrading-general-v17.33.0-to-v18.0.0*
@@ -1336,37 +1348,15 @@ See the section on |codecompanion-configuration-adapters-acp| and
 
 DIFF ~
 
-CodeCompanion has built-in inline and split diffs available to you. If you
-utilize the `insert_edit_into_file` tool, then the plugin can update files and
-buffers and a diff will be created so you can see the changes made by the LLM.
-The `inline` is the default diff.
-
-Depending on which provider you choose, there are different configuration
-options available to you:
 
 
-The keymaps for accepting and rejecting the diff sit within the `inline`
-interaction configuration and can be changed via:
+CodeCompanion has a built-in diff engine that’s leveraged throughout the
+plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter,
+then the plugin will update files and buffers, displaying the changes in a
+floating window.
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        inline = {
-          keymaps = {
-            accept_change = {
-              modes = { n = "gda" }, -- Remember this as DiffAccept
-            },
-            reject_change = {
-              modes = { n = "gdr" }, -- Remember this as DiffReject
-            },
-            always_accept = {
-              modes = { n = "gdy" }, -- Remember this as DiffYolo
-            },
-          },
-        },
-      },
-    })
-<
+There are a number of configuration option available to you:
+
 
 
 KEYMAPS ~
@@ -1376,40 +1366,22 @@ KEYMAPS ~
   only.
 You can define or override the default keymaps
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178>
-to send messages, regenerate responses, close the buffer, etc. Example:
+to send messages, regenerate responses, close the buffer, etc.
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          keymaps = {
-            send = {
-              modes = { n = "<C-s>", i = "<C-s>" },
-              opts = {},
-            },
-            close = {
-              modes = { n = "<C-c>", i = "<C-c>" },
-              opts = {},
-            },
-            -- Add further custom keymaps here
-          },
-        },
-      },
-    })
-<
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing
-in both normal and insert modes. To set other `:map-arguments`, you can use the
-optional `opts` table which will be fed to `vim.keymap.set`.
+For the chat interaction, the keymaps are mapped to `<C-s>` for sending a
+message and `<C-c>` for closing in both normal and insert modes. To set other
+`:map-arguments`, you can use the optional `opts` table which will be fed to
+`vim.keymap.set`.
 
 
 PROMPT DECORATOR ~
 
-It can be useful to decorate your prompt, prior to sending to an LLM, with
-additional information. For example, the GitHub Copilot prompt in VS Code,
-wraps a user’s prompt between `<prompt></prompt>` tags, presumably to
-differentiate the user’s ask from additional context. This can also be
-achieved in CodeCompanion:
+It can be useful to decorate your prompt with additional information, prior to
+sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a
+user’s prompt between `<prompt></prompt>` tags, presumably to differentiate
+the user’s ask from additional context. This can also be achieved in
+CodeCompanion:
 
 >lua
     require("codecompanion").setup({
@@ -1523,7 +1495,8 @@ dependency and want to refresh the tool availability in the chat buffer.
 APPROVALS
 
 CodeCompanion allows you to apply safety mechanisms to its built-in tools prior
-to execution.
+to execution. See the |codecompanion-usage-chat-buffer-tools-approvals| section
+for more information.
 
 
 
@@ -1623,11 +1596,10 @@ impact, the context can be folded:
 LAYOUT
 
 The plugin leverages floating windows to display content to a user in a variety
-of scenarios, such as with the |codecompanion-usage-chat-buffer--super-diff|,
-|codecompanion-usage-chat-buffer--messages| or agent
-|codecompanion-usage-chat-buffer-agents.html-permissions|. You can change the
-appearance of the chat buffer by changing the `display.chat.window` table in
-your configuration.
+of scenarios, such as with the |codecompanion-usage-chat-buffer--messages| or
+agent |codecompanion-usage-chat-buffer-agents.html-permissions|. You can change
+the appearance of the chat buffer by changing the `display.chat.window` table
+in your configuration.
 
 
 
@@ -1994,6 +1966,7 @@ ADDING PROMPTS ~
 There are two ways to add prompts to the prompt library. You can either define
 them directly in your configuration file as Lua tables, or you can store them
 as markdown files in your filesystem and reference them in your configuration.
+The files can be nested and symlinked.
 
 
 
@@ -2048,7 +2021,7 @@ Palette - `description` - Description shown in the Action Palette -
 
 **Optional frontmatter fields:** - `opts` - Additional options (see
 |codecompanion--options| section) - `context` - Pre-loaded context (see
-|codecompanion--prompts-with-context| section)
+|codecompanion--context-placeholders| section)
 
 **Prompt sections:** - `## system` - System messages that set the LLM’s
 behaviour - `## user` - User messages containing your requests
@@ -3138,7 +3111,6 @@ The keymaps available to the user in normal mode are:
 - `gbd` to sync only a buffers diff on every turn
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer’s contents
-- `gD` to view the chat buffer’s super diff feature
 - `gf` to fold any codeblocks in the chat buffer
 - `gM` to clear all rules from the chat buffer
 - `gr` to regenerate the last response
@@ -3196,24 +3168,6 @@ enabled (`display.chat.show_settings = true`), then a yaml block will be
 present at the top of the chat buffer which can be modified in between
 responses. The yaml block is simply a representation of an adapter’s schema
 table.
-
-
-SUPER DIFF ~
-
-
-
-When an LLM uses tools like
-|codecompanion-usage-chat-buffer-tools-insert-edit-into-file| to make changes
-across multiple files and buffers, it can be difficult to keep track. This is
-amplified if the tools are working without requiring approvals (perhaps via
-|codecompanion-usage-chat-buffer-tools.html-automatic-tool-mode|) and it simply
-isn’t impossible to keep track of what an LLM has added, deleted or modified.
-
-Super Diff gives you a single, unified view of all edits made in via the chat
-buffer. Open it with `gD` to review every change, grouped by file, with visual
-diffs and status indicators. You can accept or reject changes before they’re
-applied, keeping you in control of your codebase. You can even send changes to
-the quickfix list for easier navigation and review.
 
 
 AGENTS                                            *codecompanion-usage-agents*
@@ -3628,32 +3582,6 @@ approval before editng a file? (Default: true) - `require_confirmation_after`
 chat buffer? (Default: true)
 
 
-LIST_CODE_USAGES
-
-
-  [!NOTE] This tool requires LSP to be configured and active for optimal results
-This tool enables an LLM to find all usages of a symbol (function, class,
-method, variable, etc.) throughout your codebase. It leverages LSP for accurate
-results and falls back to grep for broader text searching.
-
-The tool provides comprehensive information about symbols including:
-
-- **References**: All places where the symbol is used
-- **Definitions**: Where the symbol is defined
-- **Implementations**: Concrete implementations of interfaces/abstract methods
-- **Declarations**: Forward declarations
-- **Type Definitions**: Type aliases and definitions
-- **Documentation**: Hover documentation when available
-
->md
-    Use @{list_code_usages} to find all usages of the `create_file` function
-<
-
->md
-    Can you use @{list_code_usages} to show me how the `Tools` class is implemented and used?
-<
-
-
 MEMORY
 
 
@@ -3745,7 +3673,7 @@ For example, the following prompt:
 Is replaced by:
 
 >
-    I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, list_code_usages, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
+    I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
 <
 
 This is because the `@{full_stack_dev}` group has the following prompt set in
@@ -3775,7 +3703,6 @@ It contains the following tools:
 - |codecompanion-usage-chat-buffer-tools-get-changed-files|
 - |codecompanion-usage-chat-buffer-tools-grep-search|
 - |codecompanion-usage-chat-buffer-tools-insert-edit-into-file|
-- |codecompanion-usage-chat-buffer-tools-list-code-usages|
 - |codecompanion-usage-chat-buffer-tools-read-file|
 
 You can use it with:
@@ -3877,9 +3804,10 @@ When prompted, the user has four options available to them:
 
 Certain tools with potentially destructive capabilities have an additional
 layer of protection. Instead of being approved at a tool level, these are
-approved at a command level. Taking the `cmd_runner` tool as an example. If you
-approve an agent to always run `make format`, if it tries to run `make test`,
-you’ll be prompted to approve that command specifically.
+approved at a command level (`require_cmd_approval = true`). Taking the
+`cmd_runner` tool as an example. If you approve an agent to always run `make
+format`, if it tries to run `make test`, you’ll be prompted to approve that
+command specifically.
 
 Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
@@ -3889,7 +3817,8 @@ YOLO MODE
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
 prompting the user. However, note that some tools such as `cmd_runner` and
-`delete_file` are excluded from this.
+`delete_file` are excluded from this as they have `allowed_in_yolo_mode =
+false` set.
 
 
 COMPATIBILITY ~
@@ -4168,8 +4097,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
-- `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
+- `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatSubmitted` - Fired after a chat has been submitted
 - `CodeCompanionChatDone` - Fired after a chat has received the response
 - `CodeCompanionChatStopped` - Fired after a chat has been stopped
@@ -4187,10 +4116,6 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
-- `CodeCompanionDiffAttached` - Fired when in Diff mode
-- `CodeCompanionDiffDetached` - Fired when exiting Diff mode
-- `CodeCompanionDiffAccepted` - Fired when a user accepts a change
-- `CodeCompanionDiffRejected` - Fired when a user rejects a change
 
 There are also events that can be utilized to trigger commands from within the
 plugin:
@@ -4390,8 +4315,6 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatFold` - For any folds in the chat buffer (not including tool output)
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
-- `CodeCompanionSuperDiffDirectory` - Highlight directories in a Super Diff buffer
-- `CodeCompanionSuperDiffFilename` - Highlight filenames in a Super Diff buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
@@ -5408,12 +5331,12 @@ Now let’s look at how we trigger the automated reflection prompts:
             role = "user",
             opts = { auto_submit = true },
             -- Scope this prompt to only run when the cmd_runner tool is active
-            condition = function()
-              return _G.codecompanion_current_tool == "cmd_runner"
+            condition = function(chat)
+              return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             repeat_until = function(chat)
-              return chat.tools.flags.testing == true
+              return chat.tool_registry.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },

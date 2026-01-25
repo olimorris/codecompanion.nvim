@@ -14,7 +14,7 @@
       Background interactions must log or error silently so as not to impact
       the user experience.
 
-      This code is licensed under the MIT License.
+      This code is licensed under the Apache-2.0 License.
 -------------------------------------------------------------------------------
     Attribution:
       If you use or distribute this code, please credit:
@@ -57,11 +57,11 @@ function Background.new(args)
   end
 
   -- Silence errors
-  if self.adapter.type ~= "http" then
-    return log:debug("[background::init] Only HTTP adapters are supported for background interactions")
-  end
   if not self.adapter then
-    return log:debug("[background::init] No adapter assigned for background interactions")
+    return log:debug("[Background] No adapter found")
+  end
+  if self.adapter.type ~= "http" then
+    return log:warn("Only HTTP adapters are supported for background interactions")
   end
 
   self.settings = schema.get_default(self.adapter, args.settings)

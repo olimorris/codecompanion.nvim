@@ -128,7 +128,6 @@ The keymaps available to the user in normal mode are:
 - `gbd` to sync only a buffers diff on every turn
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer's contents
-- `gD` to view the chat buffer's super diff feature
 - `gf` to fold any codeblocks in the chat buffer
 - `gM` to clear all rules from the chat buffer
 - `gr` to regenerate the last response
@@ -173,12 +172,4 @@ The message history cannot be altered directly in the chat buffer. However, it c
 <img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
 
 When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
-
-## Super Diff
-
-<img alt="Super Diff" src="https://github.com/user-attachments/assets/e530d6dd-6f14-4085-b839-6d30439b356f" />
-
-When an LLM uses tools like [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file) to make changes across multiple files and buffers, it can be difficult to keep track. This is amplified if the tools are working without requiring approvals (perhaps via [automatic tool mode](/usage/chat-buffer/tools.html#automatic-tool-mode)) and it simply isn't impossible to keep track of what an LLM has added, deleted or modified.
-
-Super Diff gives you a single, unified view of all edits made in via the chat buffer. Open it with `gD` to review every change, grouped by file, with visual diffs and status indicators. You can accept or reject changes before they’re applied, keeping you in control of your codebase. You can even send changes to the quickfix list for easier navigation and review.
 

@@ -14,7 +14,7 @@ CodeCompanion enables you to leverage prompt templates to quickly interact with 
 > [!NOTE]
 > See the [Creating Prompts](#creating-prompts) section to learn how to create your own.
 
-There are two ways to add prompts to the prompt library. You can either define them directly in your configuration file as Lua tables, or you can store them as markdown files in your filesystem and reference them in your configuration.
+There are two ways to add prompts to the prompt library. You can either define them directly in your configuration file as Lua tables, or you can store them as markdown files in your filesystem and reference them in your configuration. The files can be nested and symlinked.
 
 ::: code-group
 
@@ -141,7 +141,7 @@ Markdown prompts consist of two main parts:
 
 **Optional frontmatter fields:**
 - `opts` - Additional options (see [Options](#options) section)
-- `context` - Pre-loaded context (see [Prompts with Context](#prompts-with-context) section)
+- `context` - Pre-loaded context (see [Context Placeholders](#context-placeholders) section)
 
 **Prompt sections:**
 - `## system` - System messages that set the LLM's behaviour

@@ -5,64 +5,26 @@ local api = vim.api
 
 local M = {}
 
--- Background window references for floating diff focus effect
-M._background_win = nil
-M._background_buf = nil
-
----Create a background window with winblend for focus effect
----@return number|nil winnr Background window number
-function M.create_background_window()
-  if M._background_win and api.nvim_win_is_valid(M._background_win) then
-    return M._background_win
-  end
-
-  local config = require("codecompanion.config")
-  local inline_config = config.display.diff.provider_opts.inline
-  local winblend = inline_config.opts.dim or 25
-
-  M._background_buf = api.nvim_create_buf(false, true)
-  M._background_win = api.nvim_open_win(M._background_buf, false, {
-    relative = "editor",
-    row = 0,
-    col = 0,
-    width = vim.o.columns,
-    height = vim.o.lines,
-    style = "minimal",
-    border = "none",
-    focusable = false,
-    noautocmd = true,
-    zindex = 50,
-  })
-
-  -- Set winblend for dimming effect
-  api.nvim_set_option_value("winblend", winblend, { win = M._background_win })
-
-  return M._background_win
-end
-
----Close the background window
----@return nil
-function M.close_background_window()
-  if M._background_win and api.nvim_win_is_valid(M._background_win) then
-    pcall(api.nvim_win_close, M._background_win, true)
-  end
-  M._background_win = nil
-  M._background_buf = nil
-end
+---@class CodeCompanion.WindowOpts
+---@field bufnr? number Buffer number to use
+---@field row? number Row position of the floating window
+---@field col? number Column position of the floating window
+---@field ft? string Filetype to set for the buffer
+---@field ignore_keymaps? boolean Whether to ignore default keymaps
+---@field lock? boolean Whether to lock the buffer (non-modifiable)
+---@field opts? table Window options to set
+---@field overwrite_buffer? boolean Whether to overwrite the buffer content
+---@field relative? string Relative position of the floating window
+---@field style? string Style of the floating window
+---@field title? string Title of the floating window
+---@field width? number Default width if not specified in window
+---@field height? number Default height if not specified in window
 
 ---Open a floating window with the provided lines
 ---@param lines table
----@param opts table
+---@param opts CodeCompanion.WindowOpts
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
-  local window = opts.window
-
-  ---TODO: Remove this and remove all background dimming
-  -- Create background window for dimming effect if enabled
-  if opts.show_dim then
-    M.create_background_window()
-  end
-
   local cols = function()
     return vim.o.columns
   end
@@ -70,38 +32,44 @@ M.create_float = function(lines, opts)
     return vim.o.lines
   end
 
-  if type(window.height) == "function" then
-    window.height = window.height()
+  if type(opts.height) == "function" then
+    opts.height = opts.height()
   end
-  if type(window.width) == "function" then
-    window.width = window.width()
+  if type(opts.width) == "function" then
+    opts.width = opts.width()
   end
-  if type(window.height) == "string" then
-    window.height = rows()
+  if type(opts.height) == "string" then
+    opts.height = rows()
   end
-  if type(window.width) == "string" then
-    window.width = cols()
+  if type(opts.width) == "string" then
+    opts.width = cols()
   end
 
-  local width = window.width and (window.width > 1 and window.width or opts.width or 85) or opts.width or 85
-  local height = window.height and (window.height > 1 and window.height or opts.height or 17) or opts.height or 17
+  local width = opts.width
+  if width and width > 0 and width < 1 then
+    width = math.floor(cols() * width)
+  end
+  width = (width and width >= 1 and width or opts.width or 85) ---@cast width number
+
+  local height = opts.height
+  if height and height > 0 and height < 1 then
+    height = math.floor(rows() * height)
+  end
+  height = (height and height >= 1 and height or opts.height or 17) ---@cast height number
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
-
-  require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+  api.nvim_set_option_value("filetype", opts.ft or "codecompanion", { buf = bufnr })
 
   -- Calculate center position if not specified
-  local row = opts.row or window.row or 10
-  local col = opts.col or window.col or 0
-  if row == "center" then
+  local row = opts.row or opts.row ---@cast row number
+  local col = opts.col or opts.col ---@cast col number
+  if not row or not col then
     row = math.floor((rows() - height) / 2 - 1) -- Account for status line for better UX
-  end
-  if col == "center" then
     col = math.floor((cols() - width) / 2)
   end
 
   local winnr = api.nvim_open_win(bufnr, true, {
-    relative = opts.relative or "cursor",
+    relative = opts.relative or "editor",
     -- thanks to @mini.nvim for this, it's for >= 0.11, to respect users winborder style
     border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
     width = width,
@@ -109,9 +77,8 @@ M.create_float = function(lines, opts)
     style = opts.style,
     row = row,
     col = col,
-    title = opts.title or "Options",
+    title = opts.title and (" " .. opts.title .. " ") or " Options ",
     title_pos = "center",
-    zindex = opts.show_dim and 99 or nil, -- When dimming, set above background win but below notifications
   })
 
   if not opts.bufnr or opts.overwrite_buffer ~= false then
@@ -127,20 +94,11 @@ M.create_float = function(lines, opts)
     M.set_win_options(winnr, opts.opts)
   end
 
-  -- Set up autocmd to clean up background window if dimming is enabled
-  if winnr and opts.show_dim then
-    api.nvim_create_autocmd("WinClosed", {
-      pattern = tostring(winnr),
-      callback = function()
-        M.close_background_window()
-      end,
-      once = true,
-    })
-  end
-
   if opts.ignore_keymaps then
     return bufnr, winnr
   end
+
+  -- Set some sensible keymaps for closing the window
 
   local function close()
     pcall(function()

@@ -114,8 +114,6 @@ function Orchestrator.new(tools, id)
     tools = tools,
   }, { __index = Orchestrator })
 
-  _G.codecompanion_cancel_tool = false
-
   return self
 end
 
@@ -127,7 +125,6 @@ function Orchestrator:_setup_handlers()
       if not self.tool then
         return
       end
-      _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         return self.tool.handlers.setup(self.tool, self.tools)
       end
@@ -234,6 +231,7 @@ end
 ---@param self CodeCompanion.Tools.Orchestrator
 ---@return nil
 function Orchestrator:_finalize_tools()
+  self.tools.tool = nil
   return utils.fire("ToolsFinished", { id = self.id, bufnr = self.tools.bufnr })
 end
 
@@ -345,12 +343,6 @@ end
 ---@return nil
 function Orchestrator:execute_tool(args)
   utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
-
-  pcall(function()
-    local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-    self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
-  end)
-
   return Runner.new({ index = 1, orchestrator = self, cmd = args.cmd }):setup(args.input)
 end
 
@@ -361,14 +353,6 @@ function Orchestrator:error(args)
   self.tools.status = self.tools.constants.STATUS_ERROR
   if args.error then
     table.insert(self.tools.stderr, args.error)
-  end
-
-  if self.tool and self.tool.name then
-    -- Wrap this in error handling to avoid breaking the tool execution
-    pcall(function()
-      local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
-    end)
   end
 
   local ok, err = pcall(function()
@@ -392,13 +376,6 @@ end
 ---@return nil
 function Orchestrator:success(args)
   self.tools.status = self.tools.constants.STATUS_SUCCESS
-
-  if self.tool and self.tool.name then
-    pcall(function()
-      local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
-    end)
-  end
 
   if args.output then
     table.insert(self.tools.stdout, args.output)

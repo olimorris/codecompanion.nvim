@@ -18,7 +18,6 @@
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field create_buf fun(): number The function that creates a new buffer for the chat
----@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
@@ -61,7 +60,6 @@
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local images_utils = require("codecompanion.utils.images")
@@ -518,6 +516,7 @@ function Chat.new(args)
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
+    aug = self.aug,
     chat_id = self.id,
     chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
@@ -956,7 +955,7 @@ end
 
 ---Add an image to the chat buffer
 ---@param image CodeCompanion.Image The image object containing the path and other metadata
----@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@param opts? {role?: "user"|string, source?: string, bufnr?: number} Options for adding the image
 ---@return nil
 function Chat:add_image_message(image, opts)
   opts = vim.tbl_deep_extend("force", {
@@ -1450,7 +1449,6 @@ function Chat:stop()
     local tool_job = self.current_tool
     self.current_tool = nil
 
-    _G.codecompanion_cancel_tool = true
     pcall(function()
       tool_job.cancel()
     end)
@@ -1484,9 +1482,6 @@ function Chat:close()
 
   self:dispatch("on_closed")
 
-  edit_tracker.handle_chat_close(self)
-  edit_tracker.clear(self)
-
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
   end
@@ -1511,9 +1506,6 @@ function Chat:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
-  end
-  if self.ui.aug then
-    api.nvim_clear_autocmds({ group = self.ui.aug })
   end
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()

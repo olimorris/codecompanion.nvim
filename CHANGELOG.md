@@ -1,5 +1,35 @@
 # Changelog
 
+## [18.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.0...v18.5.1) (2026-01-24)
+
+
+### Bug Fixes
+
+* **adapters:** check for nil in `openai_responses` ([#2662](https://github.com/olimorris/codecompanion.nvim/issues/2662)) ([e22c043](https://github.com/olimorris/codecompanion.nvim/commit/e22c04336b5c56e3839bfebd6d88944f014f4b30))
+* **adapters:** copilot supported endpoints ([#2691](https://github.com/olimorris/codecompanion.nvim/issues/2691)) ([dd98466](https://github.com/olimorris/codecompanion.nvim/commit/dd98466a893abf499fbd69ab9526b2da7c094fb8))
+* **tools:** remove globals for better concurrent tool usage ([#2680](https://github.com/olimorris/codecompanion.nvim/issues/2680)) ([c9d74dd](https://github.com/olimorris/codecompanion.nvim/commit/c9d74dd667cf609b4f2064ae7f5471285b5356cb))
+
+## [18.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.4.1...v18.5.0) (2026-01-21)
+
+
+### Features
+
+* **ui:** better cursor scrolling in the chat ([#2670](https://github.com/olimorris/codecompanion.nvim/issues/2670)) ([6657e6f](https://github.com/olimorris/codecompanion.nvim/commit/6657e6fd594d3c9f6dd3ab9e26a0c76b8e7082e1))
+
+
+### Bug Fixes
+
+* **chat:** buffers with duplicate short_paths ([#2665](https://github.com/olimorris/codecompanion.nvim/issues/2665)) ([e0780fa](https://github.com/olimorris/codecompanion.nvim/commit/e0780fa9fda504ffb89307cabcb6cbe1ce8eb60c))
+
+## [18.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.4.0...v18.4.1) (2026-01-16)
+
+
+### Bug Fixes
+
+* **acp:** fire event when calling /mode command ([#2656](https://github.com/olimorris/codecompanion.nvim/issues/2656)) ([8ebbcc2](https://github.com/olimorris/codecompanion.nvim/commit/8ebbcc27d20e9ac6e7491de6ef9aac1fbf6277a2))
+* **adapters:** copilot log error ([#2663](https://github.com/olimorris/codecompanion.nvim/issues/2663)) ([6fa8338](https://github.com/olimorris/codecompanion.nvim/commit/6fa8338b4332d57c153b40205613c3c56736a255))
+* **adapters:** use custom headers in Ollama get_models ([#2644](https://github.com/olimorris/codecompanion.nvim/issues/2644)) ([9079ff9](https://github.com/olimorris/codecompanion.nvim/commit/9079ff9244d77eea3c0c5b63ce092c45b0eaa8d2)), closes [#2642](https://github.com/olimorris/codecompanion.nvim/issues/2642)
+
 ## [18.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.2...v18.4.0) (2026-01-10)
 
 
