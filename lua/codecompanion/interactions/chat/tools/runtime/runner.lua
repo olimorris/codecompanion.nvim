@@ -82,7 +82,7 @@ function Runner:run_tool(cmd_func, action, args)
 
   ---@param msg {status:"success"|"error", data:any}
   local function output_handler(msg)
-    if tool_finished then
+    if tool_finished or self.orchestrator.cancelled then
       return
     end
     tool_finished = true

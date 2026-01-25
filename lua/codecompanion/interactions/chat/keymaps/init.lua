@@ -304,7 +304,7 @@ M.close = {
 
 M.stop = {
   callback = function(chat)
-    if chat.current_request then
+    if chat.current_request or chat.tool_orchestrator then
       chat:stop()
     end
   end,
