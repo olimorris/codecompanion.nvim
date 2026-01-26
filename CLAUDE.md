@@ -58,7 +58,7 @@ Located in `lua/codecompanion/interactions/chat/tools/builtin/`:
 
 **File Operations:** `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/` (advanced editing with multiple matching interactions)
 
-**Code Analysis:** `list_code_usages/` (LSP-based), `grep_search`, `file_search`
+**Code Analysis:** `grep_search`, `file_search`
 
 **Execution & Web:** `cmd_runner`, `web_search`, `fetch_webpage`
 

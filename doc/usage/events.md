@@ -13,8 +13,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
-- `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
+- `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatSubmitted` - Fired after a chat has been submitted
 - `CodeCompanionChatDone` - Fired after a chat has received the response
 - `CodeCompanionChatStopped` - Fired after a chat has been stopped
@@ -32,10 +32,6 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
-- `CodeCompanionDiffAttached` - Fired when in Diff mode
-- `CodeCompanionDiffDetached` - Fired when exiting Diff mode
-- `CodeCompanionDiffAccepted` - Fired when a user accepts a change
-- `CodeCompanionDiffRejected` - Fired when a user rejects a change
 
 There are also events that can be utilized to trigger commands from within the plugin:
 
