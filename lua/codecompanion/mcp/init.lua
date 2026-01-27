@@ -1,4 +1,5 @@
 local Client = require("codecompanion.mcp.client")
+local config = require("codecompanion.config")
 
 local M = {}
 
@@ -27,12 +28,16 @@ local clients = {}
 ---Start all configured MCP servers if not already started
 ---@return nil
 function M.start_servers()
-  local mcp_cfg = require("codecompanion.config").mcp
-  for name, cfg in pairs(mcp_cfg.servers or {}) do
+  local mcp_cfg = config.mcp
+  for name, cfg in pairs(mcp_cfg.servers) do
+    if cfg.opts and cfg.opts.enabled == false then
+      goto continue
+    end
     if not clients[name] then
       local client = Client.new({ name = name, cfg = cfg })
       clients[name] = client
     end
+    ::continue::
   end
 
   for _, client in pairs(clients) do

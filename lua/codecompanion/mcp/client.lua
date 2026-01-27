@@ -1,3 +1,4 @@
+local METHODS = require("codecompanion.mcp.methods")
 local tool_bridge = require("codecompanion.mcp.tool_bridge")
 
 local adapter_utils = require("codecompanion.utils.adapters")
@@ -331,7 +332,7 @@ function Client:_start_initialization()
     capabilities = capabilities,
   }, function(resp)
     if resp.error then
-      log:error("[MCP::Client::%s] Initialization failed: %s", self.name, vim.inspect(resp.error))
+      log:error("[MCP::Client::%s] Initialization failed: %s", self.name, resp.error)
       self:stop()
       return
     end
@@ -339,16 +340,16 @@ function Client:_start_initialization()
       "[MCP::Client::%s] Initialized: version=%s, server=%s, capabilities=%s",
       self.name,
       resp.result.protocolVersion,
-      vim.inspect(resp.result.serverInfo),
-      vim.inspect(resp.result.capabilities)
+      resp.result.serverInfo,
+      resp.result.capabilities
     )
-    self:notify("notifications/initialized")
+    self:notify(METHODS.InitializedNotification)
     self.server_capabilities = resp.result.capabilities
     self.server_instructions = resp.result.instructions
     self.ready = true
     if self.cfg.register_roots_list_changed then
       self.cfg.register_roots_list_changed(function()
-        self:notify_roots_list_changed()
+        self:notify(METHODS.RootsListChangedNotification)
       end)
     end
     utils.fire("MCPServerReady", { server = self.name })
@@ -533,17 +534,11 @@ function Client:_handle_server_roots_list()
   end
 
   if not roots or type(roots) ~= "table" then
-    log:debug("[MCP::Client::%s] Roots function returned invalid result: %s", self.name, vim.inspect(roots))
+    log:debug("[MCP::Client::%s] Roots function returned invalid result: %s", self.name, roots)
     return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function returned invalid result" }
   end
 
   return "result", { roots = roots }
-end
-
----Send a notification that the roots list changed.
----@return nil
-function Client:notify_roots_list_changed()
-  self:notify("notifications/roots/list_changed")
 end
 
 ---Cancel a pending request to the MCP server and notify the server of cancellation.
@@ -553,7 +548,7 @@ end
 function Client:cancel_request(req_id, reason)
   log:debug("[MCP::Client::%s] Cancelling request %s: %s", self.name, req_id, reason or "<no reason>")
   self.resp_handlers[req_id] = nil
-  self:notify("notifications/cancelled", {
+  self:notify(METHODS.CancelledNotification, {
     requestId = req_id,
     reason = reason,
   })
