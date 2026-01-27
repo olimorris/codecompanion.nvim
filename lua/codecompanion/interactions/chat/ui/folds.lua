@@ -10,14 +10,15 @@ local CONSTANTS = {
   NS_FOLD_TOOLS = api.nvim_create_namespace("CodeCompanion-tool_fold_marks"),
   NS_FOLD_CONTEXT = api.nvim_create_namespace("CodeCompanion-context_fold_marks"),
   NS_FOLD_REASONING = api.nvim_create_namespace("CodeCompanion-reasoning_fold_marks"),
+  NS_FOLD_PLAN = api.nvim_create_namespace("CodeCompanion-plan_fold_marks"),
 }
 
 -- Unified fold summaries storage
----@type table<number, table<number, { content: string, type: "tool"|"context"|"reasoning" }>>
+---@type table<number, table<number, { content: string, type: "tool"|"context"|"reasoning"|"plan" }>>
 Folds.fold_summaries = {}
 
 ---@class CodeCompanion.Chat.UI.FoldConfig
----@field type "tool"|"context"|"reasoning"
+---@field type "tool"|"context"|"reasoning"|"plan"
 ---@field content string
 ---@field success_keywords? string[]
 ---@field failure_keywords? string[]
@@ -90,6 +91,12 @@ function Folds._format_fold_text(content, fold_type, opts)
     end
   elseif fold_type == "reasoning" then
     table.insert(chunks, { content, "CodeCompanionChatFold" })
+  elseif fold_type == "plan" then
+    local icon = icons.plan or "󰸗  "
+    table.insert(chunks, { icon, "CodeCompanionChatPlan" })
+    if not opts.show_icon_only then
+      table.insert(chunks, { content, "CodeCompanionChatPlan" })
+    end
   end
 
   return chunks
@@ -145,12 +152,14 @@ function Folds:_create(bufnr, start_row, end_row, fold_config)
     type = fold_config.type,
   }
 
-  -- Only add inline extmarks for tool/context. Reasoning gets no extmarks.
+  -- Only add inline extmarks for tool/context/plan. Reasoning gets no extmarks.
   local ns_to_use = nil
   if fold_config.type == "tool" then
     ns_to_use = CONSTANTS.NS_FOLD_TOOLS
   elseif fold_config.type == "context" then
     ns_to_use = CONSTANTS.NS_FOLD_CONTEXT
+  elseif fold_config.type == "plan" then
+    ns_to_use = CONSTANTS.NS_FOLD_PLAN
   end
 
   if ns_to_use then
@@ -189,6 +198,8 @@ function Folds:recreate(bufnr, start_row, end_row, fold_config)
     ns = CONSTANTS.NS_FOLD_CONTEXT
   elseif fold_config.type == "reasoning" then
     ns = CONSTANTS.NS_FOLD_REASONING
+  elseif fold_config.type == "plan" then
+    ns = CONSTANTS.NS_FOLD_PLAN
   end
   if ns then
     api.nvim_buf_clear_namespace(bufnr, ns, start_row, end_row + 1)
@@ -314,6 +325,75 @@ function Folds:create_reasoning_fold(chat, start_row, end_row)
   })
 end
 
+---Fold the most recent plan section in the chat buffer
+---@param chat CodeCompanion.Chat
+---@param start_row number (0-based)
+---@param end_row number (0-based)
+---@return nil
+function Folds:create_plan_fold(chat, start_row, end_row)
+  if not config.display.chat.fold_plan then
+    return
+  end
+
+  local summary_text = "  " .. (config.display.chat.icons.plan or "󰸗  ") .. " ..."
+
+  local bufnr = chat.bufnr
+  local parser = chat.chat_parser
+  if not (bufnr and parser) then
+    return
+  end
+
+  local ok, query = pcall(
+    vim.treesitter.query.parse,
+    "markdown",
+    [[
+    (section
+      (atx_heading
+        (atx_h2_marker)
+        heading_content: (_) @block_name
+      )
+      (#eq? @block_name "Plan")
+    ) @plan
+  ]]
+  )
+  if not ok or not query then
+    return
+  end
+
+  local tree = parser:parse({ start_row, end_row })[1]
+  if not tree then
+    return
+  end
+  local root = tree:root()
+
+  local latest_node, latest_range = nil, -1
+  for id, node in query:iter_captures(root, bufnr, start_row, end_row) do
+    if query.captures[id] == "plan" then
+      local range = node:range()
+      if range >= latest_range then
+        latest_node, latest_range = node, range
+      end
+    end
+  end
+  if not latest_node then
+    return
+  end
+
+  local range, _, er = latest_node:range()
+  local fold_start = range + 1
+  local fold_end = math.max(fold_start, er - 1)
+
+  -- Don't fold if there's no content to fold
+  if fold_start >= fold_end then
+    return
+  end
+
+  self:recreate(bufnr, fold_start, fold_end, {
+    type = "plan",
+    content = summary_text,
+  })
+end
+
 ---Clean up fold data for a buffer
 ---@param bufnr number
 function Folds:cleanup(bufnr)
@@ -324,6 +404,7 @@ function Folds:cleanup(bufnr)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_TOOLS, 0, -1)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_CONTEXT, 0, -1)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_REASONING, 0, -1)
+  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_PLAN, 0, -1)
 end
 
 return Folds

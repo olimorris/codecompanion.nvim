@@ -57,3 +57,7 @@ todo.md
 /examples
 /memories
 chroma.log
+
+# CodeCompanion session/progress tracking
+.codecompanion/progress/
+lua/**/.codecompanion/
