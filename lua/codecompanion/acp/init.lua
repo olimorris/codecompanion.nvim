@@ -539,8 +539,6 @@ end
 ---@param id number
 ---@return table|nil
 function Connection:wait_for_rpc_response(id)
-  -- Timeout is already in milliseconds (adapter.defaults.timeout = 20000)
-  -- vim.wait() expects milliseconds, so no conversion needed
   local timeout = self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT
 
   local ok = vim.wait(timeout, function()
