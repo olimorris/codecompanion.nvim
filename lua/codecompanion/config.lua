@@ -448,6 +448,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+        ["mcp"] = {
+          callback = "interactions.chat.slash_commands.builtin.mcp",
+          description = "Toggle MCP servers",
+          opts = {
+            contains_code = false,
+            provider = "default", -- snacks|default
+          },
+        },
         ["now"] = {
           callback = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",

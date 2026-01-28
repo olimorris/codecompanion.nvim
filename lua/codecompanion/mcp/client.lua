@@ -63,8 +63,9 @@ StdioTransport.__index = StdioTransport
 
 StdioTransport.static = {}
 StdioTransport.static.methods = {
-  system = { default = vim.system },
+  defer_fn = { default = vim.defer_fn },
   schedule_wrap = { default = vim.schedule_wrap },
+  system = { default = vim.system },
 }
 
 ---@class CodeCompanion.MCP.StdioTransportArgs
@@ -621,6 +622,7 @@ function Client:refresh_tools()
       log:debug("[MCP::Client::%s] Loaded %d tools", self.name, #all_tools)
       local installed_tools = tool_bridge.setup_tools(self, all_tools)
       utils.fire("MCPServerToolsLoaded", { server = self.name, tools = installed_tools })
+      utils.fire("ChatRefreshCache")
     end)
   end
 

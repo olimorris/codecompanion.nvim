@@ -3,6 +3,13 @@ local config = require("codecompanion.config")
 
 local M = {}
 
+---Return whether the server config is enabled
+---@param server_cfg CodeCompanion.MCP.ServerConfig
+---@return boolean
+local function is_enabled(server_cfg)
+  return not (server_cfg.opts and server_cfg.opts.enabled == false)
+end
+
 ---@class CodeCompanion.MCP.ToolOverride
 ---@field opts? table
 ---@field enabled nil | boolean | fun(): boolean
@@ -13,6 +20,7 @@ local M = {}
 ---@class CodeCompanion.MCP.ServerConfig
 ---@field cmd string[]
 ---@field env? table<string, string>
+---@field opts? { enabled: boolean}
 ---@field server_instructions nil | string | fun(orig_server_instructions: string): string
 ---@field default_tool_opts? table<string, any>
 ---@field tool_overrides? table<string, CodeCompanion.MCP.ToolOverride>
@@ -70,44 +78,95 @@ function M.restart_servers()
   M.start_servers()
 end
 
+---Enable a configured MCP server
+---@param name string
+---@return boolean, boolean|string
+function M.enable_server(name)
+  local mcp_cfg = config.mcp
+  local server_cfg = mcp_cfg.servers[name]
+  if not server_cfg then
+    return false, string.format("MCP server not found: %s", name)
+  end
+
+  server_cfg.opts = server_cfg.opts or {}
+  server_cfg.opts.enabled = true
+
+  if not clients[name] then
+    clients[name] = Client.new({ name = name, cfg = server_cfg })
+  end
+
+  clients[name]:start()
+
+  return true, true
+end
+
+---Disable a configured MCP server
+---@param name string
+---@return boolean, boolean|string
+function M.disable_server(name)
+  local mcp_cfg = config.mcp
+  local server_cfg = mcp_cfg.servers[name]
+  if not server_cfg then
+    return false, string.format("MCP server not found: %s", name)
+  end
+
+  server_cfg.opts = server_cfg.opts or {}
+  server_cfg.opts.enabled = false
+
+  if clients[name] then
+    clients[name]:stop()
+    clients[name] = nil
+  end
+
+  return true, false
+end
+
+---Toggle a configured MCP server on or off
+---@param name string
+---@return boolean, boolean|string
+function M.toggle_server(name)
+  local mcp_cfg = config.mcp
+  local server_cfg = mcp_cfg.servers[name]
+  if not server_cfg then
+    return false, string.format("MCP server not found: %s", name)
+  end
+
+  local client = clients[name]
+  if client and client.transport:started() then
+    return M.disable_server(name)
+  end
+
+  return M.enable_server(name)
+end
+
 ---Refresh configuration and restart servers
 ---This allows users to update their MCP config and apply changes without restarting Neovim
 ---@return nil
 function M.refresh()
   M.stop_servers()
-
-  -- Clear cached tool groups and tools from config
-  local chat_tools = require("codecompanion.config").interactions.chat.tools
-  for name, _ in pairs(chat_tools.groups) do
-    if name:match("^mcp:") then
-      chat_tools.groups[name] = nil
-    end
-  end
-  for name, tool in pairs(chat_tools) do
-    if type(tool) == "table" and vim.tbl_get(tool, "opts", "_mcp_info") then
-      chat_tools[name] = nil
-    end
-  end
-
   M.start_servers()
 end
 
 ---Get status of all MCP servers
----@return table<string, { ready: boolean, tool_count: number, started: boolean }>
+---@return table<string, { ready: boolean, tool_count: number, started: boolean, enabled: boolean }>
 function M.get_status()
   local status = {}
 
-  for name, client in pairs(clients) do
+  local mcp_cfg = config.mcp
+  for name, cfg in pairs(mcp_cfg.servers) do
+    local client = clients[name]
+    local ready = client and client.ready or false
     local tool_count = 0
-    if client.ready then
+    if ready then
       local tools = require("codecompanion.config").interactions.chat.tools.groups["mcp:" .. name]
       tool_count = tools and #tools.tools or 0
     end
 
     status[name] = {
-      ready = client.ready,
+      ready = ready,
       tool_count = tool_count,
-      started = client.transport:started(),
+      started = client and client.transport:started() or false,
+      enabled = is_enabled(cfg),
     }
   end
 

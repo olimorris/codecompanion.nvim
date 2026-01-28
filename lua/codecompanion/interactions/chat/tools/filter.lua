@@ -5,6 +5,18 @@ local log = require("codecompanion.utils.log")
 local Filter = filter.create_filter({
   skip_keys = { "opts", "groups" },
   post_filter = function(filtered_config, opts, enabled_items)
+    local mcp_status
+    local function is_mcp_tool_started(tool_cfg)
+      local server = vim.tbl_get(tool_cfg, "opts", "_mcp_info", "server")
+      if not server then
+        return true
+      end
+      if not mcp_status then
+        mcp_status = require("codecompanion.mcp").get_status()
+      end
+      return mcp_status[server] and mcp_status[server].started or false
+    end
+
     -- Adapter specific tool
     if opts and opts.adapter and opts.adapter.available_tools then
       for tool_name, tool_config in pairs(opts.adapter.available_tools) do
@@ -23,6 +35,16 @@ local Filter = filter.create_filter({
             _adapter_tool = true,
             _has_client_tool = tool_config.opts and tool_config.opts.client_tool and true or false,
           })
+        end
+      end
+    end
+
+    for tool_name, tool_config in pairs(filtered_config) do
+      if tool_name ~= "opts" and tool_name ~= "groups" then
+        if type(tool_config) == "table" and not is_mcp_tool_started(tool_config) then
+          filtered_config[tool_name] = nil
+          enabled_items[tool_name] = nil
+          log:trace("[Tool Filter] Filtered out MCP tool for stopped server: %s", tool_name)
         end
       end
     end
