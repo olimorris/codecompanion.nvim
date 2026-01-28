@@ -382,6 +382,9 @@ return {
   mcp = {
     enabled = true,
     servers = {},
+    opts = {
+      timeout = 10e3,
+    },
   },
   prompt_library = {
     ["Demo"] = {

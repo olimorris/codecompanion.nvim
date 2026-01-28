@@ -1,4 +1,5 @@
 local METHODS = require("codecompanion.mcp.methods")
+local config = require("codecompanion.config")
 local tool_bridge = require("codecompanion.mcp.tool_bridge")
 
 local adapter_utils = require("codecompanion.utils.adapters")
@@ -8,6 +9,8 @@ local utils = require("codecompanion.utils")
 local CONSTANTS = {
   GRACEFUL_SHUTDOWN_TIMEOUT_MS = 3000,
   SIGTERM_TIMEOUT_MS = 2000, -- After SIGTERM before SIGKILL
+  SERVER_TIMEOUT_MS = config.mcp.opts.timeout,
+
   MAX_TOOLS_PER_SERVER = 100, -- Maximum tools per server to avoid infinite pagination
 
   JSONRPC = { -- Some of these are unusues
@@ -494,26 +497,25 @@ function Client:request(method, params, resp_handler, opts)
   log:debug("[MCP::Client::%s] Sending: %s", self.name, req_str)
   self.transport:write({ req_str })
 
-  local timeout_ms = opts and opts.timeout_ms
-  if timeout_ms then
-    self.methods.defer_fn(function()
-      if self.resp_handlers[req_id] then
-        self.resp_handlers[req_id] = nil
-        self:cancel_request(req_id, "timeout")
-        local timeout_msg = string.format("Request timeout after %dms", timeout_ms)
-        if resp_handler then
-          local ok, _ = pcall(resp_handler, {
-            jsonrpc = "2.0",
-            id = req_id,
-            error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = timeout_msg },
-          })
-          if not ok then
-            log:debug("[MCP::Client::%s] Timeout handler failed for request %s", self.name, req_id)
-          end
+  local timeout = opts and opts.timeout_ms or CONSTANTS.SERVER_TIMEOUT_MS
+  self.methods.defer_fn(function()
+    if self.resp_handlers[req_id] then
+      self.resp_handlers[req_id] = nil
+      self:cancel_request(req_id, "Request timed out")
+
+      local timeout_msg = string.format("Request timed out after %d ms", timeout)
+      if resp_handler then
+        local ok, _ = pcall(resp_handler, {
+          jsonrpc = "2.0",
+          id = req_id,
+          error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = timeout_msg },
+        })
+        if not ok then
+          log:debug("[MCP::Client::%s] Timeout handler failed for request %s", self.name, req_id)
         end
       end
-    end, timeout_ms)
-  end
+    end
+  end, timeout)
 
   return req_id
 end

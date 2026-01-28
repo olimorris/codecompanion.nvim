@@ -365,7 +365,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
   h.eq(tool_output_msgs, {
     "Hello there!",
     "xyz,xyz,xyz",
-    "MCP Tool execution failed:\nMCP JSONRPC error: [-32603] Request timeout after 100ms",
+    "MCP Tool execution failed:\nMCP JSONRPC error: [-32603] Request timed out after 100 ms",
   })
 
   h.eq(#result.confirmations, 2)
