@@ -79,6 +79,63 @@ require("codecompanion").setup({
 
 Using a _function_ is useful for working around the [limitations](https://github.com/zed-industries/claude-code-acp/issues/225) in the Claude Code SDK (which enables ACP support).
 
+## Changing the Default Mode
+
+You can set a default mode for ACP adapters to customize agent behavior. For example, to change the default mode for the Claude Code adapter:
+
+::: code-group
+
+```lua [For Interactions]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = {
+        name = "claude_code",
+        mode = "code-assist", -- or other supported mode
+      },
+    },
+  },
+}),
+```
+
+```lua [Adapters: Text]
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            mode = "code-assist",
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+```lua [Adapters: Function]
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            ---@param self CodeCompanion.ACPAdapter
+            ---@return string
+            mode = function(self)
+              return "code-assist"
+            end,
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+:::
+
 ## Changing Adapter Settings
 
 To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:
