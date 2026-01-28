@@ -125,10 +125,12 @@ T["MCP Client"]["tools are loaded in pages"] = function()
 
     start_client_and_wait_loaded()
 
-    local chat_tools = require("codecompanion.config").interactions.chat.tools
-    local group = chat_tools.groups["mcp:testMcp"]
+    -- Get tools from the MCP registry (not config)
+    local mcp = require("codecompanion.mcp")
+    local registered_tools, registered_groups = mcp.get_registered_tools()
+    local group = registered_groups["mcp:testMcp"]
     local tools = vim
-      .iter(chat_tools)
+      .iter(registered_tools)
       :filter(function(_, v)
         return vim.tbl_get(v, "opts", "_mcp_info", "server") == "testMcp"
       end)

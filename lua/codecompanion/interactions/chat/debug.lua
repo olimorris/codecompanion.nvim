@@ -161,7 +161,7 @@ function Debug:render()
     table.insert(lines, "")
     table.insert(lines, "-- MCP Servers:")
     for server, status in pairs(mcp_status) do
-      local is_ready = status.ready and " " or " "
+      local is_ready = status.ready and " " or "○ "
       table.insert(lines, string.format("-- %s%s (tools: %d)", is_ready, server, status.tool_count))
     end
   end

@@ -256,6 +256,7 @@ Client.static.methods = {
 ---@class CodeCompanion.MCP.ClientArgs
 ---@field name string
 ---@field cfg CodeCompanion.MCP.ServerConfig
+---@field transport? CodeCompanion.MCP.Transport Optional transport instance for testing
 ---@field methods? table<string, function> Optional method overrides for testing
 
 ---Create a new MCP client instance bound to the provided server configuration.
@@ -263,11 +264,13 @@ Client.static.methods = {
 ---@return CodeCompanion.MCP.Client
 function Client.new(args)
   local static_methods = transform_static_methods(Client, args.methods)
+  local transport = args.transport
+    or static_methods.new_transport({ name = args.name, cfg = args.cfg, methods = args.methods })
   local self = setmetatable({
     name = args.name,
     cfg = args.cfg,
     ready = false,
-    transport = static_methods.new_transport({ name = args.name, cfg = args.cfg, methods = args.methods }),
+    transport = transport,
     resp_handlers = {},
     server_request_handlers = {},
     methods = static_methods,

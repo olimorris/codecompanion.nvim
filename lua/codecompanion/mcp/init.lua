@@ -1,13 +1,69 @@
 local Client = require("codecompanion.mcp.client")
 local config = require("codecompanion.config")
 
+local CONSTANTS = {
+  TOOL_PREFIX = "mcp:",
+}
+
 local M = {}
+
+---@type table<string, table> Dynamic registry for MCP tools (server_name -> { tools: table, groups: table })
+local tool_registry = {}
 
 ---Return whether the server config is enabled
 ---@param server_cfg CodeCompanion.MCP.ServerConfig
 ---@return boolean
 local function is_enabled(server_cfg)
   return not (server_cfg.opts and server_cfg.opts.enabled == false)
+end
+
+---Register tools from an MCP server
+---@param server_name string
+---@param tools table<string, table> Tool configurations keyed by tool name
+---@param group table Group configuration for the server's tools
+---@return nil
+function M.register_tools(server_name, tools, group)
+  tool_registry[server_name] = {
+    tools = tools,
+    group = group,
+  }
+end
+
+---Unregister tools from an MCP server
+---@param server_name string
+---@return nil
+function M.unregister_tools(server_name)
+  tool_registry[server_name] = nil
+end
+
+---Get all registered MCP tools merged into a single table
+---@return table<string, table> tools All MCP tools
+---@return table<string, table> groups All MCP tool groups
+function M.get_registered_tools()
+  local all_tools = {}
+  local all_groups = {}
+
+  for server_name, registry in pairs(tool_registry) do
+    for tool_name, tool_config in pairs(registry.tools) do
+      all_tools[tool_name] = tool_config
+    end
+    if registry.group then
+      all_groups[CONSTANTS.TOOL_PREFIX .. server_name] = registry.group
+    end
+  end
+
+  return all_tools, all_groups
+end
+
+---Get tool count for a specific server
+---@param server_name string
+---@return number
+function M.get_tool_count(server_name)
+  local registry = tool_registry[server_name]
+  if not registry then
+    return 0
+  end
+  return vim.tbl_count(registry.tools)
 end
 
 ---@class CodeCompanion.MCP.ToolOverride
@@ -160,15 +216,10 @@ function M.get_status()
   for name, cfg in pairs(mcp_cfg.servers) do
     local client = clients[name]
     local ready = client and client.ready or false
-    local tool_count = 0
-    if ready then
-      local tools = require("codecompanion.config").interactions.chat.tools.groups["mcp:" .. name]
-      tool_count = tools and #tools.tools or 0
-    end
 
     status[name] = {
       ready = ready,
-      tool_count = tool_count,
+      tool_count = M.get_tool_count(name),
       started = client and client.transport:started() or false,
       enabled = is_enabled(cfg),
     }

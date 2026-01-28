@@ -30,31 +30,49 @@ local T = MiniTest.new_set({
           return not vim.startswith(tool.name, "math_")
         end):totable()
 
-        Client.static.methods.new_transport.default = function(args)
-          local transport
-          local tools
-          if args.cfg.cmd[1] == "math_mcp" then
-            transport = MATH_MCP_TRANSPORT
-            tools = MATH_MCP_TOOLS
-          else
-            transport = OTHER_MCP_TRANSPORT
-            tools = OTHER_MCP_TOOLS
-          end
-
+        ---Setup expectations for MCP server initialization handshake
+        ---@param transport CodeCompanion.MCP.MockMCPClientTransport
+        ---@param tools MCP.Tool[]
+        ---@param server_instructions? string
+        local function setup_mcp_init_expectations(transport, tools, server_instructions)
           transport:expect_jsonrpc_call("initialize", function(params)
             return "result", {
               protocolVersion = params.protocolVersion,
               capabilities = { tools = {} },
               serverInfo = { name = "Test MCP Server", version = "1.0.0" },
-              instructions = "Test MCP server instructions.",
+              instructions = server_instructions or "Test MCP server instructions.",
             }
           end)
           transport:expect_jsonrpc_notify("notifications/initialized", function(params) end)
           transport:expect_jsonrpc_call("tools/list", function()
             return "result", { tools = tools }
           end)
-          return transport
         end
+
+        ---Get the transport and tools for a given server command
+        ---@param cmd string The first element of the server cmd array
+        ---@return CodeCompanion.MCP.MockMCPClientTransport, MCP.Tool[]
+        local function get_transport_and_tools(cmd)
+          if cmd == "math_mcp" then
+            return MATH_MCP_TRANSPORT, MATH_MCP_TOOLS
+          else
+            return OTHER_MCP_TRANSPORT, OTHER_MCP_TOOLS
+          end
+        end
+
+        ---Create a transport factory that injects mock transports
+        ---@param server_instructions? string Optional custom server instructions
+        ---@return fun(args: CodeCompanion.MCP.StdioTransportArgs): CodeCompanion.MCP.Transport
+        local function create_transport_factory(server_instructions)
+          return function(args)
+            local transport, tools = get_transport_and_tools(args.cfg.cmd[1])
+            setup_mcp_init_expectations(transport, tools, server_instructions)
+            return transport
+          end
+        end
+
+        -- Default transport factory for tests
+        Client.static.methods.new_transport.default = create_transport_factory()
 
         local adapter = {
           name = "test_adapter_for_mcp_tools",
@@ -86,6 +104,9 @@ local T = MiniTest.new_set({
           },
         }
 
+        ---Create a chat buffer with MCP servers configured
+        ---@param mcp_cfg? CodeCompanion.MCPConfig
+        ---@return CodeCompanion.Chat
         function create_chat(mcp_cfg)
           mcp_cfg = mcp_cfg or {
             servers = {
@@ -110,6 +131,17 @@ local T = MiniTest.new_set({
           }, { name = adapter.name })
           vim.wait(1000, function() return loading == 0 end)
           return chat
+        end
+
+        ---Extract tool output messages from chat messages
+        ---@param chat_msgs table[]
+        ---@return string[]
+        function extract_tool_outputs(chat_msgs)
+          return vim.iter(chat_msgs):map(function(msg)
+            if msg.role == "tool" then
+              return msg.content
+            end
+          end):totable()
         end
       ]])
     end,
@@ -225,14 +257,7 @@ T["MCP Tools"]["MCP tools should handle errors correctly"] = function()
     return chat.messages
   ]])
 
-  local tool_output_msgs = vim
-    .iter(chat_msgs)
-    :map(function(msg)
-      if msg.role == "tool" then
-        return msg.content
-      end
-    end)
-    :totable()
+  local tool_output_msgs = child.lua_get("extract_tool_outputs(...)", { chat_msgs })
   h.eq({ "MCP Tool execution failed:\ncount must be non-negative" }, tool_output_msgs)
 end
 
@@ -336,14 +361,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
   end)
   h.is_true(has_custom_tool_prompt)
 
-  local tool_output_msgs = vim
-    .iter(result.chat_msgs)
-    :map(function(msg)
-      if msg.role == "tool" then
-        return msg.content
-      end
-    end)
-    :totable()
+  local tool_output_msgs = child.lua_get("extract_tool_outputs(...)", { result.chat_msgs })
   h.eq(tool_output_msgs, {
     "Hello there!",
     "xyz,xyz,xyz",

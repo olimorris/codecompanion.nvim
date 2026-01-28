@@ -1,7 +1,6 @@
 local log = require("codecompanion.utils.log")
 
 local CONSTANTS = {
-  TOOL_PREFIX = "mcp:",
   MESSAGES = {
     TOOL_ACCESS = "I'm giving you access to tools from an MCP server",
     TOOL_GROUPS = "Tools from MCP Server `%s`",
@@ -150,18 +149,19 @@ function M.build(client, mcp_tool)
   return prefixed_name, tool_cfg
 end
 
----Setup tools from an MCP server into CodeCompanion
+---Setup tools from an MCP server into the MCP registry
 ---@param client CodeCompanion.MCP.Client
 ---@param mcp_tools MCP.Tool[]
 ---@return string[] tools
 function M.setup_tools(client, mcp_tools)
-  local chat_tools = require("codecompanion.config").interactions.chat.tools
-  local tools = {} ---@type string[]
+  local mcp = require("codecompanion.mcp")
+  local tools = {}
+  local tool_configs = {}
 
   for _, tool in ipairs(mcp_tools) do
     local name, tool_cfg = M.build(client, tool)
     if name and tool_cfg then
-      chat_tools[name] = tool_cfg
+      tool_configs[name] = tool_cfg
       table.insert(tools, name)
     end
   end
@@ -182,12 +182,15 @@ function M.setup_tools(client, mcp_tools)
     table.insert(server_prompt, server_instructions)
   end
 
-  chat_tools.groups[fmt("%s%s", CONSTANTS.TOOL_PREFIX, client.name)] = {
-    description = string.format("Tools from MCP Server '%s'", client.name),
+  local group = {
+    description = string.format("Tools from MCP Server `%s`", client.name),
     tools = tools,
     prompt = table.concat(server_prompt, "\n"),
     opts = { collapse_tools = true },
   }
+
+  mcp.register_tools(client.name, tool_configs, group)
+
   return tools
 end
 
