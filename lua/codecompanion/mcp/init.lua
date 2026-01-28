@@ -37,6 +37,10 @@ local clients = {}
 ---@return nil
 function M.start_servers()
   local mcp_cfg = config.mcp
+  if vim.tbl_isempty(mcp_cfg.servers) then
+    return
+  end
+
   for name, cfg in pairs(mcp_cfg.servers) do
     if cfg.opts and cfg.opts.enabled == false then
       goto continue

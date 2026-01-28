@@ -485,10 +485,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
       },
-      mcp = {
-        enabled = true,
-        servers = {},
-      },
       keymaps = {
         options = {
           modes = { n = "?" },
@@ -780,6 +776,11 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
     },
+  },
+  -- MCP SERVERS ----------------------------------------------------------------
+  mcp = {
+    enabled = true,
+    servers = {},
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {

@@ -357,9 +357,6 @@ return {
           },
         },
       },
-      mcp = {
-        enabled = true,
-      },
       opts = {
         blank_prompt = "",
         debounce = 0,
@@ -381,6 +378,10 @@ return {
         },
       },
     },
+  },
+  mcp = {
+    enabled = true,
+    servers = {},
   },
   prompt_library = {
     ["Demo"] = {
