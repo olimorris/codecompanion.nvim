@@ -34,15 +34,12 @@ local default_output = {
   success = function(self, tools, cmd, stdout)
     local chat = tools.chat
     local output = M.format_tool_result_content(stdout and stdout[#stdout])
-    local args = vim.inspect(self.args)
     local for_user = fmt(
-      [[MCP Tool [%s] executed successfully.
-Arguments:
+      [[MCP: %s executed successfully:
+````
 %s
-Output:
-%s]],
+````]],
       self.name,
-      args,
       output
     )
     chat:add_tool_output(self, output, for_user)
@@ -56,11 +53,10 @@ Output:
     local chat = tools.chat
     local err_msg = M.format_tool_result_content(stderr and stderr[#stderr] or "<NO ERROR MESSAGE>")
     local for_user = fmt(
-      [[MCP Tool `%s` execution failed.
-Arguments:
+      [[MCP: %s failed
+````
 %s
-Error Message:
-%s]],
+````]],
       self.name,
       vim.inspect(self.args),
       err_msg
@@ -91,7 +87,7 @@ function M.build(client, mcp_tool)
     )
   end
 
-  local prefixed_name = fmt("mcp_%s_%s", client.name, mcp_tool.name)
+  local prefixed_name = fmt("%s_%s", client.name, mcp_tool.name)
   local override = (client.cfg.tool_overrides and client.cfg.tool_overrides[mcp_tool.name]) or {}
   local tool_opts = vim.tbl_deep_extend("force", client.cfg.default_tool_opts or {}, override.opts or {})
   local output_callback = vim.tbl_deep_extend("force", default_output, override.output or {})
