@@ -103,7 +103,7 @@ local T = MiniTest.new_set({
             end,
           })
           local chat = h.setup_chat_buffer({
-            interactions = { chat = { mcp = mcp_cfg } },
+            mcp = mcp_cfg,
             adapters = {
               http = { [adapter.name] = adapter },
             },
