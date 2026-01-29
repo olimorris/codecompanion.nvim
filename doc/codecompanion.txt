@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 24
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -28,20 +28,26 @@ Table of Contents                            *codecompanion-table-of-contents*
   - v18.6.0 to v19.0.0    |codecompanion-upgrading-general-v18.6.0-to-v19.0.0|
   - v17.33.0 to v18.0.0  |codecompanion-upgrading-general-v17.33.0-to-v18.0.0|
   - default_memory has been renamed to autoload (#2509)|codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)|
-5. Configuration                                 |codecompanion-configuration|
+5. ACP                                                     |codecompanion-acp|
+  - Implementation                          |codecompanion-acp-implementation|
+  - Protocol Version                      |codecompanion-acp-protocol-version|
+  - Current Limitations                |codecompanion-acp-current-limitations|
+  - See Also                                      |codecompanion-acp-see-also|
+6. MCP                                                     |codecompanion-mcp|
+7. Configuration                                 |codecompanion-configuration|
   - Action Palette                |codecompanion-configuration-action-palette|
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
   - Inline Assistant            |codecompanion-configuration-inline-assistant|
+  - MCP Servers                      |codecompanion-configuration-mcp-servers|
   - Rules                                  |codecompanion-configuration-rules|
   - Prompt Library                |codecompanion-configuration-prompt-library|
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
   - Other Options                  |codecompanion-configuration-other-options|
-6. Usage                                                 |codecompanion-usage|
+8. Usage                                                 |codecompanion-usage|
   - General                                      |codecompanion-usage-general|
-  - ACP Protocol Reference        |codecompanion-usage-acp-protocol-reference|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
@@ -54,7 +60,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Prompt Library                        |codecompanion-usage-prompt-library|
   - User Interface                        |codecompanion-usage-user-interface|
   - Workflows                                  |codecompanion-usage-workflows|
-7. Extending                                         |codecompanion-extending|
+9. Extending                                         |codecompanion-extending|
   - Extending with Adapters  |codecompanion-extending-extending-with-adapters|
   - Extending with Agentic Workflows|codecompanion-extending-extending-with-agentic-workflows|
   - Extending with Extensions|codecompanion-extending-extending-with-extensions|
@@ -652,7 +658,180 @@ UI ~
 
 
 ==============================================================================
-5. Configuration                                 *codecompanion-configuration*
+5. ACP                                                     *codecompanion-acp*
+
+CodeCompanion implements the Agent Client Protocol (ACP)
+<https://agentclientprotocol.com/> to enable you to work with coding agents
+from within Neovim. ACP is an open standard that enables structured interaction
+between clients (like CodeCompanion) and AI agents, providing capabilities such
+as session management, file system operations, tool execution, and permission
+handling.
+
+This page provides a technical reference for what’s supported in
+CodeCompanion and how it’s been implemented.
+
+
+IMPLEMENTATION                              *codecompanion-acp-implementation*
+
+CodeCompanion provides comprehensive support for the ACP specification:
+
+  ------------------------------------------------------------------------
+  Feature Category               Enabled                   Details
+  ------------------------------ ------------------------- ---------------
+  Core Protocol                  ✅                        JSON-RPC 2.0,
+                                                           streaming
+                                                           responses,
+                                                           message
+                                                           buffering
+
+  Authentication                 ✅                        Multiple auth
+                                                           methods,
+                                                           adapter-level
+                                                           hooks
+
+  Content Types                  ✅                        Text, images,
+                                                           embedded
+                                                           resources
+
+  File System                    ✅                        Read/write text
+                                                           files with line
+                                                           ranges
+
+  MCP Integration                ✅                        Stdio, HTTP,
+                                                           and SSE
+                                                           transports
+
+  Permissions                    ✅                        Interactive UI
+                                                           with diff
+                                                           preview for
+                                                           tool approval
+
+  Session Management             ✅                        Create, load,
+                                                           and persist
+                                                           sessions with
+                                                           state tracking
+
+  Session Modes                  ✅                        Mode switching
+
+  Session Models                 ✅                        Select specific
+                                                           models
+
+  Tool Calls                     ✅                        Content blocks,
+                                                           file diffs,
+                                                           status updates
+
+  Agent Plans                    ❌                        Visual display
+                                                           of an agent’s
+                                                           execution plan
+
+  Terminal Operations            ❌                        Terminal
+                                                           capabilities
+                                                           not implemented
+  ------------------------------------------------------------------------
+
+SUPPORTED ADAPTERS ~
+
+Please see the |codecompanion-configuration-adapters-acp| page.
+
+
+CLIENT CAPABILITIES ~
+
+CodeCompanion advertises the following capabilities to ACP agents:
+
+>lua
+    {
+      fs = {
+        readTextFile = true,   -- Read files with optional line ranges
+        writeTextFile = true   -- Write/create files
+      },
+      terminal = false         -- Terminal operations not supported
+    }
+<
+
+
+CONTENT TYPES ~
+
+  Content Type         Send to Agent   Receive from Agent
+  -------------------- --------------- --------------------
+  Text                 ✅              ✅
+  File Diffs           N/A             ✅
+  Images               ✅              ❌
+  Audio                ❌              ❌
+  Embedded Resources   ❌              ❌
+
+STATE MANAGEMENT ~
+
+Unlike HTTP adapters which are stateless (sending the full conversation history
+with each request), ACP adapters are stateful. The agent maintains the
+conversation context, so CodeCompanion only sends new messages with each
+prompt. Session IDs are tracked throughout the conversation lifecycle.
+
+
+FILE CONTEXT HANDLING ~
+
+When sending files as embedded resources to agents, CodeCompanion re-reads the
+file content rather than using the chat buffer representation. This avoids
+HTTP-style `<attachment>` tags that are used for LLM adapters but don’t make
+sense for ACP agents.
+
+
+SLASH COMMANDS ~
+
+ACP agents can advertise their own slash commands dynamically. You can access
+them with `\command` in the chat buffer. CodeCompanion transforms this to
+`/command` before sending your prompt to the agent.
+
+
+MODEL SELECTION ~
+
+CodeCompanion implements a `session/set_model` method that allows you to select
+a model for the current session. This feature is not part of the official ACP
+specification
+<https://agentclientprotocol.com/protocol/draft/schema#session-set_model> and
+is subject to change in future versions.
+
+
+CLEANUP AND LIFECYCLE ~
+
+CodeCompanion ensures clean disconnection from ACP agents by hooking into
+Neovim’s `VimLeavePre` autocmd. This guarantees that agent processes are
+properly terminated even if Neovim exits unexpectedly.
+
+
+PROTOCOL VERSION                          *codecompanion-acp-protocol-version*
+
+CodeCompanion currently implements **ACP Protocol Version 1**.
+
+The protocol version is negotiated during initialization. If an agent selects a
+different version, CodeCompanion will log a warning but continue to operate,
+following the agent’s selected version.
+
+
+CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
+
+- **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
+    `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
+    doesn’t advertise terminal capabilities to agents.
+- **Agent Plan Rendering**: Plan
+    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+    received and logged, but they’re not currently rendered in the chat buffer
+    UI.
+- **Audio Content**: Audio can’t be sent or received
+
+
+SEE ALSO                                          *codecompanion-acp-see-also*
+
+- Agent Client Protocol Specification <https://agentclientprotocol.com/> - Official ACP documentation
+- |codecompanion-configuration-adapters-acp| - Setup instructions for specific agents
+- |codecompanion-usage-chat-buffer-agents| - How to interact with agents in chat
+
+
+==============================================================================
+6. MCP                                                     *codecompanion-mcp*
+
+
+==============================================================================
+7. Configuration                                 *codecompanion-configuration*
 
 
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
@@ -1871,6 +2050,17 @@ Please see the |codecompanion-chat-buffer-diff| on the Chat Buffer page for
 configuration options.
 
 
+MCP SERVERS                          *codecompanion-configuration-mcp-servers*
+
+In #2549 <https://github.com/olimorris/codecompanion.nvim/pull/2549>,
+CodeCompanion added support for the Model Context Protocol (MCP)
+<https://modelcontextprotocol.io>, an open-source standard for connecting AI
+applications to external systems.
+
+You can find out which parts of the protocol CodeCompanion has implemented on
+the |codecompanion-usage-mcp| page.
+
+
 RULES                                      *codecompanion-configuration-rules*
 
 Within CodeCompanion, rules fulfil two main purposes within a chat buffer:
@@ -2647,7 +2837,7 @@ You can prevent any code from being sent to the LLM with:
 
 
 ==============================================================================
-6. Usage                                                 *codecompanion-usage*
+8. Usage                                                 *codecompanion-usage*
 
 
 GENERAL                                          *codecompanion-usage-general*
@@ -2694,221 +2884,6 @@ buffer.
 
 When in a chat buffer, you can cycle between other chat buffers with `{` or
 `}`.
-
-
-ACP PROTOCOL REFERENCE            *codecompanion-usage-acp-protocol-reference*
-
-CodeCompanion implements the Agent Client Protocol (ACP)
-<https://agentclientprotocol.com/> to enable you to work with coding agents
-from within Neovim. ACP is an open standard that enables structured interaction
-between clients (like CodeCompanion) and AI agents, providing capabilities such
-as session management, file system operations, tool execution, and permission
-handling.
-
-This page provides a technical reference for what’s supported in
-CodeCompanion and how it’s been implemented.
-
-
-PROTOCOL SUPPORT ~
-
-CodeCompanion provides comprehensive support for the ACP specification:
-
-  ------------------------------------------------------------------------
-  Feature Category               Support Level             Details
-  ------------------------------ ------------------------- ---------------
-  Core Protocol                  ✅ Full                   JSON-RPC 2.0,
-                                                           streaming
-                                                           responses,
-                                                           message
-                                                           buffering
-
-  Session Management             ✅ Full                   Create, load,
-                                                           and persist
-                                                           sessions with
-                                                           state tracking
-
-  Authentication                 ✅ Full                   Multiple auth
-                                                           methods,
-                                                           adapter-level
-                                                           hooks
-
-  File System                    ✅ Full                   Read/write text
-                                                           files with line
-                                                           ranges
-
-  Permissions                    ✅ Full                   Interactive UI
-                                                           with diff
-                                                           preview for
-                                                           tool approval
-
-  Content Types                  ✅ Full                   Text, images,
-                                                           embedded
-                                                           resources
-
-  Tool Calls                     ✅ Full                   Content blocks,
-                                                           file diffs,
-                                                           status updates
-
-  Session Modes                  ✅ Full                   Mode switching
-                                                           and state
-                                                           management
-
-  MCP Integration                ✅ Full                   Stdio, HTTP,
-                                                           and SSE
-                                                           transports
-
-  Agent Plans                    ❌                        Visual display
-                                                           of an agent’s
-                                                           execution plan
-
-  Terminal Operations            ❌                        Terminal
-                                                           capabilities
-                                                           not implemented
-  ------------------------------------------------------------------------
-
-SUPPORTED ADAPTERS
-
-Please see the |codecompanion-configuration-adapters-acp| page.
-
-
-CLIENT CAPABILITIES
-
-CodeCompanion advertises the following capabilities to ACP agents:
-
->lua
-    {
-      fs = {
-        readTextFile = true,   -- Read files with optional line ranges
-        writeTextFile = true   -- Write/create files
-      },
-      terminal = false         -- Terminal operations not supported
-    }
-<
-
-
-CONTENT SUPPORT
-
-  Content Type         Send to Agent   Receive from Agent
-  -------------------- --------------- --------------------
-  Text                 ✅              ✅
-  Images               ✅              ✅
-  Embedded Resources   ✅              ✅
-  Audio                ❌              ❌
-  File Diffs           N/A             ✅
-
-SESSION UPDATES HANDLED
-
-CodeCompanion processes the following session update types:
-
-- **Message chunks**: Streamed text from agent responses
-- **Thought chunks**: Agent reasoning displayed separately
-- **Tool calls**: Full execution lifecycle with status tracking
-- **Mode changes**: Automatic UI updates when modes switch
-- **Available commands**: Dynamic command registration for completion
-
-
-IMPLEMENTATION NOTES ~
-
-
-MESSAGE BUFFERING
-
-JSON-RPC message boundaries don’t always align with I/O boundaries.
-CodeCompanion buffers stdout from the agent process and extracts complete
-JSON-RPC messages line-by-line, ensuring robust parsing even with partial
-reads.
-
-
-STATE MANAGEMENT
-
-Unlike HTTP adapters which are stateless (sending the full conversation history
-with each request), ACP adapters are stateful. The agent maintains the
-conversation context, so CodeCompanion only sends new messages with each
-prompt. Session IDs are tracked throughout the conversation lifecycle.
-
-
-TOOL CALL CACHING
-
-Tool call state is maintained in memory to support permission requests. When an
-agent requests permission for a tool call, the cached details enable features
-like the diff preview UI for file edits.
-
-
-FILE CONTEXT HANDLING
-
-When sending files as embedded resources to agents, CodeCompanion re-reads the
-file content rather than using the chat buffer representation. This avoids
-HTTP-style `<attachment>` tags that are used for LLM adapters but don’t make
-sense for ACP agents.
-
-
-SLASH COMMANDS
-
-ACP agents can advertise their own slash commands dynamically. You can access
-them with `\command` in the chat buffer. CodeCompanion transforms this to
-`/command` before sending your prompt to the agent.
-
-
-MODEL SELECTION
-
-CodeCompanion implements a `session/set_model` method that allows you to select
-a model for the current session. This feature is not part of the official ACP
-specification
-<https://agentclientprotocol.com/protocol/draft/schema#session-set_model> and
-is subject to change in future versions.
-
-
-GRACEFUL DEGRADATION
-
-CodeCompanion checks an agent’s capabilities during initialization and
-gracefully falls back to supported content types. For example, if an agent
-doesn’t support embedded context, files are sent as plain text instead.
-
-
-CLEANUP AND LIFECYCLE
-
-CodeCompanion ensures clean disconnection from ACP agents by hooking into
-Neovim’s `VimLeavePre` autocmd. This guarantees that agent processes are
-properly terminated even if Neovim exits unexpectedly.
-
-
-KEY FEATURES ~
-
-- **Streaming**: Real-time response streaming with chunk-by-chunk rendering
-- **Permission System**: Interactive approval for file operations with diff preview
-- **Session Persistence**: Resume previous conversations across Neovim sessions
-- **Mode Management**: Switch between agent modes (e.g. ask, architect, code)
-- **MCP Servers**: Connect agents to external tools via the Model Context Protocol
-- **Slash Command Completion**: Auto-complete agent-specific commands with `\command` syntax
-- **Error Handling**: Comprehensive error messages and graceful degradation
-
-
-PROTOCOL VERSION ~
-
-CodeCompanion currently implements **ACP Protocol Version 1**.
-
-The protocol version is negotiated during initialization. If an agent selects a
-different version, CodeCompanion will log a warning but continue to operate,
-following the agent’s selected version.
-
-
-KNOWN LIMITATIONS ~
-
-- **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
-    `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
-    doesn’t advertise terminal capabilities to agents.
-- **Agent Plan Rendering**: Plan
-    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
-    received and logged, but they’re not currently rendered in the chat buffer
-    UI.
-- **Audio Content**: Audio content blocks aren’t sent in prompts, despite
-    capability detection.
-
-
-SEE ALSO ~
-
-- |codecompanion-configuration-adapters-acp| - Setup instructions for specific agents
-- |codecompanion-usage-chat-buffer-agents| - How to interact with agents in chat
-- Agent Client Protocol Specification <https://agentclientprotocol.com/> - Official ACP documentation
 
 
 ACTION PALETTE                            *codecompanion-usage-action-palette*
@@ -4113,6 +4088,10 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
+- `CodeCompanionMCPServerStart` - Fired when an MCP server is started
+- `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
+- `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
+- `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
@@ -4335,7 +4314,7 @@ the |codecompanion-extending-agentic-workflows| guide.
 
 
 ==============================================================================
-7. Extending                                         *codecompanion-extending*
+9. Extending                                         *codecompanion-extending*
 
 
 EXTENDING WITH ADAPTERS      *codecompanion-extending-extending-with-adapters*
