@@ -160,9 +160,9 @@ T["MCP Tools"]["MCP tools can be used as CodeCompanion tools"] = function()
   h.queue_mock_http_response(child, {
     content = "Call some tools",
     tools = {
-      { ["function"] = { name = "mcp_math_mcp_math_add", arguments = { a = 1, b = 3 } } },
-      { ["function"] = { name = "mcp_math_mcp_math_mul", arguments = { a = 4, b = 2 } } },
-      { ["function"] = { name = "mcp_math_mcp_math_add", arguments = { a = 2, b = -3 } } },
+      { ["function"] = { name = "math_mcp_math_add", arguments = { a = 1, b = 3 } } },
+      { ["function"] = { name = "math_mcp_math_mul", arguments = { a = 4, b = 2 } } },
+      { ["function"] = { name = "math_mcp_math_add", arguments = { a = 2, b = -3 } } },
     },
   })
   local chat_msgs = child.lua([[
@@ -203,8 +203,8 @@ T["MCP Tools"]["MCP tools can be used as CodeCompanion tools"] = function()
   local llm_req = child.lua_get("_G.mock_client:get_last_request().payload")
   local has_prompt = vim.iter(llm_req.messages):any(function(msg)
     return msg.content:find("math_mcp")
-      and msg.content:find("mcp_math_mcp_math_add")
-      and msg.content:find("mcp_math_mcp_math_mul")
+      and msg.content:find("math_mcp_math_add")
+      and msg.content:find("math_mcp_math_mul")
       and msg.content:find("Test MCP server instructions.")
   end)
   h.is_true(has_prompt)
@@ -213,7 +213,7 @@ T["MCP Tools"]["MCP tools can be used as CodeCompanion tools"] = function()
   local llm_tool_schemas = llm_req.tools[1]
   h.eq(#math_mcp_tools, vim.tbl_count(llm_tool_schemas))
   for _, mcp_tool in ipairs(math_mcp_tools) do
-    local cc_tool_name = "mcp_math_mcp_" .. mcp_tool.name
+    local cc_tool_name = "math_mcp_" .. mcp_tool.name
     local llm_tool_schema = llm_tool_schemas[string.format("<tool>%s</tool>", cc_tool_name)]
     h.eq(llm_tool_schema.type, "function")
     h.eq(llm_tool_schema["function"].name, cc_tool_name)
@@ -227,7 +227,7 @@ T["MCP Tools"]["MCP tools should handle errors correctly"] = function()
   h.queue_mock_http_response(child, {
     content = "Should fail",
     tools = {
-      { ["function"] = { name = "mcp_other_mcp_make_list", arguments = { count = -1, item = "y" } } },
+      { ["function"] = { name = "other_mcp_make_list", arguments = { count = -1, item = "y" } } },
     },
   })
 
@@ -266,9 +266,9 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
   h.queue_mock_http_response(child, {
     content = "Call some tools",
     tools = {
-      { ["function"] = { name = "mcp_other_mcp_say_hi" } },
-      { ["function"] = { name = "mcp_other_mcp_make_list", arguments = { count = 3, item = "xyz" } } },
-      { ["function"] = { name = "mcp_other_mcp_echo", arguments = { value = "ECHO REQ" } } },
+      { ["function"] = { name = "other_mcp_say_hi" } },
+      { ["function"] = { name = "other_mcp_make_list", arguments = { count = 3, item = "xyz" } } },
+      { ["function"] = { name = "other_mcp_echo", arguments = { value = "ECHO REQ" } } },
     },
   })
 
