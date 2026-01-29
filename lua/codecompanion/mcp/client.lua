@@ -56,48 +56,50 @@ end
 ---@field cmd string[]
 ---@field env? table
 ---@field env_replaced? table Replacement of environment variables with their actual values
----@field _proc? vim.SystemObj
----@field _last_tail? string
+---@field methods table<string, function>
+---@field _incomplete_line? string
 ---@field _on_line_read? fun(line: string)
 ---@field _on_close? fun(err?: string)
----@field methods table<string, function>
+---@field _sysobj? vim.SystemObj
 local StdioTransport = {}
-StdioTransport.__index = StdioTransport
-
 StdioTransport.static = {}
-StdioTransport.static.methods = {
-  defer_fn = { default = vim.defer_fn },
-  schedule_wrap = { default = vim.schedule_wrap },
-  system = { default = vim.system },
-}
 
 ---@class CodeCompanion.MCP.StdioTransportArgs
 ---@field name string
 ---@field cfg CodeCompanion.MCP.ServerConfig
 ---@field methods? table<string, function> Optional method overrides for testing
 
+-- Static methods for testing/mocking
+StdioTransport.static.methods = {
+  defer_fn = { default = vim.defer_fn },
+  job = { default = vim.system },
+  schedule_wrap = { default = vim.schedule_wrap },
+}
+
 ---Create a new StdioTransport for the given server configuration.
 ---@param args CodeCompanion.MCP.StdioTransportArgs
 ---@return CodeCompanion.MCP.StdioTransport
 function StdioTransport.new(args)
-  return setmetatable({
-    name = args.name,
+  local self = setmetatable({
     cmd = args.cfg.cmd,
     env = args.cfg.env,
+    name = args.name,
     methods = transform_static_methods(StdioTransport, args.methods),
-  }, StdioTransport)
+  }, { __index = StdioTransport }) ---@cast self CodeCompanion.MCP.StdioTransport
+
+  return self
 end
 
 ---Start the underlying process and attach stdout/stderr callbacks.
 ---@param on_line_read fun(line: string)
 ---@param on_close fun(err?: string)
 function StdioTransport:start(on_line_read, on_close)
-  assert(not self._proc, "StdioTransport: start called when already started")
+  assert(not self._sysobj, "StdioTransport: start called when already started")
   self._on_line_read = on_line_read
   self._on_close = on_close
 
   adapter_utils.get_env_vars(self)
-  self._proc = self.methods.system(
+  self._sysobj = self.methods.job(
     self.cmd,
     {
       env = self.env_replaced or self.env,
@@ -119,7 +121,7 @@ end
 ---Return whether the transport process has been started.
 ---@return boolean
 function StdioTransport:started()
-  return self._proc ~= nil
+  return self._sysobj ~= nil
 end
 
 ---Handle stdout stream chunks, buffer incomplete lines and deliver complete lines to the on_line_read callback.
@@ -134,19 +136,19 @@ function StdioTransport:_handle_stdout(err, data)
   end
 
   local combined = ""
-  if self._last_tail then
-    combined = self._last_tail .. data
-    self._last_tail = nil
+  if self._incomplete_line then
+    combined = self._incomplete_line .. data
+    self._incomplete_line = nil
   else
     combined = data
   end
 
   local last_newline_pos = combined:match(".*()\n")
   if last_newline_pos == nil then
-    self._last_tail = combined
+    self._incomplete_line = combined
     return
   elseif last_newline_pos < #combined then
-    self._last_tail = combined:sub(last_newline_pos + 1)
+    self._incomplete_line = combined:sub(last_newline_pos + 1)
     combined = combined:sub(1, last_newline_pos)
   end
 
@@ -179,7 +181,7 @@ function StdioTransport:_handle_exit(out)
   if out and (out.code ~= 0) then
     err_msg = string.format("exit code %s, signal %s", tostring(out.code), tostring(out.signal))
   end
-  self._proc = nil
+  self._sysobj = nil
   if self._on_close then
     local ok, _ = pcall(self._on_close, err_msg)
     if not ok then
@@ -191,35 +193,35 @@ end
 ---Write lines to the process stdin.
 ---@param lines string[]
 function StdioTransport:write(lines)
-  if not self._proc then
+  if not self._sysobj then
     error("StdioTransport: write called before start")
   end
-  self._proc:write(lines)
+  self._sysobj:write(lines)
 end
 
 ---Stop the MCP server process.
 function StdioTransport:stop()
-  if not self._proc then
+  if not self._sysobj then
     return
   end
 
   -- Step 1: Close stdin to signal the server to exit gracefully
   pcall(function()
-    self._proc:write(nil) -- Close stdin
+    self._sysobj:write(nil) -- Close stdin
   end)
 
   -- Step 2: Schedule SIGTERM if process doesn't exit within timeout
   self.methods.defer_fn(function()
-    if self._proc then
+    if self._sysobj then
       pcall(function()
-        self._proc:kill(vim.uv.constants.SIGTERM)
+        self._sysobj:kill(vim.uv.constants.SIGTERM)
       end)
 
       -- Step 3: Schedule SIGKILL as last resort
       self.methods.defer_fn(function()
-        if self._proc then
+        if self._sysobj then
           pcall(function()
-            self._proc:kill(vim.uv.constants.SIGKILL)
+            self._sysobj:kill(vim.uv.constants.SIGKILL)
           end)
         end
       end, CONSTANTS.SIGTERM_TIMEOUT_MS)

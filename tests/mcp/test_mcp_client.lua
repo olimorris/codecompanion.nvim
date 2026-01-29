@@ -156,8 +156,9 @@ T["MCP Client"]["tools are loaded in pages"] = function()
   h.eq(vim.tbl_count(tools), #mcp_tools)
   h.eq(#group.tools, #mcp_tools)
   for _, mcp_tool in ipairs(mcp_tools) do
-    local cc_tool_name = "mcp_testMcp_" .. mcp_tool.name
+    local cc_tool_name = "testMcp_" .. mcp_tool.name
     h.expect_tbl_contains(cc_tool_name, group.tools)
+
     local cc_tool = tools[cc_tool_name]
     h.expect_truthy(cc_tool)
     h.eq(mcp_tool.title or mcp_tool.name, cc_tool.description)
@@ -277,7 +278,7 @@ T["MCP Client"]["respects timeout option for tool calls"] = function()
   h.eq(result[1][2].content[1].text, "fast response")
 
   h.is_false(result[2][1])
-  h.expect_contains("timeout", result[2][2])
+  h.expect_contains("timed out", result[2][2])
 
   h.is_true(result[3][1])
   h.eq(result[3][2].content[1].text, "very slow response")
