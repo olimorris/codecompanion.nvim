@@ -782,7 +782,7 @@ The user is working on a %s machine. Please respond with system specific command
     enabled = true,
     servers = {},
     opts = {
-      timeout = 10e3, -- Timeout for MCP server responses (milliseconds)
+      timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------

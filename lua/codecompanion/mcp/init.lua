@@ -71,7 +71,7 @@ end
 ---@field enabled nil | boolean | fun(): boolean
 ---@field system_prompt? string
 ---@field output? table<string, any>
----@field timeout_ms? number
+---@field timeout? number
 
 ---@class CodeCompanion.MCP.ServerConfig
 ---@field cmd string[]

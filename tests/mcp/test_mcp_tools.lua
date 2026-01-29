@@ -286,7 +286,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
           },
           tool_overrides = {
             echo = {
-              timeout_ms = 100,
+              timeout = 100,
               output = {
                 prompt = function(self, tools)
                   return "Custom confirmation prompt for echo tool: " .. self.args.value

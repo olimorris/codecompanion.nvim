@@ -267,8 +267,8 @@ T["MCP Client"]["respects timeout option for tool calls"] = function()
     end
 
     CLI:call_tool("echo", { value = "no_timeout" }, append_call_result)
-    CLI:call_tool("echo", { value = "short_timeout" }, append_call_result, { timeout_ms = 100 })
-    CLI:call_tool("echo", { value = "long_timeout" }, append_call_result, { timeout_ms = 1000 })
+    CLI:call_tool("echo", { value = "short_timeout" }, append_call_result, { timeout = 100 })
+    CLI:call_tool("echo", { value = "long_timeout" }, append_call_result, { timeout = 1000 })
 
     vim.wait(2000, function() return #call_results == 3 end)
     return call_results

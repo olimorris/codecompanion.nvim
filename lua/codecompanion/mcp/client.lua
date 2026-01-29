@@ -7,9 +7,9 @@ local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
 local CONSTANTS = {
-  GRACEFUL_SHUTDOWN_TIMEOUT_MS = 3000,
-  SIGTERM_TIMEOUT_MS = 2000, -- After SIGTERM before SIGKILL
-  SERVER_TIMEOUT_MS = config.mcp.opts.timeout,
+  GRACEFUL_SHUTDOWN_TIMEOUT = 3000,
+  SIGTERM_TIMEOUT = 2000, -- After SIGTERM before SIGKILL
+  SERVER_TIMEOUT = config.mcp.opts.timeout,
 
   MAX_TOOLS_PER_SERVER = 100, -- Maximum tools per server to avoid infinite pagination
 
@@ -224,9 +224,9 @@ function StdioTransport:stop()
             self._sysobj:kill(vim.uv.constants.SIGKILL)
           end)
         end
-      end, CONSTANTS.SIGTERM_TIMEOUT_MS)
+      end, CONSTANTS.SIGTERM_TIMEOUT)
     end
-  end, CONSTANTS.GRACEFUL_SHUTDOWN_TIMEOUT_MS)
+  end, CONSTANTS.GRACEFUL_SHUTDOWN_TIMEOUT)
 end
 
 ---@alias ServerRequestHandler fun(cli: CodeCompanion.MCP.Client, params: table<string, any>?): "result" | "error", table<string, any>
@@ -478,7 +478,7 @@ end
 ---@param method string
 ---@param params? table<string, any>
 ---@param resp_handler ResponseHandler
----@param opts? table { timeout_ms? number }
+---@param opts? table { timeout? number }
 ---@return number req_id
 function Client:request(method, params, resp_handler, opts)
   assert(self.transport:started(), "MCP Server process is not running.")
@@ -499,7 +499,7 @@ function Client:request(method, params, resp_handler, opts)
   log:debug("[MCP::Client::%s] Sending: %s", self.name, req_str)
   self.transport:write({ req_str })
 
-  local timeout = opts and opts.timeout_ms or CONSTANTS.SERVER_TIMEOUT_MS
+  local timeout = opts and opts.timeout or CONSTANTS.SERVER_TIMEOUT
   self.methods.defer_fn(function()
     if self.resp_handlers[req_id] then
       self.resp_handlers[req_id] = nil
@@ -566,7 +566,7 @@ end
 ---@param name string The name of the tool to call
 ---@param args? table<string, any> The arguments to pass to the tool
 ---@param callback fun(ok: boolean, result_or_error: MCP.CallToolResult | string) Callback function that receives (ok, result_or_error)
----@param opts? table { timeout_ms? number }
+---@param opts? table { timeout? number }
 ---@return number req_id
 function Client:call_tool(name, args, callback, opts)
   assert(self.ready, "MCP Server is not ready.")

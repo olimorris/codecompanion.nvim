@@ -126,7 +126,7 @@ function M.build(client, mcp_tool)
             end
           end
           output_handler(output)
-        end, { timeout_ms = override.timeout_ms })
+        end, { timeout = override.timeout })
       end,
     },
     output = output_callback,
