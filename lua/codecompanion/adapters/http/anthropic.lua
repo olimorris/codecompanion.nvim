@@ -157,7 +157,7 @@ return {
       local system = vim
         .iter(messages)
         :filter(function(msg)
-          return msg.role == "system"
+          return msg.role == "system" and msg.content and msg.content ~= ""
         end)
         :map(function(msg)
           return {
