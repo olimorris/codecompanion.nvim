@@ -389,15 +389,16 @@ T["Anthropic adapter"]["form_messages"]["handles empty messages without errors"]
     { content = "", role = "user" },
     { content = "Valid message", role = "user" },
     { content = "", role = "assistant" },
+    { content = "", role = "system" },
   }
 
   local result = adapter.handlers.form_messages(adapter, messages_with_empty_content)
 
+  h.eq(#result.messages, 2)
   h.eq(result.messages[1].role, "user")
   h.eq(result.messages[1].content[1].text, "<prompt></prompt>")
   h.eq(result.messages[1].content[2].text, "Valid message")
   h.eq(result.messages[2].role, "assistant")
-  h.eq(result.messages[2].content[1].text, "")
 end
 
 T["Anthropic adapter"]["form_messages"]["filters out empty system messages"] = function()
