@@ -232,12 +232,16 @@ end
 ---@alias ServerRequestHandler fun(cli: CodeCompanion.MCP.Client, params: table<string, any>?): "result" | "error", table<string, any>
 ---@alias ResponseHandler fun(resp: MCP.JSONRPCResultResponse | MCP.JSONRPCErrorResponse)
 
+---@class CodeCompanion.MCP.ResponseHandlerEntry
+---@field handler ResponseHandler The response handler callback
+---@field chat_id? number The chat buffer ID that initiated this request
+
 ---@class CodeCompanion.MCP.Client
 ---@field name string
 ---@field cfg CodeCompanion.MCP.ServerConfig
 ---@field ready boolean
 ---@field transport CodeCompanion.MCP.Transport
----@field resp_handlers table<number, ResponseHandler>
+---@field resp_handlers table<number, CodeCompanion.MCP.ResponseHandlerEntry>
 ---@field server_request_handlers table<string, ServerRequestHandler>
 ---@field server_capabilities? table<string, any>
 ---@field server_instructions? string
@@ -370,14 +374,15 @@ end
 ---@param err string|nil
 function Client:_on_transport_close(err)
   self.ready = false
-  for id, handler in pairs(self.resp_handlers) do
+  for id, entry in pairs(self.resp_handlers) do
     -- Notify all pending requests of the transport closure
-    pcall(handler, {
+    pcall(entry.handler, {
       jsonrpc = "2.0",
       id = id,
       error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "MCP server connection closed" },
     })
   end
+  self.resp_handlers = {}
   utils.fire("MCPServerClosed", { server = self.name, err = err })
 end
 
@@ -402,12 +407,12 @@ function Client:_on_transport_line_read(line)
   if msg.method then
     self:_handle_server_request(msg)
   else
-    local handler = self.resp_handlers[msg.id]
-    if handler then
+    local entry = self.resp_handlers[msg.id]
+    if entry then
       self.resp_handlers[msg.id] = nil
-      local handle_ok, handle_result = pcall(handler, msg)
-      if not handle_ok then
-        log:debug("[MCP::Client::%s] Response handler failed for request %s: %s", self.name, msg.id, handle_result)
+      local ok, result = pcall(entry.handler, msg)
+      if not ok then
+        log:debug("[MCP::Client::%s] Response handler failed for request %s: %s", self.name, msg.id, result)
       end
     end
   end
@@ -478,7 +483,7 @@ end
 ---@param method string
 ---@param params? table<string, any>
 ---@param resp_handler ResponseHandler
----@param opts? table { timeout? number }
+---@param opts? table { timeout?: number, chat_id?: number }
 ---@return number req_id
 function Client:request(method, params, resp_handler, opts)
   assert(self.transport:started(), "MCP Server process is not running.")
@@ -493,7 +498,10 @@ function Client:request(method, params, resp_handler, opts)
     params = params,
   }
   if resp_handler then
-    self.resp_handlers[req_id] = resp_handler
+    self.resp_handlers[req_id] = {
+      handler = resp_handler,
+      chat_id = opts and opts.chat_id or nil,
+    }
   end
   local req_str = self.methods.json_encode(req)
   log:debug("[MCP::Client::%s] Sending: %s", self.name, req_str)
@@ -562,11 +570,29 @@ function Client:cancel_request(req_id, reason)
   })
 end
 
+---Cancel all pending requests for a specific chat buffer
+---@param chat_id number The chat buffer ID
+---@param reason? string The reason for cancellation
+function Client:cancel_request_from_chat(chat_id, reason)
+  reason = reason or "Cancelled by user"
+
+  for req_id, entry in pairs(self.resp_handlers) do
+    if entry.chat_id == chat_id then
+      log:debug("[MCP::Client::%s] Cancelling request %s for chat %s: %s", self.name, req_id, chat_id, reason)
+      self.resp_handlers[req_id] = nil
+      self:notify(METHODS.CancelledNotification, {
+        requestId = req_id,
+        reason = reason,
+      })
+    end
+  end
+end
+
 ---Call a tool on the MCP server
 ---@param name string The name of the tool to call
 ---@param args? table<string, any> The arguments to pass to the tool
 ---@param callback fun(ok: boolean, result_or_error: MCP.CallToolResult | string) Callback function that receives (ok, result_or_error)
----@param opts? table { timeout? number }
+---@param opts? table { timeout?: number, chat_id?: number }
 ---@return number req_id
 function Client:call_tool(name, args, callback, opts)
   assert(self.ready, "MCP Server is not ready.")

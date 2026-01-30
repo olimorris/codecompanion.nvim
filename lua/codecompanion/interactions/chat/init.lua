@@ -1456,6 +1456,10 @@ function Chat:stop()
     end)
   end
 
+  pcall(function()
+    require("codecompanion.mcp").cancel_requests(self.id)
+  end)
+
   if self.current_request then
     local handle = self.current_request
     self.current_request = nil

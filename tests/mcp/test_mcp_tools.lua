@@ -330,7 +330,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
     OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       assert(params.name == "echo")
       return "result", { content = { { type = "text", text = params.arguments.value } } }
-    end, { latency_ms = 10 * 1000 })
+    end, { latency = 10 * 1000 })
 
     chat:add_buf_message({ role = "user", content = "@{mcp:other_mcp}" })
 

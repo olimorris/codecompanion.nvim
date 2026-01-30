@@ -49,7 +49,7 @@ local defaults = {
       },
     },
     opts = {
-      cmd_timeout = 10e3, -- Timeout for commands that resolve env variables (milliseconds)
+      cmd_timeout = 20e3, -- Timeout for commands that resolve env variables (milliseconds)
     },
   },
   constants = constants,

@@ -228,4 +228,15 @@ function M.get_status()
   return status
 end
 
+---Cancel all pending MCP requests for a specific chat buffer
+---@param chat_id number
+---@param reason? string
+function M.cancel_requests(chat_id, reason)
+  for _, client in pairs(clients) do
+    if client.ready then
+      client:cancel_request_from_chat(chat_id, reason)
+    end
+  end
+end
+
 return M

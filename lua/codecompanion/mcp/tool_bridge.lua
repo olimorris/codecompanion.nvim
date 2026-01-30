@@ -26,7 +26,7 @@ end
 
 ---Default tool output callbacks that may be overridden by user config
 ---@class CodeCompanion.Tool.MCPToolBridge: CodeCompanion.Tools.Tool
-local default_output = {
+local output = {
   ---@param self CodeCompanion.Tool.MCPToolBridge
   ---@param tools CodeCompanion.Tools
   ---@param cmd table The command that was executed
@@ -90,7 +90,7 @@ function M.build(client, mcp_tool)
   local prefixed_name = fmt("%s_%s", client.name, mcp_tool.name)
   local override = (client.cfg.tool_overrides and client.cfg.tool_overrides[mcp_tool.name]) or {}
   local tool_opts = vim.tbl_deep_extend("force", client.cfg.default_tool_opts or {}, override.opts or {})
-  local output_callback = vim.tbl_deep_extend("force", default_output, override.output or {})
+  local output_callback = vim.tbl_deep_extend("force", output, override.output or {})
 
   local tool = {
     name = prefixed_name,
@@ -107,12 +107,13 @@ function M.build(client, mcp_tool)
     system_prompt = override.system_prompt,
     cmds = {
       ---Execute the MCP tool
-      ---@param self CodeCompanion.Tool.MCPToolBridge
+      ---@param self CodeCompanion.Tools
       ---@param args table The arguments from the LLM's tool call
       ---@param input? any The output from the previous function call
       ---@param output_handler function Async callback for completion
       ---@return nil|table
       function(self, args, input, output_handler)
+        local chat_id = self.chat and self.chat.id or nil
         client:call_tool(mcp_tool.name, args, function(ok, result_or_error)
           local output
           if not ok then -- RPC failure
@@ -126,7 +127,7 @@ function M.build(client, mcp_tool)
             end
           end
           output_handler(output)
-        end, { timeout = override.timeout })
+        end, { timeout = override.timeout, chat_id = chat_id })
       end,
     },
     output = output_callback,

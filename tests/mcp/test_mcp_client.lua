@@ -223,7 +223,7 @@ T["MCP Client"]["can handle reordered tool call responses"] = function()
     for _, latency in ipairs(latencies) do
       TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
         return "result", { content = { { type = "text", text = params.arguments.value } } }
-      end, { latency_ms = latency })
+      end, { latency = latency })
     end
 
     local call_results = {}
@@ -256,10 +256,10 @@ T["MCP Client"]["respects timeout option for tool calls"] = function()
     end)
     TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       return "result", { content = { { type = "text", text = "slow response" } } }
-    end, { latency_ms = 200 })
+    end, { latency = 200 })
     TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       return "result", { content = { { type = "text", text = "very slow response" } } }
-    end, { latency_ms = 200 })
+    end, { latency = 200 })
 
     local call_results = {}
     local function append_call_result(ok, result_or_error)
@@ -401,7 +401,7 @@ T["MCP Client"]["stop() cleans up pending requests"] = function()
     -- initiate a SLOW tool call that won't respond before stop()
     TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
       return "result", { content = { { type = "text", text = "slow response" } } }
-    end, { latency_ms = 1000 })
+    end, { latency = 1000 })
 
     local call_result
     CLI:call_tool("echo", { value = "will be cancelled" }, function(ok, result_or_error)
@@ -418,6 +418,57 @@ T["MCP Client"]["stop() cleans up pending requests"] = function()
   h.is_false(child.lua_get("TRANSPORT:started()"))
   h.is_false(call_result[1])
   h.expect_contains("close", call_result[2])
+end
+
+T["MCP Client"]["cancel_request_from_chat cancels requests for specific chat"] = function()
+  child.lua([[
+    setup_default_initialization()
+    setup_tool_list()
+    start_client_and_wait_loaded()
+
+    -- Set up handlers for two tool calls and the cancellation notification
+    TRANSPORT:expect_jsonrpc_call("tools/call", function()
+      return "result", { content = { { type = "text", text = "response1" } } }
+    end)
+    TRANSPORT:expect_jsonrpc_call("tools/call", function()
+      return "result", { content = { { type = "text", text = "response2" } } }
+    end)
+
+    CANCEL_PARAMS = nil
+    TRANSPORT:expect_jsonrpc_notify("notifications/cancelled", function(params)
+      CANCEL_PARAMS = params
+    end)
+
+    -- Make two requests with different chat_ids
+    REQ_ID_1 = CLI:call_tool("echo", { value = "chat1" }, function() end, { chat_id = 1 })
+    REQ_ID_2 = CLI:call_tool("echo", { value = "chat2" }, function() end, { chat_id = 2 })
+
+    -- Capture chat_ids from resp_handlers before cancel
+    CHAT_ID_1 = CLI.resp_handlers[REQ_ID_1] and CLI.resp_handlers[REQ_ID_1].chat_id
+    CHAT_ID_2 = CLI.resp_handlers[REQ_ID_2] and CLI.resp_handlers[REQ_ID_2].chat_id
+
+    -- Cancel only chat 1
+    CLI:cancel_request_from_chat(1, "User stopped")
+
+    -- Check handler state immediately after cancel
+    HANDLER_1_REMOVED = CLI.resp_handlers[REQ_ID_1] == nil
+    HANDLER_2_KEPT = CLI.resp_handlers[REQ_ID_2] ~= nil
+
+    -- Wait for all mock handlers to be consumed
+    vim.wait(1000, function() return TRANSPORT:all_handlers_consumed() end)
+  ]])
+
+  -- Verify chat_ids were stored correctly in handlers
+  h.eq(child.lua_get("CHAT_ID_1"), 1)
+  h.eq(child.lua_get("CHAT_ID_2"), 2)
+
+  -- Verify only chat 1's handler was removed
+  h.is_true(child.lua_get("HANDLER_1_REMOVED"))
+  h.is_true(child.lua_get("HANDLER_2_KEPT"))
+
+  -- Verify cancellation notification was sent with correct params
+  h.eq(child.lua_get("CANCEL_PARAMS.requestId"), child.lua_get("REQ_ID_1"))
+  h.eq(child.lua_get("CANCEL_PARAMS.reason"), "User stopped")
 end
 
 return T

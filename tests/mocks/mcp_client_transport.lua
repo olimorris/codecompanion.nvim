@@ -46,12 +46,12 @@ function MockMCPClientTransport:write(lines)
   end)
 end
 
-function MockMCPClientTransport:write_line_to_client(line, latency_ms)
+function MockMCPClientTransport:write_line_to_client(line, latency)
   assert(self._started, "Transport not started")
   vim.defer_fn(function()
     log:info("MockMCPClientTransport sending line to client: %s", line)
     self._on_line_read(line)
-  end, latency_ms or 0)
+  end, latency or 0)
 end
 
 ---@param handler fun(line: string): boolean handle a client written line; return true to preserve this handler for next line
@@ -63,7 +63,7 @@ end
 
 ---@param method string
 ---@param handler fun(params?: table): "result"|"error", table
----@param opts? { repeats?: integer, latency_ms?: integer }
+---@param opts? { repeats?: integer, latency?: integer }
 ---@return CodeCompanion.MCP.MockMCPClientTransport self
 function MockMCPClientTransport:expect_jsonrpc_call(method, handler, opts)
   local remaining_repeats = opts and opts.repeats or 1
@@ -95,7 +95,7 @@ function MockMCPClientTransport:expect_jsonrpc_call(method, handler, opts)
       return resp
     end
 
-    self:write_line_to_client(vim.json.encode(get_response()), opts and opts.latency_ms)
+    self:write_line_to_client(vim.json.encode(get_response()), opts and opts.latency)
     remaining_repeats = remaining_repeats - 1
     return remaining_repeats > 0
   end)
