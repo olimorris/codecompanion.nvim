@@ -140,6 +140,7 @@ export default withMermaid(
               text: "Inline Assistant",
               link: "/configuration/inline-assistant",
             },
+            { text: "MCP", link: "/configuration/mcp" },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
             { text: "Rules", link: "/configuration/rules" },
             { text: "System Prompt", link: "/configuration/system-prompt" },

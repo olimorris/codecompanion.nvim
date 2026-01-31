@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 28
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -34,6 +34,9 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Current Limitations                |codecompanion-acp-current-limitations|
   - See Also                                      |codecompanion-acp-see-also|
 6. MCP                                                     |codecompanion-mcp|
+  - Implementation                          |codecompanion-mcp-implementation|
+  - Protocol Version                      |codecompanion-mcp-protocol-version|
+  - See Also                                      |codecompanion-mcp-see-also|
 7. Configuration                                 |codecompanion-configuration|
   - Action Palette                |codecompanion-configuration-action-palette|
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
@@ -676,7 +679,7 @@ IMPLEMENTATION                              *codecompanion-acp-implementation*
 CodeCompanion provides comprehensive support for the ACP specification:
 
   ------------------------------------------------------------------------
-  Feature Category               Enabled                   Details
+  Feature Category               Supported                 Details
   ------------------------------ ------------------------- ---------------
   Core Protocol                  ✅                        JSON-RPC 2.0,
                                                            streaming
@@ -828,6 +831,58 @@ SEE ALSO                                          *codecompanion-acp-see-also*
 
 ==============================================================================
 6. MCP                                                     *codecompanion-mcp*
+
+CodeCompanion implements the Model Context Protocol (MCP)
+<https://modelcontextprotocol.io> to enable you to connect the plugin to
+external systems and applications. The plugin only implements a subset of the
+full MCP specification, focusing on the features that enable developers to
+enhance their coding experience.
+
+
+IMPLEMENTATION                              *codecompanion-mcp-implementation*
+
+  ----------------------------------------------------------------------------
+  Feature Category          Supported   Details
+  ------------------------- ----------- --------------------------------------
+  Transport: Stdio          ✅          
+
+  Transport: Streamable     ❌          
+  HTTP                                  
+
+  Basic: Cancellation       ✅          Timeout and user can cancel manually
+
+  Basic: Progress           ❌          
+
+  Basic: Task               ❌          
+
+  Client: Roots             ✅          Disabled by default
+
+  Client: Sampling          ❌          
+
+  Client: Elicitation       ❌          
+
+  Server: Completion        ❌          
+
+  Server: Pagination        ✅          
+
+  Server: Prompts           ❌          
+
+  Server: Resources         ❌          
+
+  Server: Tools             ✅          Currently only supports Text Content
+
+  Server: Tool list changed ❌          
+  notification                          
+  ----------------------------------------------------------------------------
+
+PROTOCOL VERSION                          *codecompanion-mcp-protocol-version*
+
+CodeCompanion currently supports MCP version **2025-11-25**.
+
+
+SEE ALSO                                          *codecompanion-mcp-see-also*
+
+- Model Context Protocol Specification <https://modelcontextprotocol.io/specification/2025-11-25> - Official MCP documentation
 
 
 ==============================================================================
@@ -2058,7 +2113,34 @@ CodeCompanion added support for the Model Context Protocol (MCP)
 applications to external systems.
 
 You can find out which parts of the protocol CodeCompanion has implemented on
-the |codecompanion-usage-mcp| page.
+the |codecompanion-model-context-protocol| page. Currently, you can leverage
+MCP servers with |codecompanion-usage-chat-buffer|.
+
+
+MCP SERVERS ~
+
+You can give CodeCompanion knowledge of MCP servers via the `mcp.servers`
+configuration option. This is a list of server definitions, each specifying how
+to connect to an MCP server
+
+
+BASIC CONFIGURATION
+
+
+In the example above, we’re using 1Password CLI
+<https://developer.1password.com/docs/cli/> tool to fetch the API key. However,
+you can leverage CodeCompanion’s built-in
+|codecompanion-configuration-adapters-http-environment-variables| capabilities
+to fetch the value from any source you like.
+
+
+ROOTS
+
+Roots <https://modelcontextprotocol.io/specification/2025-11-25/client/roots>
+allow you to specify directories that the MCP server can access. By default,
+roots are disabled for security reasons. You can enable them by adding a
+`roots` field to your server configuration:
+
 
 
 RULES                                      *codecompanion-configuration-rules*

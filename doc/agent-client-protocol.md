@@ -12,7 +12,7 @@ This page provides a technical reference for what's supported in CodeCompanion a
 
 CodeCompanion provides comprehensive support for the ACP specification:
 
-| Feature Category | Enabled | Details |
+| Feature Category | Supported | Details |
 |------------------|---------------|---------|
 | **Core Protocol** | ✅ | JSON-RPC 2.0, streaming responses, message buffering |
 | **Authentication** | ✅ | Multiple auth methods, adapter-level hooks |
