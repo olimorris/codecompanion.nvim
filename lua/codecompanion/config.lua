@@ -49,7 +49,7 @@ local defaults = {
       },
     },
     opts = {
-      cmd_timeout = 10e3, -- Timeout for commands that resolve env variables (milliseconds)
+      cmd_timeout = 20e3, -- Timeout for commands that resolve env variables (milliseconds)
     },
   },
   constants = constants,
@@ -448,6 +448,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+        ["mcp"] = {
+          callback = "interactions.chat.slash_commands.builtin.mcp",
+          description = "Toggle MCP servers",
+          opts = {
+            contains_code = false,
+            provider = "default", -- snacks|default
+          },
+        },
         ["now"] = {
           callback = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
@@ -767,6 +775,14 @@ The user is working on a %s machine. Please respond with system specific command
           modes = { n = "{" },
         },
       },
+    },
+  },
+  -- MCP SERVERS ----------------------------------------------------------------
+  mcp = {
+    enabled = true,
+    servers = {},
+    opts = {
+      timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------

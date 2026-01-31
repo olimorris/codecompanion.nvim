@@ -29,6 +29,10 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
+- `CodeCompanionMCPServerStart` - Fired when an MCP server is started
+- `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
+- `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
+- `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
