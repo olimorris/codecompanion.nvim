@@ -2143,6 +2143,81 @@ roots are disabled for security reasons. You can enable them by adding a
 
 
 
+ENABLING SERVERS ~
+
+By default, all MCP servers are enabled in CodeCompanion. This results in
+servers being started when a chat buffer is opened for the first time -
+remaining active until Neovim is closed. This behaviour can be changed by
+setting `mcp.enabled = false`. You can also change this at an individual server
+level:
+
+
+
+OVERRIDING TOOL BEHAVIOUR ~
+
+An MCP server can expose multiple tools. For example, a "math" server might
+provide `add`, `subtract`, `multiply`, and `divide` tools. You can override the
+behaviour of individual tools using the `tool_overrides` configuration,
+allowing you to customise options, output handling, system prompts, and
+timeouts on a per-tool basis.
+
+The `tool_overrides` field is a table where keys are the **MCP tool names**
+(not the prefixed names used internally by CodeCompanion):
+
+
+
+AVAILABLE OVERRIDE OPTIONS
+
+Each tool override can include:
+
+  ------------------------------------------------------------------------
+  Option                Type            Description
+  --------------------- --------------- ----------------------------------
+  opts                  table           Tool options like
+                                        require_approval_before,
+                                        require_approval_after
+
+  output                table           Custom output handlers (success,
+                                        error, prompt, rejected,
+                                        cancelled)
+
+  system_prompt         string          Additional system prompt text for
+                                        this tool
+
+  timeout               number          Custom timeout in milliseconds for
+                                        this tool
+
+  enabled               boolean or      Whether the tool is enabled
+                        function        
+  ------------------------------------------------------------------------
+
+DEFAULT TOOL OPTIONS
+
+If you want to apply the same options to all tools from a server, use
+`tool_defaults`:
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        ["math-server"] = {
+          cmd = { "npx", "-y", "math-mcp-server" },
+          tool_defaults = {
+            require_approval_before = true,
+          },
+          -- Per-tool overrides take precedence over tool_defaults
+          tool_overrides = {
+            add = {
+              opts = {
+                require_approval_before = false,  -- Override the default for this tool
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
 RULES                                      *codecompanion-configuration-rules*
 
 Within CodeCompanion, rules fulfil two main purposes within a chat buffer:

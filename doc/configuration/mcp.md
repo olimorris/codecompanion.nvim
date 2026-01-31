@@ -77,9 +77,11 @@ require("codecompanion").setup({
 })
 ```
 
+:::
+
 ## Enabling Servers
 
-By default, all MCP servers are enabled in CodeCompanion. This results in servers being started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behavour can be changed by setting `mcp.enabled = false`. You can also change this at an individual server level:
+By default, all MCP servers are enabled in CodeCompanion. This results in servers being started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behaviour can be changed by setting `mcp.enabled = false`. You can also change this at an individual server level:
 
 ::: code-group
 
@@ -107,6 +109,7 @@ require("codecompanion").setup({
   },
 })
 ```
+
 :::
 
 ## Overriding Tool Behaviour
