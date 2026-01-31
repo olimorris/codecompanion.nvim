@@ -45,6 +45,9 @@ In the example above, we're using [1Password CLI](https://developer.1password.co
 
 ### Roots
 
+> [!IMPORTANT]
+> The `roots` feature is only a **hint** to MCP servers. A **compliant** server can use this information to prevent unexpected file system access from the LLM. However, CodeCompanion cannot enforce this upon the servers. If you are using uncompliant or even untrusted MCP servers (and you shouldn't), consider using a real isolation mechanism such as containers.
+
 [Roots](https://modelcontextprotocol.io/specification/2025-11-25/client/roots) allow you to specify directories that the MCP server can access. By default, roots are disabled for security reasons. You can enable them by adding a `roots` field to your server configuration:
 
 ::: code-group
