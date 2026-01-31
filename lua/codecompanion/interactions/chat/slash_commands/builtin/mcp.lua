@@ -31,10 +31,6 @@ local function build_items()
     })
   end
 
-  table.sort(items, function(a, b)
-    return a.name < b.name
-  end)
-
   return items
 end
 
