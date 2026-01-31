@@ -281,7 +281,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
           server_instructions = function(orig)
             return orig .. "\nAdditional instructions for other_mcp."
           end,
-          default_tool_opts = {
+          tool_defaults = {
             require_approval_before = true,
           },
           tool_overrides = {

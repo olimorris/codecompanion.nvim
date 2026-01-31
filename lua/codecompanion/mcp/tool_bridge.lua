@@ -26,7 +26,7 @@ end
 
 ---Default tool output callbacks that may be overridden by user config
 ---@class CodeCompanion.Tool.MCPToolBridge: CodeCompanion.Tools.Tool
-local output = {
+local tool_output = {
   ---@param self CodeCompanion.Tool.MCPToolBridge
   ---@param tools CodeCompanion.Tools
   ---@param cmd table The command that was executed
@@ -88,9 +88,11 @@ function M.build(client, mcp_tool)
   end
 
   local prefixed_name = fmt("%s_%s", client.name, mcp_tool.name)
+
+  -- Users can override server options via tool configuration
   local override = (client.cfg.tool_overrides and client.cfg.tool_overrides[mcp_tool.name]) or {}
-  local tool_opts = vim.tbl_deep_extend("force", client.cfg.default_tool_opts or {}, override.opts or {})
-  local output_callback = vim.tbl_deep_extend("force", output, override.output or {})
+  local output_cb = vim.tbl_deep_extend("force", tool_output, override.output or {})
+  local tool_opts = vim.tbl_deep_extend("force", client.cfg.tool_defaults or {}, override.opts or {})
 
   local tool = {
     name = prefixed_name,
@@ -130,7 +132,7 @@ function M.build(client, mcp_tool)
         end, { timeout = override.timeout, chat_id = chat_id })
       end,
     },
-    output = output_callback,
+    output = output_cb,
   }
 
   local tool_cfg = {

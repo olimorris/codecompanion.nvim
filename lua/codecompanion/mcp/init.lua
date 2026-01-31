@@ -78,7 +78,7 @@ end
 ---@field env? table<string, string>
 ---@field opts? { enabled: boolean}
 ---@field server_instructions nil | string | fun(orig_server_instructions: string): string
----@field default_tool_opts? table<string, any>
+---@field tool_defaults? table<string, any>
 ---@field tool_overrides? table<string, CodeCompanion.MCP.ToolOverride>
 ---@field roots? fun(): { name?: string, uri: string }[]
 ---@field register_roots_list_changed? fun(notify: fun())
