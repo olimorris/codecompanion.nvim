@@ -53,13 +53,16 @@ local tool_output = {
     local chat = tools.chat
     local err_msg = M.format_tool_result_content(stderr and stderr[#stderr] or "<NO ERROR MESSAGE>")
     local for_user = fmt(
-      [[MCP: %s failed
+      [[MCP: %s failed:
 ````
 %s
+````
+Arguments:
+````%s
 ````]],
       self.name,
-      vim.inspect(self.args),
-      err_msg
+      err_msg,
+      vim.inspect(self.args)
     )
     chat:add_tool_output(self, "MCP Tool execution failed:\n" .. err_msg, for_user)
   end,
@@ -69,7 +72,7 @@ local tool_output = {
   ---@param tools CodeCompanion.Tools
   ---@return nil|string
   prompt = function(self, tools)
-    return fmt("Execute the `%s` MCP tool?", self.name)
+    return fmt("Execute the `%s` MCP tool?\nArguments:\n%s", self.name, vim.inspect(self.args))
   end,
 }
 
