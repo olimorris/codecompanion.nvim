@@ -99,8 +99,9 @@ function StdioTransport:start(on_line_read, on_close)
   self._on_close = on_close
 
   adapter_utils.get_env_vars(self)
+  local cmd = adapter_utils.set_env_vars(self, self.cmd)
   self._sysobj = self.methods.job(
-    self.cmd,
+    cmd,
     {
       env = self.env_replaced or self.env,
       text = true,
