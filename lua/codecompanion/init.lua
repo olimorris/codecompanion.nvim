@@ -352,7 +352,8 @@ local function handle_adapter_config(adapter_type, opts)
       local adapters_util = require("codecompanion.utils.adapters")
       adapters_util.extend(config.adapters[adapter_type], opts.adapters[adapter_type])
     else
-      config.adapters[adapter_type] = vim.deepcopy(opts.adapters[adapter_type])
+      config.adapters[adapter_type] =
+        vim.tbl_deep_extend("keep", opts.adapters[adapter_type], { opts = config.adapters[adapter_type].opts })
     end
   end
 end
