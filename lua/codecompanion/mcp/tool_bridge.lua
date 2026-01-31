@@ -34,13 +34,19 @@ local tool_output = {
   success = function(self, tools, cmd, stdout)
     local chat = tools.chat
     local output = M.format_tool_result_content(stdout and stdout[#stdout])
+    local output_for_user = output
+    local DISPLAY_LIMIT_BYTES = 1000
+    if #output_for_user > DISPLAY_LIMIT_BYTES then
+      local utf_offset = vim.str_utf_start(output_for_user, 1 + DISPLAY_LIMIT_BYTES)
+      output_for_user = output_for_user:sub(1, DISPLAY_LIMIT_BYTES + utf_offset) .. "\n\n...[truncated]"
+    end
     local for_user = fmt(
       [[MCP: %s executed successfully:
 ````
 %s
 ````]],
       self.name,
-      output
+      output_for_user
     )
     chat:add_tool_output(self, output, for_user)
   end,

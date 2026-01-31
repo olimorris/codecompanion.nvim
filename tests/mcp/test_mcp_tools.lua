@@ -373,4 +373,44 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
   h.eq(result.confirmations[2], "Custom confirmation prompt for echo tool: ECHO REQ")
 end
 
+T["MCP Tools"]["long output will be truncated in the chat buffer"] = function()
+  h.mock_http(child)
+  local output_prefix = "@LONG_OUTPUT_START@"
+  local output_suffix = "@LONG_OUTPUT_END@"
+  local output_elem = "\u{1F605}"
+  local output = output_prefix .. string.rep(output_elem, 5000) .. output_suffix
+  h.queue_mock_http_response(child, {
+    content = "Call a tool",
+    tools = {
+      { ["function"] = { name = "other_mcp_echo", arguments = { value = output } } },
+    },
+  })
+
+  local result = child.lua([[
+    local chat = create_chat()
+    OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
+      return "result", {
+        content = { { type = "text", text = params.arguments.value } }
+      }
+    end)
+
+    chat:add_buf_message({ role = "user", content = "@{mcp.other_mcp} Please echo a long message." })
+    chat:submit()
+    vim.wait(1000, function() return vim.bo[chat.bufnr].modifiable end)
+    return { chat_msgs = chat.messages, chat_bufnr = chat.bufnr }
+  ]])
+
+  -- Chat buffer should contain truncated output (prefix .. elem * n .. truncation-mark)
+  local chat_buf_lines = child.api.nvim_buf_get_lines(result.chat_bufnr, 0, -1, false)
+  local chat_buf_content = table.concat(chat_buf_lines, "\n")
+  local truncated_output_regex =
+    string.format([=[%s\(%s\)\+[[:space:][:punct:]]*\[truncated\]]=], output_prefix, output_elem)
+  h.expect_truthy(vim.regex(truncated_output_regex):match_str(chat_buf_content))
+
+  -- LLM should receive full output
+  local tool_output_msgs = child.lua_get("extract_tool_outputs(...)", { result.chat_msgs })
+  h.eq(#tool_output_msgs, 1)
+  h.eq(tool_output_msgs[1], output)
+end
+
 return T
