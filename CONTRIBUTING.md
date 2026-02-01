@@ -8,36 +8,36 @@ Before contributing a PR, please open up a discussion to talk about it. While I 
 
 The plugin has adopted semantic versioning. As such, any PR which breaks the existing API is unlikely to be merged.
 
-### Plugin Philosophy
+### CodeCompanion is Omakase
 
-**CodeCompanion enables developers to write better code, faster, through LLM interactions.**
+In Japanese cuisine, omakase means _"I'll leave it up to you"_ - the diner allows the chef to carefully select each course. CodeCompanion follows this philosophy: carefully curated features, rather than an all-you-can-eat buffet of every possible feature. In the world of LLMs, this means that CodeCompanion will never be at the bleeding edge. However, what it sacrifices in novelty, it makes up for in stability, reliability, and a great user experience.
 
-When proposing new features, please ensure they align with this philosophy:
+**Breaking this down:**
+- **Intentional over exhaustive** - Each new feature is carefully considered against the whole menu rather than just the course itself
+- **Complementary** - New features compliment the dish rather than acting like an unnecessary side
+- **Maintainable** - Every addition is code that I commit to maintaining indefinitely
 
-**In Scope:**
-- LLM interaction modes (chat, inline, cmd, workflows, agents)
-- Tools and context that extend LLM capabilities while coding
-- Integrations (MCP, adapters) that enhance LLM assistance
-- Essential infrastructure for reviewing and applying LLM-generated changes (diff providers, edit tracking, completion/action providers)
+### AI-Assisted Contributions
 
-**Out of Scope:**
-- Elaborate UIs (beyond basic diff/review needs) or features that do not facilitate LLM-assisted code generation
-- Features better served by standalone plugins
-- General development tools not tied to LLM interactions
+While CodeCompanion itself is a tool for AI-assisted development, that does not mean I am willing to accept "vibe-coded" contributions - PRs where the contributor used an LLM to generate code but doesn't deeply understand what they're submitting.
 
-**Questions to ask:**
-1. Does this help the LLM write code?
-2. Is this essential for users to accept/reject LLM code?
-3. Or is this nice-to-have feature that belongs in a separate plugin?
-4. To add this feature, are we looking at > 1,000 LOC of new code?
+**Red flags:**
+- User cannot explain implementation decisions when asked
+- Code doesn't match existing architectural patterns
+- Tests appear comprehensive but don't actually validate edge cases
+- Generic LLM patterns (overly defensive coding, verbose comments)
 
-**If a feature is primarily about viewing what's already happened rather than enabling the next LLM interaction, it's out of scope.**
+**What I Expect**:
+- **Understand** the codebase before contributing (use the rules, read the tests, explore the architecture)
+- **Own** your contribution - you should be able to explain every line you submit
+- **Test** thoroughly - write tests that demonstrate you understand the feature
+- **Iterate** based on feedback - PRs are conversations, not fire-and-forget submissions
 
-If your feature doesn't directly support LLM-assisted code generation or isn't minimal essential infrastructure, consider publishing it as a standalone plugin that works alongside CodeCompanion.
+> As a rule of thumb, use an LLM to create a feature _OR_ a test. But never both.
 
 ## How to Contribute
 
-1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea.
+1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea - Save yourself time and effort by checking this is a feature that aligns with the project's goals.
 2. Fork the repository and create your branch from `main`.
 3. Add your feature or fix to your branch.
 4. Ensure your code follows the project's coding style and conventions.
