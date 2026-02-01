@@ -9,6 +9,7 @@ local api = vim.api
 local M = {}
 
 ---@class CodeCompanion.DiffUI
+---@field aug_group? number The autocommand group ID for the banner
 ---@field banner? string The banner of keymaps to display above each hunk
 ---@field banner_ns? number The namespace ID for the banner extmark
 ---@field bufnr number The buffer number of the diff window
@@ -264,7 +265,10 @@ end
 ---Clear diff extmarks from buffer
 ---@return nil
 function DiffUI:clear()
-  -- Clear the banner namespace
+  if self.aug_group then
+    pcall(api.nvim_del_augroup_by_id, self.aug_group)
+  end
+
   if self.banner_ns then
     pcall(api.nvim_buf_clear_namespace, self.bufnr, self.banner_ns, 0, -1)
   end
@@ -445,6 +449,7 @@ end
 local function setup_banner(diff_ui, opts)
   local bufnr = diff_ui.bufnr
   local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
+  diff_ui.aug_group = group
 
   local function show_banner(args)
     args = args or {}
