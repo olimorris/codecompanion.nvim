@@ -20,6 +20,7 @@ local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
+local triggers = require("codecompanion.triggers")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
@@ -28,7 +29,7 @@ local api = vim.api
 local show_tools_processing = config.display.chat.show_tools_processing
 
 local CONSTANTS = {
-  PREFIX = "@",
+  PREFIX = triggers.mappings.tools,
 
   NS_TOOLS = "CodeCompanion-tools",
   AUTOCMD_GROUP = "codecompanion.tools",

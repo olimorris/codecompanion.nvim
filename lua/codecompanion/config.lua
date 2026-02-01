@@ -481,7 +481,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         opts = {
           acp = {
             enabled = true, -- Enable ACP command completion
-            trigger = "\\", -- Trigger character for ACP commands
           },
         },
       },
@@ -1001,6 +1000,13 @@ The user is working on a %s machine. Please respond with system specific command
     ---@type boolean|function
     ---@return boolean
     send_code = true,
+
+    triggers = {
+      acp_slash_commands = "\\",
+      slash_commands = "/",
+      tools = "@",
+      variables = "#",
+    },
 
     job_start_delay = 1500, -- Delay in milliseconds between cmd tools
     submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer

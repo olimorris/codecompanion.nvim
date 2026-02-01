@@ -43,6 +43,7 @@ local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = t
 ---@param bufnr? number
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   local config = require("codecompanion.config")
+  local triggers = require("codecompanion.triggers")
 
   -- Ref: #2344 - schedule_wrap defers execution to the next event loop cycle.
   -- By that time, the buffer may have been deleted (e.g. user closed the
@@ -54,12 +55,14 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   vim.bo[bufnr or 0].syntax = "ON"
 
   -- As tools can now be created from outside of the config, apply a general pattern
-  vim.cmd.syntax('match CodeCompanionChatTool "@{[^}]*}"')
+  vim.cmd.syntax('match CodeCompanionChatTool "' .. triggers.mappings.tools .. '{[^}]*}"')
 
   vim.iter(config.interactions.chat.variables):each(function(name)
-    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
-    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
-    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
+    vim.cmd.syntax('match CodeCompanionChatVariable "' .. triggers.mappings.variables .. "{" .. name .. '}"')
+    vim.cmd.syntax('match CodeCompanionChatVariable "' .. triggers.mappings.variables .. "{" .. name .. ':[^}]*}"')
+    vim.cmd.syntax(
+      'match CodeCompanionChatVariable "' .. triggers.mappings.variables .. "{" .. name .. ':[^}]*}{[^}]*}"'
+    )
   end)
 end)
 
