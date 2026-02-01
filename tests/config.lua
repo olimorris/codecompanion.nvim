@@ -249,7 +249,6 @@ return {
               "cmd",
             },
           },
-
           ["tool_group"] = {
             description = "Tool Group",
             system_prompt = "My tool group system prompt",
@@ -378,6 +377,13 @@ return {
           description = "bar",
         },
       },
+    },
+  },
+  mcp = {
+    enabled = true,
+    servers = {},
+    opts = {
+      timeout = 10e3,
     },
   },
   prompt_library = {

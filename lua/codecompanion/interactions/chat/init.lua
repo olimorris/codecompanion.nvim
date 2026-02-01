@@ -526,6 +526,10 @@ function Chat.new(args)
 
   self:update_metadata()
 
+  if config.mcp.enabled then
+    require("codecompanion.mcp").start_servers()
+  end
+
   -- Likely this hasn't been set by the time the user opens the chat buffer
   if not _G.codecompanion_current_context then
     _G.codecompanion_current_context = self.buffer_context.bufnr
@@ -1451,6 +1455,10 @@ function Chat:stop()
       tool_job.cancel()
     end)
   end
+
+  pcall(function()
+    require("codecompanion.mcp").cancel_requests(self.id)
+  end)
 
   if self.current_request then
     local handle = self.current_request
