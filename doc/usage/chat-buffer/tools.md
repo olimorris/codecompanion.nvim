@@ -309,6 +309,10 @@ In the `openai_responses` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
+## MCP
+
+The MCP servers you've [configured](/configuration/mcp) in CodeCompanion expose their own set of tools that you can use in the chat buffer. Once a server has been started, the tools will be available to you and appear in the completion menu, by typing `@`. They are prefixed with `mcp:`.
+
 ## Security
 
 CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).

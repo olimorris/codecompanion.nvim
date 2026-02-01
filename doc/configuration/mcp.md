@@ -6,7 +6,7 @@ description: Learn how to configure MCP servers within CodeCompanion.nvim
 
 In [#2549](https://github.com/olimorris/codecompanion.nvim/pull/2549), CodeCompanion added support for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), an open-source standard for connecting AI applications to external systems.
 
-You can find out which parts of the protocol CodeCompanion has implemented on the [MCP](/model-context-protocol) page. Currently, you can leverage MCP servers with [chat interactions](/usage/chat-buffer).
+You can find out which parts of the protocol CodeCompanion has implemented on the [MCP](/model-context-protocol) page. Currently, you can leverage MCP servers with [chat interactions](/usage/chat-buffer/index).
 
 ## Configuring MCP Servers
 
@@ -26,7 +26,7 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Env Vars] {5-7}
+```lua [Environment Variables] {5-7}
 require("codecompanion").setup({
   mcp = {
     ["tavily-mcp"] = {
@@ -46,7 +46,7 @@ In the example above, we're using [1Password CLI](https://developer.1password.co
 ### Roots
 
 > [!IMPORTANT]
-> The `roots` feature is only a **hint** to MCP servers. A **compliant** server can use this information to prevent unexpected file system access from the LLM. However, CodeCompanion cannot enforce this upon the servers. If you are using uncompliant or even untrusted MCP servers (and you shouldn't), consider using a real isolation mechanism such as containers.
+> The `roots` feature is a hint to MCP servers. Compliant servers use it to limit file system access, but CodeCompanion cannot enforce this. For untrusted servers, use isolation mechanisms like containers.
 
 [Roots](https://modelcontextprotocol.io/specification/2025-11-25/client/roots) allow you to specify directories that the MCP server can access. By default, roots are disabled for security reasons. You can enable them by adding a `roots` field to your server configuration:
 
@@ -88,7 +88,7 @@ By default, all MCP servers are enabled in CodeCompanion. This results in server
 
 ::: code-group
 
-```lua [Global] {3}
+```lua [Globally] {3}
 require("codecompanion").setup({
   mcp = {
     enabled = false,
@@ -99,7 +99,7 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Individual Server] {3,6-8}
+```lua [Per Server] {3,6-8}
 require("codecompanion").setup({
   mcp = {
     enabled = true,
@@ -180,21 +180,9 @@ require("codecompanion").setup({
 
 :::
 
-### Available Override Options
+### Tool Defaults
 
-Each tool override can include:
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `opts` | `table` | Tool options like `require_approval_before`, `require_approval_after` |
-| `output` | `table` | Custom output handlers (`success`, `error`, `prompt`, `rejected`, `cancelled`) |
-| `system_prompt` | `string` | Additional system prompt text for this tool |
-| `timeout` | `number` | Custom timeout in milliseconds for this tool |
-| `enabled` | `boolean` or `function` | Whether the tool is enabled |
-
-### Default Tool Options
-
-If you want to apply the same options to all tools from a server, use `tool_defaults`:
+You can set default options for all tools by setting the `tool_defaults` option. However, note that `tool_overrides` take precedence over them:
 
 ```lua
 require("codecompanion").setup({
@@ -208,7 +196,7 @@ require("codecompanion").setup({
       tool_overrides = {
         add = {
           opts = {
-            require_approval_before = false,  -- Override the default for this tool
+            require_approval_before = false,
           },
         },
       },
@@ -216,3 +204,18 @@ require("codecompanion").setup({
   },
 })
 ```
+
+
+### Override Options
+
+Each tool override can include:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `opts` | `table` | Tool options like `require_approval_before`, `require_approval_after` |
+| `output` | `table` | Custom output handlers (`success`, `error`, `prompt`, `rejected`, `cancelled`) |
+| `system_prompt` | `string` | Additional system prompt text for this tool |
+| `timeout` | `number` | Custom timeout in milliseconds for this tool |
+| `enabled` | `boolean`  | Whether the tool is enabled |
+
+

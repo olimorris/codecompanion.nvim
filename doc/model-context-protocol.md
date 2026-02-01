@@ -6,6 +6,12 @@ description: How to leverage Model Context Protocol (MCP) servers within CodeCom
 
 CodeCompanion implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io) to enable you to connect the plugin to external systems and applications. The plugin only implements a subset of the full MCP specification, focusing on the features that enable developers to enhance their coding experience.
 
+## Usage
+
+To use MCP servers within CodeCompanion, refer to the [tools](/usage/chat-buffer/tools#mcp) section in the chat buffer usage section of the documentation.
+
+If [enabled](/configuration/mcp#enabling-servers), the servers will be started when you open a chat buffer for the first time. However, you can use the [MCP slash command](/usage/chat-buffer/slash-commands#mcp) to start or stop servers manually.
+
 ## Implementation
 
 

@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 January 31
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 01
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -34,6 +34,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Current Limitations                |codecompanion-acp-current-limitations|
   - See Also                                      |codecompanion-acp-see-also|
 6. MCP                                                     |codecompanion-mcp|
+  - Usage                                            |codecompanion-mcp-usage|
   - Implementation                          |codecompanion-mcp-implementation|
   - Protocol Version                      |codecompanion-mcp-protocol-version|
   - See Also                                      |codecompanion-mcp-see-also|
@@ -837,6 +838,18 @@ CodeCompanion implements the Model Context Protocol (MCP)
 external systems and applications. The plugin only implements a subset of the
 full MCP specification, focusing on the features that enable developers to
 enhance their coding experience.
+
+
+USAGE                                                *codecompanion-mcp-usage*
+
+To use MCP servers within CodeCompanion, refer to the
+|codecompanion-usage-chat-buffer-tools-mcp| section in the chat buffer usage
+section of the documentation.
+
+If |codecompanion-configuration-mcp-enabling-servers|, the servers will be
+started when you open a chat buffer for the first time. However, you can use
+the |codecompanion-usage-chat-buffer-slash-commands-mcp| to start or stop
+servers manually.
 
 
 IMPLEMENTATION                              *codecompanion-mcp-implementation*
@@ -2114,7 +2127,7 @@ applications to external systems.
 
 You can find out which parts of the protocol CodeCompanion has implemented on
 the |codecompanion-model-context-protocol| page. Currently, you can leverage
-MCP servers with |codecompanion-usage-chat-buffer|.
+MCP servers with |codecompanion-usage-chat-buffer-index|.
 
 
 MCP SERVERS ~
@@ -2136,6 +2149,10 @@ to fetch the value from any source you like.
 
 ROOTS
 
+
+  [!IMPORTANT] The `roots` feature is a hint to MCP servers. Compliant servers
+  use it to limit file system access, but CodeCompanion cannot enforce this. For
+  untrusted servers, use isolation mechanisms like containers.
 Roots <https://modelcontextprotocol.io/specification/2025-11-25/client/roots>
 allow you to specify directories that the MCP server can access. By default,
 roots are disabled for security reasons. You can enable them by adding a
@@ -2166,7 +2183,34 @@ The `tool_overrides` field is a table where keys are the **MCP tool names**
 
 
 
-AVAILABLE OVERRIDE OPTIONS
+TOOL DEFAULTS
+
+You can set default options for all tools by setting the `tool_defaults`
+option. However, note that `tool_overrides` take precedence over them:
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        ["math-server"] = {
+          cmd = { "npx", "-y", "math-mcp-server" },
+          tool_defaults = {
+            require_approval_before = true,
+          },
+          -- Per-tool overrides take precedence over tool_defaults
+          tool_overrides = {
+            add = {
+              opts = {
+                require_approval_before = false,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+OVERRIDE OPTIONS
 
 Each tool override can include:
 
@@ -2187,36 +2231,8 @@ Each tool override can include:
   timeout               number          Custom timeout in milliseconds for
                                         this tool
 
-  enabled               boolean or      Whether the tool is enabled
-                        function        
+  enabled               boolean         Whether the tool is enabled
   ------------------------------------------------------------------------
-
-DEFAULT TOOL OPTIONS
-
-If you want to apply the same options to all tools from a server, use
-`tool_defaults`:
-
->lua
-    require("codecompanion").setup({
-      mcp = {
-        ["math-server"] = {
-          cmd = { "npx", "-y", "math-mcp-server" },
-          tool_defaults = {
-            require_approval_before = true,
-          },
-          -- Per-tool overrides take precedence over tool_defaults
-          tool_overrides = {
-            add = {
-              opts = {
-                require_approval_before = false,  -- Override the default for this tool
-              },
-            },
-          },
-        },
-      },
-    })
-<
-
 
 RULES                                      *codecompanion-configuration-rules*
 
@@ -3902,6 +3918,14 @@ In the `openai_responses` adapter, the following tools are available:
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
 
+MCP ~
+
+The MCP servers you’ve |codecompanion-configuration-mcp| in CodeCompanion
+expose their own set of tools that you can use in the chat buffer. Once a
+server has been started, the tools will be available to you and appear in the
+completion menu, by typing `@`. They are prefixed with `mcp:`.
+
+
 SECURITY ~
 
 CodeCompanion takes security very seriously, especially in a world of agentic
@@ -4081,6 +4105,15 @@ image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 The `rules` slash command allows you to add
 |codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
+
+
+/MCP ~
+
+The `mcp` slash command allows you to start and stop
+|codecompanion-configuration-mcp| servers manually from within a chat buffer.
+This is applied at a global level, so starting/stopping servers in one chat
+buffer will affect all other chat buffers. A `snacks.nvim` and `vim.ui.select`
+provider is available for selecting which MCP servers to start/stop.
 
 
 /MODE ~
