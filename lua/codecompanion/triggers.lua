@@ -9,11 +9,6 @@ M.mappings = {
   variables = config.opts.triggers.variables,
 }
 
-M.chars = {
-  config.opts.triggers.acp_slash_commands,
-  config.opts.triggers.slash_commands,
-  config.opts.triggers.tools,
-  config.opts.triggers.variables,
-}
+M.chars = vim.tbl_values(M.mappings)
 
 return M
