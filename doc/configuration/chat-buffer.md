@@ -45,6 +45,8 @@ require("codecompanion").setup({
 })
 ```
 
+### Prefixes
+
 You can also customize the prefixes that trigger completions for [slash commands](/usage/chat-buffer/slash-commands), [tools](/usage/chat-buffer/tools) and [variables](/usage/chat-buffer/variables):
 
 ```lua

@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 01
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 02
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1614,6 +1614,9 @@ You can override this with:
       }
     })
 <
+
+
+PREFIXES
 
 You can also customize the prefixes that trigger completions for
 |codecompanion-usage-chat-buffer-slash-commands|,
