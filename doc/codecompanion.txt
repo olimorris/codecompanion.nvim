@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 01
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 02
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1197,7 +1197,7 @@ SETUP: KIMI CLI ~
 
 Install Kimi CLI
 <https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation> as per
-their instructions. Then in the CLI, run `kimi` followed by `/setup` to
+their instructions. Then in the CLI, run `kimi` followed by `/login` to
 configure your API key. Then ensure that in your chat buffer you select the
 `kimi_cli` adapter.
 
