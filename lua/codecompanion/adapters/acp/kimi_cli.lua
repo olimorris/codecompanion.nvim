@@ -39,8 +39,8 @@ return {
       return true
     end,
 
-    -- Kimi CLI is already authenticated through CLI /login(setup)
-    -- Returning true skips ACP authentication
+    ---Kimi CLI is already authenticated through CLI /login(setup)
+    ---Returning true skips ACP authentication
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     auth = function(self)
