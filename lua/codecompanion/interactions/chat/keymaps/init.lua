@@ -13,13 +13,12 @@ local M = {}
 local _cached_options = {}
 M.options = {
   callback = function()
-    local float_opts = {
-      filetype = "codecompanion",
+    local float_opts = vim.tbl_extend("force", config.display.chat.floating_window, {
+      ft = "codecompanion",
       lock = true,
       style = "minimal",
       title = "Options",
-      window = config.display.chat.window,
-    }
+    })
 
     if next(_cached_options) ~= nil then
       return ui_utils.create_float(_cached_options, float_opts)
@@ -638,13 +637,6 @@ M.copilot_stats = {
       return utils.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
-  end,
-}
-
-M.super_diff = {
-  desc = "Show super diff buffer",
-  callback = function(chat)
-    require("codecompanion.interactions.chat.super_diff").show_super_diff(chat)
   end,
 }
 

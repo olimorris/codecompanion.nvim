@@ -13,22 +13,6 @@ local configs = {
   fzf_lua = { module = "fzf-lua", name = "fzf_lua" },
   snacks = { module = "snacks", name = "snacks" },
 
-  -- Diffs
-  inline = {
-    module = "codecompanion.providers.diff.inline", -- Internal module path
-    name = "inline",
-    -- No condition needed - always available since it's internal
-  },
-  mini_diff = {
-    module = "mini.diff",
-    name = "mini_diff",
-    condition = function()
-      -- MiniDiff only works correctly if initialized,
-      -- which sets the global variable
-      return _G.MiniDiff ~= nil
-    end,
-  },
-
   -- Completion
   blink = { module = "blink.cmp", name = "blink" },
   cmp = {
@@ -82,13 +66,6 @@ local function action_palette_providers()
   return find_provider(providers, configs, "default")
 end
 
----Get the default Diff provider
----@return string
-local function diff_providers()
-  local providers = { "inline", "split", "mini_diff" }
-  return find_provider(providers, configs, "inline")
-end
-
 ---Get the default Completion provider
 ---@return string
 local function completion_providers()
@@ -121,7 +98,6 @@ end
 return {
   action_palette = action_palette_providers(),
   completion = completion_providers(),
-  diff = diff_providers(),
   help = help_providers(),
   images = image_providers(),
   pickers = pick_providers(),

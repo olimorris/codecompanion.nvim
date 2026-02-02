@@ -23,6 +23,41 @@
 
 ---@alias ACP.availableCommands ACP.AvailableCommand[]
 
+---@meta Model Context Protocol
+
+---@class MCP.JSONRPCRequest
+---@field jsonrpc "2.0"
+---@field id integer | string
+---@field method string
+---@field params table<string, any>?
+
+---@class MCP.JSONRPCResultResponse
+---@field jsonrpc "2.0"
+---@field id integer | string
+---@field result table<string, any>?
+
+---@class MCP.JSONRPCErrorResponse
+---@field jsonrpc "2.0"
+---@field id integer | string
+---@field error { code: integer, message: string, data: any? }
+
+---@class MCP.Tool
+---@field name string
+---@field inputSchema table
+---@field description? string
+---@field title? string
+---@field execution? table
+
+---@class MCP.TextContent
+---@field type "text"
+---@field text string
+
+---@alias MCP.ContentBlock MCP.TextContent|any
+
+---@class MCP.CallToolResult
+---@field isError? boolean
+---@field content MCP.ContentBlock[]
+
 ---@meta Tree-sitter
 
 ---@class vim.treesitter.LanguageTree

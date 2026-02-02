@@ -155,6 +155,17 @@ function Debug:render()
     table.insert(lines, '-- Following Buffer: "' .. bufname .. '" (' .. _G.codecompanion_current_context .. ")")
   end
 
+  -- Add MCP status
+  local mcp_status = require("codecompanion.mcp").get_status()
+  if vim.tbl_count(mcp_status) > 0 then
+    table.insert(lines, "")
+    table.insert(lines, "-- MCP Servers:")
+    for server, status in pairs(mcp_status) do
+      local is_ready = status.ready and " " or "○ "
+      table.insert(lines, string.format("-- %s%s (tools: %d)", is_ready, server, status.tool_count))
+    end
+  end
+
   -- Add settings
   if not config.display.chat.show_settings and adapter.type ~= "acp" then
     table.insert(lines, "")
@@ -290,15 +301,14 @@ function Debug:render()
     })
     :set()
 
-  local window_config = config.display.chat.floating_window
-
-  ui_utils.create_float(lines, {
-    bufnr = self.bufnr,
-    filetype = "lua",
-    opts = window_config.opts,
-    title = "Debug Chat",
-    window = window_config,
-  })
+  ui_utils.create_float(
+    lines,
+    vim.tbl_extend("force", config.display.chat.floating_window, {
+      bufnr = self.bufnr,
+      ft = "lua",
+      title = "Debug Chat",
+    })
+  )
 
   self:setup_window()
 

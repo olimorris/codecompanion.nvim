@@ -18,7 +18,6 @@
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field create_buf fun(): number The function that creates a new buffer for the chat
----@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
@@ -61,7 +60,6 @@
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local images_utils = require("codecompanion.utils.images")
@@ -528,6 +526,10 @@ function Chat.new(args)
 
   self:update_metadata()
 
+  if config.mcp.enabled then
+    require("codecompanion.mcp").start_servers()
+  end
+
   -- Likely this hasn't been set by the time the user opens the chat buffer
   if not _G.codecompanion_current_context then
     _G.codecompanion_current_context = self.buffer_context.bufnr
@@ -955,7 +957,7 @@ end
 
 ---Add an image to the chat buffer
 ---@param image CodeCompanion.Image The image object containing the path and other metadata
----@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@param opts? {role?: "user"|string, source?: string, bufnr?: number} Options for adding the image
 ---@return nil
 function Chat:add_image_message(image, opts)
   opts = vim.tbl_deep_extend("force", {
@@ -1454,6 +1456,10 @@ function Chat:stop()
     end)
   end
 
+  pcall(function()
+    require("codecompanion.mcp").cancel_requests(self.id)
+  end)
+
   if self.current_request then
     local handle = self.current_request
     self.current_request = nil
@@ -1481,9 +1487,6 @@ function Chat:close()
   end
 
   self:dispatch("on_closed")
-
-  edit_tracker.handle_chat_close(self)
-  edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
