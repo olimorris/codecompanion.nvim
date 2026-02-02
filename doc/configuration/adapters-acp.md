@@ -270,7 +270,7 @@ To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've f
 
 ## Setup: Kimi CLI
 
-Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/setup` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
+Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/login` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
 
 ## Setup: OpenCode
 
