@@ -15,7 +15,7 @@ return {
   commands = {
     default = {
       "kimi",
-      "--acp",
+      "acp",
     },
   },
   defaults = {
@@ -36,6 +36,14 @@ return {
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     setup = function(self)
+      return true
+    end,
+
+    ---Kimi CLI is already authenticated through CLI /login(setup)
+    ---Returning true skips ACP authentication
+    ---@param self CodeCompanion.ACPAdapter
+    ---@return boolean
+    auth = function(self)
       return true
     end,
 
