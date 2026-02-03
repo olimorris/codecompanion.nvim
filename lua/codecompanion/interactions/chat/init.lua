@@ -187,17 +187,22 @@ local function get_client(adapter)
   end
 end
 
----Find a message in the table that has a specific tool call ID
+---Find the index of the parent tool call message that contains a specific tool call ID
 ---@param id string
 ---@param messages CodeCompanion.Chat.Messages
----@return table|nil
-local function find_tool_call(id, messages)
-  for _, msg in ipairs(messages) do
-    if msg.tools and msg.tools.call_id and msg.tools.call_id == id then
-      return msg
+---@return number|nil parent_index The index of the parent tool call message
+---@return number|nil call_position The position of this tool call within tools.calls (1-based)
+local function find_tool_call_index(id, messages)
+  for i, msg in ipairs(messages) do
+    if msg.tools and msg.tools.calls then
+      for j, call in ipairs(msg.tools.calls) do
+        if call.id == id then
+          return i, j
+        end
+      end
     end
   end
-  return nil
+  return nil, nil
 end
 
 ---Increment the cycle count in the chat buffer
@@ -1561,16 +1566,36 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     visible = true,
   })
 
-  -- Ensure that tool output is merged if it has the same tool call ID
-  local existing = find_tool_call(tool_call.id, self.messages)
-  if existing then
-    if existing.content ~= "" then
-      existing.content = existing.content .. "\n\n" .. output.content
-    else
-      existing.content = output.content
-    end
-  else
+  -- Find the parent tool call message and insert result right after it
+  -- call_position ensures correct ordering when multiple tool calls exist in same message
+  local parent_index, call_position = find_tool_call_index(tool_call.id, self.messages)
+  if not parent_index then
+    -- Fallback: append to end if parent not found (e.g., direct execute calls in tests)
+    log:warn("Could not find parent tool call for ID: %s, appending to end", tool_call.id)
     table.insert(self.messages, output)
+  else
+    -- Calculate insert position, clamping to valid range to avoid sparse arrays
+    local insert_index = math.min(parent_index + call_position, #self.messages + 1)
+
+    -- Search from after parent to insert position for existing tool result to merge with
+    local existing_msg = nil
+    for i = parent_index + 1, insert_index do
+      local msg = self.messages[i]
+      if msg and msg.tools and msg.tools.call_id == tool_call.id then
+        existing_msg = msg
+        break
+      end
+    end
+
+    if existing_msg then
+      if existing_msg.content ~= "" then
+        existing_msg.content = existing_msg.content .. "\n\n" .. output.content
+      else
+        existing_msg.content = output.content
+      end
+    else
+      table.insert(self.messages, insert_index, output)
+    end
   end
 
   -- Allow tools to pass in an empty string to not write any output to the buffer
