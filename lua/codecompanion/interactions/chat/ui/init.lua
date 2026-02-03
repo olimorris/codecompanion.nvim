@@ -203,7 +203,7 @@ function UI:open(opts)
   if self.window_opts then
     window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts)
   else
-    window = config.display.chat.window
+    window = vim.deepcopy(config.display.chat.window)
   end
 
   local function cols()
