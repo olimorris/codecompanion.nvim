@@ -8,18 +8,18 @@ local buf_utils = require("codecompanion.utils.buffers")
 
 local api = vim.api
 
-local _vars_aug = nil
-local _vars_cache = nil
-local _vars_cache_valid = false
+local _ec_aug = nil
+local _ec_cache = nil
+local _ec_cache_valid = false
 
----Setup the variable cache
+---Setup the editor context cache
 ---@return nil
-local function _vars_cache_setup()
-  if _vars_aug then
+local function _ec_cache_setup()
+  if _ec_aug then
     return
   end
 
-  _vars_aug = api.nvim_create_augroup("codecompanion.chat.variables", { clear = true })
+  _ec_aug = api.nvim_create_augroup("codecompanion.chat.editor_context", { clear = true })
 
   -- Keep track of the current buffer state across Neovim
   api.nvim_create_autocmd({
@@ -30,9 +30,9 @@ local function _vars_cache_setup()
     "BufNewFile",
     "BufReadPost",
   }, {
-    group = _vars_aug,
+    group = _ec_aug,
     callback = function()
-      _vars_cache_valid = false
+      _ec_cache_valid = false
     end,
   })
 end
@@ -287,22 +287,22 @@ function M.tools()
   return items
 end
 
----Return the variables to be used for completion
+---Return the editor context to be used for completion
 ---@return table
-function M.variables()
-  _vars_cache_setup()
-  if _vars_cache and _vars_cache_valid then
-    return _vars_cache
+function M.editor_context()
+  _ec_cache_setup()
+  if _ec_cache and _ec_cache_valid then
+    return _ec_cache
   end
 
-  local config_vars = config.interactions.chat.variables
-  local variables = vim
-    .iter(config_vars)
+  local ec_config = config.interactions.chat.editor_context
+  local editor_context = vim
+    .iter(ec_config)
     :map(function(label, data)
       return {
-        label = triggers.mappings.variables .. label,
+        label = triggers.mappings.editor_context .. label,
         detail = data.description,
-        type = "variable",
+        type = "editor_context",
       }
     end)
     :totable()
@@ -325,17 +325,17 @@ function M.variables()
       end
 
       return {
-        label = triggers.mappings.variables .. "buffer:" .. name,
+        label = triggers.mappings.editor_context .. "buffer:" .. name,
         detail = "Path: " .. buf.relative_path .. "\nBuffer: " .. buf.bufnr,
-        type = "variable",
+        type = "editor_context",
       }
     end)
     :totable()
 
-  _vars_cache = vim.list_extend(variables, buffers)
-  _vars_cache_valid = true
+  _ec_cache = vim.list_extend(editor_context, buffers)
+  _ec_cache_valid = true
 
-  return _vars_cache
+  return _ec_cache
 end
 
 return M

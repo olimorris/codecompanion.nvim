@@ -93,13 +93,13 @@ M.options = {
     -- Workout the column spacing
     local keymaps_max = max("description", keymaps)
 
-    local vars = {}
-    vim.iter(config.interactions.chat.variables):each(function(key, val)
+    local ec = {}
+    vim.iter(config.interactions.chat.editor_context):each(function(key, val)
       if not val.hide_in_help_window then
-        vars[key] = val
+        ec[key] = val
       end
     end)
-    local vars_max = max("key", vars)
+    local vars_max = max("key", ec)
 
     local tools = {}
     -- Add tools
@@ -168,13 +168,16 @@ M.options = {
       ::continue::
     end
 
-    -- Variables
+    -- Editor Context
     table.insert(lines, "")
-    table.insert(lines, "### Variables")
+    table.insert(lines, "### Editor Context")
 
-    for key, val in sorted_pairs(vars) do
+    for key, val in sorted_pairs(ec) do
       local desc = clean_and_truncate(val.description)
-      table.insert(lines, indent .. pad("#{" .. key .. "}", max_length, 4) .. " " .. desc)
+      table.insert(
+        lines,
+        indent .. pad(string.format("%s{%s}", triggers.mappings.editor_context, key), max_length, 4) .. " " .. desc
+      )
     end
 
     -- Tools
@@ -184,7 +187,10 @@ M.options = {
     for key, val in sorted_pairs(tools) do
       if key ~= "opts" then
         local desc = clean_and_truncate(val.description)
-        table.insert(lines, indent .. pad("@{" .. key .. "}", max_length, 4) .. " " .. desc)
+        table.insert(
+          lines,
+          indent .. pad(string.format("%s{%s}", triggers.mappings.tools, key), max_length, 4) .. " " .. desc
+        )
       end
     end
 
@@ -200,7 +206,7 @@ M.completion = {
       async.run(function()
         local slash_cmds = completion.slash_commands()
         local tools = completion.tools()
-        local vars = completion.variables()
+        local ec = completion.editor_context()
 
         local items = {}
 
@@ -210,8 +216,8 @@ M.completion = {
         if type(tools[1]) == "table" then
           vim.list_extend(items, tools)
         end
-        if type(vars[1]) == "table" then
-          vim.list_extend(items, vars)
+        if type(ec[1]) == "table" then
+          vim.list_extend(items, ec)
         end
 
         -- Process each item to match the completion format

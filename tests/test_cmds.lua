@@ -170,7 +170,7 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     return vim.fn.synIDattr(id, 'name')
   ]])
 
-  h.eq(hl, "CodeCompanionChatVariable")
+  h.eq(hl, "CodeCompanionChatEditorContext")
 end
 
 return T

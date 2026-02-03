@@ -127,16 +127,16 @@
 ---@field context table The context of the chat buffer from the completion menu
 ---@field opts table The options for the slash command
 
----@class CodeCompanion.Variables
----@field vars table The variables from the config
+---@class CodeCompanion.EditorContext
+---@field editor_context table The editor context from the config
 
----@class CodeCompanion.Variable
+---@class CodeCompanion.EditorContext
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
 ---@field params string Any additional parameters for the variable
 
----@class CodeCompanion.VariableArgs
+---@class CodeCompanion.EditorContextArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable

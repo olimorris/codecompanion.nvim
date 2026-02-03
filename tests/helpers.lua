@@ -211,7 +211,7 @@ end
 ---Setup and mock a chat buffer
 ---@param config? table
 ---@param adapter? table
----@return CodeCompanion.Chat, CodeCompanion.Tools, CodeCompanion.Variables
+---@return CodeCompanion.Chat, CodeCompanion.Tools, CodeCompanion.EditorContext
 Helpers.setup_chat_buffer = function(config, adapter)
   local test_config = vim.deepcopy(require("tests.config"))
   local config_module = mock_config()
@@ -228,12 +228,12 @@ Helpers.setup_chat_buffer = function(config, adapter)
   })
   chat.vars = {
     foo = {
-      callback = "spec.codecompanion.interactions.chat.variables.foo",
+      callback = "spec.codecompanion.interactions.chat.editor_context.foo",
       description = "foo",
     },
   }
   local tools = require("codecompanion.interactions.chat.tools").new({ bufnr = 1 })
-  local vars = require("codecompanion.interactions.chat.variables").new()
+  local vars = require("codecompanion.interactions.chat.editor_context").new()
 
   return chat, tools, vars
 end

@@ -1,6 +1,6 @@
 local Screenshot = {}
 
----@param args CodeCompanion.Variable
+---@param args CodeCompanion.EditorContext
 function Screenshot.new(args)
   local self = setmetatable({
     Chat = args.Chat,
@@ -16,8 +16,8 @@ end
 function Screenshot:output()
   self.Chat:add_message({
     role = "user",
-    content = "Resolved screenshot variable",
-  }, { _meta = { tag = "variable" }, visible = false })
+    content = "Resolved screenshot editor context",
+  }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
 return Screenshot

@@ -366,7 +366,7 @@ T["Context"]["Correctly removes tool schema and usage flag on context deletion"]
      _G.chat:add_message(message) -- Add to message history
 
      -- Simulate the pre-submit processing that adds tools to the chat buffer
-     _G.chat:replace_vars_and_tools(message) -- This calls tools:parse -> tools:add
+     _G.chat:replace_user_inputs(message) -- This calls tools:parse -> tools:add
      _G.chat:check_context() -- Sync the context table initially
    ]])
 
@@ -472,7 +472,7 @@ T["Context"]["Tool group with collapse_tools shows single group context"] = func
   child.lua([[
      local message = { role = "user", content = "@{test_group} help" }
      _G.chat:add_message(message)
-     _G.chat:replace_vars_and_tools(message)
+     _G.chat:replace_user_inputs(message)
    ]])
 
   local context_in_chat = child.lua_get([[_G.chat.context:get_from_chat()]])
@@ -498,7 +498,7 @@ T["Context"]["Tool group without collapse_tools shows individual tools"] = funct
   child.lua([[
      local message = { role = "user", content = "@{test_group2} help" }
      _G.chat:add_message(message)
-     _G.chat:replace_vars_and_tools(message)
+     _G.chat:replace_user_inputs(message)
    ]])
 
   local context_in_chat = child.lua_get([[_G.chat.context:get_from_chat()]])
@@ -524,7 +524,7 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   child.lua([[
      local message = { role = "user", content = "@{remove_group} help" }
      _G.chat:add_message(message)
-     _G.chat:replace_vars_and_tools(message)
+     _G.chat:replace_user_inputs(message)
    ]])
 
   -- Verify initial state
