@@ -1,6 +1,8 @@
 local async = require("plenary.async")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
+
 local ts = require("codecompanion.utils.treesitter")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -217,9 +219,9 @@ M.completion = {
           if item.label then
             -- Add bracket wrapping for variables and tools like cmp/blink do
             if item.type == "variable" then
-              item.word = string.format("#{%s}", item.label:sub(2))
+              item.word = string.format("%s{%s}", triggers.mappings.variables, item.label:sub(2))
             elseif item.type == "tool" then
-              item.word = string.format("@{%s}", item.label:sub(2))
+              item.word = string.format("%s{%s}", triggers.mappings.tools, item.label:sub(2))
             else
               item.word = item.label
             end

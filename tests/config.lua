@@ -497,5 +497,12 @@ return {
       warning = " ",
     },
   },
-  opts = {},
+  opts = {
+    triggers = {
+      acp_slash_commands = "\\",
+      slash_commands = "/",
+      tools = "@",
+      variables = "#",
+    },
+  },
 }

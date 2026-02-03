@@ -1,5 +1,6 @@
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
 
 local api = vim.api
 
@@ -15,19 +16,18 @@ function M.omnifunc(findstart, base)
     local line = api.nvim_get_current_line()
     local col = api.nvim_win_get_cursor(0)[2]
 
-    -- Look for trigger characters (#, @, /, \) at the start of a word
+    -- Look for trigger characters at the start of a word
     local before_cursor = line:sub(1, col)
 
     -- Build patterns including ACP command trigger if enabled
     local patterns = {
-      "#[%w_]*$", -- Variables: #buffer, #lsp, etc.
-      "@[%w_]*$", -- Tools: @tool_name, etc.
-      "/[%w_]*$", -- Slash commands: /buffer, /help, etc.
+      triggers.mappings.slash_commands .. "[%w_]*$", -- Slash commands: /buffer, /help, etc.
+      triggers.mappings.tools .. "[%w_]*$", -- Tools: @tool_name, etc.
+      triggers.mappings.variables .. "[%w_]*$", -- Variables: #buffer, #lsp, etc.
     }
 
     if config.interactions.chat.slash_commands.opts.acp.enabled then
-      local trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
-      local escaped = vim.pesc(trigger)
+      local escaped = vim.pesc(triggers.mappings.acp_slash_commands)
       table.insert(patterns, escaped .. "[%w_]*$") -- ACP commands
     end
 
@@ -43,10 +43,9 @@ function M.omnifunc(findstart, base)
   else
     -- Determine what type of completion based on the trigger character
     local trigger_char = base:sub(1, 1)
-    local acp_trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
     local items = {}
 
-    if trigger_char == acp_trigger then
+    if trigger_char == triggers.mappings.acp_slash_commands then
       -- ACP commands completion
       local acp_cmds = completion.acp_commands(api.nvim_get_current_buf())
       for _, item in ipairs(acp_cmds) do
@@ -62,31 +61,31 @@ function M.omnifunc(findstart, base)
           },
         })
       end
-    elseif trigger_char == "#" then
+    elseif trigger_char == triggers.mappings.variables then
       -- Variables completion
       local vars = completion.variables()
       for _, item in ipairs(vars) do
         table.insert(items, {
-          word = string.format("#{%s}", item.label:sub(2)),
+          word = string.format("%s{%s}", triggers.mappings.variables, item.label:sub(2)),
           abbr = item.label:sub(2),
           menu = item.detail or item.description,
           kind = "v", -- variable
           icase = 1,
         })
       end
-    elseif trigger_char == "@" then
+    elseif trigger_char == triggers.mappings.tools then
       -- Tools completion
       local tools = completion.tools()
       for _, item in ipairs(tools) do
         table.insert(items, {
-          word = string.format("@{%s}", item.label:sub(2)),
+          word = string.format("%s{%s}", triggers.mappings.tools, item.label:sub(2)),
           abbr = item.label:sub(2),
           menu = item.detail or item.description,
           kind = "f", -- function/tool
           icase = 1,
         })
       end
-    elseif trigger_char == "/" then
+    elseif trigger_char == triggers.mappings.slash_commands then
       -- Slash commands completion
       local slash_cmds = completion.slash_commands()
       for _, item in ipairs(slash_cmds) do

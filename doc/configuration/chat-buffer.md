@@ -27,6 +27,41 @@ require("codecompanion").setup({
 
 See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/adapters-http) for more information.
 
+## Completion
+
+By default, CodeCompanion will determine if you have one of [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), or [coc.nvim](https://github.com/neoclide/coc.nvim) installed, selecting it as the default provider. Failing this, the default completion engine will be used.
+
+You can override this with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        completion_provider = "blink", -- blink|cmp|coc|default
+      }
+    }
+  }
+})
+```
+
+### Prefixes
+
+You can also customize the prefixes that trigger completions for [slash commands](/usage/chat-buffer/slash-commands), [tools](/usage/chat-buffer/tools) and [variables](/usage/chat-buffer/variables):
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    triggers = {
+      acp_slash_commands = "\\",
+      slash_commands = "/",
+      tools = "@",
+      variables = "#",
+    },
+  },
+})
+```
+
 ## Diff
 
 <img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
@@ -193,7 +228,7 @@ The decorator function also has access to the adapter in the chat buffer alongsi
 > [!IMPORTANT]
 > Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
-[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
+[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/` by default) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
 The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for information on how to use Slash Commands.
 
@@ -287,7 +322,7 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 ## Tools
 
-[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
+[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` (by default), when in the chat buffer:
 
 ```lua
 require("codecompanion").setup({
@@ -676,7 +711,7 @@ require("codecompanion").setup({
 
 ## Variables
 
-[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#`). They provide contextual code or information about the current Neovim state. For instance, the built-in `#buffer` variable sends the current buffer’s contents to the LLM.
+[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#` by default). They provide contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` variable sends the current buffer’s contents to the LLM.
 
 You can even define your own variables to share specific content:
 

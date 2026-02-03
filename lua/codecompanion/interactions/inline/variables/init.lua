@@ -13,9 +13,10 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
+local triggers = require("codecompanion.triggers")
 
 local CONSTANTS = {
-  PREFIX = "#",
+  PREFIX = triggers.mappings.variables,
 }
 
 ---@class CodeCompanion.Inline.Variable

@@ -8,6 +8,7 @@
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
 
 local _cached_adapters = nil
 
@@ -40,7 +41,7 @@ return {
     cmd = "CodeCompanion",
     callback = function(opts)
       -- Detect the user calling a prompt from the prompt library
-      if opts.fargs[1] and string.sub(opts.fargs[1], 1, 1) == "/" then
+      if opts.fargs[1] and string.sub(opts.fargs[1], 1, 1) == triggers.mappings.slash_commands then
         -- Get the prompt minus the slash
         local prompt = string.sub(opts.fargs[1], 2)
 
@@ -103,13 +104,13 @@ return {
 
         -- Add prompt library items
         vim.iter(prompt_aliases):each(function(k)
-          table.insert(completions, "/" .. k)
+          table.insert(completions, triggers.mappings.slash_commands .. k)
         end)
 
         -- Add inline variables
         for key, _ in pairs(config.interactions.inline.variables) do
           if key ~= "opts" then
-            table.insert(completions, "#{" .. key .. "}")
+            table.insert(completions, string.format("%s{" .. key .. "}", triggers.mappings.variables))
           end
         end
 
