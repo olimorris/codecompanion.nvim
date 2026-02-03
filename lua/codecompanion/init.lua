@@ -4,6 +4,8 @@ local log = require("codecompanion.utils.log")
 
 local api = vim.api
 
+local _version
+
 -- Lazy load context_utils
 local context_utils
 local function get_context(bufnr, args)
@@ -342,11 +344,37 @@ CodeCompanion.has = function(feature)
   return features
 end
 
+---Output the plugin version
+---@return string|nil
+CodeCompanion.version = function()
+  if _version then
+    return _version
+  end
+
+  local ok, version = pcall(function()
+    return require("codecompanion.utils.files")
+      .read(
+        vim.fs.joinpath(
+          string.sub(debug.getinfo(1).source, 2, string.len("/lua/codecompanion/init.lua") * -1),
+          "version.txt"
+        )
+      )
+      :gsub("%s+", "")
+  end)
+
+  if ok then
+    _version = version
+    return _version
+  end
+
+  return nil
+end
+
 ---Handle adapter configuration merging
 ---@param adapter_type string
 ---@param opts table
 ---@return nil
-local function handle_adapter_config(adapter_type, opts)
+local function adapter_config(adapter_type, opts)
   if opts and opts.adapters and opts.adapters[adapter_type] then
     if config.adapters[adapter_type].opts.show_presets then
       local adapters_util = require("codecompanion.utils.adapters")
@@ -367,8 +395,8 @@ CodeCompanion.setup = function(opts)
   -- Setup the plugin's config
   config.setup(opts)
 
-  handle_adapter_config("acp", opts)
-  handle_adapter_config("http", opts)
+  adapter_config("acp", opts)
+  adapter_config("http", opts)
 
   local cmds = require("codecompanion.commands")
   for _, cmd in ipairs(cmds) do
