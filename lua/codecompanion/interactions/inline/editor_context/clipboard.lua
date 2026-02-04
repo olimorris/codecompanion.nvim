@@ -1,7 +1,7 @@
----@class CodeCompanion.Inline.Variables.ClipBoard: CodeCompanion.Inline.Variables
+---@class CodeCompanion.Inline.EditorContext.ClipBoard: CodeCompanion.Inline.EditorContextItems
 local ClipBoard = {}
 
----@param args CodeCompanion.Inline.VariablesArgs
+---@param args CodeCompanion.Inline.EditorContextArgs
 function ClipBoard.new(args)
   return setmetatable({
     context = args.context,

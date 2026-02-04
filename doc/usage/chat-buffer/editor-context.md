@@ -1,27 +1,27 @@
 ---
-description: Learn how variables can add context to the chat buffer in CodeCompanion
+description: Learn how to add context related to buffers and data in your editor, to the chat buffer
 ---
 
-# Using Variables
+# Using Editor Context
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" />
 </p>
 
-Variables allow you to dynamically insert Neovim context into your chat messages using the `#{variable_name}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available variables through code completion, or type them manually.
+Editor context allows you to dynamically insert Neovim context into your chat messages using the `#{variable_name}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available editor context through code completion, or type them manually.
 
-Custom variables can be shared in the chat buffer by adding them to the `interactions.chat.variables` table in your configuration.
+Custom editor context can be shared in the chat buffer by adding them to the `interactions.chat.editor_context` table in your configuration.
 
 ## Basic Usage
 
-Variables use the `#{variable_name}` syntax to dynamically insert content into your chat. For example `#{buffer}`. Variables are processed when you send your message to the LLM.
+Editor context uses the `#{variable_name}` syntax to dynamically insert content into your chat. For example `#{buffer}`. Editor context is processed when you send your message to the LLM.
 
 ## #buffer
 
 > [!IMPORTANT]
 > By default, CodeCompanion automatically applies the `{diff}` parameter to all buffers
 
-The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared, or _synced_, with the LLM, on each turn:
+The `#{buffer}` editor context shares buffer contents with the LLM. It has two special parameters which control how content is shared, or _synced_, with the LLM, on each turn:
 
 ### Basic Usage
 
@@ -59,9 +59,9 @@ Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differe
 > The [Action Palette](/usage/action-palette) has a pre-built prompt which asks an LLM to explain LSP diagnostics in a
 > visual selection
 
-The _lsp_ variable shares any information from the LSP servers that active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
+The _lsp_ editor context shares any information from the LSP servers that active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
 
 ## #viewport
 
-The _viewport_ variable shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
+The _viewport_ editor context shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
 

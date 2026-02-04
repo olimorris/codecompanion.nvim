@@ -27,7 +27,7 @@ api.nvim_set_hl(0, "CodeCompanionChatToolPending", { link = "DiagnosticWarn", de
 api.nvim_set_hl(0, "CodeCompanionChatToolPendingIcon", { link = "DiagnosticWarn", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatEditorContext", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffAdd", { link = "DiffAdd", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffDelete", { link = "DiffDelete", default = true })
@@ -57,11 +57,13 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   -- As tools can now be created from outside of the config, apply a general pattern
   vim.cmd.syntax('match CodeCompanionChatTool "' .. triggers.mappings.tools .. '{[^}]*}"')
 
-  vim.iter(config.interactions.chat.variables):each(function(name)
-    vim.cmd.syntax('match CodeCompanionChatVariable "' .. triggers.mappings.variables .. "{" .. name .. '}"')
-    vim.cmd.syntax('match CodeCompanionChatVariable "' .. triggers.mappings.variables .. "{" .. name .. ':[^}]*}"')
+  vim.iter(config.interactions.chat.editor_context):each(function(name)
+    vim.cmd.syntax('match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. '}"')
     vim.cmd.syntax(
-      'match CodeCompanionChatVariable "' .. triggers.mappings.variables .. "{" .. name .. ':[^}]*}{[^}]*}"'
+      'match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. ':[^}]*}"'
+    )
+    vim.cmd.syntax(
+      'match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. ':[^}]*}{[^}]*}"'
     )
   end)
 end)
@@ -104,7 +106,7 @@ api.nvim_create_autocmd("BufEnter", {
 
     local config = require("codecompanion.config")
 
-    local buffer_config = config.interactions.chat.variables.buffer.opts
+    local buffer_config = config.interactions.chat.editor_context.buffer.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
     local excluded_buftypes = excluded.buftypes or {}

@@ -77,19 +77,19 @@ require("codecompanion").setup({
 })
 ```
 
-## Variables
+## Editor Context
 
-The plugin comes with a number of [variables](/usage/inline-assistant.html#variables) that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_var}`). You can also add your own:
+The plugin comes with a number of [editor context](/usage/inline-assistant.html#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     inline = {
-      variables = {
-        ["my_new_var"] = {
+      editor_context = {
+        ["my_new_context_item"] = {
           ---@return string
-          callback = "/Users/Oli/Code/my_var.lua",
-          description = "My shiny new variable",
+          callback = "/Users/Oli/Code/my_context_item.lua",
+          description = "My shiny new context item",
           opts = {
             contains_code = true,
           },

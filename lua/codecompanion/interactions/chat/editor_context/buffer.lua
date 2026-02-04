@@ -8,17 +8,17 @@ local reserved_params = {
   "diff",
 }
 
----@class CodeCompanion.Variable.Buffer: CodeCompanion.Variable
-local Variable = {}
+---@class CodeCompanion.EditorContext.Buffer: CodeCompanion.EditorContext
+local EditorContext = {}
 
----@param args CodeCompanion.VariableArgs
-function Variable.new(args)
+---@param args CodeCompanion.EditorContextArgs
+function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
     config = args.config,
     params = args.params,
     target = args.target,
-  }, { __index = Variable })
+  }, { __index = EditorContext })
 
   return self
 end
@@ -26,19 +26,16 @@ end
 ---Find buffer by display option (filename, relative path, etc.) - Static version
 ---@param target string
 ---@return number|nil
-function Variable._find_buffer(target)
+function EditorContext._find_buffer(target)
   local open_buffers = buf_utils.get_open()
 
   for _, buf_info in ipairs(open_buffers) do
-    -- Check exact filename match
     if buf_info.name == target then
       return buf_info.bufnr
     end
-    -- Check relative path match
     if buf_info.relative_path == target then
       return buf_info.bufnr
     end
-    -- Check short path match
     if buf_info.short_path == target then
       return buf_info.bufnr
     end
@@ -51,15 +48,15 @@ end
 ---Find buffer by display option (filename, relative path, etc.) - Instance method
 ---@param target string
 ---@return number|nil
-function Variable:find_buffer(target)
-  return Variable._find_buffer(target)
+function EditorContext:find_buffer(target)
+  return EditorContext._find_buffer(target)
 end
 
 ---Add the contents of the current buffer to the chat
 ---@param selected table
 ---@param opts? table
 ---@return nil
-function Variable:output(selected, opts)
+function EditorContext:output(selected, opts)
   selected = selected or {}
   opts = opts or {}
 
@@ -77,7 +74,7 @@ function Variable:output(selected, opts)
   end
 
   if params and not vim.tbl_contains(reserved_params, params) then
-    return log:warn("Invalid parameter for buffer variable: %s", params)
+    return log:warn("Invalid parameter for buffer editor context: %s", params)
   end
 
   local message = "User's current visible code in a file (including line numbers). This should be the main focus"
@@ -94,7 +91,7 @@ function Variable:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { _meta = { tag = "variable" }, context = { id = id }, visible = false })
+  }, { _meta = { tag = "editor_context" }, context = { id = id }, visible = false })
 
   if opts.sync_all then
     return
@@ -108,22 +105,22 @@ function Variable:output(selected, opts)
       sync_all = (params and params == "all"),
       sync_diff = (params and params == "diff"),
     },
-    source = "codecompanion.interactions.chat.variables.buffer",
+    source = "codecompanion.interactions.chat.editor_context.buffer",
   })
 end
 
----Replace the variable in the message
+---Replace the editor context in the message
 ---@param prefix string
 ---@param message string
 ---@param bufnr number
 ---@return string
-function Variable.replace(prefix, message, bufnr)
+function EditorContext.replace(prefix, message, bufnr)
   local result = message
 
   -- Handle #{buffer:filename}{param} - display option with parameters
   local display = prefix .. "{buffer:([^}]*)}{[^}]*}"
   result = result:gsub(display, function(target)
-    local found = Variable._find_buffer(target)
+    local found = EditorContext._find_buffer(target)
     if found then
       local bufname = buf_utils.name_from_bufnr(found)
       return "file `" .. bufname .. "` (with buffer number: " .. found .. ")"
@@ -137,7 +134,7 @@ function Variable.replace(prefix, message, bufnr)
   -- Handle #{buffer:filename} - Just display option
   local display_option_pattern = prefix .. "{buffer:([^}]*)}"
   result = result:gsub(display_option_pattern, function(target)
-    local found = Variable._find_buffer(target)
+    local found = EditorContext._find_buffer(target)
     if found then
       local bufname = buf_utils.name_from_bufnr(found)
       return "file `" .. bufname .. "` (with buffer number: " .. found .. ")"
@@ -158,4 +155,4 @@ function Variable.replace(prefix, message, bufnr)
   return result
 end
 
-return Variable
+return EditorContext

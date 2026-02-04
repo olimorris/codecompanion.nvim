@@ -1,23 +1,23 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 
----@class CodeCompanion.Variable.LSP: CodeCompanion.Variable
-local Variable = {}
+---@class CodeCompanion.EditorContext.LSP: CodeCompanion.EditorContext
+local EditorContext = {}
 
----@param args CodeCompanion.VariableArgs
-function Variable.new(args)
+---@param args CodeCompanion.EditorContextArgs
+function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
     config = args.config,
     params = args.params,
-  }, { __index = Variable })
+  }, { __index = EditorContext })
 
   return self
 end
 
 ---Return all of the LSP information and code for the current buffer
 ---@return nil
-function Variable:output()
+function EditorContext:output()
   local severity = {
     [1] = "ERROR",
     [2] = "WARNING",
@@ -68,7 +68,7 @@ Code:
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = table.concat(formatted, "\n\n"),
-  }, { _meta = { tag = "variable" }, visible = false })
+  }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
-return Variable
+return EditorContext

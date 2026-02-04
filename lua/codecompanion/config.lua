@@ -299,9 +299,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.chat.variables.buffer",
+          callback = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
@@ -323,14 +323,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["lsp"] = {
-          callback = "interactions.chat.variables.lsp",
+          callback = "interactions.chat.editor_context.lsp",
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
           },
         },
         ["viewport"] = {
-          callback = "interactions.chat.variables.viewport",
+          callback = "interactions.chat.editor_context.viewport",
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
@@ -702,23 +702,23 @@ The user is working on a %s machine. Please respond with system specific command
           modes = { n = "q" },
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.inline.variables.buffer",
+          callback = "interactions.inline.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["chat"] = {
-          callback = "interactions.inline.variables.chat",
+          callback = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["clipboard"] = {
-          callback = "interactions.inline.variables.clipboard",
+          callback = "interactions.inline.editor_context.clipboard",
           description = "Share the contents of the clipboard with the LLM",
           opts = {
             contains_code = true,
@@ -1003,13 +1003,12 @@ The user is working on a %s machine. Please respond with system specific command
 
     triggers = {
       acp_slash_commands = "\\",
+      editor_context = "#",
       slash_commands = "/",
       tools = "@",
-      variables = "#",
     },
 
-    job_start_delay = 1500, -- Delay in milliseconds between cmd tools
-    submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer
+    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
   },
 }
 

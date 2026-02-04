@@ -10,7 +10,7 @@ end
 ---Fetch and output a foo
 ---@return string
 function Foo:output()
-  return "The output from foo variable"
+  return "The output from foo editor context"
 end
 
 return Foo

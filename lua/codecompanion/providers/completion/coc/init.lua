@@ -15,7 +15,7 @@ local callbacks_cache = {}
 local function transform_complete_items(opt, complete_items)
   for _, item in ipairs(complete_items) do
     -- Populate standard Vim completion-items fields (see :h complete-items).
-    if opt.triggerCharacter == triggers.mappings.variables then
+    if opt.triggerCharacter == triggers.mappings.editor_context then
       item.word = string.format("{%s}", item.label:sub(2))
     elseif opt.triggerCharacter == triggers.mappings.tools then
       item.word = string.format("{%s}", item.label:sub(2))
@@ -72,7 +72,7 @@ local M = {}
 ---Returns coc.nvim source initialization parameters.
 ---@return table
 function M.init()
-  local trigger_chars = { triggers.mappings.slash_commands, triggers.mappings.tools, triggers.mappings.variables }
+  local trigger_chars = { triggers.mappings.slash_commands, triggers.mappings.tools, triggers.mappings.editor_context }
   if config.interactions.chat.slash_commands.opts.acp.enabled then
     table.insert(trigger_chars, triggers.mappings.acp_slash_commands)
   end
@@ -97,8 +97,8 @@ function M.complete(opt)
     complete_items = transform_complete_items(opt, completion.slash_commands())
   elseif opt.triggerCharacter == triggers.mappings.tools then
     complete_items = transform_complete_items(opt, completion.tools())
-  elseif opt.triggerCharacter == triggers.mappings.variables then
-    complete_items = transform_complete_items(opt, completion.variables())
+  elseif opt.triggerCharacter == triggers.mappings.editor_context then
+    complete_items = transform_complete_items(opt, completion.editor_context())
   else
     complete_items = {}
   end

@@ -22,7 +22,7 @@ Sometimes it can be helpful to switch between models if you're conscious of toke
 
 Conversing with an agent in CodeCompanion is done in exactly the same way as with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or `<CR>` in normal mode to send it to the agent.
 
-[Slash Commands](/usage/chat-buffer/slash-commands) and [Variables](/usage/chat-buffer/variables) are available to share additional context with the agent. However, [Tools](/usage/chat-buffer/tools) are disabled as the agent has their own tool set and the autonomy to decide what to run and when. CodeCompanion also supports an agent's own [slash commands](https://agentclientprotocol.com/protocol/slash-commands) however these are invoked with `\` instead of `/` which is reserved for CodeCompanion's built-in ones.
+[Editor Context](/usage/chat-buffer/editor-context) and [Slash Commands](/usage/chat-buffer/slash-commands) are available to share additional context with the agent. However, [Tools](/usage/chat-buffer/tools) are disabled as the agent has their own tool set and the autonomy to decide what to run and when. CodeCompanion also supports an agent's own [slash commands](https://agentclientprotocol.com/protocol/slash-commands) however these are invoked with `\` instead of `/` which is reserved for CodeCompanion's built-in ones.
 
 As outlined in the Agent Client Protocol [documentation](https://agentclientprotocol.com/protocol/initialization), there are a number of steps which take place internally before a response is received from the agent. The initialization and creating of a session inevitably lead to the first prompt waiting slightly longer to receive a response than future ones.
 

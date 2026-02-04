@@ -28,10 +28,10 @@ doc/usage/introduction.md
 doc/usage/action-palette.md
 doc/usage/chat-buffer/index.md
 doc/usage/chat-buffer/agents.md
+doc/usage/chat-buffer/editor-context.md
 doc/usage/chat-buffer/rules.md
-doc/usage/chat-buffer/tools.md
 doc/usage/chat-buffer/slash-commands.md
-doc/usage/chat-buffer/variables.md
+doc/usage/chat-buffer/tools.md
 doc/usage/events.md
 doc/usage/inline-assistant.md
 doc/usage/prompt-library.md
