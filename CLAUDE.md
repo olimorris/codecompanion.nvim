@@ -32,7 +32,7 @@ Located in `lua/codecompanion/interactions/`:
 
 **Chat Interaction** (`interactions/chat/`)
 - Primary interactive mode with buffer-based interface
-- Key components: `ui/`, `tools/`, `slash_commands/`, `memory/`, `variables/`, `edit_tracker.lua`, `parser.lua`
+- Key components: `ui/`, `tools/`, `slash_commands/`, `memory/`, `editor_context/`, `edit_tracker.lua`, `parser.lua`
 
 **Inline Interaction** (`interactions/inline/`)
 - Direct code transformation in Neovim buffers
@@ -74,9 +74,9 @@ Located in `lua/codecompanion/interactions/chat/slash_commands/builtin/`:
 
 Dynamic context ingestion via `/command` syntax in chat.
 
-### Variables & Interactions
+### Editor Context & Interactions
 
-**Variables** (`interactions/chat/variables/`): `buffer`, `lsp`, `user`, `viewport` - expanded in system prompts and messages.
+**Editor Context** (`interactions/chat/editor_context/`): `buffer`, `lsp`, `user`, `viewport` - expanded in system prompts and messages.
 
 **Background Interactions** (`interactions/background/`): Auto-run LLM tasks with event hooks (e.g., `chat_make_title` auto-generates chat titles).
 
@@ -162,7 +162,7 @@ LLM Response → Parser → Tools (optional) → Chat Buffer Display
 4. Results sent back to LLM
 
 **Context Injection:**
-- Variables: Expanded in system prompt
+- Editor Context: Expanded in system prompt
 - Slash Commands: User-triggered context
 - Buffer Watching: Automatic tracking
 

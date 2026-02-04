@@ -21,9 +21,9 @@ function M.omnifunc(findstart, base)
 
     -- Build patterns including ACP command trigger if enabled
     local patterns = {
+      triggers.mappings.editor_context .. "[%w_]*$", -- editor_context: #buffer, #lsp, etc.
       triggers.mappings.slash_commands .. "[%w_]*$", -- Slash commands: /buffer, /help, etc.
       triggers.mappings.tools .. "[%w_]*$", -- Tools: @tool_name, etc.
-      triggers.mappings.variables .. "[%w_]*$", -- Variables: #buffer, #lsp, etc.
     }
 
     if config.interactions.chat.slash_commands.opts.acp.enabled then
@@ -61,12 +61,12 @@ function M.omnifunc(findstart, base)
           },
         })
       end
-    elseif trigger_char == triggers.mappings.variables then
-      -- Variables completion
-      local vars = completion.variables()
+    elseif trigger_char == triggers.mappings.editor_context then
+      -- Editor context completion
+      local vars = completion.editor_context()
       for _, item in ipairs(vars) do
         table.insert(items, {
-          word = string.format("%s{%s}", triggers.mappings.variables, item.label:sub(2)),
+          word = string.format("%s{%s}", triggers.mappings.editor_context, item.label:sub(2)),
           abbr = item.label:sub(2),
           menu = item.detail or item.description,
           kind = "v", -- variable

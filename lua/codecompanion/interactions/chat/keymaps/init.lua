@@ -223,9 +223,9 @@ M.completion = {
         -- Process each item to match the completion format
         for _, item in ipairs(items) do
           if item.label then
-            -- Add bracket wrapping for variables and tools like cmp/blink do
-            if item.type == "variable" then
-              item.word = string.format("%s{%s}", triggers.mappings.variables, item.label:sub(2))
+            -- Add bracket wrapping for editor context and tools like cmp/blink do
+            if item.type == "editor_context" then
+              item.word = string.format("%s{%s}", triggers.mappings.editor_context, item.label:sub(2))
             elseif item.type == "tool" then
               item.word = string.format("%s{%s}", triggers.mappings.tools, item.label:sub(2))
             else

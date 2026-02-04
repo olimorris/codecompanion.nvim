@@ -138,9 +138,9 @@ function M.slash_commands()
         from_prompt_library = true,
       }
       if v.opts and v.opts.alias then
-        prompt.label = "/" .. v.opts.alias
+        prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.alias)
       else
-        prompt.label = "/" .. v.name
+        prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.name)
       end
       table.insert(slash_commands, prompt)
     end)
@@ -306,6 +306,8 @@ function M.editor_context()
       }
     end)
     :totable()
+
+  print(vim.inspect(editor_context))
 
   local open_buffers = buf_utils.get_open()
 

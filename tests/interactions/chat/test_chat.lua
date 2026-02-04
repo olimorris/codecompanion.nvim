@@ -42,7 +42,7 @@ T["Chat"]["buffer editor context is handled"] = function()
     -- Get the message we just added
     local message = chat.messages[#chat.messages]
 
-    -- Parse and replace variables in the message
+    -- Parse and replace editor context in the message
     if chat.editor_context:parse(chat, message) then
       message.content = chat.editor_context:replace(message.content, chat.buffer_context.bufnr)
     end

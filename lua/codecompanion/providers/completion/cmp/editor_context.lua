@@ -1,4 +1,4 @@
-local trigger = require("codecompanion.triggers").mappings.variables
+local trigger = require("codecompanion.triggers").mappings.editor_context
 
 local source = {}
 
@@ -23,7 +23,7 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(_, callback)
-  local items = require("codecompanion.providers.completion").variables()
+  local items = require("codecompanion.providers.completion").editor_context()
   local kind = require("cmp").lsp.CompletionItemKind.Variable
 
   vim.iter(items):map(function(item)

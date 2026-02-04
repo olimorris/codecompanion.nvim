@@ -10,7 +10,7 @@ vim.api.nvim_create_autocmd("FileType", {
     cmp.register_source("codecompanion_slash_commands", require(completion .. ".slash_commands").new(config))
     cmp.register_source("codecompanion_acp_commands", require(completion .. ".acp_commands").new(config))
     cmp.register_source("codecompanion_tools", require(completion .. ".tools").new(config))
-    cmp.register_source("codecompanion_variables", require(completion .. ".variables").new())
+    cmp.register_source("codecompanion_editor_context", require(completion .. ".editor_context").new())
     cmp.setup.filetype("codecompanion", {
       enabled = true,
       sources = vim.list_extend({
@@ -18,7 +18,7 @@ vim.api.nvim_create_autocmd("FileType", {
         { name = "codecompanion_slash_commands" },
         { name = "codecompanion_acp_commands" },
         { name = "codecompanion_tools" },
-        { name = "codecompanion_variables" },
+        { name = "codecompanion_editor_context" },
       }, cmp.get_config().sources),
     })
     -- returning true will remove this autocmd

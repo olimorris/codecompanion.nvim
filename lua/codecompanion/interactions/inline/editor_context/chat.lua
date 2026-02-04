@@ -3,10 +3,10 @@ local config = require("codecompanion.config")
 
 local llm_role = config.constants.LLM_ROLE
 
----@class CodeCompanion.Inline.Variables.Chat: CodeCompanion.Inline.Variables
+---@class CodeCompanion.Inline.EditorContext.Chat: CodeCompanion.Inline.EditorContextItems
 local Chat = {}
 
----@param args CodeCompanion.Inline.VariablesArgs
+---@param args CodeCompanion.Inline.EditorContextArgs
 function Chat.new(args)
   return setmetatable({
     context = args.context,

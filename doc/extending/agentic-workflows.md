@@ -120,7 +120,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
 
 The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@insert_edit_into_file](/usage/chat-buffer/tools.html#files) and [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner) tools to edit a buffer and run tests, respectively.
 
-We're giving the LLM knowledge of the buffer with the `#buffer` variable and also telling CodeCompanion to watch it for any changes with the `{watch}` parameter. Prior to sending a response to the LLM, the plugin will share any changes to that buffer, keeping the LLM updated.
+We're giving the LLM knowledge of the buffer with the `#buffer` editor context and also telling CodeCompanion to watch it for any changes with the `{watch}` parameter. Prior to sending a response to the LLM, the plugin will share any changes to that buffer, keeping the LLM updated.
 
 Now let's look at how we trigger the automated reflection prompts:
 
