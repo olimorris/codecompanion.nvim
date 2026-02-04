@@ -44,6 +44,7 @@ local defaults = {
       goose = "goose",
       kimi_cli = "kimi_cli",
       opencode = "opencode",
+      mistral_vibe = "mistral_vibe",
       opts = {
         show_presets = true,
       },

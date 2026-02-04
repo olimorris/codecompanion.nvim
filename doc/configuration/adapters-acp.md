@@ -284,3 +284,7 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
     "model": "github-copilot/claude-sonnet-4.5",
 }
 ```
+
+## Setup: Mistral Vibe
+
+To use [Mistral Vibe](https://github.com/mistralai/mistral-vibe) in CodeCompanion, ensure you've followed their documentation to [install](https://github.com/mistralai/mistral-vibe). Then run `vibe --setup` in your CLI in order to setup your API key. Then ensure that in your chat buffer you select the `mistral_vibe` adapter.
