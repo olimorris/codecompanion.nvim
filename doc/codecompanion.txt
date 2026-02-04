@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 03
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -88,10 +88,10 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
--  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
+-  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
--  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Variables and Slash Commands
+-  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
 -  Support for |codecompanion-usage-chat-buffer--images-vision| as input
 -  Async execution for fast performance
@@ -1619,18 +1619,18 @@ You can override this with:
 PREFIXES
 
 You can also customize the prefixes that trigger completions for
-|codecompanion-usage-chat-buffer-slash-commands|,
-|codecompanion-usage-chat-buffer-tools| and
-|codecompanion-usage-chat-buffer-variables|:
+|codecompanion--editor-context|(/usage/chat-buffer/editor-context],
+|codecompanion-usage-chat-buffer-slash-commands|, and
+|codecompanion-usage-chat-buffer-tools|:
 
 >lua
     require("codecompanion").setup({
       opts = {
         triggers = {
           acp_slash_commands = "\\",
+          editor_context = "#",
           slash_commands = "/",
           tools = "@",
-          variables = "#",
         },
       },
     })
@@ -1843,7 +1843,7 @@ can disable this behavior using a flag:
 COMPLETION
 
 By default, CodeCompanion looks to use the fantastic blink.cmp
-<https://github.com/Saghen/blink.cmp> plugin to complete variables, slash
+<https://github.com/Saghen/blink.cmp> plugin to complete editor context, slash
 commands and tools. However, you can override this in your config:
 
 >lua
@@ -1959,7 +1959,7 @@ There are also a number of other options that you can customize in the UI:
         chat = {
           intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
           separator = "─", -- The separator between the different messages in the chat buffer
-          show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+          show_context = true, -- Show context (from editor context and slash commands) in the chat buffer?
           show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
           show_settings = false, -- Show LLM settings at the top of the chat buffer?
           show_token_count = true, -- Show the token count for each response?
@@ -1971,30 +1971,30 @@ There are also a number of other options that you can customize in the UI:
 <
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
-Variables
+Editor context
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
-are placeholders inserted into the chat buffer (using `#` by default). They
-provide contextual code or information about the current Neovim state. For
-instance, the built-in `#{buffer}` variable sends the current buffer’s
-contents to the LLM.
+can be a inserted into the chat buffer using `#` (by default). It provides
+contextual code or information about the current Neovim state. For instance,
+the built-in `#{buffer}` editor context sends the current buffer’s contents
+to the LLM.
 
-You can even define your own variables to share specific content:
+You can even define your own context:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         chat = {
-          variables = {
-            ["my_var"] = {
-              ---Ensure the file matches the CodeCompanion.Variable class
+          editor_context = {
+            ["my_editor_context_item"] = {
+              ---Ensure the file matches the CodeCompanion.EditorContext class
               ---@return string|fun(): nil
-              callback = "/Users/Oli/Code/my_var.lua",
-              description = "Explain what my_var does",
+              callback = "/Users/Oli/Code/my_editor_context_item.lua",
+              description = "Explain what your does",
               opts = {
                 contains_code = false,
-                --has_params = true,    -- Set this if your variable supports parameters
+                --has_params = true,    -- Set this if your editor context item supports parameters
                 --default_params = nil, -- Set default parameters
               },
             },
@@ -2008,7 +2008,7 @@ You can even define your own variables to share specific content:
 SYNCING
 
 Neovim buffers can be
-|codecompanion-usage-chat-buffer-variables-with-parameters| with the chat
+|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
 buffer. That is, on each turn their content can be shared with the LLM. This is
 useful if you’re modifying a buffer and want the LLM to always have the
 latest changes.
@@ -2020,7 +2020,7 @@ To enable this by default for the built-in `#buffer` variable, you can set the
     require("codecompanion").setup({
       interactions = {
         chat = {
-          variables = {
+          editor_context = {
             ["buffer"] = {
               opts = {
                 -- Always sync the buffer by sharing its "diff"
@@ -2113,22 +2113,22 @@ You can also cancel an inline request with:
 <
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
 The plugin comes with a number of
-|codecompanion-usage-inline-assistant.html-variables| that can be used
-alongside your prompt using the `#{}` syntax (e.g., `#{my_new_var}`). You can
-also add your own:
+|codecompanion-usage-inline-assistant.html-editor-context| items that can be
+used alongside your prompt using the `#{}` syntax (e.g.,
+`#{my_new_context_item}`). You can also add your own:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         inline = {
-          variables = {
-            ["my_new_var"] = {
+          editor_context = {
+            ["my_new_context_item"] = {
               ---@return string
-              callback = "/Users/Oli/Code/my_var.lua",
-              description = "My shiny new variable",
+              callback = "/Users/Oli/Code/my_context_item.lua",
+              description = "My shiny new context item",
               opts = {
                 contains_code = true,
               },
@@ -3073,7 +3073,7 @@ nearest codeblock.
 APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-tools-files| tool, combined with the
-|codecompanion-usage-chat-buffer-variables.html-buffer| variable or
+|codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context or
 |codecompanion-usage-chat-buffer-slash-commands.html-buffer| slash command,
 enables an LLM to modify code in a Neovim buffer. This is especially useful if
 you do not wish to manually apply an LLM’s suggestions yourself. Simply tag
@@ -3402,11 +3402,12 @@ Conversing with an agent in CodeCompanion is done in exactly the same way as
 with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
 `<CR>` in normal mode to send it to the agent.
 
-|codecompanion-usage-chat-buffer-slash-commands| and
-|codecompanion-usage-chat-buffer-variables| are available to share additional
-context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
-disabled as the agent has their own tool set and the autonomy to decide what to
-run and when. CodeCompanion also supports an agent’s own slash commands
+|codecompanion-usage-chat-buffer-editor-context| and
+|codecompanion-usage-chat-buffer-slash-commands| are available to share
+additional context with the agent. However,
+|codecompanion-usage-chat-buffer-tools| are disabled as the agent has their own
+tool set and the autonomy to decide what to run and when. CodeCompanion also
+supports an agent’s own slash commands
 <https://agentclientprotocol.com/protocol/slash-commands> however these are
 invoked with `\` instead of `/` which is reserved for CodeCompanion’s
 built-in ones.
@@ -4446,24 +4447,25 @@ These keymaps can also be changed in your config via the
 `interactions.inline.keymaps` table.
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
 
   [!TIP] To ensure the LLM has enough context to complete a complex ask, it’s
-  recommended to use the `buffer` variable
+  recommended to use the `buffer` editor context
 The inline assistant allows you to send context alongside your prompt via the
-notion of variables:
+notion of editor context. That is, context that relates to your current Neovim
+session:
 
 - `buffer` - shares the contents of the current buffer
 - `chat` - shares the LLM’s messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
 Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
-new method to this file`. Multiple variables can be sent as part of the same
-prompt. You can even add your own custom variables as per the
-|codecompanion-configuration-inline-assistant-variables|.
+new method to this file`. Multiple context items can be sent as part of the
+same prompt. You can even add your own custom variables as per the
+|codecompanion-configuration-inline-assistant-editor-context|.
 
-You can also have multiple variables a part of a prompt, for example:
+You can also have multiple editor context as part of a prompt, for example:
 `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
 
 

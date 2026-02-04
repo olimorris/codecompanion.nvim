@@ -60,13 +60,14 @@
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.interactions.chat.helpers")
+local parser = require("codecompanion.interactions.chat.parser")
+local schema = require("codecompanion.schema")
+
+local hash = require("codecompanion.utils.hash")
 local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local parser = require("codecompanion.interactions.chat.parser")
-local schema = require("codecompanion.schema")
 local utils = require("codecompanion.utils")
 
 local api = vim.api

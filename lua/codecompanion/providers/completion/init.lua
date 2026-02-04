@@ -296,6 +296,7 @@ function M.editor_context()
   end
 
   local ec_config = config.interactions.chat.editor_context
+
   local editor_context = vim
     .iter(ec_config)
     :map(function(label, data)
@@ -306,8 +307,6 @@ function M.editor_context()
       }
     end)
     :totable()
-
-  print(vim.inspect(editor_context))
 
   local open_buffers = buf_utils.get_open()
 

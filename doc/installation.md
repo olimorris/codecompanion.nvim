@@ -152,7 +152,7 @@ Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdo
 
 ## Completion
 
-When in the [chat buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/tools). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
+When in the [chat buffer](usage/chat-buffer/index), completion can be used to more easily add [editor context](usage/chat-buffer/editor-context), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/tools). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 ```lua
 sources = {
