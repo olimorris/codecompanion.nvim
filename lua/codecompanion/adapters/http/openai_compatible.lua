@@ -43,12 +43,7 @@ local function get_models(self, opts)
   adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
   local url = adapter.env_replaced.url .. adapter.env_replaced.models_endpoint
 
-  local headers = {
-    ["content-type"] = "application/json",
-  }
-  if adapter.env_replaced.api_key then
-    headers["Authorization"] = "Bearer " .. adapter.env_replaced.api_key
-  end
+  local headers = adapter_utils.set_env_vars(adapter, adapter.headers) or {}
 
   local ok, response, json
 
