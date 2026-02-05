@@ -1,26 +1,12 @@
-local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local interactions = require("codecompanion.interactions")
 local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
+local triggers = require("codecompanion.triggers")
+
+local buf_utils = require("codecompanion.utils.buffers")
 
 local api = vim.api
-
----ACP slash commands are triggered by a configurable trigger (default: "\")
----@return string
-local function get_acp_trigger()
-  if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
-    return config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
-  end
-  return "\\"
-end
-
-local trigger = {
-  acp_commands = get_acp_trigger(),
-  slash_commands = "/",
-  tools = "@",
-  variables = "#",
-}
 
 local _vars_aug = nil
 local _vars_cache = nil
@@ -117,7 +103,7 @@ function M.slash_commands()
     end)
     :map(function(label, v)
       return {
-        label = trigger.slash_commands .. label,
+        label = triggers.mappings.slash_commands .. label,
         detail = v.description,
         config = v,
         type = "slash_command",
@@ -207,7 +193,6 @@ function M.acp_commands(bufnr)
 
   local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   local commands = acp_commands.get_commands_for_buffer(bufnr)
-  local acp_trigger = get_acp_trigger()
 
   return vim
     .iter(commands)
@@ -218,7 +203,7 @@ function M.acp_commands(bufnr)
       end
 
       return {
-        label = acp_trigger .. cmd.name,
+        label = triggers.mappings.acp_slash_commands .. cmd.name,
         detail = detail,
         command = cmd,
         type = "acp_command",
@@ -232,7 +217,7 @@ end
 ---@return string The text to insert
 function M.acp_commands_execute(selected)
   -- Return the command text with backslash trigger (will be transformed to forward slash on send)
-  local text = get_acp_trigger() .. selected.command.name
+  local text = triggers.mappings.acp_slash_commands .. selected.command.name
 
   -- Add a space if the command accepts arguments
   if
@@ -269,7 +254,7 @@ function M.tools()
     end)
     :map(function(label, v)
       return {
-        label = trigger.tools .. label,
+        label = triggers.mappings.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,
@@ -291,7 +276,7 @@ function M.tools()
       end
 
       table.insert(items, {
-        label = trigger.tools .. label,
+        label = triggers.mappings.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,
@@ -315,7 +300,7 @@ function M.variables()
     .iter(config_vars)
     :map(function(label, data)
       return {
-        label = trigger.variables .. label,
+        label = triggers.mappings.variables .. label,
         detail = data.description,
         type = "variable",
       }
@@ -340,7 +325,7 @@ function M.variables()
       end
 
       return {
-        label = trigger.variables .. "buffer:" .. name,
+        label = triggers.mappings.variables .. "buffer:" .. name,
         detail = "Path: " .. buf.relative_path .. "\nBuffer: " .. buf.bufnr,
         type = "variable",
       }

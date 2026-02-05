@@ -1,6 +1,8 @@
 local async = require("plenary.async")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
+
 local ts = require("codecompanion.utils.treesitter")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -13,13 +15,12 @@ local M = {}
 local _cached_options = {}
 M.options = {
   callback = function()
-    local float_opts = {
-      filetype = "codecompanion",
+    local float_opts = vim.tbl_extend("force", config.display.chat.floating_window, {
+      ft = "codecompanion",
       lock = true,
       style = "minimal",
       title = "Options",
-      window = config.display.chat.window,
-    }
+    })
 
     if next(_cached_options) ~= nil then
       return ui_utils.create_float(_cached_options, float_opts)
@@ -218,9 +219,9 @@ M.completion = {
           if item.label then
             -- Add bracket wrapping for variables and tools like cmp/blink do
             if item.type == "variable" then
-              item.word = string.format("#{%s}", item.label:sub(2))
+              item.word = string.format("%s{%s}", triggers.mappings.variables, item.label:sub(2))
             elseif item.type == "tool" then
-              item.word = string.format("@{%s}", item.label:sub(2))
+              item.word = string.format("%s{%s}", triggers.mappings.tools, item.label:sub(2))
             else
               item.word = item.label
             end
@@ -638,13 +639,6 @@ M.copilot_stats = {
       return utils.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
-  end,
-}
-
-M.super_diff = {
-  desc = "Show super diff buffer",
-  callback = function(chat)
-    require("codecompanion.interactions.chat.super_diff").show_super_diff(chat)
   end,
 }
 

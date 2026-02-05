@@ -27,75 +27,71 @@ require("codecompanion").setup({
 
 See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/adapters-http) for more information.
 
+## Completion
+
+By default, CodeCompanion will determine if you have one of [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), or [coc.nvim](https://github.com/neoclide/coc.nvim) installed, selecting it as the default provider. Failing this, the default completion engine will be used.
+
+You can override this with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        completion_provider = "blink", -- blink|cmp|coc|default
+      }
+    }
+  }
+})
+```
+
+### Prefixes
+
+You can also customize the prefixes that trigger completions for [slash commands](/usage/chat-buffer/slash-commands), [tools](/usage/chat-buffer/tools) and [variables](/usage/chat-buffer/variables):
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    triggers = {
+      acp_slash_commands = "\\",
+      slash_commands = "/",
+      tools = "@",
+      variables = "#",
+    },
+  },
+})
+```
+
 ## Diff
 
-CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
+<img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
 
-Depending on which provider you choose, there are different configuration options available to you:
+CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
+
+There are a number of configuration option available to you:
 
 ::: code-group
 
-```lua [Select Provider]
+```lua [Display]
 require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- inline|split|mini_diff
-    },
-  },
-})
-```
-
-```lua [Inline Provider]
-require("codecompanion").setup({
-  display = {
-    diff = {
-      provider_opts = {
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
+      word_highlights = {
+        additions = true,
+        deletions = true,
       },
     },
   },
 })
 ```
 
-```lua [Split Provider]
+```lua [Window Opts] {5-17}
 require("codecompanion").setup({
   display = {
     diff = {
-      provider_opts = {
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Diff Windows]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      diff_window = {
+      enabled = true,
+      window = {
         ---@return number|fun(): number
         width = function()
           return math.min(120, vim.o.columns - 10)
@@ -108,6 +104,10 @@ require("codecompanion").setup({
           number = true,
         },
       },
+      word_highlights = {
+        additions = true,
+        deletions = true,
+      },
     },
   },
 })
@@ -115,36 +115,16 @@ require("codecompanion").setup({
 
 :::
 
-The keymaps for accepting and rejecting the diff sit within the `inline` interaction configuration and can be changed via:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    inline = {
-      keymaps = {
-        accept_change = {
-          modes = { n = "gda" }, -- Remember this as DiffAccept
-        },
-        reject_change = {
-          modes = { n = "gdr" }, -- Remember this as DiffReject
-        },
-        always_accept = {
-          modes = { n = "gdy" }, -- Remember this as DiffYolo
-        },
-      },
-    },
-  },
-})
-```
-
 ## Keymaps
 
 > [!NOTE]
 > The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
 
-You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
+You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc.
 
-```lua
+::: code-group
+
+```lua [Chat] {3}
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -157,18 +137,70 @@ require("codecompanion").setup({
           modes = { n = "<C-c>", i = "<C-c>" },
           opts = {},
         },
-        -- Add further custom keymaps here
+        -- Change further custom keymaps here
+        -- ...
+        -- Set a keymap to be false to disable it
+        some_other_keymap = false,
       },
     },
   },
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
+```lua [Inline] {3}
+require("codecompanion").setup({
+  interactions = {
+    inline = {
+      keymaps = {
+        stop = {
+          callback = "keymaps.stop",
+          description = "Stop request",
+          modes = { n = "q" },
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [Diff] {3}
+require("codecompanion").setup({
+  interactions = {
+    shared = {
+      keymaps = {
+        always_accept = {
+          callback = "keymaps.always_accept",
+          modes = { n = "g1" },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          modes = { n = "g2" },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          modes = { n = "g3" },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          modes = { n = "{" },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+For the chat interaction, the keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Prompt Decorator
 
-It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
+It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
 
 ```lua
 require("codecompanion").setup({
@@ -191,14 +223,12 @@ require("codecompanion").setup({
 
 The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).
 
-
-
 ## Slash Commands
 
 > [!IMPORTANT]
 > Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
-[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
+[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/` by default) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
 The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for information on how to use Slash Commands.
 
@@ -292,7 +322,7 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 ## Tools
 
-[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
+[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` (by default), when in the chat buffer:
 
 ```lua
 require("codecompanion").setup({
@@ -372,7 +402,7 @@ require("codecompanion").setup({
 
 ### Approvals
 
-CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution.
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/tools#approvals) section for more information.
 
 ::: code-group
 
@@ -529,7 +559,7 @@ require("codecompanion").setup({
 
 ### Layout
 
-The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [Super Diff](/usage/chat-buffer/#super-diff), [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
+The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
 
 ::: code-group
 
@@ -681,7 +711,7 @@ require("codecompanion").setup({
 
 ## Variables
 
-[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#`). They provide contextual code or information about the current Neovim state. For instance, the built-in `#buffer` variable sends the current buffer’s contents to the LLM.
+[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#` by default). They provide contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` variable sends the current buffer’s contents to the LLM.
 
 You can even define your own variables to share specific content:
 

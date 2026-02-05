@@ -1,5 +1,7 @@
 local completion = require("codecompanion.providers.completion")
 
+local trigger = require("codecompanion.triggers").mappings.slash_commands
+
 local source = {}
 
 function source.new(config)
@@ -11,7 +13,7 @@ function source:is_available()
 end
 
 function source:get_trigger_characters()
-  return { "/" }
+  return { trigger }
 end
 
 function source:get_keyword_pattern()

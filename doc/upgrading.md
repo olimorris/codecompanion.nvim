@@ -8,6 +8,16 @@ This document provides a guide for upgrading from one version of CodeCompanion t
 
 CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](installation) provides more information on how to do this.
 
+## v18.6.0 to v19.0.0
+
+- The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+- CodeCompanion now only supports a built-in diff which is enabled by default ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+
+### Config
+
+- Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+- All diff config has moved to `display.diff` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+
 ## v17.33.0 to v18.0.0
 
 ### Config

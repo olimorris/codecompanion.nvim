@@ -2,6 +2,7 @@
 
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
 
 --- @type table Cache for callback addresses that get lost (replaced by vim.Nil) during serialization.
 local callbacks_cache = {}
@@ -14,9 +15,9 @@ local callbacks_cache = {}
 local function transform_complete_items(opt, complete_items)
   for _, item in ipairs(complete_items) do
     -- Populate standard Vim completion-items fields (see :h complete-items).
-    if opt.triggerCharacter == "#" then
+    if opt.triggerCharacter == triggers.mappings.variables then
       item.word = string.format("{%s}", item.label:sub(2))
-    elseif opt.triggerCharacter == "@" then
+    elseif opt.triggerCharacter == triggers.mappings.tools then
       item.word = string.format("{%s}", item.label:sub(2))
     else
       item.word = item.label:sub(2)
@@ -71,16 +72,16 @@ local M = {}
 ---Returns coc.nvim source initialization parameters.
 ---@return table
 function M.init()
-  local triggers = { "/", "#", "@" }
+  local trigger_chars = { triggers.mappings.slash_commands, triggers.mappings.tools, triggers.mappings.variables }
   if config.interactions.chat.slash_commands.opts.acp.enabled then
-    table.insert(triggers, config.interactions.chat.slash_commands.opts.acp.trigger or "\\")
+    table.insert(trigger_chars, triggers.mappings.acp_slash_commands)
   end
 
   return {
     priority = 99,
     shortcut = "CodeCompanion",
     filetypes = { "codecompanion" },
-    triggerCharacters = triggers,
+    triggerCharacters = trigger_chars,
   }
 end
 
@@ -89,16 +90,15 @@ end
 ---@return table Completion items
 function M.complete(opt)
   local complete_items
-  local trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
 
-  if opt.triggerCharacter == "@" then
-    complete_items = transform_complete_items(opt, completion.tools())
-  elseif opt.triggerCharacter == "#" then
-    complete_items = transform_complete_items(opt, completion.variables())
-  elseif opt.triggerCharacter == "/" then
-    complete_items = transform_complete_items(opt, completion.slash_commands())
-  elseif opt.triggerCharacter == trigger then
+  if opt.triggerCharacter == triggers.mappings.acp_slash_commands then
     complete_items = transform_complete_items(opt, completion.acp_commands(opt.bufnr))
+  elseif opt.triggerCharacter == triggers.mappings.slash_commands then
+    complete_items = transform_complete_items(opt, completion.slash_commands())
+  elseif opt.triggerCharacter == triggers.mappings.tools then
+    complete_items = transform_complete_items(opt, completion.tools())
+  elseif opt.triggerCharacter == triggers.mappings.variables then
+    complete_items = transform_complete_items(opt, completion.variables())
   else
     complete_items = {}
   end

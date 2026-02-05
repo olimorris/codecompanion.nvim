@@ -1,3 +1,5 @@
+local trigger = require("codecompanion.triggers").mappings.tools
+
 local source = {}
 
 function source.new(config)
@@ -13,7 +15,7 @@ source.get_position_encoding_kind = function()
 end
 
 function source:get_trigger_characters()
-  return { "@" }
+  return { trigger }
 end
 
 function source:get_keyword_pattern()
@@ -32,7 +34,7 @@ function source:complete(params, callback)
     item.context = {
       bufnr = params.context.bufnr,
     }
-    item.insertText = string.format("@{%s}", item.label:sub(2))
+    item.insertText = string.format("%s{%s}", trigger, item.label:sub(2))
     return item
   end)
 

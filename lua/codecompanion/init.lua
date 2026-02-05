@@ -172,6 +172,7 @@ CodeCompanion.chat = function(args)
     auto_submit = auto_submit,
     buffer_context = context,
     callbacks = args.callbacks,
+    hidden = args.hidden,
     messages = has_messages and messages or nil,
     window_opts = args and args.window_opts,
   })

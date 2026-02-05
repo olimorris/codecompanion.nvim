@@ -1,9 +1,11 @@
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
+
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
 
 local CONSTANTS = {
-  PREFIX = "#",
+  PREFIX = triggers.mappings.variables,
 }
 
 ---Check a message for any parameters that have been given to the variable
