@@ -302,7 +302,7 @@ function Interactions.evaluate_prompts(prompts, buffer_context)
         role = prompt.role or "",
         content = content,
         opts = prompt.opts or {},
-        tools = prompt.tools or {},
+        tools = prompt.tools,
       }
     end)
     :totable()
