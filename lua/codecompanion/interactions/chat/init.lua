@@ -54,6 +54,7 @@
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
+---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
 
@@ -590,11 +591,12 @@ function Chat.new(args)
   last_chat = self
 
   for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
-    local tool_config = config.interactions.chat.tools[tool_name]
-    if tool_config ~= nil then
-      self.tool_registry:add(tool_name, tool_config)
-    elseif config.interactions.chat.tools.groups[tool_name] ~= nil then
-      self.tool_registry:add_group(tool_name, config.interactions.chat.tools)
+    self.tool_registry:add(tool_name)
+  end
+
+  if args.tools then
+    for _, tool in pairs(args.tools) do
+      self.tool_registry:add(tool)
     end
   end
 

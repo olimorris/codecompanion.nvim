@@ -76,6 +76,7 @@ end
 function Interactions:chat()
   local messages
 
+  local tools = nil
   local opts = self.selected.opts
 
   -- Handle workflows separately
@@ -85,6 +86,10 @@ function Interactions:chat()
 
   local mode = self.buffer_context.mode:lower()
   local prompts = self.selected.prompts
+
+  if self.selected.tools then
+    tools = self.selected.tools
+  end
 
   if type(prompts[mode]) == "function" then
     return prompts[mode]()
@@ -130,6 +135,7 @@ function Interactions:chat()
       intro_message = (opts and opts.intro_message) or nil,
       messages = messages,
       stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
+      tools = tools,
     })
   end
 
@@ -296,6 +302,7 @@ function Interactions.evaluate_prompts(prompts, buffer_context)
         role = prompt.role or "",
         content = content,
         opts = prompt.opts or {},
+        tools = prompt.tools or {},
       }
     end)
     :totable()

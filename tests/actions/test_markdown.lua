@@ -397,6 +397,7 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
         },
       },
       interaction = "chat",
+      tools = {},
     },
   }
 

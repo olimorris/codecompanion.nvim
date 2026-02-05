@@ -72,17 +72,45 @@ local function add_schema(self, tool, id)
   self.schemas[id] = tool.schema
 end
 
----Add the given tool to the chat buffer
+---Add a tool or group to the chat buffer
+---@param name string The name of the tool or group
+---@param opts? { config: table, visible: boolean }
+---@return CodeCompanion.Chat.ToolRegistry|nil
+function ToolRegistry:add(name, opts)
+  opts = opts or {}
+
+  local tools_config = opts.config or config.interactions.chat.tools
+
+  if tools_config.groups and tools_config.groups[name] then
+    return self:add_group(name, { config = tools_config })
+  end
+
+  local tool_config = tools_config[name]
+  if tool_config then
+    return self:add_single_tool(name, { config = tool_config, visible = opts.visible })
+  end
+
+  return nil
+end
+
+---Add a single tool to the chat buffer
 ---@param tool string The name of the tool
----@param tool_config table The tool from the config
----@param opts? table Optional parameters
----@return nil
-function ToolRegistry:add(tool, tool_config, opts)
-  opts = opts or { visible = true }
+---@param opts? { config: table, visible: boolean }
+---@return CodeCompanion.Chat.ToolRegistry|nil
+function ToolRegistry:add_single_tool(tool, opts)
+  opts = opts or {}
+  if opts.visible == nil then
+    opts.visible = true
+  end
+
+  local tool_config = opts.config or config.interactions.chat.tools[tool]
+  if not tool_config then
+    return nil
+  end
 
   local id = "<tool>" .. tool .. "</tool>"
 
-  local is_adapter_tool = tool_config and tool_config._adapter_tool == true
+  local is_adapter_tool = tool_config._adapter_tool == true
   if is_adapter_tool then
     add_context(self.chat, id, opts)
     add_schema(self, {
@@ -97,7 +125,7 @@ function ToolRegistry:add(tool, tool_config, opts)
   else
     local resolved_tool = self.chat.tools.resolve(tool_config)
     if not resolved_tool or self.in_use[tool] then
-      return
+      return nil
     end
 
     add_context(self.chat, id, opts)
@@ -114,16 +142,19 @@ end
 
 ---Add tools from a group to the chat buffer
 ---@param group string The name of the group
----@param tools_config table The tools configuration
----@return nil
-function ToolRegistry:add_group(group, tools_config)
+---@param opts? { config: table }
+---@return CodeCompanion.Chat.ToolRegistry|nil
+function ToolRegistry:add_group(group, opts)
+  opts = opts or {}
+
+  local tools_config = opts.config or config.interactions.chat.tools
   local group_config = tools_config.groups[group]
   if not group_config or not group_config.tools then
-    return
+    return nil
   end
 
-  local opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
-  local collapse_tools = opts.collapse_tools
+  local group_opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
+  local collapse_tools = group_opts.collapse_tools
 
   local group_id = "<group>" .. group .. "</group>"
 
@@ -142,8 +173,10 @@ function ToolRegistry:add_group(group, tools_config)
     add_context(self.chat, group_id)
   end
   for _, tool in ipairs(group_config.tools) do
-    self:add(tool, tools_config[tool], { visible = not collapse_tools })
+    self:add_single_tool(tool, { config = tools_config[tool], visible = not collapse_tools })
   end
+
+  return self
 end
 
 ---Add a tool system prompt to the chat buffer, updated for every tool addition

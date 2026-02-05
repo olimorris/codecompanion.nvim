@@ -68,6 +68,7 @@ function M.parse_file(path, context)
     opts = frontmatter.opts or {},
     path = path,
     prompts = prompts,
+    tools = frontmatter.tools or {},
   }
 end
 
