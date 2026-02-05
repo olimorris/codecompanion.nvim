@@ -21,6 +21,7 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
+---@field hidden boolean Whether the chat is hidden (no window opened)
 ---@field id number The unique identifier for the chat
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
@@ -46,6 +47,7 @@
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
+---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
@@ -412,6 +414,7 @@ function Chat.new(args)
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
+    hidden = args.hidden or false,
     id = id,
     intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
@@ -539,8 +542,12 @@ function Chat.new(args)
     self.messages = args.messages
   end
 
-  self.close_last_chat()
-  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  if not self.hidden then
+    self.close_last_chat()
+    self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  else
+    self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  end
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
@@ -802,7 +809,7 @@ function Chat:make_system_prompt_ctx()
     language = config.opts.language or "English",
     date = tostring(os.date("%Y-%m-%d")),
     nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-    cwd = vim.fn.getcwd(winid ~= -1 and winid or nil),
+    cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
     project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
     default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
   }
