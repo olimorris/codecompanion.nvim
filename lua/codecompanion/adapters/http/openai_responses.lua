@@ -616,17 +616,12 @@ return {
       optional = true,
       ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
       enabled = function(self)
-        local model = self.schema.model.default
-        if type(model) == "function" then
-          model = model()
-        end
-        local choices = self.schema.model.choices
-        if type(choices) == "function" then
-          choices = choices(self)
-        end
-        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
-          return true
-        end
+        -- Reasoning summary requires a verified organization, something not
+        -- needed for API usage otherwise, and something many individual users
+        -- do not have done.
+        -- And since reasoning is only meant for debugging, we should not enable
+        -- it by default; users should enable it themselves in their config if
+        -- they want.
         return false
       end,
       default = "auto",
