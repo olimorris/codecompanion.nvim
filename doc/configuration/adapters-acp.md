@@ -272,6 +272,10 @@ To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've f
 
 Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/login` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
 
+## Setup: Mistral Vibe
+
+To use [Mistral Vibe](https://github.com/mistralai/mistral-vibe) in CodeCompanion, ensure you've followed their documentation to [install](https://github.com/mistralai/mistral-vibe). Then run `vibe --setup` in your CLI in order to setup your API key. Then ensure that in your chat buffer you select the `mistral_vibe` adapter.
+
 ## Setup: OpenCode
 
 To use [OpenCode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
@@ -284,3 +288,4 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
     "model": "github-copilot/claude-sonnet-4.5",
 }
 ```
+
