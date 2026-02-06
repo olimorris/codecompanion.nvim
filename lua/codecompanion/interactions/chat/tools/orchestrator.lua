@@ -232,7 +232,11 @@ end
 ---@return nil
 function Orchestrator:_finalize_tools()
   self.tools.tool = nil
-  return utils.fire("ToolsFinished", { id = self.id, bufnr = self.tools.bufnr })
+  return utils.fire("ToolsFinished", {
+    bufnr = self.tools.bufnr,
+    id = self.id,
+    status = self.tools.status,
+  })
 end
 
 ---Setup the tool to be executed
@@ -342,7 +346,12 @@ end
 ---@param args { cmd: function, input?: any }
 ---@return nil
 function Orchestrator:execute_tool(args)
-  utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
+  utils.fire("ToolStarted", {
+    bufnr = self.tools.bufnr,
+    id = self.id,
+    tool = self.tool.name,
+    args = self.tool.args,
+  })
   return Runner.new({ index = 1, orchestrator = self, cmd = args.cmd }):setup(args.input)
 end
 
@@ -403,7 +412,12 @@ function Orchestrator:finalize_tool()
     pcall(function()
       self.handlers.on_exit()
     end)
-    utils.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.tools.bufnr })
+    utils.fire("ToolFinished", {
+      bufnr = self.tools.bufnr,
+      id = self.id,
+      name = self.tool.name,
+      args = self.tool.args,
+    })
     self.tool = nil
   end
 end
