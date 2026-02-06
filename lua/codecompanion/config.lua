@@ -43,6 +43,7 @@ local defaults = {
       gemini_cli = "gemini_cli",
       goose = "goose",
       kimi_cli = "kimi_cli",
+      kiro = "kiro",
       opencode = "opencode",
       opts = {
         show_presets = true,

@@ -272,6 +272,10 @@ To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've f
 
 Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/login` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
 
+## Setup: Kiro CLI
+
+Install [Kiro cli](https://kiro.dev/docs/cli/) as per their instructions. Then open it and login (if installation doesn't already prompt you to login). the codecompanion adapter will execute `kiro-cli acp`, make sure to have it available on your PATH.
+
 ## Setup: OpenCode
 
 To use [OpenCode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
