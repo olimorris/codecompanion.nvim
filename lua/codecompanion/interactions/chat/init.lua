@@ -15,7 +15,6 @@
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field current_request table|nil The current request being executed
----@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field create_buf fun(): number The function that creates a new buffer for the chat
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
@@ -31,6 +30,8 @@
 ---@field title? string The title of the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
+---@field tool_orchestrator CodeCompanion.Tools.Orchestrator The current tool orchestrator
+
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
@@ -1445,13 +1446,11 @@ function Chat:stop()
   self:dispatch("on_cancelled")
   utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
-  if self.current_tool then
-    local tool_job = self.current_tool
-    self.current_tool = nil
-
+  if self.tool_orchestrator then
     pcall(function()
-      tool_job.cancel()
+      self.tool_orchestrator:cancel()
     end)
+    self.tool_orchestrator = nil
   end
 
   if self.current_request then
