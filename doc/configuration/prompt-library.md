@@ -147,6 +147,8 @@ Markdown prompts consist of two main parts:
 - `## system` - System messages that set the LLM's behaviour
 - `## user` - User messages containing your requests
 
+In the markdown prompt, above, [placeholders](/configuration/prompt-library#with-placeholders) are used to inject dynamic content from a visual selection.
+
 ### Options
 
 Both markdown and Lua prompts support a wide range of options to customise behaviour:
@@ -245,7 +247,7 @@ opts = {
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 
-### Placeholders
+### With Placeholders
 
 Placeholders allow you to inject dynamic content into your prompts. In markdown prompts, use `${placeholder.name}` syntax:
 
@@ -582,6 +584,37 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
 ````
 
 For the inline interaction, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
+
+#### Tools
+
+You can also specify tools to be loaded with your prompt. These can be individual tools as well as tool groups:
+
+::: code-group
+
+````markdown [Markdown]
+---
+name: Prompt with tools
+interaction: chat
+description: A prompt that loads tools
+tools:
+  - cmd_runner
+  - insert_edit_into_file
+---
+````
+
+````lua [Lua]
+["Prompt with tools"] = {
+  interaction = "chat",
+  description = "A prompt that loads tools",
+  tools = {
+    "cmd_runner",
+    "insert_edit_into_file",
+  },
+},
+````
+
+:::
+
 
 #### Workflows
 
