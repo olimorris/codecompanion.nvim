@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 05
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -74,7 +74,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, OpenCode <https://opencode.ai> and Mistral Vibe <https://github.com/mistralai/mistral-vibe>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -943,6 +943,15 @@ configure your API key. Then ensure that in your chat buffer you select the
 `kimi_cli` adapter.
 
 
+SETUP: MISTRAL VIBE ~
+
+To use Mistral Vibe <https://github.com/mistralai/mistral-vibe> in
+CodeCompanion, ensure you’ve followed their documentation to install
+<https://github.com/mistralai/mistral-vibe>. Then run `vibe --setup` in your
+CLI in order to setup your API key. Then ensure that in your chat buffer you
+select the `mistral_vibe` adapter.
+
+
 SETUP: OPENCODE ~
 
 To use OpenCode <https://opencode.ai> in CodeCompanion, ensure you’ve
@@ -958,15 +967,6 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
         "model": "github-copilot/claude-sonnet-4.5",
     }
 <
-
-
-SETUP: MISTRAL VIBE ~
-
-To use Mistral Vibe <https://github.com/mistralai/mistral-vibe> in
-CodeCompanion, ensure you’ve followed their documentation to install
-<https://github.com/mistralai/mistral-vibe>. Then run `vibe --setup` in your
-CLI in order to setup your API key. Then ensure that in your chat buffer you
-select the `mistral_vibe` adapter.
 
 
 HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
