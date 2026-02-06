@@ -20,7 +20,7 @@ return {
   defaults = {
     auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
     mcpServers = {},
-    timeout = 20000, -- 20 seconds
+    timeout = 20000,                -- 20 seconds
   },
   env = {
     OPENAI_API_KEY = "OPENAI_API_KEY",

@@ -28,10 +28,10 @@ local defaults = {
       jina = "jina",
       tavily = "tavily",
       opts = {
-        allow_insecure = false, -- Allow insecure connections?
-        cache_models_for = 1800, -- Cache adapter models for this long (seconds)
-        proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
-        show_presets = true, -- Show preset adapters
+        allow_insecure = false,    -- Allow insecure connections?
+        cache_models_for = 1800,   -- Cache adapter models for this long (seconds)
+        proxy = nil,               -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+        show_presets = true,       -- Show preset adapters
         show_model_choices = true, -- Show model choices when changing adapter
       },
     },
@@ -43,6 +43,7 @@ local defaults = {
       gemini_cli = "gemini_cli",
       goose = "goose",
       kimi_cli = "kimi_cli",
+      kiro = "kiro",
       opencode = "opencode",
       opts = {
         show_presets = true,
@@ -140,12 +141,12 @@ local defaults = {
           callback = "interactions.chat.tools.builtin.insert_edit_into_file",
           description = "Robustly edit existing files with multiple automatic fallback interactions",
           opts = {
-            require_approval_before = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = false, -- For editing files in the current working directory
+            require_approval_before = {        -- Require approval before the tool is executed?
+              buffer = false,                  -- For editing buffers in Neovim
+              file = false,                    -- For editing files in the current working directory
             },
             require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
-            file_size_limit_mb = 2, -- Maximum file size in MB
+            file_size_limit_mb = 2,            -- Maximum file size in MB
           },
         },
         ["create_file"] = {
@@ -203,7 +204,8 @@ local defaults = {
         },
         ["memory"] = {
           callback = "interactions.chat.tools.builtin.memory",
-          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
+          description =
+          "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             require_approval_before = true,
           },
@@ -239,11 +241,11 @@ local defaults = {
           description = "Find code symbol context",
         },
         opts = {
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
+          auto_submit_errors = true,  -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           folds = {
-            enabled = true, -- Fold tool output in the buffer?
-            failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
+            enabled = true,           -- Fold tool output in the buffer?
+            failure_words = {         -- Words that indicate an error in the tool output. Used to apply failure highlighting
               "cancelled",
               "error",
               "failed",
@@ -257,7 +259,7 @@ local defaults = {
           default_tools = {},
 
           system_prompt = {
-            enabled = true, -- Enable the tools system prompt?
+            enabled = true,                     -- Enable the tools system prompt?
             replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
 
             ---The tool system prompt
@@ -348,7 +350,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            default_params = "diff", -- all|diff
+            default_params = "diff",      -- all|diff
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -384,7 +386,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina
+            adapter = "jina",             -- jina
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
@@ -410,7 +412,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
-            max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
+            max_lines = 128,           -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
             provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
           },
         },
@@ -426,9 +428,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             return false
           end,
           opts = {
-            dirs = {}, -- Directories to search for images
+            dirs = {},                                           -- Directories to search for images
             filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
-            provider = providers.images, -- telescope|snacks|default
+            provider = providers.images,                         -- telescope|snacks|default
           },
         },
         ["rules"] = {
@@ -658,13 +660,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       opts = {
-        blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
+        blank_prompt = "",                          -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
-        debounce = 150, -- Time to debounce user input (milliseconds)
+        debounce = 150,                             -- Time to debounce user input (milliseconds)
 
-        register = "+", -- The register to use for yanking code
-        wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
-        yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
+        register = "+",                             -- The register to use for yanking code
+        wait_timeout = 2e6,                         -- Time to wait for user response before timing out (milliseconds)
+        yank_jump_delay_ms = 400,                   -- Delay before jumping back from the yanked code (milliseconds )
 
         -- What to do when an ACP permission request times out? (allow_once|reject_once)
         acp_timeout_response = "reject_once",
@@ -680,18 +682,18 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ---@return string
         system_prompt = function(ctx)
           return ctx.default_system_prompt
-            .. fmt(
-              [[Additional context:
+              .. fmt(
+                [[Additional context:
 All non-code text responses must be written in the %s language.
 The current date is %s.
 The user's Neovim version is %s.
 The user is working on a %s machine. Please respond with system specific commands if applicable.
 ]],
-              ctx.language,
-              ctx.date,
-              ctx.nvim_version,
-              ctx.os
-            )
+                ctx.language,
+                ctx.date,
+                ctx.nvim_version,
+                ctx.os
+              )
         end,
       },
     },
@@ -755,7 +757,8 @@ The user is working on a %s machine. Please respond with system specific command
     cmd = {
       adapter = "copilot",
       opts = {
-        system_prompt = [[You are currently plugged in to the Neovim text editor on a user's machine. Your core task is to generate an command-line inputs that the user can run within Neovim. Below are some rules to adhere to:
+        system_prompt =
+        [[You are currently plugged in to the Neovim text editor on a user's machine. Your core task is to generate an command-line inputs that the user can run within Neovim. Below are some rules to adhere to:
 
 - Return plain text only
 - Do not wrap your response in a markdown block or backticks
@@ -786,8 +789,8 @@ The user is working on a %s machine. Please respond with system specific command
         ".github/copilot-instructions.md",
         "AGENT.md",
         "AGENTS.md",
-        { path = "CLAUDE.md", parser = "claude" },
-        { path = "CLAUDE.local.md", parser = "claude" },
+        { path = "CLAUDE.md",           parser = "claude" },
+        { path = "CLAUDE.local.md",     parser = "claude" },
         { path = "~/.claude/CLAUDE.md", parser = "claude" },
       },
       is_preset = true,
@@ -847,9 +850,9 @@ The user is working on a %s machine. Please respond with system specific command
       is_preset = true,
     },
     parsers = {
-      claude = "claude", -- Parser for CLAUDE.md files
+      claude = "claude",               -- Parser for CLAUDE.md files
       codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
-      none = "none", -- No parsing, just raw text
+      none = "none",                   -- No parsing, just raw text
     },
     opts = {
       chat = {
@@ -872,13 +875,13 @@ The user is working on a %s machine. Please respond with system specific command
     action_palette = {
       width = 95,
       height = 10,
-      prompt = "Prompt ", -- Prompt used for interactive LLM calls
+      prompt = "Prompt ",                  -- Prompt used for interactive LLM calls
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
-        show_preset_actions = true, -- Show the preset actions in the action palette?
-        show_preset_prompts = true, -- Show the preset prompts in the action palette?
-        show_preset_rules = true, -- Show the preset rules in the action palette?
-        title = "CodeCompanion actions", -- The title of the action palette
+        show_preset_actions = true,        -- Show the preset actions in the action palette?
+        show_preset_prompts = true,        -- Show the preset prompts in the action palette?
+        show_preset_rules = true,          -- Show the preset rules in the action palette?
+        title = "CodeCompanion actions",   -- The title of the action palette
       },
     },
     chat = {
@@ -895,12 +898,12 @@ The user is working on a %s machine. Please respond with system specific command
 
       -- Window options for the chat buffer
       window = {
-        buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat buffer remains open when switching tabs
+        buflisted = false,   -- List the chat buffer in the buffer list?
+        sticky = false,      -- Chat buffer remains open when switching tabs
 
         layout = "vertical", -- float|vertical|horizontal|buffer
-        full_height = true, -- for vertical layout
-        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
+        full_height = true,  -- for vertical layout
+        position = nil,      -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
 
         width = 0.5, ---@return number|fun(): number
         height = 0.8, ---@return number|fun(): number
@@ -1002,12 +1005,12 @@ The user is working on a %s machine. Please respond with system specific command
           },
 
           opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            show_dim = true, -- Enable dimming background for floating windows (applies to both diff and super_diff)
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+            context_lines = 3,         -- Number of context lines in hunks
+            show_dim = true,           -- Enable dimming background for floating windows (applies to both diff and super_diff)
+            dim = 25,                  -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
             full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
+            show_keymap_hints = true,  -- Show "gda: accept | gdr: reject" hints above diff
+            show_removed = true,       -- Show removed lines as virtual text
           },
         },
 
@@ -1020,7 +1023,7 @@ The user is working on a %s machine. Please respond with system specific command
             "filler",
             "closeoff",
             "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "indent-heuristic",    -- https://blog.k-nut.eu/better-git-diffs
             "followwrap",
             "linematch:120",
           },
@@ -1039,7 +1042,7 @@ The user is working on a %s machine. Please respond with system specific command
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
-    log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
+    log_level = "ERROR",  -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 
     -- If this is false then any default prompt that is marked as containing code
@@ -1050,7 +1053,7 @@ The user is working on a %s machine. Please respond with system specific command
     send_code = true,
 
     job_start_delay = 1500, -- Delay in milliseconds between cmd tools
-    submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer
+    submit_delay = 2000,    -- Delay in milliseconds before auto-submitting the chat buffer
   },
 }
 
