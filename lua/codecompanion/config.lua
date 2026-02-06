@@ -892,6 +892,8 @@ The user is working on a %s machine. Please respond with system specific command
         tool_in_progress = "  ",
         tool_failure = "  ",
         tool_success = "  ",
+        plan = "󰸗  ",
+        plan_sign = "▌", -- Sign column indicator for plan sections
       },
 
       -- Window options for the chat buffer
@@ -959,6 +961,9 @@ The user is working on a %s machine. Please respond with system specific command
 
       fold_reasoning = true, -- Fold the reasoning content in the chat buffer?
       show_reasoning = true, -- Show reasoning content in the chat buffer?
+
+      fold_plan = false, -- Fold the plan content in the chat buffer?
+      show_plan = true, -- Show plan content in the chat buffer?
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
