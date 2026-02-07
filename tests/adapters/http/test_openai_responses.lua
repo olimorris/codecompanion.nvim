@@ -153,6 +153,74 @@ T["Responses"]["build_messages"]["images"] = function()
   h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
+T["Responses"]["build_messages"]["multiple consecutive images are not merged as text"] = function()
+  local messages = {
+    {
+      content = "img1_base64",
+      role = "user",
+      opts = { visible = false },
+      context = { mimetype = "image/png" },
+      _meta = { tag = "image" },
+    },
+    {
+      content = "img2_base64",
+      role = "user",
+      opts = { visible = false },
+      context = { mimetype = "image/png" },
+      _meta = { tag = "image" },
+    },
+    {
+      content = "img3_base64",
+      role = "user",
+      opts = { visible = false },
+      context = { mimetype = "image/png" },
+      _meta = { tag = "image" },
+    },
+    {
+      content = "How many images do you see?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    input = {
+      {
+        role = "user",
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/png;base64,img1_base64",
+          },
+        },
+      },
+      {
+        role = "user",
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/png;base64,img2_base64",
+          },
+        },
+      },
+      {
+        role = "user",
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/png;base64,img3_base64",
+          },
+          {
+            type = "input_text",
+            text = "How many images do you see?",
+          },
+        },
+      },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
+end
+
 T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {

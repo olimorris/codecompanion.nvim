@@ -181,7 +181,12 @@ return {
                 }
 
                 -- If next message is also from user with text content, combine them
-                if next_msg and next_msg.role == m.role and type(next_msg.content) == "string" then
+                if
+                  next_msg
+                  and next_msg.role == m.role
+                  and type(next_msg.content) == "string"
+                  and not (next_msg._meta and next_msg._meta.tag == "image")
+                then
                   table.insert(combined_content, {
                     type = "input_text",
                     text = next_msg.content,
