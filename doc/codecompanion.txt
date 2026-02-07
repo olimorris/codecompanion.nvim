@@ -2442,6 +2442,10 @@ Palette - `description` - Description shown in the Action Palette -
 **Prompt sections:** - `## system` - System messages that set the LLM’s
 behaviour - `## user` - User messages containing your requests
 
+In the markdown prompt, above,
+|codecompanion-configuration-prompt-library-with-placeholders| are used to
+inject dynamic content from a visual selection.
+
 
 OPTIONS
 
@@ -2468,7 +2472,7 @@ behaviour:
 - `user_prompt` - Get user input before actioning the response
 
 
-PLACEHOLDERS
+WITH PLACEHOLDERS
 
 Placeholders allow you to inject dynamic content into your prompts. In markdown
 prompts, use `${placeholder.name}` syntax:
@@ -2703,6 +2707,13 @@ particularly useful for creating new buffers or setting up the environment:
 For the inline interaction, the plugin will detect a number being returned from
 the `pre_hook` and assume that is the buffer number you wish any code to be
 streamed into.
+
+
+TOOLS
+
+You can also specify tools to be loaded with your prompt. These can be
+individual tools as well as tool groups:
+
 
 
 WORKFLOWS

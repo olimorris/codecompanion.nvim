@@ -35,10 +35,12 @@ function M.resolve(context, config)
       context = prompt.context,
       description = description,
       interaction = prompt.interaction or prompt.strategy,
+      mcp_servers = prompt.mcp_servers,
       name = name,
       opts = prompt.opts,
       picker = prompt.picker,
       prompts = prompt.prompts,
+      tools = prompt.tools,
     })
 
     ::continue::
