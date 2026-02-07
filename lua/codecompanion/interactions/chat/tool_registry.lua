@@ -108,6 +108,10 @@ function ToolRegistry:add_single_tool(tool, opts)
     return nil
   end
 
+  if self.in_use[tool] then
+    return nil
+  end
+
   local id = "<tool>" .. tool .. "</tool>"
 
   local is_adapter_tool = tool_config._adapter_tool == true
@@ -124,7 +128,7 @@ function ToolRegistry:add_single_tool(tool, opts)
     }, id)
   else
     local resolved_tool = self.chat.tools.resolve(tool_config)
-    if not resolved_tool or self.in_use[tool] then
+    if not resolved_tool then
       return nil
     end
 
@@ -173,7 +177,10 @@ function ToolRegistry:add_group(group, opts)
     add_context(self.chat, group_id)
   end
   for _, tool in ipairs(group_config.tools) do
-    self:add_single_tool(tool, { config = tools_config[tool], visible = not collapse_tools })
+    local tool_cfg = tools_config[tool]
+    if tool_cfg then
+      self:add_single_tool(tool, { config = tool_cfg, visible = not collapse_tools })
+    end
   end
 
   return self
