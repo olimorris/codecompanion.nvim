@@ -48,6 +48,7 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
+---@field mcp_servers? table<string> List of MCP server names to start and load into the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
@@ -598,6 +599,10 @@ function Chat.new(args)
     for _, tool in pairs(args.tools) do
       self.tool_registry:add(tool)
     end
+  end
+
+  if args.mcp_servers then
+    helpers.start_mcp_servers(self, args.mcp_servers)
   end
 
   -- Handle callbacks

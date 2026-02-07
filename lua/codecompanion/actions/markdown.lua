@@ -64,11 +64,12 @@ function M.parse_file(path, context)
     context = frontmatter.context or nil,
     description = frontmatter.description or "",
     interaction = frontmatter.interaction,
+    mcp_servers = frontmatter.mcp_servers,
     name = frontmatter.name,
     opts = frontmatter.opts or {},
     path = path,
     prompts = prompts,
-    tools = frontmatter.tools or {},
+    tools = frontmatter.tools,
   }
 end
 
