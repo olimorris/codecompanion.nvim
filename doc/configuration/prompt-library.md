@@ -536,7 +536,7 @@ mcp_servers:
 ````lua [Lua]
 ["Prompt with MCP servers"] = {
   interaction = "chat",
-  description = "A prompt that stats MCP servers",
+  description = "A prompt that starts MCP servers",
   mcp_servers = {
     "tavily-mcp",
     "filesystem",
