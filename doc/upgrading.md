@@ -18,6 +18,20 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 - Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - All diff config has moved to `display.diff` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 
+### Prompt Library
+
+- The location of rules within a prompt library item has changed from `opts.rules` to `rules`. They now also support workflows:
+
+```markdown
+---
+name: Oli's test workflow
+strategy: chat
+description: Workflow test prompt
+rules:
+  - test_rule
+---
+```
+
 ## v17.33.0 to v18.0.0
 
 ### Config
