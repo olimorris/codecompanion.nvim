@@ -10,14 +10,23 @@ local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local triggers = require("codecompanion.triggers")
 
-local _cached_adapters = nil
+local _cached_adapters = {}
 
 ---Get the available adapters from the config
+---@param type? "all"|"http" Defaults to "all"
 ---@return string[]
-local function get_adapters()
-  if not _cached_adapters then
-    local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
-    _cached_adapters = vim
+local function get_adapters(type)
+  type = type or "all"
+
+  if not _cached_adapters[type] then
+    local config_adapters
+    if type == "http" then
+      config_adapters = vim.deepcopy(config.adapters.http)
+    else
+      config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
+    end
+
+    _cached_adapters[type] = vim
       .iter(config_adapters)
       :filter(function(k, _)
         return k ~= "acp" and k ~= "http" and k ~= "opts"
@@ -27,7 +36,8 @@ local function get_adapters()
       end)
       :totable()
   end
-  return _cached_adapters
+
+  return _cached_adapters[type]
 end
 
 -- Setup the commands used during testing
@@ -73,11 +83,11 @@ return {
       complete = function(arg_lead, cmdline, cursor_pos)
         local param_key = arg_lead:match("^(%w+)=$")
         if param_key == "adapter" then
-          local adapters = get_adapters()
+          local adapters = get_adapters("http")
           return vim
             .iter(adapters)
             :map(function(adapter)
-              return adapter
+              return "adapter=" .. adapter
             end)
             :totable()
         end
@@ -94,7 +104,7 @@ return {
 
         -- Always provide completions for adapters, prompt library, and editor context
         local completions = {}
-        local adapters = get_adapters()
+        local adapters = get_adapters("http")
         local prompt_aliases = require("codecompanion.helpers").get_prompt_aliases()
 
         -- Add adapters
@@ -163,7 +173,12 @@ return {
         -- Check if we're completing a parameter value (e.g., "adapter=" or "model=")
         local param_key = arg_lead:match("^(%w+)=$")
         if param_key == "adapter" then
-          return get_adapters()
+          return vim
+            .iter(get_adapters())
+            :map(function(adapter)
+              return "adapter=" .. adapter
+            end)
+            :totable()
         elseif param_key == "model" then
           -- Extract the adapter from the command line
           local adapter_name = cmdline:match("adapter=(%S+)")
@@ -188,11 +203,13 @@ return {
 
                   -- Extract model names from choices (if choices is not nil)
                   if type(choices) == "table" then
-                    if vim.islist(choices) then
-                      return choices
-                    else
-                      return vim.tbl_keys(choices)
-                    end
+                    local models = vim.islist(choices) and choices or vim.tbl_keys(choices)
+                    return vim
+                      .iter(models)
+                      :map(function(model)
+                        return "model=" .. model
+                      end)
+                      :totable()
                   end
                 end
               end
@@ -216,7 +233,7 @@ return {
                   end)
                   :map(function(key, _)
                     if type(key) == "string" then
-                      return key
+                      return "command=" .. key
                     end
                   end)
                   :totable()
