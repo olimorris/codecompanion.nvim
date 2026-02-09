@@ -64,10 +64,13 @@ function M.parse_file(path, context)
     context = frontmatter.context or nil,
     description = frontmatter.description or "",
     interaction = frontmatter.interaction,
+    mcp_servers = frontmatter.mcp_servers,
     name = frontmatter.name,
     opts = frontmatter.opts or {},
     path = path,
     prompts = prompts,
+    rules = frontmatter.rules,
+    tools = frontmatter.tools,
   }
 end
 
@@ -127,7 +130,7 @@ function M.parse_frontmatter(content)
     end
   end
 
-  --TODO: Remove in v19.0.0
+  --TODO: Remove in v20.0.0
   if frontmatter.strategy then
     frontmatter.interaction = frontmatter.strategy
     frontmatter.strategy = nil

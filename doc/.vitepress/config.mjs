@@ -170,7 +170,6 @@ export default withMermaid(
             },
             { text: "Events", link: "/usage/events" },
             { text: "Inline Assistant", link: "/usage/inline-assistant" },
-            { text: "Action Palette", link: "/usage/action-palette" },
             { text: "Prompt Library", link: "/usage/prompt-library" },
             { text: "Workflows", link: "/usage/workflows" },
             { text: "UI", link: "/usage/ui" },

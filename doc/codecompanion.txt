@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 06
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -560,6 +560,21 @@ CONFIG ~
 
 - Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+
+
+PROMPT LIBRARY ~
+
+- The location of rules within a prompt library item has changed from `opts.rules` to `rules`. They now also support workflows:
+
+>markdown
+    ---
+    name: Oli's test workflow
+    strategy: chat
+    description: Workflow test prompt
+    rules:
+      - test_rule
+    ---
+<
 
 
 V17.33.0 TO V18.0.0      *codecompanion-upgrading-general-v17.33.0-to-v18.0.0*
@@ -2450,6 +2465,10 @@ Palette - `description` - Description shown in the Action Palette -
 **Prompt sections:** - `## system` - System messages that set the LLM’s
 behaviour - `## user` - User messages containing your requests
 
+In the markdown prompt, above,
+|codecompanion-configuration-prompt-library-with-placeholders| are used to
+inject dynamic content from a visual selection.
+
 
 OPTIONS
 
@@ -2471,12 +2490,11 @@ behaviour:
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
-- `rules` - Specify a rule group to load with the prompt
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 
 
-PLACEHOLDERS
+WITH PLACEHOLDERS
 
 Placeholders allow you to inject dynamic content into your prompts. In markdown
 prompts, use `${placeholder.name}` syntax:
@@ -2640,6 +2658,13 @@ Context items appear at the top of the chat buffer. URLs are automatically
 cached for you.
 
 
+MCP SERVERS
+
+You can also specify |codecompanion-configuration-mcp| to be loaded with your
+prompt:
+
+
+
 PICKERS
 
 Pickers allow you to create dynamic prompt menus based on runtime data.
@@ -2711,6 +2736,19 @@ particularly useful for creating new buffers or setting up the environment:
 For the inline interaction, the plugin will detect a number being returned from
 the `pre_hook` and assume that is the buffer number you wish any code to be
 streamed into.
+
+
+RULES
+
+You can also specify rules to be loaded with your prompt:
+
+
+
+TOOLS
+
+You can also specify tools to be loaded with your prompt. These can be
+individual tools as well as tool groups:
+
 
 
 WORKFLOWS
@@ -4503,6 +4541,13 @@ function:
 <
 
 Where `docs` is the `alias` of the prompt.
+
+
+SLASH COMMANDS ~
+
+If your prompt library entries have an `alias` defined then you can invoke them
+using a slash command. In the cmd line `:CodeCompanion /<alias>` or `/<alias>`
+if you’re in the chat buffer.
 
 
 USER INTERFACE                            *codecompanion-usage-user-interface*

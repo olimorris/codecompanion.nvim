@@ -352,13 +352,13 @@ function Tools:parse(chat, message)
   if tools or groups then
     if tools and not vim.tbl_isempty(tools) then
       for _, tool in ipairs(tools) do
-        chat.tool_registry:add(tool, self.tools_config[tool])
+        chat.tool_registry:add_single_tool(tool, { config = self.tools_config[tool] })
       end
     end
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        chat.tool_registry:add_group(group, self.tools_config)
+        chat.tool_registry:add_group(group, { config = self.tools_config })
       end
     end
     return true
