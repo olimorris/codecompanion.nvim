@@ -1211,6 +1211,14 @@ CLI in order to setup your API key. Then ensure that in your chat buffer you
 select the `mistral_vibe` adapter.
 
 
+SETUP: KIRO CLI ~
+
+Install Kiro cli <https://kiro.dev/docs/cli/> as per their instructions. Then
+open it and login (if installation doesn’t already prompt you to login). the
+codecompanion adapter will execute `kiro-cli acp`, make sure to have it
+available on your PATH.
+
+
 SETUP: OPENCODE ~
 
 To use OpenCode <https://opencode.ai> in CodeCompanion, ensure you’ve
