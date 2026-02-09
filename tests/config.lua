@@ -240,6 +240,10 @@ return {
           callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/tool_group_tool.lua",
           description = "Tool group extended",
         },
+        ["adapter_tool"] = {
+          _adapter_tool = true,
+          description = "A mock adapter tool for testing",
+        },
         groups = {
           ["senior_dev"] = {
             description = "Tool Group",

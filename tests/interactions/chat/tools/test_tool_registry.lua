@@ -60,6 +60,13 @@ T["ToolRegistry"][":add"]["renders tool in the chat buffer"] = function()
   h.expect_contains("func", content)
 end
 
+T["ToolRegistry"][":add"]["returns nil for unknown name"] = function()
+  local result = child.lua_get([[_G.chat.tool_registry:add("nonexistent_tool_xyz")]])
+
+  h.eq(vim.NIL, result)
+  h.eq({}, child.lua_get([[_G.chat.tool_registry.in_use]]))
+end
+
 T["ToolRegistry"][":add_single_tool"] = new_set()
 
 T["ToolRegistry"][":add_single_tool"]["adds a tool to the registry"] = function()
@@ -92,6 +99,16 @@ T["ToolRegistry"][":add_single_tool"]["does not add duplicate tools"] = function
   h.eq(1, child.lua_get([[_G.tool_count]]))
 end
 
+T["ToolRegistry"][":add_single_tool"]["does not add duplicate adapter tools"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_single_tool("adapter_tool")
+    _G.chat.tool_registry:add_single_tool("adapter_tool")
+    _G.tool_count = vim.tbl_count(_G.chat.tool_registry.in_use)
+  ]])
+
+  h.eq(1, child.lua_get([[_G.tool_count]]))
+end
+
 T["ToolRegistry"][":add_group"] = new_set()
 
 T["ToolRegistry"][":add_group"]["adds all tools in a group"] = function()
@@ -102,6 +119,26 @@ T["ToolRegistry"][":add_group"]["adds all tools in a group"] = function()
   local registry = child.lua_get([[_G.chat.tool_registry.in_use]])
   h.expect_tbl_contains("func", registry)
   h.expect_tbl_contains("cmd", registry)
+end
+
+T["ToolRegistry"][":add_group"]["skips tools missing from config"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_group("senior_dev", {
+      config = {
+        groups = {
+          ["senior_dev"] = {
+            description = "Tool Group",
+            tools = { "func", "nonexistent_tool" },
+          },
+        },
+        ["func"] = require("tests.config").interactions.chat.tools["func"],
+      },
+    })
+  ]])
+
+  local registry = child.lua_get([[_G.chat.tool_registry.in_use]])
+  h.expect_tbl_contains("func", registry)
+  h.eq(1, child.lua_get([[vim.tbl_count(_G.chat.tool_registry.in_use)]]))
 end
 
 T["ToolRegistry"][":add_group"]["adds group system prompt"] = function()
