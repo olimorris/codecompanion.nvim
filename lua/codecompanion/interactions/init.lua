@@ -324,9 +324,7 @@ function Interactions.evaluate_prompts(prompts, buffer_context)
       return {
         role = prompt.role or "",
         content = content,
-        mcp_servers = prompt.mcp_servers,
         opts = prompt.opts or {},
-        tools = prompt.tools,
       }
     end)
     :totable()
