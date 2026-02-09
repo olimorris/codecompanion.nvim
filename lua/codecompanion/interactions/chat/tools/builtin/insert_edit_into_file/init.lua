@@ -52,7 +52,7 @@ end
 
 local PROMPT = load_prompt()
 
----Create response for output_handler
+---Create response for output_cb
 ---@param status "success"|"error"
 ---@param msg string
 ---@return table
@@ -138,7 +138,7 @@ local function approve_and_diff(opts)
       on_reject = function()
         get_rejection_reason(function(reason)
           local msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.title, reason)
-          opts.output_handler(make_response("error", msg))
+          opts.output_cb(make_response("error", msg))
         end)
       end,
     },
@@ -565,14 +565,12 @@ local function edit_file(action, opts)
   local path = file_utils.validate_and_normalize_path(action.filepath)
 
   if not path then
-    return opts.output_handler(
-      make_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath))
-    )
+    return opts.output_cb(make_response("error", fmt("Error: Invalid or non-existent filepath `%s`", action.filepath)))
   end
 
   local original_content, read_err, file_info = read_file(path)
   if not original_content then
-    return opts.output_handler(make_response("error", read_err or "Unknown error reading file"))
+    return opts.output_cb(make_response("error", read_err or "Unknown error reading file"))
   end
 
   if type(action.edits) == "string" then
@@ -583,7 +581,7 @@ local function edit_file(action, opts)
   end
 
   if #original_content > constants.LIMITS.FILE_SIZE_MAX then
-    return opts.output_handler(
+    return opts.output_cb(
       make_response(
         "error",
         fmt(
@@ -603,7 +601,7 @@ local function edit_file(action, opts)
 
   if not edit.success then
     local error_message = match_selector.format_helpful_error(edit, action.edits)
-    return opts.output_handler(make_response("error", error_message))
+    return opts.output_cb(make_response("error", error_message))
   end
 
   local success_msg = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))
@@ -614,14 +612,14 @@ local function edit_file(action, opts)
     apply_fn = function()
       local write_ok, write_err = write_file(path, edit.content, file_info)
       if not write_ok then
-        return opts.output_handler(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
+        return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
       end
-      opts.output_handler(make_response("success", success_msg))
+      opts.output_cb(make_response("success", success_msg))
     end,
     approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
     chat_bufnr = opts.chat_bufnr,
     ft = vim.filetype.match({ filename = path }) or "text",
-    output_handler = opts.output_handler,
+    output_cb = opts.output_cb,
     require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
     title = action.filepath,
@@ -663,7 +661,7 @@ local function edit_buffer(bufnr, opts)
 
   if not edit.success then
     local error_message = match_selector.format_helpful_error(edit, opts.action.edits)
-    return opts.output_handler(
+    return opts.output_cb(
       make_response("error", fmt("Error processing edits for `%s`:\n%s", display_name, error_message))
     )
   end
@@ -679,12 +677,12 @@ local function edit_buffer(bufnr, opts)
       api.nvim_buf_call(bufnr, function()
         vim.cmd("silent write")
       end)
-      opts.output_handler(make_response("success", success_msg))
+      opts.output_cb(make_response("success", success_msg))
     end,
     approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
     chat_bufnr = opts.chat_bufnr,
     ft = vim.bo[bufnr].filetype or "text",
-    output_handler = opts.output_handler,
+    output_cb = opts.output_cb,
     require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
     title = display_name,
@@ -698,14 +696,13 @@ return {
     ---Execute the experimental edit tool commands
     ---@param self CodeCompanion.Tools
     ---@param args table The arguments from the LLM's tool call
-    ---@param input? any The output from the previous function call
-    ---@param output_handler function Async callback for completion
+    ---@param opts {}
     ---@return nil|table
-    function(self, args, input, output_handler)
+    function(self, args, opts)
       if args.edits then
         local fixed_args, error_msg = fix_edits_if_needed(args)
         if not fixed_args then
-          return output_handler(make_response("error", fmt("Invalid edits format: %s", error_msg)))
+          return opts.output_cb(make_response("error", fmt("Invalid edits format: %s", error_msg)))
         end
         args = fixed_args
       end
@@ -714,13 +711,10 @@ return {
       if bufnr then
         return edit_buffer(
           bufnr,
-          { chat_bufnr = self.chat.bufnr, action = args, output_handler = output_handler, tool_opts = self.tool.opts }
+          { chat_bufnr = self.chat.bufnr, action = args, output_cb = opts.output_cb, tool_opts = self.tool.opts }
         )
       end
-      return edit_file(
-        args,
-        { chat_bufnr = self.chat.bufnr, output_handler = output_handler, tool_opts = self.tool.opts }
-      )
+      return edit_file(args, { chat_bufnr = self.chat.bufnr, output_cb = opts.output_cb, tool_opts = self.tool.opts })
     end,
   },
   schema = {
@@ -779,9 +773,9 @@ return {
   handlers = {
     ---The handler to determine whether to prompt the user for approval
     ---@param self CodeCompanion.Tool.InsertEditIntoFile
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: table }
     ---@return boolean
-    prompt_condition = function(self, tools)
+    prompt_condition = function(self, meta)
       local args = self.args
       local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       if bufnr then
@@ -796,16 +790,24 @@ return {
       end
       return false
     end,
-
-    ---@param tools CodeCompanion.Tools The tool object
-    ---@return nil
-    on_exit = function(tools) end,
   },
   output = {
     ---@param self CodeCompanion.Tool.InsertEditIntoFile
-    ---@param tools CodeCompanion.Tools
+    ---@param stderr table The error output from the command
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string}
+    ---@return nil
+    error = function(self, stderr, meta)
+      if stderr then
+        local chat = meta.tools.chat
+        local errors = vim.iter(stderr):flatten():join("\n")
+        chat:add_tool_output(self, "**Error:**\n" .. errors)
+      end
+    end,
+
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
+    ---@param meta {tools: CodeCompanion.Tools}
     ---@return nil|string
-    prompt = function(self, tools)
+    prompt = function(self, meta)
       local args = self.args
       local filepath = vim.fn.fnamemodify(args.filepath, ":.")
       local edit_count = args.edits and #args.edits or 0
@@ -813,23 +815,15 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.InsertEditIntoFile
-    ---@param tool CodeCompanion.Tools
-    ---@param cmd table The command that was executed
-    ---@param stdout table The output from the command
-    success = function(self, tool, cmd, stdout)
-      local chat = tool.chat
-      local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output)
-    end,
-
-    ---@param self CodeCompanion.Tool.InsertEditIntoFile
-    ---@param tool CodeCompanion.Tools
-    ---@param cmd table
-    ---@param stderr table The error output from the command
-    error = function(self, tool, cmd, stderr)
-      local chat = tool.chat
-      local errors = vim.iter(stderr):flatten():join("\n")
-      chat:add_tool_output(self, "**Error:**\n" .. errors)
+    ---@param stdout table|nil The output from the tool
+    ---@param meta { tools: table, cmd: table }
+    ---@return nil
+    success = function(self, stdout, meta)
+      if stdout then
+        local chat = meta.tools.chat
+        local llm_output = vim.iter(stdout):flatten():join("\n")
+        chat:add_tool_output(self, llm_output)
+      end
     end,
   },
 }

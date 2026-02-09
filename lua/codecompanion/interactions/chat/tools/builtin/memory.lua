@@ -451,14 +451,12 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.Memory
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param opts {tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, opts)
       local message = "The user rejected the memory operation"
       opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      helpers.rejected(self, opts)
     end,
   },
 }

@@ -108,18 +108,19 @@ return {
     },
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.FileSearch
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, opts)
       log:trace("[File Search Tool] on_exit handler executed")
     end,
   },
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.FileSearch
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
+    cmd_string = function(self, opts)
       return self.args.query
     end,
 

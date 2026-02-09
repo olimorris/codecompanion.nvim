@@ -175,9 +175,9 @@ return {
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.ReadFile
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
+    cmd_string = function(self, opts)
       return modify_path(self.args.filepath)
     end,
 
