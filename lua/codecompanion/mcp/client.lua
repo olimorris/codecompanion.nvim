@@ -660,7 +660,7 @@ function Client:refresh_tools()
       utils.fire("MCPServerToolsLoaded", { server = self.name, tools = installed_tools })
       utils.fire("ChatRefreshCache")
 
-      -- Fire and clear one-shot callbacks
+      -- Execute callbacks once the MCP tools have been loaded
       for _, cb in ipairs(self.on_tools_loaded) do
         pcall(cb)
       end
