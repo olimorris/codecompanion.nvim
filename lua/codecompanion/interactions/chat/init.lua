@@ -508,6 +508,7 @@ function Chat.new(args)
 
   -- Initialize components
   self.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = self })
+  self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   self.context = require("codecompanion.interactions.chat.context").new({ chat = self })
   self.subscribers = require("codecompanion.interactions.chat.subscribers").new()
   self.tools = require("codecompanion.interactions.chat.tools").new({
@@ -517,7 +518,6 @@ function Chat.new(args)
   })
   self.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({ chat = self })
   self.variables = require("codecompanion.interactions.chat.variables").new()
-  self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
