@@ -55,10 +55,10 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
+  - Editor Context                        |codecompanion-usage-editor-context|
   - Rules                                          |codecompanion-usage-rules|
-  - Tools                                          |codecompanion-usage-tools|
   - Slash Commands                        |codecompanion-usage-slash-commands|
-  - Variables                                  |codecompanion-usage-variables|
+  - Tools                                          |codecompanion-usage-tools|
   - Events / Hooks                        |codecompanion-usage-events-/-hooks|
   - Inline Assistant                    |codecompanion-usage-inline-assistant|
   - Prompt Library                        |codecompanion-usage-prompt-library|
@@ -88,10 +88,10 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
--  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
+-  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
--  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Variables and Slash Commands
+-  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
 -  Support for |codecompanion-usage-chat-buffer--images-vision| as input
 -  Async execution for fast performance
@@ -207,7 +207,7 @@ copy images from your system clipboard into a chat buffer via `:PasteImage`:
 COMPLETION                             *codecompanion-installation-completion*
 
 When in the |codecompanion-usage-chat-buffer-index|, completion can be used to
-more easily add |codecompanion-usage-chat-buffer-variables|,
+more easily add |codecompanion-usage-chat-buffer-editor-context|,
 |codecompanion-usage-chat-buffer-slash-commands| and
 |codecompanion-usage-chat-buffer-tools|. Out of the box, the plugin supports
 completion with both nvim-cmp <https://github.com/hrsh7th/nvim-cmp> and
@@ -412,17 +412,17 @@ run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open
 the chat buffer and send a prompt at the same time. Toggle the chat buffer with
 `:CodeCompanionChat Toggle`.
 
-You can add context from your code base by using `Variables` and `Slash
+You can add context from your code base by using `Editor Context` and `Slash
 Commands` in the chat buffer.
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
-`Variables`, accessed via `#`, contain data about the present state of Neovim.
-You can find a list of available variables,
-|codecompanion-usage-chat-buffer-variables.html|. The buffer variable will
-automatically link a buffer to the chat buffer, by default, updating the LLM
-when the buffer changes.
+`Editor Context`, accessed via `#` (by default), contain data about the present
+state of Neovim. You can find a list of available editor context,
+|codecompanion-usage-chat-buffer-editor-context|. The buffer editor context
+will automatically link a buffer to the chat buffer, by default, updating the
+LLM when the buffer changes.
 
 
   [!TIP] Use them in your prompt like: `What does the code in #{buffer} do?`
@@ -461,7 +461,7 @@ Run `:CodeCompanion your prompt` to call the inline assistant. The assistant
 will evaluate the prompt and either write code or open a chat buffer. You can
 also make a visual selection and call the assistant. To send additional context
 alongside your prompt, you can leverage
-|codecompanion-usage-inline-assistant-variables| such as `:CodeCompanion
+|codecompanion-usage-inline-assistant-editor-context| such as `:CodeCompanion
 #{buffer} <your prompt>`.
 
 For convenience, you can call prompts with their `alias` from the prompt
@@ -1651,18 +1651,18 @@ You can override this with:
 PREFIXES
 
 You can also customize the prefixes that trigger completions for
-|codecompanion-usage-chat-buffer-slash-commands|,
-|codecompanion-usage-chat-buffer-tools| and
-|codecompanion-usage-chat-buffer-variables|:
+|codecompanion--editor-context|(/usage/chat-buffer/editor-context],
+|codecompanion-usage-chat-buffer-slash-commands|, and
+|codecompanion-usage-chat-buffer-tools|:
 
 >lua
     require("codecompanion").setup({
       opts = {
         triggers = {
           acp_slash_commands = "\\",
+          editor_context = "#",
           slash_commands = "/",
           tools = "@",
-          variables = "#",
         },
       },
     })
@@ -1875,7 +1875,7 @@ can disable this behavior using a flag:
 COMPLETION
 
 By default, CodeCompanion looks to use the fantastic blink.cmp
-<https://github.com/Saghen/blink.cmp> plugin to complete variables, slash
+<https://github.com/Saghen/blink.cmp> plugin to complete editor context, slash
 commands and tools. However, you can override this in your config:
 
 >lua
@@ -1991,7 +1991,7 @@ There are also a number of other options that you can customize in the UI:
         chat = {
           intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
           separator = "─", -- The separator between the different messages in the chat buffer
-          show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+          show_context = true, -- Show context (from editor context and slash commands) in the chat buffer?
           show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
           show_settings = false, -- Show LLM settings at the top of the chat buffer?
           show_token_count = true, -- Show the token count for each response?
@@ -2003,30 +2003,30 @@ There are also a number of other options that you can customize in the UI:
 <
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
-Variables
+Editor context
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
-are placeholders inserted into the chat buffer (using `#` by default). They
-provide contextual code or information about the current Neovim state. For
-instance, the built-in `#{buffer}` variable sends the current buffer’s
-contents to the LLM.
+can be a inserted into the chat buffer using `#` (by default). It provides
+contextual code or information about the current Neovim state. For instance,
+the built-in `#{buffer}` editor context sends the current buffer’s contents
+to the LLM.
 
-You can even define your own variables to share specific content:
+You can even define your own context:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         chat = {
-          variables = {
-            ["my_var"] = {
-              ---Ensure the file matches the CodeCompanion.Variable class
+          editor_context = {
+            ["my_editor_context_item"] = {
+              ---Ensure the file matches the CodeCompanion.EditorContext class
               ---@return string|fun(): nil
-              callback = "/Users/Oli/Code/my_var.lua",
-              description = "Explain what my_var does",
+              callback = "/Users/Oli/Code/my_editor_context_item.lua",
+              description = "Explain what your does",
               opts = {
                 contains_code = false,
-                --has_params = true,    -- Set this if your variable supports parameters
+                --has_params = true,    -- Set this if your editor context item supports parameters
                 --default_params = nil, -- Set default parameters
               },
             },
@@ -2040,7 +2040,7 @@ You can even define your own variables to share specific content:
 SYNCING
 
 Neovim buffers can be
-|codecompanion-usage-chat-buffer-variables-with-parameters| with the chat
+|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
 buffer. That is, on each turn their content can be shared with the LLM. This is
 useful if you’re modifying a buffer and want the LLM to always have the
 latest changes.
@@ -2052,7 +2052,7 @@ To enable this by default for the built-in `#buffer` variable, you can set the
     require("codecompanion").setup({
       interactions = {
         chat = {
-          variables = {
+          editor_context = {
             ["buffer"] = {
               opts = {
                 -- Always sync the buffer by sharing its "diff"
@@ -2145,22 +2145,22 @@ You can also cancel an inline request with:
 <
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
 The plugin comes with a number of
-|codecompanion-usage-inline-assistant.html-variables| that can be used
-alongside your prompt using the `#{}` syntax (e.g., `#{my_new_var}`). You can
-also add your own:
+|codecompanion-usage-inline-assistant.html-editor-context| items that can be
+used alongside your prompt using the `#{}` syntax (e.g.,
+`#{my_new_context_item}`). You can also add your own:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         inline = {
-          variables = {
-            ["my_new_var"] = {
+          editor_context = {
+            ["my_new_context_item"] = {
               ---@return string
-              callback = "/Users/Oli/Code/my_var.lua",
-              description = "My shiny new variable",
+              callback = "/Users/Oli/Code/my_context_item.lua",
+              description = "My shiny new context item",
               opts = {
                 contains_code = true,
               },
@@ -3128,7 +3128,7 @@ nearest codeblock.
 APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-tools-files| tool, combined with the
-|codecompanion-usage-chat-buffer-variables.html-buffer| variable or
+|codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context or
 |codecompanion-usage-chat-buffer-slash-commands.html-buffer| slash command,
 enables an LLM to modify code in a Neovim buffer. This is especially useful if
 you do not wish to manually apply an LLM’s suggestions yourself. Simply tag
@@ -3457,11 +3457,12 @@ Conversing with an agent in CodeCompanion is done in exactly the same way as
 with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
 `<CR>` in normal mode to send it to the agent.
 
-|codecompanion-usage-chat-buffer-slash-commands| and
-|codecompanion-usage-chat-buffer-variables| are available to share additional
-context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
-disabled as the agent has their own tool set and the autonomy to decide what to
-run and when. CodeCompanion also supports an agent’s own slash commands
+|codecompanion-usage-chat-buffer-editor-context| and
+|codecompanion-usage-chat-buffer-slash-commands| are available to share
+additional context with the agent. However,
+|codecompanion-usage-chat-buffer-tools| are disabled as the agent has their own
+tool set and the autonomy to decide what to run and when. CodeCompanion also
+supports an agent’s own slash commands
 <https://agentclientprotocol.com/protocol/slash-commands> however these are
 invoked with `\` instead of `/` which is reserved for CodeCompanion’s
 built-in ones.
@@ -3503,6 +3504,91 @@ IMAGES ~
 
 The |codecompanion-usage-chat-buffer-slash-commands.html-image| slash command
 can be leveraged to share images with the agent.
+
+
+EDITOR CONTEXT                            *codecompanion-usage-editor-context*
+
+Editor context allows you to dynamically insert Neovim context into your chat
+messages using the `#{variable_name}` syntax. They’re processed when you send
+your message to the LLM, automatically including relevant content like buffer
+contents, LSP diagnostics, or your current viewport. Type `#` in the chat
+buffer to see available editor context through code completion, or type them
+manually.
+
+Custom editor context can be shared in the chat buffer by adding them to the
+`interactions.chat.editor_context` table in your configuration.
+
+
+BASIC USAGE ~
+
+Editor context uses the `#{variable_name}` syntax to dynamically insert content
+into your chat. For example `#{buffer}`. Editor context is processed when you
+send your message to the LLM.
+
+
+#BUFFER ~
+
+
+  [!IMPORTANT] By default, CodeCompanion automatically applies the `{diff}`
+  parameter to all buffers
+The `#{buffer}` editor context shares buffer contents with the LLM. It has two
+special parameters which control how content is shared, or `synced`, with the
+LLM, on each turn:
+
+
+BASIC USAGE
+
+- `#{buffer}` - Shares the current buffer (last one you were in)
+
+
+TARGET SPECIFIC BUFFERS
+
+- `#{buffer:init.lua}` - Shares a specific file by name
+- `#{buffer:src/main.rs}` - Shares a file by relative path
+- `#{buffer:utils}` - Shares a file containing "utils" in the path
+
+
+WITH PARAMETERS
+
+**{all}** - Sends all of the buffer content to the LLM whenever the buffer
+changes. Use this when you want the LLM to always have the complete, up-to-date
+file context.
+
+**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
+for large files where you only want to share incremental changes to reduce
+token usage.
+
+Can be used in combination with targeting a specific buffer:
+
+- `#{buffer}{all}` - Sends entire buffer on any change
+- `#{buffer}{diff}` - Sends only changed portions of the buffer
+- `#{buffer:config.lua}{all}` - Combines targeting with parameters
+
+
+MULTIPLE BUFFERS
+
+>
+    Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
+<
+
+
+  **Note:** For selecting multiple buffers with more control, use the `/buffer`
+  slash command.
+
+#LSP ~
+
+
+  [!TIP] The |codecompanion-usage-action-palette| has a pre-built prompt which
+  asks an LLM to explain LSP diagnostics in a visual selection
+The `lsp` editor context shares any information from the LSP servers that
+active in the current buffer. This can serve as useful context should you wish
+to troubleshoot any errors with an LLM.
+
+
+#VIEWPORT ~
+
+The `viewport` editor context shares with the LLM, exactly what you see on your
+screen at the point a response is sent (excluding the chat buffer of course).
 
 
 RULES                                              *codecompanion-usage-rules*
@@ -3624,6 +3710,155 @@ CLEARING RULES
 
 Rules can also be cleared from a chat buffer via the `gR` keymap. Although
 note, this will remove `ALL` context that’s been designated as `rules`.
+
+
+SLASH COMMANDS                            *codecompanion-usage-slash-commands*
+
+Slash Commands enable you to quickly add context to the chat buffer. They are
+comprised of values present in the `interactions.chat.slash_commands` table
+alongside the `prompt_library` table where individual prompts have
+`opts.is_slash_cmd = true`.
+
+
+/BUFFER ~
+
+
+  [!NOTE] As of v16.2.0
+  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
+  are now watched by default
+The `buffer` slash command enables you to add the contents of any open buffers
+in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
+`fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
+selected and added to the chat buffer as per the video above.
+
+
+/COMMAND ~
+
+The `command` slash command is specific to
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
+between different adapter commands. For instance, some ACP adapters may allow
+you to run the agent command with a specific flag. Be mindful that switching
+commands is destructive and essentially resets the chat buffer for the purposes
+of a conversation with an agent.
+
+
+/COMPACT ~
+
+The `compact` slash command, based on Claude Code’s
+<https://code.claude.com/docs/en/slash-commands#built-in-slash-commands>
+corresponding feature, clears the chat buffer’s message history whilst
+preserving a summary, in context.
+
+System prompts, rules and file/buffer shares will be preserved but all user,
+assistant and tool messages will be removed. The summary is generated by
+prompting the same LLM to summarize the chat history into a concise format.
+
+
+/FETCH ~
+
+
+  [!TIP] To better understand a Neovim plugin, send its `config.lua` to your LLM
+  via the `fetch` command alongside a prompt
+The `fetch` slash command allows you to add the contents of a URL to the chat
+buffer. By default, the plugin uses the awesome and powerful jina.ai
+<https://jina.ai> to parse the page’s content and convert it into plain text.
+For convenience, the slash command will cache the output to disk and prompt the
+user if they wish to restore from the cache, should they look to fetch the same
+URL.
+
+
+/FILE ~
+
+The `file` slash command allows you to add the contents of a file in the
+current working directory to the chat buffer. The command has native,
+`Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
+Also, multiple files can be selected and added to the chat buffer:
+
+- Select a single file: `⏎ enter`
+- Select multiple files: `⇥ tab`
+
+Please note that these mappings may be different depending on your provider.
+
+
+/HELP ~
+
+The `help` slash command allows you to add content from a vim help file
+(|helpfile|), to the chat buffer, by searching for help tags. Currently this is
+only available for `Telescope`, `mini.pick`, `fzf_lua` and `snacks.nvim`
+providers. By default, the slash command will prompt you to trim a help file
+that is over 1,000 lines in length.
+
+
+/IMAGE ~
+
+The `image` slash command allows you to add images into a chat buffer via
+remote URLs and through your file system. In the config for the slash command,
+you can specify a group of directories (with `opts.dirs`) that the image picker
+will always search in, alongside the current working directory. Currently the
+image picker is only available with `snacks.nvim` and the `vim.ui.select`.
+
+
+/RULES ~
+
+The `rules` slash command allows you to add
+|codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
+
+
+/MCP ~
+
+The `mcp` slash command allows you to start and stop
+|codecompanion-configuration-mcp| servers manually from within a chat buffer.
+This is applied at a global level, so starting/stopping servers in one chat
+buffer will affect all other chat buffers. A `snacks.nvim` and `vim.ui.select`
+provider is available for selecting which MCP servers to start/stop.
+
+
+/MODE ~
+
+The `mode` slash command is specific to
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
+between different agent operating modes, as per the protocol
+<https://agentclientprotocol.com/protocol/session-modes> docs.
+
+
+/NOW ~
+
+The `now` slash command simply inserts the current datetime stamp into the chat
+buffer.
+
+
+/QUICKFIX ~
+
+The `quickfix` slash command adds entries from the Neovim quickfix list to the
+chat buffer.
+
+- For search patterns or file entries, the whole file is shared.
+- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
+
+
+/SYMBOLS ~
+
+
+  [!NOTE] If a filetype isn’t supported please consider making a PR to add the
+  corresponding Tree-sitter queries from aerial.nvim
+  <https://github.com/stevearc/aerial.nvim>
+The `symbols` slash command uses Tree-sitter to create a symbolic outline of a
+file to share with the LLM. This can be a useful way to minimize token
+consumption whilst sharing the basic outline of a file. The plugin utilizes the
+amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as
+the basis. The list of filetypes that the plugin currently supports can be
+found here <https://github.com/olimorris/codecompanion.nvim/tree/main/queries>.
+
+The command has native, `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim`
+providers available. Also, multiple symbols can be selected and added to the
+chat buffer.
+
+
+/TERMINAL ~
+
+The `terminal` slash command shares the latest output from the last terminal
+buffer with the chat buffer. This can be useful for sharing the outputs of test
+runs with your LLM.
 
 
 TOOLS                                              *codecompanion-usage-tools*
@@ -4114,240 +4349,6 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   <https://github.com/olimorris/codecompanion.nvim/pull/2278> for more
   information.
 
-SLASH COMMANDS                            *codecompanion-usage-slash-commands*
-
-Slash Commands enable you to quickly add context to the chat buffer. They are
-comprised of values present in the `interactions.chat.slash_commands` table
-alongside the `prompt_library` table where individual prompts have
-`opts.is_slash_cmd = true`.
-
-
-/BUFFER ~
-
-
-  [!NOTE] As of v16.2.0
-  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
-  are now watched by default
-The `buffer` slash command enables you to add the contents of any open buffers
-in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
-`fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
-selected and added to the chat buffer as per the video above.
-
-
-/COMMAND ~
-
-The `command` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters and allows users to switch
-between different adapter commands. For instance, some ACP adapters may allow
-you to run the agent command with a specific flag. Be mindful that switching
-commands is destructive and essentially resets the chat buffer for the purposes
-of a conversation with an agent.
-
-
-/COMPACT ~
-
-The `compact` slash command, based on Claude Code’s
-<https://code.claude.com/docs/en/slash-commands#built-in-slash-commands>
-corresponding feature, clears the chat buffer’s message history whilst
-preserving a summary, in context.
-
-System prompts, rules and file/buffer shares will be preserved but all user,
-assistant and tool messages will be removed. The summary is generated by
-prompting the same LLM to summarize the chat history into a concise format.
-
-
-/FETCH ~
-
-
-  [!TIP] To better understand a Neovim plugin, send its `config.lua` to your LLM
-  via the `fetch` command alongside a prompt
-The `fetch` slash command allows you to add the contents of a URL to the chat
-buffer. By default, the plugin uses the awesome and powerful jina.ai
-<https://jina.ai> to parse the page’s content and convert it into plain text.
-For convenience, the slash command will cache the output to disk and prompt the
-user if they wish to restore from the cache, should they look to fetch the same
-URL.
-
-
-/FILE ~
-
-The `file` slash command allows you to add the contents of a file in the
-current working directory to the chat buffer. The command has native,
-`Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
-Also, multiple files can be selected and added to the chat buffer:
-
-- Select a single file: `⏎ enter`
-- Select multiple files: `⇥ tab`
-
-Please note that these mappings may be different depending on your provider.
-
-
-/HELP ~
-
-The `help` slash command allows you to add content from a vim help file
-(|helpfile|), to the chat buffer, by searching for help tags. Currently this is
-only available for `Telescope`, `mini.pick`, `fzf_lua` and `snacks.nvim`
-providers. By default, the slash command will prompt you to trim a help file
-that is over 1,000 lines in length.
-
-
-/IMAGE ~
-
-The `image` slash command allows you to add images into a chat buffer via
-remote URLs and through your file system. In the config for the slash command,
-you can specify a group of directories (with `opts.dirs`) that the image picker
-will always search in, alongside the current working directory. Currently the
-image picker is only available with `snacks.nvim` and the `vim.ui.select`.
-
-
-/RULES ~
-
-The `rules` slash command allows you to add
-|codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
-
-
-/MCP ~
-
-The `mcp` slash command allows you to start and stop
-|codecompanion-configuration-mcp| servers manually from within a chat buffer.
-This is applied at a global level, so starting/stopping servers in one chat
-buffer will affect all other chat buffers. A `snacks.nvim` and `vim.ui.select`
-provider is available for selecting which MCP servers to start/stop.
-
-
-/MODE ~
-
-The `mode` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters and allows users to switch
-between different agent operating modes, as per the protocol
-<https://agentclientprotocol.com/protocol/session-modes> docs.
-
-
-/NOW ~
-
-The `now` slash command simply inserts the current datetime stamp into the chat
-buffer.
-
-
-/QUICKFIX ~
-
-The `quickfix` slash command adds entries from the Neovim quickfix list to the
-chat buffer.
-
-- For search patterns or file entries, the whole file is shared.
-- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
-
-
-/SYMBOLS ~
-
-
-  [!NOTE] If a filetype isn’t supported please consider making a PR to add the
-  corresponding Tree-sitter queries from aerial.nvim
-  <https://github.com/stevearc/aerial.nvim>
-The `symbols` slash command uses Tree-sitter to create a symbolic outline of a
-file to share with the LLM. This can be a useful way to minimize token
-consumption whilst sharing the basic outline of a file. The plugin utilizes the
-amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as
-the basis. The list of filetypes that the plugin currently supports can be
-found here <https://github.com/olimorris/codecompanion.nvim/tree/main/queries>.
-
-The command has native, `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim`
-providers available. Also, multiple symbols can be selected and added to the
-chat buffer.
-
-
-/TERMINAL ~
-
-The `terminal` slash command shares the latest output from the last terminal
-buffer with the chat buffer. This can be useful for sharing the outputs of test
-runs with your LLM.
-
-
-VARIABLES                                      *codecompanion-usage-variables*
-
-Variables allow you to dynamically insert Neovim context into your chat
-messages using the `#{variable_name}` syntax. They’re processed when you send
-your message to the LLM, automatically including relevant content like buffer
-contents, LSP diagnostics, or your current viewport. Type `#` in the chat
-buffer to see available variables through code completion, or type them
-manually.
-
-Custom variables can be shared in the chat buffer by adding them to the
-`interactions.chat.variables` table in your configuration.
-
-
-BASIC USAGE ~
-
-Variables use the `#{variable_name}` syntax to dynamically insert content into
-your chat. For example `#{buffer}`. Variables are processed when you send your
-message to the LLM.
-
-
-#BUFFER ~
-
-
-  [!IMPORTANT] By default, CodeCompanion automatically applies the `{diff}`
-  parameter to all buffers
-The `#{buffer}` variable shares buffer contents with the LLM. It has two
-special parameters which control how content is shared, or `synced`, with the
-LLM, on each turn:
-
-
-BASIC USAGE
-
-- `#{buffer}` - Shares the current buffer (last one you were in)
-
-
-TARGET SPECIFIC BUFFERS
-
-- `#{buffer:init.lua}` - Shares a specific file by name
-- `#{buffer:src/main.rs}` - Shares a file by relative path
-- `#{buffer:utils}` - Shares a file containing "utils" in the path
-
-
-WITH PARAMETERS
-
-**{all}** - Sends all of the buffer content to the LLM whenever the buffer
-changes. Use this when you want the LLM to always have the complete, up-to-date
-file context.
-
-**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
-for large files where you only want to share incremental changes to reduce
-token usage.
-
-Can be used in combination with targeting a specific buffer:
-
-- `#{buffer}{all}` - Sends entire buffer on any change
-- `#{buffer}{diff}` - Sends only changed portions of the buffer
-- `#{buffer:config.lua}{all}` - Combines targeting with parameters
-
-
-MULTIPLE BUFFERS
-
->
-    Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
-<
-
-
-  **Note:** For selecting multiple buffers with more control, use the `/buffer`
-  slash command.
-
-#LSP ~
-
-
-  [!TIP] The |codecompanion-usage-action-palette| has a pre-built prompt which
-  asks an LLM to explain LSP diagnostics in a visual selection
-The `lsp` variable shares any information from the LSP servers that active in
-the current buffer. This can serve as useful context should you wish to
-troubleshoot any errors with an LLM.
-
-
-#VIEWPORT ~
-
-The `viewport` variable shares with the LLM, exactly what you see on your
-screen at the point a response is sent (excluding the chat buffer of course).
-
-
 EVENTS / HOOKS                            *codecompanion-usage-events-/-hooks*
 
 In order to enable a tighter integration between CodeCompanion and your Neovim
@@ -4501,24 +4502,25 @@ These keymaps can also be changed in your config via the
 `interactions.inline.keymaps` table.
 
 
-VARIABLES ~
+EDITOR CONTEXT ~
 
 
   [!TIP] To ensure the LLM has enough context to complete a complex ask, it’s
-  recommended to use the `buffer` variable
+  recommended to use the `buffer` editor context
 The inline assistant allows you to send context alongside your prompt via the
-notion of variables:
+notion of editor context. That is, context that relates to your current Neovim
+session:
 
 - `buffer` - shares the contents of the current buffer
 - `chat` - shares the LLM’s messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
 Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
-new method to this file`. Multiple variables can be sent as part of the same
-prompt. You can even add your own custom variables as per the
-|codecompanion-configuration-inline-assistant-variables|.
+new method to this file`. Multiple context items can be sent as part of the
+same prompt. You can even add your own custom variables as per the
+|codecompanion-configuration-inline-assistant-editor-context|.
 
-You can also have multiple variables a part of a prompt, for example:
+You can also have multiple editor context as part of a prompt, for example:
 `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
 
 
@@ -4593,7 +4595,7 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
-- `CodeCompanionChatVariable` - Variables in the chat buffer
+- `CodeCompanionChatEditorContext` - Editor context in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
 
 
@@ -5589,10 +5591,10 @@ instructions. In this case, we’re giving the LLM access to the
 |codecompanion-usage-chat-buffer-tools.html-cmd-runner| tools to edit a buffer
 and run tests, respectively.
 
-We’re giving the LLM knowledge of the buffer with the `#buffer` variable and
-also telling CodeCompanion to watch it for any changes with the `{watch}`
-parameter. Prior to sending a response to the LLM, the plugin will share any
-changes to that buffer, keeping the LLM updated.
+We’re giving the LLM knowledge of the buffer with the `#buffer` editor
+context and also telling CodeCompanion to watch it for any changes with the
+`{watch}` parameter. Prior to sending a response to the LLM, the plugin will
+share any changes to that buffer, keeping the LLM updated.
 
 Now let’s look at how we trigger the automated reflection prompts:
 

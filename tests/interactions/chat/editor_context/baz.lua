@@ -1,6 +1,6 @@
 local Baz = {}
 
----@param args CodeCompanion.Variable
+---@param args CodeCompanion.EditorContext
 function Baz.new(args)
   local self = setmetatable({
     Chat = args.Chat,
@@ -18,14 +18,14 @@ function Baz:output()
     self.Chat:add_message({
       role = "user",
       content = "baz " .. self.params,
-    }, { _meta = { tag = "variable" }, visible = false })
+    }, { _meta = { tag = "editor_context" }, visible = false })
     return
   end
 
   self.Chat:add_message({
     role = "user",
     content = "baz",
-  }, { _meta = { tag = "variable" }, visible = false })
+  }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
 return Baz

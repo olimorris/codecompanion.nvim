@@ -92,7 +92,7 @@ return {
           current_arg_index = current_arg_index + 1
         end
 
-        -- Always provide completions for adapters, prompt library, and variables
+        -- Always provide completions for adapters, prompt library, and editor context
         local completions = {}
         local adapters = get_adapters()
         local prompt_aliases = require("codecompanion.helpers").get_prompt_aliases()
@@ -107,10 +107,10 @@ return {
           table.insert(completions, triggers.mappings.slash_commands .. k)
         end)
 
-        -- Add inline variables
-        for key, _ in pairs(config.interactions.inline.variables) do
+        -- Add inline editor context
+        for key, _ in pairs(config.interactions.inline.editor_context) do
           if key ~= "opts" then
-            table.insert(completions, string.format("%s{" .. key .. "}", triggers.mappings.variables))
+            table.insert(completions, string.format("%s{%s}", triggers.mappings.editor_context, key))
           end
         end
 

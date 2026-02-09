@@ -34,10 +34,10 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
+local editor_context = require("codecompanion.interactions.inline.editor_context")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
-local variables = require("codecompanion.interactions.inline.variables")
 
 local api = vim.api
 local fmt = string.format
@@ -230,7 +230,7 @@ function Inline:set_adapter(adapter)
   end
 end
 
----Parse special syntax from user prompt (adapters and maintain variables)
+---Parse special syntax from user prompt (adapters and maintain editor context)
 ---@param prompt string
 ---@return string The cleaned prompt
 function Inline:parse_special_syntax(prompt)
@@ -316,17 +316,17 @@ function Inline:prompt(user_prompt)
   end
 
   if user_prompt then
-    -- Parse adapters and variables from the entire prompt
+    -- Parse adapters and editor context from the entire prompt
     user_prompt = self:parse_special_syntax(user_prompt)
 
-    -- Check for any variables
-    local vars = variables.new({ inline = self, prompt = user_prompt })
-    local found = vars:find():replace():output()
+    -- Check for any editor context
+    local ec = editor_context.new({ inline = self, prompt = user_prompt })
+    local found = ec:find():replace():output()
     if found then
-      for _, var in ipairs(found) do
-        add_prompt(var, user_role, { visible = false })
+      for _, item in ipairs(found) do
+        add_prompt(item, user_role, { visible = false })
       end
-      user_prompt = vars.prompt
+      user_prompt = ec.prompt
     end
 
     -- Add the user's prompt

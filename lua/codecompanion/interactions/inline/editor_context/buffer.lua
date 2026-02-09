@@ -1,10 +1,10 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local chat_helpers = require("codecompanion.interactions.chat.helpers")
 
----@class CodeCompanion.Inline.Variables.Buffer: CodeCompanion.Inline.Variables
+---@class CodeCompanion.Inline.EditorContext.Buffer: CodeCompanion.Inline.EditorContextItems
 local Buffer = {}
 
----@param args CodeCompanion.Inline.VariablesArgs
+---@param args CodeCompanion.Inline.EditorContextArgs
 function Buffer.new(args)
   return setmetatable({
     context = args.context,

@@ -30,21 +30,21 @@ T["Chat"]["system prompt is added first"] = function()
   h.eq("default system prompt", messages[1].content)
 end
 
-T["Chat"]["buffer variables are handled"] = function()
+T["Chat"]["buffer editor context is handled"] = function()
   -- Execute all the complex operations in the child process
   child.lua([[
     -- Get the existing chat object
     local chat = _G.chat
 
-    -- Add a new message with a variable context
+    -- Add a new message with editor_context
     table.insert(chat.messages, { role = "user", content = "#{foo} what does this file do?" })
 
     -- Get the message we just added
     local message = chat.messages[#chat.messages]
 
-    -- Parse and replace variables in the message
-    if chat.variables:parse(chat, message) then
-      message.content = chat.variables:replace(message.content, chat.buffer_context.bufnr)
+    -- Parse and replace editor context in the message
+    if chat.editor_context:parse(chat, message) then
+      message.content = chat.editor_context:replace(message.content, chat.buffer_context.bufnr)
     end
 
     -- Extract the properties we need to test into simple data types
@@ -61,7 +61,7 @@ T["Chat"]["buffer variables are handled"] = function()
   -- Make assertions on the retrieved values
   h.eq("foo", last_message_content)
   h.eq(false, last_message_visible)
-  h.eq("variable", last_message_tag)
+  h.eq("editor_context", last_message_tag)
 end
 
 T["Chat"]["system prompt can be ignored"] = function()

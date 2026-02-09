@@ -18,6 +18,7 @@
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field create_buf fun(): number The function that creates a new buffer for the chat
+---@field editor_context? CodeCompanion.EditorContext The editor context available to the user
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
@@ -33,7 +34,6 @@
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
----@field variables? CodeCompanion.Variables The variables available to the user
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
@@ -64,13 +64,14 @@
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.interactions.chat.helpers")
+local parser = require("codecompanion.interactions.chat.parser")
+local schema = require("codecompanion.schema")
+
+local hash = require("codecompanion.utils.hash")
 local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local parser = require("codecompanion.interactions.chat.parser")
-local schema = require("codecompanion.schema")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -510,6 +511,7 @@ function Chat.new(args)
   self.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = self })
   self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   self.context = require("codecompanion.interactions.chat.context").new({ chat = self })
+  self.editor_context = require("codecompanion.interactions.chat.editor_context").new()
   self.subscribers = require("codecompanion.interactions.chat.subscribers").new()
   self.tools = require("codecompanion.interactions.chat.tools").new({
     adapter = self.adapter,
@@ -517,7 +519,6 @@ function Chat.new(args)
     messages = self.messages,
   })
   self.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({ chat = self })
-  self.variables = require("codecompanion.interactions.chat.variables").new()
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
@@ -999,15 +1000,15 @@ function Chat:add_image_message(image, opts)
   })
 end
 
----Apply any tools or variables that a user has tagged in their message
+---Replace any tools or editor context that the user has included in their response
 ---@param message table
 ---@return nil
-function Chat:replace_vars_and_tools(message)
+function Chat:replace_user_inputs(message)
   if self.tools:parse(self, message) then
     message.content = self.tools:replace(message.content)
   end
-  if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content, self.buffer_context.bufnr)
+  if self.editor_context:parse(self, message) then
+    message.content = self.editor_context:replace(message.content, self.buffer_context.bufnr)
   end
 end
 
@@ -1153,7 +1154,7 @@ function Chat:submit(opts)
     -- that we only manage context if the last message was from the user.
     if message_to_submit then
       message_to_submit = self.context:remove(self.messages[#self.messages])
-      self:replace_vars_and_tools(message_to_submit)
+      self:replace_user_inputs(message_to_submit)
       self:check_images(message_to_submit)
       self:check_context()
       sync_all_buffer_content(self)

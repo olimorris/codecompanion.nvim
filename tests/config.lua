@@ -293,9 +293,9 @@ return {
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.chat.variables.buffer",
+          callback = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
@@ -303,27 +303,27 @@ return {
           },
         },
         ["foo"] = {
-          callback = "tests.interactions.chat.variables.foo",
+          callback = "tests.interactions.chat.editor_context.foo",
           description = "foo",
         },
-        -- Add test variables to verify word boundary matching
+        -- Add test editor_context to verify word boundary matching
         ["foo://10-20-30:40"] = {
-          callback = "tests.interactions.chat.variables.foo_special",
+          callback = "tests.interactions.chat.editor_context.foo_special",
           description = "Variable with prefix starting with 'foo' and with special chars",
         },
         ["bar"] = {
-          callback = "tests.interactions.chat.variables.bar",
+          callback = "tests.interactions.chat.editor_context.bar",
           description = "bar",
           opts = {
             has_params = true,
           },
         },
         ["screenshot://screenshot-2025-05-21T11-17-45.440Z"] = {
-          callback = "tests.interactions.chat.variables.screenshot",
+          callback = "tests.interactions.chat.editor_context.screenshot",
           description = "Screenshot",
         },
         ["baz"] = {
-          callback = "tests.interactions.chat.variables.baz",
+          callback = "tests.interactions.chat.editor_context.baz",
           description = "baz",
         },
       },
@@ -371,13 +371,13 @@ return {
     inline = {
       adapter = "test_adapter",
       keymaps = og_config.interactions.inline.keymaps,
-      variables = {
+      editor_context = {
         ["foo"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/inline/variables/foo.lua",
+          callback = vim.fn.getcwd() .. "/tests/interactions/inline/editor_context/foo.lua",
           description = "My foo variable",
         },
         ["bar"] = {
-          callback = "tests.interactions.inline.variables.bar",
+          callback = "tests.interactions.inline.editor_context.bar",
           description = "bar",
         },
       },
@@ -504,9 +504,9 @@ return {
   opts = {
     triggers = {
       acp_slash_commands = "\\",
+      editor_context = "#",
       slash_commands = "/",
       tools = "@",
-      variables = "#",
     },
   },
 }

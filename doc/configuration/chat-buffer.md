@@ -47,16 +47,16 @@ require("codecompanion").setup({
 
 ### Prefixes
 
-You can also customize the prefixes that trigger completions for [slash commands](/usage/chat-buffer/slash-commands), [tools](/usage/chat-buffer/tools) and [variables](/usage/chat-buffer/variables):
+You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context], [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/tools):
 
 ```lua
 require("codecompanion").setup({
   opts = {
     triggers = {
       acp_slash_commands = "\\",
+      editor_context = "#",
       slash_commands = "/",
       tools = "@",
-      variables = "#",
     },
   },
 })
@@ -522,7 +522,7 @@ require("codecompanion").setup({
 
 ### Completion
 
-By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete variables, slash commands and tools. However, you can override this in your config:
+By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete editor context, slash commands and tools. However, you can override this in your config:
 
 ```lua
 require("codecompanion").setup({
@@ -697,7 +697,7 @@ require("codecompanion").setup({
     chat = {
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
       separator = "─", -- The separator between the different messages in the chat buffer
-      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+      show_context = true, -- Show context (from editor context and slash commands) in the chat buffer?
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
@@ -709,25 +709,25 @@ require("codecompanion").setup({
 ```
 
 
-## Variables
+## Editor Context
 
-[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#` by default). They provide contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` variable sends the current buffer’s contents to the LLM.
+[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be  a inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
 
-You can even define your own variables to share specific content:
+You can even define your own context:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
-      variables = {
-        ["my_var"] = {
-          ---Ensure the file matches the CodeCompanion.Variable class
+      editor_context = {
+        ["my_editor_context_item"] = {
+          ---Ensure the file matches the CodeCompanion.EditorContext class
           ---@return string|fun(): nil
-          callback = "/Users/Oli/Code/my_var.lua",
-          description = "Explain what my_var does",
+          callback = "/Users/Oli/Code/my_editor_context_item.lua",
+          description = "Explain what your does",
           opts = {
             contains_code = false,
-            --has_params = true,    -- Set this if your variable supports parameters
+            --has_params = true,    -- Set this if your editor context item supports parameters
             --default_params = nil, -- Set default parameters
           },
         },
@@ -739,7 +739,7 @@ require("codecompanion").setup({
 
 ### Syncing
 
-Neovim buffers can be [synced](/usage/chat-buffer/variables#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
+Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
 
 To enable this by default for the built-in `#buffer` variable, you can set the `default_params` option to either `diff` or `all`:
 
@@ -747,7 +747,7 @@ To enable this by default for the built-in `#buffer` variable, you can set the `
 require("codecompanion").setup({
   interactions = {
     chat = {
-      variables = {
+      editor_context = {
         ["buffer"] = {
           opts = {
             -- Always sync the buffer by sharing its "diff"

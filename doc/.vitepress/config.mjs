@@ -159,13 +159,16 @@ export default withMermaid(
               collapsed: true,
               items: [
                 { text: "Agents", link: "/usage/chat-buffer/agents" },
+                {
+                  text: "Editor Context",
+                  link: "/usage/chat-buffer/editor-context",
+                },
                 { text: "Rules", link: "/usage/chat-buffer/rules" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
                 },
                 { text: "Tools", link: "/usage/chat-buffer/tools" },
-                { text: "Variables", link: "/usage/chat-buffer/variables" },
               ],
             },
             { text: "Events", link: "/usage/events" },

@@ -40,6 +40,6 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
-- `CodeCompanionChatVariable` - Variables in the chat buffer
+- `CodeCompanionChatEditorContext` - Editor context in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
 

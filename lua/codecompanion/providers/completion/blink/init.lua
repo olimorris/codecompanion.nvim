@@ -12,7 +12,7 @@ function M.new()
 end
 
 function M:get_trigger_characters()
-  local trigger_chars = { triggers.mappings.slash_commands, triggers.mappings.tools, triggers.mappings.variables }
+  local trigger_chars = { triggers.mappings.slash_commands, triggers.mappings.tools, triggers.mappings.editor_context }
   if config.interactions.chat.slash_commands.opts.acp.enabled then
     table.insert(trigger_chars, triggers.mappings.acp_slash_commands)
   end
@@ -69,27 +69,27 @@ function M:get_completions(ctx, callback)
         :totable(),
     })
 
-  -- Variables
-  elseif trigger_char == triggers.mappings.variables then
+  -- Editor context
+  elseif trigger_char == triggers.mappings.editor_context then
     callback({
       context = ctx,
       is_incomplete_forward = false,
       is_incomplete_backward = false,
       items = vim
-        .iter(completion.variables())
+        .iter(completion.editor_context())
         :map(function(item)
           return {
             kind = vim.lsp.protocol.CompletionItemKind.Variable,
             label = item.label:sub(2),
             textEdit = {
-              newText = string.format("%s{%s}", triggers.mappings.variables, item.label:sub(2)),
+              newText = string.format("%s{%s}", triggers.mappings.editor_context, item.label:sub(2)),
               range = edit_range,
             },
             documentation = {
               kind = "plaintext",
               value = item.detail,
             },
-            data = { type = "variable" },
+            data = { type = "editor_context" },
           }
         end)
         :totable(),
@@ -160,8 +160,8 @@ function M:get_completions(ctx, callback)
 end
 
 function M:execute(ctx, item, callback, default_implementation)
-  -- Variables and tools just need default text insertion
-  if vim.tbl_contains({ "variable", "tool" }, item.data.type) then
+  -- Editor context and tools just need default text insertion
+  if vim.tbl_contains({ "editor_context", "tool" }, item.data.type) then
     if type(default_implementation) == "function" then
       default_implementation()
     end

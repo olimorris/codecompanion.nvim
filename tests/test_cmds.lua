@@ -144,8 +144,8 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     local cfg = require('codecompanion.config')
     cfg.interactions = cfg.interactions or {}
     cfg.interactions.chat = cfg.interactions.chat or {}
-    cfg.interactions.chat.variables = cfg.interactions.chat.variables or {}
-    cfg.interactions.chat.variables.testvar = cfg.interactions.chat.variables.testvar or {}
+    cfg.interactions.chat.editor_context = cfg.interactions.chat.editor_context or {}
+    cfg.interactions.chat.editor_context.testvar = cfg.interactions.chat.editor_context.testvar or {}
 
     -- New buffer with placeholder
     vim.cmd('enew')
@@ -170,7 +170,7 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     return vim.fn.synIDattr(id, 'name')
   ]])
 
-  h.eq(hl, "CodeCompanionChatVariable")
+  h.eq(hl, "CodeCompanionChatEditorContext")
 end
 
 return T
