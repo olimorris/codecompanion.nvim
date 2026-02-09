@@ -22,6 +22,7 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
+---@field hidden boolean Whether the chat is hidden (no window opened)
 ---@field id number The unique identifier for the chat
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
@@ -46,14 +47,17 @@
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
+---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
+---@field mcp_servers? table<string> List of MCP server names to start and load into the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
+---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
 
@@ -413,6 +417,7 @@ function Chat.new(args)
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
+    hidden = args.hidden or false,
     id = id,
     intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
@@ -540,8 +545,12 @@ function Chat.new(args)
     self.messages = args.messages
   end
 
-  self.close_last_chat()
-  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  if not self.hidden then
+    self.close_last_chat()
+    self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  else
+    self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  end
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
@@ -591,12 +600,17 @@ function Chat.new(args)
   last_chat = self
 
   for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
-    local tool_config = config.interactions.chat.tools[tool_name]
-    if tool_config ~= nil then
-      self.tool_registry:add(tool_name, tool_config)
-    elseif config.interactions.chat.tools.groups[tool_name] ~= nil then
-      self.tool_registry:add_group(tool_name, config.interactions.chat.tools)
+    self.tool_registry:add(tool_name)
+  end
+
+  if args.tools then
+    for _, tool in pairs(args.tools) do
+      self.tool_registry:add(tool)
     end
+  end
+
+  if args.mcp_servers then
+    helpers.start_mcp_servers(self, args.mcp_servers)
   end
 
   -- Handle callbacks
@@ -803,7 +817,7 @@ function Chat:make_system_prompt_ctx()
     language = config.opts.language or "English",
     date = tostring(os.date("%Y-%m-%d")),
     nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-    cwd = vim.fn.getcwd(winid ~= -1 and winid or nil),
+    cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
     project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
     default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
   }

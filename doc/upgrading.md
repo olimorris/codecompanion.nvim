@@ -19,6 +19,20 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 - All diff config has moved to `display.diff` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` ([#2719](https://github.com/olimorris/codecompanion.nvim/pull/2719))
 
+### Prompt Library
+
+- The location of rules within a prompt library item has changed from `opts.rules` to `rules`. They now also support workflows:
+
+```markdown
+---
+name: Oli's test workflow
+strategy: chat
+description: Workflow test prompt
+rules:
+  - test_rule
+---
+```
+
 ## v17.33.0 to v18.0.0
 
 ### Config

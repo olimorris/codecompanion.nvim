@@ -147,6 +147,8 @@ Markdown prompts consist of two main parts:
 - `## system` - System messages that set the LLM's behaviour
 - `## user` - User messages containing your requests
 
+In the markdown prompt, above, [placeholders](/configuration/prompt-library#with-placeholders) are used to inject dynamic content from a visual selection.
+
 ### Options
 
 Both markdown and Lua prompts support a wide range of options to customise behaviour:
@@ -241,11 +243,10 @@ opts = {
 - `modes` - Only show in specific modes (`{ "v" }` for visual mode)
 - `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
 - `pre_hook` - Function to run before the prompt is executed (Lua only)
-- `rules` - Specify a rule group to load with the prompt
 - `stop_context_insertion` - Prevent automatic context insertion
 - `user_prompt` - Get user input before actioning the response
 
-### Placeholders
+### With Placeholders
 
 Placeholders allow you to inject dynamic content into your prompts. In markdown prompts, use `${placeholder.name}` syntax:
 
@@ -515,6 +516,36 @@ I'll think of something clever to put here...
 
 Context items appear at the top of the chat buffer. URLs are automatically cached for you.
 
+#### MCP Servers
+
+You can also specify [MCP servers](/configuration/mcp) to be loaded with your prompt:
+
+::: code-group
+
+````markdown [Markdown]
+---
+name: Prompt with MCP servers
+interaction: chat
+description: A prompt that starts MCP servers
+mcp_servers:
+  - tavily-mcp
+  - filesystem
+---
+````
+
+````lua [Lua]
+["Prompt with MCP servers"] = {
+  interaction = "chat",
+  description = "A prompt that starts MCP servers",
+  mcp_servers = {
+    "tavily-mcp",
+    "filesystem",
+  },
+},
+````
+
+:::
+
 #### Pickers
 
 Pickers allow you to create dynamic prompt menus based on runtime data.
@@ -582,6 +613,66 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
 ````
 
 For the inline interaction, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
+
+#### Rules
+
+You can also specify rules to be loaded with your prompt:
+
+::: code-group
+
+````markdown [Markdown]
+---
+name: Prompt with rules
+interaction: chat
+description: A prompt that loads rules
+rules:
+  - default
+  - my_other_rule
+---
+````
+
+````lua [Lua]
+["Prompt with rules"] = {
+  interaction = "chat",
+  description = "A prompt that loads rules",
+  rules = {
+    "default",
+    "my_other_rules",
+  },
+},
+````
+
+:::
+
+#### Tools
+
+You can also specify tools to be loaded with your prompt. These can be individual tools as well as tool groups:
+
+::: code-group
+
+````markdown [Markdown]
+---
+name: Prompt with tools
+interaction: chat
+description: A prompt that loads tools
+tools:
+  - cmd_runner
+  - insert_edit_into_file
+---
+````
+
+````lua [Lua]
+["Prompt with tools"] = {
+  interaction = "chat",
+  description = "A prompt that loads tools",
+  tools = {
+    "cmd_runner",
+    "insert_edit_into_file",
+  },
+},
+````
+
+:::
 
 #### Workflows
 

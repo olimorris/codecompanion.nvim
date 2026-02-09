@@ -242,6 +242,7 @@ end
 ---@field cfg CodeCompanion.MCP.ServerConfig
 ---@field ready boolean
 ---@field transport CodeCompanion.MCP.Transport
+---@field on_tools_loaded fun()[] Callbacks to fire once after tools are loaded
 ---@field resp_handlers table<number, CodeCompanion.MCP.ResponseHandlerEntry>
 ---@field server_request_handlers table<string, ServerRequestHandler>
 ---@field server_capabilities? table<string, any>
@@ -281,6 +282,7 @@ function Client.new(args)
     cfg = args.cfg,
     ready = false,
     transport = transport,
+    on_tools_loaded = {},
     resp_handlers = {},
     server_request_handlers = {},
     methods = static_methods,
@@ -657,6 +659,12 @@ function Client:refresh_tools()
       local installed_tools = tool_bridge.setup_tools(self, all_tools)
       utils.fire("MCPServerToolsLoaded", { server = self.name, tools = installed_tools })
       utils.fire("ChatRefreshCache")
+
+      -- Execute callbacks once the MCP tools have been loaded
+      for _, cb in ipairs(self.on_tools_loaded) do
+        pcall(cb)
+      end
+      self.on_tools_loaded = {}
     end)
   end
 

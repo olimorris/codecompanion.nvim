@@ -159,6 +159,93 @@ context:
   }, "Frontmatter with context should be parsed correctly")
 end
 
+T["Markdown"]["parse_frontmatter extracts tools"] = function()
+  local frontmatter = [[---
+name: Prompt with tools
+interaction: chat
+description: A prompt that loads tools
+tools:
+  - cmd_runner
+  - insert_edit_into_file
+---
+  ]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_frontmatter(...)
+  ]],
+    { frontmatter }
+  )
+
+  h.eq(result, {
+    description = "A prompt that loads tools",
+    name = "Prompt with tools",
+    interaction = "chat",
+    tools = {
+      "cmd_runner",
+      "insert_edit_into_file",
+    },
+  }, "Frontmatter with tools should be parsed correctly")
+end
+
+T["Markdown"]["parse_frontmatter extracts mcp_servers"] = function()
+  local frontmatter = [[---
+name: Prompt with MCP servers
+interaction: chat
+description: A prompt that starts MCP servers
+mcp_servers:
+  - tavily-mcp
+  - filesystem
+---
+  ]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_frontmatter(...)
+  ]],
+    { frontmatter }
+  )
+
+  h.eq(result, {
+    description = "A prompt that starts MCP servers",
+    name = "Prompt with MCP servers",
+    interaction = "chat",
+    mcp_servers = {
+      "tavily-mcp",
+      "filesystem",
+    },
+  }, "Frontmatter with mcp_servers should be parsed correctly")
+end
+
+T["Markdown"]["parse_frontmatter extracts rules"] = function()
+  local frontmatter = [[---
+name: Prompt with rules
+interaction: chat
+description: A prompt that loads rules
+rules:
+  - default
+  - my_other_rule
+---
+  ]]
+
+  local result = child.lua(
+    [[
+      return markdown.parse_frontmatter(...)
+  ]],
+    { frontmatter }
+  )
+
+  h.eq(result, {
+    description = "A prompt that loads rules",
+    name = "Prompt with rules",
+    interaction = "chat",
+    rules = {
+      "default",
+      "my_other_rule",
+    },
+  }, "Frontmatter with rules should be parsed correctly")
+end
+
 T["Markdown"]["parse_prompt extracts system and user prompts"] = function()
   local markdown = [[## system
 

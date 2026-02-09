@@ -1,5 +1,6 @@
 local Client = require("codecompanion.mcp.client")
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local CONSTANTS = {
   TOOL_PREFIX = "mcp:",
@@ -140,11 +141,15 @@ end
 
 ---Enable a configured MCP server
 ---@param name string
+---@param opts? { on_tools_loaded?: fun() }
 ---@return boolean, boolean|string
-function M.enable_server(name)
+function M.enable_server(name, opts)
+  opts = opts or {}
+
   local mcp_cfg = config.mcp
   local server_cfg = mcp_cfg.servers[name]
   if not server_cfg then
+    log:warn("MCP server `%s` is not configured", name)
     return false, string.format("MCP server not found: %s", name)
   end
 
@@ -153,6 +158,10 @@ function M.enable_server(name)
 
   if not clients[name] then
     clients[name] = Client.new({ name = name, cfg = server_cfg })
+  end
+
+  if opts.on_tools_loaded then
+    table.insert(clients[name].on_tools_loaded, opts.on_tools_loaded)
   end
 
   clients[name]:start()
@@ -237,6 +246,12 @@ function M.cancel_requests(chat_id, reason)
       client:cancel_request_from_chat(chat_id, reason)
     end
   end
+end
+
+---Return the prefix used for MCP tools in the tool registry
+---@return string
+function M.tool_prefix()
+  return CONSTANTS.TOOL_PREFIX
 end
 
 return M

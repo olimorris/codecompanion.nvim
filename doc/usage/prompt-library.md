@@ -18,3 +18,7 @@ end, { noremap = true, silent = true })
 
 Where `docs` is the `alias` of the prompt.
 
+## Slash Commands
+
+If your prompt library entries have an `alias` defined then you can invoke them using a slash command. In the cmd line `:CodeCompanion /<alias>` or `/<alias>` if you're in the chat buffer.
+

@@ -1,6 +1,8 @@
+local config = require("codecompanion.config")
+
 local Path = require("plenary.path")
 local buf_utils = require("codecompanion.utils.buffers")
-local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -87,6 +89,37 @@ function M.has_tag(tag, messages)
     end, messages),
     tag
   )
+end
+
+---Start MCP servers and add their tools to the chat buffer
+---@param chat CodeCompanion.Chat
+---@param server_names table<string> List of MCP server names
+---@return nil
+function M.start_mcp_servers(chat, server_names)
+  local mcp = require("codecompanion.mcp")
+
+  ---Add an MCP server's tool group to the chat buffer
+  ---@param name string
+  local function add_tools(name)
+    chat.tools:refresh({ adapter = chat.adapter })
+    chat.tool_registry:add(mcp.tool_prefix() .. name, { config = chat.tools.tools_config })
+    log:debug("Added MCP server tools for `%s` to chat %d", name, chat.id)
+  end
+
+  for _, name in ipairs(server_names) do
+    local status = mcp.get_status()
+    local server_status = status[name]
+
+    if server_status and server_status.ready and server_status.tool_count > 0 then
+      add_tools(name)
+    else
+      mcp.enable_server(name, {
+        on_tools_loaded = function()
+          add_tools(name)
+        end,
+      })
+    end
+  end
 end
 
 ---Determine if context has already been added to the messages stack

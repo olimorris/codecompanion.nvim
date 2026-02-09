@@ -274,4 +274,35 @@ T["Chat"]["ftplugin window options override plugin defaults"] = function()
   child_test.stop()
 end
 
+T["Chat"]["can create hidden chat without opening window"] = function()
+  local result = child.lua([[
+    local hidden_chat = codecompanion.chat({
+      hidden = true,
+      messages = {
+        { role = "user", content = "Test hidden chat" }
+      }
+    })
+
+    local line_count = vim.api.nvim_buf_line_count(hidden_chat.bufnr)
+    local cwd_ok, cwd_ctx = pcall(function() return hidden_chat:make_system_prompt_ctx() end)
+
+    return {
+      hidden = hidden_chat.hidden,
+      bufnr_valid = vim.api.nvim_buf_is_valid(hidden_chat.bufnr),
+      is_visible = hidden_chat.ui:is_visible(),
+      line_count = line_count,
+      buffer_has_content = line_count > 0,
+      cwd_works = cwd_ok,
+      cwd_value = cwd_ok and cwd_ctx.cwd or nil
+    }
+  ]])
+
+  h.eq(true, result.hidden)
+  h.eq(true, result.bufnr_valid)
+  h.eq(false, result.is_visible == true)
+  h.eq(true, result.line_count > 0)
+  h.eq(true, result.cwd_works)
+  h.eq(true, result.cwd_value ~= nil and result.cwd_value ~= "")
+end
+
 return T
