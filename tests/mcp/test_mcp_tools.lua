@@ -288,7 +288,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
             echo = {
               timeout = 100,
               output = {
-                prompt = function(self, tools)
+                prompt = function(self, meta)
                   return "Custom confirmation prompt for echo tool: " .. self.args.value
                 end,
               },
@@ -301,12 +301,12 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
             },
             make_list = {
               output = {
-                success = function(self, tools, cmd, stdout)
+                success = function(self, stdout, meta)
                   local output = vim.iter(stdout[#stdout]):map(function(block)
                     assert(block.type == "text")
                     return block.text
                   end):join(",")
-                  tools.chat:add_tool_output(self, output)
+                  meta.tools.chat:add_tool_output(self, output)
                 end
               },
             },

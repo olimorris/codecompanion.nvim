@@ -86,8 +86,8 @@ return {
   ),
   handlers = {
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tool CodeCompanion.Tools The tool object
-    setup = function(self, tool)
+    ---@param meta { tools: CodeCompanion.Tools }
+    setup = function(self, meta)
       local args = self.args
 
       local cmd = { cmd = vim.split(args.cmd, " ") }
@@ -102,70 +102,69 @@ return {
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
+    cmd_string = function(self, meta)
       return self.args.cmd
+    end,
+
+    ---@param self CodeCompanion.Tool.CmdRunner
+    ---@param stderr table The error output from the command
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string}
+    error = function(self, stderr, meta)
+      if stderr then
+        local chat = meta.tools.chat
+        local errors = vim.iter(stderr):flatten():join("\n")
+
+        local output = [[%s
+```txt
+%s
+```]]
+
+        local llm_output = fmt(output, fmt("There was an error running the `%s` command:", meta.cmd), errors)
+        local user_output = fmt(output, fmt("`%s` error", meta.cmd), errors)
+
+        chat:add_tool_output(self, llm_output, user_output)
+      end
     end,
 
     ---Prompt the user to approve the execution of the command
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tool CodeCompanion.Tools
+    ---@param meta {tools: CodeCompanion.Tools}
     ---@return string
-    prompt = function(self, tool)
+    prompt = function(self, meta)
       return fmt("Run the command `%s`?", self.args.cmd)
     end,
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param meta {tools: CodeCompanion.Tools, cmd: string, opts: table}
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = fmt("The user rejected the execution of the `%s` command", self.args.cmd)
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      helpers.rejected(self, meta)
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tool CodeCompanion.Tools
-    ---@param cmd table
-    ---@param stderr table The error output from the command
-    error = function(self, tool, cmd, stderr)
-      local chat = tool.chat
-      local errors = vim.iter(stderr):flatten():join("\n")
-
-      local output = [[%s
-```txt
+    ---@param stdout table|nil The output from the tool
+    ---@param meta { tools: table, cmd: table }
+    ---@return nil
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
+      if stdout then
+        local output = vim.iter(stdout[#stdout]):flatten():join("\n")
+        local message = fmt(
+          [[`%s`
+````
 %s
-```]]
-
-      local llm_output = fmt(output, fmt("There was an error running the `%s` command:", cmd.cmd), errors)
-      local user_output = fmt(output, fmt("`%s` error", cmd.cmd), errors)
-
-      chat:add_tool_output(self, llm_output, user_output)
-    end,
-
-    ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param tool CodeCompanion.Tools
-    ---@param cmd table The command that was executed
-    ---@param stdout table The output from the command
-    success = function(self, tool, cmd, stdout)
-      local chat = tool.chat
-      if stdout and vim.tbl_isempty(stdout) then
-        return chat:add_tool_output(self, "There was no output from the cmd_runner tool")
+````]],
+          self.args.cmd,
+          output
+        )
+        return chat:add_tool_output(self, message)
       end
-      local output = vim.iter(stdout[#stdout]):flatten():join("\n")
-      local message = fmt(
-        [[`%s`
-```
-%s
-```]],
-        self.args.cmd,
-        output
-      )
-      chat:add_tool_output(self, message)
+      return chat:add_tool_output(self, "There was no output from the cmd_runner tool")
     end,
   },
 }

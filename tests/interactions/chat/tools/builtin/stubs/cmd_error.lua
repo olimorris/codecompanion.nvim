@@ -6,14 +6,14 @@ return {
   },
   handlers = {
     -- Should only be called once
-    on_exit = function(self)
+    on_exit = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Exit"
       _G._test_exit = (_G._test_exit or "") .. "Exited"
     end,
   },
   output = {
     -- Should only be called once
-    error = function(self, cmd, stderr, stdout)
+    error = function(self, stderr, meta)
       _G._test_output = (_G._test_output or "") .. "Error"
       _G._test_order = (_G._test_order or "") .. "Error"
     end,

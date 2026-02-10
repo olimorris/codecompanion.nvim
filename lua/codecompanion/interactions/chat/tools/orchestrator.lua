@@ -60,8 +60,8 @@ local function cmd_to_func_tool(tool)
       end
 
       ---@param tools CodeCompanion.Tools
-      return function(tools, _, _, cb)
-        cb = vim.schedule_wrap(cb)
+      return function(tools, _, opts)
+        local cb = vim.schedule_wrap(opts.output_cb)
         execute_shell_command(cmd, function(out)
           if flag then
             tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
@@ -126,7 +126,7 @@ function Orchestrator:_setup_handlers()
         return
       end
       if self.tool.handlers and self.tool.handlers.setup then
-        return self.tool.handlers.setup(self.tool, self.tools)
+        return self.tool.handlers.setup(self.tool, { tools = self.tools })
       end
     end,
     prompt_condition = function()
@@ -135,7 +135,7 @@ function Orchestrator:_setup_handlers()
       end
 
       if self.tool.handlers and self.tool.handlers.prompt_condition then
-        return self.tool.handlers.prompt_condition(self.tool, self.tools, self.tools.tools_config)
+        return self.tool.handlers.prompt_condition(self.tool, { tools = self.tools })
       end
       return true
     end,
@@ -145,12 +145,28 @@ function Orchestrator:_setup_handlers()
       end
 
       if self.tool.handlers and self.tool.handlers.on_exit then
-        return self.tool.handlers.on_exit(self.tool, self.tools)
+        return self.tool.handlers.on_exit(self.tool, { tools = self.tools })
       end
     end,
   }
 
   self.output = {
+    cancelled = function(cmd)
+      if not self.tool then
+        return
+      end
+
+      if self.tool.output and self.tool.output.cancelled then
+        self.tool.output.cancelled(self.tool, { cmd = cmd, tools = self.tools })
+      else
+        send_response_to_chat(
+          self,
+          fmt("The user cancelled the execution of the %s tool", self.tool.name),
+          fmt("Cancelled `%s`", self.tool.name)
+        )
+      end
+    end,
+
     cmd_string = function()
       if not self.tool then
         return
@@ -161,14 +177,31 @@ function Orchestrator:_setup_handlers()
       return nil
     end,
 
+    error = function(cmd)
+      if not self.tool then
+        return
+      end
+
+      if self.tool.output and self.tool.output.error then
+        self.tool.output.error(
+          self.tool,
+          vim.tbl_isempty(self.tools.stderr) and nil or self.tools.stderr,
+          { cmd = cmd, tools = self.tools }
+        )
+      else
+        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
+      end
+    end,
+
     prompt = function()
       if not self.tool then
         return
       end
       if self.tool.output and self.tool.output.prompt then
-        return self.tool.output.prompt(self.tool, self.tools)
+        return self.tool.output.prompt(self.tool, { tools = self.tools })
       end
     end,
+
     rejected = function(cmd, opts)
       if not self.tool then
         return
@@ -177,7 +210,7 @@ function Orchestrator:_setup_handlers()
       opts = opts or {}
 
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.tool, self.tools, cmd, opts)
+        self.tool.output.rejected(self.tool, { cmd = cmd, tools = self.tools, opts = opts })
       else
         local rejection = fmt("\nThe user rejected the execution of the %s tool", self.tool.name)
         if opts.reason then
@@ -187,39 +220,18 @@ function Orchestrator:_setup_handlers()
         send_response_to_chat(self, rejection)
       end
     end,
-    error = function(cmd)
-      if not self.tool then
-        return
-      end
 
-      if self.tool.output and self.tool.output.error then
-        self.tool.output.error(self.tool, self.tools, cmd, self.tools.stderr)
-      else
-        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
-      end
-    end,
-    cancelled = function(cmd)
-      if not self.tool then
-        return
-      end
-
-      if self.tool.output and self.tool.output.cancelled then
-        self.tool.output.cancelled(self.tool, self.tools, cmd)
-      else
-        send_response_to_chat(
-          self,
-          fmt("The user cancelled the execution of the %s tool", self.tool.name),
-          fmt("Cancelled `%s`", self.tool.name)
-        )
-      end
-    end,
     success = function(cmd)
       if not self.tool then
         return
       end
 
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self.tool, self.tools, cmd, self.tool_output or {})
+        self.tool.output.success(
+          self.tool,
+          vim.tbl_isempty(self.tool_output) and nil or self.tool_output,
+          { cmd = cmd, tools = self.tools }
+        )
       else
         send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end

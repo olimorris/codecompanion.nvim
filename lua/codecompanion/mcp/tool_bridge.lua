@@ -28,11 +28,10 @@ end
 ---@class CodeCompanion.Tool.MCPToolBridge: CodeCompanion.Tools.Tool
 local tool_output = {
   ---@param self CodeCompanion.Tool.MCPToolBridge
-  ---@param tools CodeCompanion.Tools
-  ---@param cmd table The command that was executed
   ---@param stdout table The output from the command
-  success = function(self, tools, cmd, stdout)
-    local chat = tools.chat
+  ---@param opts {cmd: string, tools: table}
+  success = function(self, stdout, opts)
+    local chat = opts.tools.chat
     local output = M.format_tool_result_content(stdout and stdout[#stdout])
     local output_for_user = output
     local DISPLAY_LIMIT_BYTES = 1000
@@ -52,11 +51,10 @@ local tool_output = {
   end,
 
   ---@param self CodeCompanion.Tool.MCPToolBridge
-  ---@param tools CodeCompanion.Tools
-  ---@param cmd table
   ---@param stderr table The error output from the command
-  error = function(self, tools, cmd, stderr)
-    local chat = tools.chat
+  ---@param opts {cmd: string, tools: CodeCompanion.Tools}
+  error = function(self, stderr, opts)
+    local chat = opts.tools.chat
     local err_msg = M.format_tool_result_content(stderr and stderr[#stderr] or "<NO ERROR MESSAGE>")
     local for_user = fmt(
       [[MCP: %s failed:
@@ -75,9 +73,9 @@ Arguments:
 
   ---The message which is shared with the user when asking for their approval
   ---@param self CodeCompanion.Tool.MCPToolBridge
-  ---@param tools CodeCompanion.Tools
+  ---@param opts {tools: CodeCompanion.Tools}
   ---@return nil|string
-  prompt = function(self, tools)
+  prompt = function(self, opts)
     return fmt("Execute the `%s` MCP tool?\nArguments:\n%s", self.name, vim.inspect(self.args))
   end,
 }
@@ -120,10 +118,9 @@ function M.build(client, mcp_tool)
       ---Execute the MCP tool
       ---@param self CodeCompanion.Tools
       ---@param args table The arguments from the LLM's tool call
-      ---@param input? any The output from the previous function call
-      ---@param output_handler function Async callback for completion
+      ---@param opts {input: table, output_cb: fun(any)}
       ---@return nil|table
-      function(self, args, input, output_handler)
+      function(self, args, opts)
         local chat_id = self.chat and self.chat.id or nil
         client:call_tool(mcp_tool.name, args, function(ok, result_or_error)
           local output
@@ -137,7 +134,7 @@ function M.build(client, mcp_tool)
               output = { status = "success", data = result.content }
             end
           end
-          output_handler(output)
+          opts.output_cb(output)
         end, { timeout = override.timeout, chat_id = chat_id })
       end,
     },
