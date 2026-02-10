@@ -200,6 +200,52 @@ T["Utils"]["replace_placeholders()"]["handles special characters in placeholder 
   h.eq(result, "Value: test")
 end
 
+T["Utils"]["replace_placeholders()"]["handles percent signs in replacement values"] = function()
+  local result = child.lua([[
+    return utils.replace_placeholders(
+      '(<a href="https://my.test.page/tester.php?login=${email}" title="Test Page">%20</a>)',
+      { email = "testuser%40testing.org" }
+    )
+  ]])
+  h.eq(result, '(<a href="https://my.test.page/tester.php?login=testuser%40testing.org" title="Test Page">%20</a>)')
+end
+
+T["Utils"]["replace_placeholders()"]["handles simple percent signs in replacement"] = function()
+  local result = child.lua([[
+    return utils.replace_placeholders(
+      "Encoded: ${value}",
+      { value = "%20" }
+    )
+  ]])
+  h.eq(result, "Encoded: %20")
+end
+
+T["Utils"]["replace_placeholders()"]["preserves special pattern characters in replacement values"] = function()
+  local result = child.lua([[
+    return utils.replace_placeholders(
+      "Code: ${context.code}",
+      { ["context.code"] = 'require("lazy.minit").repro({ spec = plugins })' }
+    )
+  ]])
+  h.eq(result, 'Code: require("lazy.minit").repro({ spec = plugins })')
+end
+
+T["Utils"]["replace_placeholders()"]["preserves parentheses and dots in table replacement"] = function()
+  child.lua([[
+    _G.test_table = {
+      { role = "user", content = "Review this: ${context.code}" },
+    }
+    utils.replace_placeholders(_G.test_table, {
+      ["context.code"] = "obj.method(arg1, arg2) + 100%",
+    })
+  ]])
+
+  local result = child.lua([[return _G.test_table]])
+  h.eq(result, {
+    { role = "user", content = "Review this: obj.method(arg1, arg2) + 100%" },
+  })
+end
+
 T["Utils"]["resolve_nested_value()"] = MiniTest.new_set()
 
 T["Utils"]["resolve_nested_value()"]["resolves top-level value"] = function()

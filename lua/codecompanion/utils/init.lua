@@ -108,6 +108,16 @@ function M.extract_all_placeholders(prompts)
   return all_placeholders
 end
 
+---Escape percent signs in a string for use as a gsub replacement value.
+---In Lua's gsub, the replacement string treats %0-%9 as capture references
+---and %% as a literal percent. This function doubles all percent signs so
+---that the replacement is inserted verbatim.
+---@param str string
+---@return string
+local function escape_gsub_replacement(str)
+  return (str:gsub("%%", "%%%%"))
+end
+
 ---Replace any placeholders (e.g. ${placeholder}) in a string or table
 ---@param t table|string The content to process
 ---@param replacements table<string, string> Map of placeholder names to replacement values
@@ -115,7 +125,7 @@ end
 function M.replace_placeholders(t, replacements)
   if type(t) == "string" then
     for placeholder, replacement in pairs(replacements) do
-      t = t:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
+      t = t:gsub("%${" .. vim.pesc(placeholder) .. "}", escape_gsub_replacement(replacement))
     end
     return t
   else
@@ -124,7 +134,7 @@ function M.replace_placeholders(t, replacements)
         M.replace_placeholders(value, replacements)
       elseif type(value) == "string" then
         for placeholder, replacement in pairs(replacements) do
-          value = value:gsub("%${" .. vim.pesc(placeholder) .. "}", replacement)
+          value = value:gsub("%${" .. vim.pesc(placeholder) .. "}", escape_gsub_replacement(replacement))
         end
         t[key] = value
       end
