@@ -62,6 +62,13 @@ function Icons:clear_icon(bufnr, extmark_id)
   api.nvim_buf_del_extmark(bufnr, CONSTANTS.NS_TOOL_ICONS, extmark_id)
 end
 
+---Clear tool icons on a specific line
+---@param bufnr number
+---@param line number 0-based line number
+function Icons.clear_line(bufnr, line)
+  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, line, line + 1)
+end
+
 ---Clear all tool icons from buffer
 ---@param bufnr number
 function Icons.clear_icons(bufnr)

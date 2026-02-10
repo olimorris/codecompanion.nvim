@@ -50,7 +50,6 @@ local uv = vim.uv
 ---@field _models {currentModelId: string, availableModels: table[]}|nil
 ---@field methods table
 local Connection = {}
-Connection.static = {}
 
 Connection.METHODS = METHODS
 
@@ -58,25 +57,13 @@ Connection.METHODS = METHODS
 ---@field result any
 ---@field error any
 
--- Static methods for testing/mocking
-Connection.static.methods = {
-  decode = { default = vim.json.decode },
-  encode = { default = vim.json.encode },
-  job = { default = vim.system },
-  schedule = { default = vim.schedule },
-  schedule_wrap = { default = vim.schedule_wrap },
+local METHOD_DEFAULTS = {
+  decode = vim.json.decode,
+  encode = vim.json.encode,
+  job = vim.system,
+  schedule = vim.schedule,
+  schedule_wrap = vim.schedule_wrap,
 }
-
----Transform static methods for easier testing
----@param opts? table
----@return table
-local function transform_static_methods(opts)
-  local ret = {}
-  for k, v in pairs(Connection.static.methods) do
-    ret[k] = (opts and opts[k]) or v.default
-  end
-  return ret
-end
 
 ---@class CodeCompanion.ACPConnectionArgs
 ---@field adapter CodeCompanion.ACPAdapter
@@ -89,12 +76,14 @@ end
 function Connection.new(args)
   args = args or {}
 
+  local methods = vim.tbl_extend("force", METHOD_DEFAULTS, args.opts or {})
+
   local self = setmetatable({
     adapter = args.adapter,
     adapter_modified = {},
     pending_responses = {},
     session_id = args.session_id,
-    methods = transform_static_methods(args.opts),
+    methods = methods,
     _initialized = false,
     _authenticated = false,
     _modes = nil,
@@ -130,7 +119,6 @@ function Connection:connect_and_initialize()
 
     log:debug("[acp::connect_and_initialize] Agent info: %s", initialized)
 
-    -- Ensure the protocol version matches
     if
       initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
     then
@@ -143,9 +131,8 @@ function Connection:connect_and_initialize()
 
     self._initialized = true
 
-    -- Ensure that we ALWAYS disconnect when exiting Neovim
     api.nvim_create_autocmd("VimLeavePre", {
-      group = vim.api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
+      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
       callback = function()
         pcall(function()
           return self:disconnect()
@@ -154,6 +141,22 @@ function Connection:connect_and_initialize()
     })
   end
 
+  if not self:_authenticate() then
+    return nil
+  end
+
+  if not self:_establish_session() then
+    return nil
+  end
+
+  self:apply_default_model()
+
+  return self
+end
+
+---Authenticate the connection via adapter hook or agent auth methods
+---@return boolean success
+function Connection:_authenticate()
   -- Allow adapters to handle authentication themselves
   if
     not self._authenticated
@@ -161,12 +164,12 @@ function Connection:connect_and_initialize()
     and self.adapter_modified.handlers
     and self.adapter_modified.handlers.auth
   then
-    local ok, adapter_authenticated = pcall(self.adapter_modified.handlers.auth, self.adapter_modified)
+    local ok, result = pcall(self.adapter_modified.handlers.auth, self.adapter_modified)
     if not ok then
-      log:error("[acp::connect_and_initialize] Adapter auth hook failed: %s", adapter_authenticated)
-      return nil
+      log:error("[acp::_authenticate] Adapter auth hook failed: %s", result)
+      return false
     end
-    if adapter_authenticated == true then
+    if result == true then
       self._authenticated = true
     end
   end
@@ -176,27 +179,32 @@ function Connection:connect_and_initialize()
     local auth_methods = (self._agent_info and self._agent_info.authMethods) or {}
     if #auth_methods > 0 then
       local wanted = self.adapter_modified.defaults.auth_method
-      local methodId
+      local method_id
       for _, m in ipairs(auth_methods) do
         if m.id == wanted then
-          methodId = m.id
+          method_id = m.id
           break
         end
       end
-      methodId = methodId or (auth_methods[1] and auth_methods[1].id)
+      method_id = method_id or (auth_methods[1] and auth_methods[1].id)
 
-      if methodId then
-        local ok = self:send_rpc_request(METHODS.AUTHENTICATE, { methodId = methodId })
+      if method_id then
+        local ok = self:send_rpc_request(METHODS.AUTHENTICATE, { methodId = method_id })
         if not ok then
-          log:error("[acp::connect_and_initialize] Failed to authenticate with method %s", methodId)
-          return nil
+          log:error("[acp::_authenticate] Failed to authenticate with method %s", method_id)
+          return false
         end
       end
     end
     self._authenticated = true
   end
 
-  -- Create or load session
+  return true
+end
+
+---Create or load a session
+---@return boolean success
+function Connection:_establish_session()
   local can_load = self._agent_info
     and self._agent_info.agentCapabilities
     and self._agent_info.agentCapabilities.loadSession
@@ -218,26 +226,22 @@ function Connection:connect_and_initialize()
   if not self.session_id or not can_load then
     local new_session = self:send_rpc_request(METHODS.SESSION_NEW, session_args)
     if not new_session or not new_session.sessionId then
-      log:error("[acp::connect_and_initialize] Failed to create session")
-      return nil
+      log:error("[acp::_establish_session] Failed to create session")
+      return false
     end
     self.session_id = new_session.sessionId
 
-    -- Cache session modes and models if provided
     if new_session.modes then
       self._modes = new_session.modes
-      log:debug("[acp::connect_and_initialize] Available modes: %s", new_session.modes)
+      log:debug("[acp::_establish_session] Available modes: %s", new_session.modes)
     end
     if new_session.models then
       self._models = new_session.models
-      log:debug("[acp::connect_and_initialize] Available models: %s", new_session.models)
+      log:debug("[acp::_establish_session] Available models: %s", new_session.models)
     end
   end
 
-  -- Apply default model from adapter config if specified
-  self:apply_default_model()
-
-  return self
+  return true
 end
 
 ---Apply the default model from the adapter config
@@ -516,6 +520,30 @@ function Connection:send_notification(method, params)
   self:write_message(self.methods.encode(msg) .. "\n")
 end
 
+---@private
+local DISPATCH = {
+  [METHODS.SESSION_UPDATE] = function(self, m)
+    if m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
+      self:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
+    elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
+      self:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
+    elseif self._active_prompt then
+      self._active_prompt:handle_session_update(m.params.update)
+    end
+  end,
+  [METHODS.SESSION_REQUEST_PERMISSION] = function(self, m)
+    if self._active_prompt then
+      self._active_prompt:handle_permission_request(m.id, m.params)
+    end
+  end,
+  [METHODS.FS_READ_TEXT_FILE] = function(self, m)
+    self:handle_fs_read_text_file_request(m.id, m.params)
+  end,
+  [METHODS.FS_WRITE_TEXT_FILE] = function(self, m)
+    self:handle_fs_write_file_request(m.id, m.params)
+  end,
+}
+
 ---Handle incoming requests and notifications from the ACP agent process
 ---@param notification? table
 function Connection:handle_incoming_request_or_notification(notification)
@@ -531,32 +559,6 @@ function Connection:handle_incoming_request_or_notification(notification)
     end
     return
   end
-
-  local DISPATCH = self._dispatch
-    or {
-      [self.METHODS.SESSION_UPDATE] = function(s, m)
-        -- Handle available_commands_update at the connection level
-        if m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
-          s:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
-        elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
-          s:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
-        elseif s._active_prompt then
-          s._active_prompt:handle_session_update(m.params.update)
-        end
-      end,
-      [self.METHODS.SESSION_REQUEST_PERMISSION] = function(s, m)
-        if s._active_prompt then
-          s._active_prompt:handle_permission_request(m.id, m.params)
-        end
-      end,
-      [self.METHODS.FS_READ_TEXT_FILE] = function(s, m)
-        s:handle_fs_read_text_file_request(m.id, m.params)
-      end,
-      [self.METHODS.FS_WRITE_TEXT_FILE] = function(s, m)
-        s:handle_fs_write_file_request(m.id, m.params)
-      end,
-    }
-  self._dispatch = DISPATCH
 
   local handler = DISPATCH[notification.method]
   if handler then
@@ -585,6 +587,13 @@ function Connection:write_message(data)
   return true
 end
 
+---Check if params contain a mismatched sessionId
+---@param params table
+---@return boolean valid true if sessionId matches or is absent
+function Connection:_has_valid_session_id(params)
+  return not params.sessionId or not self.session_id or params.sessionId == self.session_id
+end
+
 ---Handle fs/read_text_file requests
 ---@param id number
 ---@param params { path: string, sessionId?: string, limit?: number|nil, line?: number|nil }
@@ -594,7 +603,7 @@ function Connection:handle_fs_read_text_file_request(id, params)
     return
   end
 
-  if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
+  if not self:_has_valid_session_id(params) then
     return self:send_error(id, "invalid sessionId for fs/read_text_file", -32602)
   end
 
@@ -616,7 +625,6 @@ function Connection:handle_fs_read_text_file_request(id, params)
     return
   end
 
-  -- Other errors: send as JSON-RPC error
   self:send_error(id, ("fs/read_text_file failed: %s"):format(errstr))
 end
 
@@ -629,7 +637,7 @@ function Connection:handle_fs_write_file_request(id, params)
     return
   end
 
-  if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
+  if not self:_has_valid_session_id(params) then
     return self:send_error(id, "invalid sessionId for fs/write_text_file", -32602)
   end
 
@@ -642,7 +650,6 @@ function Connection:handle_fs_write_file_request(id, params)
   local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, err = fs.write_text_file(path, content)
   if ok then
-    -- Spec: WriteTextFileResponse is null
     self:send_result(id, vim.NIL)
     local info = { path = path, bytes = #content, sessionId = params.sessionId }
     if self._active_prompt and self._active_prompt.handlers and self._active_prompt.handlers.write_text_file then
@@ -738,49 +745,20 @@ end
 ---@param mode_id string The ID of the mode to switch to
 ---@return boolean success
 function Connection:set_mode(mode_id)
-  if not self.session_id then
-    log:error("[acp::set_mode] Connection not established")
-    return false
-  end
-
-  if not self._modes then
-    log:error("[acp::set_mode] Agent does not support session modes")
-    return false
-  end
-
-  -- Validate the mode_id exists
-  local valid = false
-  for _, mode in ipairs(self._modes.availableModes or {}) do
-    if mode.id == mode_id then
-      valid = true
-      break
-    end
-  end
-
-  if not valid then
-    log:error("[acp::set_mode] Invalid mode ID: %s", mode_id)
-    return false
-  end
-
-  local ok = self:send_rpc_request(METHODS.SESSION_SET_MODE, {
-    modeId = mode_id,
-    sessionId = self.session_id,
+  return self:_set_session_property({
+    value = mode_id,
+    collection = self._modes,
+    items_key = "availableModes",
+    current_key = "currentModeId",
+    id_key = "id",
+    rpc_method = METHODS.SESSION_SET_MODE,
+    rpc_param_key = "modeId",
+    label = "mode",
   })
-
-  if not ok then
-    log:error("[acp::set_mode] Failed to set mode to %s", mode_id)
-    return false
-  end
-
-  -- Update our cached current mode
-  self._modes.currentModeId = mode_id
-  log:debug("[acp::set_mode] Successfully set mode to %s", mode_id)
-
-  return true
 end
 
 ---Get the available models
----@return table|nil modes {currentModelId: string, availableModels: table[]} or nil if not supported
+---@return table|nil models {currentModelId: string, availableModels: table[]} or nil if not supported
 function Connection:get_models()
   return self._models
 end
@@ -789,48 +767,61 @@ end
 ---@param model_id string The ID of the model to switch to
 ---@return boolean success
 function Connection:set_model(model_id)
+  return self:_set_session_property({
+    value = model_id,
+    collection = self._models,
+    items_key = "availableModels",
+    current_key = "currentModelId",
+    id_key = "modelId",
+    rpc_method = METHODS.SESSION_SET_MODEL,
+    rpc_param_key = "modelId",
+    label = "model",
+  })
+end
+
+---Shared helper to validate and set a session property (mode or model)
+---@param args { value: string, collection: table|nil, items_key: string, current_key: string, id_key: string, rpc_method: string, rpc_param_key: string, label: string }
+---@return boolean success
+function Connection:_set_session_property(args)
   if not self.session_id then
-    log:error("[acp::set_model] Connection not established")
+    log:error("[acp::set_%s] Connection not established", args.label)
     return false
   end
 
-  if not self._models then
-    log:error("[acp::set_model] Agent does not support changing models")
+  if not args.collection then
+    log:error("[acp::set_%s] Agent does not support changing %ss", args.label, args.label)
     return false
   end
 
-  -- Validate the model_id exists
   local valid = false
-  for _, model in ipairs(self._models.availableModels or {}) do
-    if model.modelId == model_id then
+  for _, item in ipairs(args.collection[args.items_key] or {}) do
+    if item[args.id_key] == args.value then
       valid = true
       break
     end
   end
 
   if not valid then
-    log:error("[acp::set_model] Invalid model ID: %s", model_id)
+    log:error("[acp::set_%s] Invalid %s ID: %s", args.label, args.label, args.value)
     return false
   end
 
-  -- Don't set if already selected
-  if model_id == self._models.currentModelId then
+  if args.value == args.collection[args.current_key] then
     return false
   end
 
-  local ok = self:send_rpc_request(METHODS.SESSION_SET_MODEL, {
-    modelId = model_id,
+  local ok = self:send_rpc_request(args.rpc_method, {
+    [args.rpc_param_key] = args.value,
     sessionId = self.session_id,
   })
 
   if not ok then
-    log:error("[acp::set_model] Failed to set model to %s", model_id)
+    log:error("[acp::set_%s] Failed to set %s to %s", args.label, args.label, args.value)
     return false
   end
 
-  -- Update our cached current mode
-  self._models.currentModelId = model_id
-  log:debug("[acp::set_model] Changed model to %s", model_id)
+  args.collection[args.current_key] = args.value
+  log:debug("[acp::set_%s] Changed %s to %s", args.label, args.label, args.value)
 
   return true
 end
