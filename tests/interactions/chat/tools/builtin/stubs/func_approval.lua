@@ -16,21 +16,21 @@ return {
     name = "func_approval",
   },
   handlers = {
-    setup = function(self)
+    setup = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "Setup"
     end,
-    on_exit = function(self)
+    on_exit = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Exit"
     end,
   },
   output = {
-    prompt = function(self, tools)
+    prompt = function(self, meta)
       return "Run the func_approval tool?"
     end,
-    success = function(self, cmd, output)
+    success = function(self, stdout, meta)
       _G._test_order = (_G._test_order or "") .. "->Success"
     end,
-    rejected = function(self, tools, cmd)
+    rejected = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Rejected"
     end,
   },

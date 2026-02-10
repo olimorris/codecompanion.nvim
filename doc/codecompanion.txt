@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 08
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -228,9 +228,7 @@ coc.nvim <https://github.com/neoclide/coc.nvim>.
 
 HELP                                         *codecompanion-installation-help*
 
-If you’re having trouble installing the plugin, as a first step, run
-`:checkhealth codecompanion` to check that plugin is installed correctly. After
-that, consider using the minimal.lua
+Consider using the minimal.lua
 <https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua> file to
 troubleshoot, running it with `nvim --clean -u minimal.lua`.
 
@@ -553,13 +551,14 @@ information on how to do this.
 V18.6.0 TO V19.0.0        *codecompanion-upgrading-general-v18.6.0-to-v19.0.0*
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
-- CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
 
 
 CONFIG ~
 
 - Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` (#2719 <https://github.com/olimorris/codecompanion.nvim/pull/2719>)
 
 
 PROMPT LIBRARY ~
@@ -1217,6 +1216,14 @@ configure your API key. Then ensure that in your chat buffer you select the
 `kimi_cli` adapter.
 
 
+SETUP: KIRO CLI ~
+
+Install Kiro cli <https://kiro.dev/docs/cli/> as per their instructions. Then
+open it and login (if installation doesn’t already prompt you to login). the
+codecompanion adapter will execute `kiro-cli acp`, make sure to have it
+available on your PATH.
+
+
 SETUP: MISTRAL VIBE ~
 
 To use Mistral Vibe <https://github.com/mistralai/mistral-vibe> in
@@ -1224,14 +1231,6 @@ CodeCompanion, ensure you’ve followed their documentation to install
 <https://github.com/mistralai/mistral-vibe>. Then run `vibe --setup` in your
 CLI in order to setup your API key. Then ensure that in your chat buffer you
 select the `mistral_vibe` adapter.
-
-
-SETUP: KIRO CLI ~
-
-Install Kiro cli <https://kiro.dev/docs/cli/> as per their instructions. Then
-open it and login (if installation doesn’t already prompt you to login). the
-codecompanion adapter will execute `kiro-cli acp`, make sure to have it
-available on your PATH.
 
 
 SETUP: OPENCODE ~
@@ -1651,7 +1650,7 @@ You can override this with:
 PREFIXES
 
 You can also customize the prefixes that trigger completions for
-|codecompanion--editor-context|(/usage/chat-buffer/editor-context],
+|codecompanion-usage-chat-buffer-editor-context|,
 |codecompanion-usage-chat-buffer-slash-commands|, and
 |codecompanion-usage-chat-buffer-tools|:
 

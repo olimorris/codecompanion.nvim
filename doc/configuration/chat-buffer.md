@@ -47,7 +47,7 @@ require("codecompanion").setup({
 
 ### Prefixes
 
-You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context], [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/tools):
+You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/tools):
 
 ```lua
 require("codecompanion").setup({
@@ -458,7 +458,7 @@ require("codecompanion").setup({
 
 ### Auto Submit (Recursion)
 
-When a tool executes, it can be useful to automatically send its output back to the LLM. This can be achieved by the following options in your configuration:
+When a tool executes, it can be useful to automatically send its output back to the LLM. This is turned on by default and can be configured with:
 
 ```lua {6-7}
 require("codecompanion").setup({
@@ -518,7 +518,7 @@ require("codecompanion").setup({
 ```
 
 > [!TIP]
-> If you move your cursor while the LLM is streaming a response, auto-scrolling will be turned off.
+> If you move your cursor while the LLM is streaming a response, auto-scrolling will be turn off.
 
 ### Completion
 
@@ -741,7 +741,7 @@ require("codecompanion").setup({
 
 Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
 
-To enable this by default for the built-in `#buffer` variable, you can set the `default_params` option to either `diff` or `all`:
+To enable this by default for the built-in `#buffer` editor context, you can set the `default_params` option to either `diff` or `all`:
 
 ```lua
 require("codecompanion").setup({

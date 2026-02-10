@@ -31,7 +31,7 @@ vim.pack.add("https://www.github.com/nvim-lua/plenary.nvim")
 vim.pack.add("https://github.com/nvim-treesitter/nvim-treesitter")
 vim.pack.add({
   src = "https://www.github.com/olimorris/codecompanion.nvim",
-  version = vim.version.range("^18.0.0")
+  version = vim.version.range("^19.0.0")
 })
 
 -- Somewhere in your config
@@ -41,7 +41,7 @@ require("codecompanion").setup()
 ```lua [Lazy.nvim]
 {
   "olimorris/codecompanion.nvim",
-  version = "^18.0.0",
+  version = "^19.0.0",
   opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
@@ -53,7 +53,7 @@ require("codecompanion").setup()
 ```lua [Packer.nvim]
 use({
   "olimorris/codecompanion.nvim",
-  tag = "^18.0.0",
+  tag = "^19.0.0",
   config = function()
     require("codecompanion").setup()
   end,
@@ -166,4 +166,4 @@ The plugin also supports [native completion](usage/chat-buffer/index#completion)
 
 ## Help
 
-If you're having trouble installing the plugin, as a first step, run `:checkhealth codecompanion` to check that plugin is installed correctly. After that, consider using the [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)  file to troubleshoot, running it with `nvim --clean -u minimal.lua`.
+Consider using the [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua) file to troubleshoot, running it with `nvim --clean -u minimal.lua`.
