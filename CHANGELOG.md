@@ -1,5 +1,22 @@
 # Changelog
 
+## [18.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.1...v18.6.0) (2026-02-09)
+
+
+### Features
+
+* **adapters:** add support for Kiro via ACP ([#2729](https://github.com/olimorris/codecompanion.nvim/issues/2729)) ([1c9a92c](https://github.com/olimorris/codecompanion.nvim/commit/1c9a92c3a30115a1236f19df3bced12481f4feb8))
+* **adapters:** amend [#2729](https://github.com/olimorris/codecompanion.nvim/issues/2729) to add Kiro adapter ([#2730](https://github.com/olimorris/codecompanion.nvim/issues/2730)) ([dfb0ca9](https://github.com/olimorris/codecompanion.nvim/commit/dfb0ca928c439b65b1ac33758d90a9bc49c72138))
+
+
+### Bug Fixes
+
+* **acp:** kimi cli authentication failure ([#2711](https://github.com/olimorris/codecompanion.nvim/issues/2711)) ([69c26d2](https://github.com/olimorris/codecompanion.nvim/commit/69c26d2eb2f14361844af0ba36ae13a4b60dcc2d))
+* **adapters:** anthropic sending empty messages ([#2700](https://github.com/olimorris/codecompanion.nvim/issues/2700)) ([2245532](https://github.com/olimorris/codecompanion.nvim/commit/2245532d204e6a5a54abdc369f8b814689bf98c2))
+* **adapters:** openai_responses images merged as text ([#2733](https://github.com/olimorris/codecompanion.nvim/issues/2733)) ([bb571be](https://github.com/olimorris/codecompanion.nvim/commit/bb571be895f715c6e3ce3c42cdb2059408725246))
+* **ui:** window width is always calculated ([#2708](https://github.com/olimorris/codecompanion.nvim/issues/2708)) ([517f82e](https://github.com/olimorris/codecompanion.nvim/commit/517f82e8d04dd1b8a2db4af2c110bd492784ce41))
+* **utils:** escape percent signs in placeholder replacements ([#2736](https://github.com/olimorris/codecompanion.nvim/issues/2736)) ([294eddc](https://github.com/olimorris/codecompanion.nvim/commit/294eddccf6672a46961ccf1d4fc84103432dd002))
+
 ## [18.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.0...v18.5.1) (2026-01-24)
 
 

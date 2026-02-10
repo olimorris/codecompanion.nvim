@@ -108,8 +108,12 @@ function M.extract_all_placeholders(prompts)
   return all_placeholders
 end
 
----@param str string The string to escape percent signs in for gsub replacement
----@return string The escaped string, safe for use as a gsub replacement
+---Escape percent signs in a string for use as a gsub replacement value.
+---In Lua's gsub, the replacement string treats %0-%9 as capture references
+---and %% as a literal percent. This function doubles all percent signs so
+---that the replacement is inserted verbatim.
+---@param str string
+---@return string
 local function escape_gsub_replacement(str)
   return (str:gsub("%%", "%%%%"))
 end
