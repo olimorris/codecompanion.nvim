@@ -1,5 +1,12 @@
 # Changelog
 
+## [18.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.6.0...v18.6.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **utils:** escape percent signs ([#2743](https://github.com/olimorris/codecompanion.nvim/issues/2743)) ([42cf6d1](https://github.com/olimorris/codecompanion.nvim/commit/42cf6d1637fc8934421fe69745fd01098068ece6))
+
 ## [18.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.1...v18.6.0) (2026-02-09)
 
 
