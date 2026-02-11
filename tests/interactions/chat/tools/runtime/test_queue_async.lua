@@ -56,7 +56,10 @@ T["Tools"]["queue"]["can queue multiple async functions"] = function()
       },
     }
     tools:execute(chat, tool_call)
-    vim.wait(2100)
+
+    while (chat.tool_orchestrator) do
+      vim.wait(100)
+    end
   ]])
 
   -- Test order
@@ -88,7 +91,9 @@ T["Tools"]["queue"]["can queue async function with sync function"] = function()
       },
     }
     tools:execute(chat, tool_call)
-    vim.wait(1100)
+    while (chat.tool_orchestrator) do
+      vim.wait(100)
+    end
   ]])
 
   -- Test order

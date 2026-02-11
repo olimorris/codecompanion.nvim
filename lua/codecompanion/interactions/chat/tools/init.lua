@@ -289,7 +289,7 @@ function Tools:execute(chat, tools)
     -- NOTE: Set autocmds early so that errors can be handled properly
     self:set_autocmds()
 
-    local orchestrator = Orchestrator.new(self, id)
+    chat.tool_orchestrator = Orchestrator.new(self, id)
 
     for _, tool in ipairs(tools) do
       local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool, id)
@@ -304,11 +304,11 @@ function Tools:execute(chat, tools)
       end
 
       self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
-      orchestrator.queue:push(resolved_tool)
+      chat.tool_orchestrator.queue:push(resolved_tool)
     end
 
     utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
-    orchestrator:setup_next_tool()
+    chat.tool_orchestrator:setup_next_tool()
   end
 
   local ok, err = pcall(safe_execute)
