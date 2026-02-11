@@ -7,13 +7,6 @@ local wait = require("codecompanion.interactions.chat.helpers.wait")
 local api = vim.api
 
 local CONSTANTS = {
-  LABELS = {
-    allow_always = "1 Allow always",
-    allow_once = "2 Allow once",
-    reject_once = "3 Reject",
-    reject_always = "4 Reject always",
-  },
-
   ALLOWED_KINDS = {
     allow_always = true,
     allow_once = true,
@@ -39,9 +32,10 @@ local function build_choices(request)
     request.tool_call and request.tool_call.title or "Agent requested permission"
   )
 
+  local labels = config.interactions.chat.opts.acp_permission_labels
   local choices, index_to_option = {}, {}
   for i, opt in ipairs(request.options or {}) do
-    table.insert(choices, "&" .. (CONSTANTS.LABELS[opt.kind] or (tostring(i) .. " " .. opt.name)))
+    table.insert(choices, labels[opt.kind] or ("&" .. tostring(i) .. " " .. opt.name))
     index_to_option[i] = opt.optionId
   end
   return prompt, choices, index_to_option

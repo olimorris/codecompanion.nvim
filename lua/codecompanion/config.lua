@@ -670,6 +670,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         -- What to do when an ACP permission request times out? (allow_once|reject_once)
         acp_timeout_response = "reject_once",
 
+        -- Labels for ACP permission confirm dialogs. The first character after '&' is the shortcut key.
+        acp_permission_labels = {
+          allow_always = "&1 Allow always",
+          allow_once = "&2 Allow once",
+          reject_once = "&3 Reject",
+          reject_always = "&4 Reject always",
+        },
+
         ---@type string|fun(path: string)
         goto_file_action = ui_utils.tabnew_reuse,
 
