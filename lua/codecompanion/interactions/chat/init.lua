@@ -598,7 +598,9 @@ function Chat.new(args)
   self:set_system_prompt()
   set_autocmds(self)
 
-  last_chat = self
+  if not self.hidden then
+    last_chat = self
+  end
 
   for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
     self.tool_registry:add(tool_name)
