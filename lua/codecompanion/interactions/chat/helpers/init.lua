@@ -16,6 +16,44 @@ function M.create_acp_connection(chat)
   return handler:ensure_connection()
 end
 
+---Create a new ACP connection for the given chat asynchronously (non-blocking)
+---@param chat CodeCompanion.Chat The chat instance
+---@param callback? fun(success: boolean) Optional callback when connection completes
+---@return nil
+function M.create_acp_connection_async(chat, callback)
+  local log = require("codecompanion.utils.log")
+  local acp = require("codecompanion.acp")
+
+  -- Create the connection object
+  chat.acp_connection = acp.new({
+    adapter = chat.adapter,
+  })
+
+  -- Connect asynchronously
+  chat.acp_connection:connect_and_initialize_async(function(connection, err)
+    if err or not connection then
+      log:error("[helpers::create_acp_connection_async] Failed to connect: %s", err or "unknown")
+      chat.acp_connection = nil
+      if callback then
+        callback(false)
+      end
+      return
+    end
+
+    -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
+    if chat.acp_connection.session_id then
+      local acp_commands = require("codecompanion.interactions.chat.acp.commands")
+      acp_commands.link_buffer_to_session(chat.bufnr, chat.acp_connection.session_id)
+    end
+
+    chat:update_metadata()
+
+    if callback then
+      callback(true)
+    end
+  end)
+end
+
 ---Hide chat if floating diff is being used
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return nil
