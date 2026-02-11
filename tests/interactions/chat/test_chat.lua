@@ -276,6 +276,9 @@ end
 
 T["Chat"]["can create hidden chat without opening window"] = function()
   local result = child.lua([[
+    local visible_chat = codecompanion.chat({})
+    local last_chat_initial = codecompanion.last_chat()
+
     local hidden_chat = codecompanion.chat({
       hidden = true,
       messages = {
@@ -283,10 +286,15 @@ T["Chat"]["can create hidden chat without opening window"] = function()
       }
     })
 
+    local last_chat_final = codecompanion.last_chat()
     local line_count = vim.api.nvim_buf_line_count(hidden_chat.bufnr)
     local cwd_ok, cwd_ctx = pcall(function() return hidden_chat:make_system_prompt_ctx() end)
 
     return {
+      visible_id = visible_chat.id,
+      last_initial_id = last_chat_initial.id,
+      hidden_id = hidden_chat.id,
+      last_final_id = last_chat_final.id,
       hidden = hidden_chat.hidden,
       bufnr_valid = vim.api.nvim_buf_is_valid(hidden_chat.bufnr),
       is_visible = hidden_chat.ui:is_visible(),
@@ -303,6 +311,9 @@ T["Chat"]["can create hidden chat without opening window"] = function()
   h.eq(true, result.line_count > 0)
   h.eq(true, result.cwd_works)
   h.eq(true, result.cwd_value ~= nil and result.cwd_value ~= "")
+  h.eq(result.visible_id, result.last_initial_id)
+  h.eq(false, result.hidden_id == result.last_final_id)
+  h.eq(result.visible_id, result.last_final_id)
 end
 
 return T
