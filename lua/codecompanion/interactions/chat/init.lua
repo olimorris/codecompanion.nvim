@@ -423,7 +423,7 @@ function Chat.new(args)
     messages = args.messages or {},
     opts = args,
     status = "",
-    title = args.title or nil,
+    title = args.title,
     create_buf = function()
       local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
@@ -527,6 +527,7 @@ function Chat.new(args)
     chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
+    title = self.title,
     window_opts = args.window_opts,
   })
 
@@ -1693,6 +1694,7 @@ function Chat:set_title(title)
   assert(type(title) == "string", "title must be a string")
 
   self.title = title
+  self.ui.title = title
   chatmap[self.bufnr].description = title
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)
