@@ -22,6 +22,7 @@ local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
 local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
+local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
 
 local TIMEOUTS = {
@@ -45,7 +46,7 @@ local uv = vim.uv
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
----@field _state {handle: table, next_id: number, stdout_buffer: string}
+---@field _state {handle: table, id_gen: CodeCompanion.JsonRPC.IdGenerator, line_buffer: CodeCompanion.JsonRPC.LineBuffer}
 ---@field _modes {currentModeId: string, availableModes: table[]}|nil
 ---@field _models {currentModelId: string, availableModels: table[]}|nil
 ---@field methods table
@@ -87,7 +88,7 @@ function Connection.new(args)
     _initialized = false,
     _authenticated = false,
     _modes = nil,
-    _state = { handle = nil, next_id = 1, stdout_buffer = "" },
+    _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
   return self
@@ -306,7 +307,7 @@ function Connection:start_agent_process()
     end
   end
 
-  self._state.stdout_buffer = ""
+  self._state.line_buffer:reset()
 
   local ok, sysobj = pcall(
     self.methods.job,
@@ -351,15 +352,8 @@ function Connection:send_rpc_request(method, params)
     return nil
   end
 
-  local id = self._state.next_id
-  self._state.next_id = id + 1
-
-  local request = {
-    jsonrpc = "2.0",
-    id = id,
-    method = method,
-    params = params or {},
-  }
+  local id = self._state.id_gen:next()
+  local request = jsonrpc.request(id, method, params)
 
   if not self:write_message(self.methods.encode(request) .. "\n") then
     return nil
@@ -373,8 +367,7 @@ end
 ---@param result table
 ---@return nil
 function Connection:send_result(id, result)
-  local msg = { jsonrpc = "2.0", id = id, result = result }
-  self:write_message(self.methods.encode(msg) .. "\n")
+  self:write_message(self.methods.encode(jsonrpc.result(id, result)) .. "\n")
 end
 
 ---Send an error response to the ACP process
@@ -383,9 +376,7 @@ end
 ---@param code? number
 ---@return nil
 function Connection:send_error(id, message, code)
-  code = code or -32000
-  local msg = { jsonrpc = "2.0", id = id, error = { code = code, message = message } }
-  self:write_message(self.methods.encode(msg) .. "\n")
+  self:write_message(self.methods.encode(jsonrpc.error(id, message, code or jsonrpc.errors.INTERNAL)) .. "\n")
 end
 
 ---Wait for a specific response ID
@@ -432,26 +423,9 @@ end
 ---with I/O boundaries, so we need to buffer and handle this carefully.
 ---@param data string
 function Connection:buffer_stdout_and_dispatch(data)
-  if not data or data == "" then
-    return
-  end
-
-  self._state.stdout_buffer = self._state.stdout_buffer .. data
-
-  -- Extract complete lines
-  while true do
-    local newline_pos = self._state.stdout_buffer:find("\n")
-    if not newline_pos then
-      break
-    end
-
-    local line = self._state.stdout_buffer:sub(1, newline_pos - 1):gsub("\r$", "")
-    self._state.stdout_buffer = self._state.stdout_buffer:sub(newline_pos + 1)
-
-    if line ~= "" then
-      self:handle_rpc_message(line)
-    end
-  end
+  self._state.line_buffer:push(data, function(line)
+    self:handle_rpc_message(line)
+  end)
 end
 
 ---Handle incoming JSON message
@@ -466,7 +440,7 @@ function Connection:handle_rpc_message(line)
     return
   end
 
-  local ok, message = pcall(self.methods.decode, line)
+  local ok, message = jsonrpc.decode(line, self.methods.decode)
   if not ok then
     return log:error("[acp::handle_rpc_message] Invalid JSON:\n%s", line)
   end
@@ -484,7 +458,7 @@ function Connection:handle_rpc_message(line)
     log:error("[acp::handle_rpc_message] Invalid message format: %s", message)
   end
 
-  if message.error and message.error.code ~= -32603 then
+  if message.error and message.error.code ~= jsonrpc.errors.INTERNAL then
     log:error("[acp::handle_rpc_message] Error: %s", message.error)
   end
 end
@@ -516,8 +490,7 @@ end
 ---@param params table
 ---@return nil
 function Connection:send_notification(method, params)
-  local msg = { jsonrpc = "2.0", method = method, params = params or {} }
-  self:write_message(self.methods.encode(msg) .. "\n")
+  self:write_message(self.methods.encode(jsonrpc.notification(method, params)) .. "\n")
 end
 
 ---@private
@@ -555,7 +528,7 @@ function Connection:handle_incoming_request_or_notification(notification)
   local is_request = notification.id ~= nil
   if sid and self.session_id and sid ~= self.session_id then
     if is_request then
-      return self:send_error(notification.id, "invalid sessionId", -32602)
+      return self:send_error(notification.id, "invalid sessionId", jsonrpc.errors.INVALID_PARAMS)
     end
     return
   end
@@ -604,12 +577,12 @@ function Connection:handle_fs_read_text_file_request(id, params)
   end
 
   if not self:_has_valid_session_id(params) then
-    return self:send_error(id, "invalid sessionId for fs/read_text_file", -32602)
+    return self:send_error(id, "invalid sessionId for fs/read_text_file", jsonrpc.errors.INVALID_PARAMS)
   end
 
   local path = params.path
   if type(path) ~= "string" then
-    return self:send_error(id, "invalid params", -32602)
+    return self:send_error(id, "invalid params", jsonrpc.errors.INVALID_PARAMS)
   end
 
   local fs = require("codecompanion.interactions.chat.acp.fs")
@@ -638,13 +611,13 @@ function Connection:handle_fs_write_file_request(id, params)
   end
 
   if not self:_has_valid_session_id(params) then
-    return self:send_error(id, "invalid sessionId for fs/write_text_file", -32602)
+    return self:send_error(id, "invalid sessionId for fs/write_text_file", jsonrpc.errors.INVALID_PARAMS)
   end
 
   local path = params.path
   local content = params.content or ""
   if type(path) ~= "string" or type(content) ~= "string" then
-    return self:send_error(id, "invalid params", -32602)
+    return self:send_error(id, "invalid params", jsonrpc.errors.INVALID_PARAMS)
   end
 
   local fs = require("codecompanion.interactions.chat.acp.fs")

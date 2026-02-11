@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 local tool_bridge = require("codecompanion.mcp.tool_bridge")
 
 local adapter_utils = require("codecompanion.utils.adapters")
+local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
@@ -12,24 +13,9 @@ local CONSTANTS = {
   SERVER_TIMEOUT = config.mcp.opts.timeout,
 
   MAX_TOOLS_PER_SERVER = 100, -- Maximum tools per server to avoid infinite pagination
-
-  JSONRPC = { -- Some of these are unusues
-    ERROR_PARSE = -32700,
-    ERROR_INVALID_REQUEST = -32600,
-    ERROR_METHOD_NOT_FOUND = -32601,
-    ERROR_INVALID_PARAMS = -32602,
-    ERROR_INTERNAL = -32603,
-  },
 }
 
-local last_msg_id = 0
-
----Increment and return the next unique message id used for JSON-RPC requests.
----@return number next_id
-local function next_msg_id()
-  last_msg_id = last_msg_id + 1
-  return last_msg_id
-end
+local msg_id_gen = jsonrpc.IdGenerator.new()
 
 ---Transform static methods for easier testing
 ---@param class table The class with static.methods definition
@@ -57,7 +43,7 @@ end
 ---@field env? table
 ---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field methods table<string, function>
----@field _incomplete_line? string
+---@field _line_buffer CodeCompanion.JsonRPC.LineBuffer
 ---@field _on_line_read? fun(line: string)
 ---@field _on_close? fun(err?: string)
 ---@field _sysobj? vim.SystemObj
@@ -85,6 +71,7 @@ function StdioTransport.new(args)
     env = args.cfg.env,
     name = args.name,
     methods = transform_static_methods(StdioTransport, args.methods),
+    _line_buffer = jsonrpc.LineBuffer.new(),
   }, { __index = StdioTransport }) ---@cast self CodeCompanion.MCP.StdioTransport
 
   return self
@@ -136,31 +123,14 @@ function StdioTransport:_handle_stdout(err, data)
     return
   end
 
-  local combined = ""
-  if self._incomplete_line then
-    combined = self._incomplete_line .. data
-    self._incomplete_line = nil
-  else
-    combined = data
-  end
-
-  local last_newline_pos = combined:match(".*()\n")
-  if last_newline_pos == nil then
-    self._incomplete_line = combined
-    return
-  elseif last_newline_pos < #combined then
-    self._incomplete_line = combined:sub(last_newline_pos + 1)
-    combined = combined:sub(1, last_newline_pos)
-  end
-
-  for line in vim.gsplit(combined, "\n", { plain = true, trimempty = true }) do
-    if line ~= "" and self._on_line_read then
+  self._line_buffer:push(data, function(line)
+    if self._on_line_read then
       local ok, _ = pcall(self._on_line_read, line)
       if not ok then
         log:debug("[MCP::Client] on_line_read callback failed for line: %s", line)
       end
     end
-  end
+  end)
 end
 
 ---Handle stderr output from the process.
@@ -379,11 +349,7 @@ function Client:_on_transport_close(err)
   self.ready = false
   for id, entry in pairs(self.resp_handlers) do
     -- Notify all pending requests of the transport closure
-    pcall(entry.handler, {
-      jsonrpc = "2.0",
-      id = id,
-      error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "MCP server connection closed" },
-    })
+    pcall(entry.handler, jsonrpc.error(id, "MCP server connection closed"))
   end
   self.resp_handlers = {}
   utils.fire("MCPServerClosed", { server = self.name, err = err })
@@ -396,11 +362,13 @@ function Client:_on_transport_line_read(line)
     return
   end
   log:debug("[MCP::Client::%s] Received: %s", self.name, line)
-  local ok, msg = pcall(self.methods.json_decode, line, { luanil = { object = true } })
+  local ok, msg = jsonrpc.decode(line, function(l)
+    return self.methods.json_decode(l, { luanil = { object = true } })
+  end)
   if not ok then
     return log:debug("[MCP::Client::%s] Failed to decode: %s", self.name, line)
   end
-  if type(msg) ~= "table" or msg.jsonrpc ~= "2.0" then
+  if msg.jsonrpc ~= "2.0" then
     return log:debug("[MCP::Client::%s] Invalid message: %s", self.name, line)
   end
   if msg.id == nil then
@@ -425,24 +393,21 @@ end
 ---@param msg MCP.JSONRPCRequest
 function Client:_handle_server_request(msg)
   assert(self.transport:started(), "MCP Server process is not running.")
-  local resp = {
-    jsonrpc = "2.0",
-    id = msg.id,
-  }
+  local resp
   local handler = self.server_request_handlers[msg.method]
   if not handler then
-    resp.error = { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "Method not found" }
+    resp = jsonrpc.error(msg.id, "Method not found", jsonrpc.errors.METHOD_NOT_FOUND)
   else
     local ok, status, body = pcall(handler, self, msg.params)
     if not ok then
       log:debug("[MCP::Client::%s] Handler for %s failed: %s", self.name, msg.method, status)
-      resp.error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = status }
+      resp = jsonrpc.error(msg.id, status)
     elseif status == "error" then
-      resp.error = body
+      resp = { jsonrpc = "2.0", id = msg.id, error = body }
     elseif status == "result" then
-      resp.result = body
+      resp = jsonrpc.result(msg.id, body)
     else
-      resp.error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "Internal server error" }
+      resp = jsonrpc.error(msg.id, "Internal server error")
     end
   end
   local resp_str = self.methods.json_encode(resp)
@@ -469,14 +434,7 @@ end
 ---@param params? table<string, any>
 function Client:notify(method, params)
   assert(self.transport:started(), "MCP Server process is not running.")
-  if params and vim.tbl_isempty(params) then
-    params = vim.empty_dict()
-  end
-  local notif = {
-    jsonrpc = "2.0",
-    method = method,
-    params = params,
-  }
+  local notif = jsonrpc.notification(method, params)
   local notif_str = self.methods.json_encode(notif)
   log:debug("[MCP::Client::%s] Sending: %s", self.name, notif_str)
   self.transport:write({ notif_str })
@@ -490,16 +448,8 @@ end
 ---@return number req_id
 function Client:request(method, params, resp_handler, opts)
   assert(self.transport:started(), "MCP Server process is not running.")
-  local req_id = next_msg_id()
-  if params and vim.tbl_isempty(params) then
-    params = vim.empty_dict()
-  end
-  local req = {
-    jsonrpc = "2.0",
-    id = req_id,
-    method = method,
-    params = params,
-  }
+  local req_id = msg_id_gen:next()
+  local req = jsonrpc.request(req_id, method, params)
   if resp_handler then
     self.resp_handlers[req_id] = {
       handler = resp_handler,
@@ -518,11 +468,7 @@ function Client:request(method, params, resp_handler, opts)
 
       local timeout_msg = string.format("Request timed out after %d ms", timeout)
       if resp_handler then
-        local ok, _ = pcall(resp_handler, {
-          jsonrpc = "2.0",
-          id = req_id,
-          error = { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = timeout_msg },
-        })
+        local ok, _ = pcall(resp_handler, jsonrpc.error(req_id, timeout_msg))
         if not ok then
           log:debug("[MCP::Client::%s] Timeout handler failed for request %s", self.name, req_id)
         end
@@ -543,18 +489,18 @@ end
 ---@return "result" | "error", table
 function Client:_handle_server_roots_list()
   if not self.cfg.roots then
-    return "error", { code = CONSTANTS.JSONRPC.ERROR_METHOD_NOT_FOUND, message = "roots capability not enabled" }
+    return "error", { code = jsonrpc.errors.METHOD_NOT_FOUND, message = "roots capability not enabled" }
   end
 
   local ok, roots = pcall(self.cfg.roots)
   if not ok then
     log:debug("[MCP::Client::%s] Roots function failed: %s", self.name, roots)
-    return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function failed" }
+    return "error", { code = jsonrpc.errors.INTERNAL, message = "roots function failed" }
   end
 
   if not roots or type(roots) ~= "table" then
     log:debug("[MCP::Client::%s] Roots function returned invalid result: %s", self.name, roots)
-    return "error", { code = CONSTANTS.JSONRPC.ERROR_INTERNAL, message = "roots function returned invalid result" }
+    return "error", { code = jsonrpc.errors.INTERNAL, message = "roots function returned invalid result" }
   end
 
   return "result", { roots = roots }
