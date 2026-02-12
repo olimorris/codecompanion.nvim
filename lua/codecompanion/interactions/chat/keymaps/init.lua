@@ -512,17 +512,26 @@ M.previous_chat = {
   end,
 }
 
+---Resolve the role names from the chat's adapter
+---@param chat CodeCompanion.Chat
+---@return string[]
+local function resolve_roles(chat)
+  local roles = config.interactions.chat.roles
+  local llm_role = type(roles.llm) == "function" and roles.llm(chat.adapter) or roles.llm
+  return { roles.user, llm_role }
+end
+
 M.next_header = {
   desc = "Go to the next message",
-  callback = function()
-    ts.goto_heading("next", 1)
+  callback = function(chat)
+    ts.goto_heading({ direction = "next", count = 1, roles = resolve_roles(chat) })
   end,
 }
 
 M.previous_header = {
   desc = "Go to the previous message",
-  callback = function()
-    ts.goto_heading("prev", 1)
+  callback = function(chat)
+    ts.goto_heading({ direction = "prev", count = 1, roles = resolve_roles(chat) })
   end,
 }
 
