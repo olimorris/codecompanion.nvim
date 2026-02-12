@@ -7,6 +7,16 @@ local M = {}
 ---@type table<number, { lines: number, headers: number[] }>
 local _cache = {}
 
+---Add an event handler to ensure that the cache is cleared
+api.nvim_create_autocmd({ "User" }, {
+  pattern = { "CodeCompanionChatCleared", "CodeCompanionChatClosed" },
+  callback = function(request)
+    pcall(function()
+      _cache[request.data.bufnr] = nil
+    end)
+  end,
+})
+
 ---Remove the separator from any heading text
 ---@param text string
 ---@return string
