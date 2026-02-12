@@ -1,5 +1,6 @@
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
+local plan_icons = require("codecompanion.interactions.chat.ui.plan_icons")
 
 -- Keep a record of UI changes in the chat buffer
 
@@ -21,6 +22,16 @@ function ACPHandler.new(chat)
     reasoning = {},
     tools = {},
   }, { __index = ACPHandler })
+
+  -- Lazy-initialize plan state in chat object (persists across handler instances)
+  if not chat.acp_plan then
+    chat.acp_plan = {
+      entries = {},
+      line_start = nil,
+      line_end = nil,
+      icon_extmark_id = nil,
+    }
+  end
 
   ACPHandlerUI[chat.bufnr] = {}
 
@@ -149,6 +160,9 @@ function ACPHandler:create_and_send_prompt(payload)
     end)
     :on_thought_chunk(function(content)
       self:handle_thought_chunk(content)
+    end)
+    :on_plan(function(entries)
+      self:handle_plan(entries)
     end)
     :on_tool_call(function(tool_call)
       self:handle_tool_call(tool_call)
@@ -285,6 +299,256 @@ function ACPHandler:handle_permission_request(request)
   end
 
   return require("codecompanion.interactions.chat.acp.request_permission").show(self.chat, request)
+end
+
+---Format plan entries as markdown
+---@param entries table[]
+---@return string[]
+function ACPHandler:format_plan_markdown(entries)
+  -- Note: Icon will be prepended by Plan formatter, so don't add it here
+  local lines = { "## Plan", "" }
+
+  for _, entry in ipairs(entries) do
+    local checkbox = "[ ]"
+    if entry.status == "in_progress" then
+      checkbox = "[-]"
+    elseif entry.status == "completed" then
+      checkbox = "[x]"
+    end
+
+    local priority_indicator = ""
+    if entry.priority == "high" then
+      priority_indicator = " ⚡"
+    elseif entry.priority == "low" then
+      priority_indicator = " ⏸"
+    end
+
+    table.insert(lines, string.format("- %s %s%s", checkbox, entry.content, priority_indicator))
+  end
+
+  -- Add trailing newline for proper spacing
+  table.insert(lines, "")
+
+  return lines
+end
+
+---Handle agent plan updates
+---@param entries table[] Array of plan entries
+function ACPHandler:handle_plan(entries)
+  if not entries or #entries == 0 then
+    return
+  end
+
+  -- Format plan as markdown
+  local lines = self:format_plan_markdown(entries)
+
+  -- Note: line_start and line_end are stored as 0-based indices (Neovim API convention)
+  log:debug(
+    "[ACP::Handler] handle_plan called. Current line_start=%s, line_end=%s",
+    tostring(self.chat.acp_plan.line_start),
+    tostring(self.chat.acp_plan.line_end)
+  )
+
+  -- Check if we should update existing plan or create new one
+  -- Rule: Update in-place if existing plan has any incomplete items
+  local should_update_existing = false
+  if self.chat.acp_plan.line_start and self.chat.acp_plan.entries then
+    for _, entry in ipairs(self.chat.acp_plan.entries) do
+      if entry.status ~= "completed" then
+        should_update_existing = true
+        break
+      end
+    end
+  end
+
+  if should_update_existing then
+    -- Update existing plan in-place (has incomplete items)
+    -- Search for the ## Plan header to handle line number shifts
+    local buffer_lines = vim.api.nvim_buf_get_lines(self.chat.bufnr, 0, -1, false)
+    local found_line = nil
+    local plan_end_line = nil
+
+    -- Search for the ## Plan header
+    for i, line in ipairs(buffer_lines) do
+      if line:match("^## Plan") then
+        found_line = i - 1 -- Convert to 0-based
+        -- Find the end of this plan block (next header or end of buffer)
+        for j = i + 1, #buffer_lines do
+          if buffer_lines[j]:match("^## ") then
+            plan_end_line = j - 1 -- Convert to 0-based, exclusive of next header
+            break
+          end
+        end
+        -- If no next header found, plan extends to end
+        if not plan_end_line then
+          plan_end_line = #buffer_lines
+        end
+        break -- Use first ## Plan found
+      end
+    end
+
+    if found_line then
+      -- Look for blank line before ## Plan header (for icon)
+      local actual_start = found_line
+      if found_line > 0 and buffer_lines[found_line] == "" then
+        actual_start = found_line - 1
+      end
+
+      -- Add blank line at beginning for icon
+      table.insert(lines, 1, "")
+
+      log:debug(
+        "[ACP::Handler] Updating existing plan at line %d-%d with %d lines (has incomplete items)",
+        actual_start,
+        plan_end_line,
+        #lines
+      )
+
+      self.chat.ui:unlock_buf()
+
+      local ok, err = pcall(function()
+        vim.api.nvim_buf_set_lines(self.chat.bufnr, actual_start, plan_end_line, false, lines)
+
+        -- Update line tracking
+        self.chat.acp_plan.line_start = actual_start
+        self.chat.acp_plan.line_end = actual_start + #lines
+
+        -- Trigger treesitter reparse
+        if self.chat.chat_parser then
+          vim.schedule(function()
+            self.chat.chat_parser:invalidate(true)
+            self.chat.chat_parser:parse()
+          end)
+        end
+
+        -- Reapply icon
+        if self.chat.acp_plan.icon_extmark_id then
+          plan_icons:clear_icon(self.chat.bufnr, self.chat.acp_plan.icon_extmark_id)
+        end
+        self.chat.acp_plan.icon_extmark_id = plan_icons.apply(self.chat.bufnr, self.chat.acp_plan.line_start)
+
+        -- Apply highlight to entire plan section
+        -- vim.schedule(function()
+        --   plan_icons.apply_highlight(
+        --     self.chat.bufnr,
+        --     self.chat.acp_plan.line_start,
+        --     self.chat.acp_plan.line_end - 1 -- end_line is exclusive, so subtract 1
+        --   )
+        -- end)
+
+        -- Apply sign column indicators to entire plan section
+        vim.schedule(function()
+          plan_icons.apply_signs(
+            self.chat.bufnr,
+            self.chat.acp_plan.line_start,
+            self.chat.acp_plan.line_end - 1 -- end_line is exclusive, so subtract 1
+          )
+        end)
+
+        -- Recreate fold if enabled
+        if require("codecompanion.config").display.chat.fold_plan then
+          vim.schedule(function()
+            self.chat.ui.folds:create_plan_fold(
+              self.chat,
+              self.chat.acp_plan.line_start,
+              self.chat.acp_plan.line_end - 1
+            )
+          end)
+        end
+      end)
+
+      if not ok then
+        log:debug("[ACP::Handler] Failed to update plan: %s. Will create new section.", tostring(err))
+        self.chat.acp_plan.line_start = nil
+      else
+        log:debug("[ACP::Handler] Successfully updated plan at line %d", self.chat.acp_plan.line_start)
+        -- Cache current entries for next comparison
+        self.chat.acp_plan.entries = vim.deepcopy(entries)
+        return -- Successfully updated, exit
+      end
+    else
+      log:debug("[ACP::Handler] Could not find existing plan block, will create new")
+      self.chat.acp_plan.line_start = nil
+    end
+  else
+    if self.chat.acp_plan.line_start then
+      log:debug("[ACP::Handler] Existing plan is complete, creating new plan block")
+    end
+    -- Clear state to create fresh plan
+    self.chat.acp_plan.line_start = nil
+  end
+
+  if not self.chat.acp_plan.line_start then
+    -- Add new plan section through add_buf_message to ensure proper markdown rendering
+    -- The Plan formatter will add a blank line for the icon
+    log:debug("[ACP::Handler] Creating new plan section with %d formatted lines", #lines)
+
+    -- Convert lines array to string content for the message
+    local content = table.concat(lines, "\n")
+
+    -- Use add_buf_message with PLAN_MESSAGE type to route through Plan formatter
+    -- Plan formatter will add blank line at start, so total lines = #lines + 1
+    local line_number = self.chat:add_buf_message({
+      role = require("codecompanion.config").constants.LLM_ROLE,
+      content = content,
+    }, {
+      type = self.chat.MESSAGE_TYPES.PLAN_MESSAGE,
+    })
+
+    log:debug("[ACP::Handler] add_buf_message returned line_number=%s", tostring(line_number))
+
+    if line_number then
+      -- Plan formatter adds 1 blank line for icon at the start
+      -- So total lines written = #lines + 1
+      local total_lines = #lines + 1
+
+      -- add_buf_message returns the line AFTER the content (end_line_written + 1)
+      -- So the actual start line is line_number - total_lines
+      local actual_start = line_number - total_lines
+
+      -- Track line positions (0-based, line_end is exclusive)
+      self.chat.acp_plan.line_start = actual_start
+      self.chat.acp_plan.line_end = line_number
+
+      log:debug(
+        "[ACP::Handler] Tracked new plan: line_start=%d, line_end=%d (exclusive, %d lines)",
+        self.chat.acp_plan.line_start,
+        self.chat.acp_plan.line_end,
+        total_lines
+      )
+
+      -- Icon is already applied by Builder via Plan formatter's _icon_info
+      -- No need to apply it manually here
+
+      -- Apply highlight to entire plan section
+      -- vim.schedule(function()
+      --   plan_icons.apply_highlight(
+      --     self.chat.bufnr,
+      --     self.chat.acp_plan.line_start,
+      --     self.chat.acp_plan.line_end - 1 -- end_line is exclusive, so subtract 1
+      --   )
+      -- end)
+
+      -- Apply sign column indicators to entire plan section
+      vim.schedule(function()
+        plan_icons.apply_signs(
+          self.chat.bufnr,
+          self.chat.acp_plan.line_start,
+          self.chat.acp_plan.line_end - 1 -- end_line is exclusive, so subtract 1
+        )
+      end)
+
+      -- Create fold if fold_plan is enabled
+      if require("codecompanion.config").display.chat.fold_plan then
+        vim.schedule(function()
+          self.chat.ui.folds:create_plan_fold(self.chat, actual_start, self.chat.acp_plan.line_end - 1)
+        end)
+      end
+    end
+  end
+
+  -- Cache current entries for potential future diffing
+  self.chat.acp_plan.entries = vim.deepcopy(entries)
 end
 
 ---Handle completion

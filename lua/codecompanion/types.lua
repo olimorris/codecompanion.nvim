@@ -121,6 +121,12 @@
 ---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
 
+---@class CodeCompanion.Chat.ACPPlan ACP plan state for tracking plan updates in-place
+---@field entries table[] Array of plan entry objects with content, status, priority fields
+---@field line_start number|nil 0-based line number where plan block starts in buffer (inclusive)
+---@field line_end number|nil 0-based line number where plan block ends in buffer (exclusive)
+---@field icon_extmark_id number|nil Extmark ID for the plan icon overlay
+
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
