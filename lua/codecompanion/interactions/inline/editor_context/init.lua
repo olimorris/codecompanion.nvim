@@ -76,10 +76,9 @@ function EditorContext:output()
 
     local ec_output
     local ec_config = self.config[item]
-    local callback = ec_config.callback
 
-    if type(callback) == "function" then
-      local ok, output = pcall(callback, self)
+    if type(ec_config.callback) == "function" then
+      local ok, output = pcall(ec_config.callback, self)
       if not ok then
         log:error("[EditorContext] %s could not be resolved: %s", item, output)
       else
@@ -91,7 +90,8 @@ function EditorContext:output()
     end
 
     -- Resolve them and add them to the outputs
-    local ok, module = pcall(require, "codecompanion." .. callback)
+    local path = ec_config.path
+    local ok, module = pcall(require, "codecompanion." .. path)
     if ok then
       ec_output = module --[[@type CodeCompanion.Inline.EditorContext]]
       goto append
@@ -99,7 +99,7 @@ function EditorContext:output()
 
     do
       local err
-      module, err = loadfile(vim.fs.normalize(callback))
+      module, err = loadfile(vim.fs.normalize(path))
       if err then
         log:error("[EditorContext] %s could not be resolved", item)
         goto skip
