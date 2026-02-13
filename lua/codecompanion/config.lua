@@ -97,7 +97,6 @@ local defaults = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
             prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
-              "cmd_runner",
               "create_file",
               "delete_file",
               "file_search",
@@ -105,6 +104,7 @@ local defaults = {
               "grep_search",
               "insert_edit_into_file",
               "read_file",
+              "run_command",
             },
             opts = {
               collapse_tools = true,
@@ -128,8 +128,8 @@ local defaults = {
           },
         },
         -- Tools
-        ["cmd_runner"] = {
-          callback = "interactions.chat.tools.builtin.cmd_runner",
+        ["run_command"] = {
+          callback = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
           opts = {
             allowed_in_yolo_mode = false,

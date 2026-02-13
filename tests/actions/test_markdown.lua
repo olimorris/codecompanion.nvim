@@ -165,7 +165,7 @@ name: Prompt with tools
 interaction: chat
 description: A prompt that loads tools
 tools:
-  - cmd_runner
+  - run_command
   - insert_edit_into_file
 ---
   ]]
@@ -182,7 +182,7 @@ tools:
     name = "Prompt with tools",
     interaction = "chat",
     tools = {
-      "cmd_runner",
+      "run_command",
       "insert_edit_into_file",
     },
   }, "Frontmatter with tools should be parsed correctly")

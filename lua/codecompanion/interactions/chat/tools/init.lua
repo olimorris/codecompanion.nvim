@@ -15,18 +15,23 @@
 
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
-local tool_filter = require("codecompanion.interactions.chat.tools.filter")
-
 local config = require("codecompanion.config")
+local tool_filter = require("codecompanion.interactions.chat.tools.filter")
+local triggers = require("codecompanion.triggers")
+
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
-local triggers = require("codecompanion.triggers")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
 
 local show_tools_processing = config.display.chat.show_tools_processing
+
+-- Registry of tool factories that can be extended from by users
+local FACTORIES = {
+  cmd_tool = "codecompanion.interactions.chat.tools.builtin.cmd_tool",
+}
 
 local CONSTANTS = {
   PREFIX = triggers.mappings.tools,
@@ -440,6 +445,18 @@ end
 ---@param tool table The tool from the config
 ---@return CodeCompanion.Tools.Tool|nil
 function Tools.resolve(tool)
+  if tool.extends then
+    local factory_path = FACTORIES[tool.extends]
+    if not factory_path then
+      return log:error("[Tools] Unknown factory: %s", tool.extends)
+    end
+    local ok, factory = pcall(require, factory_path)
+    if not ok then
+      return log:error("[Tools] Failed to load factory %s: %s", tool.extends, factory)
+    end
+    return factory(tool.spec)
+  end
+
   local callback = tool.callback
 
   if type(callback) == "table" then

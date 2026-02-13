@@ -83,8 +83,8 @@ return {
       },
       keymaps = og_config.interactions.chat.keymaps,
       tools = {
-        ["cmd_runner"] = {
-          callback = "interactions.chat.tools.builtin.cmd_runner",
+        ["run_command"] = {
+          callback = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
         },
         ["files"] = {
@@ -231,8 +231,8 @@ return {
           callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_queue_error.lua",
           description = "Cmd tool",
         },
-        ["mock_cmd_runner"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/mock_cmd_runner.lua",
+        ["mock_run_command"] = {
+          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/mock_run_command.lua",
           description = "Cmd tool",
         },
         -- Add tool with same name as a tool group to verify word boundary matching

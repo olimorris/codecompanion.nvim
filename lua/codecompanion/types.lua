@@ -100,7 +100,7 @@
 ---@field tokens? number Optional token count associated with this message
 
 ---@class CodeCompanion.Chat.ToolFunctionCall
----@field name string Name of the function/tool (e.g. "cmd_runner", "grep_search")
+---@field name string Name of the function/tool (e.g. "run_command", "grep_search")
 ---@field arguments string|table Raw JSON string or parsed table of arguments
 
 ---@class CodeCompanion.Chat.ToolCall

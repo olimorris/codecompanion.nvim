@@ -338,7 +338,7 @@ require("codecompanion").setup({
             description = "A custom agent combining tools",
             system_prompt = "Describe what the agent should do",
             tools = {
-              "cmd_runner",
+              "run_command",
               "insert_edit_into_file",
               -- Add your own tools or reuse existing ones
             },
@@ -353,7 +353,7 @@ require("codecompanion").setup({
 })
 ```
 
-When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `cmd_runner`) to perform tasks on your code.
+When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code.
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
@@ -411,7 +411,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["cmd_runner"] = {
+        ["run_command"] = {
           opts = {
             require_approval_before = true,
           },
@@ -427,7 +427,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["cmd_runner"] = {
+        ["run_command"] = {
           opts = {
             require_cmd_approval = true,
           },
@@ -443,7 +443,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["cmd_runner"] = {
+        ["run_command"] = {
           opts = {
             allowed_in_yolo_mode = false,
           },

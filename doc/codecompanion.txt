@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 10
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1780,7 +1780,7 @@ referenced with `@` (by default), when in the chat buffer:
                 description = "A custom agent combining tools",
                 system_prompt = "Describe what the agent should do",
                 tools = {
-                  "cmd_runner",
+                  "run_command",
                   "insert_edit_into_file",
                   -- Add your own tools or reuse existing ones
                 },
@@ -1796,7 +1796,7 @@ referenced with `@` (by default), when in the chat buffer:
 <
 
 When users introduce the group, `my_group`, in the chat buffer, it can call the
-tools you listed (such as `cmd_runner`) to perform tasks on your code.
+tools you listed (such as `run_command`) to perform tasks on your code.
 
 A tool is a |codecompanion-extending-tools| table with specific keys that
 define the interface and workflow of the tool. The table can be resolved using
@@ -3136,10 +3136,10 @@ it in the chat buffer with `@files` or `@insert_edit_into_file`.
 
 RUN TESTS FROM THE CHAT BUFFER ~
 
-The |codecompanion-usage-chat-buffer-tools-cmd-runner| tool enables an LLM to
+The |codecompanion-usage-chat-buffer-tools-run-command| tool enables an LLM to
 execute commands on your machine. This can be useful if you wish the LLM to run
 a test suite on your behalf and give insight on failing cases. Simply tag the
-`@cmd_runner` in the chat buffer and ask it run your tests.
+`@run_command` in the chat buffer and ask it run your tests.
 
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
@@ -3923,17 +3923,17 @@ will yield:
 <
 
 
-CMD_RUNNER
+RUN_COMMAND
 
-The `@cmd_runner` tool enables an LLM to execute commands on your machine,
+The `@run_command` tool enables an LLM to execute commands on your machine,
 subject to your authorization. For example:
 
 >md
-    Can you use @{cmd_runner} to run my test suite with `pytest`?
+    Can you use @{run_command} to run my test suite with `pytest`?
 <
 
 >md
-    Use @{cmd_runner} to install any missing libraries in my project
+    Use @{run_command} to install any missing libraries in my project
 <
 
 Some commands do not write any data to stdout
@@ -4154,7 +4154,7 @@ For example, the following prompt:
 Is replaced by:
 
 >
-    I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
+    I'm giving you access to the run_command, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
 <
 
 This is because the `@{full_stack_dev}` group has the following prompt set in
@@ -4178,7 +4178,7 @@ enable an LLM to create applications and understand and refactor code bases.
 
 It contains the following tools:
 
-- |codecompanion-usage-chat-buffer-tools-cmd-runner|
+- |codecompanion-usage-chat-buffer-tools-run-command|
 - |codecompanion-usage-chat-buffer-tools-create-file|
 - |codecompanion-usage-chat-buffer-tools-file-search|
 - |codecompanion-usage-chat-buffer-tools-get-changed-files|
@@ -4294,7 +4294,7 @@ When prompted, the user has four options available to them:
 Certain tools with potentially destructive capabilities have an additional
 layer of protection. Instead of being approved at a tool level, these are
 approved at a command level (`require_cmd_approval = true`). Taking the
-`cmd_runner` tool as an example. If you approve an agent to always run `make
+`run_command` tool as an example. If you approve an agent to always run `make
 format`, if it tries to run `make test`, you’ll be prompted to approve that
 command specifically.
 
@@ -4305,7 +4305,7 @@ YOLO MODE
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
-prompting the user. However, note that some tools such as `cmd_runner` and
+prompting the user. However, note that some tools such as `run_command` and
 `delete_file` are excluded from this as they have `allowed_in_yolo_mode =
 false` set.
 
@@ -5517,7 +5517,7 @@ required.
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
     1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
-    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -5529,12 +5529,12 @@ required.
                 name = "Repeat On Failure",
                 role = "user",
                 opts = { auto_submit = true },
-                -- Scope this prompt to the cmd_runner tool
+                -- Scope this prompt to the run_command tool
                 condition = function()
-                  return _G.codecompanion_current_tool == "cmd_runner"
+                  return _G.codecompanion_current_tool == "run_command"
                 end,
                 -- Repeat until the tests pass, as indicated by the testing flag
-                -- which the cmd_runner tool sets on the chat buffer
+                -- which the run_command tool sets on the chat buffer
                 repeat_until = function(chat)
                   return chat.tool_registry.flags.testing == true
                 end,
@@ -5573,7 +5573,7 @@ Let’s breakdown the prompts in that workflow:
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
     1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
-    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -5587,7 +5587,7 @@ Let’s breakdown the prompts in that workflow:
 The first prompt in a workflow should set the ask of the LLM and provide clear
 instructions. In this case, we’re giving the LLM access to the
 |codecompanion-usage-chat-buffer-tools.html-files| and
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tools to edit a buffer
+|codecompanion-usage-chat-buffer-tools.html-run-command| tools to edit a buffer
 and run tests, respectively.
 
 We’re giving the LLM knowledge of the buffer with the `#buffer` editor
@@ -5606,9 +5606,9 @@ Now let’s look at how we trigger the automated reflection prompts:
             name = "Repeat On Failure",
             role = "user",
             opts = { auto_submit = true },
-            -- Scope this prompt to only run when the cmd_runner tool is active
+            -- Scope this prompt to only run when the run_command tool is active
             condition = function(chat)
-              return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
+              return chat.tools.tool and chat.tools.tool.name == "run_command"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             repeat_until = function(chat)
@@ -5625,13 +5625,13 @@ Now there’s a little bit more to unpack in this prompt. Firstly, we’re
 automatically submitting the prompt to the LLM to save the user some time and
 keypresses. Next, we’re scoping the prompt to only be sent to the chat buffer
 if the currently active tool is the
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner|.
+|codecompanion-usage-chat-buffer-tools.html-run-command|.
 
 We’re also leveraging a function called `repeat_until`. This ensures that the
 prompt is always attached to the chat buffer until a condition is met. In this
 case, until the tests pass. In the
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tool, we ask the LLM to
-pass a flag if it detects a test suite is being run. The plugin picks up on
+|codecompanion-usage-chat-buffer-tools.html-run-command| tool, we ask the LLM
+to pass a flag if it detects a test suite is being run. The plugin picks up on
 that flag and puts the test outcome into the chat buffer class as a flag.
 
 Finally, we’re letting the LLM know that the tests failed, and asking it to
@@ -5970,7 +5970,7 @@ structure of the tools implementation:
     │   ├── queue.lua
     │   ├── runner.lua
     ├── builtin/
-    │   ├── cmd_runner.lua
+    │   ├── run_command.lua
     │   ├── insert_edit_into_file.lua
     │   ├── create_file.lua
     │   ├── ...
@@ -6076,8 +6076,8 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
 
   [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
-  create commands dynamically like in the cmd_runner
-  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua>
+  create commands dynamically like in the run_command
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua>
   tool.
 **Function-based Tools**
 
@@ -6265,7 +6265,7 @@ HANDLERS
 The `handlers` table contains two functions that are executed before and after
 a tool completes:
 
-1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua> tool.
+1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
 3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they’d like to apply an approval to `buffer` or `file` edits.
 

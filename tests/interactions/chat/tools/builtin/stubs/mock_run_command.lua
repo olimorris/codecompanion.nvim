@@ -1,5 +1,5 @@
 return {
-  name = "mock_cmd_runner",
+  name = "mock_run_command",
   system_prompt = "my func system prompt",
   cmds = {},
   handlers = {
