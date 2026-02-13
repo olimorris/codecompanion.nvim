@@ -668,7 +668,7 @@ function Connection:handle_current_mode_update(session_id, mode_id)
   end
 
   if type(mode_id) ~= "string" then
-    return log:error("[acp::handle_current_mode_update] Invalid mode_id format")
+    return log:error("[acp::handle_current_mode_update] Invalid mode_id format: %d", mode_id)
   end
 
   -- Update the current mode

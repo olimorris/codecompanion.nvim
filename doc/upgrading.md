@@ -18,6 +18,7 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 - Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - All diff config has moved to `display.diff` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` ([#2719](https://github.com/olimorris/codecompanion.nvim/pull/2719))
+- Across _editor context_, _slash commands_ and _tools_, `callback` has been replaced by `path` for string values (module paths and file paths). `callback` is still used for function values
 
 ### Prompt Library
 
