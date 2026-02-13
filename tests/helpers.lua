@@ -228,7 +228,7 @@ Helpers.setup_chat_buffer = function(config, adapter)
   })
   chat.vars = {
     foo = {
-      callback = "spec.codecompanion.interactions.chat.editor_context.foo",
+      path = "spec.codecompanion.interactions.chat.editor_context.foo",
       description = "foo",
     },
   }
