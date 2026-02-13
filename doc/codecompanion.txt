@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 12
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 13
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3508,21 +3508,20 @@ can be leveraged to share images with the agent.
 EDITOR CONTEXT                            *codecompanion-usage-editor-context*
 
 Editor context allows you to dynamically insert Neovim context into your chat
-messages using the `#{variable_name}` syntax. They’re processed when you send
-your message to the LLM, automatically including relevant content like buffer
+messages using the `#{context}` syntax. They’re processed when you send your
+message to the LLM, automatically including relevant content like buffer
 contents, LSP diagnostics, or your current viewport. Type `#` in the chat
-buffer to see available editor context through code completion, or type them
-manually.
+buffer to see available context through code completion, or type them manually.
 
-Custom editor context can be shared in the chat buffer by adding them to the
+Custom context can be shared in the chat buffer by adding them to the
 `interactions.chat.editor_context` table in your configuration.
 
 
 BASIC USAGE ~
 
-Editor context uses the `#{variable_name}` syntax to dynamically insert content
-into your chat. For example `#{buffer}`. Editor context is processed when you
-send your message to the LLM.
+Editor context uses the `#{context}` syntax to dynamically insert content into
+your chat, such as `#{buffer}`. Editor context is processed when you send your
+message to the LLM.
 
 
 #BUFFER ~
@@ -3530,9 +3529,9 @@ send your message to the LLM.
 
   [!IMPORTANT] By default, CodeCompanion automatically applies the `{diff}`
   parameter to all buffers
-The `#{buffer}` editor context shares buffer contents with the LLM. It has two
-special parameters which control how content is shared, or `synced`, with the
-LLM, on each turn:
+The `#{buffer}` context shares buffer contents with the LLM. It has two special
+parameters which control how content is shared, or `synced`, with the LLM, on
+each turn:
 
 
 BASIC USAGE
@@ -3549,45 +3548,45 @@ TARGET SPECIFIC BUFFERS
 
 WITH PARAMETERS
 
+**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
+for large files where you only want to share incremental changes to reduce
+token usage. This is the default option in CodeCompanion.
+
 **{all}** - Sends all of the buffer content to the LLM whenever the buffer
 changes. Use this when you want the LLM to always have the complete, up-to-date
 file context.
 
-**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
-for large files where you only want to share incremental changes to reduce
-token usage.
-
 Can be used in combination with targeting a specific buffer:
 
-- `#{buffer}{all}` - Sends entire buffer on any change
 - `#{buffer}{diff}` - Sends only changed portions of the buffer
+- `#{buffer}{all}` - Sends entire buffer on any change
 - `#{buffer:config.lua}{all}` - Combines targeting with parameters
 
 
 MULTIPLE BUFFERS
 
+
+  [!NOTE] For selecting multiple buffers with more control, use the `/buffer`
+  slash command.
 >
     Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
 <
 
 
-  **Note:** For selecting multiple buffers with more control, use the `/buffer`
-  slash command.
-
 #LSP ~
 
 
   [!TIP] The |codecompanion-usage-action-palette| has a pre-built prompt which
-  asks an LLM to explain LSP diagnostics in a visual selection
-The `lsp` editor context shares any information from the LSP servers that
-active in the current buffer. This can serve as useful context should you wish
-to troubleshoot any errors with an LLM.
+  asks an LLM to explain LSP diagnostics in a visual selection.
+The `lsp` context shares any information from the LSP servers that active in
+the current buffer. This can serve as useful context should you wish to
+troubleshoot any errors with an LLM.
 
 
 #VIEWPORT ~
 
-The `viewport` editor context shares with the LLM, exactly what you see on your
-screen at the point a response is sent (excluding the chat buffer of course).
+The `viewport` context shares with the LLM, exactly what you see on your screen
+at the point a response is sent (excluding the chat buffer of course).
 
 
 RULES                                              *codecompanion-usage-rules*
@@ -3923,34 +3922,6 @@ will yield:
 <
 
 
-RUN_COMMAND
-
-The `@run_command` tool enables an LLM to execute commands on your machine,
-subject to your authorization. For example:
-
->md
-    Can you use @{run_command} to run my test suite with `pytest`?
-<
-
->md
-    Use @{run_command} to install any missing libraries in my project
-<
-
-Some commands do not write any data to stdout
-<https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)> which
-means the plugin can’t pass the output of the execution to the LLM. When this
-occurs, the tool will instead share the exit code.
-
-The LLM is specifically instructed to detect if you’re running a test suite,
-and if so, to insert a flag in its request. This is then detected and the
-outcome of the test is stored in the corresponding flag on the chat buffer.
-This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
-into.
-
-**Options:** - `require_approval_before` require approval before running a
-command? (Default: true)
-
-
 CREATE_FILE
 
 
@@ -4109,6 +4080,34 @@ READ_FILE
 This tool can read the contents of a specific file in the current working
 directory. This can be useful for an LLM to gain wider context of files that
 haven’t been shared with it.
+
+
+RUN_COMMAND
+
+The `@run_command` tool enables an LLM to execute commands on your machine,
+subject to your authorization. For example:
+
+>md
+    Can you use @{run_command} to run my test suite with `pytest`?
+<
+
+>md
+    Use @{run_command} to install any missing libraries in my project
+<
+
+Some commands do not write any data to stdout
+<https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)> which
+means the plugin can’t pass the output of the execution to the LLM. When this
+occurs, the tool will instead share the exit code.
+
+The LLM is specifically instructed to detect if you’re running a test suite,
+and if so, to insert a flag in its request. This is then detected and the
+outcome of the test is stored in the corresponding flag on the chat buffer.
+This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
+into.
+
+**Options:** - `require_approval_before` require approval before running a
+command? (Default: true)
 
 
 WEB_SEARCH
@@ -5957,7 +5956,7 @@ please see the diagram below:
 <
 
 
-BUILDING YOUR FIRST BUILT-IN TOOL ~
+BUILDING YOUR FIRST TOOL ~
 
 Before we begin, it’s important to familiarise yourself with the directory
 structure of the tools implementation:
@@ -6570,6 +6569,83 @@ tool execution:
       end,
     },
 <
+
+
+EXTENDING FROM THE RUN_COMMAND TOOL ~
+
+For a lot of users, custom tools will often be commands that they ask an LLM to
+execute on their machine. As such, the handlers and output functions that exist
+in the |codecompanion-usage-chat-buffer-tools-run-command| tool are sufficient
+and should be reused.
+
+To make it easy for users to create their own command-based tools,
+CodeCompanion allows for extensions from `run_command`. In the example below,
+we create a wrapper around the beads <https://github.com/steveyegge/beads> CLI
+tool, that does just that:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["beads"] = {
+              extends = "cmd_tool",
+              description = "Beads task management",
+              opts = { require_approval_before = true },
+              spec = {
+                name = "beads",
+                description = "Manage tasks using the Beads task tracking system (bd CLI)",
+                system_prompt = [[Beads is a local, hash-based task tracking system. Tasks have short IDs like `bd-a1b2`. Key commands:
+    
+    - `bd ready` — list tasks with no open blockers (i.e. ready to work on)
+    - `bd show <id>` — show full details for a task
+    - `bd create "<title>" -p <priority>` — create a new task (priority 0 = highest)
+    - `bd update <id> --claim` — assign a task to yourself
+    - `bd update <id> --status done` — mark a task as done
+    - `bd dep add <child> <parent>` — make child depend on parent
+    
+    Output is JSON. Always use `bd ready` first to see what's available before taking action.]],
+                schema = {
+                  properties = {
+                    action = {
+                      type = "string",
+                      enum = { "ready", "show", "create", "update", "dep" },
+                      description = "The beads action to perform",
+                    },
+                    task_id = {
+                      type = "string",
+                      description = "The task ID (e.g. bd-a1b2). Required for show, update, and dep actions",
+                    },
+                    args = {
+                      type = "string",
+                      description = "Additional arguments for the command (e.g. title for create, flags for update)",
+                    },
+                  },
+                  required = { "action" },
+                },
+                build_cmd = function(args)
+                  local parts = { "bd", args.action }
+                  if args.task_id then
+                    table.insert(parts, args.task_id)
+                  end
+                  if args.args then
+                    table.insert(parts, args.args)
+                  end
+                  return table.concat(parts, " ")
+                end,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+In this example, the `schema` defines structured properties (`action`,
+`task_id`, `args`) that constrain what the LLM can pass to `build_cmd`. The
+output of `build_cmd` is what the `run_command` tool ultimately executes.
+Finally, the `system_prompt` teaches the LLM what each beads command does, so
+it can choose the right action for the user’s request.
 
 
 SUPPORTING AN ADAPTER TOOL ~
