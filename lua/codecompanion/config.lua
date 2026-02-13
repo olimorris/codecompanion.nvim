@@ -129,7 +129,7 @@ local defaults = {
         },
         -- Tools
         ["run_command"] = {
-          callback = "interactions.chat.tools.builtin.run_command",
+          path = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
           opts = {
             allowed_in_yolo_mode = false,
@@ -138,7 +138,7 @@ local defaults = {
           },
         },
         ["insert_edit_into_file"] = {
-          callback = "interactions.chat.tools.builtin.insert_edit_into_file",
+          path = "interactions.chat.tools.builtin.insert_edit_into_file",
           description = "Robustly edit existing files with multiple automatic fallback interactions",
           opts = {
             require_approval_before = { -- Require approval before the tool is executed?
@@ -150,7 +150,7 @@ local defaults = {
           },
         },
         ["create_file"] = {
-          callback = "interactions.chat.tools.builtin.create_file",
+          path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
           opts = {
             require_approval_before = true,
@@ -158,7 +158,7 @@ local defaults = {
           },
         },
         ["delete_file"] = {
-          callback = "interactions.chat.tools.builtin.delete_file",
+          path = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
             allowed_in_yolo_mode = false,
@@ -167,14 +167,14 @@ local defaults = {
           },
         },
         ["fetch_webpage"] = {
-          callback = "interactions.chat.tools.builtin.fetch_webpage",
+          path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
             adapter = "jina",
           },
         },
         ["file_search"] = {
-          callback = "interactions.chat.tools.builtin.file_search",
+          path = "interactions.chat.tools.builtin.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
@@ -182,14 +182,14 @@ local defaults = {
           },
         },
         ["get_changed_files"] = {
-          callback = "interactions.chat.tools.builtin.get_changed_files",
+          path = "interactions.chat.tools.builtin.get_changed_files",
           description = "Get git diffs of current file changes in a git repository",
           opts = {
             max_lines = 1000,
           },
         },
         ["grep_search"] = {
-          callback = "interactions.chat.tools.builtin.grep_search",
+          path = "interactions.chat.tools.builtin.grep_search",
           enabled = function()
             -- Currently this tool only supports ripgrep
             return vim.fn.executable("rg") == 1
@@ -203,18 +203,18 @@ local defaults = {
           },
         },
         ["memory"] = {
-          callback = "interactions.chat.tools.builtin.memory",
+          path = "interactions.chat.tools.builtin.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             require_approval_before = true,
           },
         },
         ["next_edit_suggestion"] = {
-          callback = "interactions.chat.tools.builtin.next_edit_suggestion",
+          path = "interactions.chat.tools.builtin.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
         ["read_file"] = {
-          callback = "interactions.chat.tools.builtin.read_file",
+          path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
           opts = {
             require_approval_before = true,
@@ -222,7 +222,7 @@ local defaults = {
           },
         },
         ["web_search"] = {
-          callback = "interactions.chat.tools.builtin.web_search",
+          path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -303,7 +303,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       editor_context = {
         ["buffer"] = {
-          callback = "interactions.chat.editor_context.buffer",
+          path = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
@@ -325,14 +325,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["lsp"] = {
-          callback = "interactions.chat.editor_context.lsp",
+          path = "interactions.chat.editor_context.lsp",
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
           },
         },
         ["viewport"] = {
-          callback = "interactions.chat.editor_context.viewport",
+          path = "interactions.chat.editor_context.viewport",
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
@@ -341,7 +341,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "interactions.chat.slash_commands.builtin.buffer",
+          path = "interactions.chat.slash_commands.builtin.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -350,7 +350,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["command"] = {
-          callback = "interactions.chat.slash_commands.builtin.command",
+          path = "interactions.chat.slash_commands.builtin.command",
           description = "Change the command used to start the ACP adapter",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -365,7 +365,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["compact"] = {
-          callback = "interactions.chat.slash_commands.builtin.compact",
+          path = "interactions.chat.slash_commands.builtin.compact",
           description = "Clears some of the chat history, keeping a summary in context",
           enabled = function(opts)
             if opts.adapter and opts.adapter.type == "http" then
@@ -378,7 +378,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["fetch"] = {
-          callback = "interactions.chat.slash_commands.builtin.fetch",
+          path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -387,14 +387,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["quickfix"] = {
-          callback = "interactions.chat.slash_commands.builtin.quickfix",
+          path = "interactions.chat.slash_commands.builtin.quickfix",
           description = "Insert quickfix list entries",
           opts = {
             contains_code = true,
           },
         },
         ["file"] = {
-          callback = "interactions.chat.slash_commands.builtin.file",
+          path = "interactions.chat.slash_commands.builtin.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -403,7 +403,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "interactions.chat.slash_commands.builtin.help",
+          path = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -412,7 +412,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "interactions.chat.slash_commands.builtin.image",
+          path = "interactions.chat.slash_commands.builtin.image",
           description = "Insert an image",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -429,14 +429,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["rules"] = {
-          callback = "interactions.chat.slash_commands.builtin.rules",
+          path = "interactions.chat.slash_commands.builtin.rules",
           description = "Insert rules into the chat buffer",
           opts = {
             contains_code = true,
           },
         },
         ["mode"] = {
-          callback = "interactions.chat.slash_commands.builtin.mode",
+          path = "interactions.chat.slash_commands.builtin.mode",
           description = "Change the ACP session mode",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -451,7 +451,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["mcp"] = {
-          callback = "interactions.chat.slash_commands.builtin.mcp",
+          path = "interactions.chat.slash_commands.builtin.mcp",
           description = "Toggle MCP servers",
           opts = {
             contains_code = false,
@@ -459,14 +459,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["now"] = {
-          callback = "interactions.chat.slash_commands.builtin.now",
+          path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
         ["symbols"] = {
-          callback = "interactions.chat.slash_commands.builtin.symbols",
+          path = "interactions.chat.slash_commands.builtin.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -474,7 +474,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["terminal"] = {
-          callback = "interactions.chat.slash_commands.builtin.terminal",
+          path = "interactions.chat.slash_commands.builtin.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
@@ -706,21 +706,21 @@ The user is working on a %s machine. Please respond with system specific command
       },
       editor_context = {
         ["buffer"] = {
-          callback = "interactions.inline.editor_context.buffer",
+          path = "interactions.inline.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["chat"] = {
-          callback = "interactions.inline.editor_context.chat",
+          path = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["clipboard"] = {
-          callback = "interactions.inline.editor_context.clipboard",
+          path = "interactions.inline.editor_context.clipboard",
           description = "Share the contents of the clipboard with the LLM",
           opts = {
             contains_code = true,
