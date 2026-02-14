@@ -156,6 +156,9 @@
 ---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
 
+---@class CodeCompanion.Tools.Unresolved : CodeCompanion.Tools.Tool
+---@field extends? string The factory to use for resolution (e.g. "cmd_tool")
+
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
