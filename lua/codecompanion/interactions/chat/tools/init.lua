@@ -441,58 +441,87 @@ function Tools:add_error_to_chat(error)
   return self
 end
 
----Resolve a tool from the config
----@param tool table The tool from the config
+---Load a factory and pass the tool table through it
+---@param extends string The factory name
+---@param tool table The tool table (factory picks what it needs)
 ---@return CodeCompanion.Tools.Tool|nil
-function Tools.resolve(tool)
-  if tool.extends then
-    local factory_path = FACTORIES[tool.extends]
-    if not factory_path then
-      return log:error("[Tools] Unknown factory: %s", tool.extends)
-    end
-    local ok, factory = pcall(require, factory_path)
-    if not ok then
-      return log:error("[Tools] Failed to load factory %s: %s", tool.extends, factory)
-    end
-    return factory(tool.spec)
+local function resolve_factory(extends, tool)
+  local factory_path = FACTORIES[extends]
+  if not factory_path then
+    return log:error("[Tools] Unknown factory: %s", extends)
   end
 
-  local callback = tool.callback
-
-  if type(callback) == "table" then
-    return callback --[[@as CodeCompanion.Tools.Tool]]
+  local ok, factory = pcall(require, factory_path)
+  if not ok then
+    return log:error("[Tools] Failed to load factory %s: %s", extends, factory)
   end
 
-  if type(callback) == "function" then
-    return callback() --[[@as CodeCompanion.Tools.Tool]]
-  end
+  return factory(tool)
+end
 
-  local ok, module = pcall(require, "codecompanion." .. callback)
+---Resolve a path string to a module or file
+---@param path string The module path or file path
+---@return CodeCompanion.Tools.Unresolved|nil
+local function resolve_path(path)
+  local ok, module = pcall(require, "codecompanion." .. path)
   if ok then
-    log:debug("[Tools] %s identified", callback)
+    log:debug("[Tools] %s identified", path)
     return module
   end
 
-  -- Try loading the tool from the user's config using a module path
-  ok, module = pcall(require, callback)
+  -- Try loading from the user's config using a module path
+  ok, module = pcall(require, path)
   if ok then
-    log:debug("[Tools] %s identified", callback)
+    log:debug("[Tools] %s identified", path)
     return module
   end
 
-  -- Try loading the tool from the user's config using a file path
+  -- Try loading from the user's config using a file path
   local err
-  module, err = loadfile(vim.fs.normalize(callback))
+  module, err = loadfile(vim.fs.normalize(path))
   if err then
-    return log:error("[Tools] Failed to load tool from %s: %s", callback, err)
+    return log:error("[Tools] Failed to load tool from %s: %s", path, err)
   end
 
   if module then
-    log:debug("[Tools] %s identified", callback)
+    log:debug("[Tools] %s identified", path)
     return module()
   end
 
   return nil
+end
+
+---Resolve a tool from the config
+---@param tool table The tool from the config
+---@return CodeCompanion.Tools.Tool|nil
+function Tools.resolve(tool)
+  -- 1. Factory extension (table in config)
+  if tool.extends then
+    return resolve_factory(tool.extends, tool)
+  end
+
+  -- 2. Path-based resolution (module path or file path)
+  if type(tool.path) == "string" then
+    local resolved = resolve_path(tool.path)
+    if resolved and resolved.extends then
+      return resolve_factory(resolved.extends, resolved)
+    end
+    return resolved
+  end
+
+  -- 3. Function callback
+  if type(tool.callback) == "function" then
+    ---@type CodeCompanion.Tools.Unresolved
+    local resolved = tool.callback()
+    if resolved and resolved.extends then
+      return resolve_factory(resolved.extends, resolved)
+    end
+    return resolved
+  end
+
+  -- 4. Inline tool table (no path or callback)
+  ---@type CodeCompanion.Tools.Tool
+  return tool
 end
 
 return Tools
