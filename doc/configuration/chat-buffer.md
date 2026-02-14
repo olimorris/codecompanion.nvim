@@ -62,6 +62,118 @@ require("codecompanion").setup({
 })
 ```
 
+## Callbacks
+
+Callbacks allow you to hook into the chat buffer's lifecycle and react to specific events. They are registered per-chat and receive the chat instance as the first argument.
+
+### Available Events
+
+| Event | Description | Extra Args |
+|---|---|---|
+| `on_created` | Chat buffer has been created | - |
+| `on_before_submit` | Before the message is sent to the LLM. Return `false` to prevent submission | `{ adapter }` |
+| `on_submitted` | After the message has been sent to the LLM | `{ payload }` |
+| `on_ready` | Chat is ready for the next turn (after LLM response) | - |
+| `on_completed` | LLM response has been fully processed | `{ status }` |
+| `on_cancelled` | Request has been stopped/cancelled | - |
+| `on_closed` | Chat buffer has been closed | - |
+
+### Registering Callbacks
+
+Callbacks can be registered in two ways:
+
+::: code-group
+
+```lua [All Chats]
+vim.api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
+  callback = function(args)
+    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+    chat:add_callback("on_before_submit", function(c, info)
+      -- Access the adapter via info.adapter
+      -- Access messages via c.messages
+    end)
+  end,
+})
+```
+
+```lua [Prompt Library]
+require("codecompanion").setup({
+  prompt_library = {
+    ["My Prompt"] = {
+      opts = {
+        callbacks = {
+          on_before_submit = function(chat, info)
+            -- Only applies to chats opened from this prompt
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+### Background Callbacks
+
+Callbacks can also be registered in the config via `interactions.background.chat.callbacks`. These run asynchronously using a separate background LLM instance and are suited for fire-and-forget tasks like generating chat titles. Unlike the callbacks above, they cannot return values to influence the chat's behavior:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              "interactions.background.builtin.chat_make_title",
+            },
+            enabled = true,
+          },
+        },
+        opts = {
+          enabled = true,
+        },
+      },
+    },
+  },
+})
+```
+
+The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
+
+### Preventing Submission
+
+The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
+
+This is useful for implementing safeguards such as token/context limit checks:
+
+```lua
+vim.api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
+  callback = function(args)
+    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+    chat:add_callback("on_before_submit", function(c, data)
+      local token_count = my_tokenizer.count(c.messages)
+      local context_limit = 128000
+
+      if token_count > context_limit then
+        vim.notify(
+          string.format("Token count (%d) exceeds context limit (%d)", token_count, context_limit),
+          vim.log.levels.WARN
+        )
+        return false
+      end
+    end)
+  end,
+})
+```
+
+The `info` table passed to `on_before_submit` contains:
+
+- `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
+
 ## Diff
 
 <img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
@@ -760,4 +872,9 @@ require("codecompanion").setup({
   },
 })
 ```
+
+
+
+
+
 

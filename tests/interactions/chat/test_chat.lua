@@ -316,4 +316,82 @@ T["Chat"]["can create hidden chat without opening window"] = function()
   h.eq(result.visible_id, result.last_final_id)
 end
 
+T["Chat"]["on_before_submit callback can prevent submission"] = function()
+  local result = child.lua([[
+    local chat = _G.chat
+    local message_count_before = #chat.messages
+
+    chat:add_callback("on_before_submit", function(c, info)
+      return false
+    end)
+
+    chat:add_buf_message({
+      role = "user",
+      content = "This should not be submitted",
+    })
+    chat:submit()
+
+    return {
+      message_count_before = message_count_before,
+      message_count_after = #chat.messages,
+      no_request = chat.current_request == nil,
+      status = chat.status,
+    }
+  ]])
+
+  -- Messages should be unchanged (no user message added to the stack)
+  h.eq(result.message_count_before, result.message_count_after)
+  -- No request should be in progress
+  h.eq(true, result.no_request)
+  -- Status should be reset
+  h.eq("", result.status)
+end
+
+T["Chat"]["on_before_submit allows submission when not returning false"] = function()
+  local result = child.lua([[
+    local chat = _G.chat
+    local message_count_before = #chat.messages
+
+    chat:add_callback("on_before_submit", function(c, info)
+      -- returning nil (no explicit return) should allow submission
+    end)
+
+    chat:add_buf_message({
+      role = "user",
+      content = "This should be submitted",
+    })
+    chat:submit()
+
+    return {
+      message_count_before = message_count_before,
+      message_count_after = #chat.messages,
+    }
+  ]])
+
+  -- A user message should have been added to the stack
+  h.eq(true, result.message_count_after > result.message_count_before)
+end
+
+T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = function()
+  local result = child.lua([[
+    local chat = _G.chat
+
+    chat:add_callback("on_before_submit", function()
+      return false
+    end)
+
+    chat:add_buf_message({
+      role = "user",
+      content = "Test buffer state",
+    })
+    chat:submit()
+
+    return {
+      modifiable = vim.bo[chat.bufnr].modifiable,
+    }
+  ]])
+
+  h.eq(true, result.modifiable)
+end
+
 return T

@@ -10,7 +10,7 @@
 ---@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_ready, on_completed, on_cancelled, on_closed)
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
@@ -45,7 +45,7 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
----@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_ready, on_completed, on_cancelled, on_closed)
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
@@ -687,6 +687,28 @@ function Chat:dispatch(event, ...)
   return self
 end
 
+---Dispatch callbacks for a cancellable event
+---If any callback returns false, the event is cancelled
+---@param event string The event name
+---@param ... any Additional arguments to pass to callbacks
+---@return boolean cancelled Whether the event was cancelled
+function Chat:dispatch_cancellable(event, ...)
+  local callbacks = self.callbacks[event]
+  if not callbacks then
+    return false
+  end
+
+  for _, callback in ipairs(callbacks) do
+    local ok, result = pcall(callback, self, ...)
+    if not ok then
+      log:error("Callback error for %s: %s", event, result, { silent = true })
+    elseif result == false then
+      return true
+    end
+  end
+  return false
+end
+
 ---Format and apply settings to the chat buffer
 ---@param settings? table
 ---@return CodeCompanion.Chat
@@ -1135,6 +1157,11 @@ function Chat:submit(opts)
     local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
       return log:warn("No messages to submit")
+    end
+
+    if self:dispatch_cancellable("on_before_submit", { adapter = adapters.make_safe(self.adapter) }) then
+      log:info("Chat submission prevented by on_before_submit callback")
+      return self:restore()
     end
 
     self.buffer_diffs:check_for_changes(self)
@@ -1612,6 +1639,13 @@ end
 function Chat:reset()
   self.status = ""
   self.ui:unlock_buf()
+end
+
+---Restore the chat buffer to an editable state (used when a submission is prevented)
+---@return nil
+function Chat:restore()
+  self:reset()
+  utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Get currently focused code block or the last one in the chat buffer
