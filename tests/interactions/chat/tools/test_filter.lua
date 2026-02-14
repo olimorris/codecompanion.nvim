@@ -15,21 +15,21 @@ local T = new_set({
 T["filters out disabled tools"] = function()
   local tools_config = {
     enabled_tool = {
-      callback = "test",
+      path = "test",
       enabled = true,
     },
     disabled_tool = {
-      callback = "test",
+      path = "test",
       enabled = false,
     },
     function_disabled_tool = {
-      callback = "test",
+      path = "test",
       enabled = function()
         return false
       end,
     },
     default_enabled_tool = {
-      callback = "test",
+      path = "test",
       -- No enabled field means enabled by default
     },
     opts = {},
@@ -46,9 +46,9 @@ end
 
 T["filters disabled tools in groups"] = function()
   local tools_config = {
-    tool1 = { callback = "test", enabled = true },
-    tool2 = { callback = "test", enabled = false },
-    tool3 = { callback = "test", enabled = true },
+    tool1 = { path = "test", enabled = true },
+    tool2 = { path = "test", enabled = false },
+    tool3 = { path = "test", enabled = true },
     groups = {
       mixed_group = {
         tools = { "tool1", "tool2", "tool3" },
@@ -68,8 +68,8 @@ end
 
 T["ensures adapter tools take priority over config tools"] = function()
   local tools_config = {
-    tool1 = { callback = "test", enabled = true },
-    tool2 = { callback = "test", enabled = true },
+    tool1 = { path = "test", enabled = true },
+    tool2 = { path = "test", enabled = true },
   }
 
   local adapter = {
@@ -85,7 +85,7 @@ T["cache invalidation"] = new_set()
 
 T["cache invalidation"]["detects config changes when tools are added"] = function()
   local initial_config = {
-    tool1 = { callback = "test", enabled = true },
+    tool1 = { path = "test", enabled = true },
     opts = {},
   }
 
@@ -95,7 +95,7 @@ T["cache invalidation"]["detects config changes when tools are added"] = functio
   h.eq(filtered1.tool2, nil)
 
   -- Add a new tool to the config
-  initial_config.tool2 = { callback = "test", enabled = true }
+  initial_config.tool2 = { path = "test", enabled = true }
 
   -- Second call - should detect config change and return new tool
   local filtered2 = tool_filter.filter_enabled_tools(initial_config)
@@ -105,8 +105,8 @@ end
 
 T["cache invalidation"]["detects config changes when tools are removed"] = function()
   local config = {
-    tool1 = { callback = "test", enabled = true },
-    tool2 = { callback = "test", enabled = true },
+    tool1 = { path = "test", enabled = true },
+    tool2 = { path = "test", enabled = true },
     opts = {},
   }
 
@@ -126,8 +126,8 @@ end
 
 T["cache invalidation"]["detects changes in groups"] = function()
   local config = {
-    tool1 = { callback = "test", enabled = true },
-    tool2 = { callback = "test", enabled = true },
+    tool1 = { path = "test", enabled = true },
+    tool2 = { path = "test", enabled = true },
     groups = {
       test_group = {
         tools = { "tool1" },

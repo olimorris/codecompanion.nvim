@@ -2,6 +2,7 @@
 
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
 
 --- @class blink.cmp.Source
 local M = {}
@@ -11,11 +12,12 @@ function M.new()
 end
 
 function M:get_trigger_characters()
-  local triggers = { "/", "#", "@" }
+  local trigger_chars = { triggers.mappings.slash_commands, triggers.mappings.tools, triggers.mappings.editor_context }
   if config.interactions.chat.slash_commands.opts.acp.enabled then
-    table.insert(triggers, config.interactions.chat.slash_commands.opts.acp.trigger or "\\")
+    table.insert(trigger_chars, triggers.mappings.acp_slash_commands)
   end
-  return triggers
+
+  return trigger_chars
 end
 
 function M:enabled()
@@ -38,7 +40,7 @@ function M:get_completions(ctx, callback)
   }
 
   -- Slash commands
-  if trigger_char == "/" then
+  if trigger_char == triggers.mappings.slash_commands then
     callback({
       context = ctx,
       is_incomplete_forward = false,
@@ -67,34 +69,34 @@ function M:get_completions(ctx, callback)
         :totable(),
     })
 
-  -- Variables
-  elseif trigger_char == "#" then
+  -- Editor context
+  elseif trigger_char == triggers.mappings.editor_context then
     callback({
       context = ctx,
       is_incomplete_forward = false,
       is_incomplete_backward = false,
       items = vim
-        .iter(completion.variables())
+        .iter(completion.editor_context())
         :map(function(item)
           return {
             kind = vim.lsp.protocol.CompletionItemKind.Variable,
             label = item.label:sub(2),
             textEdit = {
-              newText = string.format("#{%s}", item.label:sub(2)),
+              newText = string.format("%s{%s}", triggers.mappings.editor_context, item.label:sub(2)),
               range = edit_range,
             },
             documentation = {
               kind = "plaintext",
               value = item.detail,
             },
-            data = { type = "variable" },
+            data = { type = "editor_context" },
           }
         end)
         :totable(),
     })
 
   -- Tools
-  elseif trigger_char == "@" then
+  elseif trigger_char == triggers.mappings.tools then
     callback({
       context = ctx,
       is_incomplete_forward = false,
@@ -106,7 +108,7 @@ function M:get_completions(ctx, callback)
             kind = vim.lsp.protocol.CompletionItemKind.Struct,
             label = item.label:sub(2),
             textEdit = {
-              newText = string.format("@{%s}", item.label:sub(2)),
+              newText = string.format("%s{%s}", triggers.mappings.tools, item.label:sub(2)),
               range = edit_range,
             },
             documentation = {
@@ -120,7 +122,7 @@ function M:get_completions(ctx, callback)
     })
 
   -- ACP commands
-  elseif trigger_char == (config.interactions.chat.slash_commands.opts.acp.trigger or "\\") then
+  elseif trigger_char == triggers.mappings.acp_slash_commands then
     local acp_cmds = completion.acp_commands(ctx.bufnr)
     local items = vim
       .iter(acp_cmds)
@@ -158,8 +160,8 @@ function M:get_completions(ctx, callback)
 end
 
 function M:execute(ctx, item, callback, default_implementation)
-  -- Variables and tools just need default text insertion
-  if vim.tbl_contains({ "variable", "tool" }, item.data.type) then
+  -- Editor context and tools just need default text insertion
+  if vim.tbl_contains({ "editor_context", "tool" }, item.data.type) then
     if type(default_implementation) == "function" then
       default_implementation()
     end

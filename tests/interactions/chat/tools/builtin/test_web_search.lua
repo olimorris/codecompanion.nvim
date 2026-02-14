@@ -62,7 +62,7 @@ local T = new_set({
         -- Minimal config
         local config = require("codecompanion.config")
         config.interactions.chat.tools.web_search = {
-          callback = "interactions.chat.tools.builtin.web_search",
+          path = "interactions.chat.tools.builtin.web_search",
           opts = { adapter = "test_adapter" }
         }
         config.adapters.test_adapter = {}

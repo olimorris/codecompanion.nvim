@@ -337,17 +337,17 @@ T["command-level approvals"] = new_set()
 T["command-level approvals"]["approves specific command for tool"] = function()
   child.lua([[
     -- Mock a tool with cmd approval requirement
-    package.loaded['codecompanion.config'].interactions.chat.tools.cmd_runner = {
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
         require_cmd_approval = true,
       },
     }
 
-    Approvals:always(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
 
   local approved = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
 
   h.eq(approved, true)
@@ -355,17 +355,17 @@ end
 
 T["command-level approvals"]["rejects unapproved command for same tool"] = function()
   child.lua([[
-    package.loaded['codecompanion.config'].interactions.chat.tools.cmd_runner = {
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
         require_cmd_approval = true,
       },
     }
 
-    Approvals:always(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
 
   local approved = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'rm -rf /' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'rm -rf /' })
   ]])
 
   h.eq(approved, false)
@@ -373,24 +373,24 @@ end
 
 T["command-level approvals"]["allows multiple commands for same tool"] = function()
   child.lua([[
-    package.loaded['codecompanion.config'].interactions.chat.tools.cmd_runner = {
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
         require_cmd_approval = true,
       },
     }
 
-    Approvals:always(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
-    Approvals:always(1, { tool_name = 'cmd_runner', cmd = 'make test' })
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'ls -la' })
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'make test' })
   ]])
 
   local cmd1 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
   local cmd2 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'make test' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'make test' })
   ]])
   local cmd3 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'echo hello' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'echo hello' })
   ]])
 
   h.eq(cmd1, true)
@@ -417,27 +417,27 @@ end
 
 T["command-level approvals"]["is buffer-specific for commands"] = function()
   child.lua([[
-    package.loaded['codecompanion.config'].interactions.chat.tools.cmd_runner = {
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
         require_cmd_approval = true,
       },
     }
 
-    Approvals:always(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
-    Approvals:always(2, { tool_name = 'cmd_runner', cmd = 'make test' })
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'ls -la' })
+    Approvals:always(2, { tool_name = 'run_command', cmd = 'make test' })
   ]])
 
   local buf1_cmd1 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
   local buf1_cmd2 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'make test' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'make test' })
   ]])
   local buf2_cmd1 = child.lua([[
-    return Approvals:is_approved(2, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    return Approvals:is_approved(2, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
   local buf2_cmd2 = child.lua([[
-    return Approvals:is_approved(2, { tool_name = 'cmd_runner', cmd = 'make test' })
+    return Approvals:is_approved(2, { tool_name = 'run_command', cmd = 'make test' })
   ]])
 
   h.eq(buf1_cmd1, true)
@@ -448,18 +448,18 @@ end
 
 T["command-level approvals"]["resets command approvals with reset()"] = function()
   child.lua([[
-    package.loaded['codecompanion.config'].interactions.chat.tools.cmd_runner = {
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
         require_cmd_approval = true,
       },
     }
 
-    Approvals:always(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'ls -la' })
     Approvals:reset(1)
   ]])
 
   local approved = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'ls -la' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'ls -la' })
   ]])
 
   h.eq(approved, false)
@@ -467,7 +467,7 @@ end
 
 T["command-level approvals"]["yolo mode overrides cmd approval requirement"] = function()
   child.lua([[
-    package.loaded['codecompanion.config'].interactions.chat.tools.cmd_runner = {
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
         require_cmd_approval = true,
       },
@@ -477,7 +477,7 @@ T["command-level approvals"]["yolo mode overrides cmd approval requirement"] = f
   ]])
 
   local approved = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'cmd_runner', cmd = 'any command' })
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'any command' })
   ]])
 
   h.eq(approved, true)

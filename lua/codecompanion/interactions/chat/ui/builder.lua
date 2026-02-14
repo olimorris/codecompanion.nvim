@@ -364,6 +364,7 @@ function Builder:update_line(line_number, content, opts)
   local ok, _ = pcall(api.nvim_buf_set_lines, self.chat.bufnr, start_line, end_line, false, { content })
   if ok and opts.status then
     vim.schedule(function()
+      Icons.clear_line(self.chat.bufnr, start_line)
       Icons.apply(self.chat.bufnr, start_line, opts.status, opts)
     end)
   end

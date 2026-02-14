@@ -14,16 +14,34 @@ local header_substitution = {
   { "^Using the%s*", "" },
   { "^Using%s*", "" },
   { "^Other Configuration Options", "Other Options" },
+  -- Add more specific patterns for your long headers
+  { "^Agent Client Protocol %(ACP%) Support", "ACP" },
+  { "^Model Context Protocol %(MCP%) Support", "MCP" },
+  { "^Extending CodeCompanion with", "Extending with" },
+  { "^Creating Your Own", "Extending with" },
+  { "^Community Contributed", "Community" },
+  { "Installation and Configuration", "Setup" },
+  { "^The CodeCompanion", "" },
+  { " in CodeCompanion", "" },
+  { " for CodeCompanion", "" },
 }
 
 function M.Header(el)
   local text = stringify(el.content)
+
+  -- Apply all substitutions in order
   for _, sub in ipairs(header_substitution) do
     local pat, repl = sub[1], sub[2]
     text = text:gsub(pat, repl)
   end
-  el.content = text
 
+  -- Truncate if still too long (optional safety net)
+  local max_length = 80
+  if #text > max_length then
+    text = text:sub(1, max_length - 3) .. "..."
+  end
+
+  el.content = text
   return el
 end
 

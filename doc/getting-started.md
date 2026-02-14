@@ -138,11 +138,11 @@ The Chat Buffer is where you can converse with an LLM from within Neovim. It ope
 
 Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open the chat buffer and send a prompt at the same time. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
-You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
+You can add context from your code base by using _Editor Context_ and _Slash Commands_ in the chat buffer.
 
-### Variables
+### Editor Context
 
-_Variables_, accessed via `#`, contain data about the present state of Neovim. You can find a list of available variables, [here](/usage/chat-buffer/variables.html). The buffer variable will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
+_Editor Context_, accessed via `#` (by default), contain data about the present state of Neovim. You can find a list of available editor context, [here](/usage/chat-buffer/editor-context). The buffer editor context will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
 
 > [!TIP]
 > Use them in your prompt like: `What does the code in #{buffer} do?`
@@ -174,7 +174,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and leverage ex
 
 The inline assistant enables an LLM to write code directly into a Neovim buffer.
 
-Run `:CodeCompanion your prompt` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant. To send additional context alongside your prompt, you can leverage [variables](/usage/inline-assistant#variables) such as `:CodeCompanion #{buffer} <your prompt>`.
+Run `:CodeCompanion your prompt` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant. To send additional context alongside your prompt, you can leverage [editor context](/usage/inline-assistant#editor-context) such as `:CodeCompanion #{buffer} <your prompt>`.
 
 For convenience, you can call prompts with their `alias` from the [prompt library](https://github.com/olimorris/codecompanion.nvim/blob/6a4341a4cfe8988a57ad9e8b7dc01ccd6f3e1628/lua/codecompanion/config.lua#L565) such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following presets:
 

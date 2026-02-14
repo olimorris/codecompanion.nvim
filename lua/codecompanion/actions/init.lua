@@ -7,6 +7,24 @@ local Actions = {}
 
 local _cached_actions = {}
 
+---Insert prompts into the cached actions
+---@param prompts table
+---@param opts? { is_markdown: boolean }
+local function insert_prompts(prompts, opts)
+  for _, prompt in ipairs(prompts) do
+    if not prompt.opts then
+      prompt.opts = {}
+    end
+    prompt.opts.type = "prompt"
+    if opts and opts.is_markdown then
+      prompt.opts.is_markdown = true
+    end
+    if prompt.opts.enabled ~= false then
+      table.insert(_cached_actions, prompt)
+    end
+  end
+end
+
 ---Validate the items against the context to determine their visibility
 ---@param items table The items to validate
 ---@param context CodeCompanion.BufferContext The buffer context
@@ -52,30 +70,15 @@ function Actions.set_items(context)
     local markdown = require("codecompanion.actions.markdown")
     if config.display.action_palette.opts.show_preset_prompts then
       local current_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h")
-      local builtin_prompts = markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context)
-      for _, prompt in ipairs(builtin_prompts) do
-        if not prompt.opts then
-          prompt.opts = {}
-        end
-        prompt.opts.type = "prompt"
-        prompt.opts.is_markdown = true
-        table.insert(_cached_actions, prompt)
-      end
+      insert_prompts(markdown.load_from_dir(vim.fs.joinpath(current_dir, "builtins"), context), { is_markdown = true })
     end
 
     -- Add lua prompts from the prompt library
     if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
-      for _, prompt in ipairs(prompts) do
-        -- Exclusions....
-        if prompt.name ~= "markdown" then
-          if not prompt.opts then
-            prompt.opts = {}
-          end
-          prompt.opts.type = "prompt"
-          table.insert(_cached_actions, prompt)
-        end
-      end
+      insert_prompts(vim.tbl_filter(function(p)
+        return p.name ~= "markdown"
+      end, prompts))
     end
 
     -- Add user markdown prompts
@@ -84,15 +87,7 @@ function Actions.set_items(context)
         if type(dir) == "function" then
           dir = dir(context)
         end
-        local user_prompts = markdown.load_from_dir(dir, context)
-        for _, prompt in ipairs(user_prompts) do
-          if not prompt.opts then
-            prompt.opts = {}
-          end
-          prompt.opts.type = "prompt"
-          prompt.opts.is_markdown = true
-          table.insert(_cached_actions, prompt)
-        end
+        insert_prompts(markdown.load_from_dir(dir, context), { is_markdown = true })
       end
     end
   end

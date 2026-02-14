@@ -45,9 +45,9 @@ local function setup_with_tools_and_cancel_stub(n_tools)
       return {
         name = n,
         cmds = {
-          function(self, args, input, cb)
+          function(self, args, opts)
             -- Should not run when 'Cancel' is selected, but return success if it does
-            cb({ status = "success", data = n .. "_ran" })
+            opts.output_cb({ status = "success", data = n .. "_ran" })
           end,
         },
         schema = {
@@ -60,10 +60,10 @@ local function setup_with_tools_and_cancel_stub(n_tools)
         },
         opts = { require_approval_before = true },
         output = {
-          cancelled = function(self, tools, _)
+          cancelled = function(self, meta)
             _G.cancelled = _G.cancelled or {}
             table.insert(_G.cancelled, self.name)
-            tools.chat:add_tool_output(self, "cancelled:" .. self.name)
+            meta.tools.chat:add_tool_output(self, "cancelled:" .. self.name)
           end,
         },
       }

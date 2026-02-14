@@ -51,9 +51,9 @@ return {
       description = "Allow models to search the web for the latest information before generating a response.",
       enabled = true,
       ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
-      ---@param tools table The transformed tools table
-      callback = function(self, tools)
-        table.insert(tools, {
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
           type = "web_search",
         })
       end,
@@ -257,7 +257,7 @@ return {
           for _, schema in pairs(tool) do
             if schema._meta and schema._meta.adapter_tool then
               if self.available_tools[schema.name] then
-                self.available_tools[schema.name].callback(self, transformed)
+                self.available_tools[schema.name].callback(self, { tools = transformed })
               end
             else
               table.insert(

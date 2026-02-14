@@ -44,13 +44,14 @@ local defaults = {
       goose = "goose",
       kimi_cli = "kimi_cli",
       kiro = "kiro",
+      mistral_vibe = "mistral_vibe",
       opencode = "opencode",
       opts = {
         show_presets = true,
       },
     },
     opts = {
-      cmd_timeout = 10e3, -- Timeout for commands that resolve env variables (milliseconds)
+      cmd_timeout = 20e3, -- Timeout for commands that resolve env variables (milliseconds)
     },
   },
   constants = constants,
@@ -96,15 +97,14 @@ local defaults = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
             prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
             tools = {
-              "cmd_runner",
               "create_file",
               "delete_file",
               "file_search",
               "get_changed_files",
               "grep_search",
               "insert_edit_into_file",
-              "list_code_usages",
               "read_file",
+              "run_command",
             },
             opts = {
               collapse_tools = true,
@@ -128,8 +128,8 @@ local defaults = {
           },
         },
         -- Tools
-        ["cmd_runner"] = {
-          callback = "interactions.chat.tools.builtin.cmd_runner",
+        ["run_command"] = {
+          path = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
           opts = {
             allowed_in_yolo_mode = false,
@@ -138,7 +138,7 @@ local defaults = {
           },
         },
         ["insert_edit_into_file"] = {
-          callback = "interactions.chat.tools.builtin.insert_edit_into_file",
+          path = "interactions.chat.tools.builtin.insert_edit_into_file",
           description = "Robustly edit existing files with multiple automatic fallback interactions",
           opts = {
             require_approval_before = { -- Require approval before the tool is executed?
@@ -150,7 +150,7 @@ local defaults = {
           },
         },
         ["create_file"] = {
-          callback = "interactions.chat.tools.builtin.create_file",
+          path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
           opts = {
             require_approval_before = true,
@@ -158,7 +158,7 @@ local defaults = {
           },
         },
         ["delete_file"] = {
-          callback = "interactions.chat.tools.builtin.delete_file",
+          path = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
             allowed_in_yolo_mode = false,
@@ -167,14 +167,14 @@ local defaults = {
           },
         },
         ["fetch_webpage"] = {
-          callback = "interactions.chat.tools.builtin.fetch_webpage",
+          path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
             adapter = "jina",
           },
         },
         ["file_search"] = {
-          callback = "interactions.chat.tools.builtin.file_search",
+          path = "interactions.chat.tools.builtin.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
@@ -182,14 +182,14 @@ local defaults = {
           },
         },
         ["get_changed_files"] = {
-          callback = "interactions.chat.tools.builtin.get_changed_files",
+          path = "interactions.chat.tools.builtin.get_changed_files",
           description = "Get git diffs of current file changes in a git repository",
           opts = {
             max_lines = 1000,
           },
         },
         ["grep_search"] = {
-          callback = "interactions.chat.tools.builtin.grep_search",
+          path = "interactions.chat.tools.builtin.grep_search",
           enabled = function()
             -- Currently this tool only supports ripgrep
             return vim.fn.executable("rg") == 1
@@ -203,18 +203,18 @@ local defaults = {
           },
         },
         ["memory"] = {
-          callback = "interactions.chat.tools.builtin.memory",
+          path = "interactions.chat.tools.builtin.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             require_approval_before = true,
           },
         },
         ["next_edit_suggestion"] = {
-          callback = "interactions.chat.tools.builtin.next_edit_suggestion",
+          path = "interactions.chat.tools.builtin.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
         ["read_file"] = {
-          callback = "interactions.chat.tools.builtin.read_file",
+          path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
           opts = {
             require_approval_before = true,
@@ -222,7 +222,7 @@ local defaults = {
           },
         },
         ["web_search"] = {
-          callback = "interactions.chat.tools.builtin.web_search",
+          path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -234,10 +234,6 @@ local defaults = {
               max_results = 5,
             },
           },
-        },
-        ["list_code_usages"] = {
-          callback = "interactions.chat.tools.builtin.list_code_usages",
-          description = "Find code symbol context",
         },
         opts = {
           auto_submit_errors = true, -- Send any errors to the LLM automatically?
@@ -305,9 +301,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.chat.variables.buffer",
+          path = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
@@ -329,14 +325,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["lsp"] = {
-          callback = "interactions.chat.variables.lsp",
+          path = "interactions.chat.editor_context.lsp",
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
           },
         },
         ["viewport"] = {
-          callback = "interactions.chat.variables.viewport",
+          path = "interactions.chat.editor_context.viewport",
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
@@ -345,7 +341,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "interactions.chat.slash_commands.builtin.buffer",
+          path = "interactions.chat.slash_commands.builtin.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -354,7 +350,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["command"] = {
-          callback = "interactions.chat.slash_commands.builtin.command",
+          path = "interactions.chat.slash_commands.builtin.command",
           description = "Change the command used to start the ACP adapter",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -369,7 +365,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["compact"] = {
-          callback = "interactions.chat.slash_commands.builtin.compact",
+          path = "interactions.chat.slash_commands.builtin.compact",
           description = "Clears some of the chat history, keeping a summary in context",
           enabled = function(opts)
             if opts.adapter and opts.adapter.type == "http" then
@@ -382,7 +378,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["fetch"] = {
-          callback = "interactions.chat.slash_commands.builtin.fetch",
+          path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -391,14 +387,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["quickfix"] = {
-          callback = "interactions.chat.slash_commands.builtin.quickfix",
+          path = "interactions.chat.slash_commands.builtin.quickfix",
           description = "Insert quickfix list entries",
           opts = {
             contains_code = true,
           },
         },
         ["file"] = {
-          callback = "interactions.chat.slash_commands.builtin.file",
+          path = "interactions.chat.slash_commands.builtin.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -407,7 +403,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "interactions.chat.slash_commands.builtin.help",
+          path = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -416,7 +412,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "interactions.chat.slash_commands.builtin.image",
+          path = "interactions.chat.slash_commands.builtin.image",
           description = "Insert an image",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -433,14 +429,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["rules"] = {
-          callback = "interactions.chat.slash_commands.builtin.rules",
+          path = "interactions.chat.slash_commands.builtin.rules",
           description = "Insert rules into the chat buffer",
           opts = {
             contains_code = true,
           },
         },
         ["mode"] = {
-          callback = "interactions.chat.slash_commands.builtin.mode",
+          path = "interactions.chat.slash_commands.builtin.mode",
           description = "Change the ACP session mode",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -454,15 +450,23 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+        ["mcp"] = {
+          path = "interactions.chat.slash_commands.builtin.mcp",
+          description = "Toggle MCP servers",
+          opts = {
+            contains_code = false,
+            provider = "default", -- snacks|default
+          },
+        },
         ["now"] = {
-          callback = "interactions.chat.slash_commands.builtin.now",
+          path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
         ["symbols"] = {
-          callback = "interactions.chat.slash_commands.builtin.symbols",
+          path = "interactions.chat.slash_commands.builtin.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -470,7 +474,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["terminal"] = {
-          callback = "interactions.chat.slash_commands.builtin.terminal",
+          path = "interactions.chat.slash_commands.builtin.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
@@ -479,7 +483,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         opts = {
           acp = {
             enabled = true, -- Enable ACP command completion
-            trigger = "\\", -- Trigger character for ACP commands
           },
         },
       },
@@ -634,12 +637,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.copilot_stats",
           description = "[Adapter] Copilot statistics",
         },
-        super_diff = {
-          modes = { n = "gD" },
-          index = 23,
-          callback = "keymaps.super_diff",
-          description = "[Tools] Show Super Diff",
-        },
         -- Keymaps for ACP permission requests
         _acp_allow_always = {
           modes = { n = "g1" },
@@ -700,27 +697,6 @@ The user is working on a %s machine. Please respond with system specific command
     inline = {
       adapter = "copilot",
       keymaps = {
-        always_accept = {
-          callback = "keymaps.always_accept",
-          description = "Always accept changes in this buffer",
-          index = 1,
-          modes = { n = "gdy" },
-          opts = { nowait = true },
-        },
-        accept_change = {
-          callback = "keymaps.accept_change",
-          description = "Accept change",
-          index = 2,
-          modes = { n = "gda" },
-          opts = { nowait = true, noremap = true },
-        },
-        reject_change = {
-          callback = "keymaps.reject_change",
-          description = "Reject change",
-          index = 3,
-          modes = { n = "gdr" },
-          opts = { nowait = true, noremap = true },
-        },
         stop = {
           callback = "keymaps.stop",
           description = "Stop request",
@@ -728,23 +704,23 @@ The user is working on a %s machine. Please respond with system specific command
           modes = { n = "q" },
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.inline.variables.buffer",
+          path = "interactions.inline.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["chat"] = {
-          callback = "interactions.inline.variables.chat",
+          path = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["clipboard"] = {
-          callback = "interactions.inline.variables.clipboard",
+          path = "interactions.inline.editor_context.clipboard",
           description = "Share the contents of the clipboard with the LLM",
           opts = {
             contains_code = true,
@@ -765,6 +741,49 @@ The user is working on a %s machine. Please respond with system specific command
 - Generate an command that is valid and can be run in Neovim
 - Ensure the command is relevant to the user's request]],
       },
+    },
+    shared = {
+      keymaps = {
+        always_accept = {
+          callback = "keymaps.always_accept",
+          description = "Always accept changes in this buffer",
+          index = 1,
+          modes = { n = "g1" },
+          opts = { nowait = true },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          description = "Accept change",
+          index = 2,
+          modes = { n = "g2" },
+          opts = { nowait = true, noremap = true },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          description = "Reject change",
+          index = 3,
+          modes = { n = "g3" },
+          opts = { nowait = true, noremap = true },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          description = "Go to next hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          description = "Go to previous hunk",
+          modes = { n = "{" },
+        },
+      },
+    },
+  },
+  -- MCP SERVERS ----------------------------------------------------------------
+  mcp = {
+    enabled = true,
+    servers = {},
+    opts = {
+      timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
@@ -873,13 +892,13 @@ The user is working on a %s machine. Please respond with system specific command
     action_palette = {
       width = 95,
       height = 10,
-      prompt = "Prompt ", -- Prompt used for interactive LLM calls
+      prompt = "Prompt ", -- Title used for interactive LLM calls
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
-        show_preset_actions = true, -- Show the preset actions in the action palette?
-        show_preset_prompts = true, -- Show the preset prompts in the action palette?
-        show_preset_rules = true, -- Show the preset rules in the action palette?
-        title = "CodeCompanion actions", -- The title of the action palette
+        show_preset_actions = true,
+        show_preset_prompts = true,
+        show_preset_rules = true,
+        title = "CodeCompanion actions",
       },
     },
     chat = {
@@ -916,35 +935,13 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
 
-      -- Options for any windows that open within the chat buffer
+      -- Options for an floating windows
       floating_window = {
-        ---@return number|fun(): number
-        width = function()
-          return vim.o.columns - 5
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 2
-        end,
-        row = "center",
-        col = "center",
+        width = 0.9, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
+        border = "single",
         relative = "editor",
         opts = {},
-      },
-
-      -- Options for diff windows that open within the chat buffer
-      diff_window = {
-        ---@return number|fun(): number
-        width = function()
-          return math.min(120, vim.o.columns - 10)
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 4
-        end,
-        opts = {
-          number = true,
-        },
       },
 
       -- Chat buffer options --------------------------------------------------
@@ -961,71 +958,27 @@ The user is working on a %s machine. Please respond with system specific command
       show_reasoning = true, -- Show reasoning content in the chat buffer?
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---The function to display the token count
       ---@param tokens number
       ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+      ---@return string
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
     },
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|split|inline
-
-      provider_opts = {
-        -- Options for inline diff provider
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-
-          diff_signs = {
-            signs = {
-              text = "▌", -- Sign text for normal changes
-              reject = "✗", -- Sign text for rejected changes in super_diff
-              highlight_groups = {
-                addition = "DiagnosticOk",
-                deletion = "DiagnosticError",
-                modification = "DiagnosticWarn",
-              },
-            },
-            -- Super Diff options
-            icons = {
-              accepted = " ",
-              rejected = " ",
-            },
-            colors = {
-              accepted = "DiagnosticOk",
-              rejected = "DiagnosticError",
-            },
-          },
-
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            show_dim = true, -- Enable dimming background for floating windows (applies to both diff and super_diff)
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
-
-        -- Options for the split provider
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
+      -- Options for any diff windows (extends from floating_window)
+      window = {
+        opts = {},
+      },
+      word_highlights = {
+        additions = true,
+        deletions = true,
       },
     },
     inline = {
@@ -1050,8 +1003,14 @@ The user is working on a %s machine. Please respond with system specific command
     ---@return boolean
     send_code = true,
 
-    job_start_delay = 1500, -- Delay in milliseconds between cmd tools
-    submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer
+    triggers = {
+      acp_slash_commands = "\\",
+      editor_context = "#",
+      slash_commands = "/",
+      tools = "@",
+    },
+
+    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
   },
 }
 
@@ -1082,7 +1041,7 @@ M.setup = function(args)
     )
   end
 
-  -- TODO: Remove in v19.0.0
+  -- TODO: Remove in v20.0.0
   if args.strategies then
     args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
     args.strategies = nil
@@ -1092,8 +1051,8 @@ M.setup = function(args)
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
+  M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
 
-  -- Set the diagnostic namespace for the chat buffer settings
   M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
 

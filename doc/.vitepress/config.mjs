@@ -120,6 +120,14 @@ export default withMermaid(
         { text: "Getting Started", link: "/getting-started" },
         { text: "Upgrading", link: "/upgrading" },
         {
+          text: "Agent Client Protocol (ACP)",
+          link: "agent-client-protocol",
+        },
+        {
+          text: "Model Context Protocol (MCP)",
+          link: "model-context-protocol",
+        },
+        {
           text: "Configuration",
           collapsed: true,
           items: [
@@ -132,6 +140,7 @@ export default withMermaid(
               text: "Inline Assistant",
               link: "/configuration/inline-assistant",
             },
+            { text: "MCP", link: "/configuration/mcp" },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
             { text: "Rules", link: "/configuration/rules" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
@@ -143,7 +152,6 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: "Introduction", link: "/usage/introduction" },
-            { text: "ACP Protocol", link: "/usage/acp-protocol" },
             { text: "Action Palette", link: "/usage/action-palette" },
             {
               text: "Chat Buffer",
@@ -151,13 +159,16 @@ export default withMermaid(
               collapsed: true,
               items: [
                 { text: "Agents", link: "/usage/chat-buffer/agents" },
+                {
+                  text: "Editor Context",
+                  link: "/usage/chat-buffer/editor-context",
+                },
                 { text: "Rules", link: "/usage/chat-buffer/rules" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
                 },
                 { text: "Tools", link: "/usage/chat-buffer/tools" },
-                { text: "Variables", link: "/usage/chat-buffer/variables" },
               ],
             },
             { text: "Events", link: "/usage/events" },

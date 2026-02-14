@@ -52,7 +52,7 @@ Your instructions here
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
 1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
-2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
 We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -64,12 +64,12 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             name = "Repeat On Failure",
             role = "user",
             opts = { auto_submit = true },
-            -- Scope this prompt to the cmd_runner tool
+            -- Scope this prompt to the run_command tool
             condition = function()
-              return _G.codecompanion_current_tool == "cmd_runner"
+              return _G.codecompanion_current_tool == "run_command"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
-            -- which the cmd_runner tool sets on the chat buffer
+            -- which the run_command tool sets on the chat buffer
             repeat_until = function(chat)
               return chat.tool_registry.flags.testing == true
             end,
@@ -107,7 +107,7 @@ Your instructions here
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
 1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
-2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
 We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -118,9 +118,9 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
 },
 ```
 
-The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@insert_edit_into_file](/usage/chat-buffer/tools.html#files) and [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner) tools to edit a buffer and run tests, respectively.
+The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@insert_edit_into_file](/usage/chat-buffer/tools.html#files) and [@run_command](/usage/chat-buffer/tools.html#run-command) tools to edit a buffer and run tests, respectively.
 
-We're giving the LLM knowledge of the buffer with the `#buffer` variable and also telling CodeCompanion to watch it for any changes with the `{watch}` parameter. Prior to sending a response to the LLM, the plugin will share any changes to that buffer, keeping the LLM updated.
+We're giving the LLM knowledge of the buffer with the `#buffer` editor context and also telling CodeCompanion to watch it for any changes with the `{watch}` parameter. Prior to sending a response to the LLM, the plugin will share any changes to that buffer, keeping the LLM updated.
 
 Now let's look at how we trigger the automated reflection prompts:
 
@@ -133,9 +133,9 @@ Now let's look at how we trigger the automated reflection prompts:
         name = "Repeat On Failure",
         role = "user",
         opts = { auto_submit = true },
-        -- Scope this prompt to only run when the cmd_runner tool is active
+        -- Scope this prompt to only run when the run_command tool is active
         condition = function(chat)
-          return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
+          return chat.tools.tool and chat.tools.tool.name == "run_command"
         end,
         -- Repeat until the tests pass, as indicated by the testing flag
         repeat_until = function(chat)
@@ -148,8 +148,8 @@ Now let's look at how we trigger the automated reflection prompts:
 },
 ```
 
-Now there's a little bit more to unpack in this prompt. Firstly, we're automatically submitting the prompt to the LLM to save the user some time and keypresses. Next, we're scoping the prompt to only be sent to the chat buffer if the currently active tool is the [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner).
+Now there's a little bit more to unpack in this prompt. Firstly, we're automatically submitting the prompt to the LLM to save the user some time and keypresses. Next, we're scoping the prompt to only be sent to the chat buffer if the currently active tool is the [@run_command](/usage/chat-buffer/tools.html#run-command).
 
-We're also leveraging a function called `repeat_until`. This ensures that the prompt is always attached to the chat buffer until a condition is met. In this case, until the tests pass. In the [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner) tool, we ask the LLM to pass a flag if it detects a test suite is being run. The plugin picks up on that flag and puts the test outcome into the chat buffer class as a flag.
+We're also leveraging a function called `repeat_until`. This ensures that the prompt is always attached to the chat buffer until a condition is met. In this case, until the tests pass. In the [@run_command](/usage/chat-buffer/tools.html#run-command) tool, we ask the LLM to pass a flag if it detects a test suite is being run. The plugin picks up on that flag and puts the test outcome into the chat buffer class as a flag.
 
 Finally, we're letting the LLM know that the tests failed, and asking it to fix.

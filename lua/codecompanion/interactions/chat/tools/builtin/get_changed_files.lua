@@ -124,49 +124,46 @@ return {
     },
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.GetChangedFiles
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
-      log:trace("[Insert Edit Into File Tool] on_exit handler executed")
+    on_exit = function(self, meta)
+      log:trace("[Get Changed Files Tool] on_exit handler executed")
     end,
   },
   output = {
     ---@param self CodeCompanion.Tool.GetChangedFiles
-    ---@param tools CodeCompanion.Tools
-    prompt = function(self, tools)
+    ---@param meta { tools: CodeCompanion.Tools }
+    prompt = function(self, meta)
       return "Get changed files in the git repository?"
     end,
 
     ---@param self CodeCompanion.Tool.GetChangedFiles
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
       local output = vim.iter(stdout):flatten():join("\n")
       chat:add_tool_output(self, output, "Reading changed files")
     end,
 
     ---@param self CodeCompanion.Tool.GetChangedFiles
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       chat:add_tool_output(self, errors)
     end,
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.GetChangedFiles
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = "The user rejected the get changed files tool"
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      helpers.rejected(self, meta)
     end,
   },
 }

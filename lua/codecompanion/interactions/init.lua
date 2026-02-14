@@ -14,6 +14,38 @@ local function add_adapter(interaction, opts)
   end
 end
 
+---Extract tools from the selected prompt
+---@param selected table
+---@return table<string>|nil
+local function get_tools(selected)
+  return selected.tools
+end
+
+---Extract MCP servers from the selected prompt
+---@param selected table
+---@return table<string>|nil
+local function get_mcp_servers(selected)
+  return selected.mcp_servers
+end
+
+---Build callbacks from opts and rules
+---@param selected table The selected prompt
+---@return table
+local function get_callbacks(selected)
+  local opts = selected.opts or {}
+  local callbacks = opts.callbacks or {}
+
+  --TODO: Remove opts.rules fallback in v20.0.0
+  local rules = selected.rules or opts.rules
+  if rules and rules ~= "none" then
+    local rules_cb = rules_helpers.add_callbacks(callbacks, rules)
+    if rules_cb then
+      callbacks = rules_cb
+    end
+  end
+  return callbacks
+end
+
 ---@class CodeCompanion.Interactions
 ---@field buffer_context CodeCompanion.BufferContext
 ---@field selected table
@@ -111,25 +143,19 @@ function Interactions:chat()
       opts.pre_hook()
     end
 
-    local callbacks = opts and opts.callbacks or {}
-    if self.selected.opts.rules and self.selected.opts.rules ~= "none" then
-      local rules_cb = rules_helpers.add_callbacks(callbacks, self.selected.opts.rules)
-      if rules_cb then
-        callbacks = rules_cb
-      end
-    end
-
     log:info("[Interaction] Chat Initiated")
     return require("codecompanion.interactions.chat").new({
       adapter = self.selected.adapter,
       auto_submit = (opts and opts.auto_submit) or false,
       buffer_context = self.buffer_context,
-      callbacks = callbacks,
+      callbacks = get_callbacks(self.selected),
       from_prompt_library = self.selected.description and true or false,
       ignore_system_prompt = (opts and opts.ignore_system_prompt) or false,
       intro_message = (opts and opts.intro_message) or nil,
+      mcp_servers = get_mcp_servers(self.selected),
       messages = messages,
       stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
+      tools = get_tools(self.selected),
     })
   end
 
@@ -203,7 +229,10 @@ function Interactions:workflow()
     adapter = self.selected.adapter,
     auto_submit = (messages[#messages].opts and messages[#messages].opts.auto_submit) or false,
     buffer_context = self.buffer_context,
+    callbacks = get_callbacks(self.selected),
+    mcp_servers = get_mcp_servers(self.selected),
     messages = messages,
+    tools = get_tools(self.selected),
   })
 
   if workflow.context then

@@ -103,13 +103,12 @@ function PromptBuilder:send()
   end
 
   -- Send the prompt
-  local req = {
-    jsonrpc = "2.0",
-    id = self.connection._state.next_id,
-    method = self.connection.METHODS.SESSION_PROMPT,
-    params = { sessionId = self.connection.session_id, prompt = self.messages },
-  }
-  self.connection._state.next_id = self.connection._state.next_id + 1
+  local jsonrpc = require("codecompanion.utils.jsonrpc")
+  local id = self.connection._state.id_gen:next()
+  local req = jsonrpc.request(id, self.connection.METHODS.SESSION_PROMPT, {
+    sessionId = self.connection.session_id,
+    prompt = self.messages,
+  })
   self.connection:write_message(self.connection.methods.encode(req) .. "\n")
 
   self._streaming_started = false

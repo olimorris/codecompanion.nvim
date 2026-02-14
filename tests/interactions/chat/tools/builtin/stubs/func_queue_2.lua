@@ -14,19 +14,19 @@ return {
   },
   handlers = {
     -- Should only be called once
-    setup = function(self, tools)
+    setup = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Func2[Setup]"
       _G._test_setup = (_G._test_setup or "") .. "Setup"
     end,
     -- Should only be called once
-    on_exit = function(self, tools)
+    on_exit = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Func2[Exit]"
       _G._test_exit = (_G._test_exit or "") .. "Exited"
     end,
   },
   output = {
     -- Should be called multiple times
-    success = function(self, tools, cmd, output)
+    success = function(self, stdout, meta)
       _G._test_order = (_G._test_order or "") .. "->Func2[Success]"
       _G._test_output = (_G._test_output or "") .. "Ran with success"
       return "stdout is populated!"

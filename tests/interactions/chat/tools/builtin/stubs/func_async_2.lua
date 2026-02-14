@@ -2,7 +2,8 @@ return {
   name = "func_async_2",
   system_prompt = "my func system prompt",
   cmds = {
-    function(self, actions, input, cb)
+    function(self, actions, opts)
+      local cb = opts.output_cb
       local spacer = ""
       if _G._test_func then
         spacer = " "
@@ -21,19 +22,19 @@ return {
   },
   handlers = {
     -- Should only be called once
-    setup = function(self, tools)
+    setup = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->AsyncFunc2[Setup]"
       _G._test_setup = (_G._test_setup or "") .. "Setup"
     end,
     -- Should only be called once
-    on_exit = function(self, tools)
+    on_exit = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->AsyncFunc2[Exit]"
       _G._test_exit = (_G._test_exit or "") .. "Exited"
     end,
   },
   output = {
     -- Should be called multiple times
-    success = function(self, tools, cmd, output)
+    success = function(self, stdout, meta)
       _G._test_order = (_G._test_order or "") .. "->AsyncFunc2[Success]"
       _G._test_output = (_G._test_output or "") .. "Ran with success"
       return "stdout is populated!"

@@ -371,18 +371,19 @@ return {
 - Clearly reference retrieved memory when continuing or summarising conversations.
 - If no relevant memory is found, inform the user and ask if they wish to start a new topic or save new context.]],
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.Memory
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, meta)
       log:trace("[Memory Tool] on_exit handler executed")
     end,
   },
   output = {
     ---The message shared with the user when asking for approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
-    prompt = function(self, tools)
+    prompt = function(self, meta)
       local args = self.args
       local command = args.command
 
@@ -404,12 +405,11 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.Memory
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
-      local args = self.args
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
+      local cmd = meta.cmd
 
       local llm_output = ""
       local user_output = ""
@@ -437,12 +437,11 @@ return {
       chat:add_tool_output(self, llm_output, user_output)
     end,
 
-    ---@param self CodeCompanion.Tool.CreateFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
+    ---@param self CodeCompanion.Tool.Memory
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local errors = stderr.data or "Unknown error"
       log:debug("[Memory Tool] Error output: %s", errors)
 
@@ -451,14 +450,12 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.Memory
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param opts {tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, opts)
       local message = "The user rejected the memory operation"
       opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      helpers.rejected(self, opts)
     end,
   },
 }

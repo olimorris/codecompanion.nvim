@@ -79,35 +79,35 @@ return {
     },
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.DeleteFile
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, meta)
       log:trace("[Delete File Tool] on_exit handler executed")
     end,
   },
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.DeleteFile
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
+    cmd_string = function(self, opts)
       return modify_path(self.args.filepath)
     end,
 
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
-    prompt = function(self, tools)
+    prompt = function(self, meta)
       return fmt("Delete the file at `%s`?", modify_path(self.args.filepath))
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
       local args = self.args
       local path = args.filepath
 
@@ -115,11 +115,10 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Delete File Tool] Error output: %s", stderr)
 
@@ -129,14 +128,12 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.DeleteFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = "The user rejected the deletion of the file"
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      helpers.rejected(self, meta)
     end,
   },
 }

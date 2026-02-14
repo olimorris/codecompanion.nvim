@@ -12,9 +12,10 @@ return {
     ---Execute the fetch_webpage tool
     ---@param self CodeCompanion.Tools
     ---@param args table The arguments from the LLM's tool call
-    ---@param cb function Async callback for completion
+    ---@param opts {input: any, output_cb: fun(msg: table)}
     ---@return nil
-    function(self, args, _, cb)
+    function(self, args, opts)
+      local cb = opts.output_cb
       local opts = self.tool.opts
       local url = args.url
 
@@ -83,12 +84,11 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tool.FetchWebpage
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
       local args = self.args
-      local chat = tools.chat
+      local chat = meta.tools.chat
 
       local content
       if type(stdout) == "table" then
@@ -129,12 +129,11 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.FetchWebpage
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
       local args = self.args
-      local chat = tools.chat
+      local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Fetch Webpage Tool] Error output: %s", stderr)
 

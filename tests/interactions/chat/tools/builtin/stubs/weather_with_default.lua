@@ -43,12 +43,11 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table
-    success = function(self, tools, cmd, stdout)
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
       local output = stdout[#stdout]
-      tools.chat:add_tool_output(self, "Ran the weather tool " .. output, output)
+      meta.tools.chat:add_tool_output(self, "Ran the weather tool " .. output, output)
     end,
   },
 }

@@ -66,7 +66,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
                 role = "user",
                 opts = { auto_submit = false },
                 condition = function(chat)
-                  return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
+                  return chat.tools.tool and chat.tools.tool.name == "run_command"
                 end,
                 repeat_until = function(chat)
                   return chat.tool_registry.flags.testing == true
@@ -99,7 +99,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   h.eq("First prompt", last_line)
 
   -- Mock failing tool, twice
-  child.lua([[_G.chat.tools.tool = { name = "cmd_runner" }]])
+  child.lua([[_G.chat.tools.tool = { name = "run_command" }]])
   child.lua([[h.send_to_llm(_G.chat, "Calling a tool...")]])
   last_line = child.lua([[
     local lines = h.get_buf_lines(_G.chat.bufnr)
@@ -107,7 +107,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   ]])
   h.eq("The tests have failed", last_line)
 
-  child.lua([[_G.chat.tools.tool = { name = "cmd_runner" }]])
+  child.lua([[_G.chat.tools.tool = { name = "run_command" }]])
   child.lua([[h.send_to_llm(_G.chat, "Calling a tool...")]])
   last_line = child.lua([[
     local lines = h.get_buf_lines(_G.chat.bufnr)

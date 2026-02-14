@@ -16,18 +16,18 @@ return {
     name = "func",
   },
   handlers = {
-    setup = function(self)
+    setup = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "Setup"
       _G._test_setup = (_G._test_setup or "") .. "Setup"
     end,
-    on_exit = function(self)
+    on_exit = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Exit"
       _G._test_exit = (_G._test_exit or "") .. "Exited"
     end,
   },
   output = {
     -- Should be called multiple times
-    success = function(self, tools, cmd, stdout)
+    success = function(self, stdout, meta)
       _G._test_order = (_G._test_order or "") .. "->Success"
       _G._test_output = (_G._test_output or "") .. "Ran with success"
       _G._test_success_stdout = stdout
