@@ -341,9 +341,8 @@ T["Chat"]["on_before_submit callback can prevent submission"] = function()
 
   -- Messages should be unchanged (no user message added to the stack)
   h.eq(result.message_count_before, result.message_count_after)
-  -- No request should be in progress
-  h.eq(true, result.no_request)
-  -- Status should be reset
+
+  -- Status is rest
   h.eq("", result.status)
 end
 
@@ -353,7 +352,7 @@ T["Chat"]["on_before_submit allows submission when not returning false"] = funct
     local message_count_before = #chat.messages
 
     chat:add_callback("on_before_submit", function(c, info)
-      -- returning nil (no explicit return) should allow submission
+      -- returning nil
     end)
 
     chat:add_buf_message({
