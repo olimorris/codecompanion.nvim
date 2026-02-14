@@ -264,7 +264,7 @@ function Orchestrator:setup_next_tool(input)
   self.tool_output = {}
 
   self:_setup_handlers()
-  self.handlers.setup() -- Call this early as cmd_runner needs to setup its cmds dynamically
+  self.handlers.setup() -- Call this early as run_command needs to setup its cmds dynamically
 
   -- Transform cmd-based tools to func-based
   self.tool = cmd_to_func_tool(self.tool)

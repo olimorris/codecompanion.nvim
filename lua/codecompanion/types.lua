@@ -100,7 +100,7 @@
 ---@field tokens? number Optional token count associated with this message
 
 ---@class CodeCompanion.Chat.ToolFunctionCall
----@field name string Name of the function/tool (e.g. "cmd_runner", "grep_search")
+---@field name string Name of the function/tool (e.g. "run_command", "grep_search")
 ---@field arguments string|table Raw JSON string or parsed table of arguments
 
 ---@class CodeCompanion.Chat.ToolCall
@@ -155,6 +155,9 @@
 ---@field id number The unique identifier for the event
 ---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
+
+---@class CodeCompanion.Tools.Unresolved : CodeCompanion.Tools.Tool
+---@field extends? string The factory to use for resolution (e.g. "cmd_tool")
 
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool

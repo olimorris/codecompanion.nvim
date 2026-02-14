@@ -37,8 +37,8 @@ end
 ---@param target? string
 ---@return table
 local function resolve(chat, ctx_config, params, target)
-  if type(ctx_config.callback) == "string" then
-    local splits = vim.split(ctx_config.callback, ".", { plain = true })
+  if type(ctx_config.path) == "string" then
+    local splits = vim.split(ctx_config.path, ".", { plain = true })
     local path = table.concat(splits, ".", 1, #splits - 1)
     local ctx = splits[#splits]
 

@@ -22,13 +22,13 @@ local T = new_set({
   },
 })
 
-T["cmd_runner tool"] = function()
+T["run_command tool"] = function()
   child.lua([[
     --require("tests.log")
     local tool = {
       {
         ["function"] = {
-          name = "cmd_runner",
+          name = "run_command",
           arguments = '{"cmd": "echo hello world"}',
         },
       },
@@ -42,7 +42,7 @@ end
 
 T["Windows"] = new_set()
 
-T["Windows"]["cmd_runner handles Windows pipe command with empty string argument"] = function()
+T["Windows"]["run_command handles Windows pipe command with empty string argument"] = function()
   -- Skip on non-Windows systems
   if vim.fn.has("win32") == 0 then
     MiniTest.skip("Skipping Windows specific test")
@@ -62,12 +62,12 @@ T["Windows"]["cmd_runner handles Windows pipe command with empty string argument
       end)
     end
 
-    -- Use the actual cmd_runner tool
+    -- Use the actual run_command tool
     local cfg = {
       interactions = {
         chat = {
           tools = {
-            cmd_runner = { enabled = true }
+            run_command = { enabled = true }
           }
         }
       }
@@ -76,11 +76,11 @@ T["Windows"]["cmd_runner handles Windows pipe command with empty string argument
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools, _G.command_results = chat, tools, command_results
 
-    -- Simulate LLM calling cmd_runner with pipe and find command that has empty string argument
+    -- Simulate LLM calling run_command with pipe and find command that has empty string argument
     local calls = {
       {
         ["function"] = {
-          name = "cmd_runner",
+          name = "run_command",
           -- Use full path to find.exe, since I know developers
           -- who have added a POSIX find.exe earlier in their PATH
           -- Using find.exe to explicitly pass in an empty argument

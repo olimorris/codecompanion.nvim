@@ -1,46 +1,38 @@
+local cmd_tool = require("codecompanion.interactions.chat.tools.builtin.cmd_tool")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local os_utils = require("codecompanion.utils.os")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
----@class CodeCompanion.Tool.CmdRunner: CodeCompanion.Tools.Tool
-return {
-  name = "cmd_runner",
-  cmds = {
-    -- This is dynamically populated via the setup function
-  },
+---@class CodeCompanion.Tool.RunCommand: CodeCompanion.Tools.Tool
+return cmd_tool({
+  name = "run_command",
+  description = "Run shell commands on the user's system, sharing the output with the user before then sharing with you.",
   schema = {
-    type = "function",
-    ["function"] = {
-      name = "cmd_runner",
-      description = "Run shell commands on the user's system, sharing the output with the user before then sharing with you.",
-      parameters = {
-        type = "object",
-        properties = {
-          cmd = {
-            type = "string",
-            description = "The command to run, e.g. `pytest` or `make test`",
-          },
-          flag = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = 'If running tests, set to `"testing"`; null otherwise',
-          },
-        },
-        required = {
-          "cmd",
-          "flag",
-        },
-        additionalProperties = false,
+    properties = {
+      cmd = {
+        type = "string",
+        description = "The command to run, e.g. `pytest` or `make test`",
       },
-      strict = true,
+      flag = {
+        anyOf = {
+          { type = "string" },
+          { type = "null" },
+        },
+        description = 'If running tests, set to `"testing"`; null otherwise',
+      },
+    },
+    required = {
+      "cmd",
+      "flag",
     },
   },
+  build_cmd = function(args)
+    return args.cmd
+  end,
   system_prompt = fmt(
-    [[# Command Runner Tool (`cmd_runner`)
+    [[# Run Command Tool (`run_command`)
 
 ## CONTEXT
 - You have access to a command runner tool running within CodeCompanion, in Neovim.
@@ -85,7 +77,7 @@ return {
     vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
   ),
   handlers = {
-    ---@param self CodeCompanion.Tool.CmdRunner
+    ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta { tools: CodeCompanion.Tools }
     setup = function(self, meta)
       local args = self.args
@@ -98,38 +90,16 @@ return {
       table.insert(self.cmds, cmd)
     end,
   },
-
   output = {
     ---Returns the command that will be executed
-    ---@param self CodeCompanion.Tool.CmdRunner
+    ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, meta)
       return self.args.cmd
     end,
 
-    ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param stderr table The error output from the command
-    ---@param meta { tools: CodeCompanion.Tools, cmd: string}
-    error = function(self, stderr, meta)
-      if stderr then
-        local chat = meta.tools.chat
-        local errors = vim.iter(stderr):flatten():join("\n")
-
-        local output = [[%s
-```txt
-%s
-```]]
-
-        local llm_output = fmt(output, fmt("There was an error running the `%s` command:", meta.cmd), errors)
-        local user_output = fmt(output, fmt("`%s` error", meta.cmd), errors)
-
-        chat:add_tool_output(self, llm_output, user_output)
-      end
-    end,
-
-    ---Prompt the user to approve the execution of the command
-    ---@param self CodeCompanion.Tool.CmdRunner
+    ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta {tools: CodeCompanion.Tools}
     ---@return string
     prompt = function(self, meta)
@@ -137,7 +107,7 @@ return {
     end,
 
     ---Rejection message back to the LLM
-    ---@param self CodeCompanion.Tool.CmdRunner
+    ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta {tools: CodeCompanion.Tools, cmd: string, opts: table}
     ---@return nil
     rejected = function(self, meta)
@@ -145,26 +115,5 @@ return {
       meta = vim.tbl_extend("force", { message = message }, meta or {})
       helpers.rejected(self, meta)
     end,
-
-    ---@param self CodeCompanion.Tool.CmdRunner
-    ---@param stdout table|nil The output from the tool
-    ---@param meta { tools: table, cmd: table }
-    ---@return nil
-    success = function(self, stdout, meta)
-      local chat = meta.tools.chat
-      if stdout then
-        local output = vim.iter(stdout[#stdout]):flatten():join("\n")
-        local message = fmt(
-          [[`%s`
-````
-%s
-````]],
-          self.args.cmd,
-          output
-        )
-        return chat:add_tool_output(self, message)
-      end
-      return chat:add_tool_output(self, "There was no output from the cmd_runner tool")
-    end,
   },
-}
+})

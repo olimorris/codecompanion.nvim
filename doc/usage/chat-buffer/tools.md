@@ -45,25 +45,6 @@ will yield:
 Use the lorem_ipsum tool to generate a random paragraph
 ```
 
-### cmd_runner
-
-The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
-
-```md
-Can you use @{cmd_runner} to run my test suite with `pytest`?
-```
-
-```md
-Use @{cmd_runner} to install any missing libraries in my project
-```
-
-Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
-
-The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [agentic workflows](/extending/agentic-workflows) to hook into.
-
-**Options:**
-- `require_approval_before` require approval before running a command? (Default: true)
-
 ### create_file
 
 > [!NOTE]
@@ -200,6 +181,25 @@ Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
+### run_command
+
+The _@run_command_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
+
+```md
+Can you use @{run_command} to run my test suite with `pytest`?
+```
+
+```md
+Use @{run_command} to install any missing libraries in my project
+```
+
+Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
+
+The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [agentic workflows](/extending/agentic-workflows) to hook into.
+
+**Options:**
+- `require_approval_before` require approval before running a command? (Default: true)
+
 ### web_search
 
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
@@ -232,7 +232,7 @@ For example, the following prompt:
 Is replaced by:
 
 ```
-I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
+I'm giving you access to the run_command, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
 ```
 
 This is because the `@{full_stack_dev}` group has the following prompt set in the config:
@@ -254,7 +254,7 @@ The `@{full_stack_dev}` is a collection of tools which have been curated to enab
 
 It contains the following tools:
 
-- [cmd_runner](/usage/chat-buffer/tools#cmd-runner)
+- [run_command](/usage/chat-buffer/tools#run-command)
 - [create_file](/usage/chat-buffer/tools#create-file)
 - [file_search](/usage/chat-buffer/tools#file-search)
 - [get_changed_files](/usage/chat-buffer/tools#get-changed-files)
@@ -333,13 +333,13 @@ When prompted, the user has four options available to them:
 - **Reject** - Reject the execution of this tool/cmd and provide a reason
 - **Cancel** - Cancel this tool execution and all other pending tool executions
 
-Certain tools with potentially destructive capabilities have an additional layer of protection. Instead of being approved at a tool level, these are approved at a command level (`require_cmd_approval = true`). Taking the `cmd_runner` tool as an example. If you approve an agent to always run `make format`, if it tries to run `make test`, you'll be prompted to approve that command specifically.
+Certain tools with potentially destructive capabilities have an additional layer of protection. Instead of being approved at a tool level, these are approved at a command level (`require_cmd_approval = true`). Taking the `run_command` tool as an example. If you approve an agent to always run `make format`, if it tries to run `make test`, you'll be prompted to approve that command specifically.
 
 Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
 ### YOLO mode
 
-To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, note that some tools such as `cmd_runner` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set.
+To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, note that some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set.
 
 ## Compatibility
 

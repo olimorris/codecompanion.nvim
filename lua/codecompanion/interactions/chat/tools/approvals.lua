@@ -20,7 +20,7 @@
           yolo_mode = true,
         },
         [3] = {
-          cmd_runner = {
+          run_command = {
             -- Commands that has have approved
             ["ls -la"] = true,
             ["make test"] = true,

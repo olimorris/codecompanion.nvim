@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your own tools for use with agents in CodeCompanion
+description: Learn how to create your own tools that can be leveraged by LLMs in CodeCompanion
 ---
 
 # Extending with Tools
@@ -61,7 +61,7 @@ sequenceDiagram
     TS->>C: tools_done()
 ```
 
-## Building Your First Built-in Tool
+## Building Your First Tool
 
 Before we begin, it's important to familiarise yourself with the directory structure of the tools implementation:
 
@@ -73,7 +73,7 @@ interactions/chat/tools
 │   ├── queue.lua
 │   ├── runner.lua
 ├── builtin/
-│   ├── cmd_runner.lua
+│   ├── run_command.lua
 │   ├── insert_edit_into_file.lua
 │   ├── create_file.lua
 │   ├── ...
@@ -165,7 +165,7 @@ end,
 ```
 
 > [!IMPORTANT]
-> Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua) tool.
+> Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [run_command](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua) tool.
 
 **Function-based Tools**
 
@@ -325,7 +325,7 @@ system_prompt = [[## Calculator Tool (`calculator`)
 
 The _handlers_ table contains two functions that are executed before and after a tool completes:
 
-1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua) tool.
+1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@run_command](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua) tool.
 2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table.
 3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
@@ -404,56 +404,55 @@ require("codecompanion").setup({
       tools = {
         calculator = {
           description = "Perform calculations",
-          callback = {
-            name = "calculator",
-            cmds = {
-              ---@param self CodeCompanion.Tool.Calculator The Calculator tool
-              ---@param args table The arguments from the LLM's tool call
-              ---@param opts { input: any, output_cb: fun(result: table) }
-              ---@return nil|{ status: "success"|"error", data: string }
-              function(self, args, opts)
-                -- Get the numbers and operation requested by the LLM
-                local num1 = tonumber(args.num1)
-                local num2 = tonumber(args.num2)
-                local operation = args.operation
+          name = "calculator",
+          cmds = {
+            ---@param self CodeCompanion.Tool.Calculator The Calculator tool
+            ---@param args table The arguments from the LLM's tool call
+            ---@param opts { input: any, output_cb: fun(result: table) }
+            ---@return nil|{ status: "success"|"error", data: string }
+            function(self, args, opts)
+              -- Get the numbers and operation requested by the LLM
+              local num1 = tonumber(args.num1)
+              local num2 = tonumber(args.num2)
+              local operation = args.operation
 
-                -- Validate input
-                if not num1 then
-                  return { status = "error", data = "First number is missing or invalid" }
+              -- Validate input
+              if not num1 then
+                return { status = "error", data = "First number is missing or invalid" }
+              end
+
+              if not num2 then
+                return { status = "error", data = "Second number is missing or invalid" }
+              end
+
+              if not operation then
+                return { status = "error", data = "Operation is missing" }
+              end
+
+              -- Perform the calculation
+              local result
+              if operation == "add" then
+                result = num1 + num2
+              elseif operation == "subtract" then
+                result = num1 - num2
+              elseif operation == "multiply" then
+                result = num1 * num2
+              elseif operation == "divide" then
+                if num2 == 0 then
+                  return { status = "error", data = "Cannot divide by zero" }
                 end
+                result = num1 / num2
+              else
+                return {
+                  status = "error",
+                  data = "Invalid operation: must be add, subtract, multiply, or divide",
+                }
+              end
 
-                if not num2 then
-                  return { status = "error", data = "Second number is missing or invalid" }
-                end
-
-                if not operation then
-                  return { status = "error", data = "Operation is missing" }
-                end
-
-                -- Perform the calculation
-                local result
-                if operation == "add" then
-                  result = num1 + num2
-                elseif operation == "subtract" then
-                  result = num1 - num2
-                elseif operation == "multiply" then
-                  result = num1 * num2
-                elseif operation == "divide" then
-                  if num2 == 0 then
-                    return { status = "error", data = "Cannot divide by zero" }
-                  end
-                  result = num1 / num2
-                else
-                  return {
-                    status = "error",
-                    data = "Invalid operation: must be add, subtract, multiply, or divide",
-                  }
-                end
-
-                return { status = "success", data = result }
-              end,
-            },
-            system_prompt = [[## Calculator Tool (`calculator`)
+              return { status = "success", data = result }
+            end,
+          },
+          system_prompt = [[## Calculator Tool (`calculator`)
 
 ## CONTEXT
 - You have access to a calculator tool running within CodeCompanion, in Neovim.
@@ -466,65 +465,64 @@ require("codecompanion").setup({
 - Always use the structure above for consistency.
 ]],
 
-            schema = {
-              type = "function",
-              ["function"] = {
-                name = "calculator",
-                description = "Perform simple mathematical operations on a user's machine",
-                parameters = {
-                  type = "object",
-                  properties = {
-                    num1 = {
-                      type = "integer",
-                      description = "The first number in the calculation",
-                    },
-                    num2 = {
-                      type = "integer",
-                      description = "The second number in the calculation",
-                    },
-                    operation = {
-                      type = "string",
-                      enum = { "add", "subtract", "multiply", "divide" },
-                      description = "The mathematical operation to perform on the two numbers",
-                    },
+          schema = {
+            type = "function",
+            ["function"] = {
+              name = "calculator",
+              description = "Perform simple mathematical operations on a user's machine",
+              parameters = {
+                type = "object",
+                properties = {
+                  num1 = {
+                    type = "integer",
+                    description = "The first number in the calculation",
                   },
-                  required = {
-                    "num1",
-                    "num2",
-                    "operation",
+                  num2 = {
+                    type = "integer",
+                    description = "The second number in the calculation",
                   },
-                  additionalProperties = false,
+                  operation = {
+                    type = "string",
+                    enum = { "add", "subtract", "multiply", "divide" },
+                    description = "The mathematical operation to perform on the two numbers",
+                  },
                 },
-                strict = true,
+                required = {
+                  "num1",
+                  "num2",
+                  "operation",
+                },
+                additionalProperties = false,
               },
+              strict = true,
             },
-            handlers = {
-              ---@param self CodeCompanion.Tool.Calculator
-              ---@param meta { tools: CodeCompanion.Tools }
-              setup = function(self, meta)
-                return vim.notify("setup function called", vim.log.levels.INFO)
-              end,
-              ---@param self CodeCompanion.Tool.Calculator
-              ---@param meta { tools: CodeCompanion.Tools }
-              on_exit = function(self, meta)
-                return vim.notify("on_exit function called", vim.log.levels.INFO)
-              end,
-            },
-            output = {
-              ---@param self CodeCompanion.Tool.Calculator
-              ---@param stdout table
-              ---@param meta { tools: CodeCompanion.Tools, cmd: table }
-              success = function(self, stdout, meta)
-                local chat = meta.tools.chat
-                return chat:add_tool_output(self, tostring(stdout[1]))
-              end,
-              ---@param self CodeCompanion.Tool.Calculator
-              ---@param stderr table The error output from the command
-              ---@param meta { tools: CodeCompanion.Tools, cmd: table }
-              error = function(self, stderr, meta)
-                return vim.notify("An error occurred", vim.log.levels.ERROR)
-              end,
-            },
+          },
+          handlers = {
+            ---@param self CodeCompanion.Tool.Calculator
+            ---@param meta { tools: CodeCompanion.Tools }
+            setup = function(self, meta)
+              return vim.notify("setup function called", vim.log.levels.INFO)
+            end,
+            ---@param self CodeCompanion.Tool.Calculator
+            ---@param meta { tools: CodeCompanion.Tools }
+            on_exit = function(self, meta)
+              return vim.notify("on_exit function called", vim.log.levels.INFO)
+            end,
+          },
+          output = {
+            ---@param self CodeCompanion.Tool.Calculator
+            ---@param stdout table
+            ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+            success = function(self, stdout, meta)
+              local chat = meta.tools.chat
+              return chat:add_tool_output(self, tostring(stdout[1]))
+            end,
+            ---@param self CodeCompanion.Tool.Calculator
+            ---@param stderr table The error output from the command
+            ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+            error = function(self, stderr, meta)
+              return vim.notify("An error occurred", vim.log.levels.ERROR)
+            end,
           },
         },
       },
@@ -554,7 +552,7 @@ require("codecompanion").setup({
       tools = {
         calculator = {
           description = "Perform calculations",
-          callback = "as above",
+          path = "path.to.calculator",
           opts = {
             require_approval_before = true,
           },
@@ -612,6 +610,112 @@ output = {
   end,
 },
 ```
+
+## Extending from the run_command tool
+
+For a lot of users, custom tools will often be commands that they ask an LLM to execute on their machine. As such, the handlers and output functions that exist in the [run_command](/usage/chat-buffer/tools#run-command) tool are sufficient and should be reused.
+
+To make it easy for users to create their own command-based tools, CodeCompanion allows for extensions from `run_command`. In the example below, we create a wrapper around the [beads](https://github.com/steveyegge/beads) CLI tool, that does just that:
+
+**Inline in your config:**
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["beads"] = {
+          extends = "cmd_tool",
+          description = "Beads task management",
+          opts = { require_approval_before = true },
+          name = "beads",
+          system_prompt = [[Beads is a local, hash-based task tracking system. Tasks have short IDs like `bd-a1b2`. Key commands:
+
+- `bd ready` — list tasks with no open blockers (i.e. ready to work on)
+- `bd show <id>` — show full details for a task
+- `bd create "<title>" -p <priority>` — create a new task (priority 0 = highest)
+- `bd update <id> --claim` — assign a task to yourself
+- `bd update <id> --status done` — mark a task as done
+- `bd dep add <child> <parent>` — make child depend on parent
+
+Output is JSON. Always use `bd ready` first to see what's available before taking action.]],
+          schema = {
+            properties = {
+              action = {
+                type = "string",
+                enum = { "ready", "show", "create", "update", "dep" },
+                description = "The beads action to perform",
+              },
+              task_id = {
+                type = "string",
+                description = "The task ID (e.g. bd-a1b2). Required for show, update, and dep actions",
+              },
+              args = {
+                type = "string",
+                description = "Additional arguments for the command (e.g. title for create, flags for update)",
+              },
+            },
+            required = { "action" },
+          },
+          build_cmd = function(args)
+            local parts = { "bd", args.action }
+            if args.task_id then
+              table.insert(parts, args.task_id)
+            end
+            if args.args then
+              table.insert(parts, args.args)
+            end
+            return table.concat(parts, " ")
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+**Or via an external file:**
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["beads"] = {
+          description = "Beads task management",
+          opts = { require_approval_before = true },
+          path = "~/.dotfiles/.config/tools/beads.lua",
+        },
+      },
+    },
+  },
+})
+```
+
+Where the file returns a table with `extends`:
+
+```lua
+-- ~/.dotfiles/.config/tools/beads.lua
+return {
+  extends = "cmd_tool",
+  name = "beads",
+  description = "Manage tasks using the Beads task tracking system (bd CLI)",
+  system_prompt = [[...]],
+  schema = { ... },
+  build_cmd = function(args)
+    local parts = { "bd", args.action }
+    if args.task_id then
+      table.insert(parts, args.task_id)
+    end
+    if args.args then
+      table.insert(parts, args.args)
+    end
+    return table.concat(parts, " ")
+  end,
+}
+```
+
+In this example, the `schema` defines structured properties (`action`, `task_id`, `args`) that constrain what the LLM can pass to `build_cmd`. The output of `build_cmd` is what the `run_command` tool ultimately executes. Finally, the `system_prompt` teaches the LLM what each beads command does, so it can choose the right action for the user's request.
 
 ## Supporting an Adapter Tool
 
@@ -691,4 +795,9 @@ return {
   -- More code follows...
 }
 ```
+
+
+
+
+
 

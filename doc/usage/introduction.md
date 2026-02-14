@@ -16,7 +16,7 @@ The [@insert_edit_into_file](/usage/chat-buffer/tools#files) tool, combined with
 
 ## Run tests from the chat buffer
 
-The [cmd_runner](/usage/chat-buffer/tools#cmd-runner) tool enables an LLM to execute commands on your machine. This can be useful if you wish the LLM to run a test suite on your behalf and give insight on failing cases. Simply tag the `@cmd_runner` in the chat buffer and ask it run your tests.
+The [run_command](/usage/chat-buffer/tools#run-command) tool enables an LLM to execute commands on your machine. This can be useful if you wish the LLM to run a test suite on your behalf and give insight on failing cases. Simply tag the `@run_command` in the chat buffer and ask it run your tests.
 
 ## Navigating between responses in the chat buffer
 

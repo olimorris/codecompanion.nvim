@@ -656,7 +656,7 @@ name: Prompt with tools
 interaction: chat
 description: A prompt that loads tools
 tools:
-  - cmd_runner
+  - run_command
   - insert_edit_into_file
 ---
 ````
@@ -666,7 +666,7 @@ tools:
   interaction = "chat",
   description = "A prompt that loads tools",
   tools = {
-    "cmd_runner",
+    "run_command",
     "insert_edit_into_file",
   },
 },

@@ -143,7 +143,9 @@ function M.build(client, mcp_tool)
 
   local tool_cfg = {
     description = mcp_tool.title or mcp_tool.name,
-    callback = tool,
+    callback = function()
+      return tool
+    end,
     enabled = override.enabled,
     -- User should use the generated tool group instead of individual tools
     visible = false,

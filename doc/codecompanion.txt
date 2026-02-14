@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 10
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 14
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -559,6 +559,7 @@ CONFIG ~
 - Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` (#2719 <https://github.com/olimorris/codecompanion.nvim/pull/2719>)
+- Across `editor context`, `slash commands` and `tools`, `callback` has been replaced by `path` for string values (module paths and file paths). `callback` is still used for function values, however
 
 
 PROMPT LIBRARY ~
@@ -1780,7 +1781,7 @@ referenced with `@` (by default), when in the chat buffer:
                 description = "A custom agent combining tools",
                 system_prompt = "Describe what the agent should do",
                 tools = {
-                  "cmd_runner",
+                  "run_command",
                   "insert_edit_into_file",
                   -- Add your own tools or reuse existing ones
                 },
@@ -1796,7 +1797,7 @@ referenced with `@` (by default), when in the chat buffer:
 <
 
 When users introduce the group, `my_group`, in the chat buffer, it can call the
-tools you listed (such as `cmd_runner`) to perform tasks on your code.
+tools you listed (such as `run_command`) to perform tasks on your code.
 
 A tool is a |codecompanion-extending-tools| table with specific keys that
 define the interface and workflow of the tool. The table can be resolved using
@@ -3136,10 +3137,10 @@ it in the chat buffer with `@files` or `@insert_edit_into_file`.
 
 RUN TESTS FROM THE CHAT BUFFER ~
 
-The |codecompanion-usage-chat-buffer-tools-cmd-runner| tool enables an LLM to
+The |codecompanion-usage-chat-buffer-tools-run-command| tool enables an LLM to
 execute commands on your machine. This can be useful if you wish the LLM to run
 a test suite on your behalf and give insight on failing cases. Simply tag the
-`@cmd_runner` in the chat buffer and ask it run your tests.
+`@run_command` in the chat buffer and ask it run your tests.
 
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
@@ -3508,21 +3509,20 @@ can be leveraged to share images with the agent.
 EDITOR CONTEXT                            *codecompanion-usage-editor-context*
 
 Editor context allows you to dynamically insert Neovim context into your chat
-messages using the `#{variable_name}` syntax. They’re processed when you send
-your message to the LLM, automatically including relevant content like buffer
+messages using the `#{context}` syntax. They’re processed when you send your
+message to the LLM, automatically including relevant content like buffer
 contents, LSP diagnostics, or your current viewport. Type `#` in the chat
-buffer to see available editor context through code completion, or type them
-manually.
+buffer to see available context through code completion, or type them manually.
 
-Custom editor context can be shared in the chat buffer by adding them to the
+Custom context can be shared in the chat buffer by adding them to the
 `interactions.chat.editor_context` table in your configuration.
 
 
 BASIC USAGE ~
 
-Editor context uses the `#{variable_name}` syntax to dynamically insert content
-into your chat. For example `#{buffer}`. Editor context is processed when you
-send your message to the LLM.
+Editor context uses the `#{context}` syntax to dynamically insert content into
+your chat, such as `#{buffer}`. Editor context is processed when you send your
+message to the LLM.
 
 
 #BUFFER ~
@@ -3530,9 +3530,9 @@ send your message to the LLM.
 
   [!IMPORTANT] By default, CodeCompanion automatically applies the `{diff}`
   parameter to all buffers
-The `#{buffer}` editor context shares buffer contents with the LLM. It has two
-special parameters which control how content is shared, or `synced`, with the
-LLM, on each turn:
+The `#{buffer}` context shares buffer contents with the LLM. It has two special
+parameters which control how content is shared, or `synced`, with the LLM, on
+each turn:
 
 
 BASIC USAGE
@@ -3549,45 +3549,45 @@ TARGET SPECIFIC BUFFERS
 
 WITH PARAMETERS
 
+**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
+for large files where you only want to share incremental changes to reduce
+token usage. This is the default option in CodeCompanion.
+
 **{all}** - Sends all of the buffer content to the LLM whenever the buffer
 changes. Use this when you want the LLM to always have the complete, up-to-date
 file context.
 
-**{diff}** - Sends only the changed portions of the buffer to the LLM. Use this
-for large files where you only want to share incremental changes to reduce
-token usage.
-
 Can be used in combination with targeting a specific buffer:
 
-- `#{buffer}{all}` - Sends entire buffer on any change
 - `#{buffer}{diff}` - Sends only changed portions of the buffer
+- `#{buffer}{all}` - Sends entire buffer on any change
 - `#{buffer:config.lua}{all}` - Combines targeting with parameters
 
 
 MULTIPLE BUFFERS
 
+
+  [!NOTE] For selecting multiple buffers with more control, use the `/buffer`
+  slash command.
 >
     Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
 <
 
 
-  **Note:** For selecting multiple buffers with more control, use the `/buffer`
-  slash command.
-
 #LSP ~
 
 
   [!TIP] The |codecompanion-usage-action-palette| has a pre-built prompt which
-  asks an LLM to explain LSP diagnostics in a visual selection
-The `lsp` editor context shares any information from the LSP servers that
-active in the current buffer. This can serve as useful context should you wish
-to troubleshoot any errors with an LLM.
+  asks an LLM to explain LSP diagnostics in a visual selection.
+The `lsp` context shares any information from the LSP servers that active in
+the current buffer. This can serve as useful context should you wish to
+troubleshoot any errors with an LLM.
 
 
 #VIEWPORT ~
 
-The `viewport` editor context shares with the LLM, exactly what you see on your
-screen at the point a response is sent (excluding the chat buffer of course).
+The `viewport` context shares with the LLM, exactly what you see on your screen
+at the point a response is sent (excluding the chat buffer of course).
 
 
 RULES                                              *codecompanion-usage-rules*
@@ -3923,34 +3923,6 @@ will yield:
 <
 
 
-CMD_RUNNER
-
-The `@cmd_runner` tool enables an LLM to execute commands on your machine,
-subject to your authorization. For example:
-
->md
-    Can you use @{cmd_runner} to run my test suite with `pytest`?
-<
-
->md
-    Use @{cmd_runner} to install any missing libraries in my project
-<
-
-Some commands do not write any data to stdout
-<https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)> which
-means the plugin can’t pass the output of the execution to the LLM. When this
-occurs, the tool will instead share the exit code.
-
-The LLM is specifically instructed to detect if you’re running a test suite,
-and if so, to insert a flag in its request. This is then detected and the
-outcome of the test is stored in the corresponding flag on the chat buffer.
-This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
-into.
-
-**Options:** - `require_approval_before` require approval before running a
-command? (Default: true)
-
-
 CREATE_FILE
 
 
@@ -4111,6 +4083,34 @@ directory. This can be useful for an LLM to gain wider context of files that
 haven’t been shared with it.
 
 
+RUN_COMMAND
+
+The `@run_command` tool enables an LLM to execute commands on your machine,
+subject to your authorization. For example:
+
+>md
+    Can you use @{run_command} to run my test suite with `pytest`?
+<
+
+>md
+    Use @{run_command} to install any missing libraries in my project
+<
+
+Some commands do not write any data to stdout
+<https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)> which
+means the plugin can’t pass the output of the execution to the LLM. When this
+occurs, the tool will instead share the exit code.
+
+The LLM is specifically instructed to detect if you’re running a test suite,
+and if so, to insert a flag in its request. This is then detected and the
+outcome of the test is stored in the corresponding flag on the chat buffer.
+This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
+into.
+
+**Options:** - `require_approval_before` require approval before running a
+command? (Default: true)
+
+
 WEB_SEARCH
 
 This tool enables an LLM to search the web for a specific query, enabling it to
@@ -4154,7 +4154,7 @@ For example, the following prompt:
 Is replaced by:
 
 >
-    I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
+    I'm giving you access to the run_command, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
 <
 
 This is because the `@{full_stack_dev}` group has the following prompt set in
@@ -4178,7 +4178,7 @@ enable an LLM to create applications and understand and refactor code bases.
 
 It contains the following tools:
 
-- |codecompanion-usage-chat-buffer-tools-cmd-runner|
+- |codecompanion-usage-chat-buffer-tools-run-command|
 - |codecompanion-usage-chat-buffer-tools-create-file|
 - |codecompanion-usage-chat-buffer-tools-file-search|
 - |codecompanion-usage-chat-buffer-tools-get-changed-files|
@@ -4294,7 +4294,7 @@ When prompted, the user has four options available to them:
 Certain tools with potentially destructive capabilities have an additional
 layer of protection. Instead of being approved at a tool level, these are
 approved at a command level (`require_cmd_approval = true`). Taking the
-`cmd_runner` tool as an example. If you approve an agent to always run `make
+`run_command` tool as an example. If you approve an agent to always run `make
 format`, if it tries to run `make test`, you’ll be prompted to approve that
 command specifically.
 
@@ -4305,7 +4305,7 @@ YOLO MODE
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
-prompting the user. However, note that some tools such as `cmd_runner` and
+prompting the user. However, note that some tools such as `run_command` and
 `delete_file` are excluded from this as they have `allowed_in_yolo_mode =
 false` set.
 
@@ -5517,7 +5517,7 @@ required.
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
     1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
-    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -5529,12 +5529,12 @@ required.
                 name = "Repeat On Failure",
                 role = "user",
                 opts = { auto_submit = true },
-                -- Scope this prompt to the cmd_runner tool
+                -- Scope this prompt to the run_command tool
                 condition = function()
-                  return _G.codecompanion_current_tool == "cmd_runner"
+                  return _G.codecompanion_current_tool == "run_command"
                 end,
                 -- Repeat until the tests pass, as indicated by the testing flag
-                -- which the cmd_runner tool sets on the chat buffer
+                -- which the run_command tool sets on the chat buffer
                 repeat_until = function(chat)
                   return chat.tool_registry.flags.testing == true
                 end,
@@ -5573,7 +5573,7 @@ Let’s breakdown the prompts in that workflow:
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
     1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
-    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -5587,7 +5587,7 @@ Let’s breakdown the prompts in that workflow:
 The first prompt in a workflow should set the ask of the LLM and provide clear
 instructions. In this case, we’re giving the LLM access to the
 |codecompanion-usage-chat-buffer-tools.html-files| and
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tools to edit a buffer
+|codecompanion-usage-chat-buffer-tools.html-run-command| tools to edit a buffer
 and run tests, respectively.
 
 We’re giving the LLM knowledge of the buffer with the `#buffer` editor
@@ -5606,9 +5606,9 @@ Now let’s look at how we trigger the automated reflection prompts:
             name = "Repeat On Failure",
             role = "user",
             opts = { auto_submit = true },
-            -- Scope this prompt to only run when the cmd_runner tool is active
+            -- Scope this prompt to only run when the run_command tool is active
             condition = function(chat)
-              return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
+              return chat.tools.tool and chat.tools.tool.name == "run_command"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             repeat_until = function(chat)
@@ -5625,13 +5625,13 @@ Now there’s a little bit more to unpack in this prompt. Firstly, we’re
 automatically submitting the prompt to the LLM to save the user some time and
 keypresses. Next, we’re scoping the prompt to only be sent to the chat buffer
 if the currently active tool is the
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner|.
+|codecompanion-usage-chat-buffer-tools.html-run-command|.
 
 We’re also leveraging a function called `repeat_until`. This ensures that the
 prompt is always attached to the chat buffer until a condition is met. In this
 case, until the tests pass. In the
-|codecompanion-usage-chat-buffer-tools.html-cmd-runner| tool, we ask the LLM to
-pass a flag if it detects a test suite is being run. The plugin picks up on
+|codecompanion-usage-chat-buffer-tools.html-run-command| tool, we ask the LLM
+to pass a flag if it detects a test suite is being run. The plugin picks up on
 that flag and puts the test outcome into the chat buffer class as a flag.
 
 Finally, we’re letting the LLM know that the tests failed, and asking it to
@@ -5957,7 +5957,7 @@ please see the diagram below:
 <
 
 
-BUILDING YOUR FIRST BUILT-IN TOOL ~
+BUILDING YOUR FIRST TOOL ~
 
 Before we begin, it’s important to familiarise yourself with the directory
 structure of the tools implementation:
@@ -5970,7 +5970,7 @@ structure of the tools implementation:
     │   ├── queue.lua
     │   ├── runner.lua
     ├── builtin/
-    │   ├── cmd_runner.lua
+    │   ├── run_command.lua
     │   ├── insert_edit_into_file.lua
     │   ├── create_file.lua
     │   ├── ...
@@ -6076,8 +6076,8 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
 
   [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
-  create commands dynamically like in the cmd_runner
-  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua>
+  create commands dynamically like in the run_command
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua>
   tool.
 **Function-based Tools**
 
@@ -6265,7 +6265,7 @@ HANDLERS
 The `handlers` table contains two functions that are executed before and after
 a tool completes:
 
-1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/cmd_runner.lua> tool.
+1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
 3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they’d like to apply an approval to `buffer` or `file` edits.
 
@@ -6353,56 +6353,55 @@ If we put this all together in our config:
           tools = {
             calculator = {
               description = "Perform calculations",
-              callback = {
-                name = "calculator",
-                cmds = {
-                  ---@param self CodeCompanion.Tool.Calculator The Calculator tool
-                  ---@param args table The arguments from the LLM's tool call
-                  ---@param opts { input: any, output_cb: fun(result: table) }
-                  ---@return nil|{ status: "success"|"error", data: string }
-                  function(self, args, opts)
-                    -- Get the numbers and operation requested by the LLM
-                    local num1 = tonumber(args.num1)
-                    local num2 = tonumber(args.num2)
-                    local operation = args.operation
+              name = "calculator",
+              cmds = {
+                ---@param self CodeCompanion.Tool.Calculator The Calculator tool
+                ---@param args table The arguments from the LLM's tool call
+                ---@param opts { input: any, output_cb: fun(result: table) }
+                ---@return nil|{ status: "success"|"error", data: string }
+                function(self, args, opts)
+                  -- Get the numbers and operation requested by the LLM
+                  local num1 = tonumber(args.num1)
+                  local num2 = tonumber(args.num2)
+                  local operation = args.operation
     
-                    -- Validate input
-                    if not num1 then
-                      return { status = "error", data = "First number is missing or invalid" }
+                  -- Validate input
+                  if not num1 then
+                    return { status = "error", data = "First number is missing or invalid" }
+                  end
+    
+                  if not num2 then
+                    return { status = "error", data = "Second number is missing or invalid" }
+                  end
+    
+                  if not operation then
+                    return { status = "error", data = "Operation is missing" }
+                  end
+    
+                  -- Perform the calculation
+                  local result
+                  if operation == "add" then
+                    result = num1 + num2
+                  elseif operation == "subtract" then
+                    result = num1 - num2
+                  elseif operation == "multiply" then
+                    result = num1 * num2
+                  elseif operation == "divide" then
+                    if num2 == 0 then
+                      return { status = "error", data = "Cannot divide by zero" }
                     end
+                    result = num1 / num2
+                  else
+                    return {
+                      status = "error",
+                      data = "Invalid operation: must be add, subtract, multiply, or divide",
+                    }
+                  end
     
-                    if not num2 then
-                      return { status = "error", data = "Second number is missing or invalid" }
-                    end
-    
-                    if not operation then
-                      return { status = "error", data = "Operation is missing" }
-                    end
-    
-                    -- Perform the calculation
-                    local result
-                    if operation == "add" then
-                      result = num1 + num2
-                    elseif operation == "subtract" then
-                      result = num1 - num2
-                    elseif operation == "multiply" then
-                      result = num1 * num2
-                    elseif operation == "divide" then
-                      if num2 == 0 then
-                        return { status = "error", data = "Cannot divide by zero" }
-                      end
-                      result = num1 / num2
-                    else
-                      return {
-                        status = "error",
-                        data = "Invalid operation: must be add, subtract, multiply, or divide",
-                      }
-                    end
-    
-                    return { status = "success", data = result }
-                  end,
-                },
-                system_prompt = [[## Calculator Tool (`calculator`)
+                  return { status = "success", data = result }
+                end,
+              },
+              system_prompt = [[## Calculator Tool (`calculator`)
     
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
@@ -6415,65 +6414,64 @@ If we put this all together in our config:
     - Always use the structure above for consistency.
     ]],
     
-                schema = {
-                  type = "function",
-                  ["function"] = {
-                    name = "calculator",
-                    description = "Perform simple mathematical operations on a user's machine",
-                    parameters = {
-                      type = "object",
-                      properties = {
-                        num1 = {
-                          type = "integer",
-                          description = "The first number in the calculation",
-                        },
-                        num2 = {
-                          type = "integer",
-                          description = "The second number in the calculation",
-                        },
-                        operation = {
-                          type = "string",
-                          enum = { "add", "subtract", "multiply", "divide" },
-                          description = "The mathematical operation to perform on the two numbers",
-                        },
+              schema = {
+                type = "function",
+                ["function"] = {
+                  name = "calculator",
+                  description = "Perform simple mathematical operations on a user's machine",
+                  parameters = {
+                    type = "object",
+                    properties = {
+                      num1 = {
+                        type = "integer",
+                        description = "The first number in the calculation",
                       },
-                      required = {
-                        "num1",
-                        "num2",
-                        "operation",
+                      num2 = {
+                        type = "integer",
+                        description = "The second number in the calculation",
                       },
-                      additionalProperties = false,
+                      operation = {
+                        type = "string",
+                        enum = { "add", "subtract", "multiply", "divide" },
+                        description = "The mathematical operation to perform on the two numbers",
+                      },
                     },
-                    strict = true,
+                    required = {
+                      "num1",
+                      "num2",
+                      "operation",
+                    },
+                    additionalProperties = false,
                   },
+                  strict = true,
                 },
-                handlers = {
-                  ---@param self CodeCompanion.Tool.Calculator
-                  ---@param meta { tools: CodeCompanion.Tools }
-                  setup = function(self, meta)
-                    return vim.notify("setup function called", vim.log.levels.INFO)
-                  end,
-                  ---@param self CodeCompanion.Tool.Calculator
-                  ---@param meta { tools: CodeCompanion.Tools }
-                  on_exit = function(self, meta)
-                    return vim.notify("on_exit function called", vim.log.levels.INFO)
-                  end,
-                },
-                output = {
-                  ---@param self CodeCompanion.Tool.Calculator
-                  ---@param stdout table
-                  ---@param meta { tools: CodeCompanion.Tools, cmd: table }
-                  success = function(self, stdout, meta)
-                    local chat = meta.tools.chat
-                    return chat:add_tool_output(self, tostring(stdout[1]))
-                  end,
-                  ---@param self CodeCompanion.Tool.Calculator
-                  ---@param stderr table The error output from the command
-                  ---@param meta { tools: CodeCompanion.Tools, cmd: table }
-                  error = function(self, stderr, meta)
-                    return vim.notify("An error occurred", vim.log.levels.ERROR)
-                  end,
-                },
+              },
+              handlers = {
+                ---@param self CodeCompanion.Tool.Calculator
+                ---@param meta { tools: CodeCompanion.Tools }
+                setup = function(self, meta)
+                  return vim.notify("setup function called", vim.log.levels.INFO)
+                end,
+                ---@param self CodeCompanion.Tool.Calculator
+                ---@param meta { tools: CodeCompanion.Tools }
+                on_exit = function(self, meta)
+                  return vim.notify("on_exit function called", vim.log.levels.INFO)
+                end,
+              },
+              output = {
+                ---@param self CodeCompanion.Tool.Calculator
+                ---@param stdout table
+                ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+                success = function(self, stdout, meta)
+                  local chat = meta.tools.chat
+                  return chat:add_tool_output(self, tostring(stdout[1]))
+                end,
+                ---@param self CodeCompanion.Tool.Calculator
+                ---@param stderr table The error output from the command
+                ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+                error = function(self, stderr, meta)
+                  return vim.notify("An error occurred", vim.log.levels.ERROR)
+                end,
               },
             },
           },
@@ -6508,7 +6506,7 @@ a tool’s `opts` table:
           tools = {
             calculator = {
               description = "Perform calculations",
-              callback = "as above",
+              path = "path.to.calculator",
               opts = {
                 require_approval_before = true,
               },
@@ -6570,6 +6568,123 @@ tool execution:
       end,
     },
 <
+
+
+EXTENDING FROM THE RUN_COMMAND TOOL ~
+
+For a lot of users, custom tools will often be commands that they ask an LLM to
+execute on their machine. As such, the handlers and output functions that exist
+in the |codecompanion-usage-chat-buffer-tools-run-command| tool are sufficient
+and should be reused.
+
+To make it easy for users to create their own command-based tools,
+CodeCompanion allows for extensions from `run_command`. In the example below,
+we create a wrapper around the beads <https://github.com/steveyegge/beads> CLI
+tool, that does just that:
+
+**Inline in your config:**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["beads"] = {
+              extends = "cmd_tool",
+              description = "Beads task management",
+              opts = { require_approval_before = true },
+              name = "beads",
+              system_prompt = [[Beads is a local, hash-based task tracking system. Tasks have short IDs like `bd-a1b2`. Key commands:
+    
+    - `bd ready` — list tasks with no open blockers (i.e. ready to work on)
+    - `bd show <id>` — show full details for a task
+    - `bd create "<title>" -p <priority>` — create a new task (priority 0 = highest)
+    - `bd update <id> --claim` — assign a task to yourself
+    - `bd update <id> --status done` — mark a task as done
+    - `bd dep add <child> <parent>` — make child depend on parent
+    
+    Output is JSON. Always use `bd ready` first to see what's available before taking action.]],
+              schema = {
+                properties = {
+                  action = {
+                    type = "string",
+                    enum = { "ready", "show", "create", "update", "dep" },
+                    description = "The beads action to perform",
+                  },
+                  task_id = {
+                    type = "string",
+                    description = "The task ID (e.g. bd-a1b2). Required for show, update, and dep actions",
+                  },
+                  args = {
+                    type = "string",
+                    description = "Additional arguments for the command (e.g. title for create, flags for update)",
+                  },
+                },
+                required = { "action" },
+              },
+              build_cmd = function(args)
+                local parts = { "bd", args.action }
+                if args.task_id then
+                  table.insert(parts, args.task_id)
+                end
+                if args.args then
+                  table.insert(parts, args.args)
+                end
+                return table.concat(parts, " ")
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+**Or via an external file:**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["beads"] = {
+              description = "Beads task management",
+              opts = { require_approval_before = true },
+              path = "~/.dotfiles/.config/tools/beads.lua",
+            },
+          },
+        },
+      },
+    })
+<
+
+Where the file returns a table with `extends`:
+
+>lua
+    -- ~/.dotfiles/.config/tools/beads.lua
+    return {
+      extends = "cmd_tool",
+      name = "beads",
+      description = "Manage tasks using the Beads task tracking system (bd CLI)",
+      system_prompt = [[...]],
+      schema = { ... },
+      build_cmd = function(args)
+        local parts = { "bd", args.action }
+        if args.task_id then
+          table.insert(parts, args.task_id)
+        end
+        if args.args then
+          table.insert(parts, args.args)
+        end
+        return table.concat(parts, " ")
+      end,
+    }
+<
+
+In this example, the `schema` defines structured properties (`action`,
+`task_id`, `args`) that constrain what the LLM can pass to `build_cmd`. The
+output of `build_cmd` is what the `run_command` tool ultimately executes.
+Finally, the `system_prompt` teaches the LLM what each beads command does, so
+it can choose the right action for the user’s request.
 
 
 SUPPORTING AN ADAPTER TOOL ~

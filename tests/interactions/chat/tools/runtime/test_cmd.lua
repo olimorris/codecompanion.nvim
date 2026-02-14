@@ -117,7 +117,7 @@ T["Tools"]["cmds"]["can set test flags on the chat object"] = function()
     local tool_call = {
       {
         ["function"] = {
-          name = "mock_cmd_runner",
+          name = "mock_run_command",
           arguments = '{"cmds": "echo .", "flag": "testing"}',
         }
       },

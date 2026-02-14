@@ -136,9 +136,12 @@ T["MCP Client"]["tools are loaded in pages"] = function()
       end)
       :fold({}, function(acc, k, v)
         v = vim.deepcopy(v)
-        -- functions cannot cross process boundary
-        v.callback.cmds = nil
-        v.callback.output = nil
+        -- Resolve callback function and strip fields that can't cross process boundary
+        local tool = v.callback()
+        tool.cmds = nil
+        tool.output = nil
+        v.callback = nil
+        v._resolved_tool = tool
         acc[k] = v
         return acc
       end)
@@ -171,7 +174,7 @@ T["MCP Client"]["tools are loaded in pages"] = function()
         parameters = mcp_tool.inputSchema,
         strict = true,
       },
-    }, cc_tool.callback.schema)
+    }, cc_tool._resolved_tool.schema)
   end
 
   h.expect_contains("testMcp", group.prompt)
