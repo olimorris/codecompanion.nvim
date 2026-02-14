@@ -891,13 +891,16 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
 
   local success = success_response(fmt("Edited `%s` buffer%s", display_name, extract_explanation(action)))
-
-  -- If the tool has been approved then skip showing the diff
-  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+  local output_handler_success_without_diff = function(sucess)
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
     return output_handler(success)
+  end
+
+  -- If the tool has been approved then skip showing the diff
+  if approvals:is_approved(chat_bufnr, { tool_name = "insert_edit_into_file" }) then
+    return output_handler_success_without_diff(success)
   end
 
   local should_diff = diff.create(bufnr, diff_id, {
@@ -927,7 +930,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     })
   end
 
-  return output_handler(success)
+  return output_handler_success_without_diff(success)
 end
 
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
