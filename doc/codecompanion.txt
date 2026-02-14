@@ -2481,17 +2481,18 @@ behaviour:
 - `adapter` - Specify a different adapter/model:
 
 
-- `alias` - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
-- `auto_submit` - Automatically submit the prompt to the LLM
-- `ignore_system_prompt` - Don’t send the default system prompt with the request
-- `intro_message` - Custom intro message for the chat buffer UI
-- `is_slash_cmd` - Make the prompt available as a slash command in chat
-- `is_workflow` - Treat successive prompts as a workflow
-- `modes` - Only show in specific modes (`{ "v" }` for visual mode)
-- `placement` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
-- `pre_hook` - Function to run before the prompt is executed (Lua only)
-- `stop_context_insertion` - Prevent automatic context insertion
-- `user_prompt` - Get user input before actioning the response
+- `alias` `(string)` - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
+- `auto_submit` `(boolean)` - Automatically submit the prompt to the LLM
+- `enabled` `(boolean)` - Enable/disable the prompt without removing it from the library
+- `ignore_system_prompt` `(boolean)` - Don’t send the default system prompt with the request
+- `intro_message` `(string)` - Custom intro message for the chat buffer UI
+- `is_slash_cmd` `(boolean)` - Make the prompt available as a slash command in chat
+- `is_workflow` `(boolean)` - Treat successive prompts as a workflow
+- `modes` `(array)` - Only show in specific modes (`{ "v" }` for visual mode)
+- `placement` `(string)` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
+- `pre_hook` `(function)` - Function to run before the prompt is executed (Lua only)
+- `stop_context_insertion` `(boolean)` - Prevent automatic context insertion
+- `user_prompt` `(string)` - Get user input before actioning the response
 
 
 WITH PLACEHOLDERS

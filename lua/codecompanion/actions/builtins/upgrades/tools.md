@@ -1,7 +1,7 @@
 ---
 name: Upgrade Tools
 interaction: chat
-description: Upgrade Tools from v19 to v20
+description: Upgrade Tools from v18 to v19
 opts:
   is_slash_cmd: false
   stop_context_insertion: true
