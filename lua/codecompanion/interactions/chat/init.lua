@@ -861,7 +861,7 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@param prompt? string
----@param opts? {opts: table, _meta: table, index?: number}
+---@param opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
@@ -883,11 +883,10 @@ function Chat:set_system_prompt(prompt, opts)
   end
 
   -- Workout in the message stack the last system prompt is
-  local index
-  if not opts.index then
+  if not _meta.index then
     for i = #self.messages, 1, -1 do
       if self.messages[i].role == config.constants.SYSTEM_ROLE then
-        index = i + 1
+        _meta.index = i + 1
         break
       end
     end
@@ -906,10 +905,10 @@ function Chat:set_system_prompt(prompt, opts)
 
     _meta.cycle = self.cycle
     _meta.id = make_id(system_prompt)
-    _meta.index = #self.messages + 1
+    _meta.index = _meta.index or 1
     system_prompt._meta = _meta
 
-    table.insert(self.messages, index or opts.index or 1, system_prompt)
+    table.insert(self.messages, _meta.index, system_prompt)
   end
 
   return self
@@ -984,11 +983,11 @@ function Chat:add_message(data, opts)
 
   message.opts = opts
   message._meta.id = make_id(message)
-  message._meta.index = #self.messages + 1
 
-  if opts.index then
-    table.insert(self.messages, opts.index, message)
+  if message._meta.index then
+    table.insert(self.messages, message._meta.index, message)
   else
+    message._meta.index = #self.messages + 1
     table.insert(self.messages, message)
   end
 
