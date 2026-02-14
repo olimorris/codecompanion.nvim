@@ -83,7 +83,6 @@
 ---@field tools.calls? CodeCompanion.Chat.ToolCall[] Array of tool calls
 ---@field tools.id? string Tool ID
 ---@field opts? table Optional metadata used by the UI and processing
----@field opts.index? number If set, the message was inserted at this index
 ---@field opts.sync_all? boolean When synced, whether the entire buffer is shared
 ---@field opts.sync_diff? boolean When synced, whether only buffer diffs are shared
 ---@field opts.visible? boolean Whether the message should be shown in the chat UI

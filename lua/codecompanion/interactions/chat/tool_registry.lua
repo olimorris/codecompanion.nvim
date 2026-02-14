@@ -205,7 +205,7 @@ function ToolRegistry:add_tool_system_prompt()
     self.chat:remove_tagged_message("system_prompt_from_config")
   end
 
-  self.chat:set_system_prompt(prompt, { index = index, visible = false, _meta = { tag = "tool_system_prompt" } })
+  self.chat:set_system_prompt(prompt, { visible = false, _meta = { tag = "tool_system_prompt", index = index } })
 end
 
 ---Determine if the chat buffer has any tools in use
