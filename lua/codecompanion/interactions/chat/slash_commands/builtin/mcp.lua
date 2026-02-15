@@ -24,10 +24,10 @@ local function build_items()
     local display = fmt("%s %s (%s, tools: %d)", icon, name, activity, server.tool_count or 0)
 
     table.insert(items, {
+      auto_start = server.auto_start,
       name = name,
       display = display,
       text = display,
-      enabled = server.enabled,
     })
   end
 
