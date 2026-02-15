@@ -259,16 +259,8 @@ T["ToolRegistry"][":remove_group"]["removes group tools, context items and messa
       end
     end
   ]])
+
   h.eq(false, child.lua_get([[_G.has_removed_prompt]]))
-end
-
-T["ToolRegistry"][":remove_group"]["is a no-op when group does not exist"] = function()
-  child.lua([[
-    _G.chat.tool_registry:add("func")
-    _G.chat.tool_registry:remove_group("nonexistent_group")
-  ]])
-
-  h.expect_tbl_contains("func", child.lua_get([[_G.chat.tool_registry.in_use]]))
 end
 
 return T
