@@ -743,7 +743,6 @@ function Chat:change_adapter(adapter)
     -- users are given a choice of models to select from
     helpers.create_acp_connection(self)
 
-    -- MCP tools via the tool registry are not supported in ACP adapters
     helpers.remove_mcp_tools(self)
   end
 
