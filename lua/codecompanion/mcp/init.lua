@@ -11,11 +11,15 @@ local M = {}
 ---@type table<string, table> Dynamic registry for MCP tools (server_name -> { tools: table, groups: table })
 local tool_registry = {}
 
----Return whether the server config is enabled
+---Automatically start the MCP server?
 ---@param server_cfg CodeCompanion.MCP.ServerConfig
 ---@return boolean
-local function is_enabled(server_cfg)
-  return not (server_cfg.opts and server_cfg.opts.enabled == false)
+local function should_auto_start(server_cfg)
+  local auto_start = server_cfg.opts and server_cfg.opts.auto_start
+  if auto_start == nil then
+    return config.mcp.auto_start ~= false
+  end
+  return auto_start ~= false
 end
 
 ---Register tools from an MCP server
@@ -77,7 +81,7 @@ end
 ---@class CodeCompanion.MCP.ServerConfig
 ---@field cmd string[]
 ---@field env? table<string, string>
----@field opts? { enabled: boolean}
+---@field opts? { auto_start?: boolean, add_to_chat?: boolean }
 ---@field server_instructions nil | string | fun(orig_server_instructions: string): string
 ---@field tool_defaults? table<string, any>
 ---@field tool_overrides? table<string, CodeCompanion.MCP.ToolOverride>
@@ -98,8 +102,14 @@ function M.start_servers()
     return
   end
 
+  local global_auto_start = mcp_cfg.auto_start
+
   for name, cfg in pairs(mcp_cfg.servers) do
-    if cfg.opts and cfg.opts.enabled == false then
+    local auto_start = cfg.opts and cfg.opts.auto_start
+    if auto_start == nil then
+      auto_start = global_auto_start
+    end
+    if not auto_start then
       goto continue
     end
     if not clients[name] then
@@ -154,7 +164,7 @@ function M.enable_server(name, opts)
   end
 
   server_cfg.opts = server_cfg.opts or {}
-  server_cfg.opts.enabled = true
+  server_cfg.opts.auto_start = true
 
   if not clients[name] then
     clients[name] = Client.new({ name = name, cfg = server_cfg })
@@ -180,7 +190,7 @@ function M.disable_server(name)
   end
 
   server_cfg.opts = server_cfg.opts or {}
-  server_cfg.opts.enabled = false
+  server_cfg.opts.auto_start = false
 
   if clients[name] then
     clients[name]:stop()
@@ -217,7 +227,7 @@ function M.refresh()
 end
 
 ---Get status of all MCP servers
----@return table<string, { ready: boolean, tool_count: number, started: boolean, enabled: boolean }>
+---@return table<string, { ready: boolean, tool_count: number, started: boolean, auto_start: boolean }>
 function M.get_status()
   local status = {}
 
@@ -230,7 +240,7 @@ function M.get_status()
       ready = ready,
       tool_count = M.get_tool_count(name),
       started = client and client.transport:started() or false,
-      enabled = is_enabled(cfg),
+      auto_start = should_auto_start(cfg),
     }
   end
 
