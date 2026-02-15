@@ -87,7 +87,7 @@ function Interactions:chat()
   local prompts = self.selected.prompts
 
   if type(prompts[mode]) == "function" then
-    return prompts[mode]()
+    return prompts[mode](self.buffer_context)
   elseif type(prompts[mode]) == "table" then
     messages = self.evaluate_prompts(prompts[mode], self.buffer_context)
   else
