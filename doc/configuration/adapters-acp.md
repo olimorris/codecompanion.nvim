@@ -109,6 +109,53 @@ require("codecompanion").setup({
 })
 ```
 
+## Using MCP Servers
+
+Some ACP adapters [support](https://agentclientprotocol.com/protocol/session-setup#mcp-servers) connecting to Model Client Protocol (MCP) servers. By default, if you've defined [MCP servers in your configuration](/configuration/mcp), then CodeCompanion will attempt to automatically connect to those servers when initializing the adapter.
+
+To enable this, ensure you set `inherit_from_config` in the ACP adapter's `defaults.mcpServers` field:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            mcpServers = "inherit_from_config",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+Alternatively, you can configure them manually. In the below example, we're configuring Claude Code to connect to the [sequential-thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) server via stdio:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            mcpServers = {
+              {
+                name = "sequential-thinking",
+                command = "npx",
+                args = { "-y", "@modelcontextprotocol/server-sequential-thinking" },
+                env = {},
+              },
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
 ## Hiding Preset Adapters
 
 By default, the plugin shows all available adapters, including the presets. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
