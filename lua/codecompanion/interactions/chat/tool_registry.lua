@@ -5,6 +5,7 @@ Methods for handling interactions between the chat buffer and tools
 ---@class CodeCompanion.Chat.ToolRegistry
 ---@field chat CodeCompanion.Chat
 ---@field flags table Flags that external functions can update and subscribers can interact with
+---@field groups table<string, string[]> Groups and their member tool names
 ---@field in_use table<string, boolean> Tools that are in use on the chat buffer
 ---@field schemas table<string, table> The config for the tools in use
 
@@ -14,6 +15,22 @@ local ToolRegistry = {}
 local config = require("codecompanion.config")
 local utils = require("codecompanion.utils")
 
+local fmt = string.format
+
+---Make a tool ID from a tool name
+---@param name string
+---@return string
+local function tool_id(name)
+  return fmt("<tool>%s</tool>", name)
+end
+
+---Make a group ID from a group name
+---@param name string
+---@return string
+local function group_id(name)
+  return fmt("<group>%s</group>", name)
+end
+
 ---@class CodeCompanion.Chat.ToolsArgs
 ---@field chat CodeCompanion.Chat
 
@@ -22,6 +39,7 @@ function ToolRegistry.new(args)
   local self = setmetatable({
     chat = args.chat,
     flags = {},
+    groups = {},
     in_use = {},
     schemas = {},
   }, { __index = ToolRegistry })
@@ -112,7 +130,7 @@ function ToolRegistry:add_single_tool(tool, opts)
     return nil
   end
 
-  local id = "<tool>" .. tool .. "</tool>"
+  local id = tool_id(tool)
 
   local is_adapter_tool = tool_config._adapter_tool == true
   if is_adapter_tool then
@@ -160,7 +178,7 @@ function ToolRegistry:add_group(group, opts)
   local group_opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
   local collapse_tools = group_opts.collapse_tools
 
-  local group_id = "<group>" .. group .. "</group>"
+  local gid = group_id(group)
 
   local system_prompt = group_config.system_prompt
   if type(system_prompt) == "function" then
@@ -170,18 +188,22 @@ function ToolRegistry:add_group(group, opts)
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
-    }, { _meta = { tag = "tool" }, context = { id = group_id }, visible = false })
+    }, { _meta = { tag = "tool" }, context = { id = gid }, visible = false })
   end
 
   if collapse_tools then
-    add_context(self.chat, group_id)
+    add_context(self.chat, gid)
   end
+  local added_tools = {}
   for _, tool in ipairs(group_config.tools) do
     local tool_cfg = tools_config[tool]
     if tool_cfg then
-      self:add_single_tool(tool, { config = tool_cfg, visible = not collapse_tools })
+      if self:add_single_tool(tool, { config = tool_cfg, visible = not collapse_tools }) then
+        table.insert(added_tools, tool)
+      end
     end
   end
+  self.groups[group] = added_tools
 
   return self
 end
@@ -214,10 +236,50 @@ function ToolRegistry:loaded()
   return not vim.tbl_isempty(self.in_use)
 end
 
+---Remove a named group and its member tools from the registry. Also cleans up all artifacts
+---@param name string The group name to remove
+---@return nil
+function ToolRegistry:remove_group(name)
+  local tool_names = self.groups[name]
+  if not tool_names then
+    return
+  end
+
+  local to_remove = {}
+  to_remove[group_id(name)] = true
+
+  for _, tool_name in ipairs(tool_names) do
+    local id = tool_id(tool_name)
+    to_remove[id] = true
+    self.in_use[tool_name] = nil
+    self.schemas[id] = nil
+  end
+  self.groups[name] = nil
+
+  self.chat.context:remove_items(to_remove)
+
+  self.chat.messages = vim
+    .iter(self.chat.messages)
+    :filter(function(msg)
+      if msg._meta and msg._meta.tag == "tool" and msg.context and to_remove[msg.context.id] then
+        return false
+      end
+      return true
+    end)
+    :totable()
+
+  if vim.tbl_isempty(self.in_use) then
+    self.chat:remove_tagged_message("tool_system_prompt")
+  else
+    self:add_tool_system_prompt()
+  end
+end
+
 ---Clear the tools
 ---@return nil
 function ToolRegistry:clear()
   self.flags = {}
+  self.groups = {}
   self.in_use = {}
   self.schemas = {}
 end

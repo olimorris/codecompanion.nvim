@@ -180,6 +180,7 @@ T["ToolRegistry"][":clear"]["clears all tools from the registry"] = function()
   ]])
 
   h.eq(false, child.lua_get([[_G.chat.tool_registry:loaded()]]))
+  h.eq({}, child.lua_get([[_G.chat.tool_registry.groups]]))
   h.eq({}, child.lua_get([[_G.chat.tool_registry.in_use]]))
   h.eq({}, child.lua_get([[_G.chat.tool_registry.schemas]]))
 end
@@ -222,6 +223,52 @@ T["ToolRegistry"]["tools passed via args.tools"]["are visible in the chat buffer
   local content = table.concat(lines, "\n")
 
   h.expect_contains("func", content)
+end
+
+T["ToolRegistry"][":remove_group"] = new_set()
+
+T["ToolRegistry"][":remove_group"]["removes group tools, context items and messages"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_group("remove_group")
+  ]])
+
+  -- Verify tools were added
+  h.expect_tbl_contains("func", child.lua_get([[_G.chat.tool_registry.in_use]]))
+  h.expect_tbl_contains("weather", child.lua_get([[_G.chat.tool_registry.in_use]]))
+  h.eq(true, child.lua_get([[_G.chat.tool_registry.groups["remove_group"] ~= nil]]))
+
+  child.lua([[
+    _G.chat.tool_registry:remove_group("remove_group")
+  ]])
+
+  -- in_use, schemas and groups should be empty
+  h.eq({}, child.lua_get([[_G.chat.tool_registry.in_use]]))
+  h.eq({}, child.lua_get([[_G.chat.tool_registry.schemas]]))
+  h.eq({}, child.lua_get([[_G.chat.tool_registry.groups]]))
+
+  -- Context items referencing the group should be removed
+  h.eq({}, child.lua_get([[_G.chat.context_items]]))
+
+  -- The group's system prompt message should be removed
+  child.lua([[
+    _G.has_removed_prompt = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.content == "System prompt to be removed" then
+        _G.has_removed_prompt = true
+        break
+      end
+    end
+  ]])
+  h.eq(false, child.lua_get([[_G.has_removed_prompt]]))
+end
+
+T["ToolRegistry"][":remove_group"]["is a no-op when group does not exist"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add("func")
+    _G.chat.tool_registry:remove_group("nonexistent_group")
+  ]])
+
+  h.expect_tbl_contains("func", child.lua_get([[_G.chat.tool_registry.in_use]]))
 end
 
 return T
