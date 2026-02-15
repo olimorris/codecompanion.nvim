@@ -91,6 +91,36 @@ function M.has_tag(tag, messages)
   )
 end
 
+---Resolve which MCP servers should be added to new chat buffers
+---@return table<string> server_names List of server names to add to chat
+function M.mcp_servers_to_add_to_chat()
+  local servers = {}
+  local mcp_cfg = config.mcp
+  local global_auto_start = mcp_cfg.auto_start
+  local global_add_to_chat = mcp_cfg.add_to_chat
+
+  for name, cfg in pairs(mcp_cfg.servers) do
+    local opts = cfg.opts or {}
+
+    local auto_start = opts.auto_start
+    if auto_start == nil then
+      auto_start = global_auto_start
+    end
+
+    if auto_start then
+      local add_to_chat = opts.add_to_chat
+      if add_to_chat == nil then
+        add_to_chat = global_add_to_chat
+      end
+      if add_to_chat then
+        table.insert(servers, name)
+      end
+    end
+  end
+
+  return servers
+end
+
 ---Start MCP servers and add their tools to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param server_names table<string> List of MCP server names
@@ -118,6 +148,20 @@ function M.start_mcp_servers(chat, server_names)
           add_tools(name)
         end,
       })
+    end
+  end
+end
+
+---Remove all MCP tool groups from the chat's tool registry
+---@param chat CodeCompanion.Chat
+---@return nil
+function M.remove_mcp_tools(chat)
+  local mcp = require("codecompanion.mcp")
+  local prefix = mcp.tool_prefix()
+
+  for group_name, _ in pairs(chat.tool_registry.groups) do
+    if group_name:sub(1, #prefix) == prefix then
+      chat.tool_registry:remove_group(group_name)
     end
   end
 end
