@@ -209,9 +209,10 @@ function Connection:_establish_session()
   local can_load = self._agent_info
     and self._agent_info.agentCapabilities
     and self._agent_info.agentCapabilities.loadSession
+
   local session_args = {
     cwd = vim.fn.getcwd(),
-    mcpServers = self.adapter_modified.defaults.mcpServers or {},
+    mcpServers = self.adapter_modified.defaults.mcpServers,
   }
 
   if self.session_id and can_load then

@@ -533,7 +533,7 @@ function Chat.new(args)
 
   self:update_metadata()
 
-  if config.mcp.enabled then
+  if config.mcp.auto_start then
     require("codecompanion.mcp").start_servers()
   end
 
@@ -612,8 +612,15 @@ function Chat.new(args)
     end
   end
 
-  if args.mcp_servers then
-    helpers.start_mcp_servers(self, args.mcp_servers)
+  if self.adapter.type ~= "acp" then
+    if args.mcp_servers then
+      helpers.start_mcp_servers(self, args.mcp_servers)
+    else
+      local servers_to_add = helpers.mcp_servers_to_add_to_chat()
+      if #servers_to_add > 0 then
+        helpers.start_mcp_servers(self, servers_to_add)
+      end
+    end
   end
 
   -- Handle callbacks
@@ -735,6 +742,8 @@ function Chat:change_adapter(adapter)
     -- We need to ensure the connection is created before proceeding so that
     -- users are given a choice of models to select from
     helpers.create_acp_connection(self)
+
+    helpers.remove_mcp_tools(self)
   end
 
   self:set_system_prompt()

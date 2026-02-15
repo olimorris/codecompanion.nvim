@@ -82,9 +82,9 @@ require("codecompanion").setup({
 
 :::
 
-## Enabling Servers
+## Starting Servers
 
-By default, all MCP servers are enabled in CodeCompanion. This results in servers being started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behaviour can be changed by setting `mcp.enabled = false`. You can also change this at an individual server level:
+By default, all MCP servers are started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behaviour can be changed by setting `mcp.enabled = false`. You can also change this at an individual server level with the `auto_start` option:
 
 ::: code-group
 
@@ -106,7 +106,7 @@ require("codecompanion").setup({
     ["tavily-mcp"] = {
       cmd = { "npx", "-y", "tavily-mcp@latest" },
       opts = {
-        enabled = false,
+        auto_start = false,
       },
     },
   },
@@ -114,6 +114,42 @@ require("codecompanion").setup({
 ```
 
 :::
+
+## Adding Tools to Chat Buffers
+
+By default, when `mcp.add_to_chat = true` (the default), all started MCP servers will have their tools automatically added to every new chat buffer. You can disable this globally and opt-in per server with the `add_to_chat` option:
+
+::: code-group
+
+```lua [Per Server] {3-4,8-9,16-17}
+require("codecompanion").setup({
+  mcp = {
+    add_to_chat = false,
+    auto_start = true,
+    servers = {
+      ["sequential-thinking"] = {
+        cmd = { "npx", "-y", "@modelcontextprotocol/server-sequential-thinking" },
+        opts = {
+          add_to_chat = true,
+        },
+      },
+      ["tavily-mcp"] = {
+        cmd = { "npx", "-y", "tavily-mcp@latest" },
+        opts = {
+          add_to_chat = false,
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+In the example above, `add_to_chat = false` is set globally, so no server tools are added to chat buffers by default. The `sequential-thinking` server overrides this with `add_to_chat = true`, so its tools will be available in every new chat buffer. The `tavily-mcp` server's tools can still be added on-demand via the `/mcp` slash command.
+
+> [!NOTE]
+> If `mcp_servers` are explicitly specified in a prompt library item, those take precedence and the `add_to_chat` logic is skipped for that chat buffer.
 
 ## Overriding Tool Behaviour
 

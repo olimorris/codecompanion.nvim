@@ -780,7 +780,8 @@ The user is working on a %s machine. Please respond with system specific command
   },
   -- MCP SERVERS ----------------------------------------------------------------
   mcp = {
-    enabled = true,
+    add_to_chat = true,
+    auto_start = true,
     servers = {},
     opts = {
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)

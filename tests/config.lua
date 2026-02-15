@@ -384,7 +384,7 @@ return {
     },
   },
   mcp = {
-    enabled = true,
+    auto_start = true,
     servers = {},
     opts = {
       timeout = 10e3,
