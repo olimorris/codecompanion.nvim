@@ -6,7 +6,7 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
-## Changing the Default Adapter
+## Configuring Default Adapter
 
 You can select an ACP adapter to be the default for all chat interactions:
 
@@ -20,7 +20,7 @@ require("codecompanion").setup({
 }),
 ```
 
-## Changing the Default Model
+## Configuring Default Model
 
 You can change the default model used by an ACP adapter. For example, to change the default model for the Claude Code adapter:
 
@@ -79,7 +79,7 @@ require("codecompanion").setup({
 
 Using a _function_ is useful for working around the [limitations](https://github.com/zed-industries/claude-code-acp/issues/225) in the Claude Code SDK (which enables ACP support).
 
-## Changing Adapter Settings
+## Configuring Adapter Settings
 
 To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:
 
@@ -109,11 +109,11 @@ require("codecompanion").setup({
 })
 ```
 
-## Using MCP Servers
+## Configuring MCP Servers
 
-Some ACP adapters [support](https://agentclientprotocol.com/protocol/session-setup#mcp-servers) connecting to Model Client Protocol (MCP) servers. By default, if you've defined [MCP servers in your configuration](/configuration/mcp), then CodeCompanion will attempt to automatically connect to those servers when initializing the adapter.
+Some ACP adapters [support](https://agentclientprotocol.com/protocol/session-setup#mcp-servers) connecting to Model Client Protocol (MCP) servers. If you've defined [MCP servers in your configuration](/configuration/mcp), then CodeCompanion can automatically connect to those servers when initializing the adapter.
 
-To enable this, ensure you set `inherit_from_config` in the ACP adapter's `defaults.mcpServers` field:
+To enable this, set `inherit_from_config` in the ACP adapter's `defaults.mcpServers` field:
 
 ```lua
 require("codecompanion").setup({
@@ -131,7 +131,7 @@ require("codecompanion").setup({
 })
 ```
 
-Alternatively, you can configure them manually. In the below example, we're configuring Claude Code to connect to the [sequential-thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) server via stdio:
+Alternatively, you can configure MCP servers manually. In the below example, we're configuring Claude Code to connect to the [sequential-thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) server via stdio:
 
 ```lua
 require("codecompanion").setup({

@@ -84,14 +84,14 @@ require("codecompanion").setup({
 
 ## Starting Servers
 
-By default, all MCP servers are started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behaviour can be changed by setting `mcp.enabled = false`. You can also change this at an individual server level with the `auto_start` option:
+By default, all MCP servers are started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behaviour can be changed by setting `mcp.auto_start = false`. You can also change this at an individual server level:
 
 ::: code-group
 
 ```lua [Globally] {3}
 require("codecompanion").setup({
   mcp = {
-    enabled = false,
+    auto_start = false,
     ["tavily-mcp"] = {
       cmd = { "npx", "-y", "tavily-mcp@latest" },
     },
@@ -102,7 +102,7 @@ require("codecompanion").setup({
 ```lua [Per Server] {3,6-8}
 require("codecompanion").setup({
   mcp = {
-    enabled = true,
+    auto_start = true,
     ["tavily-mcp"] = {
       cmd = { "npx", "-y", "tavily-mcp@latest" },
       opts = {

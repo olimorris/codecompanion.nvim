@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 15
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 16
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -85,8 +85,9 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
+-  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
@@ -962,7 +963,7 @@ This section contains configuration which is specific to Agent Client Protocol
 recommended you read the two pages together.
 
 
-CHANGING THE DEFAULT ADAPTER ~
+DEFAULT ADAPTER ~
 
 You can select an ACP adapter to be the default for all chat interactions:
 
@@ -977,7 +978,7 @@ You can select an ACP adapter to be the default for all chat interactions:
 <
 
 
-CHANGING THE DEFAULT MODEL ~
+DEFAULT MODEL ~
 
 You can change the default model used by an ACP adapter. For example, to change
 the default model for the Claude Code adapter:
@@ -988,7 +989,7 @@ Using a `function` is useful for working around the limitations
 Code SDK (which enables ACP support).
 
 
-CHANGING ADAPTER SETTINGS ~
+ADAPTER SETTINGS ~
 
 To change any of the default settings for an ACP adapter, you can extend it in
 your CodeCompanion setup. For example, to change the timeout and authentication
@@ -1025,11 +1026,11 @@ MCP SERVERS ~
 
 Some ACP adapters support
 <https://agentclientprotocol.com/protocol/session-setup#mcp-servers> connecting
-to Model Client Protocol (MCP) servers. By default, if you’ve defined
-|codecompanion-configuration-mcp|, then CodeCompanion will attempt to
-automatically connect to those servers when initializing the adapter.
+to Model Client Protocol (MCP) servers. If you’ve defined
+|codecompanion-configuration-mcp|, then CodeCompanion can automatically connect
+to those servers when initializing the adapter.
 
-To enable this, ensure you set `inherit_from_config` in the ACP adapter’s
+To enable this, set `inherit_from_config` in the ACP adapter’s
 `defaults.mcpServers` field:
 
 >lua
@@ -1048,8 +1049,8 @@ To enable this, ensure you set `inherit_from_config` in the ACP adapter’s
     })
 <
 
-Alternatively, you can configure them manually. In the below example, we’re
-configuring Claude Code to connect to the sequential-thinking
+Alternatively, you can configure MCP servers manually. In the below example,
+we’re configuring Claude Code to connect to the sequential-thinking
 <https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking>
 server via stdio:
 
@@ -2410,8 +2411,8 @@ STARTING SERVERS ~
 
 By default, all MCP servers are started when a chat buffer is opened for the
 first time - remaining active until Neovim is closed. This behaviour can be
-changed by setting `mcp.enabled = false`. You can also change this at an
-individual server level with the `auto_start` option:
+changed by setting `mcp.auto_start = false`. You can also change this at an
+individual server level:
 
 
 
