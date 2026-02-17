@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 16
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -17,28 +17,24 @@ Table of Contents                            *codecompanion-table-of-contents*
 3. Getting Started                             |codecompanion-getting-started|
   - Documentation                |codecompanion-getting-started-documentation|
   - Interactions                  |codecompanion-getting-started-interactions|
-  - With an Adapter            |codecompanion-getting-started-with-an-adapter|
+  - Setup: Adapter              |codecompanion-getting-started-setup:-adapter|
   - Chat Buffer                    |codecompanion-getting-started-chat-buffer|
   - Inline Assistant          |codecompanion-getting-started-inline-assistant|
   - Commands                          |codecompanion-getting-started-commands|
   - Action Palette              |codecompanion-getting-started-action-palette|
   - List of Commands          |codecompanion-getting-started-list-of-commands|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
-4. Upgrading General                         |codecompanion-upgrading-general|
-  - v18.6.0 to v19.0.0    |codecompanion-upgrading-general-v18.6.0-to-v19.0.0|
-  - v17.33.0 to v18.0.0  |codecompanion-upgrading-general-v17.33.0-to-v18.0.0|
-  - default_memory has been renamed to autoload (#2509)|codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)|
-5. ACP                                                     |codecompanion-acp|
+4. ACP                                                     |codecompanion-acp|
   - Implementation                          |codecompanion-acp-implementation|
   - Protocol Version                      |codecompanion-acp-protocol-version|
   - Current Limitations                |codecompanion-acp-current-limitations|
   - See Also                                      |codecompanion-acp-see-also|
-6. MCP                                                     |codecompanion-mcp|
+5. MCP                                                     |codecompanion-mcp|
   - Usage                                            |codecompanion-mcp-usage|
   - Implementation                          |codecompanion-mcp-implementation|
   - Protocol Version                      |codecompanion-mcp-protocol-version|
   - See Also                                      |codecompanion-mcp-see-also|
-7. Configuration                                 |codecompanion-configuration|
+6. Configuration                                 |codecompanion-configuration|
   - Action Palette                |codecompanion-configuration-action-palette|
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
@@ -50,8 +46,8 @@ Table of Contents                            *codecompanion-table-of-contents*
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
   - Other Options                  |codecompanion-configuration-other-options|
-8. Usage                                                 |codecompanion-usage|
-  - General                                      |codecompanion-usage-general|
+7. Usage                                                 |codecompanion-usage|
+  -                                                     |codecompanion-usage-|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
   - Agents                                        |codecompanion-usage-agents|
@@ -64,7 +60,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Prompt Library                        |codecompanion-usage-prompt-library|
   - User Interface                        |codecompanion-usage-user-interface|
   - Workflows                                  |codecompanion-usage-workflows|
-9. Extending                                         |codecompanion-extending|
+8. Extending                                         |codecompanion-extending|
   - Extending with Adapters  |codecompanion-extending-extending-with-adapters|
   - Extending with Agentic Workflows|codecompanion-extending-extending-with-agentic-workflows|
   - Extending with Extensions|codecompanion-extending-extending-with-extensions|
@@ -309,7 +305,7 @@ four main types of interactions:
 - **Background** - Runs tasks in the background such as compacting chat messages or generating titles for chats
 
 
-WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
+SETUP: ADAPTER                  *codecompanion-getting-started-setup:-adapter*
 
 
   [!NOTE] The adapters that the plugin supports out of the box can be found here
@@ -536,10 +532,6 @@ For an optimum plugin workflow, I recommend the following:
   [!NOTE] You can also assign prompts from the library to specific mappings. See
   the |codecompanion-configuration-prompt-library-assigning-prompts-to-a-keymap|
   section for more information.
-
-==============================================================================
-4. Upgrading General                         *codecompanion-upgrading-general*
-
 This document provides a guide for upgrading from one version of CodeCompanion
 to another.
 
@@ -547,9 +539,6 @@ CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
 breaking changes, it is recommended to pin the plugin to a specific version in
 your Neovim configuration. The |codecompanion-installation| provides more
 information on how to do this.
-
-
-V18.6.0 TO V19.0.0        *codecompanion-upgrading-general-v18.6.0-to-v19.0.0*
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
@@ -576,9 +565,6 @@ PROMPT LIBRARY ~
       - test_rule
     ---
 <
-
-
-V17.33.0 TO V18.0.0      *codecompanion-upgrading-general-v17.33.0-to-v18.0.0*
 
 
 CONFIG ~
@@ -613,7 +599,7 @@ ADAPTERS ~
 CHAT ~
 
 - Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the |codecompanion-configuration-rules| documentation for more information (#2440 <https://github.com/olimorris/codecompanion.nvim/pull/2440>)
-- DEFAULT_MEMORY HAS BEEN RENAMED TO AUTOLOAD (#2509)*codecompanion-upgrading-general-default_memory-has-been-renamed-to-autoload-(#2509)*
+
 - The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
 - The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
     entire buffer is sent to the LLM with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
@@ -678,7 +664,7 @@ UI ~
 
 
 ==============================================================================
-5. ACP                                                     *codecompanion-acp*
+4. ACP                                                     *codecompanion-acp*
 
 CodeCompanion implements the Agent Client Protocol (ACP)
 <https://agentclientprotocol.com/> to enable you to work with coding agents
@@ -847,7 +833,7 @@ SEE ALSO                                          *codecompanion-acp-see-also*
 
 
 ==============================================================================
-6. MCP                                                     *codecompanion-mcp*
+5. MCP                                                     *codecompanion-mcp*
 
 CodeCompanion implements the Model Context Protocol (MCP)
 <https://modelcontextprotocol.io> to enable you to connect the plugin to
@@ -915,7 +901,7 @@ SEE ALSO                                          *codecompanion-mcp-see-also*
 
 
 ==============================================================================
-7. Configuration                                 *codecompanion-configuration*
+6. Configuration                                 *codecompanion-configuration*
 
 
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
@@ -3298,10 +3284,10 @@ You can prevent any code from being sent to the LLM with:
 
 
 ==============================================================================
-8. Usage                                                 *codecompanion-usage*
+7. Usage                                                 *codecompanion-usage*
 
 
-GENERAL                                          *codecompanion-usage-general*
+                                                        *codecompanion-usage-*
 
 CodeCompanion continues to evolve with regular frequency. This page will
 endeavour to serve as focal point for providing useful productivity tips for
@@ -4801,7 +4787,7 @@ the |codecompanion-extending-agentic-workflows| guide.
 
 
 ==============================================================================
-9. Extending                                         *codecompanion-extending*
+8. Extending                                         *codecompanion-extending*
 
 
 EXTENDING WITH ADAPTERS      *codecompanion-extending-extending-with-adapters*
