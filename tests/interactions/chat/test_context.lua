@@ -46,6 +46,61 @@ T["Context"]["Can be added to the UI of the chat buffer"] = function()
   h.eq("> - testing again", lines[5])
 end
 
+T["Context"]["Deduplicates context items by id"] = function()
+  child.lua([[
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<tool>weather</tool>",
+      opts = { visible = true },
+    })
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<tool>weather</tool>",
+      opts = { visible = true },
+    })
+  ]])
+
+  h.eq(1, child.lua_get([[#_G.chat.context_items]]), "Should have 1 context item, not 2")
+end
+
+T["Context"]["Refreshes existing context item when same id is added again"] = function()
+  child.lua([[
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<buf>myfile.lua</buf>",
+      opts = { sync_all = false },
+    })
+    _G.chat.context:add({
+      source = "test_updated",
+      name = "test",
+      id = "<buf>myfile.lua</buf>",
+      opts = { sync_all = true },
+    })
+  ]])
+
+  h.eq(1, child.lua_get([[#_G.chat.context_items]]), "Should still have 1 context item")
+  h.eq("test_updated", child.lua_get([[_G.chat.context_items[1].source]]), "Source should be updated")
+  h.eq(true, child.lua_get([[_G.chat.context_items[1].opts.sync_all]]), "sync_all should be updated")
+end
+
+T["Context"]["Does not deduplicate context items without an id"] = function()
+  child.lua([[
+    _G.chat.context:add({
+      source = "test",
+      name = "anonymous1",
+    })
+    _G.chat.context:add({
+      source = "test",
+      name = "anonymous2",
+    })
+  ]])
+
+  h.eq(2, child.lua_get([[#_G.chat.context_items]]), "Both anonymous items should be added")
+end
+
 T["Context"]["Can be deleted"] = function()
   child.lua([[
     -- Add context_items
@@ -166,12 +221,12 @@ T["Context"]["Can share all of a buffer"] = function()
        },
      })
      _G.chat.context:add({
-       id = "<buf>sync_all example</buf>",
+       id = "<buf>another example</buf>",
        path = "test2",
        source = "test",
      })
 
-     -- Add messages with and without pins
+     -- Add messages with context
      _G.chat.messages = {
        {
          role = "user",
@@ -182,9 +237,9 @@ T["Context"]["Can share all of a buffer"] = function()
        },
        {
          role = "user",
-         content = "sync_all context",
+         content = "another context",
          context = {
-           id = "<buf>sync_all example</buf>",
+           id = "<buf>another example</buf>",
          },
        },
      }
@@ -195,7 +250,7 @@ T["Context"]["Can share all of a buffer"] = function()
    ]])
 
   h.eq(child.lua_get([[#_G.chat.context_items]]), 2, "There are two context_items")
-  h.eq(child.lua_get([[#_G.chat.messages]]), 2, "There are three messages")
+  h.eq(child.lua_get([[#_G.chat.messages]]), 2, "There are two messages")
   h.eq(child.lua_get([[_G.chat.context_items[1].opts.sync_all]]), true, "All of the buffer is shared")
 
   child.lua([[
@@ -219,7 +274,7 @@ T["Context"]["Can share all of a buffer"] = function()
     string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
     buffer[16]
   )
-  h.eq("> - <buf>sync_all example</buf>", buffer[17])
+  h.eq("> - <buf>another example</buf>", buffer[17])
 
   h.eq({
     {
@@ -233,7 +288,7 @@ T["Context"]["Can share all of a buffer"] = function()
       source = "tests.interactions.chat.slash_commands.basic",
     },
     {
-      id = "<buf>sync_all example</buf>",
+      id = "<buf>another example</buf>",
       opts = {
         sync_all = false,
         visible = true,
@@ -466,6 +521,44 @@ T["Context"]["Show icons immediately when added with default parameters"] = func
 
   -- Check that regular context shows without icon
   h.eq("> - <buf>regular_file.lua</buf>", lines[6])
+end
+
+T["Context"]["Adding the same tool group twice does not duplicate"] = function()
+  child.lua([[
+    local tools_config = require("tests.config").interactions.chat.tools
+    _G.chat.tool_registry:add_group("test_group", tools_config)
+    _G.chat.tool_registry:add_group("test_group", tools_config)
+  ]])
+
+  -- Context items should not be duplicated (1 group + 2 invisible tool contexts)
+  h.eq(3, child.lua_get([[#_G.chat.context_items]]), "Should have 3 context items (group + 2 tools), not 6")
+
+  -- System prompt messages with the group id should not be duplicated
+  child.lua([[
+    _G.group_system_msg_count = 0
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.role == "system" and msg.context and msg.context.id == "<group>test_group</group>" then
+        _G.group_system_msg_count = _G.group_system_msg_count + 1
+      end
+    end
+  ]])
+  h.eq(1, child.lua_get([[_G.group_system_msg_count]]), "Should have 1 system prompt for the group, not 2")
+end
+
+T["Context"]["Tool group can be re-added after clear"] = function()
+  child.lua([[
+    local tools_config = require("tests.config").interactions.chat.tools
+    _G.chat.tool_registry:add_group("test_group", tools_config)
+    _G.chat.tool_registry:clear()
+    _G.chat.tool_registry:add_group("test_group", tools_config)
+  ]])
+
+  -- After clear and re-add, the group should be present
+  h.eq(
+    true,
+    child.lua_get([=[_G.chat.tool_registry.in_use["_group:test_group"]]=]),
+    "Group should be in use after re-add"
+  )
 end
 
 T["Context"]["Tool group with collapse_tools shows single group context"] = function()

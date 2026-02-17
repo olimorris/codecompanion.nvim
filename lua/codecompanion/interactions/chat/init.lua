@@ -1396,6 +1396,18 @@ function Chat:check_context()
       log:debug("Removing tool schema and usage flag for ID: %s", id) -- Optional logging
     end
   end
+
+  -- Preserve _group: keys for groups still in context
+  for _, ctx in ipairs(self.context_items) do
+    local group_name = ctx.id and ctx.id:match("<group>(.*)</group>")
+    if group_name then
+      local group_key = "_group:" .. group_name
+      if self.tool_registry.in_use[group_key] then
+        tools_in_use_to_keep[group_key] = true
+      end
+    end
+  end
+
   self.tool_registry.schemas = schemas_to_keep
   self.tool_registry.in_use = tools_in_use_to_keep
 end

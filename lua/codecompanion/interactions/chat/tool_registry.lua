@@ -122,6 +122,13 @@ function ToolRegistry:add_group(group, tools_config)
     return
   end
 
+  -- Guard against duplicate group registration
+  local group_key = "_group:" .. group
+  if self.in_use[group_key] then
+    return
+  end
+  self.in_use[group_key] = true
+
   local opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
   local collapse_tools = opts.collapse_tools
 
