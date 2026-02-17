@@ -215,7 +215,7 @@ function Connection:_establish_session()
     mcpServers = self.adapter_modified.defaults.mcpServers,
   }
 
-  if self.adapter_modified.defaults.mcpServers == "inherit_from_config" then
+  if self.adapter_modified.defaults.mcpServers == "inherit_from_config" and config.mcp.opts.acp_enabled then
     session_args.mcpServers = require("codecompanion.mcp").transform_to_acp()
   end
 

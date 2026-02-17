@@ -131,6 +131,9 @@ require("codecompanion").setup({
 })
 ```
 
+> [!NOTE]
+> CodeCompanion does not display the MCP servers in the chat buffer's context when used with an ACP adapter.
+
 Alternatively, you can configure MCP servers manually. In the below example, we're configuring Claude Code to connect to the [sequential-thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) server via stdio:
 
 ```lua
@@ -155,6 +158,8 @@ require("codecompanion").setup({
   },
 })
 ```
+
+You can also disable this by setting `mcp.opts.acp_enabled = false` in your configuration.
 
 ## Hiding Preset Adapters
 
