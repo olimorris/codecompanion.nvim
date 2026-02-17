@@ -152,6 +152,16 @@ function Context:add(context)
     if context.opts.visible == nil then
       context.opts.visible = config.display.chat.show_context
     end
+
+    -- Prevent duplicate context items with the same id
+    if context.id then
+      for _, existing in ipairs(self.Chat.context_items) do
+        if existing.id == context.id then
+          return self
+        end
+      end
+    end
+
     table.insert(self.Chat.context_items, context)
     if context.bufnr and context.opts.sync_diff then
       self.Chat.buffer_diffs:sync(context.bufnr)
