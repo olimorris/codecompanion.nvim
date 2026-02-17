@@ -784,6 +784,7 @@ The user is working on a %s machine. Please respond with system specific command
     auto_start = true,
     servers = {},
     opts = {
+      acp_enabled = true, -- Enable MCP servers with ACP adapters?
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },

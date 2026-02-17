@@ -72,10 +72,10 @@ function M.get_tool_count(server_name)
 end
 
 ---@class CodeCompanion.MCP.ToolOverride
----@field opts? table
 ---@field enabled nil | boolean | fun(): boolean
----@field system_prompt? string
 ---@field output? table<string, any>
+---@field opts? table
+---@field system_prompt? string
 ---@field timeout? number
 
 ---@class CodeCompanion.MCP.ServerConfig
@@ -262,6 +262,33 @@ end
 ---@return string
 function M.tool_prefix()
   return CONSTANTS.TOOL_PREFIX
+end
+
+---Transforms the CodeCompanion MCP configuration into the format expected by an ACP adapter
+---@return table
+function M.transform_to_acp()
+  local transformed = {}
+
+  for name, cfg in pairs(config.mcp.servers) do
+    local server_add = cfg.opts and cfg.opts.add_to_chat
+    local global_add = config.mcp.add_to_chat
+
+    -- Skip if explicitly disabled at server or global level
+    if server_add == false or (server_add == nil and global_add == false) then
+      goto continue
+    end
+
+    table.insert(transformed, {
+      name = name,
+      command = cfg.cmd[1],
+      args = vim.list_slice(cfg.cmd, 2),
+      env = cfg.env or {},
+    })
+
+    ::continue::
+  end
+
+  return transformed
 end
 
 return M

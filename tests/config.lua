@@ -387,6 +387,7 @@ return {
     auto_start = true,
     servers = {},
     opts = {
+      acp_enabled = true, -- Enable MCP servers with ACP adapters?
       timeout = 10e3,
     },
   },
