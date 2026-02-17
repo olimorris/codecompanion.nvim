@@ -169,6 +169,10 @@ end
 function ToolRegistry:add_group(group, opts)
   opts = opts or {}
 
+  if self.groups[group] then
+    return nil
+  end
+
   local tools_config = opts.config or config.interactions.chat.tools
   local group_config = tools_config.groups[group]
   if not group_config or not group_config.tools then
