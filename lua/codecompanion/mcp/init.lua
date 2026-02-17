@@ -269,10 +269,12 @@ end
 function M.transform_to_acp()
   local transformed = {}
 
-  local add = config.mcp.add_to_chat == true
-
   for name, cfg in pairs(config.mcp.servers) do
-    if not add and not (cfg.opts and cfg.opts.add_to_chat) then
+    local server_add = cfg.opts and cfg.opts.add_to_chat
+    local global_add = config.mcp.add_to_chat
+
+    -- Skip if explicitly disabled at server or global level
+    if server_add == false or (server_add == nil and global_add == false) then
       goto continue
     end
 
