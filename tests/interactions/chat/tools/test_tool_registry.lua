@@ -121,6 +121,22 @@ T["ToolRegistry"][":add_group"]["adds all tools in a group"] = function()
   h.expect_tbl_contains("cmd", registry)
 end
 
+T["ToolRegistry"][":add_group"]["does not add duplicate groups"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_group("tool_group")
+    _G.chat.tool_registry:add_group("tool_group")
+    _G.system_prompt_count = 0
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.context and msg.context.id == "<group>tool_group</group>" then
+        _G.system_prompt_count = _G.system_prompt_count + 1
+      end
+    end
+  ]])
+
+  h.eq(1, child.lua_get([[_G.system_prompt_count]]), "Group system prompt should only be added once")
+  h.eq(2, child.lua_get([[vim.tbl_count(_G.chat.tool_registry.in_use)]]), "Should still have 2 tools")
+end
+
 T["ToolRegistry"][":add_group"]["skips tools missing from config"] = function()
   child.lua([[
     _G.chat.tool_registry:add_group("senior_dev", {
