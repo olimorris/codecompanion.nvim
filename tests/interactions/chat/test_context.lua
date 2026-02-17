@@ -46,6 +46,23 @@ T["Context"]["Can be added to the UI of the chat buffer"] = function()
   h.eq("> - testing again", lines[5])
 end
 
+T["Context"]["Cannot be added twice with the same id"] = function()
+  child.lua([[
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<buf>test.lua</buf>",
+    })
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<buf>test.lua</buf>",
+    })
+  ]])
+
+  h.eq(1, child.lua_get([[#_G.chat.context_items]]), "Should only have 1 context item")
+end
+
 T["Context"]["Can be deleted"] = function()
   child.lua([[
     -- Add context_items
@@ -166,7 +183,7 @@ T["Context"]["Can share all of a buffer"] = function()
        },
      })
      _G.chat.context:add({
-       id = "<buf>sync_all example</buf>",
+       id = "<buf>sync_all example2</buf>",
        path = "test2",
        source = "test",
      })
@@ -184,7 +201,7 @@ T["Context"]["Can share all of a buffer"] = function()
          role = "user",
          content = "sync_all context",
          context = {
-           id = "<buf>sync_all example</buf>",
+           id = "<buf>sync_all example2</buf>",
          },
        },
      }
@@ -219,7 +236,7 @@ T["Context"]["Can share all of a buffer"] = function()
     string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
     buffer[16]
   )
-  h.eq("> - <buf>sync_all example</buf>", buffer[17])
+  h.eq("> - <buf>sync_all example2</buf>", buffer[17])
 
   h.eq({
     {
@@ -233,7 +250,7 @@ T["Context"]["Can share all of a buffer"] = function()
       source = "tests.interactions.chat.slash_commands.basic",
     },
     {
-      id = "<buf>sync_all example</buf>",
+      id = "<buf>sync_all example2</buf>",
       opts = {
         sync_all = false,
         visible = true,
