@@ -1,5 +1,6 @@
 local M = {}
 
+local api = vim.api
 local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
 local files_utils = require("codecompanion.utils.files")
@@ -49,6 +50,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 
 ---@class (private) CodeCompanion.Image.Preprocessor.Context
 ---@field chat_bufnr integer?
+---@field from "slash_command"|"tool"
 
 ---@alias CodeCompanion.Image.Preprocessor
 --- | fun(source: string, ctx: CodeCompanion.Image.Preprocessor.Context?, cb: fun(result: string|CodeCompanion.Image)):nil
@@ -66,9 +68,59 @@ function M.from_path(path, _, cb)
   return encoded
 end
 
+--- key: chat bufnr
+--- value: number of pending requests.
+--- Use this to keep track of whether a notification in a chat buffer should be cleared.
+--- When loading a local image, it's usually so fast that we don't need a virtual text notification.
+---@type table<integer, integer>
+local pending_requests = vim.defaulttable(function()
+  return 0
+end)
+
+---@param bufnr integer
+---@param force boolean?
+local function clear_notification(bufnr, force)
+  if pending_requests[bufnr] > 0 then
+    pending_requests[bufnr] = pending_requests[bufnr] - 1
+  end
+  if pending_requests[bufnr] == 0 or force then
+    -- clear the notification if there's no more pending requests.
+    pending_requests[bufnr] = 0
+    vim.schedule(function()
+      ui_utils.clear_notification(bufnr, { namespace = "codecompanion_fetch_image_" .. tostring(bufnr) })
+    end)
+  end
+end
+
+---@param bufnr integer
+local function set_notification(bufnr)
+  if pending_requests[bufnr] == 0 then
+    -- only set notification once for each turn.
+    -- this avoids excessive notifications when the `fetch_images` tool requests for multiple images in parallel.
+    vim.schedule(function()
+      ui_utils.show_buffer_notification(bufnr, {
+        namespace = "codecompanion_fetch_image_" .. tostring(bufnr),
+        text = "Fetching image from the given URL...",
+        main_hl = "Comment",
+      })
+    end)
+  end
+  pending_requests[bufnr] = pending_requests[bufnr] + 1
+end
+
+api.nvim_create_autocmd("User", {
+  -- NOTE: the notification may stay if one of the requests failed. Use this autocmd to avoid persistent notification.
+  pattern = "CodeCompanionChatSubmitted",
+  callback = function(args)
+    clear_notification(args.data.bufnr, true)
+  end,
+  group = "codecompanion.image",
+  desc = "A fail-safe that guarantees the notification is cleared.",
+})
+
 ---@type CodeCompanion.Image.Preprocessor
 function M.from_url(url, ctx, cb)
-  ctx = ctx or {}
+  ctx = vim.tbl_deep_extend("force", { from = "tool" }, ctx or {})
 
   local loc = vim.fn.tempname()
   temp_files[#temp_files + 1] = loc
@@ -77,28 +129,20 @@ function M.from_url(url, ctx, cb)
   ---@type string|CodeCompanion.Image
   local result = string.format("Could not get the image from %s.", url)
 
-  local extmark_id = nil
-  local ns = nil
-  if ctx.chat_bufnr then
-    ns = "codecompanion_fetch_image_" .. tostring(ctx.chat_bufnr)
-    vim.schedule(function()
-      extmark_id = ui_utils.show_buffer_notification(
-        ctx.chat_bufnr,
-        { namespace = ns, text = "Fetching image from the given URL...", main_hl = "Comment" }
-      )
-    end)
+  if ctx.chat_bufnr and ctx.from == "slash_command" then
+    -- only show notifications when invoked from slash commands, because tools already have a nice notification.
+    set_notification(ctx.chat_bufnr)
   end
+
   local job = Curl.get(url, {
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     output = loc,
     callback = function(response)
-      if extmark_id then
-        extmark_id = nil
-        vim.schedule(function()
-          ui_utils.clear_notification(ctx.chat_bufnr, { namespace = ns })
-        end)
+      if ctx.from == "slash_command" then
+        clear_notification(ctx.chat_bufnr)
       end
+
       if response.status ~= 200 then
         result = string.format(
           "Could not get the image from %s.\nHTTP Status: %d\nError: %s",
@@ -122,6 +166,9 @@ function M.from_url(url, ctx, cb)
         end
 
         result = M.encode_image({ mimetype = mimetype, path = loc, id = url })
+        if result.mimetype == nil then
+          result = "Failed to extract the mimetype of the image from: " .. url
+        end
         if type(cb) == "function" then
           vim.schedule(function()
             cb(result)
@@ -132,12 +179,6 @@ function M.from_url(url, ctx, cb)
   })
   if cb == nil then
     job:sync()
-    if extmark_id then
-      extmark_id = nil
-      vim.schedule(function()
-        ui_utils.clear_notification(ctx.chat_bufnr, { namespace = ns })
-      end)
-    end
     return result
   end
 end

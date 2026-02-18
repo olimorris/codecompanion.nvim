@@ -247,4 +247,21 @@ function M.pluralize(count, word)
   return count == 1 and word or word .. "s"
 end
 
+---Convert any `vim.NIL` instances to `nil` in lua.
+--- WARNING: This function is recursive. Do not use on tables that may be deeply nested.
+---@generic Obj: any
+---@param obj Obj|vim.NIL
+---@return Obj
+function M.fix_nil(obj)
+  if obj == vim.NIL then
+    return nil
+  end
+  if type(obj) == "table" then
+    for k, v in pairs(obj) do
+      obj[k] = M.fix_nil(v)
+    end
+  end
+  return obj
+end
+
 return M

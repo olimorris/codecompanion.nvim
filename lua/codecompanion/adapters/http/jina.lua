@@ -30,7 +30,7 @@ return {
 
           self.headers = vim.tbl_deep_extend("force", self.headers, {
             ["Content-Type"] = "application/json",
-            ["X-Return-Format"] = "text",
+            ["X-Return-Format"] = data.content_format or "text",
             ["Accept"] = "application/json",
           })
 
@@ -103,7 +103,11 @@ return {
           end
           return {
             success = "success",
-            content = data.data.text,
+            content = {
+              text = data.data.text,
+              screenshot = data.data.screenshotUrl,
+              pageshot = data.data.pageshotUrl,
+            },
           }
         end,
       },

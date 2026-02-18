@@ -2,6 +2,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -30,6 +31,13 @@ return {
         return cb({ status = "error", data = "No query provided for the web_search tool" })
       end
 
+      if args.include_images then
+        if type(self.chat.adapter.opts) == "table" and not self.chat.adapter.opts.vision then
+          log:warn("[Web Search Tool] Disabling `include_images` because the chat adapter disabled vision.")
+          args.include_images = nil
+        end
+      end
+
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
       local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter
@@ -42,7 +50,7 @@ return {
         .new({
           adapter = adapter,
         })
-        :request({ query = query, domains = args.domains }, {
+        :request({ query = query, domains = args.domains, include_images = args.include_images }, {
           callback = function(err, data)
             local error_message = [[Error searching for `%s`]]
             local error_message_expanded = error_message .. "\n%s"
@@ -69,7 +77,8 @@ return {
     type = "function",
     ["function"] = {
       name = "web_search",
-      description = "Searches the web for a given query and returns the results.",
+      description = [[Searches the web for a given query and returns the results. 
+If the tool returned image URLs, you should call the `fetch_images` tool to view the images that are relevant to the current tasks.]],
       parameters = {
         type = "object",
         properties = {
@@ -84,8 +93,12 @@ return {
             },
             description = "An array of domains to search from. You can leave this as an empty string and the search will be performed across all domains.",
           },
+          include_images = {
+            type = "boolean",
+            description = "Whether image results are needed for this search. Enable this if the query is related to the appearance of something, like the design of a GUI application or a website. Otherwise, disable this to save tokens.",
+          },
         },
-        required = { "query", "domains" },
+        required = { "query", "domains", "include_images" },
       },
     },
   },
@@ -97,16 +110,31 @@ return {
     success = function(self, tools, cmd, stdout)
       local chat = tools.chat
 
-      local content = vim
-        .iter(stdout[1])
+      local search_results = stdout[1]
+      local text_content = vim
+        .iter(search_results.text)
         :map(function(result)
           return fmt([[<attachment url="%s" title="%s">%s</attachment>]], result.url, result.title, result.content)
         end)
         :totable()
-      local length = #content
 
-      local llm_output = fmt([[%s]], table.concat(content, "\n"))
-      local user_output = fmt([[Searched for `%s`, %d result(s)]], cmd.query, length)
+      ---@type string[]
+      local images = vim
+        .iter(utils.fix_nil(search_results.images) or {})
+        :map(function(item)
+          return fmt([[<attachment image_url="%s">%s</attachment>]], item.url, item.description or "")
+        end)
+        :totable()
+
+      local text_result_count = #text_content
+
+      local llm_output = fmt([[%s]], table.concat(text_content, "\n"))
+      local user_output = fmt([[Searched for `%s`, %d result(s)]], cmd.query, text_result_count)
+
+      if #images > 0 then
+        llm_output = llm_output .. fmt("\n%s", table.concat(images, "\n"))
+        user_output = user_output .. fmt(" and %d image(s)", #images)
+      end
 
       chat:add_tool_output(self, llm_output, user_output)
     end,

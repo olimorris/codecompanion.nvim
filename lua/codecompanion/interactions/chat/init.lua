@@ -955,13 +955,14 @@ end
 
 ---Add an image to the chat buffer
 ---@param image CodeCompanion.Image The image object containing the path and other metadata
----@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@param opts? {role?: "user"|string, source?: string, bufnr?: integer, add_context?: boolean} Options for adding the image
 ---@return nil
 function Chat:add_image_message(image, opts)
   opts = vim.tbl_deep_extend("force", {
     role = config.constants.USER_ROLE,
     source = "codecompanion.interactions.chat.slash_commands.image",
     bufnr = image.bufnr,
+    add_context = true,
   }, opts or {})
 
   local id = "<image>" .. (image.id or image.path) .. "</image>"
@@ -975,12 +976,14 @@ function Chat:add_image_message(image, opts)
     visible = false,
   })
 
-  self.context:add({
-    bufnr = opts.bufnr,
-    id = id,
-    path = image.path,
-    source = opts.source,
-  })
+  if opts.add_context then
+    self.context:add({
+      bufnr = opts.bufnr,
+      id = id,
+      path = image.path,
+      source = opts.source,
+    })
+  end
 end
 
 ---Apply any tools or variables that a user has tagged in their message
