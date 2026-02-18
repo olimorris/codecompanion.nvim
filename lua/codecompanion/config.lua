@@ -998,6 +998,12 @@ The user is working on a %s machine. Please respond with system specific command
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 
+    per_project_config = {
+      enabled = true, -- Enable per-project configuration?
+      -- The files in the cwd that contain project configuration
+      files = {},
+    },
+
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every
     -- effort to ensure no code leakage, using this is at your own risk
@@ -1005,20 +1011,54 @@ The user is working on a %s machine. Please respond with system specific command
     ---@return boolean
     send_code = true,
 
+    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
+
     triggers = {
       acp_slash_commands = "\\",
       editor_context = "#",
       slash_commands = "/",
       tools = "@",
     },
-
-    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
   },
 }
 
 local M = {
   config = vim.deepcopy(defaults),
 }
+
+---Check the cwd for any per-project configuration files and load them if they exist
+---@return table|nil
+local function get_per_project_config()
+  local files = require("codecompanion.utils.files")
+
+  local cfg = M.config.opts.per_project_config
+  if not cfg or not cfg.enabled then
+    return nil
+  end
+
+  local cwd = vim.fn.getcwd()
+  for _, file in ipairs(cfg.files) do
+    local path = vim.fs.joinpath(cwd, file)
+    if files.exists(path) and not files.is_dir(path) then
+      local ok, result = pcall(dofile, path)
+      if not ok then
+        return vim.notify(
+          fmt("[CodeCompanion] Failed to load per-project config `%s`: %s", file, result),
+          vim.log.levels.ERROR,
+          { title = "CodeCompanion" }
+        )
+      end
+      if type(result) ~= "table" then
+        return vim.notify(
+          fmt("[CodeCompanion] Per-project config must return a table"),
+          vim.log.levels.ERROR,
+          { title = "CodeCompanion" }
+        )
+      end
+      return result
+    end
+  end
+end
 
 ---@param keymaps table<string, table|boolean>
 local function remove_disabled_keymaps(keymaps)
@@ -1054,6 +1094,11 @@ M.setup = function(args)
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
   M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
+
+  local project_config = get_per_project_config()
+  if project_config then
+    M.config = vim.tbl_deep_extend("force", M.config, project_config)
+  end
 
   M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")

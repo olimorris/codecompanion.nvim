@@ -29,6 +29,49 @@ require("codecompanion").setup({
 }),
 ```
 
+## Per-Project Configuration
+
+Working across multiple projects, it can be useful to set different CodeCompanion configurations. The plugin enables this via the `opts.per_project_config` option where you can specify files to load.
+
+In the following example:
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    per_project_config = {
+      files = {
+        ".codecompanion",
+        ".codecompanion.lua",
+      },
+    },
+  },
+})
+```
+
+CodeCompanion will look for each of the files in the current working directory, before loading and merging with the default configuration.
+
+The per-project configuration must return a Lua table. An example can be found below:
+
+```lua
+return {
+  interactions = {
+    chat = {
+      adapter = {
+        name = "copilot",
+        model = "claude-sonnet-4.6",
+      },
+      tools = {
+        opts = {
+          default_tools = {
+            "memory",
+          },
+        },
+      },
+    },
+  },
+}
+```
+
 ## Sending Code
 
 > [!IMPORTANT]
