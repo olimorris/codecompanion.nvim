@@ -1,5 +1,17 @@
 # Changelog
 
+## [18.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.6.0...v18.7.0) (2026-02-18)
+
+
+### Features
+
+* **adapters:** add new Anthropic models ([#2775](https://github.com/olimorris/codecompanion.nvim/issues/2775)) ([a6e9228](https://github.com/olimorris/codecompanion.nvim/commit/a6e922806d9e6abf0b9bbf2c753a36f04a097da1))
+
+
+### Bug Fixes
+
+* **utils:** escape percent signs ([#2743](https://github.com/olimorris/codecompanion.nvim/issues/2743)) ([42cf6d1](https://github.com/olimorris/codecompanion.nvim/commit/42cf6d1637fc8934421fe69745fd01098068ece6))
+
 ## [18.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.1...v18.6.0) (2026-02-09)
 
 
