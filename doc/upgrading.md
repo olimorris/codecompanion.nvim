@@ -13,6 +13,11 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - CodeCompanion now only supports a built-in diff which is enabled by default ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600)), dropping support for Mini.Diff
 
+### Adapters
+
+- For the Claude Code adapter to work, you'll need to ensure you have Zed's
+  [claude-agent-acp](https://github.com/zed-industries/claude-agent-acp) adapter installed. This has been renamed from _claude-code-acp_ in recent times
+
 ### Config
 
 - Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
