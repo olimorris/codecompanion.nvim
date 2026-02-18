@@ -190,7 +190,7 @@ function Builder:add_message(data, opts)
     end
   end
 
-  -- Adjust icon offset to account for header lines added before the formatter content
+  -- NOTE: Adjust icon offset to account for header lines added before formatter content
   if opts._icon_info and opts._icon_info.has_icon and pre_content_lines > 0 then
     opts._icon_info.line_offset = (opts._icon_info.line_offset or 0) + pre_content_lines
   end
