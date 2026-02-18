@@ -1000,8 +1000,8 @@ The user is working on a %s machine. Please respond with system specific command
 
     per_project_config = {
       enabled = true, -- Enable per-project configuration?
-      -- The files in the cwd that contain project configuration
-      files = {},
+      files = {}, -- Files in the cwd that contain project configuration
+      paths = {}, -- Per-path config: { ["~/Code/myproject"] = { ... } }
     },
 
     -- If this is false then any default prompt that is marked as containing code
@@ -1029,35 +1029,49 @@ local M = {
 ---Check the cwd for any per-project configuration files and load them if they exist
 ---@return table|nil
 local function get_per_project_config()
-  local files = require("codecompanion.utils.files")
+  local file_utils = require("codecompanion.utils.files")
 
   local cfg = M.config.opts.per_project_config
   if not cfg or not cfg.enabled then
     return nil
   end
 
-  local cwd = vim.fn.getcwd()
-  for _, file in ipairs(cfg.files) do
-    local path = vim.fs.joinpath(cwd, file)
-    if files.exists(path) and not files.is_dir(path) then
-      local ok, result = pcall(dofile, path)
-      if not ok then
-        return vim.notify(
-          fmt("[CodeCompanion] Failed to load per-project config `%s`: %s", file, result),
-          vim.log.levels.ERROR,
-          { title = "CodeCompanion" }
-        )
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  local config = {}
+
+  local function notify(msg)
+    vim.notify(fmt("[CodeCompanion] %s", msg), vim.log.levels.ERROR, { title = "CodeCompanion" })
+  end
+
+  -- Collect path-based configs
+  if cfg.paths then
+    for path, path_cfg in pairs(cfg.paths) do
+      if vim.fs.normalize(vim.fn.expand(path)) == cwd then
+        if type(path_cfg) ~= "table" then
+          notify(fmt("Per-project config for path `%s` must be a table", path))
+        else
+          config = vim.tbl_deep_extend("force", config, path_cfg)
+        end
       end
-      if type(result) ~= "table" then
-        return vim.notify(
-          fmt("[CodeCompanion] Per-project config must return a table"),
-          vim.log.levels.ERROR,
-          { title = "CodeCompanion" }
-        )
-      end
-      return result
     end
   end
+
+  -- Collect file-based configs
+  for _, filename in ipairs(cfg.files) do
+    local path = vim.fs.joinpath(cwd, filename)
+    if file_utils.exists(path) and not file_utils.is_dir(path) then
+      local ok, file_cfg = pcall(dofile, path)
+      if not ok then
+        notify(fmt("Failed to load per-project config `%s`: %s", filename, file_cfg))
+      elseif type(file_cfg) ~= "table" then
+        notify(fmt("Per-project config `%s` must return a table", filename))
+      else
+        config = vim.tbl_deep_extend("force", config, file_cfg)
+      end
+    end
+  end
+
+  return next(config) ~= nil and config or nil
 end
 
 ---@param keymaps table<string, table|boolean>

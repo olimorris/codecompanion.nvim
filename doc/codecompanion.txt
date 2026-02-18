@@ -3276,29 +3276,18 @@ place in the plugin as follows:
 PER-PROJECT CONFIGURATION ~
 
 Working across multiple projects, it can be useful to set different
-CodeCompanion configurations. The plugin enables this via the
-`opts.per_project_config` option where you can specify files to load.
+CodeCompanion configurations.
 
-In the following example:
+The plugin allows you to specify a list of files which it will look for in the
+current working directory. If any of the files are found, they will be loaded
+and merged with the default configuration.
 
->lua
-    require("codecompanion").setup({
-      opts = {
-        per_project_config = {
-          files = {
-            ".codecompanion",
-            ".codecompanion.lua",
-          },
-        },
-      },
-    })
-<
+Alternatively, you can specify a directory pattern as a key (matching the
+current working directory) and the configuration for that directory as the
+value.
 
-CodeCompanion will look for each of the files in the current working directory,
-before loading and merging with the default configuration.
 
-The per-project configuration must return a Lua table. An example can be found
-below:
+File-based configuration must return a valid Lua table. For example:
 
 >lua
     return {
