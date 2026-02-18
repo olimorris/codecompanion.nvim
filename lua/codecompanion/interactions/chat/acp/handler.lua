@@ -240,7 +240,7 @@ function ACPHandler:process_tool_call(tool_call)
   end
 
   table.insert(self.output, content)
-  local line_number = self.chat:add_buf_message({
+  local line_number, icon_id = self.chat:add_buf_message({
     role = require("codecompanion.config").constants.LLM_ROLE,
     content = content,
   }, {
@@ -251,7 +251,7 @@ function ACPHandler:process_tool_call(tool_call)
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
 
-  ACPHandlerUI[self.chat.bufnr][id] = { line_number = line_number }
+  ACPHandlerUI[self.chat.bufnr][id] = { line_number = line_number, icon_id = icon_id }
 end
 
 ---Handle tool call notifications
