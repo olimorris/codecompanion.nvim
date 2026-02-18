@@ -217,7 +217,7 @@ If you have multiple agent files that you like to run separately, you can create
 To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion, you'll need to take the following steps:
 
 1. [Install](https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code) Claude Code
-2. [Install](https://github.com/zed-industries/claude-code-acp) the Zed ACP adapter for Claude Code
+2. [Install](https://github.com/zed-industries/claude-agent-acp) the Zed ACP adapter for Claude Code
 
 ### Using Claude Pro Subscription
 
