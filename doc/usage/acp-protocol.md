@@ -23,7 +23,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **Tool Calls** | ✅ Full | Content blocks, file diffs, status updates |
 | **Session Modes** | ✅ Full | Mode switching and state management |
 | **MCP Integration** | ✅ Full | Stdio, HTTP, and SSE transports |
-| **Agent Plans** | ❌ | Visual display of an agent's execution plan |
+| **Agent Plans** | ✅ Full | Visual display with checkboxes, priorities, and folding |
 | **Terminal Operations** | ❌        | Terminal capabilities not implemented |
 
 
@@ -120,8 +120,6 @@ The protocol version is negotiated during initialization. If an agent selects a 
 ## Known Limitations
 
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`, `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion doesn't advertise terminal capabilities to agents.
-
-- **Agent Plan Rendering**: [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
 
 - **Audio Content**: Audio content blocks aren't sent in prompts, despite capability detection.
 

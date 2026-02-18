@@ -38,6 +38,11 @@ T = new_set({
                 return self
               end,
 
+              on_plan = function(self, handler)
+                self.handlers.plan = handler
+                return self
+              end,
+
               on_tool_call = function(self, handler)
                 self.handlers.tool_call = handler
                 return self
@@ -773,6 +778,267 @@ T["ACPHandler"]["Session Modes"]["reflects mode changes in metadata"] = function
   h.eq("default", result.mode_before)
   h.eq("plan", result.mode_after)
   h.eq("Plan Mode", result.name_after)
+end
+
+-- ============================================================================
+-- Agent Plan Integration Tests
+-- ============================================================================
+
+T["ACPHandler"]["Agent Plan"] = MiniTest.new_set()
+
+T["ACPHandler"]["Agent Plan"]["formats plan markdown correctly"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+
+    local entries = {
+      { content = "First task", status = "pending", priority = "high" },
+      { content = "Second task", status = "in_progress", priority = "medium" },
+      { content = "Third task", status = "completed", priority = "low" },
+    }
+
+    local lines = handler:format_plan_markdown(entries)
+
+    return {
+      line_count = #lines,
+      header = lines[1],
+      empty_line = lines[2],
+      first_entry = lines[3],
+      second_entry = lines[4],
+      third_entry = lines[5],
+      trailing_empty = lines[6],
+    }
+  ]])
+
+  h.eq(6, result.line_count)
+  h.eq("## Plan", result.header) -- No icon - added by formatter or in-place update code
+  h.eq("", result.empty_line)
+  h.eq("- [ ] First task ⚡", result.first_entry)
+  h.eq("- [-] Second task", result.second_entry)
+  h.eq("- [x] Third task ⏸", result.third_entry)
+  h.eq("", result.trailing_empty)
+end
+
+T["ACPHandler"]["Agent Plan"]["creates plan section on first update"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+
+    local entries = {
+      { content = "First task", status = "pending", priority = "medium" },
+      { content = "Second task", status = "pending", priority = "medium" },
+    }
+
+    handler:handle_plan(entries)
+
+    return {
+      has_line_start = chat.acp_plan.line_start ~= nil,
+      has_line_end = chat.acp_plan.line_end ~= nil,
+      entries_cached = #chat.acp_plan.entries,
+      line_start = chat.acp_plan.line_start,
+      line_end = chat.acp_plan.line_end,
+    }
+  ]])
+
+  h.is_true(result.has_line_start)
+  h.is_true(result.has_line_end)
+  h.eq(2, result.entries_cached)
+  -- line_end should be line_start + number of lines
+  -- Content: blank_for_icon, header, empty, entry1, entry2, trailing_empty = 6 lines
+  h.eq(result.line_start + 6, result.line_end)
+end
+
+T["ACPHandler"]["Agent Plan"]["updates existing plan in-place"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+
+    -- First update: create plan
+    local entries_v1 = {
+      { content = "First task", status = "pending", priority = "medium" },
+      { content = "Second task", status = "pending", priority = "medium" },
+    }
+    handler:handle_plan(entries_v1)
+
+    local line_start_v1 = chat.acp_plan.line_start
+    local line_end_v1 = chat.acp_plan.line_end
+
+    -- Second update: modify plan (same line_start should be maintained)
+    local entries_v2 = {
+      { content = "First task", status = "completed", priority = "medium" },
+      { content = "Second task", status = "in_progress", priority = "medium" },
+      { content = "Third task", status = "pending", priority = "high" },
+    }
+    handler:handle_plan(entries_v2)
+
+    local line_start_v2 = chat.acp_plan.line_start
+    local line_end_v2 = chat.acp_plan.line_end
+
+    return {
+      line_start_v1 = line_start_v1,
+      line_start_v2 = line_start_v2,
+      line_end_v1 = line_end_v1,
+      line_end_v2 = line_end_v2,
+      entries_updated = #chat.acp_plan.entries,
+    }
+  ]])
+
+  -- line_start should remain the same (in-place update)
+  h.eq(result.line_start_v1, result.line_start_v2, "line_start should not change during update")
+
+  -- Should have 3 entries cached after second update
+  h.eq(3, result.entries_updated, "should have 3 entries cached")
+
+  -- line_end should expand since we added one more entry
+  -- v1: blank_for_icon + header + empty + 2 entries + trailing_empty = 6 lines
+  -- v2: blank_for_icon + header + empty + 3 entries + trailing_empty = 7 lines
+  -- Therefore line_end_v2 should be line_end_v1 + 1
+  h.eq(
+    result.line_end_v1 + 1,
+    result.line_end_v2,
+    string.format(
+      "line_end should expand by 1 (v1: %d-%d, v2: %d-%d)",
+      result.line_start_v1,
+      result.line_end_v1,
+      result.line_start_v2,
+      result.line_end_v2
+    )
+  )
+end
+
+T["ACPHandler"]["Agent Plan"]["handles empty entries gracefully"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+
+    -- Call with empty entries
+    handler:handle_plan({})
+
+    return {
+      line_start_nil = chat.acp_plan.line_start == nil,
+      line_end_nil = chat.acp_plan.line_end == nil,
+      entries_count = #chat.acp_plan.entries,
+    }
+  ]])
+
+  h.is_true(result.line_start_nil)
+  h.is_true(result.line_end_nil)
+  h.eq(0, result.entries_count)
+end
+
+T["ACPHandler"]["Agent Plan"]["caches plan entries"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+
+    local entries = {
+      { content = "Task 1", status = "pending", priority = "high" },
+      { content = "Task 2", status = "in_progress", priority = "medium" },
+    }
+
+    handler:handle_plan(entries)
+
+    return {
+      cached_count = #chat.acp_plan.entries,
+      first_content = chat.acp_plan.entries[1].content,
+      first_status = chat.acp_plan.entries[1].status,
+      first_priority = chat.acp_plan.entries[1].priority,
+      second_content = chat.acp_plan.entries[2].content,
+    }
+  ]])
+
+  h.eq(2, result.cached_count)
+  h.eq("Task 1", result.first_content)
+  h.eq("pending", result.first_status)
+  h.eq("high", result.first_priority)
+  h.eq("Task 2", result.second_content)
+end
+
+T["ACPHandler"]["Agent Plan"]["creates plan with proper spacing after existing content"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    -- Add some existing content to the buffer
+    vim.api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, {
+      "## User",
+      "",
+      "Create a plan"
+    })
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+
+    local entries = {
+      { content = "First task", status = "pending", priority = "medium" },
+    }
+
+    handler:handle_plan(entries)
+
+    local buf_lines = vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, false)
+
+    return {
+      total_lines = #buf_lines,
+      line_before_plan = buf_lines[#buf_lines - 5] or "", -- Should be empty spacing line
+      icon_line = buf_lines[#buf_lines - 4] or "", -- Blank line for icon
+      plan_header = buf_lines[#buf_lines - 3] or "",
+      plan_empty = buf_lines[#buf_lines - 2] or "",
+      plan_entry = buf_lines[#buf_lines - 1] or "",
+      line_start = chat.acp_plan.line_start,
+    }
+  ]])
+
+  -- Verify structure: spacing, icon line, header, empty, first entry
+  h.eq("", result.line_before_plan) -- Spacing before plan block
+  h.eq("", result.icon_line) -- Blank line for icon placement
+  h.eq("## Plan", result.plan_header) -- Pure markdown (icon on line above)
+  h.eq("", result.plan_empty)
+  h.eq("- [ ] First task", result.plan_entry)
 end
 
 return T
