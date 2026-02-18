@@ -9,6 +9,7 @@ function EditorContext.new(args)
     Chat = args.Chat,
     config = args.config,
     params = args.params,
+    target = args.target,
   }, { __index = EditorContext })
 
   return self
@@ -16,13 +17,13 @@ end
 
 ---Return the user's custom context
 ---@return nil
-function EditorContext:output()
+function EditorContext:apply()
   local id = "<editor_context>" .. self.config.name .. "</editor_context>"
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = self.config.callback(self),
-  }, { _meta = { tag = "editor_context" }, context = { id = id }, visible = false })
+  }, { _meta = { source = "editor_context", tag = self.config.name }, context = { id = id }, visible = false })
 
   self.Chat.context:add({
     bufnr = self.Chat.bufnr,

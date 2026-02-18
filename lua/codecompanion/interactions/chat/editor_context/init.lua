@@ -16,10 +16,8 @@ local CONSTANTS = {
 local function find_params(message, ctx, target)
   local pattern
   if target then
-    -- #{ctx:target}{params}
     pattern = CONSTANTS.PREFIX .. "{" .. ctx .. ":" .. vim.pesc(target) .. "}{([^}]*)}"
   else
-    -- #{ctx}{params}
     pattern = CONSTANTS.PREFIX .. "{" .. ctx .. "}{([^}]*)}"
   end
 
@@ -31,44 +29,40 @@ local function find_params(message, ctx, target)
   return nil
 end
 
+---Require an editor context module by its dot-separated path
+---@param path string
+---@return table
+local function require_module(path)
+  -- Try as a built-in module first, then as a user-provided path
+  local ok, module = pcall(require, "codecompanion." .. path)
+  if ok then
+    return module
+  end
+
+  return require(path)
+end
+
 ---@param chat CodeCompanion.Chat
 ---@param ctx_config table
 ---@param params? string
 ---@param target? string
 ---@return table
 local function resolve(chat, ctx_config, params, target)
-  if type(ctx_config.path) == "string" then
-    local splits = vim.split(ctx_config.path, ".", { plain = true })
-    local path = table.concat(splits, ".", 1, #splits - 1)
-    local ctx = splits[#splits]
+  local init = {
+    Chat = chat,
+    config = ctx_config,
+    params = params or (ctx_config.opts and ctx_config.opts.default_params),
+    target = target,
+  }
 
-    local ok, module = pcall(require, "codecompanion." .. path .. "." .. ctx)
-
-    local init = {
-      Chat = chat,
-      config = ctx_config,
-      params = params or (ctx_config.opts and ctx_config.opts.default_params),
-      target = target,
-    }
-
-    -- User is using a custom callback
-    if not ok then
-      log:trace("Calling editor context: %s", path .. "." .. ctx)
-      return require(path .. "." .. ctx).new(init):output()
-    end
-
-    log:trace("Calling editor context: %s", path .. "." .. ctx)
-    return module.new(init):output()
+  if ctx_config.path then
+    log:trace("Calling editor context: %s", ctx_config.path)
+    return require_module(ctx_config.path).new(init):apply()
   end
 
-  return require("codecompanion.interactions.chat.editor_context.user")
-    .new({
-      Chat = chat,
-      config = ctx_config,
-      params = params,
-      target = target,
-    })
-    :output()
+  -- No path means a user-defined callback
+  log:trace("Calling user editor context: %s", ctx_config.name)
+  return require("codecompanion.interactions.chat.editor_context.user").new(init):apply()
 end
 
 ---@class CodeCompanion.EditorContext
@@ -113,35 +107,20 @@ function EditorContext:find(message)
 
   local found = {}
   local content = message.content
+  local prefix = vim.pesc(CONSTANTS.PREFIX)
 
   for ctx, _ in pairs(self.editor_context) do
-    local display_pattern = CONSTANTS.PREFIX .. "{" .. ctx .. ":([^}]*)}"
-    for target in content:gmatch(display_pattern) do
-      table.insert(found, {
-        ctx = ctx,
-        target = target,
-      })
+    local escaped_ctx = vim.pesc(ctx)
+
+    -- Match #{ctx:target} (with optional {params})
+    for target in content:gmatch(prefix .. "{" .. escaped_ctx .. ":([^}]*)}") do
+      table.insert(found, { ctx = ctx, target = target })
     end
 
-    -- Check for regular syntax (#{ctx}) - but avoid duplicating display option matches
-    local regular_pattern = CONSTANTS.PREFIX .. "{" .. ctx .. "}"
-    local start_pos = 1
-    while true do
-      local match_start, match_end = content:find(regular_pattern, start_pos, true)
-      if not match_start then
-        break
-      end
-
-      -- Make sure this isn't part of a display option by checking if there's a colon before the brace
-      local char_before_brace = content:sub(match_end - 1, match_end - 1)
-      if char_before_brace ~= ":" then
-        table.insert(found, {
-          ctx = ctx,
-          target = nil,
-        })
-      end
-
-      start_pos = match_end + 1
+    -- Match #{ctx} (with optional {params}) — no overlap with the above
+    -- because #{ctx:target} has a : after ctx, not a }
+    for _ in content:gmatch(prefix .. "{" .. escaped_ctx .. "}") do
+      table.insert(found, { ctx = ctx, target = nil })
     end
   end
 
@@ -195,21 +174,23 @@ end
 ---@param bufnr number
 ---@return string
 function EditorContext:replace(message, bufnr)
-  for ctx, _ in pairs(self.editor_context) do
-    -- The buffer context is unique because it can take parameters which need to be handled
-    -- TODO: Potentially extract this to its own module if more editor context items have parameters
-    if ctx:match("^buffer") then
-      message =
-        require("codecompanion.interactions.chat.editor_context.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
-    else
-      -- Remove display option syntax first
-      message = regex.replace(message, self:_pattern(ctx, true, true), "")
-      message = regex.replace(message, self:_pattern(ctx, false, true), "")
-
-      -- Then remove regular syntax
-      message = regex.replace(message, self:_pattern(ctx, true), "")
-      message = vim.trim(regex.replace(message, self:_pattern(ctx), ""))
+  for ctx, ctx_config in pairs(self.editor_context) do
+    -- Delegate to the module's replace method if it has one
+    if ctx_config.path then
+      local ok, module = pcall(require_module, ctx_config.path)
+      if ok and module.replace then
+        message = module.replace(CONSTANTS.PREFIX, message, bufnr)
+        goto continue
+      end
     end
+
+    -- Generic replacement: strip all forms of #{ctx...}
+    message = regex.replace(message, self:_pattern(ctx, true, true), "")
+    message = regex.replace(message, self:_pattern(ctx, false, true), "")
+    message = regex.replace(message, self:_pattern(ctx, true), "")
+    message = vim.trim(regex.replace(message, self:_pattern(ctx), ""))
+
+    ::continue::
   end
   return message
 end
