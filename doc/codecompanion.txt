@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 17
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3270,6 +3270,43 @@ place in the plugin as follows:
         log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
       },
     }),
+<
+
+
+PER-PROJECT CONFIGURATION ~
+
+Working across multiple projects, it can be useful to set different
+CodeCompanion configurations.
+
+The plugin allows you to specify a list of files which it will look for in the
+current working directory. If any of the files are found, they will be loaded
+and merged with the default configuration.
+
+Alternatively, you can specify a directory pattern as a key (matching the
+current working directory) and the configuration for that directory as the
+value.
+
+
+File-based configuration must return a valid Lua table. For example:
+
+>lua
+    return {
+      interactions = {
+        chat = {
+          adapter = {
+            name = "copilot",
+            model = "claude-sonnet-4.6",
+          },
+          tools = {
+            opts = {
+              default_tools = {
+                "memory",
+              },
+            },
+          },
+        },
+      },
+    }
 <
 
 

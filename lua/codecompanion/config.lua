@@ -998,6 +998,12 @@ The user is working on a %s machine. Please respond with system specific command
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 
+    per_project_config = {
+      enabled = true, -- Enable per-project configuration?
+      files = {}, -- Files in the cwd that contain project configuration
+      paths = {}, -- Per-path config: { ["~/Code/myproject"] = { ... } }
+    },
+
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every
     -- effort to ensure no code leakage, using this is at your own risk
@@ -1005,20 +1011,68 @@ The user is working on a %s machine. Please respond with system specific command
     ---@return boolean
     send_code = true,
 
+    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
+
     triggers = {
       acp_slash_commands = "\\",
       editor_context = "#",
       slash_commands = "/",
       tools = "@",
     },
-
-    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
   },
 }
 
 local M = {
   config = vim.deepcopy(defaults),
 }
+
+---Check the cwd for any per-project configuration files and load them if they exist
+---@return table|nil
+local function get_per_project_config()
+  local file_utils = require("codecompanion.utils.files")
+
+  local cfg = M.config.opts.per_project_config
+  if not cfg or not cfg.enabled then
+    return nil
+  end
+
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  local config = {}
+
+  local function notify(msg)
+    vim.notify(fmt("[CodeCompanion] %s", msg), vim.log.levels.ERROR, { title = "CodeCompanion" })
+  end
+
+  -- Collect path-based configs
+  if cfg.paths then
+    for path, path_cfg in pairs(cfg.paths) do
+      if vim.fs.normalize(vim.fn.expand(path)) == cwd then
+        if type(path_cfg) ~= "table" then
+          notify(fmt("Per-project config for path `%s` must be a table", path))
+        else
+          config = vim.tbl_deep_extend("force", config, path_cfg)
+        end
+      end
+    end
+  end
+
+  -- Collect file-based configs
+  for _, filename in ipairs(cfg.files) do
+    local path = vim.fs.joinpath(cwd, filename)
+    if file_utils.exists(path) and not file_utils.is_dir(path) then
+      local ok, file_cfg = pcall(dofile, path)
+      if not ok then
+        notify(fmt("Failed to load per-project config `%s`: %s", filename, file_cfg))
+      elseif type(file_cfg) ~= "table" then
+        notify(fmt("Per-project config `%s` must return a table", filename))
+      else
+        config = vim.tbl_deep_extend("force", config, file_cfg)
+      end
+    end
+  end
+
+  return next(config) ~= nil and config or nil
+end
 
 ---@param keymaps table<string, table|boolean>
 local function remove_disabled_keymaps(keymaps)
@@ -1054,6 +1108,11 @@ M.setup = function(args)
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
   M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
+
+  local project_config = get_per_project_config()
+  if project_config then
+    M.config = vim.tbl_deep_extend("force", M.config, project_config)
+  end
 
   M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
