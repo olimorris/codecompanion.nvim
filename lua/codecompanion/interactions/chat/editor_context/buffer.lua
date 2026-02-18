@@ -82,8 +82,9 @@ function EditorContext:output(selected, opts)
     message = "Here is the updated file content (including line numbers)"
   end
 
-  local ok, content, id, _ =
-    pcall(chat_helpers.format_buffer_for_llm, bufnr, buf_utils.get_info(bufnr).path, { message = message })
+  local buf_info = buf_utils.get_info(bufnr)
+
+  local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, buf_info.path, { message = message })
   if not ok then
     return log:warn(content)
   end
@@ -91,7 +92,11 @@ function EditorContext:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { _meta = { tag = "editor_context" }, context = { id = id }, visible = false })
+  }, {
+    _meta = { source = "editor_context", tag = "buffer" },
+    context = { id = id, path = buf_info.path },
+    visible = false,
+  })
 
   if opts.sync_all then
     return

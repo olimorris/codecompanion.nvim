@@ -107,7 +107,7 @@ T["Editor Context"][":parse"]["multiple buffer editor context"] = function()
   h.eq(true, result)
 
   local buffer_messages = vim.tbl_filter(function(msg)
-    return msg._meta and msg._meta.tag == "editor_context"
+    return msg._meta and msg._meta.tag == "buffer"
   end, chat.messages)
 
   h.eq(2, #buffer_messages)
@@ -124,7 +124,7 @@ T["Editor Context"][":parse"]["buffer editor context with params"] = function()
   ec:parse(chat, chat.messages[#chat.messages])
 
   local buffer_messages = vim.tbl_filter(function(msg)
-    return msg._meta and msg._meta.tag == "editor_context"
+    return msg._meta and msg._meta.tag == "buffer"
   end, chat.messages)
 
   h.eq(1, #buffer_messages)

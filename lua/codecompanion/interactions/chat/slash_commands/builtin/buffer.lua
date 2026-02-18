@@ -174,7 +174,11 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { context = { id = id, path = selected.path }, visible = false })
+  }, {
+    _meta = { source = "slash_command", tag = "buffer" },
+    context = { id = id, path = selected.path },
+    visible = false,
+  })
 
   if opts.sync_all then
     return
