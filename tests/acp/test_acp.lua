@@ -736,4 +736,465 @@ T["ACP Responses"]["error response notifies active prompt"] = function()
   h.eq(result.error_message, "LLM provider error: quota exceeded")
 end
 
+T["ACP Async"] = new_set()
+
+T["ACP Async"]["send_rpc_request_async invokes callback on success"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      }
+    })
+    connection._state.handle = { write = function() end }
+
+    local callback_result = nil
+    local callback_err = nil
+
+    function connection:write_message(data)
+      return true
+    end
+
+    local ok = connection:send_rpc_request_async("test/method", { foo = "bar" }, function(result, err)
+      callback_result = result
+      callback_err = err
+    end)
+
+    -- Simulate response arriving
+    local response = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 1,
+      result = { success = true, data = "test" }
+    })
+    connection:handle_rpc_message(response)
+
+    return {
+      send_ok = ok,
+      callback_result = callback_result,
+      callback_err = callback_err,
+      pending_callbacks_empty = vim.tbl_count(connection.pending_callbacks) == 0,
+      pending_responses_empty = vim.tbl_count(connection.pending_responses) == 0,
+    }
+  ]])
+
+  h.eq(result.send_ok, true)
+  h.eq(result.callback_result.success, true)
+  h.eq(result.callback_result.data, "test")
+  h.eq(result.callback_err, nil)
+  h.eq(result.pending_callbacks_empty, true)
+  h.eq(result.pending_responses_empty, true)
+end
+
+T["ACP Async"]["send_rpc_request_async invokes callback on error"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      }
+    })
+    connection._state.handle = { write = function() end }
+
+    local callback_result = nil
+    local callback_err = nil
+
+    function connection:write_message(data)
+      return true
+    end
+
+    connection:send_rpc_request_async("test/method", {}, function(result, err)
+      callback_result = result
+      callback_err = err
+    end)
+
+    -- Simulate error response
+    local response = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 1,
+      error = { code = -32600, message = "Invalid request" }
+    })
+    connection:handle_rpc_message(response)
+
+    return {
+      callback_result = callback_result,
+      callback_err = callback_err,
+    }
+  ]])
+
+  h.eq(result.callback_result, nil)
+  h.eq(result.callback_err.code, -32600)
+  h.eq(result.callback_err.message, "Invalid request")
+end
+
+T["ACP Async"]["send_rpc_request_async returns false when process not running"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+    -- No handle set
+
+    local callback_result = "not_called"
+    local callback_err = "not_called"
+
+    local ok = connection:send_rpc_request_async("test/method", {}, function(result, err)
+      callback_result = result
+      callback_err = err
+    end)
+
+    return {
+      send_ok = ok,
+      callback_result = callback_result,
+      callback_err = callback_err,
+    }
+  ]])
+
+  h.eq(result.send_ok, false)
+  h.eq(result.callback_result, nil)
+  h.eq(result.callback_err.message, "Process not running")
+end
+
+T["ACP Async"]["send_rpc_request_async uses synchronous path when send_rpc_request overridden"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+
+    -- Override send_rpc_request (like tests do)
+    function connection:send_rpc_request(method, params)
+      return { mocked = true, method = method }
+    end
+
+    local callback_result = nil
+    local callback_err = nil
+
+    local ok = connection:send_rpc_request_async("test/method", { x = 1 }, function(result, err)
+      callback_result = result
+      callback_err = err
+    end)
+
+    return {
+      send_ok = ok,
+      callback_result = callback_result,
+      callback_err = callback_err,
+    }
+  ]])
+
+  h.eq(result.send_ok, true)
+  h.eq(result.callback_result.mocked, true)
+  h.eq(result.callback_result.method, "test/method")
+  h.eq(result.callback_err, nil)
+end
+
+T["ACP Async"]["connect_and_initialize_async calls callback on success"] = function()
+  local result = child.lua([[
+    local init_resp = vim.json.decode(load_acp_stub('initialize_response.txt'))
+    local auth_resp = vim.json.decode(load_acp_stub('authenticate_response.txt'))
+    local sess_resp = vim.json.decode(load_acp_stub('session_new_response.txt'))
+
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      },
+    })
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return init_resp.result
+      elseif method == "authenticate" then
+        return auth_resp.result
+      elseif method == "session/new" then
+        return sess_resp.result
+      end
+      return nil
+    end
+
+    connection._state.handle = { write = function() end }
+    function connection:prepare_adapter()
+      return test_adapter
+    end
+
+    local callback_conn = nil
+    local callback_err = nil
+
+    connection:connect_and_initialize_async(function(conn, err)
+      callback_conn = conn
+      callback_err = err
+    end)
+
+    return {
+      has_conn = callback_conn ~= nil,
+      err = callback_err,
+      initialized = connection._initialized,
+      authenticated = connection._authenticated,
+      session_id = connection.session_id,
+    }
+  ]])
+
+  h.eq(result.has_conn, true)
+  h.eq(result.err, nil)
+  h.eq(result.initialized, true)
+  h.eq(result.authenticated, true)
+  h.eq(result.session_id, "4fecd096-bb15-492e-a0da-95f6b9f4145a")
+end
+
+T["ACP Async"]["connect_and_initialize_async calls callback on init failure"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      },
+    })
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return nil -- Simulate failure
+      end
+      return nil
+    end
+
+    connection._state.handle = { write = function() end }
+    function connection:prepare_adapter()
+      return test_adapter
+    end
+
+    local callback_conn = nil
+    local callback_err = nil
+
+    connection:connect_and_initialize_async(function(conn, err)
+      callback_conn = conn
+      callback_err = err
+    end)
+
+    return {
+      has_conn = callback_conn ~= nil,
+      err = callback_err,
+    }
+  ]])
+
+  h.eq(result.has_conn, false)
+  h.eq(result.err, "Failed to initialize")
+end
+
+T["ACP Async"]["connect_and_initialize_async calls callback immediately when already connected"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end },
+    })
+
+    -- Simulate already connected state
+    connection._state.handle = { write = function() end }
+    connection._initialized = true
+    connection._authenticated = true
+    connection.session_id = "existing-session"
+
+    local callback_conn = nil
+    local callback_err = nil
+
+    connection:connect_and_initialize_async(function(conn, err)
+      callback_conn = conn
+      callback_err = err
+    end)
+
+    return {
+      has_conn = callback_conn ~= nil,
+      err = callback_err,
+      session_id = callback_conn and callback_conn.session_id,
+    }
+  ]])
+
+  h.eq(result.has_conn, true)
+  h.eq(result.err, nil)
+  h.eq(result.session_id, "existing-session")
+end
+
+T["ACP Async"]["connect_and_initialize_async calls callback on auth failure"] = function()
+  local result = child.lua([[
+    local init_resp = vim.json.decode(load_acp_stub('initialize_response.txt'))
+
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      },
+    })
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return init_resp.result
+      elseif method == "authenticate" then
+        return nil -- Simulate auth failure
+      end
+      return nil
+    end
+
+    connection._state.handle = { write = function() end }
+    function connection:prepare_adapter()
+      return test_adapter
+    end
+
+    local callback_conn = nil
+    local callback_err = nil
+
+    connection:connect_and_initialize_async(function(conn, err)
+      callback_conn = conn
+      callback_err = err
+    end)
+
+    return {
+      has_conn = callback_conn ~= nil,
+      err = callback_err,
+    }
+  ]])
+
+  h.eq(result.has_conn, false)
+  h.eq(result.err, "Failed to authenticate")
+end
+
+T["ACP Async"]["connect_and_initialize_async calls callback on session creation failure"] = function()
+  local result = child.lua([[
+    local init_resp = vim.json.decode(load_acp_stub('initialize_response.txt'))
+    local auth_resp = vim.json.decode(load_acp_stub('authenticate_response.txt'))
+
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      },
+    })
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return init_resp.result
+      elseif method == "authenticate" then
+        return auth_resp.result
+      elseif method == "session/new" then
+        return nil -- Simulate session creation failure
+      end
+      return nil
+    end
+
+    connection._state.handle = { write = function() end }
+    function connection:prepare_adapter()
+      return test_adapter
+    end
+
+    local callback_conn = nil
+    local callback_err = nil
+
+    connection:connect_and_initialize_async(function(conn, err)
+      callback_conn = conn
+      callback_err = err
+    end)
+
+    return {
+      has_conn = callback_conn ~= nil,
+      err = callback_err,
+    }
+  ]])
+
+  h.eq(result.has_conn, false)
+  h.eq(result.err, "Failed to create session")
+end
+
+T["ACP Async"]["store_rpc_response dispatches to pending_callbacks not pending_responses"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+
+    local callback_invoked = false
+    local callback_result = nil
+
+    -- Register an async callback
+    connection.pending_callbacks[42] = function(result, err)
+      callback_invoked = true
+      callback_result = result
+    end
+
+    -- Simulate response
+    connection:store_rpc_response({
+      id = 42,
+      result = { value = "async_result" }
+    })
+
+    return {
+      callback_invoked = callback_invoked,
+      callback_result = callback_result,
+      pending_callbacks_empty = vim.tbl_count(connection.pending_callbacks) == 0,
+      pending_responses_empty = vim.tbl_count(connection.pending_responses) == 0,
+    }
+  ]])
+
+  h.eq(result.callback_invoked, true)
+  h.eq(result.callback_result.value, "async_result")
+  h.eq(result.pending_callbacks_empty, true)
+  h.eq(result.pending_responses_empty, true)
+end
+
+T["ACP Async"]["store_rpc_response dispatches error to pending_callbacks"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+
+    local callback_result = "not_called"
+    local callback_err = "not_called"
+
+    connection.pending_callbacks[99] = function(result, err)
+      callback_result = result
+      callback_err = err
+    end
+
+    connection:store_rpc_response({
+      id = 99,
+      error = { code = -32000, message = "Custom error" }
+    })
+
+    return {
+      callback_result = callback_result,
+      callback_err = callback_err,
+    }
+  ]])
+
+  h.eq(result.callback_result, nil)
+  h.eq(result.callback_err.code, -32000)
+  h.eq(result.callback_err.message, "Custom error")
+end
+
+T["ACP Async"]["store_rpc_response falls back to pending_responses for sync requests"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+
+    -- No callback registered, should use pending_responses
+    connection:store_rpc_response({
+      id = 50,
+      result = { sync = "value" }
+    })
+
+    return {
+      has_pending_response = connection.pending_responses[50] ~= nil,
+      pending_response = connection.pending_responses[50],
+    }
+  ]])
+
+  h.eq(result.has_pending_response, true)
+  h.eq(result.pending_response[1].sync, "value")
+end
+
 return T
