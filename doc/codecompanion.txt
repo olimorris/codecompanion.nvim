@@ -2851,6 +2851,11 @@ You can also specify |codecompanion-configuration-mcp| to be loaded with your
 prompt:
 
 
+::: tip Disabling all MCP servers Setting `mcp_servers` to `none` will prevent
+any MCP servers from being loaded in the chat, including those with
+`add_to_chat = true`:
+
+
 
 PICKERS
 
@@ -2935,6 +2940,11 @@ TOOLS
 
 You can also specify tools to be loaded with your prompt. These can be
 individual tools as well as tool groups:
+
+
+::: tip Disabling all tools Setting `tools` to `none` will prevent any tools
+from being loaded in the chat, including any
+|codecompanion-configuration-chat-buffer-default-tools|:
 
 
 
