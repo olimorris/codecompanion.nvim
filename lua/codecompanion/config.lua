@@ -356,8 +356,8 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           path = "interactions.chat.editor_context.diff",
           description = "Share the current git diff with the LLM",
         },
-        ["errors"] = {
-          path = "interactions.chat.editor_context.errors",
+        ["messages"] = {
+          path = "interactions.chat.editor_context.messages",
           description = "Share Neovim's message history with the LLM",
         },
         ["quickfix"] = {
