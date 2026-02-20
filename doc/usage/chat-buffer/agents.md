@@ -34,6 +34,27 @@ If the agent wishes to edit a file, then you will be shown a diff and presented 
 
 By default, the chat buffer will wait for c. 30 mins for you to respond to a permission request. This can be configured in `interactions.chat.opts.wait_timeout` with the default response, after a timeout, being defined at `interactions.chat.opts.acp_timeout_response`.
 
+You can also customize the keyboard shortcuts shown in permission dialogs by setting `interactions.chat.opts.acp_permission_labels`. This is useful if you want to use different keybindings or adapt them for different keyboard layouts:
+
+````lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        acp_permission_labels = {
+          allow_always = "&1 Allow always",
+          allow_once = "&2 Allow once",
+          reject_once = "&3 Reject",
+          reject_always = "&4 Reject always",
+        },
+      },
+    },
+  },
+})
+````
+
+The character after the `&` symbol defines the keyboard shortcut. For example, `&1` makes `1` the shortcut key for "Allow always".
+
 ## Cancelling a Request
 
 You can halt the execution of a request at any point by pressing `q` in normal mode which will send a cancellation notification to the agent.
