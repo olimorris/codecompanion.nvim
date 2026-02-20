@@ -547,6 +547,30 @@ mcp_servers:
 
 :::
 
+::: tip Disabling all MCP servers
+Setting `mcp_servers` to `none` will prevent any MCP servers from being loaded in the chat, including those with `add_to_chat = true`:
+
+::: code-group
+
+````markdown [Markdown]
+---
+name: No MCP prompt
+interaction: chat
+description: A prompt with no MCP servers
+mcp_servers: none
+---
+````
+
+````lua [Lua]
+["No MCP prompt"] = {
+  interaction = "chat",
+  description = "A prompt with no MCP servers",
+  mcp_servers = "none",
+},
+````
+
+:::
+
 #### Pickers
 
 Pickers allow you to create dynamic prompt menus based on runtime data.
@@ -670,6 +694,30 @@ tools:
     "run_command",
     "insert_edit_into_file",
   },
+},
+````
+
+:::
+
+::: tip Disabling all tools
+Setting `tools` to `none` will prevent any tools from being loaded in the chat, including any [default tools](/configuration/chat-buffer#default-tools):
+
+::: code-group
+
+````markdown [Markdown]
+---
+name: No tools prompt
+interaction: chat
+description: A prompt with no tools
+tools: none
+---
+````
+
+````lua [Lua]
+["No tools prompt"] = {
+  interaction = "chat",
+  description = "A prompt with no tools",
+  tools = "none",
 },
 ````
 

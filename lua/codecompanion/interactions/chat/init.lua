@@ -603,18 +603,22 @@ function Chat.new(args)
     last_chat = self
   end
 
-  for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
-    self.tool_registry:add(tool_name)
-  end
+  if args.tools ~= "none" then
+    for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
+      self.tool_registry:add(tool_name)
+    end
 
-  if args.tools then
-    for _, tool in pairs(args.tools) do
-      self.tool_registry:add(tool)
+    if args.tools then
+      for _, tool in pairs(args.tools) do
+        self.tool_registry:add(tool)
+      end
     end
   end
 
   if self.adapter.type ~= "acp" then
-    if args.mcp_servers then
+    if args.mcp_servers == "none" then
+      -- Explicitly disabled by the prompt library
+    elseif args.mcp_servers then
       helpers.start_mcp_servers(self, args.mcp_servers)
     else
       local servers_to_add = helpers.mcp_servers_to_add_to_chat()
