@@ -2,7 +2,7 @@ local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.EditorContext.LSP: CodeCompanion.EditorContext
+---@class CodeCompanion.EditorContext.Diagnostics: CodeCompanion.EditorContext
 local EditorContext = {}
 
 ---@param args CodeCompanion.EditorContextArgs
@@ -24,16 +24,16 @@ function EditorContext:_resolve_bufnr()
     local buffer_ctx = require("codecompanion.interactions.chat.editor_context.buffer")
     local found = buffer_ctx._find_buffer(self.target)
     if found then
-      log:debug("LSP: found buffer %d for target: %s", found, self.target)
+      log:debug("Diagnostics: found buffer %d for target: %s", found, self.target)
       return found
     end
-    log:warn("LSP: could not find buffer for target: %s, using current buffer", self.target)
+    log:warn("Diagnostics: could not find buffer for target: %s, using current buffer", self.target)
   end
 
   return self.Chat.buffer_context.bufnr
 end
 
----Return all of the LSP information and code for the current buffer
+---Return all of the diagnostic information and code for the current buffer
 ---@return nil
 function EditorContext:apply()
   local severity = {
@@ -71,9 +71,9 @@ function EditorContext:apply()
 Severity: %s
 LSP Message: %s
 Code:
-```%s
+````%s
 %s
-```
+````
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
@@ -86,7 +86,7 @@ Code:
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = table.concat(formatted, "\n\n"),
-  }, { _meta = { source = "editor_context", tag = "lsp" }, visible = false })
+  }, { _meta = { source = "editor_context", tag = "diagnostics" }, visible = false })
 end
 
 return EditorContext
