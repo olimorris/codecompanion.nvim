@@ -2,7 +2,7 @@ local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local sc_helpers = require("codecompanion.interactions.chat.slash_commands.helpers")
+local symbol_helpers = require("codecompanion.interactions.chat.helpers.symbols")
 
 local fmt = string.format
 
@@ -83,7 +83,7 @@ end
 ---@return string|nil content File content if successful
 local function extract_file_symbols(path)
   local target_kinds = { "Function", "Method", "Class" }
-  return sc_helpers.extract_file_symbols(path, target_kinds)
+  return symbol_helpers.extract_file_symbols(path, target_kinds)
 end
 
 ---Find which symbol contains a diagnostic line

@@ -20,7 +20,8 @@ end
 ---Share the visible lines in the editor's viewport as per-buffer messages
 ---@return nil
 function EditorContext:apply()
-  local excluded = self.config.opts and self.config.opts.excluded
+  local ec_opts = config.interactions.chat.editor_context.opts
+  local excluded = ec_opts and ec_opts.excluded
   local buf_lines = buf_utils.get_visible_lines(excluded)
 
   local count = 0

@@ -303,6 +303,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       editor_context = {
+        opts = {
+          excluded = {
+            buftypes = {
+              "nofile",
+              "quickfix",
+              "prompt",
+              "popup",
+            },
+            fts = {
+              "codecompanion",
+              "help",
+              "terminal",
+            },
+          },
+        },
         ["buffer"] = {
           path = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
@@ -310,19 +325,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
             default_params = "diff", -- all|diff
             has_params = true,
-            excluded = {
-              buftypes = {
-                "nofile",
-                "quickfix",
-                "prompt",
-                "popup",
-              },
-              fts = {
-                "codecompanion",
-                "help",
-                "terminal",
-              },
-            },
           },
         },
         ["buffers"] = {
@@ -330,19 +332,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Share all open buffers with the LLM",
           opts = {
             contains_code = true,
-            excluded = {
-              buftypes = {
-                "nofile",
-                "quickfix",
-                "prompt",
-                "popup",
-              },
-              fts = {
-                "codecompanion",
-                "help",
-                "terminal",
-              },
-            },
           },
         },
         ["diagnostics"] = {
@@ -355,6 +344,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["diff"] = {
           path = "interactions.chat.editor_context.diff",
           description = "Share the current git diff with the LLM",
+          opts = {
+            contains_code = true,
+          },
         },
         ["messages"] = {
           path = "interactions.chat.editor_context.messages",
@@ -383,19 +375,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
-            excluded = {
-              buftypes = {
-                "nofile",
-                "quickfix",
-                "prompt",
-                "popup",
-              },
-              fts = {
-                "codecompanion",
-                "help",
-                "terminal",
-              },
-            },
           },
         },
       },

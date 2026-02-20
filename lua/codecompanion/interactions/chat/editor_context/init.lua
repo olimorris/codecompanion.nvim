@@ -69,8 +69,16 @@ end
 local EditorContext = {}
 
 function EditorContext.new()
+  local ec = config.interactions.chat.editor_context
+  local contexts = {}
+  for k, v in pairs(ec) do
+    if k ~= "opts" then
+      contexts[k] = v
+    end
+  end
+
   local self = setmetatable({
-    editor_context = config.interactions.chat.editor_context,
+    editor_context = contexts,
   }, { __index = EditorContext })
 
   return self

@@ -18,11 +18,12 @@ function EditorContext.new(args)
   return self
 end
 
----Check if a buffer should be excluded based on config
+---Check if a buffer should be excluded based on the shared editor_context opts
 ---@param bufnr number
 ---@return boolean
 function EditorContext:_is_excluded(bufnr)
-  local excluded = self.config.opts and self.config.opts.excluded
+  local ec_opts = config.interactions.chat.editor_context.opts
+  local excluded = ec_opts and ec_opts.excluded
   if not excluded then
     return false
   end

@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -13,7 +12,6 @@ function EditorContext.new(args)
     Chat = args.Chat,
     config = args.config,
     params = args.params,
-    target = args.target,
   }, { __index = EditorContext })
 
   return self
@@ -22,15 +20,13 @@ end
 ---Add the current visual selection to the chat
 ---@return nil
 function EditorContext:apply()
-  local bufnr = self.Chat.buffer_context.bufnr
-  local lines, start_line, _, end_line, _ = context_utils.get_visual_selection(bufnr)
+  local ctx = self.Chat.buffer_context
 
-  if not lines or #lines == 0 or (start_line == 0 and end_line == 0) then
+  if not ctx.is_visual or not ctx.lines or #ctx.lines == 0 then
     return log:warn("No visual selection found")
   end
 
-  local filetype = self.Chat.buffer_context.filetype or ""
-  local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+  local relative_path = vim.fn.fnamemodify(ctx.filename, ":.")
 
   local content = fmt(
     [[Visual selection from `%s` (lines %d-%d):
@@ -39,10 +35,10 @@ function EditorContext:apply()
 %s
 ````]],
     relative_path,
-    start_line,
-    end_line,
-    filetype,
-    table.concat(lines, "\n")
+    ctx.start_line,
+    ctx.end_line,
+    ctx.filetype or "",
+    table.concat(ctx.lines, "\n")
   )
 
   self.Chat:add_message({
