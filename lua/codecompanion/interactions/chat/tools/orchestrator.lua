@@ -289,6 +289,12 @@ function Orchestrator:setup_next_tool(input)
 
     if require_approval_before then
       log:debug("[Orchestrator::setup_next_tool] Asking for approval")
+      utils.fire("ToolApprovalRequested", {
+        bufnr = self.tools.bufnr,
+        id = self.id,
+        name = self.tool.name,
+        args = self.tool.args,
+      })
 
       local prompt = self.output.prompt()
       if prompt == nil or prompt == "" then
