@@ -299,6 +299,9 @@ function M.editor_context()
 
   local editor_context = vim
     .iter(ec_config)
+    :filter(function(label, _)
+      return label ~= "opts"
+    end)
     :map(function(label, data)
       return {
         label = triggers.mappings.editor_context .. label,

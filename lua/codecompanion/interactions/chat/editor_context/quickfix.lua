@@ -1,11 +1,25 @@
 local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.interactions.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
+local symbol_helpers = require("codecompanion.interactions.chat.helpers.symbols")
 
 local fmt = string.format
+
+---@class CodeCompanion.EditorContext.Quickfix: CodeCompanion.EditorContext
+local EditorContext = {}
+
+---@param args CodeCompanion.EditorContextArgs
+function EditorContext.new(args)
+  local self = setmetatable({
+    Chat = args.Chat,
+    config = args.config,
+    params = args.params,
+    target = args.target,
+  }, { __index = EditorContext })
+
+  return self
+end
 
 ---Get quickfix list with type detection
 ---@return table[] entries Array of quickfix entries with has_diagnostic field
@@ -19,11 +33,8 @@ local function get_qflist_entries()
       local nr = item.nr or 0
       local has_diagnostic
       if nr == -1 then
-        -- Search results: treat as files (show whole content)
         has_diagnostic = false
       else
-        -- Detection: if text ends with the filename, it's a file entry
-        -- If text is an error message that doesn't end with filename, it's lsp diagnostics
         local escaped_filename = vim.pesc(filename)
         local is_file_entry = text:match(escaped_filename .. "$") ~= nil
         has_diagnostic = not is_file_entry
@@ -44,14 +55,35 @@ local function get_qflist_entries()
   return entries
 end
 
+---Group quickfix entries by filename
+---@param entries table[] Array of quickfix entries
+---@return table files Grouped files with diagnostics
+local function group_entries_by_file(entries)
+  local files = {}
+  for _, entry in ipairs(entries) do
+    if not files[entry.filename] then
+      files[entry.filename] = { diagnostics = {}, has_diagnostics = false }
+    end
+
+    if entry.has_diagnostic then
+      table.insert(files[entry.filename].diagnostics, {
+        lnum = entry.lnum,
+        text = entry.text,
+        type = entry.type,
+      })
+      files[entry.filename].has_diagnostics = true
+    end
+  end
+  return files
+end
+
 ---Extract symbols from a file using TreeSitter
 ---@param path string Path to the file
 ---@return table[]|nil symbols Array of symbols with start_line, end_line, name, kind
 ---@return string|nil content File content if successful
 local function extract_file_symbols(path)
-  -- Only include function/method/class symbols for quickfix
   local target_kinds = { "Function", "Method", "Class" }
-  return helpers.extract_file_symbols(path, target_kinds)
+  return symbol_helpers.extract_file_symbols(path, target_kinds)
 end
 
 ---Find which symbol contains a diagnostic line
@@ -82,7 +114,6 @@ local function group_by_proximity(diagnostics)
   if #diagnostics <= 1 then
     return { diagnostics }
   end
-  -- Sort by line number
   table.sort(diagnostics, function(a, b)
     return a.lnum < b.lnum
   end)
@@ -92,10 +123,8 @@ local function group_by_proximity(diagnostics)
     local prev_line = current_group[#current_group].lnum
     local curr_line = diagnostics[i].lnum
     if curr_line - prev_line <= 5 then
-      -- Close enough, add to current group
       table.insert(current_group, diagnostics[i])
     else
-      -- Too far, start new group
       table.insert(groups, current_group)
       current_group = { diagnostics[i] }
     end
@@ -113,15 +142,13 @@ end
 ---@return string|nil content File content if available
 local function group_diagnostics_by_symbol(path, diagnostics, file_content)
   local symbols, content = extract_file_symbols(path)
-  -- Use provided file_content if available to avoid re-reading
   if not content and file_content then
     content = file_content
   end
-  -- If no symbols found, fallback to proximity grouping
   if not symbols or #symbols == 0 then
     return group_by_proximity(diagnostics), content
   end
-  -- Group diagnostics by which symbol contains them
+
   local symbol_groups = {}
   local ungrouped_diagnostics = {}
   for _, diagnostic in ipairs(diagnostics) do
@@ -137,12 +164,10 @@ local function group_diagnostics_by_symbol(path, diagnostics, file_content)
       end
       table.insert(symbol_groups[symbol_key].diagnostics, diagnostic)
     else
-      -- Diagnostic not in any symbol
       table.insert(ungrouped_diagnostics, diagnostic)
     end
   end
 
-  -- Convert to array format and sort diagnostics within each group
   local result_groups = {}
   for _, group_info in pairs(symbol_groups) do
     table.sort(group_info.diagnostics, function(a, b)
@@ -154,7 +179,6 @@ local function group_diagnostics_by_symbol(path, diagnostics, file_content)
     })
   end
 
-  -- Handle ungrouped diagnostics with proximity grouping
   if #ungrouped_diagnostics > 0 then
     local ungrouped_groups = group_by_proximity(ungrouped_diagnostics)
     for _, group in ipairs(ungrouped_groups) do
@@ -180,12 +204,10 @@ local function generate_context_for_group(group_info, file_content, group_index,
   local symbol = group_info.symbol
   local context_start, context_end, header
   if symbol then
-    -- Use symbol boundaries with padding
     context_start = math.max(1, symbol.start_line - 3)
     context_end = math.min(#lines, symbol.end_line + 3)
     header = fmt("%s: %s (lines %d-%d)", symbol.kind, symbol.name, symbol.start_line, symbol.end_line)
   else
-    -- Use line-based context around diagnostics
     local start_line = diagnostics[1].lnum
     local end_line = diagnostics[#diagnostics].lnum
     context_start = math.max(1, start_line - 5)
@@ -193,70 +215,16 @@ local function generate_context_for_group(group_info, file_content, group_index,
     header = fmt("lines %d-%d", context_start, context_end)
   end
 
-  -- Build context lines
   local context_lines = {}
   for i = context_start, context_end do
     table.insert(context_lines, fmt("%d: %s", i, lines[i]))
   end
   local context = table.concat(context_lines, "\n")
-  -- Add group header if multiple groups
   if total_groups > 1 then
     context = fmt("--- Group %d (%s) ---\n%s", group_index, header, context)
   end
 
   return context
-end
-
----@class CodeCompanion.SlashCommand.Qflist: CodeCompanion.SlashCommand
-local SlashCommand = {}
-
----Create new quickfix slash command instance
----@param args CodeCompanion.SlashCommandArgs
----@return CodeCompanion.SlashCommand.Qflist
-function SlashCommand.new(args)
-  local self = setmetatable({
-    Chat = args.Chat,
-    config = args.config,
-    context = args.context,
-    opts = args.opts,
-  }, { __index = SlashCommand })
-
-  return self
-end
-
----Execute the quickfix slash command
----@return nil
-function SlashCommand:execute()
-  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
-  end
-  local entries = get_qflist_entries()
-  if #entries == 0 then
-    return log:warn("Quickfix list is empty")
-  end
-  self:output_entries(entries)
-end
-
----Group quickfix entries by filename
----@param entries table[] Array of quickfix entries
----@return table files Grouped files with diagnostics
-local function group_entries_by_file(entries)
-  local files = {}
-  for _, entry in ipairs(entries) do
-    if not files[entry.filename] then
-      files[entry.filename] = { diagnostics = {}, has_diagnostics = false }
-    end
-
-    if entry.has_diagnostic then
-      table.insert(files[entry.filename].diagnostics, {
-        lnum = entry.lnum,
-        text = entry.text,
-        type = entry.type,
-      })
-      files[entry.filename].has_diagnostics = true
-    end
-  end
-  return files
 end
 
 ---Process a single file and generate description for chat
@@ -268,7 +236,7 @@ local function process_single_file(path, file_data)
   local relative_path = vim.fn.fnamemodify(path, ":.")
   local ft = vim.filetype.match({ filename = path })
   local id = "<quickfix>" .. relative_path .. "</quickfix>"
-  -- Read file once
+
   local ok, file_content = pcall(function()
     return Path.new(path):read()
   end)
@@ -276,10 +244,10 @@ local function process_single_file(path, file_data)
     log:warn("Could not read file: %s", path)
     return nil, id
   end
+
   local content, description
   if file_data.has_diagnostics then
     local lines = vim.split(file_content, "\n")
-    -- Small file: show everything with simple diagnostic summary
     if #lines < 100 then
       content = file_content
       local diagnostic_summary = {}
@@ -291,9 +259,9 @@ local function process_single_file(path, file_data)
 
   %s
 
-```%s
+````%s
 %s
-```
+````
   </attachment>]],
         relative_path,
         table.concat(diagnostic_summary, "\n"),
@@ -301,9 +269,7 @@ local function process_single_file(path, file_data)
         content
       )
     else
-      -- Large file: use smart grouping and context extraction
       local diagnostic_groups, _ = group_diagnostics_by_symbol(path, file_data.diagnostics, file_content)
-      -- Generate diagnostic summary with groups
       local diagnostic_summary = {}
       for group_idx, group_info in ipairs(diagnostic_groups) do
         if #diagnostic_groups > 1 then
@@ -320,10 +286,9 @@ local function process_single_file(path, file_data)
           table.insert(diagnostic_summary, fmt("Line %d: %s", diagnostic.lnum, diagnostic.text))
         end
         if #diagnostic_groups > 1 then
-          table.insert(diagnostic_summary, "") -- Empty line between groups
+          table.insert(diagnostic_summary, "")
         end
       end
-      -- Generate context for each group
       local contexts = {}
       for i, group_info in ipairs(diagnostic_groups) do
         local group_context = generate_context_for_group(group_info, file_content, i, #diagnostic_groups)
@@ -336,9 +301,9 @@ local function process_single_file(path, file_data)
 
   %s
 
-```%s
+````%s
 %s
-```
+````
   </attachment>]],
         relative_path,
         table.concat(diagnostic_summary, "\n"),
@@ -347,14 +312,13 @@ local function process_single_file(path, file_data)
       )
     end
   else
-    -- File-only entries
     content = file_content
     description = fmt(
       [[<attachment filepath="%s">Here is the content from the file:
 
-```%s
+````%s
 %s
-```
+````
   </attachment>]],
       relative_path,
       ft,
@@ -365,30 +329,29 @@ local function process_single_file(path, file_data)
   return description, id
 end
 
----Output quickfix entries to chat
----@param entries table[] Array of quickfix entries
+---Add quickfix list entries to the chat
 ---@return nil
-function SlashCommand:output_entries(entries)
+function EditorContext:apply()
+  local entries = get_qflist_entries()
+  if #entries == 0 then
+    return log:warn("Quickfix list is empty")
+  end
+
   local files = group_entries_by_file(entries)
 
-  -- Output each file
   for path, file_data in pairs(files) do
     local description, id = process_single_file(path, file_data)
     if description then
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = description,
-      }, { context = { id = id }, visible = false })
-
-      self.Chat.context:add({
-        id = id,
-        path = path,
-        source = "codecompanion.interactions.chat.slash_commands.qflist",
+      }, {
+        _meta = { source = "editor_context", tag = "quickfix" },
+        context = { id = id },
+        visible = false,
       })
     end
   end
-
-  utils.notify(fmt("Added %d file(s) from quickfix list to chat", vim.tbl_count(files)))
 end
 
-return SlashCommand
+return EditorContext

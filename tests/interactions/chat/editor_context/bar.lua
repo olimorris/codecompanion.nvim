@@ -13,7 +13,7 @@ end
 
 ---Return the contents of the current buffer that the chat was initiated from
 ---@return nil
-function Bar:output()
+function Bar:apply()
   if self.params then
     self.Chat:add_message({
       role = "user",

@@ -29,7 +29,7 @@ function M.extract_file_symbols(path, target_kinds)
   end)
 
   if not ok then
-    log:error("[chat::slash_commands::helpers] Could not read the file at %s", path)
+    log:error("[chat::helpers::symbols] Could not read the file at %s", path)
     return nil, nil, nil
   end
 
@@ -58,9 +58,9 @@ function M.extract_file_symbols(path, target_kinds)
     return nil, content, ft
   end
 
-  local ok, parser = pcall(vim.treesitter.get_string_parser, content, ft)
-  if not ok then
-    log:error("[chat::slash_commands::helpers] Failed to get parser for %s", ft)
+  local ok2, parser = pcall(vim.treesitter.get_string_parser, content, ft)
+  if not ok2 then
+    log:error("[chat::helpers::symbols] Failed to get parser for %s", ft)
     return nil, content, ft
   end
   local tree = parser:parse()[1]
@@ -103,7 +103,6 @@ function M.extract_file_symbols(path, target_kinds)
       kind = kind,
       start_line = range.lnum,
       end_line = range.end_lnum,
-      -- Keep original format for symbols.lua compatibility
       range = range,
     })
 

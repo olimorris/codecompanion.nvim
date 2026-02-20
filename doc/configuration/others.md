@@ -35,7 +35,7 @@ Working across multiple projects, it can be useful to set different CodeCompanio
 
 The plugin allows you to specify a list of files which it will look for in the current working directory. If any of the files are found, they will be loaded and merged with the default configuration.
 
-Alternatively, you can specify a directory pattern as a key (matching the current working directory) and the configuration for that directory as the value.
+Alternatively, you can specify a directory as a key and the configuration as the value.
 
 ::: code-group
 

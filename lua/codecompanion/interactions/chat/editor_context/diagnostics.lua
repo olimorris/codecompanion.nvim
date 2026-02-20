@@ -1,7 +1,8 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.EditorContext.LSP: CodeCompanion.EditorContext
+---@class CodeCompanion.EditorContext.Diagnostics: CodeCompanion.EditorContext
 local EditorContext = {}
 
 ---@param args CodeCompanion.EditorContextArgs
@@ -10,14 +11,31 @@ function EditorContext.new(args)
     Chat = args.Chat,
     config = args.config,
     params = args.params,
+    target = args.target,
   }, { __index = EditorContext })
 
   return self
 end
 
----Return all of the LSP information and code for the current buffer
+---Resolve the buffer number, respecting the target if provided
+---@return number
+function EditorContext:_resolve_bufnr()
+  if self.target then
+    local buffer_ctx = require("codecompanion.interactions.chat.editor_context.buffer")
+    local found = buffer_ctx._find_buffer(self.target)
+    if found then
+      log:debug("Diagnostics: found buffer %d for target: %s", found, self.target)
+      return found
+    end
+    log:warn("Diagnostics: could not find buffer for target: %s, using current buffer", self.target)
+  end
+
+  return self.Chat.buffer_context.bufnr
+end
+
+---Return all of the diagnostic information and code for the current buffer
 ---@return nil
-function EditorContext:output()
+function EditorContext:apply()
   local severity = {
     [1] = "ERROR",
     [2] = "WARNING",
@@ -25,7 +43,7 @@ function EditorContext:output()
     [4] = "HINT",
   }
 
-  local bufnr = self.Chat.buffer_context.bufnr
+  local bufnr = self:_resolve_bufnr()
 
   local diagnostics = vim.diagnostic.get(bufnr, {
     severity = { min = vim.diagnostic.severity.HINT },
@@ -53,9 +71,9 @@ function EditorContext:output()
 Severity: %s
 LSP Message: %s
 Code:
-```%s
+````%s
 %s
-```
+````
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
@@ -68,7 +86,7 @@ Code:
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = table.concat(formatted, "\n\n"),
-  }, { _meta = { tag = "editor_context" }, visible = false })
+  }, { _meta = { source = "editor_context", tag = "diagnostics" }, visible = false })
 end
 
 return EditorContext

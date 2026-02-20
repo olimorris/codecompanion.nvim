@@ -56,7 +56,7 @@ end
 ---@param selected table
 ---@param opts? table
 ---@return nil
-function EditorContext:output(selected, opts)
+function EditorContext:apply(selected, opts)
   selected = selected or {}
   opts = opts or {}
 
@@ -113,6 +113,9 @@ function EditorContext:output(selected, opts)
     source = "codecompanion.interactions.chat.editor_context.buffer",
   })
 end
+
+-- Alias for sync_all_buffer_content compatibility (shared interface with slash commands)
+EditorContext.output = EditorContext.apply
 
 ---Replace the editor context in the message
 ---@param prefix string

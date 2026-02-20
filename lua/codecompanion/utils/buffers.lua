@@ -3,15 +3,28 @@ local api = vim.api
 local M = {}
 
 ---Get the visible lines in all visible buffers
+---@param excluded? { buftypes?: string[], fts?: string[] }
 ---@return table
-function M.get_visible_lines()
+function M.get_visible_lines(excluded)
   local lines = {}
   local wins = vim.api.nvim_list_wins()
 
   for _, win in ipairs(wins) do
     local bufnr = vim.api.nvim_win_get_buf(win)
+    local ft = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
+    local bt = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
 
-    if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) ~= "codecompanion" then
+    local skip = false
+    if excluded then
+      if excluded.fts and vim.tbl_contains(excluded.fts, ft) then
+        skip = true
+      end
+      if excluded.buftypes and vim.tbl_contains(excluded.buftypes, bt) then
+        skip = true
+      end
+    end
+
+    if not skip then
       local start_line = vim.api.nvim_win_call(win, function()
         return vim.fn.line("w0")
       end)

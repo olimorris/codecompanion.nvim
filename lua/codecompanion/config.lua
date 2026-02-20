@@ -128,27 +128,6 @@ local defaults = {
           },
         },
         -- Tools
-        ["run_command"] = {
-          path = "interactions.chat.tools.builtin.run_command",
-          description = "Run shell commands initiated by the LLM",
-          opts = {
-            allowed_in_yolo_mode = false,
-            require_approval_before = true,
-            require_cmd_approval = true,
-          },
-        },
-        ["insert_edit_into_file"] = {
-          path = "interactions.chat.tools.builtin.insert_edit_into_file",
-          description = "Robustly edit existing files with multiple automatic fallback interactions",
-          opts = {
-            require_approval_before = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = false, -- For editing files in the current working directory
-            },
-            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
-            file_size_limit_mb = 2, -- Maximum file size in MB
-          },
-        },
         ["create_file"] = {
           path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
@@ -202,6 +181,18 @@ local defaults = {
             require_cmd_approval = true,
           },
         },
+        ["insert_edit_into_file"] = {
+          path = "interactions.chat.tools.builtin.insert_edit_into_file",
+          description = "Robustly edit existing files with multiple automatic fallback interactions",
+          opts = {
+            require_approval_before = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Maximum file size in MB
+          },
+        },
         ["memory"] = {
           path = "interactions.chat.tools.builtin.memory",
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
@@ -221,6 +212,16 @@ local defaults = {
             require_cmd_approval = true,
           },
         },
+        ["run_command"] = {
+          path = "interactions.chat.tools.builtin.run_command",
+          description = "Run shell commands initiated by the LLM",
+          opts = {
+            allowed_in_yolo_mode = false,
+            require_approval_before = true,
+            require_cmd_approval = true,
+          },
+        },
+
         ["web_search"] = {
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
@@ -302,6 +303,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       editor_context = {
+        opts = {
+          excluded = {
+            buftypes = {
+              "nofile",
+              "quickfix",
+              "prompt",
+              "popup",
+            },
+            fts = {
+              "codecompanion",
+              "help",
+              "terminal",
+            },
+          },
+        },
         ["buffer"] = {
           path = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
@@ -309,27 +325,50 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
             default_params = "diff", -- all|diff
             has_params = true,
-            excluded = {
-              buftypes = {
-                "nofile",
-                "quickfix",
-                "prompt",
-                "popup",
-              },
-              fts = {
-                "codecompanion",
-                "help",
-                "terminal",
-              },
-            },
           },
         },
-        ["lsp"] = {
-          path = "interactions.chat.editor_context.lsp",
-          description = "Share LSP information and code for the current buffer",
+        ["buffers"] = {
+          path = "interactions.chat.editor_context.buffers",
+          description = "Share all open buffers with the LLM",
           opts = {
             contains_code = true,
           },
+        },
+        ["diagnostics"] = {
+          path = "interactions.chat.editor_context.diagnostics",
+          description = "Share diagnostics and code for the current buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["diff"] = {
+          path = "interactions.chat.editor_context.diff",
+          description = "Share the current git diff with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["messages"] = {
+          path = "interactions.chat.editor_context.messages",
+          description = "Share Neovim's message history with the LLM",
+        },
+        ["quickfix"] = {
+          path = "interactions.chat.editor_context.quickfix",
+          description = "Share the quickfix list with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["selection"] = {
+          path = "interactions.chat.editor_context.selection",
+          description = "Share the current visual selection with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["terminal"] = {
+          path = "interactions.chat.editor_context.terminal",
+          description = "Share the latest terminal output with the LLM",
         },
         ["viewport"] = {
           path = "interactions.chat.editor_context.viewport",
@@ -386,13 +425,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
-        ["quickfix"] = {
-          path = "interactions.chat.slash_commands.builtin.quickfix",
-          description = "Insert quickfix list entries",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["file"] = {
           path = "interactions.chat.slash_commands.builtin.file",
           description = "Insert a file",
@@ -428,11 +460,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
-        ["rules"] = {
-          path = "interactions.chat.slash_commands.builtin.rules",
-          description = "Insert rules into the chat buffer",
+        ["mcp"] = {
+          path = "interactions.chat.slash_commands.builtin.mcp",
+          description = "Toggle MCP servers",
           opts = {
-            contains_code = true,
+            contains_code = false,
+            provider = "default", -- snacks|default
           },
         },
         ["mode"] = {
@@ -450,19 +483,18 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
-        ["mcp"] = {
-          path = "interactions.chat.slash_commands.builtin.mcp",
-          description = "Toggle MCP servers",
-          opts = {
-            contains_code = false,
-            provider = "default", -- snacks|default
-          },
-        },
         ["now"] = {
           path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
+          },
+        },
+        ["rules"] = {
+          path = "interactions.chat.slash_commands.builtin.rules",
+          description = "Insert rules into the chat buffer",
+          opts = {
+            contains_code = true,
           },
         },
         ["symbols"] = {
@@ -471,13 +503,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           opts = {
             contains_code = true,
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
-          },
-        },
-        ["terminal"] = {
-          path = "interactions.chat.slash_commands.builtin.terminal",
-          description = "Insert terminal output",
-          opts = {
-            contains_code = false,
           },
         },
         opts = {

@@ -197,17 +197,17 @@ function M.format_buffer_for_llm(bufnr, path, opts)
       error("Could not read the file: " .. path)
     end
     content = fmt(
-      [[```%s
+      [[````%s
 %s
-```]],
+````]],
       vim.filetype.match({ filename = path }),
       buf_utils.add_line_numbers(vim.trim(file_content))
     )
   else
     content = fmt(
-      [[```%s
+      [[````%s
 %s
-```]],
+````]],
       buf_utils.get_info(bufnr).filetype,
       buf_utils.add_line_numbers(buf_utils.get_content(bufnr, opts.range))
     )
@@ -255,9 +255,9 @@ function M.format_file_for_llm(path, opts)
     content = fmt(
       [[%s
 
-```%s
+````%s
 %s
-```]],
+````]],
       opts.message,
       ft,
       file_contents
@@ -266,9 +266,9 @@ function M.format_file_for_llm(path, opts)
     content = fmt(
       [[<attachment filepath="%s">%s:
 
-```%s
+````%s
 %s
-```
+````
 </attachment>]],
       relative_path,
       "Here is the content from the file",
@@ -280,6 +280,56 @@ function M.format_file_for_llm(path, opts)
   return content, id, relative_path, ft, file_contents
 end
 
+---Add line numbers with an offset to content
+---@param content string
+---@param start_line number The starting line number
+---@return string
+local function add_line_numbers_from(content, start_line)
+  local formatted = {}
+  local lines = vim.split(content, "\n")
+  for i, line in ipairs(lines) do
+    table.insert(formatted, fmt("%d |%s", start_line + i - 1, line))
+  end
+  return table.concat(formatted, "\n")
+end
+
+---Format a single viewport range for LLM consumption
+---@param bufnr number
+---@param range table {start_line, end_line}
+---@return string content The XML-wrapped content
+---@return string id The context ID
+function M.format_viewport_range_for_llm(bufnr, range)
+  local info = buf_utils.get_info(bufnr)
+  local relative_path = vim.fn.fnamemodify(info.path, ":.")
+  local start_line, end_line = range[1], range[2]
+
+  local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
+  local numbered_content = add_line_numbers_from(buffer_content, start_line)
+
+  local content = fmt(
+    [[````%s
+%s
+````]],
+    info.filetype,
+    numbered_content
+  )
+
+  local excerpt_info = fmt("Excerpt from %s, lines %d to %d", relative_path, start_line, end_line)
+
+  local formatted_content = fmt(
+    [[<attachment filepath="%s" buffer_number="%s">%s:
+%s</attachment>]],
+    relative_path,
+    bufnr,
+    excerpt_info,
+    content
+  )
+
+  local id = fmt("<viewport>%s:%d-%d</viewport>", relative_path, start_line, end_line)
+
+  return formatted_content, id
+end
+
 ---Format viewport content with XML wrapper for LLM consumption
 ---@param buf_lines table Buffer lines from get_visible_lines()
 ---@return string content The XML-wrapped content for all visible buffers
@@ -287,33 +337,9 @@ function M.format_viewport_for_llm(buf_lines)
   local formatted = {}
 
   for bufnr, ranges in pairs(buf_lines) do
-    local info = buf_utils.get_info(bufnr)
-    local relative_path = vim.fn.fnamemodify(info.path, ":.")
-
     for _, range in ipairs(ranges) do
-      local start_line, end_line = range[1], range[2]
-
-      local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
-      local content = fmt(
-        [[```%s
-%s
-```]],
-        info.filetype,
-        buffer_content
-      )
-
-      local excerpt_info = fmt("Excerpt from %s, lines %d to %d", relative_path, start_line, end_line)
-
-      local formatted_content = fmt(
-        [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
-        relative_path,
-        bufnr,
-        excerpt_info,
-        content
-      )
-
-      table.insert(formatted, formatted_content)
+      local content, _ = M.format_viewport_range_for_llm(bufnr, range)
+      table.insert(formatted, content)
     end
   end
 

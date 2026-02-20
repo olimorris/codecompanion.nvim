@@ -75,13 +75,6 @@ The _mode_ slash command is specific to [ACP](/configuration/adapters-acp) adapt
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
 
-## /quickfix
-
-The `quickfix` slash command adds entries from the Neovim quickfix list to the chat buffer.
-
-- For search patterns or file entries, the whole file is shared.
-- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
-
 ## /symbols
 
 > [!NOTE]
@@ -92,7 +85,4 @@ The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a f
 
 The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple symbols can be selected and added to the chat buffer.
 
-## /terminal
-
-The _terminal_ slash command shares the latest output from the last terminal buffer with the chat buffer. This can be useful for sharing the outputs of test runs with your LLM.
 

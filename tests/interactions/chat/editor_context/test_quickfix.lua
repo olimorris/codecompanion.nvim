@@ -12,15 +12,13 @@ T = new_set({
         h = require('tests.helpers')
         _G.chat, _ = h.setup_chat_buffer()
 
-        _G.qflist = require("codecompanion.interactions.chat.slash_commands.builtin.quickfix").new({
+        _G.qflist = require("codecompanion.interactions.chat.editor_context.quickfix").new({
           Chat = chat,
           config = {
             opts = {
               contains_code = true,
             },
           },
-          context = {},
-          opts = {},
         })
 
         -- Helper function to create actual files and buffers for testing

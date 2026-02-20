@@ -13,7 +13,7 @@ end
 
 ---Return the contents of the current buffer that the chat was initiated from
 ---@return nil
-function FooSpecial:output()
+function FooSpecial:apply()
   self.Chat:add_message({
     role = "user",
     content = "foo_special",
