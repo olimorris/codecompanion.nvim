@@ -21,7 +21,7 @@ function M.omnifunc(findstart, base)
 
     -- Build patterns including ACP command trigger if enabled
     local patterns = {
-      triggers.mappings.editor_context .. "[%w_]*$", -- editor_context: #buffer, #lsp, etc.
+      triggers.mappings.editor_context .. "[%w_]*$", -- editor_context: #buffer, #diagnostics, etc.
       triggers.mappings.slash_commands .. "[%w_]*$", -- Slash commands: /buffer, /help, etc.
       triggers.mappings.tools .. "[%w_]*$", -- Tools: @tool_name, etc.
     }
