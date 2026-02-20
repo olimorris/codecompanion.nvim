@@ -184,6 +184,16 @@ function ToolRegistry:add_group(group, opts)
 
   local gid = group_id(group)
 
+  if group_opts.ignore_system_prompt then
+    self.chat:remove_tagged_message("system_prompt_from_config")
+    self.flags.ignore_system_prompt = true
+  end
+
+  if group_opts.ignore_tool_system_prompt then
+    self.chat:remove_tagged_message("tool_system_prompt")
+    self.flags.ignore_tool_system_prompt = true
+  end
+
   local system_prompt = group_config.system_prompt
   if type(system_prompt) == "function" then
     system_prompt = system_prompt(group_config)
@@ -215,6 +225,10 @@ end
 ---Add a tool system prompt to the chat buffer, updated for every tool addition
 ---@return nil
 function ToolRegistry:add_tool_system_prompt()
+  if self.flags.ignore_tool_system_prompt then
+    return
+  end
+
   local opts = config.interactions.chat.tools.opts.system_prompt or {}
   if not opts.enabled then
     return
@@ -271,6 +285,14 @@ function ToolRegistry:remove_group(name)
       return true
     end)
     :totable()
+
+  if self.flags.ignore_system_prompt then
+    self.flags.ignore_system_prompt = nil
+    self.chat:set_system_prompt()
+  end
+  if self.flags.ignore_tool_system_prompt then
+    self.flags.ignore_tool_system_prompt = nil
+  end
 
   if vim.tbl_isempty(self.in_use) then
     self.chat:remove_tagged_message("tool_system_prompt")

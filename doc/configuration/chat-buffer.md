@@ -456,6 +456,8 @@ require("codecompanion").setup({
             },
             opts = {
               collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+              ignore_system_prompt = false, -- When true, remove the chat's default system prompt
+              ignore_tool_system_prompt = false, -- When true, remove the default tool system prompt
             },
           },
         },
@@ -465,7 +467,7 @@ require("codecompanion").setup({
 })
 ```
 
-When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code.
+When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code. The `system_prompt` field allows you to give the LLM specific instructions for how to use the group's tools and can be a string or a function that receives the group config table.
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
