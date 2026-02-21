@@ -467,7 +467,7 @@ require("codecompanion").setup({
 })
 ```
 
-When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code. The `system_prompt` field allows you to give the LLM specific instructions for how to use the group's tools and can be a string or a function that receives the group config table.
+When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code. The `system_prompt` field allows you to give the LLM specific instructions for how to use the group's tools and can be a string or a function that receives the group config table and a [context object](/configuration/system-prompt) (with `language`, `date`, `nvim_version`, `os`, etc.).
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
