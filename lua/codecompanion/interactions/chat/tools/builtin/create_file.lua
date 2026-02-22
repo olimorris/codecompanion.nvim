@@ -10,13 +10,6 @@ local fmt = string.format
 local function create(action)
   local filepath = vim.fs.normalize(action.filepath)
 
-  if not files.is_path_within_cwd(filepath) then
-    return {
-      status = "error",
-      data = fmt("Cannot create `%s` - path is outside the current working directory", action.filepath),
-    }
-  end
-
   -- Check if file already exists
   local stat = vim.uv.fs_stat(filepath)
   if stat then
