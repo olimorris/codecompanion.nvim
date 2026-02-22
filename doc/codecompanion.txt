@@ -3754,6 +3754,7 @@ coding agent.
 
 It contains the following tools:
 
+- |codecompanion-usage-chat-buffer-agents-tools-ask-questions|
 - |codecompanion-usage-chat-buffer-agents-tools-create-file|
 - |codecompanion-usage-chat-buffer-agents-tools-delete-file|
 - |codecompanion-usage-chat-buffer-agents-tools-file-search|
@@ -3761,7 +3762,7 @@ It contains the following tools:
 - |codecompanion-usage-chat-buffer-agents-tools-grep-search|
 - |codecompanion-usage-chat-buffer-agents-tools-insert-edit-into-file|
 - |codecompanion-usage-chat-buffer-agents-tools-read-file|
-- |codecompanion-usage-chatagents-buffer-agents-tools-run-command|
+- |codecompanion-usage-chat-buffer-agents-tools-run-command|
 
 You can use it with:
 
@@ -3811,6 +3812,27 @@ will yield:
 >md
     Use the lorem_ipsum tool to generate a random paragraph
 <
+
+
+ASK_QUESTIONS
+
+
+  [!NOTE] By default, this tool requires user approval before it can be executed
+This tool enables an LLM to ask clarifying questions before proceeding with a
+task. It’s useful when the LLM encounters ambiguous requirements, needs to
+choose between implementation approaches, or wants to validate assumptions.
+Questions can have predefined options (presented via `vim.ui.select`) or accept
+free text input (via `vim.ui.input`):
+
+>md
+    @{agent} Can you refactor the authentication module?
+<
+
+The LLM may use this tool to ask which auth strategy you prefer before making
+changes.
+
+**Options:** - `require_approval_before` require approval before asking
+questions? (Default: true)
 
 
 CREATE_FILE

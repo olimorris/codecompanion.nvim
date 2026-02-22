@@ -68,6 +68,7 @@ The `@{agent}` group is CodeCompanion's agent mode. It combines a curated set of
 
 It contains the following tools:
 
+- [ask_questions](/usage/chat-buffer/agents-tools#ask-questions)
 - [create_file](/usage/chat-buffer/agents-tools#create-file)
 - [delete_file](/usage/chat-buffer/agents-tools#delete-file)
 - [file_search](/usage/chat-buffer/agents-tools#file-search)
@@ -75,7 +76,7 @@ It contains the following tools:
 - [grep_search](/usage/chat-buffer/agents-tools#grep-search)
 - [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
 - [read_file](/usage/chat-buffer/agents-tools#read-file)
-- [run_command](/usage/chatagents-buffer/agents-tools#run-command)
+- [run_command](/usage/chat-buffer/agents-tools#run-command)
 
 You can use it with:
 
@@ -117,6 +118,16 @@ will yield:
 ```md
 Use the lorem_ipsum tool to generate a random paragraph
 ```
+
+### ask_questions
+
+This tool enables an LLM to ask clarifying questions before proceeding with a task. It's useful when the LLM encounters ambiguous requirements, needs to choose between implementation approaches, or wants to validate assumptions. Questions can have predefined options (presented via `vim.ui.select`) or accept free text input (via `vim.ui.input`):
+
+```md
+@{agent} Can you refactor the authentication module?
+```
+
+The LLM may use this tool to ask which auth strategy you prefer before making changes. The tool is limited to one call per response to prevent excessive questioning.
 
 ### create_file
 
