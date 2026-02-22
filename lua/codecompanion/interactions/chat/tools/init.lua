@@ -392,7 +392,7 @@ function Tools:replace(message)
       replacement = utils.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
     end
 
-    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or tools))
+    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or ""))
   end
 
   return message
