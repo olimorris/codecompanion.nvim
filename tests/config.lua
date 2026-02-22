@@ -147,6 +147,10 @@ return {
           path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
+        ["ask_questions"] = {
+          path = "interactions.chat.tools.builtin.ask_questions",
+          description = "Ask the user questions to clarify requirements or validate assumptions",
+        },
         ["weather"] = {
           path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather.lua",
           description = "Get the latest weather",
