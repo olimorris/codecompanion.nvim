@@ -26,15 +26,13 @@ function EditorContext:apply()
     return log:warn("No visual selection found")
   end
 
-  local relative_path = vim.fn.fnamemodify(ctx.filename, ":.")
-
   local content = fmt(
     [[Visual selection from `%s` (lines %d-%d):
 
 ````%s
 %s
 ````]],
-    relative_path,
+    ctx.filename,
     ctx.start_line,
     ctx.end_line,
     ctx.filetype or "",
