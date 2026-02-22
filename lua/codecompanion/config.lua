@@ -152,6 +152,7 @@ The user is working on a %s machine. Please respond with system specific command
               "delete_file",
               "file_search",
               "get_changed_files",
+              "get_diagnostics",
               "grep_search",
               "insert_edit_into_file",
               "read_file",
@@ -221,6 +222,10 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             max_lines = 1000,
           },
+        },
+        ["get_diagnostics"] = {
+          path = "interactions.chat.tools.builtin.get_diagnostics",
+          description = "Get LSP diagnostics for a given file",
         },
         ["grep_search"] = {
           path = "interactions.chat.tools.builtin.grep_search",

@@ -604,7 +604,8 @@ local function edit_file(action, opts)
     return opts.output_cb(make_response("error", error_message))
   end
 
-  local success_msg = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))
+  local display_path = vim.fn.fnamemodify(action.filepath, ":.")
+  local success_msg = fmt("Edited `%s` file%s", display_path, extract_explanation(action))
 
   return approve_and_diff({
     from_lines = vim.split(original_content, "\n", { plain = true }),
@@ -612,7 +613,7 @@ local function edit_file(action, opts)
     apply_fn = function()
       local write_ok, write_err = write_file(path, edit.content, file_info)
       if not write_ok then
-        return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
+        return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", display_path, write_err)))
       end
       opts.output_cb(make_response("success", success_msg))
     end,
@@ -622,7 +623,7 @@ local function edit_file(action, opts)
     output_cb = opts.output_cb,
     require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
-    title = action.filepath,
+    title = display_path,
   })
 end
 
@@ -657,7 +658,7 @@ local function edit_buffer(bufnr, opts)
   })
 
   local buffer_name = api.nvim_buf_get_name(bufnr)
-  local display_name = buffer_name ~= "" and buffer_name or fmt("buffer %d", bufnr)
+  local display_name = buffer_name ~= "" and vim.fn.fnamemodify(buffer_name, ":.") or fmt("buffer %d", bufnr)
 
   if not edit.success then
     local error_message = match_selector.format_helpful_error(edit, opts.action.edits)
@@ -809,9 +810,9 @@ return {
     ---@return nil|string
     prompt = function(self, meta)
       local args = self.args
-      local filepath = args.filepath
+      local display_path = vim.fn.fnamemodify(args.filepath, ":.")
       local edit_count = args.edits and #args.edits or 0
-      return fmt("Apply %d edit(s) to `%s`?", edit_count, filepath)
+      return fmt("Apply %d edit(s) to `%s`?", edit_count, display_path)
     end,
 
     ---@param self CodeCompanion.Tool.InsertEditIntoFile

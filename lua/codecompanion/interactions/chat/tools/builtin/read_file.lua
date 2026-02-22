@@ -180,7 +180,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
     prompt = function(self, meta)
-      return fmt("Read `%s`?", self.args.filepath)
+      return fmt("Read `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
@@ -191,8 +191,9 @@ return {
       local llm_output = vim.iter(stdout):flatten():join("\n")
       local start_line = self.args.start_line_number_base_zero
       local end_line = self.args.end_line_number_base_zero
+      local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
       local range_text = end_line == -1 and fmt("(%d - end)", start_line) or fmt("(%d - %d)", start_line, end_line)
-      chat:add_tool_output(self, llm_output, fmt("Read file `%s` %s", self.args.filepath, range_text))
+      chat:add_tool_output(self, llm_output, fmt("Read file `%s` %s", display_path, range_text))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile

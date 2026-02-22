@@ -152,7 +152,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
     prompt = function(self, meta)
-      return fmt("Create a file at `%s`?", self.args.filepath)
+      return fmt("Create a file at `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
@@ -161,12 +161,12 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local args = self.args
-      local path = args.filepath
+      local display_path = vim.fn.fnamemodify(args.filepath, ":.")
 
       local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
-      local file_ext = vim.fn.fnamemodify(path, ":e")
+      local file_ext = vim.fn.fnamemodify(args.filepath, ":e")
 
       local result_msg = fmt(
         [[Created file `%s`
@@ -174,7 +174,7 @@ return {
 ````%s
 %s
 ````]],
-        path,
+        display_path,
         file_ext,
         args.content or ""
       )

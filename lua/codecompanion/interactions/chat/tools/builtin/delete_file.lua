@@ -100,7 +100,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
     prompt = function(self, meta)
-      return fmt("Delete the file at `%s`?", self.args.filepath)
+      return fmt("Delete the file at `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile
@@ -108,10 +108,9 @@ return {
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
-      local args = self.args
-      local path = args.filepath
+      local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
 
-      chat:add_tool_output(self, fmt([[Deleted file `%s`]], path))
+      chat:add_tool_output(self, fmt([[Deleted file `%s`]], display_path))
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile
