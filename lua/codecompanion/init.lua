@@ -437,7 +437,7 @@ CodeCompanion.setup = function(opts)
   end
 
   local window_config = config.display.chat.window
-  if window_config.sticky and (window_config.layout ~= "buffer") then
+  if window_config.sticky and window_config.layout ~= "buffer" and window_config.layout ~= "tab" then
     api.nvim_create_autocmd("TabEnter", {
       group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
       callback = function(args)

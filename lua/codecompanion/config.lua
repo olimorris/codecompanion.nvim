@@ -945,7 +945,7 @@ The user is working on a %s machine. Please respond with system specific command
         buflisted = false, -- List the chat buffer in the buffer list?
         sticky = false, -- Chat buffer remains open when switching tabs
 
-        layout = "vertical", -- float|vertical|horizontal|buffer
+        layout = "vertical", -- float|vertical|horizontal|tab|buffer
         full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
 
