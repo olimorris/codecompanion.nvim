@@ -191,7 +191,6 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Create a file in the current working directory",
           opts = {
             require_approval_before = true,
-            require_cmd_approval = true,
           },
         },
         ["delete_file"] = {
@@ -200,7 +199,6 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
-            require_cmd_approval = true,
           },
         },
         ["fetch_webpage"] = {
@@ -215,7 +213,6 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
-            require_cmd_approval = true,
           },
         },
         ["get_changed_files"] = {
@@ -236,7 +233,6 @@ The user is working on a %s machine. Please respond with system specific command
             max_results = 100,
             respect_gitignore = true,
             require_approval_before = true,
-            require_cmd_approval = true,
           },
         },
         ["insert_edit_into_file"] = {
@@ -267,7 +263,6 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Read a file in the current working directory",
           opts = {
             require_approval_before = true,
-            require_cmd_approval = true,
           },
         },
         ["run_command"] = {
