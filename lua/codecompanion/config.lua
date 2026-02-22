@@ -182,6 +182,7 @@ The user is working on a %s machine. Please respond with system specific command
         ["ask_questions"] = {
           path = "interactions.chat.tools.builtin.ask_questions",
           description = "Ask the user questions to clarify requirements or validate assumptions",
+          visible = false,
         },
         ["create_file"] = {
           path = "interactions.chat.tools.builtin.create_file",
