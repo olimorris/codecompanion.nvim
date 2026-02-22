@@ -5,8 +5,7 @@ description: Learn how to use agents and tools in CodeCompanion so you can lever
 # Using Agents and Tools
 
 > [!IMPORTANT]
-> Tools are not supported for ACP adapters as they have their own set.
-> Not all LLMs support tool use. Please see the [compatibility](#compatibility) section for more information.
+> The built-in tools are for HTTP adapters only and not all LLMs support tool use. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
 <img src="https://github.com/user-attachments/assets/f2c17a2b-780a-4914-a983-5b0610d96427" />
@@ -120,6 +119,9 @@ Use the lorem_ipsum tool to generate a random paragraph
 ```
 
 ### ask_questions
+
+> [!NOTE]
+> By default, this tool is hidden and is only accessible via the `@{agent}` tool group
 
 This tool enables an LLM to ask clarifying questions before proceeding with a task. It's useful when the LLM encounters ambiguous requirements, needs to choose between implementation approaches, or wants to validate assumptions. Questions can have predefined options (presented via `vim.ui.select`) or accept free text input (via `vim.ui.input`):
 
