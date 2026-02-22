@@ -115,7 +115,7 @@ function SlashCommands.context(chat, slash_command, opts)
   if slash_command == "file" then
     local buffer = {}
     for _, buf in ipairs(buf_utils.get_open()) do
-      if buf.relative_path == opts.path then
+      if buf.path == opts.path then
         buffer = {
           bufnr = buf.bufnr,
           name = buf.path,

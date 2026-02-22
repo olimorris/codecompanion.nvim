@@ -1,20 +1,19 @@
 ---
-description: Learn how tools can aid your code, in CodeCompanion
+description: Learn how to use agents and tools in CodeCompanion so you can leverage the full potential of your LLM and ACP adapters.
 ---
 
-# Using Tools
+# Using Agents and Tools
 
 > [!IMPORTANT]
-> Tools are not supported for ACP adapters as they have their own set.
-> Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
+> The built-in tools are for HTTP adapters only and not all LLMs support tool use. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/f4a5d52a-0de5-422d-a054-f7e97bb76f62" />
+<img src="https://github.com/user-attachments/assets/f2c17a2b-780a-4914-a983-5b0610d96427" />
 </p>
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, tools are simply context and actions that are shared with an LLM. The LLM can act as an agent by executing tools via the chat buffer which in turn orchestrates their use within Neovim. Tools can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context and actions that are shared with an LLM. The LLM can act as an agent by executing tools via the chat buffer which in turn orchestrates their use within Neovim. Tools can be added as a participant to the chat buffer by using the `@` key, by default.
 
 > [!IMPORTANT]
 > The use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and approving their use.
@@ -26,6 +25,81 @@ Tools make use of an LLM's [function calling](https://platform.openai.com/docs/g
 When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _tools/init.lua_ file. The tool system triggers off a series of events, which sees tool's added to a queue and sequentially worked with their output being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
+
+## Agents / Tool Groups
+
+Tool groups combine multiple tools together, making them available to the LLM in a single `@{group_name}` reference. CodeCompanion comes with two built-in groups: `@{agent}` and `@{files}`.
+
+When you include a tool group in the chat, all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
+
+Groups may also have a `prompt` field which is used to replace their reference in a message in the chat buffer. This ensures that the LLM receives a useful message rather than the name of the tools themselves.
+
+### Turning a group into an agent
+
+Groups become agents when they provide their own `system_prompt`. Combined with the `ignore_system_prompt` and `ignore_tool_system_prompt` opts, a group can completely replace the default system prompts with its own tailored instructions. This is how the built-in `@{agent}` group works.
+
+When `system_prompt` is a function, it receives the group config as the first argument and a [context object](/configuration/system-prompt) as the second, giving access to `language`, `date`, `nvim_version`, `os` and more:
+
+````lua
+groups = {
+  ["my_agent"] = {
+    description = "My custom agent",
+    system_prompt = function(group, ctx)
+      return string.format(
+        "You are a coding agent. The date is %s. The user is on %s.",
+        ctx.date,
+        ctx.os
+      )
+    end,
+    tools = { "read_file", "insert_edit_into_file", "run_command" },
+    opts = {
+      collapse_tools = true,
+      ignore_system_prompt = true, -- Remove the chat's default system prompt
+      ignore_tool_system_prompt = true, -- Remove the default tool system prompt
+    },
+  },
+},
+````
+
+### agent
+
+The `@{agent}` group is CodeCompanion's agent mode. It combines a curated set of tools with its own system prompt, replacing the default chat and tool system prompts. This gives the LLM clear instructions on how to act as an autonomous coding agent.
+
+It contains the following tools:
+
+- [ask_questions](/usage/chat-buffer/agents-tools#ask-questions)
+- [create_file](/usage/chat-buffer/agents-tools#create-file)
+- [delete_file](/usage/chat-buffer/agents-tools#delete-file)
+- [file_search](/usage/chat-buffer/agents-tools#file-search)
+- [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
+- [get_diagnostics](/usage/chat-buffer/agents-tools#get-diagnostics)
+- [grep_search](/usage/chat-buffer/agents-tools#grep-search)
+- [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
+- [read_file](/usage/chat-buffer/agents-tools#read-file)
+- [run_command](/usage/chat-buffer/agents-tools#run-command)
+
+You can use it with:
+
+```md
+@{agent} Can we create a todo list in Vue.js?
+```
+
+### files
+
+The `@{files}` tool is a collection of tools that allows an LLM to carry out file operations in your current working directory. It contains the following files:
+
+- [create_file](/usage/chat-buffer/agents-tools#create-file)
+- [file_search](/usage/chat-buffer/agents-tools#file-search)
+- [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
+- [grep_search](/usage/chat-buffer/agents-tools#grep-search)
+- [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
+- [read_file](/usage/chat-buffer/agents-tools#read-file)
+
+You can use it with:
+
+```md
+@{files} Can you scaffold out the folder structure for a python package?
+```
 
 ## Built-in Tools
 
@@ -44,6 +118,19 @@ will yield:
 ```md
 Use the lorem_ipsum tool to generate a random paragraph
 ```
+
+### ask_questions
+
+> [!NOTE]
+> By default, this tool is hidden and is only accessible via the `@{agent}` tool group
+
+This tool enables an LLM to ask clarifying questions before proceeding with a task. It's useful when the LLM encounters ambiguous requirements, needs to choose between implementation approaches, or wants to validate assumptions. Questions can have predefined options (presented via `vim.ui.select`) or accept free text input (via `vim.ui.input`):
+
+```md
+@{agent} Can you refactor the authentication module?
+```
+
+The LLM may use this tool to ask which auth strategy you prefer before making changes. The tool is limited to one call per response to prevent excessive questioning.
 
 ### create_file
 
@@ -86,7 +173,7 @@ Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 
 ### file_search
 
-This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
+This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of matching file paths.
 
 ```md
 Use @{file_search} to list all the lua files in my project
@@ -105,6 +192,19 @@ Use @{get_changed_files} see what's changed
 
 **Options:**
 - `max_lines` limits the amount of lines that can be sent to the LLM in the response (Default: 1000)
+
+### get_diagnostics
+
+> [!WARNING]
+> As the `get_changed_files` tool relies on external language servers, it may be unreliable for certain filetypes.
+
+This tool enables an LLM to retrieve LSP diagnostics for a given file. It returns all diagnostic messages (errors, warnings, hints and information) along with the relevant code lines. This is useful for understanding what issues exist in a file before attempting to fix them:
+
+```md
+Use @{get_diagnostics} to check for any issues in the current file
+```
+
+The tool accepts an optional `severity` parameter to filter diagnostics by minimum severity level (`ERROR`, `WARNING`, `INFORMATION`, `HINT`).
 
 ### grep_search
 
@@ -215,76 +315,6 @@ Use @{web_search} to search neovim.io and explain how I can configure a new lang
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
-## Tool Groups
-
-Tool Groups are a convenient way to combine multiple built-in tools together in the chat buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and `@{files}`.
-
-When you include a tool group in the chat, all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
-
-Groups may also have a `prompt` field which is used to replace their reference in a message in the chat buffer. This ensures that the LLM receives a useful message rather than the name of the tools themselves.
-
-For example, the following prompt:
-
-```md
-@{full_stack_dev}. Can you create Snake for me, in Python?
-```
-
-Is replaced by:
-
-```
-I'm giving you access to the run_command, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
-```
-
-This is because the `@{full_stack_dev}` group has the following prompt set in the config:
-
-```lua
-groups = {
-  ["full_stack_dev"] = {
-    -- ...
-    prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
-    -- ...
-  }
-},
-```
-
-
-### full_stack_dev
-
-The `@{full_stack_dev}` is a collection of tools which have been curated to enable an LLM to create applications and understand and refactor code bases.
-
-It contains the following tools:
-
-- [run_command](/usage/chat-buffer/tools#run-command)
-- [create_file](/usage/chat-buffer/tools#create-file)
-- [file_search](/usage/chat-buffer/tools#file-search)
-- [get_changed_files](/usage/chat-buffer/tools#get-changed-files)
-- [grep_search](/usage/chat-buffer/tools#grep-search)
-- [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file)
-- [read_file](/usage/chat-buffer/tools#read-file)
-
-You can use it with:
-
-```md
-@{full_stack_dev}. Can we create a todo list in Vue.js?
-```
-
-### files
-
-The `@{files}` tool is a collection of tools that allows an LLM to carry out file operations in your current working directory. It contains the following files:
-
-- [create_file](/usage/chat-buffer/tools#create-file)
-- [file_search](/usage/chat-buffer/tools#file-search)
-- [get_changed_files](/usage/chat-buffer/tools#get-changed-files)
-- [grep_search](/usage/chat-buffer/tools#grep-search)
-- [insert_edit_into_file](/usage/chat-buffer/tools#insert-edit-into-file)
-- [read_file](/usage/chat-buffer/tools#read-file)
-
-You can use it with:
-
-```md
-@{files}. Can you scaffold out the folder structure for a python package?
-```
-
 ## Adapter Tools
 
 > [!NOTE]
@@ -315,7 +345,7 @@ The MCP servers you've [configured](/configuration/mcp) in CodeCompanion expose 
 
 ## Security
 
-CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
+CodeCompanion takes security very seriously, especially in a world of agentic code development. Tools that create or delete files validate that paths are within the current working directory (cwd) to prevent unintended modifications outside of your project. This ensures that the LLM can only work within the cwd when executing destructive tools, minimizing actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
 
 ### Approvals
 
@@ -363,4 +393,3 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
 > [!IMPORTANT]
 > When using Mistral, you will need to set `interactions.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.
-

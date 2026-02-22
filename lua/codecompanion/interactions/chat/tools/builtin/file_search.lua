@@ -54,20 +54,9 @@ local function search(action, opts)
     }
   end
 
-  -- Convert absolute paths to relative paths so the LLM doesn't have full knowledge of the filesystem
-  local relative_files = {}
-  for _, file in ipairs(found_files) do
-    local rel_path = vim.fs.relpath(cwd, file)
-    if rel_path then
-      table.insert(relative_files, rel_path)
-    else
-      table.insert(relative_files, file)
-    end
-  end
-
   return {
     status = "success",
-    data = relative_files,
+    data = found_files,
   }
 end
 

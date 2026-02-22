@@ -442,6 +442,27 @@ function M.normalize_content(content)
   return (content:gsub("\r\n", "\n"):gsub("\r", "\n"))
 end
 
+---Check if a path is within the current working directory
+---@param path string The absolute path to check
+---@return boolean
+function M.is_path_within_cwd(path)
+  local cwd = vim.uv.fs_realpath(vim.uv.cwd())
+  if not cwd then
+    return false
+  end
+  cwd = vim.fs.normalize(cwd) .. "/"
+
+  local normalized = vim.fs.normalize(path)
+  -- Resolve symlinks in the path's parent to handle macOS /var -> /private/var
+  local parent = vim.fs.dirname(normalized)
+  local real_parent = vim.uv.fs_realpath(parent)
+  if real_parent then
+    normalized = vim.fs.joinpath(real_parent, vim.fs.basename(normalized))
+  end
+
+  return normalized:sub(1, #cwd) == cwd
+end
+
 ---Validate and normalize a path from tool args
 ---@param path string Raw path from tool args
 ---@return string|nil normalized_path Returns nil if path is invalid

@@ -33,7 +33,7 @@ function EditorContext._find_buffer(target)
     if buf_info.name == target then
       return buf_info.bufnr
     end
-    if buf_info.relative_path == target then
+    if buf_info.path == target then
       return buf_info.bufnr
     end
     if buf_info.short_path == target then

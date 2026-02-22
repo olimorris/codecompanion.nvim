@@ -106,7 +106,7 @@ api.nvim_create_autocmd("BufEnter", {
 
     local config = require("codecompanion.config")
 
-    local buffer_config = config.interactions.chat.editor_context.buffer.opts
+    local buffer_config = config.interactions.chat.editor_context.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
     local excluded_buftypes = excluded.buftypes or {}

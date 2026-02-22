@@ -8,10 +8,11 @@ This document provides a guide for upgrading from one version of CodeCompanion t
 
 CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](installation) provides more information on how to do this.
 
-## v18.6.0 to v19.0.0
+## v18.7.0 to v19.0.0
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - CodeCompanion now only supports a built-in diff which is enabled by default ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600)), dropping support for Mini.Diff
+- The `full_stack_dev` group has been renamed to [agent](/usage/chat-buffer/agents-tools#agent)
 
 ### Adapters
 

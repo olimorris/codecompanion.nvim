@@ -279,4 +279,96 @@ T["ToolRegistry"][":remove_group"]["removes group tools, context items and messa
   h.eq(false, child.lua_get([[_G.has_removed_prompt]]))
 end
 
+T["ToolRegistry"][":add_group"]["ignore_system_prompt removes the default system prompt"] = function()
+  child.lua([[
+    -- Verify the default system prompt exists before adding the group
+    _G.has_default_before = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+        _G.has_default_before = true
+        break
+      end
+    end
+
+    _G.chat.tool_registry:add_group("ignore_sys_prompt_group")
+
+    _G.has_default_after = false
+    _G.has_group_prompt = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+        _G.has_default_after = true
+      end
+      if msg.content == "Custom agent system prompt" then
+        _G.has_group_prompt = true
+      end
+    end
+  ]])
+
+  h.eq(true, child.lua_get([[_G.has_default_before]]), "Default system prompt should exist initially")
+  h.eq(false, child.lua_get([[_G.has_default_after]]), "Default system prompt should be removed")
+  h.eq(true, child.lua_get([[_G.has_group_prompt]]), "Group system prompt should be added")
+  h.eq(true, child.lua_get([[_G.chat.tool_registry.flags.ignore_system_prompt]]))
+end
+
+T["ToolRegistry"][":add_group"]["ignore_tool_system_prompt sets the flag"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_group("ignore_tool_sys_prompt_group")
+  ]])
+
+  h.eq(true, child.lua_get([[_G.chat.tool_registry.flags.ignore_tool_system_prompt]]))
+end
+
+T["ToolRegistry"][":add_group"]["ignore_system_prompt is restored on remove_group"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_group("ignore_sys_prompt_group")
+
+    _G.has_default_after_add = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+        _G.has_default_after_add = true
+        break
+      end
+    end
+  ]])
+
+  -- Verify the default system prompt is removed
+  h.eq(false, child.lua_get([[_G.has_default_after_add]]))
+
+  child.lua([[
+    _G.chat.tool_registry:remove_group("ignore_sys_prompt_group")
+
+    _G.has_default_after_remove = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+        _G.has_default_after_remove = true
+        break
+      end
+    end
+  ]])
+
+  -- Default system prompt should be restored
+  h.eq(
+    true,
+    child.lua_get([[_G.has_default_after_remove]]),
+    "Default system prompt should be restored after removing the group"
+  )
+
+  -- Flag should be cleared
+  h.eq(vim.NIL, child.lua_get([[_G.chat.tool_registry.flags.ignore_system_prompt]]))
+end
+
+T["ToolRegistry"][":add_group"]["ignore_tool_system_prompt is restored on remove_group"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add_group("ignore_tool_sys_prompt_group")
+  ]])
+
+  h.eq(true, child.lua_get([[_G.chat.tool_registry.flags.ignore_tool_system_prompt]]))
+
+  child.lua([[
+    _G.chat.tool_registry:remove_group("ignore_tool_sys_prompt_group")
+  ]])
+
+  h.eq(vim.NIL, child.lua_get([[_G.chat.tool_registry.flags.ignore_tool_system_prompt]]))
+end
+
 return T

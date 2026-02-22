@@ -604,7 +604,8 @@ local function edit_file(action, opts)
     return opts.output_cb(make_response("error", error_message))
   end
 
-  local success_msg = fmt("Edited `%s` file%s", action.filepath, extract_explanation(action))
+  local display_path = vim.fn.fnamemodify(action.filepath, ":.")
+  local success_msg = fmt("Edited `%s` file%s", display_path, extract_explanation(action))
 
   return approve_and_diff({
     from_lines = vim.split(original_content, "\n", { plain = true }),
@@ -612,7 +613,7 @@ local function edit_file(action, opts)
     apply_fn = function()
       local write_ok, write_err = write_file(path, edit.content, file_info)
       if not write_ok then
-        return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", action.filepath, write_err)))
+        return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", display_path, write_err)))
       end
       opts.output_cb(make_response("success", success_msg))
     end,
@@ -622,7 +623,7 @@ local function edit_file(action, opts)
     output_cb = opts.output_cb,
     require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
-    title = action.filepath,
+    title = display_path,
   })
 end
 
@@ -727,7 +728,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The path to the file to edit, including its filename and extension",
+            description = "The absolute path to the file to edit, including its filename and extension",
           },
           edits = {
             type = "array",
@@ -809,9 +810,9 @@ return {
     ---@return nil|string
     prompt = function(self, meta)
       local args = self.args
-      local filepath = vim.fn.fnamemodify(args.filepath, ":.")
+      local display_path = vim.fn.fnamemodify(args.filepath, ":.")
       local edit_count = args.edits and #args.edits or 0
-      return fmt("Apply %d edit(s) to `%s`?", edit_count, filepath)
+      return fmt("Apply %d edit(s) to `%s`?", edit_count, display_path)
     end,
 
     ---@param self CodeCompanion.Tool.InsertEditIntoFile

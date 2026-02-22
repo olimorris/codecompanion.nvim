@@ -43,8 +43,8 @@ T["can create files"] = function()
       {
         ["function"] = {
           name = "create_file",
-          -- Use relative path (like test_read_file.lua does)
-          arguments = string.format('{"filepath": "%s", "content": "import pygame\\nimport time\\nimport random\\n"}', vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE))
+          -- Use absolute path
+          arguments = string.format('{"filepath": "%s", "content": "import pygame\\nimport time\\nimport random\\n"}', _G.TEST_TMPFILE_ABSOLUTE)
         },
       },
     }

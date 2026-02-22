@@ -30,14 +30,14 @@ T["System prompt"] = new_set()
 T["System prompt"]["can load static components"] = function()
   ---@type CodeCompanion.SystemPrompt.Context
   local context = child.lua([[
-    return _G.chat:make_system_prompt_ctx()
+    return _G.chat:make_system_prompt_context()
   ]])
   h.eq(vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch, context.nvim_version)
 end
 
 T["System prompt"]["can load dynamic components"] = function()
   local context_os = child.lua([[
-    return _G.chat:make_system_prompt_ctx().os
+    return _G.chat:make_system_prompt_context().os
   ]])
 
   local machine = vim.uv.os_uname().sysname

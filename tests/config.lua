@@ -147,6 +147,14 @@ return {
           path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
+        ["get_diagnostics"] = {
+          path = "interactions.chat.tools.builtin.get_diagnostics",
+          description = "Get LSP diagnostics for a given file",
+        },
+        ["ask_questions"] = {
+          path = "interactions.chat.tools.builtin.ask_questions",
+          description = "Ask the user questions to clarify requirements or validate assumptions",
+        },
         ["weather"] = {
           path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather.lua",
           description = "Get the latest weather",
@@ -278,6 +286,24 @@ return {
             system_prompt = "System prompt to be removed",
             tools = { "func", "weather" },
             opts = { collapse_tools = true },
+          },
+          ["ignore_sys_prompt_group"] = {
+            description = "Group that ignores the default system prompt",
+            system_prompt = "Custom agent system prompt",
+            tools = { "func" },
+            opts = { ignore_system_prompt = true },
+          },
+          ["ignore_tool_sys_prompt_group"] = {
+            description = "Group that ignores the tool system prompt",
+            system_prompt = "Custom tool agent prompt",
+            tools = { "func" },
+            opts = { ignore_tool_system_prompt = true },
+          },
+          ["ignore_both_group"] = {
+            description = "Group that ignores both system prompts",
+            system_prompt = "Full agent prompt",
+            tools = { "func" },
+            opts = { ignore_system_prompt = true, ignore_tool_system_prompt = true },
           },
         },
         opts = {

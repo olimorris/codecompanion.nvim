@@ -43,16 +43,16 @@ function M.get_visible_lines(excluded)
   return lines
 end
 
----Get the relative name of a buffer from the buffer number
+---Get the name of a buffer from the buffer number
 ---@param bufnr number
----@return table
+---@return string
 function M.name_from_bufnr(bufnr)
   local bufname = api.nvim_buf_get_name(bufnr)
   if vim.fn.has("win32") == 1 then
     -- On Windows, slashes need to be consistent with getcwd, which uses backslashes
     bufname = bufname:gsub("/", "\\")
   end
-  return vim.fn.fnamemodify(bufname, ":.")
+  return bufname
 end
 
 ---Get the information of a given buffer
@@ -60,16 +60,15 @@ end
 ---@return table
 function M.get_info(bufnr)
   local bufname = api.nvim_buf_get_name(bufnr)
-  local relative_path = vim.fn.fnamemodify(bufname, ":.")
 
   return {
     bufnr = bufnr,
     filetype = api.nvim_get_option_value("filetype", { buf = bufnr }),
-    number = bufnr,
     name = vim.fn.fnamemodify(bufname, ":t"),
+    number = bufnr,
     path = bufname,
+    relative_path = vim.fn.fnamemodify(bufname, ":."),
     short_path = vim.fn.fnamemodify(bufname, ":h:t") .. "/" .. vim.fn.fnamemodify(bufname, ":t"),
-    relative_path = relative_path,
   }
 end
 

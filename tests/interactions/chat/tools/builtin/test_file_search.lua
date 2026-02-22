@@ -68,10 +68,9 @@ T["returns results"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq(
-    "<fileSearchTool>Searched files for `**/Button.js`, 1 results\n```\nsrc/components/Button.js\n```</fileSearchTool>",
-    output
-  )
+  -- Output now contains absolute paths
+  h.expect_contains("Searched files for `**/Button.js`, 1 results", output)
+  h.expect_contains("src/components/Button.js", output)
 end
 
 T["can search for JavaScript files"] = function()

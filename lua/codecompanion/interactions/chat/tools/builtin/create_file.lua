@@ -4,19 +4,11 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----Modify the path to be relative to the current working directory
----@param path string
----@return string
-local function modify_path(path)
-  return vim.fn.fnamemodify(path, ":.")
-end
-
 ---Create a file and the surrounding folders
 ---@param action {filepath: string, content: string} The action containing the filepath and content
 ---@return {status: "success"|"error", data: string}
 local function create(action)
-  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  filepath = vim.fs.normalize(filepath)
+  local filepath = vim.fs.normalize(action.filepath)
 
   -- Check if file already exists
   local stat = vim.uv.fs_stat(filepath)
@@ -117,7 +109,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The relative path to the file to create, including its filename and extension.",
+            description = "The absolute path to the file to create, including its filename and extension.",
           },
           content = {
             type = "string",
@@ -145,7 +137,7 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      return modify_path(self.args.filepath)
+      return self.args.filepath
     end,
 
     ---The message which is shared with the user when asking for their approval
@@ -153,7 +145,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
     prompt = function(self, meta)
-      return fmt("Create a file at `%s`?", modify_path(self.args.filepath))
+      return fmt("Create a file at `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
@@ -162,12 +154,12 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local args = self.args
-      local path = args.filepath
+      local display_path = vim.fn.fnamemodify(args.filepath, ":.")
 
       local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
-      local file_ext = vim.fn.fnamemodify(path, ":e")
+      local file_ext = vim.fn.fnamemodify(args.filepath, ":e")
 
       local result_msg = fmt(
         [[Created file `%s`
@@ -175,7 +167,7 @@ return {
 ````%s
 %s
 ````]],
-        path,
+        display_path,
         file_ext,
         args.content or ""
       )

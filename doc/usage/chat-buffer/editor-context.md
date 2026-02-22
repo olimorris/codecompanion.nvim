@@ -33,7 +33,7 @@ The `#{buffer}` context shares buffer contents with the LLM. It has two special 
 ### Target Specific Buffers
 
 - `#{buffer:init.lua}` - Shares a specific file by name
-- `#{buffer:src/main.rs}` - Shares a file by relative path
+- `#{buffer:src/main.rs}` - Shares a file by path
 - `#{buffer:utils}` - Shares a file containing "utils" in the path
 
 ### With Parameters

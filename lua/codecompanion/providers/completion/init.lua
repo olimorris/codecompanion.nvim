@@ -323,14 +323,14 @@ function M.editor_context()
     :map(function(buf)
       local name
       if name_counts[buf.name] > 1 then
-        name = buf.relative_path
+        name = buf.path
       else
         name = buf.name
       end
 
       return {
         label = triggers.mappings.editor_context .. "buffer:" .. name,
-        detail = "Path: " .. buf.relative_path .. "\nBuffer: " .. buf.bufnr,
+        detail = "Path: " .. buf.path .. "\nBuffer: " .. buf.bufnr,
         type = "editor_context",
       }
     end)

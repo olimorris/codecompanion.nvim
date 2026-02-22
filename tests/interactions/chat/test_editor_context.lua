@@ -149,7 +149,8 @@ T["Editor Context"][":replace"]["should replace buffer and the buffer name"] = f
 
   local message = "what does #{buffer:init.lua} do?"
   local result = ec:replace(message, 0)
-  h.expect_match(result, "^what does file `lua[\\/]codecompanion[\\/]init.lua`")
+  h.expect_contains("what does file `", result)
+  h.expect_contains("lua/codecompanion/init.lua`", result)
 end
 
 T["Editor Context"][":replace"]["should partly replace #buffer in the message"] = function()
