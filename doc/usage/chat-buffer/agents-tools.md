@@ -72,6 +72,7 @@ It contains the following tools:
 - [delete_file](/usage/chat-buffer/agents-tools#delete-file)
 - [file_search](/usage/chat-buffer/agents-tools#file-search)
 - [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
+- [get_diagnostics](/usage/chat-buffer/agents-tools#get-diagnostics)
 - [grep_search](/usage/chat-buffer/agents-tools#grep-search)
 - [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
 - [read_file](/usage/chat-buffer/agents-tools#read-file)
@@ -191,6 +192,19 @@ Use @{get_changed_files} see what's changed
 
 **Options:**
 - `max_lines` limits the amount of lines that can be sent to the LLM in the response (Default: 1000)
+
+### get_diagnostics
+
+> [!WARNING]
+> As the `get_changed_files` tool relies on external language servers, it may be unreliable for certain filetypes.
+
+This tool enables an LLM to retrieve LSP diagnostics for a given file. It returns all diagnostic messages (errors, warnings, hints and information) along with the relevant code lines. This is useful for understanding what issues exist in a file before attempting to fix them:
+
+```md
+Use @{get_diagnostics} to check for any issues in the current file
+```
+
+The tool accepts an optional `severity` parameter to filter diagnostics by minimum severity level (`ERROR`, `WARNING`, `INFORMATION`, `HINT`).
 
 ### grep_search
 
