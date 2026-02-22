@@ -47,7 +47,7 @@ local function get_qflist_entries()
         type = item.type or "",
         nr = nr,
         has_diagnostic = has_diagnostic,
-        display = fmt("%s:%d: %s", vim.fn.fnamemodify(filename, ":."), item.lnum, text),
+        display = fmt("%s:%d: %s", filename, item.lnum, text),
       })
     end
   end
@@ -233,9 +233,8 @@ end
 ---@return string|nil description Formatted description for chat or nil if failed
 ---@return string id Context ID for the file
 local function process_single_file(path, file_data)
-  local relative_path = vim.fn.fnamemodify(path, ":.")
   local ft = vim.filetype.match({ filename = path })
-  local id = "<quickfix>" .. relative_path .. "</quickfix>"
+  local id = "<quickfix>" .. vim.fn.fnamemodify(path, ":.") .. "</quickfix>"
 
   local ok, file_content = pcall(function()
     return Path.new(path):read()
@@ -263,7 +262,7 @@ local function process_single_file(path, file_data)
 %s
 ````
   </attachment>]],
-        relative_path,
+        path,
         table.concat(diagnostic_summary, "\n"),
         ft,
         content
@@ -305,7 +304,7 @@ local function process_single_file(path, file_data)
 %s
 ````
   </attachment>]],
-        relative_path,
+        path,
         table.concat(diagnostic_summary, "\n"),
         ft,
         content
@@ -320,7 +319,7 @@ local function process_single_file(path, file_data)
 %s
 ````
   </attachment>]],
-      relative_path,
+      path,
       ft,
       content
     )

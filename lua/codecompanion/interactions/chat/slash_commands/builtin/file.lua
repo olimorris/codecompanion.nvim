@@ -153,10 +153,9 @@ function SlashCommand:read(selected)
   end
 
   local ft = vim.filetype.match({ filename = selected.path })
-  local relative_path = vim.fn.fnamemodify(selected.path, ":.")
-  local id = "<file>" .. relative_path .. "</file>"
+  local id = "<file>" .. vim.fn.fnamemodify(selected.path, ":.") .. "</file>"
 
-  return content, ft, id, relative_path
+  return content, ft, id, selected.path
 end
 
 ---Output from the slash command in the chat buffer
@@ -173,7 +172,7 @@ function SlashCommand:output(selected, opts)
     opts.message = selected.description
   end
 
-  local content, id, relative_path, _, _ = chat_helpers.format_file_for_llm(selected.path, opts)
+  local content, id, _, _, _ = chat_helpers.format_file_for_llm(selected.path, opts)
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
@@ -198,7 +197,7 @@ function SlashCommand:output(selected, opts)
     return
   end
 
-  utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))
+  utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(selected.path, ":t")))
 end
 
 return SlashCommand

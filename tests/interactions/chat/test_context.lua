@@ -344,14 +344,11 @@ T["Context"]["can be cleared from messages"] = function()
   h.eq("Hello, World", content)
 end
 
----Bug fix: #889 https://github.com/olimorris/codecompanion.nvim/issues/889
----We want to use relative paths as they're prettier in the chat buffer than
----full paths. However, a lot of the providers only output the full path
-T["Context"]["file context_items always have a relative id"] = function()
+T["Context"]["file context_items use absolute paths"] = function()
   child.lua([[
      local path = vim.fn.fnamemodify(vim.fn.getcwd(), ":p") .. "tests/stubs/file.txt"
      _G.chat.context:add({
-       id = "<file>tests/stubs/file.txt</file>",
+       id = "<file>" .. path .. "</file>",
        path = path,
        source = "codecompanion.interactions.chat.slash_commands.builtin.file",
        opts = {
@@ -362,14 +359,13 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat:submit()
    ]])
 
-  h.expect_match(
-    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]),
-    [[^<attachment filepath="tests[\\/]stubs[\\/]file.txt">Here is the content from the file]]
-  )
-  h.expect_match(
-    child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]]),
-    [[^<file>tests[\\/]stubs[\\/]file.txt</file>$]]
-  )
+  local content = child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
+  h.expect_contains("tests/stubs/file.txt", content)
+  h.expect_contains('<attachment filepath="', content)
+  h.expect_contains("Here is the content from the file", content)
+
+  local context_id = child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]])
+  h.expect_contains("tests/stubs/file.txt", context_id)
 end
 
 T["Context"]["Correctly removes tool schema and usage flag on context deletion"] = function()

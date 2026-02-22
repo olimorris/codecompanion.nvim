@@ -657,7 +657,7 @@ local function edit_buffer(bufnr, opts)
   })
 
   local buffer_name = api.nvim_buf_get_name(bufnr)
-  local display_name = buffer_name ~= "" and vim.fn.fnamemodify(buffer_name, ":.") or fmt("buffer %d", bufnr)
+  local display_name = buffer_name ~= "" and buffer_name or fmt("buffer %d", bufnr)
 
   if not edit.success then
     local error_message = match_selector.format_helpful_error(edit, opts.action.edits)
@@ -727,7 +727,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The path to the file to edit, including its filename and extension",
+            description = "The absolute path to the file to edit, including its filename and extension",
           },
           edits = {
             type = "array",
@@ -809,7 +809,7 @@ return {
     ---@return nil|string
     prompt = function(self, meta)
       local args = self.args
-      local filepath = vim.fn.fnamemodify(args.filepath, ":.")
+      local filepath = args.filepath
       local edit_count = args.edits and #args.edits or 0
       return fmt("Apply %d edit(s) to `%s`?", edit_count, filepath)
     end,

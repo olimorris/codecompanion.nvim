@@ -1,21 +1,21 @@
+local files = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----Modify the path to be relative to the current working directory
----@param path string
----@return string
-local function modify_path(path)
-  return vim.fn.fnamemodify(path, ":.")
-end
-
 ---Delete a file
 ---@param action {filepath: string} The action containing the filepath
 ---@return {status: "success"|"error", data: string}
 local function delete(action)
-  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  filepath = vim.fs.normalize(filepath)
+  local filepath = vim.fs.normalize(action.filepath)
+
+  if not files.is_path_within_cwd(filepath) then
+    return {
+      status = "error",
+      data = fmt("Cannot delete `%s` - path is outside the current working directory", action.filepath),
+    }
+  end
 
   -- Check if file already exists
   local stat = vim.uv.fs_stat(filepath)
@@ -69,7 +69,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The relative path to the file to delete",
+            description = "The absolute path to the file to delete",
           },
         },
         required = {
@@ -92,7 +92,7 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      return modify_path(self.args.filepath)
+      return self.args.filepath
     end,
 
     ---The message which is shared with the user when asking for their approval
@@ -100,7 +100,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
     prompt = function(self, meta)
-      return fmt("Delete the file at `%s`?", modify_path(self.args.filepath))
+      return fmt("Delete the file at `%s`?", self.args.filepath)
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile

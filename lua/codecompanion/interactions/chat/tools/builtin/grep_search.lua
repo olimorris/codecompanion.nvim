@@ -126,15 +126,8 @@ local function grep_search(action, opts)
       local file_path = json_data.data.path.text
       local line_number = json_data.data.line_number
 
-      -- Convert absolute path to relative path from cwd
-      local relative_path = vim.fs.relpath(cwd, file_path) or file_path
-
-      -- Extract just the filename and directory
-      local filename = vim.fn.fnamemodify(relative_path, ":t")
-      local dir_path = vim.fn.fnamemodify(relative_path, ":h")
-
-      -- Format: "filename:line directory_path"
-      local match_entry = fmt("%s:%d %s", filename, line_number, dir_path == "." and "" or dir_path)
+      -- Format: "filepath:line_number"
+      local match_entry = fmt("%s:%d", file_path, line_number)
       table.insert(matches, match_entry)
       count = count + 1
     end
@@ -229,10 +222,10 @@ return {
       local llm_output = [[<grepSearchTool>%s
 
 NOTE:
-- The output format is {filename}:{line number} {filepath}.
+- The output format is {filepath}:{line_number}.
 - For example:
-init.lua:335 lua/codecompanion/interactions/chat/tools
-Refers to line 335 of the init.lua file in the lua/codecompanion/interactions/chat/tools path</grepSearchTool>]]
+/Users/user/project/lua/codecompanion/interactions/chat/tools/init.lua:335
+Refers to line 335 of the init.lua file</grepSearchTool>]]
       local output = vim.iter(stdout):flatten():join("\n")
 
       if type(data) == "table" then

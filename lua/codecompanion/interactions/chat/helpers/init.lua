@@ -214,17 +214,16 @@ function M.format_buffer_for_llm(bufnr, path, opts)
   end
 
   local filename = vim.fn.fnamemodify(path, ":t")
-  local relative_path = vim.fn.fnamemodify(path, ":.")
 
-  -- Generate consistent ID
-  local id = "<buf>" .. relative_path .. "</buf>"
+  -- Generate consistent ID using relative path for conciseness
+  local id = "<buf>" .. vim.fn.fnamemodify(path, ":.") .. "</buf>"
 
   local message = opts.message or "File content"
 
   local formatted_content = fmt(
     [[<attachment filepath="%s" buffer_number="%s">%s:
 %s</attachment>]],
-    relative_path,
+    path,
     bufnr,
     message,
     content
@@ -238,7 +237,7 @@ end
 ---@param opts? { message?: string, range?: table }
 ---@return string file_contents
 ---@return string id The context ID
----@return string relative_path The relative file path
+---@return string path The file path
 ---@return string ft The filetype
 ---@return string file_contents The raw file contents
 function M.format_file_for_llm(path, opts)
@@ -247,8 +246,7 @@ function M.format_file_for_llm(path, opts)
   local file_contents = Path.new(path):read()
 
   local ft = vim.filetype.match({ filename = path })
-  local relative_path = vim.fn.fnamemodify(path, ":.")
-  local id = "<file>" .. relative_path .. "</file>"
+  local id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>"
 
   local content
   if opts.message then
@@ -270,14 +268,14 @@ function M.format_file_for_llm(path, opts)
 %s
 ````
 </attachment>]],
-      relative_path,
+      path,
       "Here is the content from the file",
       ft,
       file_contents
     )
   end
 
-  return content, id, relative_path, ft, file_contents
+  return content, id, path, ft, file_contents
 end
 
 ---Add line numbers with an offset to content
@@ -300,7 +298,7 @@ end
 ---@return string id The context ID
 function M.format_viewport_range_for_llm(bufnr, range)
   local info = buf_utils.get_info(bufnr)
-  local relative_path = vim.fn.fnamemodify(info.path, ":.")
+  local filepath = info.path
   local start_line, end_line = range[1], range[2]
 
   local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
@@ -314,18 +312,18 @@ function M.format_viewport_range_for_llm(bufnr, range)
     numbered_content
   )
 
-  local excerpt_info = fmt("Excerpt from %s, lines %d to %d", relative_path, start_line, end_line)
+  local excerpt_info = fmt("Excerpt from %s, lines %d to %d", filepath, start_line, end_line)
 
   local formatted_content = fmt(
     [[<attachment filepath="%s" buffer_number="%s">%s:
 %s</attachment>]],
-    relative_path,
+    filepath,
     bufnr,
     excerpt_info,
     content
   )
 
-  local id = fmt("<viewport>%s:%d-%d</viewport>", relative_path, start_line, end_line)
+  local id = fmt("<viewport>%s:%d-%d</viewport>", vim.fn.fnamemodify(filepath, ":."), start_line, end_line)
 
   return formatted_content, id
 end

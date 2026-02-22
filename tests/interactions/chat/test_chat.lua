@@ -288,7 +288,7 @@ T["Chat"]["can create hidden chat without opening window"] = function()
 
     local last_chat_final = codecompanion.last_chat()
     local line_count = vim.api.nvim_buf_line_count(hidden_chat.bufnr)
-    local cwd_ok, cwd_ctx = pcall(function() return hidden_chat:make_system_prompt_ctx() end)
+    local cwd_ok, cwd_ctx = pcall(function() return hidden_chat:make_system_prompt_context() end)
 
     return {
       visible_id = visible_chat.id,

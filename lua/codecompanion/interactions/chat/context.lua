@@ -320,8 +320,7 @@ end
 ---@param bufnr number
 ---@return string
 function Context:make_id_from_buf(bufnr)
-  local bufname = api.nvim_buf_get_name(bufnr)
-  return vim.fn.fnamemodify(bufname, ":.")
+  return vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
 end
 
 ---Determine if a context item can be synced and all of its content shared
