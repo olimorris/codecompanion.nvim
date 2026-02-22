@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 21
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -541,6 +541,7 @@ information on how to do this.
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
+- The `full_stack_dev` group has been renamed to |codecompanion-usage-chat-buffer-agents-tools-agent|
 
 
 ADAPTERS ~
@@ -3658,9 +3659,9 @@ table.
 AGENTS AND TOOLS                        *codecompanion-usage-agents-and-tools*
 
 
-  [!IMPORTANT] Tools are not supported for ACP adapters as they have their own
-  set. Not all LLMs support tool use. Please see the
-  |codecompanion--compatibility| section for more information.
+  [!IMPORTANT] The built-in tools are for HTTP adapters only and not all LLMs
+  support tool use. Please see the |codecompanion--compatibility| section for
+  more information.
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,
 LLMs can act as agents by leveraging external tools. Andrew notes some common
@@ -3817,7 +3818,8 @@ will yield:
 ASK_QUESTIONS
 
 
-  [!NOTE] By default, this tool requires user approval before it can be executed
+  [!NOTE] By default, this tool is hidden and is only accessible via the
+  `@{agent}` tool group
 This tool enables an LLM to ask clarifying questions before proceeding with a
 task. It’s useful when the LLM encounters ambiguous requirements, needs to
 choose between implementation approaches, or wants to validate assumptions.
@@ -3829,10 +3831,8 @@ free text input (via `vim.ui.input`):
 <
 
 The LLM may use this tool to ask which auth strategy you prefer before making
-changes.
-
-**Options:** - `require_approval_before` require approval before asking
-questions? (Default: true)
+changes. The tool is limited to one call per response to prevent excessive
+questioning.
 
 
 CREATE_FILE
@@ -3880,8 +3880,7 @@ webpage’s content (Default: `jina`)
 FILE_SEARCH
 
 This tool enables an LLM to search for files in the current working directory
-by glob pattern. It will return a list of relative paths for any matching
-files.
+by glob pattern. It will return a list of matching file paths.
 
 >md
     Use @{file_search} to list all the lua files in my project
@@ -4090,12 +4089,11 @@ completion menu, by typing `@`. They are prefixed with `mcp:`.
 SECURITY ~
 
 CodeCompanion takes security very seriously, especially in a world of agentic
-code development. To that end, every effort is made to ensure that LLMs are
-only given the information that they need to execute a tool successfully.
-CodeCompanion will endeavour to make sure that the full disk path to your
-current working directory (cwd) in Neovim is never shared. The impact of this
-is that the LLM can only work within the cwd when executing tools but will
-minimize actions that are hard to recover from
+code development. Tools that create or delete files validate that paths are
+within the current working directory (cwd) to prevent unintended modifications
+outside of your project. This ensures that the LLM can only work within the cwd
+when executing destructive tools, minimizing actions that are hard to recover
+from
 <https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7>.
 
 
@@ -4218,7 +4216,7 @@ BASIC USAGE
 TARGET SPECIFIC BUFFERS
 
 - `#{buffer:init.lua}` - Shares a specific file by name
-- `#{buffer:src/main.rs}` - Shares a file by relative path
+- `#{buffer:src/main.rs}` - Shares a file by path
 - `#{buffer:utils}` - Shares a file containing "utils" in the path
 
 

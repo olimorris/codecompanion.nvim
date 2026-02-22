@@ -172,7 +172,7 @@ Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 
 ### file_search
 
-This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
+This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of matching file paths.
 
 ```md
 Use @{file_search} to list all the lua files in my project
@@ -331,7 +331,7 @@ The MCP servers you've [configured](/configuration/mcp) in CodeCompanion expose 
 
 ## Security
 
-CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
+CodeCompanion takes security very seriously, especially in a world of agentic code development. Tools that create or delete files validate that paths are within the current working directory (cwd) to prevent unintended modifications outside of your project. This ensures that the LLM can only work within the cwd when executing destructive tools, minimizing actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
 
 ### Approvals
 
