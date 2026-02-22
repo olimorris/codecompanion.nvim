@@ -830,7 +830,7 @@ end
 ---@field project_root? string The closest parent directory that contains either a `.git`, `.svn`, or `.hg` directory
 
 ---@return CodeCompanion.SystemPrompt.Context
-function Chat:make_system_prompt_ctx()
+function Chat:make_system_prompt_context()
   ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
   local dynamic_ctx = {
     -- These can be slow-to-run or too complex for a one-liner. So wrap them in
@@ -853,12 +853,12 @@ function Chat:make_system_prompt_ctx()
   local bufnr = self.bufnr
   local winid = vim.fn.bufwinid(bufnr)
   local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
-    language = config.opts.language or "English",
-    date = tostring(os.date("%Y-%m-%d")),
-    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
     cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
-    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
+    date = tostring(os.date("%Y-%m-%d")),
     default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
+    language = config.opts.language or "English",
+    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
   }
 
   ---@type CodeCompanion.SystemPrompt.Context
@@ -908,7 +908,7 @@ function Chat:set_system_prompt(prompt, opts)
 
   if prompt ~= "" then
     if type(prompt) == "function" then
-      prompt = prompt(self:make_system_prompt_ctx())
+      prompt = prompt(self:make_system_prompt_context())
     end
 
     local system_prompt = {

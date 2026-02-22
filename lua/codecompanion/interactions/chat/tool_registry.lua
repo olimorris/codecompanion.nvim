@@ -196,7 +196,7 @@ function ToolRegistry:add_group(group, opts)
 
   local system_prompt = group_config.system_prompt
   if type(system_prompt) == "function" then
-    system_prompt = system_prompt(group_config, self.chat:make_system_prompt_ctx())
+    system_prompt = system_prompt(group_config, self.chat:make_system_prompt_context())
   end
   if system_prompt then
     self.chat:add_message({

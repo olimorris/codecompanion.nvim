@@ -134,11 +134,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
 </outputFormatting>
 <additionalContext>
 All non-code text responses must be written in the %s language.
+The user's current working directory is %s.
 The current date is %s.
 The user's Neovim version is %s.
 The user is working on a %s machine. Please respond with system specific commands if applicable.
 </additionalContext>]],
                 ctx.language,
+                ctx.cwd,
                 ctx.date,
                 ctx.nvim_version,
                 ctx.os
@@ -762,11 +764,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             .. fmt(
               [[Additional context:
 All non-code text responses must be written in the %s language.
+The user's current working directory is %s.
 The current date is %s.
 The user's Neovim version is %s.
 The user is working on a %s machine. Please respond with system specific commands if applicable.
 ]],
               ctx.language,
+              ctx.cwd,
               ctx.date,
               ctx.nvim_version,
               ctx.os

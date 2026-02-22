@@ -84,9 +84,9 @@ function Debug:render()
   local adapter = vim.deepcopy(self.chat.adapter)
   self.adapter = adapter
 
-  local bufname
+  local buf_info
   if _G.codecompanion_current_context and api.nvim_buf_is_valid(_G.codecompanion_current_context) then
-    bufname = buf_utils.name_from_bufnr(_G.codecompanion_current_context)
+    buf_info = buf_utils.get_info(_G.codecompanion_current_context)
   end
 
   -- Get the current settings from the chat buffer rather than making new ones
@@ -151,8 +151,11 @@ function Debug:render()
     end
   end
   table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
-  if bufname then
-    table.insert(lines, '-- Following Buffer: "' .. bufname .. '" (' .. _G.codecompanion_current_context .. ")")
+  if buf_info then
+    table.insert(
+      lines,
+      string.format([[-- Following Buffer: "%s" (%s)]], buf_info.relative_path, _G.codecompanion_current_context)
+    )
   end
 
   -- Add MCP status
