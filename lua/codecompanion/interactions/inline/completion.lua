@@ -11,7 +11,7 @@
       Inspired by Copilot.lua's equivalent functionality.
       Use at your own risk. Not supported by the CodeCompanion project.
 
-      This code is licensed under the MIT License.
+      This code is licensed under the Apache-2.0 License.
 -------------------------------------------------------------------------------
     Attribution:
       If you use or distribute this code, please credit:

@@ -59,10 +59,10 @@ function Filter.create_filter(config)
   end
 
   ---Get enabled items from the cache or compute them
-  ---@param items_config table The items configuration
+  ---@param items_cfg table The items configuration
   ---@param opts? table Options to pass to enabled functions
   ---@return table<string, boolean> Map of item names to enabled status
-  local function get_enabled_items(items_config, opts)
+  local function get_enabled_items(items_cfg, opts)
     opts = opts or {}
 
     -- Create a cache key that includes both config and adapter state
@@ -77,7 +77,7 @@ function Filter.create_filter(config)
     end
 
     local cache_key_data = {
-      config = items_config,
+      config = items_cfg,
       adapter = adapter_key,
     }
     local current_cache_key = hash.hash(cache_key_data)
@@ -93,7 +93,7 @@ function Filter.create_filter(config)
     -- Get skip keys from config or use defaults
     local skip_keys = config.skip_keys or { "opts" }
 
-    for item_name, item_config in pairs(items_config) do
+    for item_name, item_config in pairs(items_cfg) do
       -- Skip special keys
       local should_skip = false
       for _, skip_key in ipairs(skip_keys) do
@@ -113,35 +113,44 @@ function Filter.create_filter(config)
   end
 
   ---Filter configuration to only include enabled items
-  ---@param items_config table The items configuration
-  ---@param opts? table Options to pass to enabled functions
-  ---@return table The filtered configuration
-  function Filter.filter_enabled(items_config, opts)
-    local enabled_items = get_enabled_items(items_config, opts)
-    local filtered_config = vim.deepcopy(items_config)
+  ---@param items_cfg table
+  ---@param opts? table
+  ---@return table
+  function Filter.filter_enabled(items_cfg, opts)
+    -- Apply pre_filter hook to merge tools, dynamically as is the case with MCP servers
+    local merged_config = items_cfg
+    if config.pre_filter then
+      merged_config = config.pre_filter(items_cfg)
+    end
+
+    local enabled_items = get_enabled_items(merged_config, opts)
+    local filtered_cfg = vim.deepcopy(merged_config)
 
     -- Remove disabled items
     for item_name, is_enabled in pairs(enabled_items) do
       if not is_enabled then
-        filtered_config[item_name] = nil
+        filtered_cfg[item_name] = nil
       end
     end
 
     -- Run custom post-filter logic if provided
     if config.post_filter then
-      filtered_config = config.post_filter(filtered_config, opts, enabled_items)
+      opts = vim.tbl_extend("force", opts or {}, {
+        enabled_items = enabled_items,
+      })
+      filtered_cfg = config.post_filter(filtered_cfg, opts)
     end
 
-    return filtered_config
+    return filtered_cfg
   end
 
   ---Check if a specific item is enabled
-  ---@param item_name string The name of the item
-  ---@param items_config table The items configuration
-  ---@param opts? table Options to pass to enabled functions
+  ---@param item_name string
+  ---@param items_cfg table
+  ---@param opts? table
   ---@return boolean
-  function Filter.is_enabled(item_name, items_config, opts)
-    local enabled_items = get_enabled_items(items_config, opts)
+  function Filter.is_enabled(item_name, items_cfg, opts)
+    local enabled_items = get_enabled_items(items_cfg, opts)
     return enabled_items[item_name] == true
   end
 

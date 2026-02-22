@@ -4,19 +4,11 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----Modify the path to be relative to the current working directory
----@param path string
----@return string
-local function modify_path(path)
-  return vim.fn.fnamemodify(path, ":.")
-end
-
 ---Create a file and the surrounding folders
 ---@param action {filepath: string, content: string} The action containing the filepath and content
 ---@return {status: "success"|"error", data: string}
 local function create(action)
-  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  filepath = vim.fs.normalize(filepath)
+  local filepath = vim.fs.normalize(action.filepath)
 
   -- Check if file already exists
   local stat = vim.uv.fs_stat(filepath)
@@ -117,7 +109,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The relative path to the file to create, including its filename and extension.",
+            description = "The absolute path to the file to create, including its filename and extension.",
           },
           content = {
             type = "string",
@@ -132,42 +124,42 @@ return {
     },
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.CreateFile
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, meta)
       log:trace("[Create File Tool] on_exit handler executed")
     end,
   },
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.CreateFile
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
-      return modify_path(self.args.filepath)
+    cmd_string = function(self, opts)
+      return self.args.filepath
     end,
 
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
-    prompt = function(self, tools)
-      return fmt("Create a file at `%s`?", modify_path(self.args.filepath))
+    prompt = function(self, meta)
+      return fmt("Create a file at `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
       local args = self.args
-      local path = args.filepath
+      local display_path = vim.fn.fnamemodify(args.filepath, ":.")
 
       local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
-      local file_ext = vim.fn.fnamemodify(path, ":e")
+      local file_ext = vim.fn.fnamemodify(args.filepath, ":e")
 
       local result_msg = fmt(
         [[Created file `%s`
@@ -175,7 +167,7 @@ return {
 ````%s
 %s
 ````]],
-        path,
+        display_path,
         file_ext,
         args.content or ""
       )
@@ -184,11 +176,10 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Create File Tool] Error output: %s", stderr)
 
@@ -198,14 +189,12 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.CreateFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = "The user rejected the creation of the file"
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      helpers.rejected(self, meta)
     end,
   },
 }

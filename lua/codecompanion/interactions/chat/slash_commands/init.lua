@@ -2,32 +2,32 @@ local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
----Resolve the callback to the correct module
----@param callback string The module to get
+---Resolve a path to the correct module
+---@param path string The module or file path
 ---@return table|nil
-local function resolve(callback)
-  local ok, slash_command = pcall(require, "codecompanion." .. callback)
+local function resolve(path)
+  local ok, slash_command = pcall(require, "codecompanion." .. path)
   if ok then
-    log:debug("Calling slash command: %s", callback)
+    log:debug("Calling slash command: %s", path)
     return slash_command
   end
 
-  -- Try loading the tool from the user's config using a module path
-  ok, slash_command = pcall(require, callback)
+  -- Try loading from the user's config using a module path
+  ok, slash_command = pcall(require, path)
   if ok then
-    log:debug("Calling slash command using a module path: %s", callback)
+    log:debug("Calling slash command using a module path: %s", path)
     return slash_command
   end
 
-  -- Try loading the tool from the user's config using a file path
+  -- Try loading from the user's config using a file path
   local err
-  slash_command, err = loadfile(vim.fs.normalize(callback))
+  slash_command, err = loadfile(vim.fs.normalize(path))
   if err then
-    return log:error("Could not load the slash command: %s", callback)
+    return log:error("Could not load the slash command: %s", path)
   end
 
   if slash_command then
-    log:debug("Calling slash command from a file path: %s", callback)
+    log:debug("Calling slash command from a file path: %s", path)
     return slash_command()
   end
 end
@@ -47,10 +47,7 @@ end
 function SlashCommands:set_provider(SlashCommand, providers)
   if SlashCommand.config.opts and SlashCommand.config.opts.provider then
     if not providers[SlashCommand.config.opts.provider] then
-      return log:error(
-        "Provider for the symbols slash command could not be found: %s",
-        SlashCommand.config.opts.provider
-      )
+      return log:error("Provider for the slash command could not be found: %s", SlashCommand.config.opts.provider)
     end
     return providers[SlashCommand.config.opts.provider](SlashCommand) --[[@type function]]
   end
@@ -70,19 +67,19 @@ function SlashCommands:execute(item, chat)
     return item.config.callback(chat)
   end
 
-  local callback = resolve(item.config.callback)
-  if not callback then
+  local resolved = resolve(item.config.path)
+  if not resolved then
     return log:error("Slash command not found: %s", label)
   end
 
-  if callback.enabled then
-    local enabled, err = callback.enabled(chat)
+  if resolved.enabled then
+    local enabled, err = resolved.enabled(chat)
     if enabled == false then
       return log:warn(err)
     end
   end
 
-  return callback
+  return resolved
     .new({
       Chat = chat,
       config = item.config,
@@ -118,7 +115,7 @@ function SlashCommands.context(chat, slash_command, opts)
   if slash_command == "file" then
     local buffer = {}
     for _, buf in ipairs(buf_utils.get_open()) do
-      if buf.relative_path == opts.path then
+      if buf.path == opts.path then
         buffer = {
           bufnr = buf.bufnr,
           name = buf.path,

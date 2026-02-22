@@ -23,6 +23,41 @@
 
 ---@alias ACP.availableCommands ACP.AvailableCommand[]
 
+---@meta Model Context Protocol
+
+---@class MCP.JSONRPCRequest
+---@field jsonrpc "2.0"
+---@field id integer | string
+---@field method string
+---@field params table<string, any>?
+
+---@class MCP.JSONRPCResultResponse
+---@field jsonrpc "2.0"
+---@field id integer | string
+---@field result table<string, any>?
+
+---@class MCP.JSONRPCErrorResponse
+---@field jsonrpc "2.0"
+---@field id integer | string
+---@field error { code: integer, message: string, data: any? }
+
+---@class MCP.Tool
+---@field name string
+---@field inputSchema table
+---@field description? string
+---@field title? string
+---@field execution? table
+
+---@class MCP.TextContent
+---@field type "text"
+---@field text string
+
+---@alias MCP.ContentBlock MCP.TextContent|any
+
+---@class MCP.CallToolResult
+---@field isError? boolean
+---@field content MCP.ContentBlock[]
+
 ---@meta Tree-sitter
 
 ---@class vim.treesitter.LanguageTree
@@ -48,7 +83,6 @@
 ---@field tools.calls? CodeCompanion.Chat.ToolCall[] Array of tool calls
 ---@field tools.id? string Tool ID
 ---@field opts? table Optional metadata used by the UI and processing
----@field opts.index? number If set, the message was inserted at this index
 ---@field opts.sync_all? boolean When synced, whether the entire buffer is shared
 ---@field opts.sync_diff? boolean When synced, whether only buffer diffs are shared
 ---@field opts.visible? boolean Whether the message should be shown in the chat UI
@@ -65,7 +99,7 @@
 ---@field tokens? number Optional token count associated with this message
 
 ---@class CodeCompanion.Chat.ToolFunctionCall
----@field name string Name of the function/tool (e.g. "cmd_runner", "grep_search")
+---@field name string Name of the function/tool (e.g. "run_command", "grep_search")
 ---@field arguments string|table Raw JSON string or parsed table of arguments
 
 ---@class CodeCompanion.Chat.ToolCall
@@ -92,16 +126,16 @@
 ---@field context table The context of the chat buffer from the completion menu
 ---@field opts table The options for the slash command
 
----@class CodeCompanion.Variables
----@field vars table The variables from the config
+---@class CodeCompanion.EditorContext
+---@field editor_context table The editor context from the config
 
----@class CodeCompanion.Variable
+---@class CodeCompanion.EditorContext
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
 ---@field params string Any additional parameters for the variable
 
----@class CodeCompanion.VariableArgs
+---@class CodeCompanion.EditorContextArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
@@ -120,6 +154,9 @@
 ---@field id number The unique identifier for the event
 ---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
+
+---@class CodeCompanion.Tools.Unresolved : CodeCompanion.Tools.Tool
+---@field extends? string The factory to use for resolution (e.g. "cmd_tool")
 
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool

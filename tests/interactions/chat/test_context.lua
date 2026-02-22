@@ -46,6 +46,23 @@ T["Context"]["Can be added to the UI of the chat buffer"] = function()
   h.eq("> - testing again", lines[5])
 end
 
+T["Context"]["Cannot be added twice with the same id"] = function()
+  child.lua([[
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<buf>test.lua</buf>",
+    })
+    _G.chat.context:add({
+      source = "test",
+      name = "test",
+      id = "<buf>test.lua</buf>",
+    })
+  ]])
+
+  h.eq(1, child.lua_get([[#_G.chat.context_items]]), "Should only have 1 context item")
+end
+
 T["Context"]["Can be deleted"] = function()
   child.lua([[
     -- Add context_items
@@ -166,7 +183,7 @@ T["Context"]["Can share all of a buffer"] = function()
        },
      })
      _G.chat.context:add({
-       id = "<buf>sync_all example</buf>",
+       id = "<buf>sync_all example2</buf>",
        path = "test2",
        source = "test",
      })
@@ -184,7 +201,7 @@ T["Context"]["Can share all of a buffer"] = function()
          role = "user",
          content = "sync_all context",
          context = {
-           id = "<buf>sync_all example</buf>",
+           id = "<buf>sync_all example2</buf>",
          },
        },
      }
@@ -219,7 +236,7 @@ T["Context"]["Can share all of a buffer"] = function()
     string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
     buffer[16]
   )
-  h.eq("> - <buf>sync_all example</buf>", buffer[17])
+  h.eq("> - <buf>sync_all example2</buf>", buffer[17])
 
   h.eq({
     {
@@ -233,7 +250,7 @@ T["Context"]["Can share all of a buffer"] = function()
       source = "tests.interactions.chat.slash_commands.basic",
     },
     {
-      id = "<buf>sync_all example</buf>",
+      id = "<buf>sync_all example2</buf>",
       opts = {
         sync_all = false,
         visible = true,
@@ -327,14 +344,11 @@ T["Context"]["can be cleared from messages"] = function()
   h.eq("Hello, World", content)
 end
 
----Bug fix: #889 https://github.com/olimorris/codecompanion.nvim/issues/889
----We want to use relative paths as they're prettier in the chat buffer than
----full paths. However, a lot of the providers only output the full path
-T["Context"]["file context_items always have a relative id"] = function()
+T["Context"]["file context_items use absolute paths"] = function()
   child.lua([[
      local path = vim.fn.fnamemodify(vim.fn.getcwd(), ":p") .. "tests/stubs/file.txt"
      _G.chat.context:add({
-       id = "<file>tests/stubs/file.txt</file>",
+       id = "<file>" .. path .. "</file>",
        path = path,
        source = "codecompanion.interactions.chat.slash_commands.builtin.file",
        opts = {
@@ -345,14 +359,13 @@ T["Context"]["file context_items always have a relative id"] = function()
      _G.chat:submit()
    ]])
 
-  h.expect_match(
-    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]),
-    [[^<attachment filepath="tests[\\/]stubs[\\/]file.txt">Here is the content from the file]]
-  )
-  h.expect_match(
-    child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]]),
-    [[^<file>tests[\\/]stubs[\\/]file.txt</file>$]]
-  )
+  local content = child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
+  h.expect_contains("tests/stubs/file.txt", content)
+  h.expect_contains('<attachment filepath="', content)
+  h.expect_contains("Here is the content from the file", content)
+
+  local context_id = child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]])
+  h.expect_contains("tests/stubs/file.txt", context_id)
 end
 
 T["Context"]["Correctly removes tool schema and usage flag on context deletion"] = function()
@@ -366,7 +379,7 @@ T["Context"]["Correctly removes tool schema and usage flag on context deletion"]
      _G.chat:add_message(message) -- Add to message history
 
      -- Simulate the pre-submit processing that adds tools to the chat buffer
-     _G.chat:replace_vars_and_tools(message) -- This calls tools:parse -> tools:add
+     _G.chat:replace_user_inputs(message) -- This calls tools:parse -> tools:add
      _G.chat:check_context() -- Sync the context table initially
    ]])
 
@@ -472,7 +485,7 @@ T["Context"]["Tool group with collapse_tools shows single group context"] = func
   child.lua([[
      local message = { role = "user", content = "@{test_group} help" }
      _G.chat:add_message(message)
-     _G.chat:replace_vars_and_tools(message)
+     _G.chat:replace_user_inputs(message)
    ]])
 
   local context_in_chat = child.lua_get([[_G.chat.context:get_from_chat()]])
@@ -498,7 +511,7 @@ T["Context"]["Tool group without collapse_tools shows individual tools"] = funct
   child.lua([[
      local message = { role = "user", content = "@{test_group2} help" }
      _G.chat:add_message(message)
-     _G.chat:replace_vars_and_tools(message)
+     _G.chat:replace_user_inputs(message)
    ]])
 
   local context_in_chat = child.lua_get([[_G.chat.context:get_from_chat()]])
@@ -524,7 +537,7 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   child.lua([[
      local message = { role = "user", content = "@{remove_group} help" }
      _G.chat:add_message(message)
-     _G.chat:replace_vars_and_tools(message)
+     _G.chat:replace_user_inputs(message)
    ]])
 
   -- Verify initial state

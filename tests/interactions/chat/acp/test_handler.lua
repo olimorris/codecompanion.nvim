@@ -380,7 +380,7 @@ T["ACPHandler"]["hydrates permission request with cached diff tool_call"] = func
     -- Stub the permission UI to capture the request
     _G.last_permission_request = nil
     package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
-      show = function(chat_arg, request)
+      confirm = function(chat_arg, request)
         _G.last_permission_request = request
       end
     }
@@ -426,7 +426,7 @@ T["ACPHandler"]["permission request passes through when toolCallId unknown"] = f
     -- Stub the permission UI to capture the request
     _G.last_permission_request = nil
     package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
-      show = function(chat_arg, request)
+      confirm = function(chat_arg, request)
         _G.last_permission_request = request
       end
     }

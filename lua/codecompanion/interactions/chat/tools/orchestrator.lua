@@ -60,8 +60,8 @@ local function cmd_to_func_tool(tool)
       end
 
       ---@param tools CodeCompanion.Tools
-      return function(tools, _, _, cb)
-        cb = vim.schedule_wrap(cb)
+      return function(tools, _, opts)
+        local cb = vim.schedule_wrap(opts.output_cb)
         execute_shell_command(cmd, function(out)
           if flag then
             tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
@@ -126,7 +126,7 @@ function Orchestrator:_setup_handlers()
         return
       end
       if self.tool.handlers and self.tool.handlers.setup then
-        return self.tool.handlers.setup(self.tool, self.tools)
+        return self.tool.handlers.setup(self.tool, { tools = self.tools })
       end
     end,
     prompt_condition = function()
@@ -135,7 +135,7 @@ function Orchestrator:_setup_handlers()
       end
 
       if self.tool.handlers and self.tool.handlers.prompt_condition then
-        return self.tool.handlers.prompt_condition(self.tool, self.tools, self.tools.tools_config)
+        return self.tool.handlers.prompt_condition(self.tool, { tools = self.tools })
       end
       return true
     end,
@@ -145,12 +145,28 @@ function Orchestrator:_setup_handlers()
       end
 
       if self.tool.handlers and self.tool.handlers.on_exit then
-        return self.tool.handlers.on_exit(self.tool, self.tools)
+        return self.tool.handlers.on_exit(self.tool, { tools = self.tools })
       end
     end,
   }
 
   self.output = {
+    cancelled = function(cmd)
+      if not self.tool then
+        return
+      end
+
+      if self.tool.output and self.tool.output.cancelled then
+        self.tool.output.cancelled(self.tool, { cmd = cmd, tools = self.tools })
+      else
+        send_response_to_chat(
+          self,
+          fmt("The user cancelled the execution of the %s tool", self.tool.name),
+          fmt("Cancelled `%s`", self.tool.name)
+        )
+      end
+    end,
+
     cmd_string = function()
       if not self.tool then
         return
@@ -161,14 +177,31 @@ function Orchestrator:_setup_handlers()
       return nil
     end,
 
+    error = function(cmd)
+      if not self.tool then
+        return
+      end
+
+      if self.tool.output and self.tool.output.error then
+        self.tool.output.error(
+          self.tool,
+          vim.tbl_isempty(self.tools.stderr) and nil or self.tools.stderr,
+          { cmd = cmd, tools = self.tools }
+        )
+      else
+        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
+      end
+    end,
+
     prompt = function()
       if not self.tool then
         return
       end
       if self.tool.output and self.tool.output.prompt then
-        return self.tool.output.prompt(self.tool, self.tools)
+        return self.tool.output.prompt(self.tool, { tools = self.tools })
       end
     end,
+
     rejected = function(cmd, opts)
       if not self.tool then
         return
@@ -177,7 +210,7 @@ function Orchestrator:_setup_handlers()
       opts = opts or {}
 
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.tool, self.tools, cmd, opts)
+        self.tool.output.rejected(self.tool, { cmd = cmd, tools = self.tools, opts = opts })
       else
         local rejection = fmt("\nThe user rejected the execution of the %s tool", self.tool.name)
         if opts.reason then
@@ -187,39 +220,18 @@ function Orchestrator:_setup_handlers()
         send_response_to_chat(self, rejection)
       end
     end,
-    error = function(cmd)
-      if not self.tool then
-        return
-      end
 
-      if self.tool.output and self.tool.output.error then
-        self.tool.output.error(self.tool, self.tools, cmd, self.tools.stderr)
-      else
-        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
-      end
-    end,
-    cancelled = function(cmd)
-      if not self.tool then
-        return
-      end
-
-      if self.tool.output and self.tool.output.cancelled then
-        self.tool.output.cancelled(self.tool, self.tools, cmd)
-      else
-        send_response_to_chat(
-          self,
-          fmt("The user cancelled the execution of the %s tool", self.tool.name),
-          fmt("Cancelled `%s`", self.tool.name)
-        )
-      end
-    end,
     success = function(cmd)
       if not self.tool then
         return
       end
 
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self.tool, self.tools, cmd, self.tool_output or {})
+        self.tool.output.success(
+          self.tool,
+          vim.tbl_isempty(self.tool_output) and nil or self.tool_output,
+          { cmd = cmd, tools = self.tools }
+        )
       else
         send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end
@@ -232,7 +244,11 @@ end
 ---@return nil
 function Orchestrator:_finalize_tools()
   self.tools.tool = nil
-  return utils.fire("ToolsFinished", { id = self.id, bufnr = self.tools.bufnr })
+  return utils.fire("ToolsFinished", {
+    bufnr = self.tools.bufnr,
+    id = self.id,
+    status = self.tools.status,
+  })
 end
 
 ---Setup the tool to be executed
@@ -248,7 +264,7 @@ function Orchestrator:setup_next_tool(input)
   self.tool_output = {}
 
   self:_setup_handlers()
-  self.handlers.setup() -- Call this early as cmd_runner needs to setup its cmds dynamically
+  self.handlers.setup() -- Call this early as run_command needs to setup its cmds dynamically
 
   -- Transform cmd-based tools to func-based
   self.tool = cmd_to_func_tool(self.tool)
@@ -273,6 +289,12 @@ function Orchestrator:setup_next_tool(input)
 
     if require_approval_before then
       log:debug("[Orchestrator::setup_next_tool] Asking for approval")
+      utils.fire("ToolApprovalRequested", {
+        bufnr = self.tools.bufnr,
+        id = self.id,
+        name = self.tool.name,
+        args = self.tool.args,
+      })
 
       local prompt = self.output.prompt()
       if prompt == nil or prompt == "" then
@@ -342,13 +364,12 @@ end
 ---@param args { cmd: function, input?: any }
 ---@return nil
 function Orchestrator:execute_tool(args)
-  utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.tools.bufnr })
-
-  pcall(function()
-    local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-    self.execution_id = edit_tracker.start_tool_monitoring(self.tool.name, self.tools.chat, self.tool.args)
-  end)
-
+  utils.fire("ToolStarted", {
+    bufnr = self.tools.bufnr,
+    id = self.id,
+    tool = self.tool.name,
+    args = self.tool.args,
+  })
   return Runner.new({ index = 1, orchestrator = self, cmd = args.cmd }):setup(args.input)
 end
 
@@ -359,14 +380,6 @@ function Orchestrator:error(args)
   self.tools.status = self.tools.constants.STATUS_ERROR
   if args.error then
     table.insert(self.tools.stderr, args.error)
-  end
-
-  if self.tool and self.tool.name then
-    -- Wrap this in error handling to avoid breaking the tool execution
-    pcall(function()
-      local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false, self.execution_id)
-    end)
   end
 
   local ok, err = pcall(function()
@@ -390,13 +403,6 @@ end
 ---@return nil
 function Orchestrator:success(args)
   self.tools.status = self.tools.constants.STATUS_SUCCESS
-
-  if self.tool and self.tool.name then
-    pcall(function()
-      local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-      edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true, self.execution_id)
-    end)
-  end
 
   if args.output then
     table.insert(self.tools.stdout, args.output)
@@ -424,7 +430,12 @@ function Orchestrator:finalize_tool()
     pcall(function()
       self.handlers.on_exit()
     end)
-    utils.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.tools.bufnr })
+    utils.fire("ToolFinished", {
+      bufnr = self.tools.bufnr,
+      id = self.id,
+      name = self.tool.name,
+      args = self.tool.args,
+    })
     self.tool = nil
   end
 end

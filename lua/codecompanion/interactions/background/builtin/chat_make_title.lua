@@ -56,18 +56,11 @@ function M.request(background, chat)
   background:ask({
     {
       role = "system",
-      content = [[You are a title generator. Review the conversation and generate a concise title.
-
-Constraints:
-- Max 50 characters.
-- The conversation may be about coding, writing, analysis, or general questions.
-- Focus on the user's core intent.
-- Output ONLY the raw text of the title.
-- Do NOT use quotation marks, markdown, or prefixes like "Title:".]],
+      content = [[You are an expert in crafting pithy titles for chatbot conversations. You are presented with a chat request, and you reply with a brief title that captures the main topic of that request. Keep your answers short and impersonal.\nThe title should not be wrapped in quotes. It should be about 8 words or fewer.\nHere are some examples of good titles:\n- Git rebase question\n- Installing Python packages\n- Location of LinkedList implementation in codebase\n- Adding tests to Neovim plugin\n- React useState hook usage]],
     },
     {
       role = "user",
-      content = fmt([[<conversation>%s</conversation]], M.format_messages(chat.messages)),
+      content = fmt([[Please write a brief title for the following request:\n\n%s]], M.format_messages(chat.messages)),
     },
   }, {
     method = "async",

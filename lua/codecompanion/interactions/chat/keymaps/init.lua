@@ -1,6 +1,8 @@
 local async = require("plenary.async")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local triggers = require("codecompanion.triggers")
+
 local ts = require("codecompanion.utils.treesitter")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -13,13 +15,12 @@ local M = {}
 local _cached_options = {}
 M.options = {
   callback = function()
-    local float_opts = {
-      filetype = "codecompanion",
+    local float_opts = vim.tbl_extend("force", config.display.chat.floating_window, {
+      ft = "codecompanion",
       lock = true,
       style = "minimal",
       title = "Options",
-      window = config.display.chat.window,
-    }
+    })
 
     if next(_cached_options) ~= nil then
       return ui_utils.create_float(_cached_options, float_opts)
@@ -92,13 +93,13 @@ M.options = {
     -- Workout the column spacing
     local keymaps_max = max("description", keymaps)
 
-    local vars = {}
-    vim.iter(config.interactions.chat.variables):each(function(key, val)
+    local ec = {}
+    vim.iter(config.interactions.chat.editor_context):each(function(key, val)
       if not val.hide_in_help_window then
-        vars[key] = val
+        ec[key] = val
       end
     end)
-    local vars_max = max("key", vars)
+    local vars_max = max("key", ec)
 
     local tools = {}
     -- Add tools
@@ -167,13 +168,16 @@ M.options = {
       ::continue::
     end
 
-    -- Variables
+    -- Editor Context
     table.insert(lines, "")
-    table.insert(lines, "### Variables")
+    table.insert(lines, "### Editor Context")
 
-    for key, val in sorted_pairs(vars) do
+    for key, val in sorted_pairs(ec) do
       local desc = clean_and_truncate(val.description)
-      table.insert(lines, indent .. pad("#{" .. key .. "}", max_length, 4) .. " " .. desc)
+      table.insert(
+        lines,
+        indent .. pad(string.format("%s{%s}", triggers.mappings.editor_context, key), max_length, 4) .. " " .. desc
+      )
     end
 
     -- Tools
@@ -183,7 +187,10 @@ M.options = {
     for key, val in sorted_pairs(tools) do
       if key ~= "opts" then
         local desc = clean_and_truncate(val.description)
-        table.insert(lines, indent .. pad("@{" .. key .. "}", max_length, 4) .. " " .. desc)
+        table.insert(
+          lines,
+          indent .. pad(string.format("%s{%s}", triggers.mappings.tools, key), max_length, 4) .. " " .. desc
+        )
       end
     end
 
@@ -199,7 +206,7 @@ M.completion = {
       async.run(function()
         local slash_cmds = completion.slash_commands()
         local tools = completion.tools()
-        local vars = completion.variables()
+        local ec = completion.editor_context()
 
         local items = {}
 
@@ -209,18 +216,18 @@ M.completion = {
         if type(tools[1]) == "table" then
           vim.list_extend(items, tools)
         end
-        if type(vars[1]) == "table" then
-          vim.list_extend(items, vars)
+        if type(ec[1]) == "table" then
+          vim.list_extend(items, ec)
         end
 
         -- Process each item to match the completion format
         for _, item in ipairs(items) do
           if item.label then
-            -- Add bracket wrapping for variables and tools like cmp/blink do
-            if item.type == "variable" then
-              item.word = string.format("#{%s}", item.label:sub(2))
+            -- Add bracket wrapping for editor context and tools like cmp/blink do
+            if item.type == "editor_context" then
+              item.word = string.format("%s{%s}", triggers.mappings.editor_context, item.label:sub(2))
             elseif item.type == "tool" then
-              item.word = string.format("@{%s}", item.label:sub(2))
+              item.word = string.format("%s{%s}", triggers.mappings.tools, item.label:sub(2))
             else
               item.word = item.label
             end
@@ -505,17 +512,26 @@ M.previous_chat = {
   end,
 }
 
+---Resolve the role names from the chat's adapter
+---@param chat CodeCompanion.Chat
+---@return string[]
+local function resolve_roles(chat)
+  local roles = config.interactions.chat.roles
+  local llm_role = type(roles.llm) == "function" and roles.llm(chat.adapter) or roles.llm
+  return { roles.user, llm_role }
+end
+
 M.next_header = {
   desc = "Go to the next message",
-  callback = function()
-    ts.goto_heading("next", 1)
+  callback = function(chat)
+    ts.goto_heading({ direction = "next", count = 1, roles = resolve_roles(chat) })
   end,
 }
 
 M.previous_header = {
   desc = "Go to the previous message",
-  callback = function()
-    ts.goto_heading("prev", 1)
+  callback = function(chat)
+    ts.goto_heading({ direction = "prev", count = 1, roles = resolve_roles(chat) })
   end,
 }
 
@@ -638,13 +654,6 @@ M.copilot_stats = {
       return utils.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
-  end,
-}
-
-M.super_diff = {
-  desc = "Show super diff buffer",
-  callback = function(chat)
-    require("codecompanion.interactions.chat.super_diff").show_super_diff(chat)
   end,
 }
 

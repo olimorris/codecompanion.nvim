@@ -9,13 +9,13 @@ end
 
 local api = vim.api
 
-api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatSubtext", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatFold", { link = "@markup.quote.markdown", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatInfoBanner", { link = "WildMenu", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatSubtext", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", default = true })
@@ -27,18 +27,23 @@ api.nvim_set_hl(0, "CodeCompanionChatToolPending", { link = "DiagnosticWarn", de
 api.nvim_set_hl(0, "CodeCompanionChatToolPendingIcon", { link = "DiagnosticWarn", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatInfoBanner", { link = "WildMenu", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatEditorContext", { link = "Identifier", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffAdd", { link = "DiffAdd", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffDelete", { link = "DiffDelete", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffText", { link = "DiffText", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffTextDelete", { link = "DiffTextDelete", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffBanner", { link = "DiagnosticHint", default = true })
+api.nvim_set_hl(0, "CodeCompanionDiffBannerInline", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
-local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
-pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })
 
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
 
 -- Setup syntax highlighting for the chat buffer
----@param bufnr? integer
+---@param bufnr? number
 local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   local config = require("codecompanion.config")
+  local triggers = require("codecompanion.triggers")
 
   -- Ref: #2344 - schedule_wrap defers execution to the next event loop cycle.
   -- By that time, the buffer may have been deleted (e.g. user closed the
@@ -50,12 +55,16 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   vim.bo[bufnr or 0].syntax = "ON"
 
   -- As tools can now be created from outside of the config, apply a general pattern
-  vim.cmd.syntax('match CodeCompanionChatTool "@{[^}]*}"')
+  vim.cmd.syntax('match CodeCompanionChatTool "' .. triggers.mappings.tools .. '{[^}]*}"')
 
-  vim.iter(config.interactions.chat.variables):each(function(name)
-    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
-    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
-    vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
+  vim.iter(config.interactions.chat.editor_context):each(function(name)
+    vim.cmd.syntax('match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. '}"')
+    vim.cmd.syntax(
+      'match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. ':[^}]*}"'
+    )
+    vim.cmd.syntax(
+      'match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. ':[^}]*}{[^}]*}"'
+    )
   end)
 end)
 
@@ -97,7 +106,7 @@ api.nvim_create_autocmd("BufEnter", {
 
     local config = require("codecompanion.config")
 
-    local buffer_config = config.interactions.chat.variables.buffer.opts
+    local buffer_config = config.interactions.chat.editor_context.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
     local excluded_buftypes = excluded.buftypes or {}

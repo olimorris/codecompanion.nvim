@@ -7,7 +7,7 @@ return {
   schema = og.schema,
   handlers = {
     setup = og.handlers.setup,
-    prompt_condition = function(self, tools, config)
+    prompt_condition = function(self, meta)
       if self.args.data == "Reject" then
         return false
       end
