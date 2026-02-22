@@ -147,6 +147,10 @@ return {
           path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
+        ["get_diagnostics"] = {
+          path = "interactions.chat.tools.builtin.get_diagnostics",
+          description = "Get LSP diagnostics for a given file",
+        },
         ["ask_questions"] = {
           path = "interactions.chat.tools.builtin.ask_questions",
           description = "Ask the user questions to clarify requirements or validate assumptions",

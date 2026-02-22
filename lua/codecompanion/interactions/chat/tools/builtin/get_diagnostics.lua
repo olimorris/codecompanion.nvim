@@ -1,6 +1,7 @@
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
 
+local api = vim.api
 local fmt = string.format
 
 local severity_labels = {
@@ -10,11 +11,19 @@ local severity_labels = {
   [4] = "HINT",
 }
 
+-- Map schema severity names to vim.diagnostic.severity keys
+local severity_map = {
+  ERROR = "ERROR",
+  WARNING = "WARN",
+  INFORMATION = "INFO",
+  HINT = "HINT",
+}
+
 ---Get the diagnostics for a given file
 ---@param action { filepath: string, severity: string|nil }
 ---@return { status: "success"|"error", data: string }
 local function get_diagnostics(action)
-  local filepath = action.filepath
+  local filepath = vim.fs.normalize(action.filepath)
 
   if not filepath or filepath == "" then
     return {
@@ -25,13 +34,25 @@ local function get_diagnostics(action)
 
   local normalized = vim.fn.fnamemodify(filepath, ":p")
   local bufnr = vim.fn.bufnr(normalized)
+
+  local is_existing_buffer = true
   if bufnr == -1 then
-    -- Try to load the file into a buffer to obtain diagnostics
+    -- Buffer doesn't exist so we need to load it
     bufnr = vim.fn.bufadd(normalized)
     vim.fn.bufload(bufnr)
+
+    -- Trigger filetype detection which fires the FileType autocommand.
+    -- LSP auto-attach listens on FileType, so without this the LSP
+    -- never attaches to buffers opened via bufadd/bufload.
+    local ft = vim.filetype.match({ buf = bufnr })
+    if ft then
+      vim.bo[bufnr].filetype = ft
+    end
+
+    is_existing_buffer = false
   end
 
-  if not vim.api.nvim_buf_is_valid(bufnr) then
+  if not api.nvim_buf_is_valid(bufnr) then
     return {
       status = "error",
       data = fmt("Could not resolve a valid buffer for `%s`", filepath),
@@ -40,10 +61,27 @@ local function get_diagnostics(action)
 
   local min_severity = vim.diagnostic.severity.HINT
   if action.severity then
-    local mapped = vim.diagnostic.severity[string.upper(action.severity)]
-    if mapped then
-      min_severity = mapped
+    local key = severity_map[string.upper(action.severity)]
+    if key then
+      local mapped = vim.diagnostic.severity[key]
+      if mapped then
+        min_severity = mapped
+      end
     end
+  end
+
+  if not is_existing_buffer then
+    -- Wait for LSP to attach to the freshly loaded buffer
+    vim.wait(5000, function()
+      return #vim.lsp.get_clients({ bufnr = bufnr }) > 0
+    end, 50)
+  end
+
+  -- Wait for diagnostics to be published (LSP may still be processing after edits)
+  if #vim.lsp.get_clients({ bufnr = bufnr }) > 0 then
+    vim.wait(5000, function()
+      return #vim.diagnostic.get(bufnr) > 0
+    end, 50)
   end
 
   local diagnostics = vim.diagnostic.get(bufnr, {
@@ -63,9 +101,7 @@ local function get_diagnostics(action)
   for _, diagnostic in ipairs(diagnostics) do
     local lines = {}
     for i = diagnostic.lnum, diagnostic.end_lnum do
-      local line_content = vim.trim(
-        table.concat(vim.api.nvim_buf_get_lines(bufnr, i, i + 1, false), "")
-      )
+      local line_content = vim.trim(table.concat(api.nvim_buf_get_lines(bufnr, i, i + 1, false), ""))
       table.insert(lines, fmt("%d: %s", i + 1, line_content))
     end
 
@@ -88,12 +124,7 @@ Code:
 
   return {
     status = "success",
-    data = fmt(
-      "Diagnostics for `%s` (%d found):\n\n%s",
-      filepath,
-      #diagnostics,
-      table.concat(formatted, "\n\n")
-    ),
+    data = fmt("Diagnostics for `%s` (%d found):\n\n%s", filepath, #diagnostics, table.concat(formatted, "\n\n")),
   }
 end
 
