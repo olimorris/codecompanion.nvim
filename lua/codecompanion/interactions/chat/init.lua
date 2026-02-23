@@ -72,6 +72,7 @@ local hash = require("codecompanion.utils.hash")
 local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local tokens = require("codecompanion.utils.tokens")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -170,6 +171,20 @@ local function sync_all_buffer_content(chat)
       require(item.source)
         .new({ Chat = chat })
         :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { item = true })
+    end
+  end
+end
+
+---Backfill estimated_tokens on any messages that lack it (e.g. from args.messages or restored chats)
+---@param messages CodeCompanion.Chat.Messages
+---@return nil
+local function backfill_estimated_tokens(messages)
+  for _, msg in ipairs(messages) do
+    if not msg._meta then
+      msg._meta = {}
+    end
+    if msg._meta.estimated_tokens == nil and type(msg.content) == "string" then
+      msg._meta.estimated_tokens = tokens.calculate(msg.content)
     end
   end
 end
@@ -658,6 +673,7 @@ function Chat.new(args)
 
   self:dispatch("on_created")
 
+  backfill_estimated_tokens(self.messages)
   utils.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
@@ -920,6 +936,7 @@ function Chat:set_system_prompt(prompt, opts)
     _meta.cycle = self.cycle
     _meta.id = make_id(system_prompt)
     _meta.index = _meta.index or 1
+    _meta.estimated_tokens = tokens.calculate(prompt)
     system_prompt._meta = _meta
 
     table.insert(self.messages, _meta.index, system_prompt)
@@ -977,7 +994,11 @@ function Chat:add_message(data, opts)
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
-    _meta = { id = 1, cycle = self.cycle },
+    _meta = {
+      id = 1,
+      cycle = self.cycle,
+      estimated_tokens = type(data.content) == "string" and tokens.calculate(data.content) or nil,
+    },
   }
 
   -- Map tool_calls to tools.calls
