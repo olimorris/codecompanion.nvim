@@ -86,7 +86,8 @@ CodeCompanion.nvim is organized into several key directories:
 
 ### Prerequisites
 
-- Neovim 0.10.0+
+- Neovim 0.11.0+
+- [tree-sitter](https://github.com/tree-sitter/tree-sitter) for testing
 - [lua-language-server](https://github.com/LuaLS/lua-language-server) for LSP support and type annotations
 - [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting
 - [pandoc](https://pandoc.org) for doc generation
