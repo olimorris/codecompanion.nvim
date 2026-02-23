@@ -91,6 +91,20 @@ CodeCompanion.nvim is organized into several key directories:
 - [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting
 - [pandoc](https://pandoc.org) for doc generation
 
+### Using the included Dockerfile
+
+The project includes a Dockerfile to create a container where you can run the `make` tools, including the tests.
+
+Usage example:
+
+```bash
+# Build the container image
+docker build -t codecompanion.nvim .
+
+# Use it to get the deps and run the tests
+docker run --rm -ti -u $(id -u):$(id -g) -v "$(pwd)":/cc -w /cc codecompanion.nvim:latest make deps test
+```
+
 ### Setting Up for Development
 
 > This section explain how to setup the environment for development using lazy.nvim package manager. However you can use the package manager of your choice.
