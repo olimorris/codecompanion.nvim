@@ -1,63 +1,12 @@
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
-local os_utils = require("codecompanion.utils.os")
-local utils = require("codecompanion.utils")
 
 local fmt = string.format
-
----Build the default system prompt for a command tool
----@param spec { name: string, description: string }
----@return string
-local function default_system_prompt(spec)
-  return fmt(
-    [[# %s Tool (`%s`)
-
-## CONTEXT
-- You have access to the `%s` tool running within CodeCompanion, in Neovim.
-- %s
-- All tool executions take place in the current working directory %s.
-
-## OBJECTIVE
-- Follow the tool's schema.
-- Respond with a single command, per tool execution.
-
-## RESPONSE
-- Only invoke this tool when the user specifically asks.
-
-## SAFETY RESTRICTIONS
-- Never execute the following dangerous commands under any circumstances:
-  - `rm -rf /` or any variant targeting root directories
-  - `rm -rf ~` or any command that could wipe out home directories
-  - `rm -rf .` without specific context and explicit user confirmation
-  - Any command with `:(){:|:&};:` or similar fork bombs
-  - Any command that would expose sensitive information (keys, tokens, passwords)
-  - Commands that intentionally create infinite loops
-- For any destructive operation (delete, overwrite, etc.), always:
-  1. Warn the user about potential consequences
-  2. Request explicit confirmation before execution
-  3. Suggest safer alternatives when available
-- If unsure about a command's safety, decline to run it and explain your concerns
-
-## USER ENVIRONMENT
-- Shell: %s
-- Operating System: %s
-- Neovim Version: %s]],
-    spec.name,
-    spec.name,
-    spec.name,
-    spec.description,
-    vim.fn.getcwd(),
-    vim.o.shell,
-    utils.capitalize(os_utils.get_os()),
-    vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
-  )
-end
 
 ---Create a command-line tool from a specification table.
 ---
 ---This factory function returns a complete CodeCompanion tool table that
 ---executes shell commands. Users provide a minimal spec and get a fully
----functional tool with schema, system prompt, approval prompts, and
----output handling.
+---functional tool with schema, approval prompts, and output handling.
 ---
 ---@param spec { name: string, description: string, schema: { properties: table, required: table, additionalProperties?: boolean }, build_cmd: fun(args: table): string, system_prompt?: string|fun(schema: table): string, handlers?: table, output?: table }
 ---@return CodeCompanion.Tools.Tool
@@ -164,7 +113,7 @@ local function cmd_tool(spec)
     name = spec.name,
     cmds = {},
     schema = schema,
-    system_prompt = spec.system_prompt or default_system_prompt(spec),
+    system_prompt = spec.system_prompt,
     handlers = vim.tbl_extend("force", default_handlers, spec.handlers or {}),
     output = vim.tbl_extend("force", default_output, spec.output or {}),
   }

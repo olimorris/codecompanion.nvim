@@ -91,10 +91,6 @@ return {
           path = "interactions.chat.tools.builtin.files",
           description = "Update the file system with the LLM's response",
         },
-        ["next_edit_suggestion"] = {
-          path = "interactions.chat.tools.builtin.next_edit_suggestion",
-          description = "Suggest and jump to the next position to edit",
-        },
         ["memory"] = {
           path = "interactions.chat.tools.builtin.memory",
           description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",

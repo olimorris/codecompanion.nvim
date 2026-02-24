@@ -3978,18 +3978,6 @@ To use the tool:
 <
 
 
-NEXT_EDIT_SUGGESTION
-
-Inspired by Copilot Next Edit Suggestion
-<https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions>, the
-tool gives the LLM the ability to show the user where the next edit is. The LLM
-can only suggest edits in files or buffers that have been shared with it as
-context.
-
-**Options:** - `jump_action` (string|function) Determines how a jump to the
-next edit is made (Default: `tabnew`)
-
-
 READ_FILE
 
 This tool can read the contents of a specific file in the current working
