@@ -123,7 +123,7 @@ end
 
 T["Utils"]["benchmark()"] = MiniTest.new_set()
 
-T["Utils"]["benchmark()"]["calculate() throughput smoke test"] = function()
+T["Utils"]["benchmark()"]["calculate() throughput metrics"] = function()
   local result = child.lua([[
     local uv = vim.uv or vim.loop
     local msg = string.rep("Hello 123 !! ", 200) .. "👋世界"
@@ -170,7 +170,7 @@ T["Utils"]["benchmark()"]["calculate() throughput smoke test"] = function()
   )
 end
 
-T["Utils"]["benchmark()"]["get_tokens() throughput smoke test"] = function()
+T["Utils"]["benchmark()"]["get_tokens() throughput metrics"] = function()
   local result = child.lua([[
     local uv = vim.uv or vim.loop
 
