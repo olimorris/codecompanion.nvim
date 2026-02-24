@@ -205,6 +205,11 @@ T["cmds_tab"][":CodeCompanionChat opens in tab when set in config"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["cmds_tab"][":CodeCompanionChat Toggle goes to last tab from chat"] = function()
+  child.cmd([[CodeCompanionChat Toggle]])
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 T["cmds_tab_sticky"] = new_set({
   hooks = {
     pre_once = function()
