@@ -30,14 +30,14 @@ Thank you to the following people:
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :electric_plug: Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI (or [bring your own](https://codecompanion.olimorris.dev/extending/adapters.html))
-- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/docs/cli/) and [OpenCode](https://opencode.ai)
+- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/docs/cli/), [Mistral Vibe](https://github.com/mistralai/mistral-vibe) and [OpenCode](https://opencode.ai)
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters#community-adapters)
+- :battery: Support for [Model Context Protocol (MCP)](/model-context-protocol)
 - :rocket: [Inline transformations](https://codecompanion.olimorris.dev/usage/inline-assistant.html), code creation and refactoring
-- :art: [Variables](https://codecompanion.olimorris.dev/usage/chat-buffer/variables.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/tools.html) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
+- :art: [Editor Context](https://codecompanion.olimorris.dev/usage/chat-buffer/editor-context.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/tools.html) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
 - :brain: Support for [rules](https://codecompanion.olimorris.dev/usage/chat-buffer/rules.html) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
-- :crystal_ball: Native [Super Diff](https://codecompanion.olimorris.dev/usage/chat-buffer/index.html#super-diff) for tracking agent edits
 - :sparkles: Built-in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
-- :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/configuration/prompt-library.html#creating-prompts), Variables and Slash Commands
+- :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/configuration/prompt-library.html#creating-prompts), Editor Context and Slash Commands
 - :books: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
 - :art: Support for [vision and images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images-vision) as input
 - :muscle: Async execution for fast performance
@@ -127,7 +127,7 @@ buffer
 Command
 - [Saghen](https://github.com/Saghen) for the fantastic docs inspiration from [blink.cmp](https://github.com/Saghen/blink.cmp) and continued PRs to the project
 - [Catwell](https://github.com/catwell) for the [queue](https://github.com/catwell/cw-lua/blob/master/deque/deque.lua) inspiration that I use to stack agents and tools
-- [bassamsdata](https://github.com/bassamsdata) for the Super Diff, amazing `insert_edit_into_file` tool (the list is endless) and ongoing contributions to this project
+- [bassamsdata](https://github.com/bassamsdata) for the amazing `insert_edit_into_file` tool (the list is endless) and ongoing contributions to this project
 - [ravitemer](https://github.com/ravitemer) for the fantastic extensions API
 - [Davidyz](https://github.com/Davidyz) for his continued, excellent contributions that keep CodeCompanion going
 - [Conrad Irwin](https://github.com/conradirwin), [Agus Zubiaga](https://github.com/agu-z) and Morgan Krey from [Zed Industries](https://github.com/zed-industries) for their support in implementing [ACP](https://agentclientprotocol.com)

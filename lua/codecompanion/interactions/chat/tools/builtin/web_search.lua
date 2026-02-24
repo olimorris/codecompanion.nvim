@@ -11,10 +11,11 @@ return {
   cmds = {
     ---@param self CodeCompanion.Tools The Editor tool
     ---@param args table The arguments from the LLM's tool call
-    ---@param cb function Callback for asynchronous calls
+    ---@param opts {input: any, output_cb: fun(msg: table)}
     ---@return nil|{ status: "success"|"error", data: string }
-    function(self, args, _, cb)
-      local opts = self.tool.opts
+    function(self, args, opts)
+      local cb = opts.output_cb
+      opts = self.tool.opts
 
       if not opts or not opts.adapter then
         log:error("[Web Search Tool] No adapter provided")
@@ -44,13 +45,8 @@ return {
         })
         :request({ query = query, domains = args.domains }, {
           callback = function(err, data)
-            local error_message = [[Error searching for `%s`]]
-            local error_message_expanded = error_message .. "\n%s"
-
-            if err then
-              log:error("[Web Search Tool] " .. error_message, query)
-              return cb({ status = "error", data = fmt(error_message_expanded, query, err) })
-            end
+            local error_message = [[Error searching for "%s"]]
+            local error_message_expanded = error_message .. " %s"
 
             if data then
               local output = adapter.methods.tools.web_search.callback(adapter, data)
@@ -91,11 +87,10 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tool.WebSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
 
       local content = vim
         .iter(stdout[1])
@@ -106,18 +101,17 @@ return {
       local length = #content
 
       local llm_output = fmt([[%s]], table.concat(content, "\n"))
-      local user_output = fmt([[Searched for `%s`, %d result(s)]], cmd.query, length)
+      local user_output = fmt([[Searched for `%s`, %d result(s)]], meta.cmd.query, length)
 
       chat:add_tool_output(self, llm_output, user_output)
     end,
 
     ---@param self CodeCompanion.Tool.WebSearch
-    ---@param tools CodeCompanion.Tools
     ---@param stderr table The error output from the command
-    error = function(self, tools, _, stderr, _)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local args = self.args
-      log:debug("[Web Search Tool] Error output: %s", stderr)
 
       local error_output = fmt([[Error searching for `%s`]], args.query)
 

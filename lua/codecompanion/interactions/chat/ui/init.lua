@@ -54,6 +54,7 @@ end
 ---@field roles table The roles in the chat
 ---@field winnr number The window number of the chat
 ---@field settings table The settings for the chat
+---@field title string|nil The title of the chat window
 ---@field tokens number The current token count in the chat
 ---@field window_opts? table The window configuration options for the chat buffer
 
@@ -65,6 +66,7 @@ end
 ---@field roles table
 ---@field winnr number
 ---@field settings table
+---@field title string|nil
 ---@field tokens number
 ---@field window_opts? table
 
@@ -84,6 +86,7 @@ function UI.new(args)
     },
     roles = args.roles,
     settings = args.settings,
+    title = args.title,
     tokens = args.tokens,
     winnr = args.winnr,
     window_opts = args.window_opts,
@@ -232,6 +235,11 @@ function UI:open(opts)
   local width = window.width > 1 and window.width or math.floor(cols() * window.width)
 
   if window.layout == "float" then
+    local title = window.title or " CodeCompanion "
+    if self.title then
+      title = string.format(" %s ", self.title)
+    end
+
     local win_opts = {
       relative = window.relative,
       width = width,
@@ -239,7 +247,7 @@ function UI:open(opts)
       col = window.col or math.floor((cols() - width) / 2),
       row = window.row or math.floor((rows() - height) / 2),
       border = window.border,
-      title = window.title or "CodeCompanion",
+      title = title,
       title_pos = "center",
       zindex = 45,
     }
@@ -582,7 +590,7 @@ function UI:clear_virtual_text(extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
----@return number, integer, integer
+---@return number, number, number
 function UI:last()
   local line_count = api.nvim_buf_line_count(self.chat_bufnr)
 

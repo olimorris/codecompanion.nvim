@@ -20,14 +20,14 @@ CodeCompanion is a Neovim plugin which enables you to code with AI, using LLMs a
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :electric_plug: Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
-- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli) and [OpenCode](https://opencode.ai)
+- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/cli/), [Mistral Vibe](https://github.com/mistralai/mistral-vibe) and [OpenCode](https://opencode.ai)
 - :heart_hands: User contributed and supported [adapters](/configuration/adapters-http#community-adapters)
+- :battery: Support for [Model Context Protocol (MCP)](/model-context-protocol)
 - :rocket: [Inline transformations](/usage/inline-assistant.html), code creation and refactoring
-- :robot: [Variables](/usage/chat-buffer/variables), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/tools) and [Workflows](/usage/workflows) to improve LLM output
+- :robot: [Editor Context](/usage/chat-buffer/editor-context), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/tools) and [Workflows](/usage/workflows) to improve LLM output
 - :brain: Support for [rules](/usage/chat-buffer/rules) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
-- :crystal_ball: Native [Super Diff](/usage/chat-buffer/index#super-diff) for tracking agent edits
 - :sparkles: Built-in [prompt library](/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
-- :building_construction: Create your own [custom prompts](configuration/prompt-library#creating-prompts), Variables and Slash Commands
+- :building_construction: Create your own [custom prompts](configuration/prompt-library#creating-prompts), Editor Context and Slash Commands
 - :books: Have [multiple chats](/usage/introduction#quickly-accessing-a-chat-buffer) open at the same time
 - :art: Support for [vision and images](/usage/chat-buffer/#images-vision) as input
 - :muscle: Async execution for fast performance
@@ -55,7 +55,7 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
 - Kimi CLI (`kimi_cli`) - Requires an API key
-- Mistral AI (`mistral`) - Requires an API key
+- Mistral AI (`mistral`) - Requires an API key or a Le Chat Pro subscription
 - Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key

@@ -52,7 +52,7 @@ Tool calls and their output are stored in the chat buffer's messages like so:
       index = 3,
       sent = true
     },
-    content = "Can you use the cmd_runner tool to run `ls` on my machine and `pwd`?",
+    content = "Can you use the run_command tool to run `ls` on my machine and `pwd`?",
     opts = {
       visible = true
     },
@@ -63,7 +63,7 @@ Tool calls and their output are stored in the chat buffer's messages like so:
     id = 282816993,
     index = 6
   },
-  content = "I'll run both commands for you using the cmd_runner tool.",
+  content = "I'll run both commands for you using the run_command tool.",
   opts = {
     visible = true
   },
@@ -83,7 +83,7 @@ Tool calls and their output are stored in the chat buffer's messages like so:
       _index = 2,
       ["function"] = {
         arguments = '{"cmd": "pwd", "flag": null}',
-        name = "cmd_runner"
+        name = "run_command"
       },
       id = "toolu_016Uw6yn4984i4nZU7Heexyj",
       type = "function"
@@ -91,7 +91,7 @@ Tool calls and their output are stored in the chat buffer's messages like so:
       _index = 3,
       ["function"] = {
         arguments = '{"cmd": "ls", "flag": null}',
-        name = "cmd_runner"
+        name = "run_command"
       },
       id = "toolu_01ACfkNf4PsYAWDWNYjWPv8z",
       type = "function"

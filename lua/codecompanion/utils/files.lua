@@ -392,13 +392,18 @@ end
 
 ---Recursively scan a directory and return all file paths
 ---@param dir_path string The directory path to scan
----@param opts? { patterns?: string|string[] } Optional patterns to filter files
+---@param opts? { patterns?: string|string[], max_depth?: number } Optional patterns to filter files and max recursion depth
 ---@return string[] files List of absolute file paths
 function M.scan_directory(dir_path, opts)
   opts = opts or {}
   local files = {}
+  local max_depth = opts.max_depth
 
-  local function scan_recursively(path)
+  local function scan_recursively(path, depth)
+    if max_depth and depth > max_depth then
+      return
+    end
+
     local handle = uv.fs_scandir(path)
     if not handle then
       return
@@ -413,8 +418,8 @@ function M.scan_directory(dir_path, opts)
       local full_path = vim.fs.joinpath(path, name)
 
       if type == "directory" then
-        scan_recursively(full_path)
-      elseif type == "file" then
+        scan_recursively(full_path, depth + 1)
+      elseif type == "file" or type == "link" then
         if opts.patterns then
           if M.match_patterns(name, opts.patterns) then
             table.insert(files, full_path)
@@ -426,7 +431,7 @@ function M.scan_directory(dir_path, opts)
     end
   end
 
-  scan_recursively(dir_path)
+  scan_recursively(dir_path, 0)
   return files
 end
 
@@ -435,6 +440,57 @@ end
 ---@return string
 function M.normalize_content(content)
   return (content:gsub("\r\n", "\n"):gsub("\r", "\n"))
+end
+
+---Check if a path is within the current working directory
+---@param path string The absolute path to check
+---@return boolean
+function M.is_path_within_cwd(path)
+  local cwd = vim.uv.fs_realpath(vim.uv.cwd())
+  if not cwd then
+    return false
+  end
+  cwd = vim.fs.normalize(cwd) .. "/"
+
+  local normalized = vim.fs.normalize(path)
+  -- Resolve symlinks in the path's parent to handle macOS /var -> /private/var
+  local parent = vim.fs.dirname(normalized)
+  local real_parent = vim.uv.fs_realpath(parent)
+  if real_parent then
+    normalized = vim.fs.joinpath(real_parent, vim.fs.basename(normalized))
+  end
+
+  return normalized:sub(1, #cwd) == cwd
+end
+
+---Validate and normalize a path from tool args
+---@param path string Raw path from tool args
+---@return string|nil normalized_path Returns nil if path is invalid
+function M.validate_and_normalize_path(path)
+  local normalized = vim.fs.normalize(path)
+  if M.exists(normalized) then
+    return normalized
+  end
+
+  local abs_path = vim.fs.abspath(path)
+  local normalized_path = vim.fs.normalize(abs_path)
+  if M.exists(normalized_path) then
+    return normalized_path
+  end
+
+  -- Check for duplicate CWD and fix it
+  local cwd = vim.fs.normalize(vim.uv.cwd())
+  if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
+    local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
+    fixed_path = vim.fs.normalize(fixed_path)
+    if M.exists(fixed_path) then
+      return fixed_path
+    end
+  end
+
+  -- For non-existent files, still return the normalized path
+  -- This allows tracking files that may be created during tool execution
+  return normalized_path
 end
 
 return M

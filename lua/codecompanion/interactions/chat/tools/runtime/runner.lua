@@ -71,11 +71,11 @@ function Runner:go_to_next_tool(output)
 end
 
 ---Run the tool's function
----@param cmd_func fun(self: CodeCompanion.Tools, actions: table, input: any, output_handler: fun(msg:{status:"success"|"error", data:any}):any):{status:"success"|"error", data:any}?
+---@param tool_cmd fun(self: CodeCompanion.Tools, actions: table, input: any, output_handler: fun(msg:{status:"success"|"error", data:any}):any):{status:"success"|"error", data:any}?
 ---@param action table
 ---@param args {input?: any, callback?: fun(output: any)}
 ---@return nil
-function Runner:run_tool(cmd_func, action, args)
+function Runner:run_tool(tool_cmd, action, args)
   log:debug("Runner:run")
 
   local tool_finished = false
@@ -102,7 +102,7 @@ function Runner:run_tool(cmd_func, action, args)
   self.orchestrator.tools.tool = self.orchestrator.tool
 
   local ok, output = pcall(function()
-    return cmd_func(self.orchestrator.tools, action, args.input, output_handler)
+    return tool_cmd(self.orchestrator.tools, action, { input = args.input, output_cb = output_handler })
   end)
   if not ok then
     self.orchestrator:error({ action = action, error = output })

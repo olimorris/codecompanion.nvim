@@ -6,7 +6,7 @@ description: Learn how to configure ACP adapters like Claude Code, Gemini CLI an
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
-## Changing the Default Adapter
+## Configuring Default Adapter
 
 You can select an ACP adapter to be the default for all chat interactions:
 
@@ -20,7 +20,7 @@ require("codecompanion").setup({
 }),
 ```
 
-## Changing the Default Model
+## Configuring Default Model
 
 You can change the default model used by an ACP adapter. For example, to change the default model for the Claude Code adapter:
 
@@ -79,7 +79,7 @@ require("codecompanion").setup({
 
 Using a _function_ is useful for working around the [limitations](https://github.com/zed-industries/claude-code-acp/issues/225) in the Claude Code SDK (which enables ACP support).
 
-## Changing Adapter Settings
+## Configuring Adapter Settings
 
 To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:
 
@@ -108,6 +108,58 @@ require("codecompanion").setup({
   },
 })
 ```
+
+## Configuring MCP Servers
+
+Some ACP adapters [support](https://agentclientprotocol.com/protocol/session-setup#mcp-servers) connecting to Model Client Protocol (MCP) servers. If you've defined [MCP servers in your configuration](/configuration/mcp), then CodeCompanion can automatically connect to those servers when initializing the adapter.
+
+To enable this, set `inherit_from_config` in the ACP adapter's `defaults.mcpServers` field:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            mcpServers = "inherit_from_config",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+> [!NOTE]
+> CodeCompanion does not display the MCP servers in the chat buffer's context when used with an ACP adapter.
+
+Alternatively, you can configure MCP servers manually. In the below example, we're configuring Claude Code to connect to the [sequential-thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) server via stdio:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            mcpServers = {
+              {
+                name = "sequential-thinking",
+                command = "npx",
+                args = { "-y", "@modelcontextprotocol/server-sequential-thinking" },
+                env = {},
+              },
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+You can also disable this by setting `mcp.opts.acp_enabled = false` in your configuration.
 
 ## Hiding Preset Adapters
 
@@ -165,7 +217,7 @@ If you have multiple agent files that you like to run separately, you can create
 To use [Claude Code](https://www.anthropic.com/claude-code) within CodeCompanion, you'll need to take the following steps:
 
 1. [Install](https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code) Claude Code
-2. [Install](https://github.com/zed-industries/claude-code-acp) the Zed ACP adapter for Claude Code
+2. [Install](https://github.com/zed-industries/claude-agent-acp) the Zed ACP adapter for Claude Code
 
 ### Using Claude Pro Subscription
 
@@ -276,6 +328,10 @@ Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#ins
 
 Install [Kiro cli](https://kiro.dev/docs/cli/) as per their instructions. Then open it and login (if installation doesn't already prompt you to login). the codecompanion adapter will execute `kiro-cli acp`, make sure to have it available on your PATH.
 
+## Setup: Mistral Vibe
+
+To use [Mistral Vibe](https://github.com/mistralai/mistral-vibe) in CodeCompanion, ensure you've followed their documentation to [install](https://github.com/mistralai/mistral-vibe). Then run `vibe --setup` in your CLI in order to setup your API key. Then ensure that in your chat buffer you select the `mistral_vibe` adapter.
+
 ## Setup: OpenCode
 
 To use [OpenCode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
@@ -288,3 +344,4 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
     "model": "github-copilot/claude-sonnet-4.5",
 }
 ```
+

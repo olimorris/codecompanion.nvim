@@ -1,4 +1,7 @@
 return {
+  cache_control = {
+    type = "ephemeral",
+  },
   messages = {
     {
       content = {
@@ -56,9 +59,6 @@ return {
   },
   system = {
     {
-      cache_control = {
-        type = "ephemeral",
-      },
       text = "default system prompt",
       type = "text",
     },

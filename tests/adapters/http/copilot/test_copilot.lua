@@ -200,7 +200,15 @@ T["Copilot adapter"]["it can form messages to be sent to the API"] = function()
     role = "user",
   } }
 
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({
+    messages = {
+      {
+        content = "Explain Ruby in two words",
+        copilot_cache_control = { type = "ephemeral" },
+        role = "user",
+      },
+    },
+  }, adapter.handlers.form_messages(adapter, messages))
 end
 
 T["Copilot adapter"]["it can form tools to be sent to the API"] = function()
@@ -334,10 +342,12 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
   local expected = {
     {
       content = "Search for quotes.lua",
+      copilot_cache_control = { type = "ephemeral" },
       role = "user",
     },
     {
       content = "LLM's response here",
+      copilot_cache_control = { type = "ephemeral" },
       role = "llm",
       reasoning_opaque = "SzZZSfDxyWB",
       reasoning_text = "Some reasoning here",

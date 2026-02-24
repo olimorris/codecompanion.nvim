@@ -20,7 +20,7 @@
           yolo_mode = true,
         },
         [3] = {
-          cmd_runner = {
+          run_command = {
             -- Commands that has have approved
             ["ls -la"] = true,
             ["make test"] = true,
@@ -75,10 +75,11 @@ end
 ---@param args { cmd?: string, tool_name?: string }
 function Approvals:is_approved(bufnr, args)
   local approvals = approved[bufnr]
-  log:debug("Approvals for %d: %s", bufnr, approvals)
   if not approvals then
     return false
   end
+
+  log:debug("Approvals for %s: %s", bufnr, approvals)
 
   local tool_cfg = args
     and args.tool_name

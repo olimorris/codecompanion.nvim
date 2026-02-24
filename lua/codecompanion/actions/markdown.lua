@@ -26,26 +26,14 @@ function M.load_from_dir(dir, context)
   end
 
   -- Scan directory for .md files
-  local handle = vim.uv.fs_scandir(dir)
-  if not handle then
-    return prompts
-  end
+  local md_files = file_utils.scan_directory(dir, { patterns = "*.md", max_depth = 5 })
 
-  while true do
-    local name, type = vim.uv.fs_scandir_next(handle)
-    if not name then
-      break
-    end
+  for _, path in ipairs(md_files) do
+    local ok, prompt = pcall(M.parse_file, path, context)
 
-    -- Only process .md files (including symlinks)
-    if (type == "file" or type == "link") and name:match("%.md$") then
-      local path = vim.fs.joinpath(dir, name)
-      local ok, prompt = pcall(M.parse_file, path, context)
-
-      if ok and prompt then
-        prompt.name = prompt.name or vim.fn.fnamemodify(path, ":t:r")
-        table.insert(prompts, prompt)
-      end
+    if ok and prompt then
+      prompt.name = prompt.name or vim.fn.fnamemodify(path, ":t:r")
+      table.insert(prompts, prompt)
     end
   end
 
@@ -76,10 +64,13 @@ function M.parse_file(path, context)
     context = frontmatter.context or nil,
     description = frontmatter.description or "",
     interaction = frontmatter.interaction,
+    mcp_servers = frontmatter.mcp_servers,
     name = frontmatter.name,
     opts = frontmatter.opts or {},
     path = path,
     prompts = prompts,
+    rules = frontmatter.rules,
+    tools = frontmatter.tools,
   }
 end
 
@@ -139,7 +130,7 @@ function M.parse_frontmatter(content)
     end
   end
 
-  --TODO: Remove in v19.0.0
+  --TODO: Remove in v20.0.0
   if frontmatter.strategy then
     frontmatter.interaction = frontmatter.strategy
     frontmatter.strategy = nil

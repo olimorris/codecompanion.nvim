@@ -1,15 +1,5 @@
 local BaseFormatter = require("codecompanion.interactions.chat.ui.formatters.base")
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
-
-local CONSTANTS = {
-  icons = {
-    pending = config.display.chat.icons.tool_pending or "⏳",
-    in_progress = config.display.chat.icons.tool_in_progress or "⚡",
-    failed = config.display.chat.icons.tool_failure or "❌",
-    completed = config.display.chat.icons.tool_success or "✅",
-  },
-}
 
 ---@class CodeCompanion.Chat.UI.Formatters.Tools : CodeCompanion.Chat.UI.Formatters.Base
 local Tools = setmetatable({}, { __index = BaseFormatter })
@@ -53,8 +43,6 @@ function Tools:format(message, opts, state)
 
   local content = message.content or ""
   if opts.status then
-    local icon = CONSTANTS.icons[opts.status]
-    content = icon .. " " .. content
     opts._icon_info = {
       status = opts.status,
       has_icon = true,

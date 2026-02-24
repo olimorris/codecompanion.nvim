@@ -45,7 +45,7 @@ T["can read lines from a file"] = function()
       {
         ["function"] = {
           name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": 1}', vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE))
+          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": 1}', _G.TEST_TMPFILE_ABSOLUTE)
         },
       },
     }
@@ -72,7 +72,7 @@ T["can read all of the file"] = function()
       {
         ["function"] = {
           name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": -1}', vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE))
+          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": -1}', _G.TEST_TMPFILE_ABSOLUTE)
         },
       },
     }
@@ -99,7 +99,7 @@ T["clamps end_line_number_base_zero to file length if it is too large"] = functi
           name = "read_file",
           arguments = string.format(
             '{"filepath": "%s", "start_line_number_base_zero": 1, "end_line_number_base_zero": 10}',
-            vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE)
+            _G.TEST_TMPFILE_ABSOLUTE
           )
         },
       },

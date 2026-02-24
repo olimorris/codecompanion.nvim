@@ -35,20 +35,18 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 
 These keymaps can also be changed in your config via the `interactions.inline.keymaps` table.
 
-
-
-## Variables
+## Editor Context
 
 > [!TIP]
-> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` variable
+> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` editor context
 
-The inline assistant allows you to send context alongside your prompt via the notion of variables:
+The inline assistant allows you to send context alongside your prompt via the notion of editor context. That is, context that relates to your current Neovim session:
 
 - `buffer` - shares the contents of the current buffer
 - `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
-Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple variables can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
+Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple context items can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#editor-context).
 
-You can also have multiple variables a part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
+You can also have multiple editor context as part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
 

@@ -331,5 +331,4 @@ T["Transformers"]["respects function.strict = false even when strict_mode is tru
   h.eq("string", result.parameters.properties.tool_name.type)
   h.eq("object", result.parameters.properties.tool_input.type)
 end
-
 return T

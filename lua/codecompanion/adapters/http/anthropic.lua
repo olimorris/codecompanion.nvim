@@ -1,6 +1,5 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local tokens = require("codecompanion.utils.tokens")
 local transform = require("codecompanion.utils.tool_transformers")
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
@@ -16,8 +15,6 @@ return {
     text = true,
   },
   opts = {
-    cache_breakpoints = 4, -- Cache up to this many messages
-    cache_over = 300, -- Cache any message which has this many tokens or more
     stream = true,
     tools = true,
     vision = true,
@@ -30,7 +27,6 @@ return {
     ["content-type"] = "application/json",
     ["x-api-key"] = "${api_key}",
     ["anthropic-version"] = "2023-06-01",
-    ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
   temp = {
     input_tokens = 0,
@@ -40,11 +36,12 @@ return {
     ["code_execution"] = {
       description = "The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment",
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
-      ---@param tools table The transformed tools table
-      callback = function(self, tools)
-        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "code-execution-2025-08-25"
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        local beta = self.headers["anthropic-beta"]
+        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "code-execution-2025-08-25"
 
-        table.insert(tools, {
+        table.insert(meta.tools, {
           type = "code_execution_20250825",
           name = "code_execution",
         })
@@ -53,12 +50,12 @@ return {
     ["memory"] = {
       description = "Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window",
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
-      ---@param tools table The transformed tools table
-      callback = function(self, tools)
-        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "")
-          .. "context-management-2025-06-27"
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        local beta = self.headers["anthropic-beta"]
+        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "context-management-2025-06-27"
 
-        table.insert(tools, {
+        table.insert(meta.tools, {
           type = "memory_20250818",
           name = "memory",
         })
@@ -71,11 +68,12 @@ return {
     ["web_fetch"] = {
       description = "The web fetch tool allows Claude to retrieve full content from specified web pages and PDF documents.",
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
-      ---@param tools table The transformed tools table
-      callback = function(self, tools)
-        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "web-fetch-2025-09-10"
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        local beta = self.headers["anthropic-beta"]
+        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "web-fetch-2025-09-10"
 
-        table.insert(tools, {
+        table.insert(meta.tools, {
           type = "web_fetch_20250910",
           name = "web_fetch",
           max_uses = 5,
@@ -85,9 +83,9 @@ return {
     ["web_search"] = {
       description = "The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff",
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
-      ---@param tools table The transformed tools table
-      callback = function(self, tools)
-        table.insert(tools, {
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
           type = "web_search_20250305",
           name = "web_search",
           max_uses = 5,
@@ -115,13 +113,14 @@ return {
 
       -- Add the extended output header if enabled
       if self.temp.extended_output then
-        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "output-128k-2025-02-19"
+        local beta = self.headers["anthropic-beta"]
+        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "output-128k-2025-02-19"
       end
 
       -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/token-efficient-tool-use
       if self.opts.has_token_efficient_tools then
-        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "")
-          .. "token-efficient-tools-2025-02-19"
+        local beta = self.headers["anthropic-beta"]
+        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "token-efficient-tools-2025-02-19"
       end
 
       return true
@@ -316,36 +315,13 @@ return {
         end
       end
 
-      -- 11+. Cache large messages per opts.cache_over / cache_breakpoints
-      local breakpoints_used = 0
-      for i = #messages, 1, -1 do
-        local msgs = messages[i]
-        if msgs.role == self.roles.user then
-          -- Loop through the content
-          for _, msg in ipairs(msgs.content) do
-            if msg.type ~= "text" or msg.text == "" then
-              goto continue
-            end
-            if
-              tokens.calculate(msg.text) >= self.opts.cache_over and breakpoints_used < self.opts.cache_breakpoints
-            then
-              msg.cache_control = { type = "ephemeral" }
-              breakpoints_used = breakpoints_used + 1
-            end
-            ::continue::
-          end
-        end
-      end
-      if system and breakpoints_used < self.opts.cache_breakpoints then
-        for _, prompt in ipairs(system) do
-          if breakpoints_used < self.opts.cache_breakpoints then
-            prompt.cache_control = { type = "ephemeral" }
-            breakpoints_used = breakpoints_used + 1
-          end
-        end
-      end
-
-      return { system = system, messages = messages }
+      -- 11. Enable automatic prompt caching
+      -- Ref: https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching
+      return {
+        cache_control = { type = "ephemeral" },
+        system = system,
+        messages = messages,
+      }
     end,
 
     ---Form the reasoning output that is stored in the chat buffer
@@ -387,7 +363,7 @@ return {
         for _, schema in pairs(tool) do
           if schema._meta and schema._meta.adapter_tool then
             if self.available_tools[schema.name] then
-              self.available_tools[schema.name].callback(self, transformed)
+              self.available_tools[schema.name].callback(self, { tools = transformed })
             end
           else
             table.insert(transformed, transform.to_anthropic(schema))
