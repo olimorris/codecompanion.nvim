@@ -244,9 +244,16 @@ CodeCompanion.toggle = function(args)
     return CodeCompanion.chat(chat_opts)
   end
 
-  -- If the chat is visible in a different tab, just hide it there
+  -- If the chat is visible in a different tab ...
   if chat.ui:is_visible_non_curtab() then
-    chat.ui:hide()
+    if config.display.chat.window.layout == "tab" then
+      -- ... open it (go there) if chat opens in tabs
+      chat.ui:open()
+      return
+    else
+      -- ... or close it so we can open it below
+      chat.ui:hide()
+    end
   -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()

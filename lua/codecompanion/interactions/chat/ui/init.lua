@@ -185,6 +185,9 @@ function UI:open(opts)
   opts = opts or {}
 
   if self:is_visible() then
+    if config.display.chat.window.layout == "tab" and self:is_visible_non_curtab() then
+      vim.cmd("tabnext " .. api.nvim_win_get_tabpage(self.winnr))
+    end
     return
   end
   if config.display.chat.start_in_insert_mode then
