@@ -91,12 +91,12 @@
 ---@field _meta.cycle? number The chat turn cycle when this message was added
 ---@field _meta.index? number The index of the chat message in the messages stack
 ---@field _meta.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
+---@field _meta.estimated_tokens? number Estimated token count associated with this message
 ---@field context? { id?: string, path?: string, mimetype?: string, url?: string } Optional context object
 ---@field reasoning? CodeCompanion.Chat.Reasoning Optional reasoning object returned by some adapters
 ---@field type? string Optional message type used by the UI (e.g. "llm_message", "tool_message", "reasoning_message")
 ---@field _raw? any Any adapter-specific raw payload stored with the message
 ---@field created_at? number Unix timestamp (optional, helpful for sorting/logging)
----@field tokens? number Optional token count associated with this message
 
 ---@class CodeCompanion.Chat.ToolFunctionCall
 ---@field name string Name of the function/tool (e.g. "run_command", "grep_search")

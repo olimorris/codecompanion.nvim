@@ -144,6 +144,7 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq({
     cycle = 1,
+    estimated_tokens = message._meta.estimated_tokens,
     index = message._meta.index,
     id = message._meta.id,
     tag = "image",
