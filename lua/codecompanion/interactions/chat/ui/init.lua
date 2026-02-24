@@ -185,6 +185,9 @@ function UI:open(opts)
   opts = opts or {}
 
   if self:is_visible() then
+    if config.display.chat.window.layout == "tab" and self:is_visible_non_curtab() then
+      vim.cmd("tabnext " .. api.nvim_win_get_tabpage(self.winnr))
+    end
     return
   end
   if config.display.chat.start_in_insert_mode then
@@ -294,6 +297,11 @@ function UI:open(opts)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
     apply_window_config(self.winnr, self.chat_bufnr, window.opts)
+  elseif window.layout == "tab" then
+    vim.cmd("tabnew")
+    self.winnr = api.nvim_get_current_win()
+    api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
+    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
   else
     self.winnr = api.nvim_get_current_win()
     api.nvim_set_current_buf(self.chat_bufnr)
@@ -342,6 +350,8 @@ function UI:hide()
       end
       api.nvim_win_hide(self.winnr)
     end
+  elseif layout == "tab" then
+    vim.cmd("tabprevious")
   else
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end

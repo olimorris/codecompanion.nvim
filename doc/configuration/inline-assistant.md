@@ -108,7 +108,7 @@ If the inline prompt creates a new buffer, you can also customize if this should
 require("codecompanion").setup({
   display = {
     inline = {
-      layout = "vertical", -- vertical|horizontal|buffer
+      layout = "vertical", -- vertical|horizontal|tab|buffer
     },
   }
 })

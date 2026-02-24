@@ -2356,7 +2356,7 @@ should be output in a vertical/horizontal split or a new buffer:
     require("codecompanion").setup({
       display = {
         inline = {
-          layout = "vertical", -- vertical|horizontal|buffer
+          layout = "vertical", -- vertical|horizontal|tab|buffer
         },
       }
     })

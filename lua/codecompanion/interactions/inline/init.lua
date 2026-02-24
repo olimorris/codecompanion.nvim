@@ -716,6 +716,8 @@ function Inline:place(placement)
         cmd = height .. cmd
       end
       vim.cmd(cmd)
+    elseif config.display.inline.layout == "tab" then
+      vim.cmd("tabnew")
     end
 
     api.nvim_win_set_buf(api.nvim_get_current_win(), bufnr)
