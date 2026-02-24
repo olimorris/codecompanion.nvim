@@ -865,10 +865,9 @@ The user is working on a %s machine. Please respond with system specific command
   },
   -- MCP SERVERS ----------------------------------------------------------------
   mcp = {
-    add_to_chat = true,
-    auto_start = true,
     servers = {},
     opts = {
+      default_servers = {}, -- List of server names to auto-start and add to chat
       acp_enabled = true, -- Enable MCP servers with ACP adapters?
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },

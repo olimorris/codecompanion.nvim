@@ -94,31 +94,14 @@ end
 ---Resolve which MCP servers should be added to new chat buffers
 ---@return table<string> server_names List of server names to add to chat
 function M.mcp_servers_to_add_to_chat()
-  local servers = {}
   local mcp_cfg = config.mcp
-  local global_auto_start = mcp_cfg.auto_start
-  local global_add_to_chat = mcp_cfg.add_to_chat
+  local default_servers = mcp_cfg.opts and mcp_cfg.opts.default_servers
 
-  for name, cfg in pairs(mcp_cfg.servers) do
-    local opts = cfg.opts or {}
-
-    local auto_start = opts.auto_start
-    if auto_start == nil then
-      auto_start = global_auto_start
-    end
-
-    if auto_start then
-      local add_to_chat = opts.add_to_chat
-      if add_to_chat == nil then
-        add_to_chat = global_add_to_chat
-      end
-      if add_to_chat then
-        table.insert(servers, name)
-      end
-    end
+  if type(default_servers) == "table" then
+    return vim.deepcopy(default_servers)
   end
 
-  return servers
+  return {}
 end
 
 ---Start MCP servers and add their tools to the chat buffer

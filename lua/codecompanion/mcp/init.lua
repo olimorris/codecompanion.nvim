@@ -11,15 +11,15 @@ local M = {}
 ---@type table<string, table> Dynamic registry for MCP tools (server_name -> { tools: table, groups: table })
 local tool_registry = {}
 
----Automatically start the MCP server?
----@param server_cfg CodeCompanion.MCP.ServerConfig
+---Check if a server is in the default_servers list
+---@param name string
 ---@return boolean
-local function should_auto_start(server_cfg)
-  local auto_start = server_cfg.opts and server_cfg.opts.auto_start
-  if auto_start == nil then
-    return config.mcp.auto_start ~= false
+local function is_default_server(name)
+  local default_servers = config.mcp.opts and config.mcp.opts.default_servers
+  if type(default_servers) == "table" then
+    return vim.tbl_contains(default_servers, name)
   end
-  return auto_start ~= false
+  return false
 end
 
 ---Register tools from an MCP server
@@ -81,7 +81,7 @@ end
 ---@class CodeCompanion.MCP.ServerConfig
 ---@field cmd string[]
 ---@field env? table<string, string>
----@field opts? { auto_start?: boolean, add_to_chat?: boolean }
+---@field opts? table
 ---@field server_instructions nil | string | fun(orig_server_instructions: string): string
 ---@field tool_defaults? table<string, any>
 ---@field tool_overrides? table<string, CodeCompanion.MCP.ToolOverride>
@@ -102,21 +102,10 @@ function M.start_servers()
     return
   end
 
-  local global_auto_start = mcp_cfg.auto_start
-
   for name, cfg in pairs(mcp_cfg.servers) do
-    local auto_start = cfg.opts and cfg.opts.auto_start
-    if auto_start == nil then
-      auto_start = global_auto_start
+    if is_default_server(name) and not clients[name] then
+      clients[name] = Client.new({ name = name, cfg = cfg })
     end
-    if not auto_start then
-      goto continue
-    end
-    if not clients[name] then
-      local client = Client.new({ name = name, cfg = cfg })
-      clients[name] = client
-    end
-    ::continue::
   end
 
   for _, client in pairs(clients) do
@@ -163,9 +152,6 @@ function M.enable_server(name, opts)
     return false, string.format("MCP server not found: %s", name)
   end
 
-  server_cfg.opts = server_cfg.opts or {}
-  server_cfg.opts.auto_start = true
-
   if not clients[name] then
     clients[name] = Client.new({ name = name, cfg = server_cfg })
   end
@@ -188,9 +174,6 @@ function M.disable_server(name)
   if not server_cfg then
     return false, string.format("MCP server not found: %s", name)
   end
-
-  server_cfg.opts = server_cfg.opts or {}
-  server_cfg.opts.auto_start = false
 
   if clients[name] then
     clients[name]:stop()
@@ -227,12 +210,12 @@ function M.refresh()
 end
 
 ---Get status of all MCP servers
----@return table<string, { ready: boolean, tool_count: number, started: boolean, auto_start: boolean }>
+---@return table<string, { ready: boolean, tool_count: number, started: boolean, default: boolean }>
 function M.get_status()
   local status = {}
 
   local mcp_cfg = config.mcp
-  for name, cfg in pairs(mcp_cfg.servers) do
+  for name, _ in pairs(mcp_cfg.servers) do
     local client = clients[name]
     local ready = client and client.ready or false
 
@@ -240,7 +223,7 @@ function M.get_status()
       ready = ready,
       tool_count = M.get_tool_count(name),
       started = client and client.transport:started() or false,
-      auto_start = should_auto_start(cfg),
+      default = is_default_server(name),
     }
   end
 
@@ -270,11 +253,7 @@ function M.transform_to_acp()
   local transformed = {}
 
   for name, cfg in pairs(config.mcp.servers) do
-    local server_add = cfg.opts and cfg.opts.add_to_chat
-    local global_add = config.mcp.add_to_chat
-
-    -- Skip if explicitly disabled at server or global level
-    if server_add == false or (server_add == nil and global_add == false) then
+    if not is_default_server(name) then
       goto continue
     end
 
