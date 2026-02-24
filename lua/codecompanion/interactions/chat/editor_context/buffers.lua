@@ -53,7 +53,7 @@ function EditorContext:apply()
 
   for _, buf_info in ipairs(buffers) do
     if not self:_is_excluded(buf_info.bufnr) then
-      local ok, content, _, _ = pcall(
+      local ok, content, id, _ = pcall(
         chat_helpers.format_buffer_for_llm,
         buf_info.bufnr,
         buf_info.path,
@@ -66,9 +66,16 @@ function EditorContext:apply()
           content = content,
         }, {
           _meta = { source = "editor_context", tag = "buffer" },
-          context = { path = buf_info.path },
+          context = { id = id, path = buf_info.path },
           visible = false,
         })
+
+        self.Chat.context:add({
+          bufnr = buf_info.bufnr,
+          id = id,
+          source = "codecompanion.interactions.chat.editor_context.buffers",
+        })
+
         count = count + 1
       end
     end

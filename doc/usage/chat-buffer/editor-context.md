@@ -16,12 +16,12 @@ Custom context can be shared in the chat buffer by adding them to the `interacti
 
 Editor context uses the `#{context}` syntax to dynamically insert content into your chat, such as `#{buffer}`. Editor context is processed when you send your message to the LLM.
 
-> [!NOTE]
-> With the exception of `#{buffer}`, editor context captures a point-in-time snapshot when your message is sent. If the underlying data changes (e.g. new diagnostics, a different quickfix list), simply use the context again in a new message to share the latest state.
+> [!IMPORTANT]
+> With the exception of `#{buffer}` and `#{buffers}`, editor context captures a point-in-time snapshot when your message is sent. If the underlying data changes (e.g. new diagnostics, a different quickfix list), simply use the context again in a new message to share the latest state.
 
 ## #buffer
 
-> [!IMPORTANT]
+> [!NOTE]
 > By default, CodeCompanion automatically applies the `{diff}` parameter to all buffers
 
 The `#{buffer}` context shares buffer contents with the LLM. It has two special parameters which control how content is shared, or _synced_, with the LLM, on each turn:
@@ -61,6 +61,10 @@ Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differe
 
 The _buffers_ context shares all currently open buffers with the LLM. Buffers with excluded buftypes (such as `nofile`, `quickfix`, `prompt`, `popup`) and filetypes (such as `codecompanion`, `help`, `terminal`) are automatically filtered out.
 
+```
+#{buffers} can you explain what's going on in these files?
+```
+
 ## #diagnostics
 
 > [!TIP]
@@ -68,26 +72,55 @@ The _buffers_ context shares all currently open buffers with the LLM. Buffers wi
 
 The _diagnostics_ context shares any diagnostic information from LSP servers active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
 
+```
+#{diagnostics} can you explain the LSP errors in this file and how to fix them?
+```
+
 ## #diff
 
 The _diff_ context shares the current git diff with the LLM, including both staged and unstaged changes. This is useful for code review, generating commit messages, or asking for feedback on your recent changes.
+
+```
+Sharing the latest git diff with you #{diff}
+```
 
 ## #messages
 
 The _messages_ context shares Neovim's message history (`:messages`) with the LLM. This is useful when an error has been written to the message history and you want to share it with the LLM for troubleshooting.
 
+```
+Can you explain the error I've just observed in Neovim? #{messages}
+```
+
 ## #quickfix
 
-The _quickfix_ context shares the contents of the quickfix list with the LLM. Files with diagnostics are formatted with smart grouping by TreeSitter symbols, while file-only entries show the full content. This is useful for sharing compiler errors, search results, or LSP diagnostics across multiple files.
+The _quickfix_ context shares the contents of the quickfix list with the LLM. Files with diagnostics are formatted with smart grouping by Tree-sitter symbols, while file-only entries show the full content. This is useful for sharing compiler errors, search results, or LSP diagnostics across multiple files.
+
+```
+The relevant output from my quickfix list has now been shared with you #{quickfix}
+```
 
 ## #selection
 
-The _selection_ context shares your current or most recent visual selection with the LLM. This is useful for asking about a specific piece of code without sharing the entire buffer.
+The _selection_ context shares your current or most recent visual selection with the LLM. This is useful for asking about a specific piece of code without sharing the entire buffer. The selection is updated when you open or toggle a CodeCompanion chat buffer.
+
+```
+Sharing the relevant code with you #{selection}
+```
 
 ## #terminal
 
 The _terminal_ context shares the latest output from the last terminal buffer you entered. Subsequent uses capture only new output since the last time it was shared. This is useful for sharing test results, build output, or command-line errors.
 
+```
+This was the output in my terminal #{terminal}
+```
+
 ## #viewport
 
 The _viewport_ context shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
+
+```
+Sharing what I can see in Neovim #{viewport}
+```
+

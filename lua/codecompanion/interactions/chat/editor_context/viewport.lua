@@ -27,13 +27,12 @@ function EditorContext:apply()
   local count = 0
   for bufnr, ranges in pairs(buf_lines) do
     for _, range in ipairs(ranges) do
-      local content, id = chat_helpers.format_viewport_range_for_llm(bufnr, range)
+      local content = chat_helpers.format_viewport_range_for_llm(bufnr, range)
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = content,
       }, {
         _meta = { source = "editor_context", tag = "viewport" },
-        context = { id = id },
         visible = false,
       })
       count = count + 1

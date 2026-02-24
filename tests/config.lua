@@ -328,6 +328,13 @@ return {
             has_params = true,
           },
         },
+        ["buffers"] = {
+          path = "interactions.chat.editor_context.buffers",
+          description = "Share all open buffers with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["foo"] = {
           path = "tests.interactions.chat.editor_context.foo",
           description = "foo",
