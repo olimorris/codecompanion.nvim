@@ -81,7 +81,14 @@ M.to_new_openai = function(schema, opts)
   -- The user must explicitly set strict_mode to true
   opts = vim.tbl_extend("force", { strict_mode = false }, opts or {})
 
-  if opts.strict_mode and not schema["function"].parameters.strict then
+  -- Respect the tool's own strict preference: check both function.strict
+  -- and parameters.strict so tools can explicitly opt out of strict mode.
+  -- Only skip enforcement when the tool has explicitly set strict = false.
+  local tool_strict = schema["function"].strict
+  if tool_strict == nil then
+    tool_strict = schema["function"].parameters.strict
+  end
+  if opts.strict_mode and tool_strict ~= false then
     schema = M.enforce_strictness(schema)
   end
 
