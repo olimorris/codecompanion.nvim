@@ -549,7 +549,8 @@ function Chat.new(args)
 
   self:update_metadata()
 
-  if config.mcp.auto_start then
+  local default_servers = config.mcp.opts and config.mcp.opts.default_servers
+  if type(default_servers) == "table" and #default_servers > 0 then
     require("codecompanion.mcp").start_servers()
   end
 
