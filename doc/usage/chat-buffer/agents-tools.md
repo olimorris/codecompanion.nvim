@@ -270,13 +270,6 @@ To use the tool:
 Use @{memory} to carry on our conversation about streamlining my dotfiles
 ```
 
-### next_edit_suggestion
-
-Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
-
-**Options:**
-- `jump_action` (string|function) Determines how a jump to the next edit is made (Default: `tabnew`)
-
 ### read_file
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.

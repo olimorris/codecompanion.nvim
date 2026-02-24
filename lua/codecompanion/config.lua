@@ -259,10 +259,6 @@ The user is working on a %s machine. Please respond with system specific command
             require_approval_before = true,
           },
         },
-        ["next_edit_suggestion"] = {
-          path = "interactions.chat.tools.builtin.next_edit_suggestion",
-          description = "Suggest and jump to the next position to edit",
-        },
         ["read_file"] = {
           path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",

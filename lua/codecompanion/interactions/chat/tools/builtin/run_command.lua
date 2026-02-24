@@ -1,7 +1,5 @@
 local cmd_tool = require("codecompanion.interactions.chat.tools.builtin.cmd_tool")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
-local os_utils = require("codecompanion.utils.os")
-local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -31,51 +29,6 @@ return cmd_tool({
   build_cmd = function(args)
     return args.cmd
   end,
-  system_prompt = fmt(
-    [[# Run Command Tool (`run_command`)
-
-## CONTEXT
-- You have access to a command runner tool running within CodeCompanion, in Neovim.
-- You can use it to run shell commands on the user's system.
-- You may be asked to run a specific command or to determine the appropriate command to fulfil the user's request.
-- All tool executions take place in the current working directory %s.
-
-## OBJECTIVE
-- Follow the tool's schema.
-- Respond with a single command, per tool execution.
-
-## RESPONSE
-- Only invoke this tool when the user specifically asks.
-- If the user asks you to run a specific command, do so to the letter, paying great attention.
-- Use this tool strictly for command execution; but file operations must NOT be executed in this tool unless the user explicitly approves.
-- To run multiple commands, you will need to call this tool multiple times.
-
-## SAFETY RESTRICTIONS
-- Never execute the following dangerous commands under any circumstances:
-  - `rm -rf /` or any variant targeting root directories
-  - `rm -rf ~` or any command that could wipe out home directories
-  - `rm -rf .` without specific context and explicit user confirmation
-  - Any command with `:(){:|:&};:` or similar fork bombs
-  - Any command that would expose sensitive information (keys, tokens, passwords)
-  - Commands that intentionally create infinite loops
-- For any destructive operation (delete, overwrite, etc.), always:
-  1. Warn the user about potential consequences
-  2. Request explicit confirmation before execution
-  3. Suggest safer alternatives when available
-- If unsure about a command's safety, decline to run it and explain your concerns
-
-## POINTS TO NOTE
-- This tool can be used alongside other tools within CodeCompanion
-
-## USER ENVIRONMENT
-- Shell: %s
-- Operating System: %s
-- Neovim Version: %s]],
-    vim.fn.getcwd(),
-    vim.o.shell,
-    utils.capitalize(os_utils.get_os()),
-    vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
-  ),
   handlers = {
     ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta { tools: CodeCompanion.Tools }

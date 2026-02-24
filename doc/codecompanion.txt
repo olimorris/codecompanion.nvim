@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 22
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3992,18 +3992,6 @@ To use the tool:
 >md
     Use @{memory} to carry on our conversation about streamlining my dotfiles
 <
-
-
-NEXT_EDIT_SUGGESTION
-
-Inspired by Copilot Next Edit Suggestion
-<https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions>, the
-tool gives the LLM the ability to show the user where the next edit is. The LLM
-can only suggest edits in files or buffers that have been shared with it as
-context.
-
-**Options:** - `jump_action` (string|function) Determines how a jump to the
-next edit is made (Default: `tabnew`)
 
 
 READ_FILE
