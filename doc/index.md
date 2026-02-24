@@ -24,7 +24,7 @@ CodeCompanion is a Neovim plugin which enables you to code with AI, using LLMs a
 - :heart_hands: User contributed and supported [adapters](/configuration/adapters-http#community-adapters)
 - :battery: Support for [Model Context Protocol (MCP)](/model-context-protocol)
 - :rocket: [Inline transformations](/usage/inline-assistant.html), code creation and refactoring
-- :robot: [Editor Context](/usage/chat-buffer/editor-context), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/tools) and [Workflows](/usage/workflows) to improve LLM output
+- :robot: [Editor Context](/usage/chat-buffer/editor-context), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/agents-tools) and [Workflows](/usage/workflows) to improve LLM output
 - :brain: Support for [rules](/usage/chat-buffer/rules) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 - :sparkles: Built-in [prompt library](/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own [custom prompts](configuration/prompt-library#creating-prompts), Editor Context and Slash Commands

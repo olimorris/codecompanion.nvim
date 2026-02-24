@@ -96,5 +96,5 @@ The protocol version is negotiated during initialization. If an agent selects a 
 
 - [Agent Client Protocol Specification](https://agentclientprotocol.com/) - Official ACP documentation
 - [Configuring ACP Adapters](/configuration/adapters-acp) - Setup instructions for specific agents
-- [Using Agents](/usage/chat-buffer/agents) - How to interact with agents in chat
+- [Using Agents and Tools](/usage/chat-buffer/agents-tools) - How to interact with agents in chat
 
