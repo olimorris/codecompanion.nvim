@@ -113,6 +113,9 @@ local T = MiniTest.new_set({
               math_mcp = { cmd = { "math_mcp" } },
               other_mcp = { cmd = { "other_mcp" } },
             },
+            opts = {
+              default_servers = { "math_mcp", "other_mcp" },
+            },
           }
           local loading = vim.tbl_count(mcp_cfg.servers)
           -- NOTE: We rely on this event to know when tools are loaded
@@ -210,8 +213,9 @@ T["MCP Tools"]["MCP tools can be used as CodeCompanion tools"] = function()
   h.is_true(has_prompt)
 
   local math_mcp_tools = child.lua_get("MATH_MCP_TOOLS")
+  local all_mcp_tools = child.lua_get("#MATH_MCP_TOOLS + #OTHER_MCP_TOOLS")
   local llm_tool_schemas = llm_req.tools[1]
-  h.eq(#math_mcp_tools, vim.tbl_count(llm_tool_schemas))
+  h.eq(all_mcp_tools, vim.tbl_count(llm_tool_schemas))
   for _, mcp_tool in ipairs(math_mcp_tools) do
     local cc_tool_name = "math_mcp_" .. mcp_tool.name
     local llm_tool_schema = llm_tool_schemas[string.format("<tool>%s</tool>", cc_tool_name)]
@@ -312,7 +316,10 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
             },
           }
         },
-      }
+      },
+      opts = {
+        default_servers = { "other_mcp" },
+      },
     })
 
     OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)

@@ -156,7 +156,7 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 ### Tools
 
-_Tools_, accessed via `@`, allow the LLM to function as an agent and leverage external tools. You can find a list of available tools as well as how to use them, [here](usage/chat-buffer/tools.html#available-tools).
+_Tools_, accessed via `@`, allow the LLM to function as an agent and leverage external tools. You can find a list of available tools as well as how to use them, [here](usage/chat-buffer/agents-tools#available-tools).
 
 > [!TIP]
 > Use them in your prompt like:

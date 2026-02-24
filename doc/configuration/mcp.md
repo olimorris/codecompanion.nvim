@@ -10,7 +10,7 @@ You can find out which parts of the protocol CodeCompanion has implemented on th
 
 ## Configuring MCP Servers
 
-You can give CodeCompanion knowledge of MCP servers via the `mcp.servers` configuration option. This is a list of server definitions, each specifying how to connect to an MCP server
+You can give CodeCompanion knowledge of MCP servers via the `mcp.servers` configuration option. This is a list of server definitions, each specifying how to connect to an MCP server.
 
 ### Basic Configuration
 
@@ -41,7 +41,7 @@ require("codecompanion").setup({
 
 :::
 
-In the example above, we're using [1Password CLI](https://developer.1password.com/docs/cli/) tool to fetch the API key. However, you can leverage CodeCompanion's built-in [environment variable](/configuration/adapters-http#environment-variables) capabilities to fetch the value from any source you like.
+In the environment variables example above, we're using [1Password CLI](https://developer.1password.com/docs/cli/) tool to fetch the API key. However, you can leverage CodeCompanion's built-in [environment variable](/configuration/adapters-http#environment-variables) capabilities to fetch the value from any source you like.
 
 ### Roots
 
@@ -82,63 +82,25 @@ require("codecompanion").setup({
 
 :::
 
-## Starting Servers
+## Default Servers
 
-By default, all MCP servers are started when a chat buffer is opened for the first time - remaining active until Neovim is closed. This behaviour can be changed by setting `mcp.auto_start = false`. You can also change this at an individual server level:
-
-::: code-group
-
-```lua [Globally] {3}
-require("codecompanion").setup({
-  mcp = {
-    auto_start = false,
-    ["tavily-mcp"] = {
-      cmd = { "npx", "-y", "tavily-mcp@latest" },
-    },
-  },
-})
-```
-
-```lua [Per Server] {3,6-8}
-require("codecompanion").setup({
-  mcp = {
-    auto_start = true,
-    ["tavily-mcp"] = {
-      cmd = { "npx", "-y", "tavily-mcp@latest" },
-      opts = {
-        auto_start = false,
-      },
-    },
-  },
-})
-```
-
-:::
-
-## Adding Tools to Chat Buffers
-
-By default, when `mcp.add_to_chat = true` (the default), all started MCP servers will have their tools automatically added to every new chat buffer. You can disable this globally and opt-in per server with the `add_to_chat` option:
+The `opts.default_servers` option controls which MCP servers are automatically started with their tools added to the chat buffer. Servers not in the list can be started on-demand via the `/mcp` slash command.
 
 ::: code-group
 
-```lua [Per Server] {3-4,8-9,16-17}
+```lua [Specific Servers] {11-13}
 require("codecompanion").setup({
   mcp = {
-    add_to_chat = false,
-    auto_start = true,
     servers = {
       ["sequential-thinking"] = {
         cmd = { "npx", "-y", "@modelcontextprotocol/server-sequential-thinking" },
-        opts = {
-          add_to_chat = true,
-        },
       },
       ["tavily-mcp"] = {
         cmd = { "npx", "-y", "tavily-mcp@latest" },
-        opts = {
-          add_to_chat = false,
-        },
       },
+    },
+    opts = {
+      default_servers = { "sequential-thinking" },
     },
   },
 })
@@ -146,10 +108,8 @@ require("codecompanion").setup({
 
 :::
 
-In the example above, `add_to_chat = false` is set globally, so no server tools are added to chat buffers by default. The `sequential-thinking` server overrides this with `add_to_chat = true`, so its tools will be available in every new chat buffer. The `tavily-mcp` server's tools can still be added on-demand via the `/mcp` slash command.
-
 > [!NOTE]
-> If `mcp_servers` are explicitly specified in a prompt library item, those take precedence and the `add_to_chat` logic is skipped for that chat buffer.
+> If `mcp_servers` are explicitly specified in a prompt library item, those take precedence and the `default_servers` logic is skipped for that chat buffer.
 
 ## Overriding Tool Behaviour
 

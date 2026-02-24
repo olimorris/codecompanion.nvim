@@ -613,7 +613,7 @@ output = {
 
 ## Extending from the run_command tool
 
-For a lot of users, custom tools will often be commands that they ask an LLM to execute on their machine. As such, the handlers and output functions that exist in the [run_command](/usage/chat-buffer/tools#run-command) tool are sufficient and should be reused.
+For a lot of users, custom tools will often be commands that they ask an LLM to execute on their machine. As such, the handlers and output functions that exist in the [run_command](/usage/chat-buffer/agents-tools#run-command) tool are sufficient and should be reused.
 
 To make it easy for users to create their own command-based tools, CodeCompanion allows for extensions from `run_command`. In the example below, we create a wrapper around the [beads](https://github.com/steveyegge/beads) CLI tool, that does just that:
 
@@ -768,7 +768,7 @@ for _, tool in pairs(tools) do
 end
 ```
 
-Some adapter tools can be a _hybrid_ in terms of their implementation. That is, they're an adapter tool that requires a client-side component (i.e. a built-in tool). This is the case for the [memory](/usage/chat-buffer/tools#memory) tool from Anthropic. To allow for this, ensure that the tool definition in `available_tools` has `client_tool` defined:
+Some adapter tools can be a _hybrid_ in terms of their implementation. That is, they're an adapter tool that requires a client-side component (i.e. a built-in tool). This is the case for the [memory](/usage/chat-buffer/agents-tools#memory) tool from Anthropic. To allow for this, ensure that the tool definition in `available_tools` has `client_tool` defined:
 
 ```lua
 ["memory"] = {
