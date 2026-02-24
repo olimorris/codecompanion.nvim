@@ -44,6 +44,7 @@ function EditorContext:apply()
   }
 
   local bufnr = self:_resolve_bufnr()
+  local buf_info = buf_utils.get_info(bufnr)
 
   local diagnostics = vim.diagnostic.get(bufnr, {
     severity = { min = vim.diagnostic.severity.HINT },
@@ -67,8 +68,7 @@ function EditorContext:apply()
     table.insert(
       formatted,
       string.format(
-        [[
-Severity: %s
+        [[Severity: %s
 LSP Message: %s
 Code:
 ````%s
@@ -77,15 +77,17 @@ Code:
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
-        self.Chat.buffer_context.filetype,
+        buf_info.filetype,
         table.concat(diagnostic.lines, "\n")
       )
     )
   end
 
+  local content = string.format("Diagnostics for `%s`:\n\n%s", buf_info.path, table.concat(formatted, "\n\n"))
+
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = table.concat(formatted, "\n\n"),
+    content = content,
   }, { _meta = { source = "editor_context", tag = "diagnostics" }, visible = false })
 end
 

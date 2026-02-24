@@ -111,6 +111,7 @@ T["Editor Context"][":parse"]["multiple buffer editor context"] = function()
   end, chat.messages)
 
   h.eq(2, #buffer_messages)
+  h.eq(2, #chat.context_items)
 end
 
 T["Editor Context"][":parse"]["buffer editor context with params"] = function()
@@ -129,6 +130,33 @@ T["Editor Context"][":parse"]["buffer editor context with params"] = function()
 
   h.eq(1, #buffer_messages)
   h.eq(true, chat.context_items[1].opts.sync_all)
+end
+
+T["Editor Context"][":parse"]["buffers editor context adds context items"] = function()
+  vim.cmd("edit lua/codecompanion/init.lua")
+  vim.cmd("edit lua/codecompanion/config.lua")
+
+  table.insert(chat.messages, {
+    role = "user",
+    content = "#{buffers} What do these files do?",
+  })
+
+  local result = ec:parse(chat, chat.messages[#chat.messages])
+  h.eq(true, result)
+
+  local buffer_messages = vim.tbl_filter(function(msg)
+    return msg._meta and msg._meta.tag == "buffer"
+  end, chat.messages)
+
+  h.eq(true, #buffer_messages >= 2)
+  h.eq(true, #chat.context_items >= 2)
+
+  -- Verify context items have the expected fields
+  for _, item in ipairs(chat.context_items) do
+    h.eq(true, item.id ~= nil)
+    h.eq(true, item.bufnr ~= nil)
+    h.eq("codecompanion.interactions.chat.editor_context.buffers", item.source)
+  end
 end
 
 T["Editor Context"][":replace"]["should replace the editor context in the message"] = function()

@@ -77,7 +77,7 @@ local function group_entries_by_file(entries)
   return files
 end
 
----Extract symbols from a file using TreeSitter
+---Extract symbols from a file using Tree-sitter
 ---@param path string Path to the file
 ---@return table[]|nil symbols Array of symbols with start_line, end_line, name, kind
 ---@return string|nil content File content if successful
