@@ -12,12 +12,12 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
 - CodeCompanion now only supports a built-in diff which is enabled by default ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600)), dropping support for Mini.Diff
-- The `full_stack_dev` group has been renamed to [agent](/usage/chat-buffer/agents-tools#agent)
+- The `full_stack_dev` group has been renamed to [agent](/usage/chat-buffer/agents-tools#agent) ([#2786](https://github.com/olimorris/codecompanion.nvim/pull/2786))
+- The `next_edit_suggestion` and `list_code_usages` tools have been removed
 
 ### Adapters
 
-- For the Claude Code adapter to work, you'll need to ensure you have Zed's
-  [claude-agent-acp](https://github.com/zed-industries/claude-agent-acp) adapter installed. This has been renamed from _claude-code-acp_ in recent times
+- For the Claude Code adapter to work, you'll need to ensure you have Zed's [claude-agent-acp](https://github.com/zed-industries/claude-agent-acp) adapter installed. This has been renamed from _claude-code-acp_ in recent weeks ([#2779](https://github.com/olimorris/codecompanion.nvim/pull/2779))
 
 ### Config
 
@@ -28,7 +28,7 @@ CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid br
 
 ### Prompt Library
 
-- The location of rules within a prompt library item has changed from `opts.rules` to `rules`. They now also support workflows:
+- The location of rules within a prompt library item has changed from `opts.rules` to `rules`:
 
 ```markdown
 ---
