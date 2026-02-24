@@ -292,4 +292,44 @@ T["Transformers"]["enforces additionalProperties false via transform_schema_if_n
   h.eq(nil, result2.parameters.properties.items.items.additionalProperties)
 end
 
+T["Transformers"]["respects function.strict = false even when strict_mode is true"] = function()
+  -- Schema like mcphub's use_mcp_tool that opts out of strict mode
+  local opt_out_schema = {
+    type = "function",
+    ["function"] = {
+      name = "use_mcp_tool",
+      description = "calls tools on MCP servers.",
+      parameters = {
+        type = "object",
+        properties = {
+          server_name = {
+            description = "Name of the server",
+            type = "string",
+          },
+          tool_name = {
+            description = "Name of the tool",
+            type = "string",
+          },
+          tool_input = {
+            description = "Input object for the tool call",
+            type = "object",
+            additionalProperties = false,
+          },
+        },
+        required = { "server_name", "tool_name", "tool_input" },
+        additionalProperties = false,
+      },
+      strict = false, -- Explicitly opt out of strict mode
+    },
+  }
+
+  -- With strict_mode = true but function.strict = false, strictness should NOT be enforced
+  local result = transform.transform_schema_if_needed(vim.deepcopy(opt_out_schema), { strict_mode = true })
+  h.eq(false, result.strict)
+  -- Properties should NOT have null types added (strictness not enforced)
+  h.eq("string", result.parameters.properties.server_name.type)
+  h.eq("string", result.parameters.properties.tool_name.type)
+  h.eq("object", result.parameters.properties.tool_input.type)
+end
+
 return T
