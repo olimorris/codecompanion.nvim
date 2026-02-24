@@ -27,7 +27,7 @@ T["Test tools in chat buffer"] = new_set({
   parametrize = {
     -- OpenAI type adapters first
     { "openai", "openai_tools" },
-    { "copilot", "openai_tools" },
+    { "copilot", "openai_tools", "copilot_tools" },
     { "gemini", "openai_tools" },
 
     -- Others
@@ -37,7 +37,7 @@ T["Test tools in chat buffer"] = new_set({
 
     -- Tools called with NO parameters
     { "openai", "openai_tools_no_params" },
-    { "copilot", "openai_tools_no_params" },
+    { "copilot", "openai_tools_no_params", "copilot_tools_no_params" },
     { "gemini", "openai_tools_no_params" },
 
     { "anthropic", "anthropic_tools_no_params" },
@@ -48,7 +48,9 @@ T["Test tools in chat buffer"] = new_set({
 
 ---@param adapter string
 ---@param file string
-T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file)
+---@param reference_file? string
+T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file, reference_file)
+  reference_file = reference_file or file
   local response = "tests/adapters/http/stubs/" .. file .. "_streaming.txt"
 
   child.lua([[
@@ -131,7 +133,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   --NOTE: Remember, we're comparing what the messages payload should look like
   --just before it's sent to the LLM. Not, how it looks in the chat buffer
   --This is our way of making sure we conform to the LLM's format
-  local reference = require("tests.adapters.http.stubs.output." .. file)
+  local reference = require("tests.adapters.http.stubs.output." .. reference_file)
   h.eq(messages, reference)
 
   expect.reference_screenshot(
