@@ -15,10 +15,6 @@ local T = MiniTest.new_set({
             servers = {
               ["sequential-thinking"] = {
                 cmd = { "npx", "-y", "@modelcontextprotocol/server-sequential-thinking" },
-                opts = {
-                  add_to_chat = true,
-                  auto_start = true,
-                },
               },
               ["tavily-mcp"] = {
                 cmd = { "npx", "-y", "tavily-mcp@latest" },
@@ -29,6 +25,9 @@ local T = MiniTest.new_set({
                   require_approval_before = true,
                 },
               },
+            },
+            opts = {
+              default_servers = { "sequential-thinking", "tavily-mcp" },
             },
           },
         })
@@ -72,7 +71,7 @@ T["MCP"]["transform_to_acp()"] = MiniTest.new_set({
   },
 })
 
-T["MCP"]["transform_to_acp()"]["excludes server with add_to_chat = false"] = function()
+T["MCP"]["transform_to_acp()"]["includes only default_servers"] = function()
   child.lua([[
     MCP = require("codecompanion.mcp")
     h = require("tests.helpers")
@@ -84,8 +83,10 @@ T["MCP"]["transform_to_acp()"]["excludes server with add_to_chat = false"] = fun
           },
           ["excluded-server"] = {
             cmd = { "npx", "-y", "excluded-server" },
-            opts = { add_to_chat = false },
           },
+        },
+        opts = {
+          default_servers = { "included-server" },
         },
       },
     })
@@ -99,16 +100,18 @@ T["MCP"]["transform_to_acp()"]["excludes server with add_to_chat = false"] = fun
   h.eq("included-server", result[1].name)
 end
 
-T["MCP"]["transform_to_acp()"]["excludes all servers when global add_to_chat = false"] = function()
+T["MCP"]["transform_to_acp()"]["excludes all servers when default_servers is empty"] = function()
   child.lua([[
     MCP = require("codecompanion.mcp")
     h = require("tests.helpers")
     h.setup_plugin({
       mcp = {
-        add_to_chat = false,
         servers = {
           ["server-a"] = { cmd = { "npx", "-y", "server-a" } },
           ["server-b"] = { cmd = { "npx", "-y", "server-b" } },
+        },
+        opts = {
+          default_servers = {},
         },
       },
     })
@@ -119,32 +122,6 @@ T["MCP"]["transform_to_acp()"]["excludes all servers when global add_to_chat = f
   ]])
 
   h.eq({}, result)
-end
-
-T["MCP"]["transform_to_acp()"]["server add_to_chat = true overrides global add_to_chat = false"] = function()
-  child.lua([[
-    MCP = require("codecompanion.mcp")
-    h = require("tests.helpers")
-    h.setup_plugin({
-      mcp = {
-        add_to_chat = false,
-        servers = {
-          ["opt-in-server"] = {
-            cmd = { "npx", "-y", "opt-in-server" },
-            opts = { add_to_chat = true },
-          },
-          ["excluded-server"] = { cmd = { "npx", "-y", "excluded-server" } },
-        },
-      },
-    })
-  ]])
-
-  local result = child.lua([[
-    return MCP.transform_to_acp()
-  ]])
-
-  h.eq(1, #result)
-  h.eq("opt-in-server", result[1].name)
 end
 
 return T
