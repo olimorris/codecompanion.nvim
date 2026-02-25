@@ -429,4 +429,50 @@ T["Integration"]["verifies diff workflow"] = function()
   h.eq(has_new_content, true)
 end
 
+T["Integration"]["overwrites entire file content"] = function()
+  child.lua([[
+    local initial = "old content\nto be replaced"
+    vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+
+    local tool = {{
+      ["function"] = {
+        name = "insert_edit_into_file",
+        arguments = string.format('{"filepath": "%s", "mode": "overwrite", "edits": [{"oldText": "", "newText": "completely new content"}]}', _G.TEST_TMPFILE)
+      },
+    }}
+
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  h.eq(output, { "completely new content" })
+end
+
+T["Integration"]["edits a file already loaded in a buffer"] = function()
+  child.lua([[
+    -- Write initial content and open in a buffer
+    local initial = "local x = 1\nlocal y = 2"
+    vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+    vim.cmd("edit " .. _G.TEST_TMPFILE)
+
+    local bufnr = vim.fn.bufnr(_G.TEST_TMPFILE)
+    _G.test_bufnr = bufnr
+
+    local tool = {{
+      ["function"] = {
+        name = "insert_edit_into_file",
+        arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "local x = 1", "newText": "local x = 10"}]}', _G.TEST_TMPFILE)
+      },
+    }}
+
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  -- Verify the buffer content was updated
+  local lines = child.lua_get("vim.api.nvim_buf_get_lines(_G.test_bufnr, 0, -1, false)")
+  h.eq(lines, { "local x = 10", "local y = 2" })
+end
+
 return T
