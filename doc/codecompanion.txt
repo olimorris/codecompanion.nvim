@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 24
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -718,10 +718,11 @@ CodeCompanion provides comprehensive support for the ACP specification:
                                                            preview for
                                                            tool approval
 
-  Session Management             ✅                        Create, load,
+  Session Management             ❔️                        Create, load,
                                                            and persist
                                                            sessions with
-                                                           state tracking
+                                                           state tracking.
+                                                           No restore
 
   Session Modes                  ✅                        Mode switching
 
@@ -736,9 +737,9 @@ CodeCompanion provides comprehensive support for the ACP specification:
                                                            of an agent’s
                                                            execution plan
 
-  Terminal Operations            ❌                        Terminal
-                                                           capabilities
-                                                           not implemented
+  Terminal Operations            ❌                        Agent has
+                                                           access to a
+                                                           Neovim terminal
   ------------------------------------------------------------------------
 
 SUPPORTED ADAPTERS ~

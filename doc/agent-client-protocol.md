@@ -20,12 +20,12 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **File System** | ✅ | Read/write text files with line ranges |
 | **MCP Integration** | ✅ | Stdio, HTTP, and SSE transports |
 | **Permissions** | ✅ | Interactive UI with diff preview for tool approval |
-| **Session Management** | ✅ | Create, load, and persist sessions with state tracking |
+| **Session Management** | ❔️ | Create, load, and persist sessions with state tracking. No restore |
 | **Session Modes** | ✅ | Mode switching  |
 | **Session Models** | ✅ | Select specific models |
 | **Tool Calls** | ✅ | Content blocks, file diffs, status updates |
 | **Agent Plans** | ❌ | Visual display of an agent's execution plan |
-| **Terminal Operations** | ❌        | Terminal capabilities not implemented |
+| **Terminal Operations** | ❌        | Agent has access to a Neovim terminal |
 
 
 ### Supported Adapters
