@@ -81,7 +81,7 @@ It contains the following tools:
 You can use it with:
 
 ```md
-@{agent} Can we create a todo list in Vue.js?
+@{agent} Can we create a todo list app in Vue.js?
 ```
 
 ### files
@@ -196,7 +196,7 @@ Use @{get_changed_files} see what's changed
 ### get_diagnostics
 
 > [!WARNING]
-> As the `get_changed_files` tool relies on external language servers, it may be unreliable for certain filetypes.
+> This tool relies on external language servers. It may be unreliable for certain filetypes.
 
 This tool enables an LLM to retrieve LSP diagnostics for a given file. It returns all diagnostic messages (errors, warnings, hints and information) along with the relevant code lines. This is useful for understanding what issues exist in a file before attempting to fix them:
 
