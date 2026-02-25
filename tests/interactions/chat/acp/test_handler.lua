@@ -6,11 +6,12 @@ local T = new_set()
 local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
-    pre_case = function()
+    pre_once = function()
       h.child_start(child)
+      child.lua([[h = require('tests.helpers')]])
+    end,
+    pre_case = function()
       child.lua([[
-        h = require('tests.helpers')
-
         -- Mock ACP connection for chat integration tests
         _G.mock_acp_connection = {
           connected = false,
@@ -87,6 +88,16 @@ T = new_set({
       child.lua([[
         _G.mock_acp_connection = nil
         _G.last_prompt_request = nil
+        _G.last_permission_request = nil
+        _G.codecompanion_chat_metadata = nil
+
+        -- Reset modules that tests may have overridden
+        package.loaded["codecompanion.acp"] = nil
+        package.loaded["codecompanion.interactions.chat.acp.request_permission"] = nil
+        package.loaded["codecompanion.interactions.chat.acp.handler"] = nil
+        package.loaded["codecompanion.interactions.chat.acp.commands"] = nil
+        package.loaded["codecompanion.interactions.chat"] = nil
+        package.loaded["codecompanion.config"] = nil
       ]])
     end,
     post_once = child.stop,
