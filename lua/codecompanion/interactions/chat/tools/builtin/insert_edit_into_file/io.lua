@@ -1,5 +1,3 @@
---[[File I/O operations for insert_edit_into_file]]
-
 local Path = require("plenary.path")
 
 local api = vim.api

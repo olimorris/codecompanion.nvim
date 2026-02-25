@@ -192,7 +192,7 @@ return {
     ---@return nil|table
     function(self, args, opts)
       if args.edits then
-        local fixed_args, error_msg = json_repair.fix_edits_if_needed(args)
+        local fixed_args, error_msg = json_repair.fix_edits(args)
         if not fixed_args then
           return opts.output_cb(make_response("error", fmt("Invalid edits format: %s", error_msg)))
         end

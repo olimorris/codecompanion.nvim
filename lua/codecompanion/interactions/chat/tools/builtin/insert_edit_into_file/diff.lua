@@ -1,5 +1,3 @@
---[[Diff display and approval flow for insert_edit_into_file]]
-
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local ui_utils = require("codecompanion.utils.ui")
