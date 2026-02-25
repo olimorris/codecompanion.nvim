@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 06
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 26
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -988,9 +988,10 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents (e.g.�
-enabling `yolo` mode). As there is a lot of shared functionality between the
-two adapters, it is recommend that you read this page alongside the ACP one.
+`commands` to allow users to customize their interaction with agents
+(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
+the two adapters, it is recommend that you read this page alongside the ACP
+one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1044,7 +1045,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -2698,7 +2699,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-tools-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -4650,7 +4651,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -6446,7 +6447,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e.� a
+they’re an adapter tool that requires a client-side component (i.e. a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-tools-memory| tool from Anthropic. To allow
 for this, ensure that the tool definition in `available_tools` has

@@ -63,6 +63,11 @@ function Tools:format(message, opts, state)
   end
 
   local content_start_index = #lines + 1
+
+  if opts.title then
+    table.insert(lines, opts.title)
+  end
+
   local content_lines = vim.split(content, "\n", { plain = true, trimempty = false })
   for _, line in ipairs(content_lines) do
     table.insert(lines, line)
@@ -74,11 +79,17 @@ function Tools:format(message, opts, state)
     return lines, nil
   end
 
+  -- Add a trailing empty line as a guard so the fold doesn't end at the
+  -- buffer's last line. Without this, subsequent nvim_buf_set_text appends
+  -- cause Neovim to push the fold's last line out.
+  table.insert(lines, "")
+
   -- Calculate fold positions relative to the buffer
+  local title_offset = opts.title and 1 or 0
   local fold_info = {
-    start_offset = content_start_index - 1, -- 0-based: first content line
-    end_offset = content_start_index + #content_lines - 2, -- 0-based: last content line
-    first_line = content_lines[1] or "",
+    start_offset = content_start_index - 1, -- 0-based: first content line (title if present)
+    end_offset = content_start_index + title_offset + #content_lines - 2, -- 0-based: last content line
+    first_line = opts.title or content_lines[1] or "",
   }
 
   return lines, fold_info

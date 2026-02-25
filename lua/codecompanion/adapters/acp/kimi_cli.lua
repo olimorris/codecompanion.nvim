@@ -48,6 +48,14 @@ return {
     end,
 
     ---@param self CodeCompanion.ACPAdapter
+    ---@param tool_call table
+    ---@param output string
+    ---@return table
+    output_response = function(self, tool_call, output)
+      return helpers.output_response(self, tool_call, output)
+    end,
+
+    ---@param self CodeCompanion.ACPAdapter
     ---@param messages table
     ---@param capabilities table
     ---@return table

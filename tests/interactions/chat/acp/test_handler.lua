@@ -257,6 +257,151 @@ T["ACPHandler"]["coordinates completion flow"] = function()
   h.eq({}, result.final_tools)
 end
 
+T["ACPHandler"]["extracts completed tool output from rawOutput common fields"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local captured = {}
+    chat.add_buf_message = function(self, data, opts)
+      table.insert(captured, { content = data.content, opts = opts })
+      return #captured
+    end
+
+    handler:process_tool_call({
+      toolCallId = "tool_1",
+      kind = "execute",
+      title = "Run command",
+      status = "completed",
+      rawOutput = {
+        output = "generic output",
+      },
+    })
+
+    return {
+      count = #captured,
+      summary = captured[1] and captured[1].content or nil,
+      full_output = captured[2] and captured[2].content or nil,
+    }
+  ]])
+
+  h.eq(2, result.count)
+  h.eq(true, type(result.summary) == "string" and result.summary ~= "")
+  h.eq("generic output", result.full_output)
+end
+
+T["ACPHandler"]["falls back to rawOutput.content text blocks"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local captured = {}
+    chat.add_buf_message = function(self, data, opts)
+      table.insert(captured, { content = data.content, opts = opts })
+      return #captured
+    end
+
+    handler:process_tool_call({
+      toolCallId = "tool_2",
+      kind = "execute",
+      title = "Run command",
+      status = "completed",
+      rawOutput = {
+        content = {
+          { text = "line one" },
+          { text = "line two" },
+        },
+      },
+    })
+
+    return {
+      count = #captured,
+      full_output = captured[2] and captured[2].content or nil,
+    }
+  ]])
+
+  h.eq(2, result.count)
+  h.eq("line one\nline two", result.full_output)
+end
+
+T["ACPHandler"]["writes completed tool calls into message history on completion"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local history = { llm_calls = {}, tool_outputs = {}, done = false }
+    chat.add_buf_message = function(self, data, opts)
+      return 1
+    end
+    chat.add_message = function(self, data, opts)
+      table.insert(history.llm_calls, { data = data, opts = opts })
+    end
+    chat.add_tool_output = function(self, tool, for_llm, for_user)
+      table.insert(history.tool_outputs, { tool = tool, for_llm = for_llm, for_user = for_user })
+    end
+    chat.done = function(self, output, reasoning, tools)
+      history.done = true
+    end
+
+    handler:process_tool_call({
+      toolCallId = "tool_3",
+      kind = "execute",
+      status = "completed",
+      rawInput = { cmd = "date" },
+      rawOutput = { stdout = "Mon Jan 01" },
+    })
+    handler:handle_completion("end_turn")
+
+    local llm_call = history.llm_calls[1] and history.llm_calls[1].data
+    local output = history.tool_outputs[1]
+    return {
+      llm_count = #history.llm_calls,
+      output_count = #history.tool_outputs,
+      done = history.done,
+      tool_call_id = llm_call and llm_call.tool_calls and llm_call.tool_calls[1] and llm_call.tool_calls[1].id or nil,
+      tool_name = llm_call and llm_call.tool_calls and llm_call.tool_calls[1]
+        and llm_call.tool_calls[1]["function"] and llm_call.tool_calls[1]["function"].name or nil,
+      for_llm = output and output.for_llm or nil,
+      for_user = output and output.for_user or nil,
+    }
+  ]])
+
+  h.eq(1, result.llm_count)
+  h.eq(1, result.output_count)
+  h.eq(true, result.done)
+  h.eq("tool_3", result.tool_call_id)
+  h.eq("execute", result.tool_name)
+  h.eq("Mon Jan 01", result.for_llm)
+  h.eq("", result.for_user)
+end
+
 T["ACPHandler"]["handles connection errors"] = function()
   local result = child.lua([[
     local chat = h.setup_chat_buffer({}, {
