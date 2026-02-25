@@ -1,5 +1,3 @@
---[[Edit processing pipeline for insert_edit_into_file]]
-
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
 local strategies = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.strategies")
 
