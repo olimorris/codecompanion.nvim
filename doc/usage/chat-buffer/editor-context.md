@@ -53,7 +53,7 @@ Can be used in combination with targeting a specific buffer:
 > [!NOTE]
 > For selecting multiple buffers with more control, use the `/buffer` slash command.
 
-```
+```md
 Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
 ```
 
@@ -61,7 +61,7 @@ Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differe
 
 The _buffers_ context shares all currently open buffers with the LLM. Buffers with excluded buftypes (such as `nofile`, `quickfix`, `prompt`, `popup`) and filetypes (such as `codecompanion`, `help`, `terminal`) are automatically filtered out.
 
-```
+```md
 #{buffers} can you explain what's going on in these files?
 ```
 
@@ -72,7 +72,7 @@ The _buffers_ context shares all currently open buffers with the LLM. Buffers wi
 
 The _diagnostics_ context shares any diagnostic information from LSP servers active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
 
-```
+```md
 #{diagnostics} can you explain the LSP errors in this file and how to fix them?
 ```
 
@@ -80,7 +80,7 @@ The _diagnostics_ context shares any diagnostic information from LSP servers act
 
 The _diff_ context shares the current git diff with the LLM, including both staged and unstaged changes. This is useful for code review, generating commit messages, or asking for feedback on your recent changes.
 
-```
+```md
 Sharing the latest git diff with you #{diff}
 ```
 
@@ -88,7 +88,7 @@ Sharing the latest git diff with you #{diff}
 
 The _messages_ context shares Neovim's message history (`:messages`) with the LLM. This is useful when an error has been written to the message history and you want to share it with the LLM for troubleshooting.
 
-```
+```md
 Can you explain the error I've just observed in Neovim? #{messages}
 ```
 
@@ -96,7 +96,7 @@ Can you explain the error I've just observed in Neovim? #{messages}
 
 The _quickfix_ context shares the contents of the quickfix list with the LLM. Files with diagnostics are formatted with smart grouping by Tree-sitter symbols, while file-only entries show the full content. This is useful for sharing compiler errors, search results, or LSP diagnostics across multiple files.
 
-```
+```md
 The relevant output from my quickfix list has now been shared with you #{quickfix}
 ```
 
@@ -104,7 +104,7 @@ The relevant output from my quickfix list has now been shared with you #{quickfi
 
 The _selection_ context shares your current or most recent visual selection with the LLM. This is useful for asking about a specific piece of code without sharing the entire buffer. The selection is updated when you open or toggle a CodeCompanion chat buffer.
 
-```
+```md
 Sharing the relevant code with you #{selection}
 ```
 
@@ -112,7 +112,7 @@ Sharing the relevant code with you #{selection}
 
 The _terminal_ context shares the latest output from the last terminal buffer you entered. Subsequent uses capture only new output since the last time it was shared. This is useful for sharing test results, build output, or command-line errors.
 
-```
+```md
 This was the output in my terminal #{terminal}
 ```
 
@@ -120,7 +120,7 @@ This was the output in my terminal #{terminal}
 
 The _viewport_ context shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
 
-```
+```md
 Sharing what I can see in Neovim #{viewport}
 ```
 
