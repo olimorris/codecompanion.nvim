@@ -103,13 +103,13 @@ return {
                 callbacks = {
                   on_created = function(chat)
                     rules
-                      .init({
+                      .new({
                         name = item.name,
                         files = item.files,
                         opts = item.opts,
                         parser = item.parser,
                       })
-                      :make(chat)
+                      :make({ chat = chat })
                   end,
                 },
               })
