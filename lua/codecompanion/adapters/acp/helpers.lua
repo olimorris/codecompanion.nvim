@@ -67,4 +67,20 @@ M.form_messages = function(self, messages, capabilities)
     :totable()
 end
 
+---Format a tool output response for inclusion in messages
+---@param self CodeCompanion.ACPAdapter
+---@param tool_call {id: string, function: table, name: string}
+---@param output string
+---@return table
+M.output_response = function(self, tool_call, output)
+  return {
+    role = self.roles.user,
+    content = output,
+    tools = {
+      call_id = tool_call.id,
+    },
+    opts = { visible = false },
+  }
+end
+
 return M

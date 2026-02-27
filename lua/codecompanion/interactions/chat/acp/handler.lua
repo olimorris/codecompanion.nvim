@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 
@@ -8,6 +9,7 @@ local log = require("codecompanion.utils.log")
 ---@field output table Standard output message from the Agent
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
+---@field completed_tools table<string, table> Completed tool calls keyed by ID, tracked for message history
 local ACPHandler = {}
 
 local ACPHandlerUI = {} -- Cache of tool call UI states by chat buffer
@@ -20,6 +22,7 @@ function ACPHandler.new(chat)
     output = {},
     reasoning = {},
     tools = {},
+    completed_tools = {},
   }, { __index = ACPHandler })
 
   ACPHandlerUI[chat.bufnr] = {}
@@ -44,7 +47,14 @@ local function merge_tool_call(existing, incoming)
       out[k] = v
     end
   end
+
   return out
+end
+
+---@param tool_call table
+---@return boolean
+local function is_tool_finished(tool_call)
+  return tool_call.status == "completed" or tool_call.status == "failed"
 end
 
 ---Submit payload to ACP and handle streaming response
@@ -189,12 +199,95 @@ function ACPHandler:handle_thought_chunk(content)
   )
 end
 
+---Extract full text content from a ContentBlock without sanitization
+---@param block table|nil
+---@return string|nil
+local function extract_full_text(block)
+  if not block or type(block) ~= "table" then
+    return nil
+  end
+  if block.type == "text" and type(block.text) == "string" then
+    return block.text
+  end
+  if block.type == "resource_link" and type(block.uri) == "string" then
+    return ("[resource: %s]"):format(block.uri)
+  end
+  if block.type == "resource" and block.resource then
+    if type(block.resource.text) == "string" then
+      return block.resource.text
+    end
+    if type(block.resource.uri) == "string" then
+      return ("[resource: %s]"):format(block.resource.uri)
+    end
+  end
+  return nil
+end
+
+---Build full tool output content for inclusion in self.messages
+---@param tool_call table The completed ACP tool call
+---@return string|nil The content string, or nil if no content
+local function build_tool_output_message(tool_call)
+  local content_parts = {}
+
+  -- Extract full content from the content blocks
+  if tool_call.content and type(tool_call.content) == "table" then
+    for _, c in ipairs(tool_call.content) do
+      if c.type == "content" and c.content then
+        local text = extract_full_text(c.content)
+        if text and text ~= "" then
+          table.insert(content_parts, text)
+        end
+      elseif c.type == "diff" then
+        local path = c.path or "file"
+        table.insert(content_parts, ("Edited %s"):format(path))
+      end
+    end
+  end
+
+  -- Fall back to rawOutput if no content blocks
+  if #content_parts == 0 and tool_call.rawOutput then
+    local raw = tool_call.rawOutput
+    if type(raw) == "table" then
+      -- Try common rawOutput fields from different agents
+      local text = raw.formatted_output or raw.aggregated_output or raw.output or raw.text or raw.message or raw.stdout
+      if type(text) == "string" and text ~= "" then
+        table.insert(content_parts, text)
+      elseif raw.content and type(raw.content) == "table" then
+        for _, block in ipairs(raw.content) do
+          if type(block) == "table" and block.text then
+            table.insert(content_parts, block.text)
+          end
+        end
+      end
+    elseif type(raw) == "string" and raw ~= "" then
+      table.insert(content_parts, raw)
+    end
+  end
+
+  if #content_parts == 0 then
+    return nil
+  end
+
+  return table.concat(content_parts, "\n")
+end
+
+---@param value any
+---@return string
+local function encode_json(value)
+  local ok, encoded = pcall(vim.json.encode, value)
+  if ok and type(encoded) == "string" then
+    return encoded
+  end
+
+  return "{}"
+end
+
 ---Output tool call to the chat
 ---@param tool_call table
 ---@return nil
 function ACPHandler:process_tool_call(tool_call)
   -- Cache the tool call to handle processing later on, such as a later permission request
-  local id = tool_call.toolCallId
+  local id = tool_call.toolCallId or "unknown"
 
   local prev = self.tools[id]
   local merged = merge_tool_call(prev, tool_call)
@@ -205,8 +298,9 @@ function ACPHandler:process_tool_call(tool_call)
     content = "[Error formatting tool output]"
   end
 
-  -- Cache or cleanup
-  if tool_call.status == "completed" then
+  -- Track completed tool calls for message history
+  if is_tool_finished(tool_call) then
+    self.completed_tools[id] = vim.deepcopy(tool_call)
     self.tools[id] = nil
   else
     self.tools[id] = merged
@@ -229,11 +323,26 @@ function ACPHandler:process_tool_call(tool_call)
     end)
 
     -- Cleanup the cache
-    if tool_call.status == "completed" then
+    if is_tool_finished(tool_call) then
       ACPHandlerUI[self.chat.bufnr][id] = nil
     end
 
     if ok then
+      -- When a tool completes, write its full output as a foldable block
+      if is_tool_finished(tool_call) then
+        local full_output = build_tool_output_message(tool_call)
+        if full_output and full_output ~= "" then
+          local title = formatter.enhanced_title(formatter.normalize_tool_call(tool_call))
+          self.chat:add_buf_message({
+            role = config.constants.LLM_ROLE,
+            content = full_output,
+          }, {
+            type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+            title = title,
+          })
+        end
+      end
+
       return
     end
     log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", tool_call.toolCallId)
@@ -241,7 +350,7 @@ function ACPHandler:process_tool_call(tool_call)
 
   table.insert(self.output, content)
   local line_number = self.chat:add_buf_message({
-    role = require("codecompanion.config").constants.LLM_ROLE,
+    role = config.constants.LLM_ROLE,
     content = content,
   }, {
     status = tool_call.status or "in_progress",
@@ -250,6 +359,24 @@ function ACPHandler:process_tool_call(tool_call)
     kind = tool_call.kind,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
+
+  -- When a tool call completes immediately (no prior UI entry), also write its output
+  if is_tool_finished(tool_call) then
+    local full_output = build_tool_output_message(tool_call)
+    if full_output and full_output ~= "" then
+      local title = formatter.enhanced_title(formatter.normalize_tool_call(tool_call))
+      self.chat:add_buf_message({
+        role = config.constants.LLM_ROLE,
+        content = full_output,
+      }, {
+        type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+        title = title,
+      })
+    end
+    ACPHandlerUI[self.chat.bufnr][id] = nil
+
+    return
+  end
 
   ACPHandlerUI[self.chat.bufnr][id] = { line_number = line_number }
 end
@@ -293,6 +420,33 @@ function ACPHandler:handle_completion(stop_reason)
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
   end
+  -- Record completed tool calls in self.messages
+  for id, tool_call in pairs(self.completed_tools) do
+    local function_call = {
+      id = id,
+      type = "function",
+      ["function"] = {
+        name = tool_call.kind or "tool",
+        arguments = encode_json(tool_call.rawInput or {}),
+      },
+    }
+
+    -- Add LLM message with tool call info
+    self.chat:add_message({
+      role = config.constants.LLM_ROLE,
+      content = "",
+      tool_calls = { function_call },
+    }, { visible = false })
+
+    -- Add tool output message via adapter formatter
+    local output_content = build_tool_output_message(tool_call)
+    if output_content and output_content ~= "" then
+      self.chat:add_tool_output({ function_call = function_call }, output_content, "")
+    end
+
+    self.completed_tools[id] = nil
+  end
+
   self.chat:done(self.output, self.reasoning, {})
 end
 
