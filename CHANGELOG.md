@@ -1,5 +1,35 @@
 # Changelog
 
+## [19.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.7.0...v19.0.0) (2026-02-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **adapters:** claude code ACP requires `claude-agent-acp` ([#2779](https://github.com/olimorris/codecompanion.nvim/issues/2779))
+
+### Features
+
+* **adapters:** improve caching in anthropic and add to copilot ([#2798](https://github.com/olimorris/codecompanion.nvim/issues/2798)) ([66aaa6a](https://github.com/olimorris/codecompanion.nvim/commit/66aaa6ae4c88434fccef7a7eb34bcaf2058c9b0b))
+* **chat:** add new editor context items ([#2780](https://github.com/olimorris/codecompanion.nvim/issues/2780)) ([6e1bad4](https://github.com/olimorris/codecompanion.nvim/commit/6e1bad424bd769a192e6fa5f220024b39d5ab8b6))
+* **chat:** new agent mode with group system prompts ([#2786](https://github.com/olimorris/codecompanion.nvim/issues/2786)) ([a4e64ae](https://github.com/olimorris/codecompanion.nvim/commit/a4e64ae9b9c5c315d8af93e980d8eed4cb8ca92a))
+* **ci:** add a container definition to run the CI toolchain ([#2794](https://github.com/olimorris/codecompanion.nvim/issues/2794)) ([4540978](https://github.com/olimorris/codecompanion.nvim/commit/4540978540bd2167699643debb645c7b3d5b5988))
+* per-project configuration ([#2778](https://github.com/olimorris/codecompanion.nvim/issues/2778)) ([ac042ea](https://github.com/olimorris/codecompanion.nvim/commit/ac042eacf1a76673a87828461fb126d510576982))
+* **prompt_library:** can ensure no tools or mcp_servers are added to chats ([#2785](https://github.com/olimorris/codecompanion.nvim/issues/2785)) ([d8a3540](https://github.com/olimorris/codecompanion.nvim/commit/d8a3540db8390c45db0e2b7c26bd90e26169aaa6))
+* **tools:** fire an event when tool approval is requested ([#2783](https://github.com/olimorris/codecompanion.nvim/issues/2783)) ([0d2904d](https://github.com/olimorris/codecompanion.nvim/commit/0d2904df49b7ab8dfc1a1ecbbe100f9a157ccdb1))
+* **ui:** auto chat dimensions ([#2753](https://github.com/olimorris/codecompanion.nvim/issues/2753)) ([b36b76e](https://github.com/olimorris/codecompanion.nvim/commit/b36b76e215934885c6b7e98c22bbc68c4e610538))
+* **ui:** open-in-tab chat/inline option ([#2792](https://github.com/olimorris/codecompanion.nvim/issues/2792)) ([57d5b7e](https://github.com/olimorris/codecompanion.nvim/commit/57d5b7e3deabfe29cf4c554de75815fa334ce7da))
+
+
+### Bug Fixes
+
+* **chat:** editor context not displaying in the UI ([#2801](https://github.com/olimorris/codecompanion.nvim/issues/2801)) ([30859c0](https://github.com/olimorris/codecompanion.nvim/commit/30859c04789b991af65e0ae41439c56d185429b5))
+* **tools:** add additionalProperties: false recursively in enforce_strictness ([#2790](https://github.com/olimorris/codecompanion.nvim/issues/2790)) ([e54490a](https://github.com/olimorris/codecompanion.nvim/commit/e54490a55a55c6d83691e172ad3697afc3bab74b))
+
+
+### Code Refactoring
+
+* **adapters:** claude code ACP requires `claude-agent-acp` ([#2779](https://github.com/olimorris/codecompanion.nvim/issues/2779)) ([8a41c79](https://github.com/olimorris/codecompanion.nvim/commit/8a41c79c41fa84dcf353b32a790f421204916cf8))
+
 ## [18.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.6.0...v18.7.0) (2026-02-18)
 
 
