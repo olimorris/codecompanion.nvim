@@ -408,10 +408,14 @@ end
 ---Render the settings and any messages in the chat buffer
 ---@param context table
 ---@param messages table
----@param opts {force_header?: boolean, stop_context_insertion?: boolean}
+---@param opts {force_header?: boolean, stop_context_insertion?: boolean, auto_submit?: boolean, from_prompt_library?: boolean}
 ---@return self
 function UI:render(context, messages, opts)
-  opts = vim.tbl_extend("keep", opts or {}, { force_header = false, stop_context_insertion = false })
+  opts = vim.tbl_extend(
+    "keep",
+    opts or {},
+    { force_header = false, stop_context_insertion = false, auto_submit = nil, from_prompt_library = false }
+  )
 
   local lines = {}
 
@@ -486,6 +490,12 @@ function UI:render(context, messages, opts)
   else
     log:trace("Setting the messages in the chat buffer")
     add_messages_to_buf(messages)
+    -- Ensure the buffer ends with an empty line so the cursor is placed
+    -- correctly (after the last character) when auto_submit is false and
+    -- the chat was opened from the prompt library with non-empty user prompt
+    if opts.auto_submit == false and opts.from_prompt_library and #lines > 0 and lines[#lines] ~= "" then
+      spacer()
+    end
   end
 
   -- If the user has visually selected some text, add that to the chat buffer

@@ -538,7 +538,11 @@ function Chat.new(args)
   end
 
   self.close_last_chat()
-  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  self.ui:open():render(self.buffer_context, self.messages, {
+    stop_context_insertion = args.stop_context_insertion,
+    auto_submit = args.auto_submit,
+    from_prompt_library = args.from_prompt_library,
+  })
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
