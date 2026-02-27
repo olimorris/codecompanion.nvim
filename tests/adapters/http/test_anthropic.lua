@@ -57,6 +57,7 @@ T["Anthropic adapter"]["form_messages"]["regular chat"] = function()
   }
 
   h.eq({
+    cache_control = { type = "ephemeral" },
     messages = {
       {
         content = {
@@ -277,7 +278,7 @@ T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results
     },
   }
 
-  h.eq({ messages = output }, adapter.handlers.form_messages(adapter, input))
+  h.eq({ cache_control = { type = "ephemeral" }, messages = output }, adapter.handlers.form_messages(adapter, input))
 end
 
 T["Anthropic adapter"]["form_messages"]["handles tool results correctly"] = function()
@@ -473,7 +474,7 @@ T["Anthropic adapter"]["form_messages"]["can handle reasoning"] = function()
     },
   }
 
-  h.eq({ messages = expected }, result)
+  h.eq({ cache_control = { type = "ephemeral" }, messages = expected }, result)
 end
 
 T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
@@ -539,7 +540,7 @@ T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
     },
   }
 
-  h.eq({ messages = expected }, result)
+  h.eq({ cache_control = { type = "ephemeral" }, messages = expected }, result)
 end
 
 T["Anthropic adapter"]["form_reasoning"] = function()

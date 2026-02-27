@@ -7,22 +7,22 @@ return {
   },
   handlers = {
     -- Should only be called once
-    setup = function(self)
+    setup = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "Setup"
       _G._test_setup = (_G._test_setup or "") .. "Setup"
       _G._test_output = {}
     end,
     -- Should only be called once
-    on_exit = function(self)
+    on_exit = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Exit"
       _G._test_exit = (_G._test_exit or "") .. "Exited"
     end,
   },
   output = {
     -- Should only be called once
-    success = function(self, tools, cmd, output)
+    success = function(self, stdout, meta)
       _G._test_order = (_G._test_order or "") .. "->Success"
-      _G._test_output = output
+      _G._test_output = stdout
     end,
   },
 }

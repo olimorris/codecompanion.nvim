@@ -54,20 +54,9 @@ local function search(action, opts)
     }
   end
 
-  -- Convert absolute paths to relative paths so the LLM doesn't have full knowledge of the filesystem
-  local relative_files = {}
-  for _, file in ipairs(found_files) do
-    local rel_path = vim.fs.relpath(cwd, file)
-    if rel_path then
-      table.insert(relative_files, rel_path)
-    else
-      table.insert(relative_files, file)
-    end
-  end
-
   return {
     status = "success",
-    data = relative_files,
+    data = found_files,
   }
 end
 
@@ -108,35 +97,35 @@ return {
     },
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.FileSearch
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, opts)
       log:trace("[File Search Tool] on_exit handler executed")
     end,
   },
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.FileSearch
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
+    cmd_string = function(self, opts)
       return self.args.query
     end,
 
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
-    prompt = function(self, tools)
+    prompt = function(self, meta)
       return fmt("Search the cwd for `%s`?", self.args.query)
     end,
 
     ---@param self CodeCompanion.Tool.FileSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
       local query = self.args.query
       local data = stdout[1]
 
@@ -156,11 +145,10 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.FileSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local query = self.args.query
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[File Search Tool] Error output: %s", stderr)
@@ -179,14 +167,12 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.FileSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = "The user rejected the file search tool"
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      helpers.rejected(self, meta)
     end,
   },
 }

@@ -86,10 +86,25 @@ CodeCompanion.nvim is organized into several key directories:
 
 ### Prerequisites
 
-- Neovim 0.10.0+
+- Neovim 0.11.0+
+- [tree-sitter](https://github.com/tree-sitter/tree-sitter) for testing
 - [lua-language-server](https://github.com/LuaLS/lua-language-server) for LSP support and type annotations
 - [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting
 - [pandoc](https://pandoc.org) for doc generation
+
+### Using the included Dockerfile
+
+The project includes a Dockerfile to create a container where you can run the `make` tools, including the tests.
+
+Usage example:
+
+```bash
+# Build the container image
+docker build -t codecompanion.nvim .
+
+# Use it to get the deps and run the tests
+docker run --rm -ti -u $(id -u):$(id -g) -v "$(pwd)":/cc -w /cc codecompanion.nvim:latest make deps test
+```
 
 ### Setting Up for Development
 

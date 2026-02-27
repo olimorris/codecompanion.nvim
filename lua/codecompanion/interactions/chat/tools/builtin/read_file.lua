@@ -1,23 +1,16 @@
 local Path = require("plenary.path")
-local helpers = require("codecompanion.interactions.chat.helpers")
 local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 
+local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
-
----Modify the path to be relative to the current working directory
----@param path string
----@return string
-local function modify_path(path)
-  return vim.fn.fnamemodify(path, ":.")
-end
 
 ---Read the contents of a file
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
 ---@return {status: "success"|"error", data: string}
 local function read(action)
-  local path = helpers.validate_and_normalize_path(action.filepath)
+  local path = file_utils.validate_and_normalize_path(action.filepath)
   local p = Path:new(path)
   if not p:exists() or not p:is_file() then
     return {
@@ -146,7 +139,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The relative path to the file to read, including its filename and extension.",
+            description = "The absolute path to the file to read, including its filename and extension.",
           },
           start_line_number_base_zero = {
             type = "number",
@@ -166,48 +159,48 @@ return {
     },
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.ReadFile
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, meta)
       log:trace("[Read File Tool] on_exit handler executed")
     end,
   },
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.ReadFile
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
-      return modify_path(self.args.filepath)
+    cmd_string = function(self, opts)
+      return self.args.filepath
     end,
 
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
-    prompt = function(self, tools)
-      return fmt("Read `%s`?", modify_path(self.args.filepath))
+    prompt = function(self, meta)
+      return fmt("Read `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
+      local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
       local start_line = self.args.start_line_number_base_zero
       local end_line = self.args.end_line_number_base_zero
+      local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
       local range_text = end_line == -1 and fmt("(%d - end)", start_line) or fmt("(%d - %d)", start_line, end_line)
-      chat:add_tool_output(self, llm_output, fmt("Read file `%s` %s", self.args.filepath, range_text))
+      chat:add_tool_output(self, llm_output, fmt("Read file `%s` %s", display_path, range_text))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local args = self.args
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Read File Tool] Error output: %s", stderr)
@@ -217,14 +210,12 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.ReadFile
-    ---@param tools CodeCompanion.Tools
-    ---@param opts table
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = "The user rejected the read file tool"
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      tool_helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      tool_helpers.rejected(self, meta)
     end,
   },
 }

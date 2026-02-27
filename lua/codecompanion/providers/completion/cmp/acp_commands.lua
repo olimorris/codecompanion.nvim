@@ -1,6 +1,8 @@
 local cc_config = require("codecompanion.config")
 local completion = require("codecompanion.providers.completion")
 
+local trigger = require("codecompanion.triggers").mappings.acp_slash_commands
+
 local source = {}
 
 function source.new(config)
@@ -12,12 +14,10 @@ function source:is_available()
 end
 
 function source:get_trigger_characters()
-  local trigger = cc_config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
   return { trigger }
 end
 
 function source:get_keyword_pattern()
-  local trigger = cc_config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
   local escaped = vim.pesc(trigger)
   return escaped .. [[\w\+]]
 end
@@ -52,7 +52,7 @@ function source:execute(item, callback)
   local line = vim.api.nvim_get_current_line()
 
   -- Remove the trigger character and partial command
-  local before = line:sub(1, col):gsub("\\%w*$", "")
+  local before = line:sub(1, col):gsub(string.format("%s%w*$", trigger), "")
   local after = line:sub(col + 1)
   local new_line = before .. text .. after
 

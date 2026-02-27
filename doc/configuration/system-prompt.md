@@ -65,7 +65,7 @@ The user is working on a ${os} machine. Please respond with system specific comm
 
 ## Tool System Prompt
 
-CodeCompanion also ships with a separate system prompt when [tools](/usage/chat-buffer/tools) are used in the chat buffer:
+CodeCompanion also ships with a separate system prompt when [tools](/usage/chat-buffer/agents-tools) are used in the chat buffer:
 
 `````txt
 <instructions>

@@ -27,75 +27,183 @@ require("codecompanion").setup({
 
 See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/adapters-http) for more information.
 
-## Diff
+## Completion
 
-CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
+By default, CodeCompanion will determine if you have one of [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), or [coc.nvim](https://github.com/neoclide/coc.nvim) installed, selecting it as the default provider. Failing this, the default completion engine will be used.
 
-Depending on which provider you choose, there are different configuration options available to you:
+You can override this with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        completion_provider = "blink", -- blink|cmp|coc|default
+      }
+    }
+  }
+})
+```
+
+### Prefixes
+
+You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/agents-tools):
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    triggers = {
+      acp_slash_commands = "\\",
+      editor_context = "#",
+      slash_commands = "/",
+      tools = "@",
+    },
+  },
+})
+```
+
+## Callbacks
+
+Callbacks allow you to hook into the chat buffer's lifecycle and react to specific events. They are registered per-chat and receive the chat instance as the first argument.
+
+### Available Events
+
+| Event | Description | Extra Args |
+|---|---|---|
+| `on_created` | Chat buffer has been created | - |
+| `on_before_submit` | Before the message is sent to the LLM. Return `false` to prevent submission | `{ adapter }` |
+| `on_submitted` | After the message has been sent to the LLM | `{ payload }` |
+| `on_ready` | Chat is ready for the next turn (after LLM response) | - |
+| `on_completed` | LLM response has been fully processed | `{ status }` |
+| `on_cancelled` | Request has been stopped/cancelled | - |
+| `on_closed` | Chat buffer has been closed | - |
+
+### Registering Callbacks
+
+Callbacks can be registered in two ways:
 
 ::: code-group
 
-```lua [Select Provider]
+```lua [All Chats]
+vim.api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
+  callback = function(args)
+    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+    chat:add_callback("on_before_submit", function(c, info)
+      -- Access the adapter via info.adapter
+      -- Access messages via c.messages
+    end)
+  end,
+})
+```
+
+```lua [Prompt Library]
+require("codecompanion").setup({
+  prompt_library = {
+    ["My Prompt"] = {
+      opts = {
+        callbacks = {
+          on_before_submit = function(chat, info)
+            -- Only applies to chats opened from this prompt
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+### Background Callbacks
+
+Callbacks can also be registered in the config via `interactions.background.chat.callbacks`. These run asynchronously using a separate background LLM instance and are suited for fire-and-forget tasks like generating chat titles. Unlike the callbacks above, they cannot return values to influence the chat's behavior:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              "interactions.background.builtin.chat_make_title",
+            },
+            enabled = true,
+          },
+        },
+        opts = {
+          enabled = true,
+        },
+      },
+    },
+  },
+})
+```
+
+The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
+
+### Preventing Submission
+
+The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
+
+This is useful for implementing safeguards such as token/context limit checks:
+
+```lua
+vim.api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
+  callback = function(args)
+    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+    chat:add_callback("on_before_submit", function(c, data)
+      local token_count = my_tokenizer.count(c.messages)
+      local context_limit = 128000
+
+      if token_count > context_limit then
+        vim.notify(
+          string.format("Token count (%d) exceeds context limit (%d)", token_count, context_limit),
+          vim.log.levels.WARN
+        )
+        return false
+      end
+    end)
+  end,
+})
+```
+
+The `info` table passed to `on_before_submit` contains:
+
+- `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
+
+## Diff
+
+<img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
+
+CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
+
+There are a number of configuration option available to you:
+
+::: code-group
+
+```lua [Display]
 require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- inline|split|mini_diff
-    },
-  },
-})
-```
-
-```lua [Inline Provider]
-require("codecompanion").setup({
-  display = {
-    diff = {
-      provider_opts = {
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
+      word_highlights = {
+        additions = true,
+        deletions = true,
       },
     },
   },
 })
 ```
 
-```lua [Split Provider]
+```lua [Window Opts] {5-17}
 require("codecompanion").setup({
   display = {
     diff = {
-      provider_opts = {
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Diff Windows]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      diff_window = {
+      enabled = true,
+      window = {
         ---@return number|fun(): number
         width = function()
           return math.min(120, vim.o.columns - 10)
@@ -108,6 +216,10 @@ require("codecompanion").setup({
           number = true,
         },
       },
+      word_highlights = {
+        additions = true,
+        deletions = true,
+      },
     },
   },
 })
@@ -115,36 +227,16 @@ require("codecompanion").setup({
 
 :::
 
-The keymaps for accepting and rejecting the diff sit within the `inline` interaction configuration and can be changed via:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    inline = {
-      keymaps = {
-        accept_change = {
-          modes = { n = "gda" }, -- Remember this as DiffAccept
-        },
-        reject_change = {
-          modes = { n = "gdr" }, -- Remember this as DiffReject
-        },
-        always_accept = {
-          modes = { n = "gdy" }, -- Remember this as DiffYolo
-        },
-      },
-    },
-  },
-})
-```
-
 ## Keymaps
 
 > [!NOTE]
 > The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
 
-You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
+You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc.
 
-```lua
+::: code-group
+
+```lua [Chat] {3}
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -157,18 +249,70 @@ require("codecompanion").setup({
           modes = { n = "<C-c>", i = "<C-c>" },
           opts = {},
         },
-        -- Add further custom keymaps here
+        -- Change further custom keymaps here
+        -- ...
+        -- Set a keymap to be false to disable it
+        some_other_keymap = false,
       },
     },
   },
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
+```lua [Inline] {3}
+require("codecompanion").setup({
+  interactions = {
+    inline = {
+      keymaps = {
+        stop = {
+          callback = "keymaps.stop",
+          description = "Stop request",
+          modes = { n = "q" },
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [Diff] {3}
+require("codecompanion").setup({
+  interactions = {
+    shared = {
+      keymaps = {
+        always_accept = {
+          callback = "keymaps.always_accept",
+          modes = { n = "g1" },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          modes = { n = "g2" },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          modes = { n = "g3" },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          modes = { n = "{" },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+For the chat interaction, the keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Prompt Decorator
 
-It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
+It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
 
 ```lua
 require("codecompanion").setup({
@@ -191,14 +335,12 @@ require("codecompanion").setup({
 
 The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).
 
-
-
 ## Slash Commands
 
 > [!IMPORTANT]
 > Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
-[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
+[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/` by default) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
 The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for information on how to use Slash Commands.
 
@@ -292,7 +434,7 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 ## Tools
 
-[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
+[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` (by default), when in the chat buffer:
 
 ```lua
 require("codecompanion").setup({
@@ -308,12 +450,14 @@ require("codecompanion").setup({
             description = "A custom agent combining tools",
             system_prompt = "Describe what the agent should do",
             tools = {
-              "cmd_runner",
+              "run_command",
               "insert_edit_into_file",
               -- Add your own tools or reuse existing ones
             },
             opts = {
               collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+              ignore_system_prompt = false, -- When true, remove the chat's default system prompt
+              ignore_tool_system_prompt = false, -- When true, remove the default tool system prompt
             },
           },
         },
@@ -323,7 +467,7 @@ require("codecompanion").setup({
 })
 ```
 
-When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `cmd_runner`) to perform tasks on your code.
+When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code. The `system_prompt` field allows you to give the LLM specific instructions for how to use the group's tools and can be a string or a function that receives the group config table and a [context object](/configuration/system-prompt) (with `language`, `date`, `nvim_version`, `os`, etc.).
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
@@ -372,7 +516,7 @@ require("codecompanion").setup({
 
 ### Approvals
 
-CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution.
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/agents-tools#approvals) section for more information.
 
 ::: code-group
 
@@ -381,7 +525,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["cmd_runner"] = {
+        ["run_command"] = {
           opts = {
             require_approval_before = true,
           },
@@ -397,7 +541,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["cmd_runner"] = {
+        ["run_command"] = {
           opts = {
             require_cmd_approval = true,
           },
@@ -413,7 +557,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["cmd_runner"] = {
+        ["run_command"] = {
           opts = {
             allowed_in_yolo_mode = false,
           },
@@ -428,7 +572,7 @@ require("codecompanion").setup({
 
 ### Auto Submit (Recursion)
 
-When a tool executes, it can be useful to automatically send its output back to the LLM. This can be achieved by the following options in your configuration:
+When a tool executes, it can be useful to automatically send its output back to the LLM. This is turned on by default and can be configured with:
 
 ```lua {6-7}
 require("codecompanion").setup({
@@ -488,11 +632,11 @@ require("codecompanion").setup({
 ```
 
 > [!TIP]
-> If you move your cursor while the LLM is streaming a response, auto-scrolling will be turned off.
+> If you move your cursor while the LLM is streaming a response, auto-scrolling will be turn off.
 
 ### Completion
 
-By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete variables, slash commands and tools. However, you can override this in your config:
+By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete editor context, slash commands and tools. However, you can override this in your config:
 
 ```lua
 require("codecompanion").setup({
@@ -529,7 +673,7 @@ require("codecompanion").setup({
 
 ### Layout
 
-The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [Super Diff](/usage/chat-buffer/#super-diff), [debug window](/usage/chat-buffer/#messages) or agent [permissions](/usage/chat-buffer/agents.html#permissions). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
+The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [debug window](/usage/chat-buffer/#messages). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
 
 ::: code-group
 
@@ -559,14 +703,16 @@ require("codecompanion").setup({
     chat = {
       window = {
         buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat buffer remains open when switching tabs
+        sticky = false, -- Chat window follows when switching tabs
 
-        layout = "vertical", -- float|vertical|horizontal|buffer
+        layout = "vertical", -- float|vertical|horizontal|tab|buffer
         full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
 
+        -- NOTE: You can set these to 0 for auto width/height
         width = 0.5, ---@return number|fun(): number
         height = 0.8, ---@return number|fun(): number
+
         border = "single",
         relative = "editor",
 
@@ -667,7 +813,7 @@ require("codecompanion").setup({
     chat = {
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
       separator = "─", -- The separator between the different messages in the chat buffer
-      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+      show_context = true, -- Show context (from editor context and slash commands) in the chat buffer?
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
@@ -679,25 +825,25 @@ require("codecompanion").setup({
 ```
 
 
-## Variables
+## Editor Context
 
-[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#`). They provide contextual code or information about the current Neovim state. For instance, the built-in `#buffer` variable sends the current buffer’s contents to the LLM.
+[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be  a inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
 
-You can even define your own variables to share specific content:
+You can even define your own context:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
-      variables = {
-        ["my_var"] = {
-          ---Ensure the file matches the CodeCompanion.Variable class
+      editor_context = {
+        ["my_editor_context_item"] = {
+          ---Ensure the file matches the CodeCompanion.EditorContext class
           ---@return string|fun(): nil
-          callback = "/Users/Oli/Code/my_var.lua",
-          description = "Explain what my_var does",
+          callback = "/Users/Oli/Code/my_editor_context_item.lua",
+          description = "Explain what your does",
           opts = {
             contains_code = false,
-            --has_params = true,    -- Set this if your variable supports parameters
+            --has_params = true,    -- Set this if your editor context item supports parameters
             --default_params = nil, -- Set default parameters
           },
         },
@@ -709,15 +855,15 @@ require("codecompanion").setup({
 
 ### Syncing
 
-Neovim buffers can be [synced](/usage/chat-buffer/variables#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
+Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
 
-To enable this by default for the built-in `#buffer` variable, you can set the `default_params` option to either `diff` or `all`:
+To enable this by default for the built-in `#buffer` editor context, you can set the `default_params` option to either `diff` or `all`:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
-      variables = {
+      editor_context = {
         ["buffer"] = {
           opts = {
             -- Always sync the buffer by sharing its "diff"
@@ -730,4 +876,9 @@ require("codecompanion").setup({
   },
 })
 ```
+
+
+
+
+
 

@@ -10,7 +10,7 @@
 ---@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_ready, on_completed, on_cancelled, on_closed)
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
@@ -18,10 +18,11 @@
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field create_buf fun(): number The function that creates a new buffer for the chat
----@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
+---@field editor_context? CodeCompanion.EditorContext The editor context available to the user
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
+---@field hidden boolean Whether the chat is hidden (no window opened)
 ---@field id number The unique identifier for the chat
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
@@ -33,7 +34,6 @@
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
----@field variables? CodeCompanion.Variables The variables available to the user
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
@@ -45,30 +45,34 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
----@field callbacks table<string, fun(chat: CodeCompanion.Chat)[]> A table of callback functions that are executed at various points
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_ready, on_completed, on_cancelled, on_closed)
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
+---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
+---@field mcp_servers? table<string> List of MCP server names to start and load into the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
+---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
 
 local adapters = require("codecompanion.adapters")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
-local edit_tracker = require("codecompanion.interactions.chat.edit_tracker")
-local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.interactions.chat.helpers")
+local parser = require("codecompanion.interactions.chat.parser")
+local schema = require("codecompanion.schema")
+
+local hash = require("codecompanion.utils.hash")
 local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local parser = require("codecompanion.interactions.chat.parser")
-local schema = require("codecompanion.schema")
+local tokens = require("codecompanion.utils.tokens")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -85,7 +89,8 @@ local CONSTANTS = {
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
-You can answer general programming questions and perform the following tasks:
+You are a general programming assistant and expert in software engineering. You can answer questions about any programming language, framework, or concept.
+You can also perform the following tasks:
 * Answer general programming questions.
 * Explain how the code in a Neovim buffer works.
 * Review the selected code from a Neovim buffer.
@@ -99,7 +104,7 @@ You can answer general programming questions and perform the following tasks:
 
 Follow the user's requirements carefully and to the letter.
 Use the context and attachments the user provides.
-Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
+Keep your answers short and impersonal.
 Use Markdown formatting in your answers.
 DO NOT use H1 or H2 headers in your response.
 When suggesting code changes or new content, use Markdown code blocks.
@@ -166,6 +171,20 @@ local function sync_all_buffer_content(chat)
       require(item.source)
         .new({ Chat = chat })
         :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { item = true })
+    end
+  end
+end
+
+---Backfill estimated_tokens on any messages that lack it (e.g. from args.messages or restored chats)
+---@param messages CodeCompanion.Chat.Messages
+---@return nil
+local function backfill_estimated_tokens(messages)
+  for _, msg in ipairs(messages) do
+    if not msg._meta then
+      msg._meta = {}
+    end
+    if msg._meta.estimated_tokens == nil and type(msg.content) == "string" then
+      msg._meta.estimated_tokens = tokens.calculate(msg.content)
     end
   end
 end
@@ -414,12 +433,13 @@ function Chat.new(args)
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
+    hidden = args.hidden or false,
     id = id,
     intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
     opts = args,
     status = "",
-    title = args.title or nil,
+    title = args.title,
     create_buf = function()
       local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
       api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
@@ -505,7 +525,9 @@ function Chat.new(args)
 
   -- Initialize components
   self.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = self })
+  self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   self.context = require("codecompanion.interactions.chat.context").new({ chat = self })
+  self.editor_context = require("codecompanion.interactions.chat.editor_context").new()
   self.subscribers = require("codecompanion.interactions.chat.subscribers").new()
   self.tools = require("codecompanion.interactions.chat.tools").new({
     adapter = self.adapter,
@@ -513,8 +535,6 @@ function Chat.new(args)
     messages = self.messages,
   })
   self.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({ chat = self })
-  self.variables = require("codecompanion.interactions.chat.variables").new()
-  self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
@@ -523,10 +543,16 @@ function Chat.new(args)
     chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
+    title = self.title,
     window_opts = args.window_opts,
   })
 
   self:update_metadata()
+
+  local default_servers = config.mcp.opts and config.mcp.opts.default_servers
+  if type(default_servers) == "table" and #default_servers > 0 then
+    require("codecompanion.mcp").start_servers()
+  end
 
   -- Likely this hasn't been set by the time the user opens the chat buffer
   if not _G.codecompanion_current_context then
@@ -537,8 +563,12 @@ function Chat.new(args)
     self.messages = args.messages
   end
 
-  self.close_last_chat()
-  self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  if not self.hidden then
+    self.close_last_chat()
+    self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  else
+    self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+  end
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
@@ -585,14 +615,32 @@ function Chat.new(args)
   self:set_system_prompt()
   set_autocmds(self)
 
-  last_chat = self
+  if not self.hidden then
+    last_chat = self
+  end
 
-  for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
-    local tool_config = config.interactions.chat.tools[tool_name]
-    if tool_config ~= nil then
-      self.tool_registry:add(tool_name, tool_config)
-    elseif config.interactions.chat.tools.groups[tool_name] ~= nil then
-      self.tool_registry:add_group(tool_name, config.interactions.chat.tools)
+  if args.tools ~= "none" then
+    for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
+      self.tool_registry:add(tool_name)
+    end
+
+    if args.tools then
+      for _, tool in pairs(args.tools) do
+        self.tool_registry:add(tool)
+      end
+    end
+  end
+
+  if self.adapter.type ~= "acp" then
+    if args.mcp_servers == "none" then
+      -- Explicitly disabled by the prompt library
+    elseif args.mcp_servers then
+      helpers.start_mcp_servers(self, args.mcp_servers)
+    else
+      local servers_to_add = helpers.mcp_servers_to_add_to_chat()
+      if #servers_to_add > 0 then
+        helpers.start_mcp_servers(self, servers_to_add)
+      end
     end
   end
 
@@ -626,6 +674,7 @@ function Chat.new(args)
 
   self:dispatch("on_created")
 
+  backfill_estimated_tokens(self.messages)
   utils.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
@@ -667,6 +716,28 @@ function Chat:dispatch(event, ...)
   return self
 end
 
+---Dispatch callbacks for a cancellable event
+---If any callback returns false, the event is cancelled
+---@param event string The event name
+---@param ... any Additional arguments to pass to callbacks
+---@return boolean cancelled Whether the event was cancelled
+function Chat:dispatch_cancellable(event, ...)
+  local callbacks = self.callbacks[event]
+  if not callbacks then
+    return false
+  end
+
+  for _, callback in ipairs(callbacks) do
+    local ok, result = pcall(callback, self, ...)
+    if not ok then
+      log:error("Callback error for %s: %s", event, result, { silent = true })
+    elseif result == false then
+      return true
+    end
+  end
+  return false
+end
+
 ---Format and apply settings to the chat buffer
 ---@param settings? table
 ---@return CodeCompanion.Chat
@@ -693,6 +764,8 @@ function Chat:change_adapter(adapter)
     -- We need to ensure the connection is created before proceeding so that
     -- users are given a choice of models to select from
     helpers.create_acp_connection(self)
+
+    helpers.remove_mcp_tools(self)
   end
 
   self:set_system_prompt()
@@ -774,7 +847,7 @@ end
 ---@field project_root? string The closest parent directory that contains either a `.git`, `.svn`, or `.hg` directory
 
 ---@return CodeCompanion.SystemPrompt.Context
-function Chat:make_system_prompt_ctx()
+function Chat:make_system_prompt_context()
   ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
   local dynamic_ctx = {
     -- These can be slow-to-run or too complex for a one-liner. So wrap them in
@@ -797,12 +870,12 @@ function Chat:make_system_prompt_ctx()
   local bufnr = self.bufnr
   local winid = vim.fn.bufwinid(bufnr)
   local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
-    language = config.opts.language or "English",
+    cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
     date = tostring(os.date("%Y-%m-%d")),
-    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-    cwd = vim.fn.getcwd(winid ~= -1 and winid or nil),
-    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
     default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
+    language = config.opts.language or "English",
+    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
   }
 
   ---@type CodeCompanion.SystemPrompt.Context
@@ -819,7 +892,7 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@param prompt? string
----@param opts? {opts: table, _meta: table, index?: number}
+---@param opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
@@ -841,11 +914,10 @@ function Chat:set_system_prompt(prompt, opts)
   end
 
   -- Workout in the message stack the last system prompt is
-  local index
-  if not opts.index then
+  if not _meta.index then
     for i = #self.messages, 1, -1 do
       if self.messages[i].role == config.constants.SYSTEM_ROLE then
-        index = i + 1
+        _meta.index = i + 1
         break
       end
     end
@@ -853,7 +925,7 @@ function Chat:set_system_prompt(prompt, opts)
 
   if prompt ~= "" then
     if type(prompt) == "function" then
-      prompt = prompt(self:make_system_prompt_ctx())
+      prompt = prompt(self:make_system_prompt_context())
     end
 
     local system_prompt = {
@@ -864,10 +936,11 @@ function Chat:set_system_prompt(prompt, opts)
 
     _meta.cycle = self.cycle
     _meta.id = make_id(system_prompt)
-    _meta.index = #self.messages + 1
+    _meta.index = _meta.index or 1
+    _meta.estimated_tokens = tokens.calculate(prompt)
     system_prompt._meta = _meta
 
-    table.insert(self.messages, index or opts.index or 1, system_prompt)
+    table.insert(self.messages, _meta.index, system_prompt)
   end
 
   return self
@@ -922,7 +995,11 @@ function Chat:add_message(data, opts)
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
-    _meta = { id = 1, cycle = self.cycle },
+    _meta = {
+      id = 1,
+      cycle = self.cycle,
+      estimated_tokens = type(data.content) == "string" and tokens.calculate(data.content) or nil,
+    },
   }
 
   -- Map tool_calls to tools.calls
@@ -942,11 +1019,11 @@ function Chat:add_message(data, opts)
 
   message.opts = opts
   message._meta.id = make_id(message)
-  message._meta.index = #self.messages + 1
 
-  if opts.index then
-    table.insert(self.messages, opts.index, message)
+  if message._meta.index then
+    table.insert(self.messages, message._meta.index, message)
   else
+    message._meta.index = #self.messages + 1
     table.insert(self.messages, message)
   end
 
@@ -955,7 +1032,7 @@ end
 
 ---Add an image to the chat buffer
 ---@param image CodeCompanion.Image The image object containing the path and other metadata
----@param opts? {role?: "user"|string, source?: string, bufnr?: integer} Options for adding the image
+---@param opts? {role?: "user"|string, source?: string, bufnr?: number} Options for adding the image
 ---@return nil
 function Chat:add_image_message(image, opts)
   opts = vim.tbl_deep_extend("force", {
@@ -983,15 +1060,15 @@ function Chat:add_image_message(image, opts)
   })
 end
 
----Apply any tools or variables that a user has tagged in their message
+---Replace any tools or editor context that the user has included in their response
 ---@param message table
 ---@return nil
-function Chat:replace_vars_and_tools(message)
+function Chat:replace_user_inputs(message)
   if self.tools:parse(self, message) then
     message.content = self.tools:replace(message.content)
   end
-  if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content, self.buffer_context.bufnr)
+  if self.editor_context:parse(self, message) then
+    message.content = self.editor_context:replace(message.content, self.buffer_context.bufnr)
   end
 end
 
@@ -1117,6 +1194,11 @@ function Chat:submit(opts)
       return log:warn("No messages to submit")
     end
 
+    if self:dispatch_cancellable("on_before_submit", { adapter = adapters.make_safe(self.adapter) }) then
+      log:info("Chat submission prevented by on_before_submit callback")
+      return self:restore()
+    end
+
     self.buffer_diffs:check_for_changes(self)
 
     -- Allow users to send a blank message to the LLM
@@ -1137,7 +1219,7 @@ function Chat:submit(opts)
     -- that we only manage context if the last message was from the user.
     if message_to_submit then
       message_to_submit = self.context:remove(self.messages[#self.messages])
-      self:replace_vars_and_tools(message_to_submit)
+      self:replace_user_inputs(message_to_submit)
       self:check_images(message_to_submit)
       self:check_context()
       sync_all_buffer_content(self)
@@ -1454,6 +1536,10 @@ function Chat:stop()
     end)
   end
 
+  pcall(function()
+    require("codecompanion.mcp").cancel_requests(self.id)
+  end)
+
   if self.current_request then
     local handle = self.current_request
     self.current_request = nil
@@ -1481,9 +1567,6 @@ function Chat:close()
   end
 
   self:dispatch("on_closed")
-
-  edit_tracker.handle_chat_close(self)
-  edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
@@ -1593,6 +1676,13 @@ function Chat:reset()
   self.ui:unlock_buf()
 end
 
+---Restore the chat buffer to an editable state (used when a submission is prevented)
+---@return nil
+function Chat:restore()
+  self:reset()
+  utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
+end
+
 ---Get currently focused code block or the last one in the chat buffer
 ---@return TSNode | nil
 function Chat:get_codeblock()
@@ -1675,6 +1765,7 @@ function Chat:set_title(title)
   assert(type(title) == "string", "title must be a string")
 
   self.title = title
+  self.ui.title = title
   chatmap[self.bufnr].description = title
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)

@@ -1,6 +1,8 @@
+local config = require("codecompanion.config")
+
 local Path = require("plenary.path")
 local buf_utils = require("codecompanion.utils.buffers")
-local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -14,19 +16,6 @@ function M.create_acp_connection(chat)
   local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
   local handler = ACPHandler.new(chat)
   return handler:ensure_connection()
-end
-
----Hide chat if floating diff is being used
----@param chat CodeCompanion.Chat The chat instance
----@return nil
-function M.hide_chat_for_floating_diff(chat)
-  local inline_config = config.display.diff.provider_opts.inline
-  local diff_layout = inline_config.layout
-  if diff_layout == "float" and config.display.chat.window.layout == "float" then
-    if chat and chat.ui:is_visible() then
-      chat.ui:hide()
-    end
-  end
 end
 
 ---Format the given role without any separator
@@ -77,36 +66,6 @@ function M.has_user_messages(messages)
   end)
 end
 
----Validate and normalize a path from tool args
----@param path string Raw path from tool args
----@return string|nil normalized_path Returns nil if path is invalid
-function M.validate_and_normalize_path(path)
-  local stat = vim.uv.fs_stat(vim.fs.normalize(path))
-  if stat then
-    return vim.fs.normalize(path)
-  end
-  local abs_path = vim.fs.abspath(path)
-  local normalized_path = vim.fs.normalize(abs_path)
-  stat = vim.uv.fs_stat(normalized_path)
-  if stat then
-    return normalized_path
-  end
-  -- Check for duplicate CWD and fix it
-  local cwd = vim.fs.normalize(vim.uv.cwd())
-  if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
-    local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
-    fixed_path = vim.fs.normalize(fixed_path)
-    stat = vim.uv.fs_stat(fixed_path)
-    if stat then
-      return fixed_path
-    end
-  end
-
-  -- For non-existent files, still return the normalized path
-  -- This allows tracking files that may be created during tool execution
-  return normalized_path
-end
-
 ---Helper function to update the chat settings and model if changed
 ---@param chat CodeCompanion.Chat
 ---@param settings table The new settings to apply
@@ -130,6 +89,64 @@ function M.has_tag(tag, messages)
     end, messages),
     tag
   )
+end
+
+---Resolve which MCP servers should be added to new chat buffers
+---@return table<string> server_names List of server names to add to chat
+function M.mcp_servers_to_add_to_chat()
+  local mcp_cfg = config.mcp
+  local default_servers = mcp_cfg.opts and mcp_cfg.opts.default_servers
+
+  if type(default_servers) == "table" then
+    return vim.deepcopy(default_servers)
+  end
+
+  return {}
+end
+
+---Start MCP servers and add their tools to the chat buffer
+---@param chat CodeCompanion.Chat
+---@param server_names table<string> List of MCP server names
+---@return nil
+function M.start_mcp_servers(chat, server_names)
+  local mcp = require("codecompanion.mcp")
+
+  ---Add an MCP server's tool group to the chat buffer
+  ---@param name string
+  local function add_tools(name)
+    chat.tools:refresh({ adapter = chat.adapter })
+    chat.tool_registry:add(mcp.tool_prefix() .. name, { config = chat.tools.tools_config })
+    log:debug("Added MCP server tools for `%s` to chat %d", name, chat.id)
+  end
+
+  for _, name in ipairs(server_names) do
+    local status = mcp.get_status()
+    local server_status = status[name]
+
+    if server_status and server_status.ready and server_status.tool_count > 0 then
+      add_tools(name)
+    else
+      mcp.enable_server(name, {
+        on_tools_loaded = function()
+          add_tools(name)
+        end,
+      })
+    end
+  end
+end
+
+---Remove all MCP tool groups from the chat's tool registry
+---@param chat CodeCompanion.Chat
+---@return nil
+function M.remove_mcp_tools(chat)
+  local mcp = require("codecompanion.mcp")
+  local prefix = mcp.tool_prefix()
+
+  for group_name, _ in pairs(chat.tool_registry.groups) do
+    if group_name:sub(1, #prefix) == prefix then
+      chat.tool_registry:remove_group(group_name)
+    end
+  end
 end
 
 ---Determine if context has already been added to the messages stack
@@ -163,34 +180,33 @@ function M.format_buffer_for_llm(bufnr, path, opts)
       error("Could not read the file: " .. path)
     end
     content = fmt(
-      [[```%s
+      [[````%s
 %s
-```]],
+````]],
       vim.filetype.match({ filename = path }),
       buf_utils.add_line_numbers(vim.trim(file_content))
     )
   else
     content = fmt(
-      [[```%s
+      [[````%s
 %s
-```]],
+````]],
       buf_utils.get_info(bufnr).filetype,
       buf_utils.add_line_numbers(buf_utils.get_content(bufnr, opts.range))
     )
   end
 
   local filename = vim.fn.fnamemodify(path, ":t")
-  local relative_path = vim.fn.fnamemodify(path, ":.")
 
-  -- Generate consistent ID
-  local id = "<buf>" .. relative_path .. "</buf>"
+  -- Generate consistent ID using relative path for conciseness
+  local id = "<buf>" .. vim.fn.fnamemodify(path, ":.") .. "</buf>"
 
   local message = opts.message or "File content"
 
   local formatted_content = fmt(
     [[<attachment filepath="%s" buffer_number="%s">%s:
 %s</attachment>]],
-    relative_path,
+    path,
     bufnr,
     message,
     content
@@ -204,7 +220,7 @@ end
 ---@param opts? { message?: string, range?: table }
 ---@return string file_contents
 ---@return string id The context ID
----@return string relative_path The relative file path
+---@return string path The file path
 ---@return string ft The filetype
 ---@return string file_contents The raw file contents
 function M.format_file_for_llm(path, opts)
@@ -213,17 +229,16 @@ function M.format_file_for_llm(path, opts)
   local file_contents = Path.new(path):read()
 
   local ft = vim.filetype.match({ filename = path })
-  local relative_path = vim.fn.fnamemodify(path, ":.")
-  local id = "<file>" .. relative_path .. "</file>"
+  local id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>"
 
   local content
   if opts.message then
     content = fmt(
       [[%s
 
-```%s
+````%s
 %s
-```]],
+````]],
       opts.message,
       ft,
       file_contents
@@ -232,18 +247,68 @@ function M.format_file_for_llm(path, opts)
     content = fmt(
       [[<attachment filepath="%s">%s:
 
-```%s
+````%s
 %s
-```
+````
 </attachment>]],
-      relative_path,
+      path,
       "Here is the content from the file",
       ft,
       file_contents
     )
   end
 
-  return content, id, relative_path, ft, file_contents
+  return content, id, path, ft, file_contents
+end
+
+---Add line numbers with an offset to content
+---@param content string
+---@param start_line number The starting line number
+---@return string
+local function add_line_numbers_from(content, start_line)
+  local formatted = {}
+  local lines = vim.split(content, "\n")
+  for i, line in ipairs(lines) do
+    table.insert(formatted, fmt("%d |%s", start_line + i - 1, line))
+  end
+  return table.concat(formatted, "\n")
+end
+
+---Format a single viewport range for LLM consumption
+---@param bufnr number
+---@param range table {start_line, end_line}
+---@return string content The XML-wrapped content
+---@return string id The context ID
+function M.format_viewport_range_for_llm(bufnr, range)
+  local info = buf_utils.get_info(bufnr)
+  local filepath = info.path
+  local start_line, end_line = range[1], range[2]
+
+  local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
+  local numbered_content = add_line_numbers_from(buffer_content, start_line)
+
+  local content = fmt(
+    [[````%s
+%s
+````]],
+    info.filetype,
+    numbered_content
+  )
+
+  local excerpt_info = fmt("Excerpt from %s, lines %d to %d", filepath, start_line, end_line)
+
+  local formatted_content = fmt(
+    [[<attachment filepath="%s" buffer_number="%s">%s:
+%s</attachment>]],
+    filepath,
+    bufnr,
+    excerpt_info,
+    content
+  )
+
+  local id = fmt("<viewport>%s:%d-%d</viewport>", vim.fn.fnamemodify(filepath, ":."), start_line, end_line)
+
+  return formatted_content, id
 end
 
 ---Format viewport content with XML wrapper for LLM consumption
@@ -253,33 +318,9 @@ function M.format_viewport_for_llm(buf_lines)
   local formatted = {}
 
   for bufnr, ranges in pairs(buf_lines) do
-    local info = buf_utils.get_info(bufnr)
-    local relative_path = vim.fn.fnamemodify(info.path, ":.")
-
     for _, range in ipairs(ranges) do
-      local start_line, end_line = range[1], range[2]
-
-      local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
-      local content = fmt(
-        [[```%s
-%s
-```]],
-        info.filetype,
-        buffer_content
-      )
-
-      local excerpt_info = fmt("Excerpt from %s, lines %d to %d", relative_path, start_line, end_line)
-
-      local formatted_content = fmt(
-        [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
-        relative_path,
-        bufnr,
-        excerpt_info,
-        content
-      )
-
-      table.insert(formatted, formatted_content)
+      local content, _ = M.format_viewport_range_for_llm(bufnr, range)
+      table.insert(formatted, content)
     end
   end
 

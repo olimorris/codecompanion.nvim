@@ -126,15 +126,8 @@ local function grep_search(action, opts)
       local file_path = json_data.data.path.text
       local line_number = json_data.data.line_number
 
-      -- Convert absolute path to relative path from cwd
-      local relative_path = vim.fs.relpath(cwd, file_path) or file_path
-
-      -- Extract just the filename and directory
-      local filename = vim.fn.fnamemodify(relative_path, ":t")
-      local dir_path = vim.fn.fnamemodify(relative_path, ":h")
-
-      -- Format: "filename:line directory_path"
-      local match_entry = fmt("%s:%d %s", filename, line_number, dir_path == "." and "" or dir_path)
+      -- Format: "filepath:line_number"
+      local match_entry = fmt("%s:%d", file_path, line_number)
       table.insert(matches, match_entry)
       count = count + 1
     end
@@ -194,45 +187,45 @@ return {
     type = "function",
   },
   handlers = {
-    ---@param tools CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Tool.GrepSearch
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
-    on_exit = function(tools)
+    on_exit = function(self, meta)
       log:trace("[Grep Search Tool] on_exit handler executed")
     end,
   },
   output = {
     ---Returns the command that will be executed
     ---@param self CodeCompanion.Tool.GrepSearch
-    ---@param args { tools: CodeCompanion.Tools }
+    ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
-    cmd_string = function(self, args)
+    cmd_string = function(self, opts)
       return self.args.query or ""
     end,
 
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param tools CodeCompanion.Tools
+    ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil|string
-    prompt = function(self, tools)
+    prompt = function(self, meta)
       return fmt("Grep search for `%s`?", self.args.query)
     end,
 
     ---@param self CodeCompanion.Tool.GrepSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
-    success = function(self, tools, cmd, stdout)
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    success = function(self, stdout, meta)
       local query = self.args.query
-      local chat = tools.chat
+      local chat = meta.tools.chat
       local data = stdout[1]
 
       local llm_output = [[<grepSearchTool>%s
 
 NOTE:
-- The output format is {filename}:{line number} {filepath}.
+- The output format is {filepath}:{line_number}.
 - For example:
-init.lua:335 lua/codecompanion/interactions/chat/tools
-Refers to line 335 of the init.lua file in the lua/codecompanion/interactions/chat/tools path</grepSearchTool>]]
+/Users/user/project/lua/codecompanion/interactions/chat/tools/init.lua:335
+Refers to line 335 of the init.lua file</grepSearchTool>]]
       local output = vim.iter(stdout):flatten():join("\n")
 
       if type(data) == "table" then
@@ -248,11 +241,10 @@ Refers to line 335 of the init.lua file in the lua/codecompanion/interactions/ch
     end,
 
     ---@param self CodeCompanion.Tool.GrepSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
     ---@param stderr table The error output from the command
-    error = function(self, tools, cmd, stderr)
-      local chat = tools.chat
+    ---@param meta { tools: CodeCompanion.Tools, cmd: table }
+    error = function(self, stderr, meta)
+      local chat = meta.tools.chat
       local query = self.args.query
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Grep Search Tool] Error output: %s", stderr)
@@ -270,14 +262,12 @@ Refers to line 335 of the init.lua file in the lua/codecompanion/interactions/ch
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.GrepSearch
-    ---@param tools CodeCompanion.Tools
-    ---@param cmd table
-    ---@param opts table
+    ---@param meta { tools: CodeCompanion.Tools, cmd: string, opts: table }
     ---@return nil
-    rejected = function(self, tools, cmd, opts)
+    rejected = function(self, meta)
       local message = "The user rejected the grep search tool"
-      opts = vim.tbl_extend("force", { message = message }, opts or {})
-      helpers.rejected(self, tools, cmd, opts)
+      meta = vim.tbl_extend("force", { message = message }, meta or {})
+      helpers.rejected(self, meta)
     end,
   },
 }

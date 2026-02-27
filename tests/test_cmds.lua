@@ -2,9 +2,11 @@ local h = require("tests.helpers")
 
 local expect = MiniTest.expect
 local new_set = MiniTest.new_set
-
 local child = MiniTest.new_child_neovim()
-T = new_set({
+
+T = new_set()
+
+T["cmds"] = new_set({
   hooks = {
     pre_once = function()
       h.child_start(child)
@@ -18,8 +20,6 @@ T = new_set({
     post_once = child.stop,
   },
 })
-
-T["cmds"] = new_set()
 T["cmds"][":CodeCompanionChat"] = function()
   child.lua([[
 
@@ -144,8 +144,8 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     local cfg = require('codecompanion.config')
     cfg.interactions = cfg.interactions or {}
     cfg.interactions.chat = cfg.interactions.chat or {}
-    cfg.interactions.chat.variables = cfg.interactions.chat.variables or {}
-    cfg.interactions.chat.variables.testvar = cfg.interactions.chat.variables.testvar or {}
+    cfg.interactions.chat.editor_context = cfg.interactions.chat.editor_context or {}
+    cfg.interactions.chat.editor_context.testvar = cfg.interactions.chat.editor_context.testvar or {}
 
     -- New buffer with placeholder
     vim.cmd('enew')
@@ -170,7 +170,85 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     return vim.fn.synIDattr(id, 'name')
   ]])
 
-  h.eq(hl, "CodeCompanionChatVariable")
+  h.eq(hl, "CodeCompanionChatEditorContext")
+end
+
+T["cmds_tab"] = new_set({
+  hooks = {
+    pre_once = function()
+      h.child_start(child)
+      child.lua([[
+        h = require('tests.helpers')
+        config = require('codecompanion.config')
+        config.rules.opts.chat.enabled = false
+        config.display.chat.window.layout = "tab"
+        config.display.chat.intro_message = "Welcome"
+        h.setup_plugin(config)
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["cmds_tab"][":CodeCompanionChat opens in tab when set in config"] = function()
+  child.lua([[
+    -- Mock the submit function
+    local original = h.mock_submit("This is a mocked response: 1 + 1 = 2")
+
+    -- Run the command
+    vim.cmd("CodeCompanionChat this is a test, what is 1 + 1?")
+    vim.wait(100)
+
+    -- Restore the original function
+    h.restore_submit(original)
+  ]])
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["cmds_tab"][":CodeCompanionChat Toggle goes to last tab from chat"] = function()
+  child.cmd([[CodeCompanionChat Toggle]])
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["cmds_tab"][":CodeCompanionChat Toggle goes to chat from any other tab"] = function()
+  child.cmd([[CodeCompanionChat Toggle]])
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["cmds_tab_sticky"] = new_set({
+  hooks = {
+    pre_once = function()
+      h.child_start(child)
+      child.lua([[
+        h = require('tests.helpers')
+        config = require('codecompanion.config')
+        config.rules.opts.chat.enabled = false
+        config.display.chat.window.layout = "tab"
+        config.display.chat.window.sticky = true
+        config.display.chat.intro_message = "Welcome"
+        h.setup_plugin(config)
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["cmds_tab_sticky"][":CodeCompanionChat doesnt follow if sticky is set"] = function()
+  child.lua([[
+    -- Mock the submit function
+    local original = h.mock_submit("This is a mocked response: 1 + 1 = 2")
+
+    -- Run the command
+    vim.cmd("CodeCompanionChat this is a test, what is 1 + 1?")
+    vim.wait(100)
+
+    -- Restore the original function
+    h.restore_submit(original)
+
+    -- Open a new tab
+    vim.cmd("tabnew")
+  ]])
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T
