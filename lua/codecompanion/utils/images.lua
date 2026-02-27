@@ -8,7 +8,7 @@ local ui_utils = require("codecompanion.utils.ui")
 ---@class (private) CodeCompanion.Image
 ---@field id string
 ---@field path string
----@field bufnr? integer
+---@field bufnr? number
 ---@field base64? string
 ---@field mimetype? string
 
@@ -48,7 +48,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 })
 
 ---@class (private) CodeCompanion.Image.Preprocessor.Context
----@field chat_bufnr integer?
+---@field chat_bufnr number?
 
 ---@alias CodeCompanion.Image.Preprocessor
 --- | fun(source: string, ctx: CodeCompanion.Image.Preprocessor.Context?, cb: fun(result: string|CodeCompanion.Image)):nil

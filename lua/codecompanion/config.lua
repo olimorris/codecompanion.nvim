@@ -44,13 +44,14 @@ local defaults = {
       goose = "goose",
       kimi_cli = "kimi_cli",
       kiro = "kiro",
+      mistral_vibe = "mistral_vibe",
       opencode = "opencode",
       opts = {
         show_presets = true,
       },
     },
     opts = {
-      cmd_timeout = 10e3, -- Timeout for commands that resolve env variables (milliseconds)
+      cmd_timeout = 20e3, -- Timeout for commands that resolve env variables (milliseconds)
     },
   },
   constants = constants,
@@ -92,22 +93,75 @@ local defaults = {
       },
       tools = {
         groups = {
-          ["full_stack_dev"] = {
-            description = "Full Stack Developer - Can run code, edit code and modify files",
-            prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
+          ["agent"] = {
+            description = "Agent - Can run code, edit code and modify files on your behalf",
+            system_prompt = function(group, ctx)
+              return string.format(
+                [[<instructions>
+You are an expert AI coding agent, working with a user in Neovim. You have expert-level knowledge across many programming languages, frameworks and software engineering tasks including debugging, implementing features, refactoring code and providing explanations.
+By default, implement changes rather than only suggesting them. When a tool call is intended, make it happen rather than describing it. If the user's intent is unclear, infer the most useful likely action and use tools to discover any missing details instead of guessing.
+If you can infer the project type (languages, frameworks and libraries) from the user's query or the context that you have, keep them in mind when making changes.
+If the user wants you to implement a feature and they have not specified the files to edit, first break down the request into smaller concepts and think about the kinds of files you need to grasp each concept.
+If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have. It's YOUR RESPONSIBILITY to make sure that you have done all you can to collect necessary context.
+Don't make assumptions about the situation - gather context first, then perform the task or answer the question. Think creatively and explore the workspace in order to make a complete fix.
+Continue working until the user's request is completely resolved before ending your turn. Do not stop when you encounter uncertainty - research or deduce the most reasonable approach and continue.
+After making changes, verify your work by reading the modified files or running relevant commands when appropriate.
+Don't repeat yourself after a tool call, pick up where you left off.
+NEVER print out a codeblock with a terminal command to run unless the user asked for it.
+You don't need to read a file if it's already provided in context.
+</instructions>
+<toolUseInstructions>
+When using a tool, follow the json schema very carefully and make sure to include ALL required properties.
+Always output valid JSON when using a tool.
+If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
+If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
+Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
+Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
+When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
+</toolUseInstructions>
+<outputFormatting>
+Keep responses concise. After completing file operations, confirm briefly rather than explaining what was done. Match response length to task complexity.
+Use proper Markdown formatting in your answers. When referring to a filename or symbol in the user's workspace, wrap it in backticks.
+Any code block examples must be wrapped in four backticks with the programming language.
+<example>
+````languageId
+// Your code here
+````
+</example>
+The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
+If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+</outputFormatting>
+<additionalContext>
+All non-code text responses must be written in the %s language.
+The user's current working directory is %s.
+The current date is %s.
+The user's Neovim version is %s.
+The user is working on a %s machine. Please respond with system specific commands if applicable.
+</additionalContext>]],
+                ctx.language,
+                ctx.cwd,
+                ctx.date,
+                ctx.nvim_version,
+                ctx.os
+              )
+            end,
             tools = {
-              "cmd_runner",
+              "ask_questions",
               "create_file",
               "delete_file",
               "file_search",
               "get_changed_files",
+              "get_diagnostics",
               "grep_search",
               "insert_edit_into_file",
-              "list_code_usages",
               "read_file",
+              "run_command",
             },
             opts = {
               collapse_tools = true,
+              ignore_system_prompt = true,
+              ignore_tool_system_prompt = true,
             },
           },
           ["files"] = {
@@ -128,17 +182,66 @@ local defaults = {
           },
         },
         -- Tools
-        ["cmd_runner"] = {
-          callback = "interactions.chat.tools.builtin.cmd_runner",
-          description = "Run shell commands initiated by the LLM",
+        ["ask_questions"] = {
+          path = "interactions.chat.tools.builtin.ask_questions",
+          description = "Ask the user questions to clarify requirements or validate assumptions",
+          visible = false,
+        },
+        ["create_file"] = {
+          path = "interactions.chat.tools.builtin.create_file",
+          description = "Create a file in the current working directory",
+          opts = {
+            require_approval_before = true,
+          },
+        },
+        ["delete_file"] = {
+          path = "interactions.chat.tools.builtin.delete_file",
+          description = "Delete a file in the current working directory",
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
-            require_cmd_approval = true,
+          },
+        },
+        ["fetch_webpage"] = {
+          path = "interactions.chat.tools.builtin.fetch_webpage",
+          description = "Fetches content from a webpage",
+          opts = {
+            adapter = "jina",
+          },
+        },
+        ["file_search"] = {
+          path = "interactions.chat.tools.builtin.file_search",
+          description = "Search for files in the current working directory by glob pattern",
+          opts = {
+            max_results = 500,
+          },
+        },
+        ["get_changed_files"] = {
+          path = "interactions.chat.tools.builtin.get_changed_files",
+          description = "Get git diffs of current file changes in a git repository",
+          opts = {
+            max_lines = 1000,
+          },
+        },
+        ["get_diagnostics"] = {
+          path = "interactions.chat.tools.builtin.get_diagnostics",
+          description = "Get LSP diagnostics for a given file",
+        },
+        ["grep_search"] = {
+          path = "interactions.chat.tools.builtin.grep_search",
+          enabled = function()
+            -- Currently this tool only supports ripgrep
+            return vim.fn.executable("rg") == 1
+          end,
+          description = "Search for text in the current working directory",
+          opts = {
+            max_results = 100,
+            respect_gitignore = true,
+            require_approval_before = true,
           },
         },
         ["insert_edit_into_file"] = {
-          callback = "interactions.chat.tools.builtin.insert_edit_into_file",
+          path = "interactions.chat.tools.builtin.insert_edit_into_file",
           description = "Robustly edit existing files with multiple automatic fallback interactions",
           opts = {
             require_approval_before = { -- Require approval before the tool is executed?
@@ -149,80 +252,32 @@ local defaults = {
             file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
-        ["create_file"] = {
-          callback = "interactions.chat.tools.builtin.create_file",
-          description = "Create a file in the current working directory",
+        ["memory"] = {
+          path = "interactions.chat.tools.builtin.memory",
+          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             require_approval_before = true,
-            require_cmd_approval = true,
           },
         },
-        ["delete_file"] = {
-          callback = "interactions.chat.tools.builtin.delete_file",
-          description = "Delete a file in the current working directory",
+        ["read_file"] = {
+          path = "interactions.chat.tools.builtin.read_file",
+          description = "Read a file in the current working directory",
+          opts = {
+            require_approval_before = true,
+          },
+        },
+        ["run_command"] = {
+          path = "interactions.chat.tools.builtin.run_command",
+          description = "Run shell commands initiated by the LLM",
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
           },
         },
-        ["fetch_webpage"] = {
-          callback = "interactions.chat.tools.builtin.fetch_webpage",
-          description = "Fetches content from a webpage",
-          opts = {
-            adapter = "jina",
-          },
-        },
-        ["file_search"] = {
-          callback = "interactions.chat.tools.builtin.file_search",
-          description = "Search for files in the current working directory by glob pattern",
-          opts = {
-            max_results = 500,
-            require_cmd_approval = true,
-          },
-        },
-        ["get_changed_files"] = {
-          callback = "interactions.chat.tools.builtin.get_changed_files",
-          description = "Get git diffs of current file changes in a git repository",
-          opts = {
-            max_lines = 1000,
-          },
-        },
-        ["grep_search"] = {
-          callback = "interactions.chat.tools.builtin.grep_search",
-          enabled = function()
-            -- Currently this tool only supports ripgrep
-            return vim.fn.executable("rg") == 1
-          end,
-          description = "Search for text in the current working directory",
-          opts = {
-            max_results = 100,
-            respect_gitignore = true,
-            require_approval_before = true,
-            require_cmd_approval = true,
-          },
-        },
-        ["memory"] = {
-          callback = "interactions.chat.tools.builtin.memory",
-          description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
-          opts = {
-            require_approval_before = true,
-          },
-        },
-        ["next_edit_suggestion"] = {
-          callback = "interactions.chat.tools.builtin.next_edit_suggestion",
-          description = "Suggest and jump to the next position to edit",
-        },
-        ["read_file"] = {
-          callback = "interactions.chat.tools.builtin.read_file",
-          description = "Read a file in the current working directory",
-          opts = {
-            require_approval_before = true,
-            require_cmd_approval = true,
-          },
-        },
+
         ["web_search"] = {
-          callback = "interactions.chat.tools.builtin.web_search",
+          path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -234,10 +289,6 @@ local defaults = {
               max_results = 5,
             },
           },
-        },
-        ["list_code_usages"] = {
-          callback = "interactions.chat.tools.builtin.list_code_usages",
-          description = "Find code symbol context",
         },
         opts = {
           auto_submit_errors = true, -- Send any errors to the LLM automatically?
@@ -305,38 +356,76 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      variables = {
+      editor_context = {
+        opts = {
+          excluded = {
+            buftypes = {
+              "nofile",
+              "quickfix",
+              "prompt",
+              "popup",
+            },
+            fts = {
+              "codecompanion",
+              "help",
+              "terminal",
+            },
+          },
+        },
         ["buffer"] = {
-          callback = "interactions.chat.variables.buffer",
+          path = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
             default_params = "diff", -- all|diff
             has_params = true,
-            excluded = {
-              buftypes = {
-                "nofile",
-                "quickfix",
-                "prompt",
-                "popup",
-              },
-              fts = {
-                "codecompanion",
-                "help",
-                "terminal",
-              },
-            },
           },
         },
-        ["lsp"] = {
-          callback = "interactions.chat.variables.lsp",
-          description = "Share LSP information and code for the current buffer",
+        ["buffers"] = {
+          path = "interactions.chat.editor_context.buffers",
+          description = "Share all open buffers with the LLM",
           opts = {
             contains_code = true,
           },
         },
+        ["diagnostics"] = {
+          path = "interactions.chat.editor_context.diagnostics",
+          description = "Share diagnostics and code for the current buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["diff"] = {
+          path = "interactions.chat.editor_context.diff",
+          description = "Share the current git diff with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["messages"] = {
+          path = "interactions.chat.editor_context.messages",
+          description = "Share Neovim's message history with the LLM",
+        },
+        ["quickfix"] = {
+          path = "interactions.chat.editor_context.quickfix",
+          description = "Share the quickfix list with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["selection"] = {
+          path = "interactions.chat.editor_context.selection",
+          description = "Share the current visual selection with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["terminal"] = {
+          path = "interactions.chat.editor_context.terminal",
+          description = "Share the latest terminal output with the LLM",
+        },
         ["viewport"] = {
-          callback = "interactions.chat.variables.viewport",
+          path = "interactions.chat.editor_context.viewport",
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
@@ -345,7 +434,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "interactions.chat.slash_commands.builtin.buffer",
+          path = "interactions.chat.slash_commands.builtin.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -354,7 +443,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["command"] = {
-          callback = "interactions.chat.slash_commands.builtin.command",
+          path = "interactions.chat.slash_commands.builtin.command",
           description = "Change the command used to start the ACP adapter",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -369,7 +458,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["compact"] = {
-          callback = "interactions.chat.slash_commands.builtin.compact",
+          path = "interactions.chat.slash_commands.builtin.compact",
           description = "Clears some of the chat history, keeping a summary in context",
           enabled = function(opts)
             if opts.adapter and opts.adapter.type == "http" then
@@ -382,7 +471,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["fetch"] = {
-          callback = "interactions.chat.slash_commands.builtin.fetch",
+          path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina
@@ -390,15 +479,8 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
-        ["quickfix"] = {
-          callback = "interactions.chat.slash_commands.builtin.quickfix",
-          description = "Insert quickfix list entries",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["file"] = {
-          callback = "interactions.chat.slash_commands.builtin.file",
+          path = "interactions.chat.slash_commands.builtin.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -407,7 +489,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["help"] = {
-          callback = "interactions.chat.slash_commands.builtin.help",
+          path = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -416,7 +498,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["image"] = {
-          callback = "interactions.chat.slash_commands.builtin.image",
+          path = "interactions.chat.slash_commands.builtin.image",
           description = "Insert an image",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -432,15 +514,16 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.images, -- telescope|snacks|default
           },
         },
-        ["rules"] = {
-          callback = "interactions.chat.slash_commands.builtin.rules",
-          description = "Insert rules into the chat buffer",
+        ["mcp"] = {
+          path = "interactions.chat.slash_commands.builtin.mcp",
+          description = "Toggle MCP servers",
           opts = {
-            contains_code = true,
+            contains_code = false,
+            provider = "default", -- snacks|default
           },
         },
         ["mode"] = {
-          callback = "interactions.chat.slash_commands.builtin.mode",
+          path = "interactions.chat.slash_commands.builtin.mode",
           description = "Change the ACP session mode",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
@@ -455,31 +538,30 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["now"] = {
-          callback = "interactions.chat.slash_commands.builtin.now",
+          path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
+        ["rules"] = {
+          path = "interactions.chat.slash_commands.builtin.rules",
+          description = "Insert rules into the chat buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["symbols"] = {
-          callback = "interactions.chat.slash_commands.builtin.symbols",
+          path = "interactions.chat.slash_commands.builtin.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
-        ["terminal"] = {
-          callback = "interactions.chat.slash_commands.builtin.terminal",
-          description = "Insert terminal output",
-          opts = {
-            contains_code = false,
-          },
-        },
         opts = {
           acp = {
             enabled = true, -- Enable ACP command completion
-            trigger = "\\", -- Trigger character for ACP commands
           },
         },
       },
@@ -634,12 +716,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.copilot_stats",
           description = "[Adapter] Copilot statistics",
         },
-        super_diff = {
-          modes = { n = "gD" },
-          index = 23,
-          callback = "keymaps.super_diff",
-          description = "[Tools] Show Super Diff",
-        },
         -- Keymaps for ACP permission requests
         _acp_allow_always = {
           modes = { n = "g1" },
@@ -684,11 +760,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             .. fmt(
               [[Additional context:
 All non-code text responses must be written in the %s language.
+The user's current working directory is %s.
 The current date is %s.
 The user's Neovim version is %s.
 The user is working on a %s machine. Please respond with system specific commands if applicable.
 ]],
               ctx.language,
+              ctx.cwd,
               ctx.date,
               ctx.nvim_version,
               ctx.os
@@ -700,27 +778,6 @@ The user is working on a %s machine. Please respond with system specific command
     inline = {
       adapter = "copilot",
       keymaps = {
-        always_accept = {
-          callback = "keymaps.always_accept",
-          description = "Always accept changes in this buffer",
-          index = 1,
-          modes = { n = "gdy" },
-          opts = { nowait = true },
-        },
-        accept_change = {
-          callback = "keymaps.accept_change",
-          description = "Accept change",
-          index = 2,
-          modes = { n = "gda" },
-          opts = { nowait = true, noremap = true },
-        },
-        reject_change = {
-          callback = "keymaps.reject_change",
-          description = "Reject change",
-          index = 3,
-          modes = { n = "gdr" },
-          opts = { nowait = true, noremap = true },
-        },
         stop = {
           callback = "keymaps.stop",
           description = "Stop request",
@@ -728,23 +785,23 @@ The user is working on a %s machine. Please respond with system specific command
           modes = { n = "q" },
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.inline.variables.buffer",
+          path = "interactions.inline.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["chat"] = {
-          callback = "interactions.inline.variables.chat",
+          path = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["clipboard"] = {
-          callback = "interactions.inline.variables.clipboard",
+          path = "interactions.inline.editor_context.clipboard",
           description = "Share the contents of the clipboard with the LLM",
           opts = {
             contains_code = true,
@@ -765,6 +822,50 @@ The user is working on a %s machine. Please respond with system specific command
 - Generate an command that is valid and can be run in Neovim
 - Ensure the command is relevant to the user's request]],
       },
+    },
+    shared = {
+      keymaps = {
+        always_accept = {
+          callback = "keymaps.always_accept",
+          description = "Always accept changes in this buffer",
+          index = 1,
+          modes = { n = "g1" },
+          opts = { nowait = true },
+        },
+        accept_change = {
+          callback = "keymaps.accept_change",
+          description = "Accept change",
+          index = 2,
+          modes = { n = "g2" },
+          opts = { nowait = true, noremap = true },
+        },
+        reject_change = {
+          callback = "keymaps.reject_change",
+          description = "Reject change",
+          index = 3,
+          modes = { n = "g3" },
+          opts = { nowait = true, noremap = true },
+        },
+        next_hunk = {
+          callback = "keymaps.next_hunk",
+          description = "Go to next hunk",
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          callback = "keymaps.previous_hunk",
+          description = "Go to previous hunk",
+          modes = { n = "{" },
+        },
+      },
+    },
+  },
+  -- MCP SERVERS ----------------------------------------------------------------
+  mcp = {
+    servers = {},
+    opts = {
+      default_servers = {}, -- List of server names to auto-start and add to chat
+      acp_enabled = true, -- Enable MCP servers with ACP adapters?
+      timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
@@ -873,13 +974,13 @@ The user is working on a %s machine. Please respond with system specific command
     action_palette = {
       width = 95,
       height = 10,
-      prompt = "Prompt ", -- Prompt used for interactive LLM calls
+      prompt = "Prompt ", -- Title used for interactive LLM calls
       provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
-        show_preset_actions = true, -- Show the preset actions in the action palette?
-        show_preset_prompts = true, -- Show the preset prompts in the action palette?
-        show_preset_rules = true, -- Show the preset rules in the action palette?
-        title = "CodeCompanion actions", -- The title of the action palette
+        show_preset_actions = true,
+        show_preset_prompts = true,
+        show_preset_rules = true,
+        title = "CodeCompanion actions",
       },
     },
     chat = {
@@ -897,9 +998,9 @@ The user is working on a %s machine. Please respond with system specific command
       -- Window options for the chat buffer
       window = {
         buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat buffer remains open when switching tabs
+        sticky = false, -- Chat window follows when switching tabs
 
-        layout = "vertical", -- float|vertical|horizontal|buffer
+        layout = "vertical", -- float|vertical|horizontal|tab|buffer
         full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
 
@@ -916,35 +1017,13 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
 
-      -- Options for any windows that open within the chat buffer
+      -- Options for an floating windows
       floating_window = {
-        ---@return number|fun(): number
-        width = function()
-          return vim.o.columns - 5
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 2
-        end,
-        row = "center",
-        col = "center",
+        width = 0.9, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
+        border = "single",
         relative = "editor",
         opts = {},
-      },
-
-      -- Options for diff windows that open within the chat buffer
-      diff_window = {
-        ---@return number|fun(): number
-        width = function()
-          return math.min(120, vim.o.columns - 10)
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 4
-        end,
-        opts = {
-          number = true,
-        },
       },
 
       -- Chat buffer options --------------------------------------------------
@@ -961,71 +1040,27 @@ The user is working on a %s machine. Please respond with system specific command
       show_reasoning = true, -- Show reasoning content in the chat buffer?
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---The function to display the token count
       ---@param tokens number
       ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+      ---@return string
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
     },
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|split|inline
-
-      provider_opts = {
-        -- Options for inline diff provider
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-
-          diff_signs = {
-            signs = {
-              text = "▌", -- Sign text for normal changes
-              reject = "✗", -- Sign text for rejected changes in super_diff
-              highlight_groups = {
-                addition = "DiagnosticOk",
-                deletion = "DiagnosticError",
-                modification = "DiagnosticWarn",
-              },
-            },
-            -- Super Diff options
-            icons = {
-              accepted = " ",
-              rejected = " ",
-            },
-            colors = {
-              accepted = "DiagnosticOk",
-              rejected = "DiagnosticError",
-            },
-          },
-
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            show_dim = true, -- Enable dimming background for floating windows (applies to both diff and super_diff)
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
-
-        -- Options for the split provider
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
+      -- Options for any diff windows (extends from floating_window)
+      window = {
+        opts = {},
+      },
+      word_highlights = {
+        additions = true,
+        deletions = true,
       },
     },
     inline = {
@@ -1043,6 +1078,12 @@ The user is working on a %s machine. Please respond with system specific command
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 
+    per_project_config = {
+      enabled = true, -- Enable per-project configuration?
+      files = {}, -- Files in the cwd that contain project configuration
+      paths = {}, -- Per-path config: { ["~/Code/myproject"] = { ... } }
+    },
+
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every
     -- effort to ensure no code leakage, using this is at your own risk
@@ -1050,14 +1091,68 @@ The user is working on a %s machine. Please respond with system specific command
     ---@return boolean
     send_code = true,
 
-    job_start_delay = 1500, -- Delay in milliseconds between cmd tools
-    submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer
+    submit_delay = 500, -- Delay in milliseconds before auto-submitting the chat buffer
+
+    triggers = {
+      acp_slash_commands = "\\",
+      editor_context = "#",
+      slash_commands = "/",
+      tools = "@",
+    },
   },
 }
 
 local M = {
   config = vim.deepcopy(defaults),
 }
+
+---Check the cwd for any per-project configuration files and load them if they exist
+---@return table|nil
+local function get_per_project_config()
+  local file_utils = require("codecompanion.utils.files")
+
+  local cfg = M.config.opts.per_project_config
+  if not cfg or not cfg.enabled then
+    return nil
+  end
+
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  local config = {}
+
+  local function notify(msg)
+    vim.notify(fmt("[CodeCompanion] %s", msg), vim.log.levels.ERROR, { title = "CodeCompanion" })
+  end
+
+  -- Collect path-based configs
+  if cfg.paths then
+    for path, path_cfg in pairs(cfg.paths) do
+      if vim.fs.normalize(vim.fn.expand(path)) == cwd then
+        if type(path_cfg) ~= "table" then
+          notify(fmt("Per-project config for path `%s` must be a table", path))
+        else
+          config = vim.tbl_deep_extend("force", config, path_cfg)
+        end
+      end
+    end
+  end
+
+  -- Collect file-based configs
+  for _, filename in ipairs(cfg.files) do
+    local path = vim.fs.joinpath(cwd, filename)
+    if file_utils.exists(path) and not file_utils.is_dir(path) then
+      local ok, file_cfg = pcall(dofile, path)
+      if not ok then
+        notify(fmt("Failed to load per-project config `%s`: %s", filename, file_cfg))
+      elseif type(file_cfg) ~= "table" then
+        notify(fmt("Per-project config `%s` must return a table", filename))
+      else
+        config = vim.tbl_deep_extend("force", config, file_cfg)
+      end
+    end
+  end
+
+  return next(config) ~= nil and config or nil
+end
 
 ---@param keymaps table<string, table|boolean>
 local function remove_disabled_keymaps(keymaps)
@@ -1082,7 +1177,7 @@ M.setup = function(args)
     )
   end
 
-  -- TODO: Remove in v19.0.0
+  -- TODO: Remove in v20.0.0
   if args.strategies then
     args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
     args.strategies = nil
@@ -1092,8 +1187,13 @@ M.setup = function(args)
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
+  M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
 
-  -- Set the diagnostic namespace for the chat buffer settings
+  local project_config = get_per_project_config()
+  if project_config then
+    M.config = vim.tbl_deep_extend("force", M.config, project_config)
+  end
+
   M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
 

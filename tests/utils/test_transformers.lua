@@ -56,6 +56,7 @@ T["Transformers"]["can enforce strictness"] = function()
           },
         },
         required = { "max_results", "query" },
+        additionalProperties = false,
         type = "object",
         strict = true,
       },
@@ -83,6 +84,7 @@ T["Transformers"]["can enforce strictness with a partially strict schema"] = fun
           },
         },
         required = { "max_results", "query" },
+        additionalProperties = false,
         type = "object",
         strict = true,
       },
@@ -158,6 +160,10 @@ T["Transformers"]["can enforce strictness with nested objects in arrays"] = func
 
   -- Check that strict mode is enabled
   h.eq(true, result["function"].parameters.strict)
+
+  -- Check that additionalProperties is set to false on all objects
+  h.eq(false, result["function"].parameters.additionalProperties)
+  h.eq(false, result["function"].parameters.properties.edits.items.additionalProperties)
 end
 
 T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has no strict field"] = function()
@@ -191,6 +197,99 @@ T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has n
   h.eq(true, result2.strict)
   h.eq({ "string", "null" }, result2.parameters.properties.query.type) -- Has null type
   h.eq({ "query" }, result2.parameters.required) -- All properties required
+end
+
+T["Transformers"]["enforces additionalProperties false on deeply nested MCP schemas"] = function()
+  -- Schema modeled after @modelcontextprotocol/server-memory create_entities
+  local mcp_schema = {
+    type = "function",
+    ["function"] = {
+      name = "knowledge_graph_memory__create_entities",
+      description = "Create multiple new entities in the knowledge graph",
+      parameters = {
+        type = "object",
+        properties = {
+          entities = {
+            type = "array",
+            description = "An array of entities to create",
+            items = {
+              type = "object",
+              properties = {
+                name = {
+                  type = "string",
+                  description = "The name of the entity",
+                },
+                entityType = {
+                  type = "string",
+                  description = "The type of the entity",
+                },
+                observations = {
+                  type = "array",
+                  description = "An array of observation contents",
+                  items = { type = "string" },
+                },
+              },
+              required = { "name", "entityType", "observations" },
+            },
+          },
+        },
+        required = { "entities" },
+      },
+    },
+  }
+
+  local result = transform.enforce_strictness(vim.deepcopy(mcp_schema))
+
+  -- Top-level additionalProperties
+  h.eq(false, result["function"].parameters.additionalProperties)
+
+  -- Nested items object must have additionalProperties = false
+  h.eq(false, result["function"].parameters.properties.entities.items.additionalProperties)
+
+  -- Nested items properties should have null types
+  h.eq({ "string", "null" }, result["function"].parameters.properties.entities.items.properties.name.type)
+  h.eq({ "string", "null" }, result["function"].parameters.properties.entities.items.properties.entityType.type)
+  h.eq({ "array", "null" }, result["function"].parameters.properties.entities.items.properties.observations.type)
+
+  -- All nested properties should be required
+  h.eq({ "entityType", "name", "observations" }, result["function"].parameters.properties.entities.items.required)
+end
+
+T["Transformers"]["enforces additionalProperties false via transform_schema_if_needed with strict_mode"] = function()
+  local mcp_schema = {
+    type = "function",
+    ["function"] = {
+      name = "test_nested_tool",
+      description = "A tool with nested objects",
+      parameters = {
+        type = "object",
+        properties = {
+          items = {
+            type = "array",
+            items = {
+              type = "object",
+              properties = {
+                key = { type = "string" },
+                value = { type = "string" },
+              },
+              required = { "key", "value" },
+            },
+          },
+        },
+        required = { "items" },
+      },
+    },
+  }
+
+  -- With strict_mode = true, nested objects should get additionalProperties = false
+  local result = transform.transform_schema_if_needed(vim.deepcopy(mcp_schema), { strict_mode = true })
+  h.eq(false, result.parameters.additionalProperties)
+  h.eq(false, result.parameters.properties.items.items.additionalProperties)
+  h.eq(true, result.strict)
+
+  -- With strict_mode = false, no additionalProperties should be added to nested objects
+  local result2 = transform.transform_schema_if_needed(vim.deepcopy(mcp_schema), { strict_mode = false })
+  h.eq(nil, result2.parameters.properties.items.items.additionalProperties)
 end
 
 return T

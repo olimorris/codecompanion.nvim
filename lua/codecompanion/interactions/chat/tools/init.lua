@@ -13,12 +13,12 @@
 ---@field tools_config table The available tools for the tool system
 ---@field tools_ns number The namespace for the virtual text that appears in the header
 
-local EditTracker = require("codecompanion.interactions.chat.edit_tracker")
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
-local tool_filter = require("codecompanion.interactions.chat.tools.filter")
-
 local config = require("codecompanion.config")
+local tool_filter = require("codecompanion.interactions.chat.tools.filter")
+local triggers = require("codecompanion.triggers")
+
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
 local ui_utils = require("codecompanion.utils.ui")
@@ -28,8 +28,13 @@ local api = vim.api
 
 local show_tools_processing = config.display.chat.show_tools_processing
 
+-- Registry of tool factories that can be extended from by users
+local FACTORIES = {
+  cmd_tool = "codecompanion.interactions.chat.tools.builtin.cmd_tool",
+}
+
 local CONSTANTS = {
-  PREFIX = "@",
+  PREFIX = triggers.mappings.tools,
 
   NS_TOOLS = "CodeCompanion-tools",
   AUTOCMD_GROUP = "codecompanion.tools",
@@ -158,28 +163,6 @@ function Tools:_resolve_and_prepare_tool(tool, id)
   return prepared_tool, nil, false
 end
 
----Start edit tracking for all tools
----@param tools table The tools to track
----@return nil
-function Tools:_start_edit_tracking(tools)
-  for _, tool in ipairs(tools) do
-    local tool_name = tool["function"].name
-    local tool_args = tool["function"].arguments
-
-    -- Handle argument parsing more robustly, like the original code
-    if type(tool_args) == "string" then
-      local success, decoded = pcall(vim.json.decode, tool_args)
-      if success then
-        tool_args = decoded
-      else
-        tool_args = nil
-      end
-    end
-
-    EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
-  end
-end
-
 -- Public interface methods
 
 ---@param args table
@@ -283,8 +266,7 @@ function Tools:execute(chat, tools)
   local id = math.random(10000000)
   self.chat = chat
 
-  self:_start_edit_tracking(tools)
-
+  -- Wrap the entire tool execution in error handling
   local function safe_execute()
     -- NOTE: Set autocmds early so that errors can be handled properly
     self:set_autocmds()
@@ -375,13 +357,13 @@ function Tools:parse(chat, message)
   if tools or groups then
     if tools and not vim.tbl_isempty(tools) then
       for _, tool in ipairs(tools) do
-        chat.tool_registry:add(tool, self.tools_config[tool])
+        chat.tool_registry:add_single_tool(tool, { config = self.tools_config[tool] })
       end
     end
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        chat.tool_registry:add_group(group, self.tools_config)
+        chat.tool_registry:add_group(group, { config = self.tools_config })
       end
     end
     return true
@@ -410,7 +392,7 @@ function Tools:replace(message)
       replacement = utils.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
     end
 
-    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or tools))
+    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or ""))
   end
 
   return message
@@ -459,46 +441,87 @@ function Tools:add_error_to_chat(error)
   return self
 end
 
----Resolve a tool from the config
----@param tool table The tool from the config
+---Load a factory and pass the tool table through it
+---@param extends string The factory name
+---@param tool table The tool table (factory picks what it needs)
 ---@return CodeCompanion.Tools.Tool|nil
-function Tools.resolve(tool)
-  local callback = tool.callback
-
-  if type(callback) == "table" then
-    return callback --[[@as CodeCompanion.Tools.Tool]]
+local function resolve_factory(extends, tool)
+  local factory_path = FACTORIES[extends]
+  if not factory_path then
+    return log:error("[Tools] Unknown factory: %s", extends)
   end
 
-  if type(callback) == "function" then
-    return callback() --[[@as CodeCompanion.Tools.Tool]]
+  local ok, factory = pcall(require, factory_path)
+  if not ok then
+    return log:error("[Tools] Failed to load factory %s: %s", extends, factory)
   end
 
-  local ok, module = pcall(require, "codecompanion." .. callback)
+  return factory(tool)
+end
+
+---Resolve a path string to a module or file
+---@param path string The module path or file path
+---@return CodeCompanion.Tools.Unresolved|nil
+local function resolve_path(path)
+  local ok, module = pcall(require, "codecompanion." .. path)
   if ok then
-    log:debug("[Tools] %s identified", callback)
+    log:debug("[Tools] %s identified", path)
     return module
   end
 
-  -- Try loading the tool from the user's config using a module path
-  ok, module = pcall(require, callback)
+  -- Try loading from the user's config using a module path
+  ok, module = pcall(require, path)
   if ok then
-    log:debug("[Tools] %s identified", callback)
+    log:debug("[Tools] %s identified", path)
     return module
   end
 
-  -- Try loading the tool from the user's config using a file path
+  -- Try loading from the user's config using a file path
   local err
-  module, err = loadfile(vim.fs.normalize(callback))
+  module, err = loadfile(vim.fs.normalize(path))
   if err then
-    return log:error("[Tools] Failed to load tool from %s: %s", callback, err)
+    return log:error("[Tools] Failed to load tool from %s: %s", path, err)
   end
 
   if module then
-    log:debug("[Tools] %s identified", callback)
+    log:debug("[Tools] %s identified", path)
     return module()
   end
 
   return nil
+end
+
+---Resolve a tool from the config
+---@param tool table The tool from the config
+---@return CodeCompanion.Tools.Tool|nil
+function Tools.resolve(tool)
+  -- 1. Factory extension (table in config)
+  if tool.extends then
+    return resolve_factory(tool.extends, tool)
+  end
+
+  -- 2. Path-based resolution (module path or file path)
+  if type(tool.path) == "string" then
+    local resolved = resolve_path(tool.path)
+    if resolved and resolved.extends then
+      return resolve_factory(resolved.extends, resolved)
+    end
+    return resolved
+  end
+
+  -- 3. Function callback
+  if type(tool.callback) == "function" then
+    ---@type CodeCompanion.Tools.Unresolved
+    local resolved = tool.callback()
+    if resolved and resolved.extends then
+      return resolve_factory(resolved.extends, resolved)
+    end
+    return resolved
+  end
+
+  -- 4. Inline tool table (no path or callback)
+  ---@type CodeCompanion.Tools.Tool
+  return tool
 end
 
 return Tools

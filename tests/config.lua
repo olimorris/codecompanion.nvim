@@ -83,24 +83,20 @@ return {
       },
       keymaps = og_config.interactions.chat.keymaps,
       tools = {
-        ["cmd_runner"] = {
-          callback = "interactions.chat.tools.builtin.cmd_runner",
+        ["run_command"] = {
+          path = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
         },
         ["files"] = {
-          callback = "interactions.chat.tools.builtin.files",
+          path = "interactions.chat.tools.builtin.files",
           description = "Update the file system with the LLM's response",
         },
-        ["next_edit_suggestion"] = {
-          callback = "interactions.chat.tools.builtin.next_edit_suggestion",
-          description = "Suggest and jump to the next position to edit",
-        },
         ["memory"] = {
-          callback = "interactions.chat.tools.builtin.memory",
+          path = "interactions.chat.tools.builtin.memory",
           description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
         },
         ["insert_edit_into_file"] = {
-          callback = "interactions.chat.tools.builtin.insert_edit_into_file",
+          path = "interactions.chat.tools.builtin.insert_edit_into_file",
           description = "Robustly edit files with multiple automatic fallback interactions",
           opts = {
             require_approval_before = {
@@ -111,67 +107,71 @@ return {
           },
         },
         ["create_file"] = {
-          callback = "interactions.chat.tools.builtin.create_file",
+          path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
         },
         ["delete_file"] = {
-          callback = "interactions.chat.tools.builtin.delete_file",
+          path = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
         },
         ["fetch_webpage"] = {
-          callback = "interactions.chat.tools.builtin.fetch_webpage",
+          path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
             adapter = "jina",
           },
         },
         ["web_search"] = {
-          callback = "interactions.chat.tools.builtin.web_search",
+          path = "interactions.chat.tools.builtin.web_search",
           description = "Searches the web for a given query",
           opts = {
             adapter = "tavily",
           },
         },
         ["file_search"] = {
-          callback = "interactions.chat.tools.builtin.file_search",
+          path = "interactions.chat.tools.builtin.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
           },
         },
         ["grep_search"] = {
-          callback = "interactions.chat.tools.builtin.grep_search",
+          path = "interactions.chat.tools.builtin.grep_search",
           description = "Search for text in the current working directory",
         },
         ["read_file"] = {
-          callback = "interactions.chat.tools.builtin.read_file",
+          path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
         },
-        ["list_code_usages"] = {
-          callback = "interactions.chat.tools.builtin.list_code_usages",
-          description = "Find code symbol context",
+        ["get_diagnostics"] = {
+          path = "interactions.chat.tools.builtin.get_diagnostics",
+          description = "Get LSP diagnostics for a given file",
+        },
+        ["ask_questions"] = {
+          path = "interactions.chat.tools.builtin.ask_questions",
+          description = "Ask the user questions to clarify requirements or validate assumptions",
         },
         ["weather"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather.lua",
           description = "Get the latest weather",
         },
         ["weather_with_default"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather_with_default.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather_with_default.lua",
           description = "Get the latest weather",
         },
         ["func"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func.lua",
           description = "Some function tool to test",
         },
         ["func_approval"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_approval.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_approval.lua",
           description = "Some function tool to test with an approval step",
           opts = {
             require_approval_before = true,
           },
         },
         ["func_approval2"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_approval2.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_approval2.lua",
           description = "Some function tool to test with an approval step that's a table",
           opts = {
             require_approval_before = {
@@ -180,69 +180,73 @@ return {
           },
         },
         ["func_handlers_once"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_handlers_once.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_handlers_once.lua",
           description = "Some function tool to test",
         },
         ["func2"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func2.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func2.lua",
           description = "Some function tool to test",
         },
         ["func_consecutive"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_consecutive.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_consecutive.lua",
           description = "Consecutive function tool to test",
         },
         ["func_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_error.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_error.lua",
           description = "Error function tool to test",
         },
         ["func_return_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_return_error.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_return_error.lua",
           description = "Error function tool to test",
         },
         ["func_queue"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_queue.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_queue.lua",
           description = "Some function tool to test",
         },
         ["func_queue_2"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_queue_2.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_queue_2.lua",
           description = "Some function tool to test",
         },
         ["func_async_1"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_async_1.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_async_1.lua",
           description = "Some function tool to test",
         },
         ["func_async_2"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_async_2.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func_async_2.lua",
           description = "Some function tool to test",
         },
         ["cmd"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd.lua",
           description = "Cmd tool",
         },
         ["cmd_consecutive"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_consecutive.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_consecutive.lua",
           description = "Cmd tool",
         },
         ["cmd_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_error.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_error.lua",
           description = "Cmd tool",
         },
         ["cmd_queue"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_queue.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_queue.lua",
           description = "Cmd tool",
         },
         ["cmd_queue_error"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_queue_error.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/cmd_queue_error.lua",
           description = "Cmd tool",
         },
-        ["mock_cmd_runner"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/mock_cmd_runner.lua",
+        ["mock_run_command"] = {
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/mock_run_command.lua",
           description = "Cmd tool",
         },
         -- Add tool with same name as a tool group to verify word boundary matching
         ["tool_group_tool"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/tool_group_tool.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/tool_group_tool.lua",
           description = "Tool group extended",
+        },
+        ["adapter_tool"] = {
+          _adapter_tool = true,
+          description = "A mock adapter tool for testing",
         },
         groups = {
           ["senior_dev"] = {
@@ -253,7 +257,6 @@ return {
               "cmd",
             },
           },
-
           ["tool_group"] = {
             description = "Tool Group",
             system_prompt = "My tool group system prompt",
@@ -280,6 +283,24 @@ return {
             tools = { "func", "weather" },
             opts = { collapse_tools = true },
           },
+          ["ignore_sys_prompt_group"] = {
+            description = "Group that ignores the default system prompt",
+            system_prompt = "Custom agent system prompt",
+            tools = { "func" },
+            opts = { ignore_system_prompt = true },
+          },
+          ["ignore_tool_sys_prompt_group"] = {
+            description = "Group that ignores the tool system prompt",
+            system_prompt = "Custom tool agent prompt",
+            tools = { "func" },
+            opts = { ignore_tool_system_prompt = true },
+          },
+          ["ignore_both_group"] = {
+            description = "Group that ignores both system prompts",
+            system_prompt = "Full agent prompt",
+            tools = { "func" },
+            opts = { ignore_system_prompt = true, ignore_tool_system_prompt = true },
+          },
         },
         opts = {
           system_prompt = "My tool system prompt",
@@ -294,43 +315,50 @@ return {
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      variables = {
+      editor_context = {
         ["buffer"] = {
-          callback = "interactions.chat.variables.buffer",
+          path = "interactions.chat.editor_context.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
             has_params = true,
           },
         },
+        ["buffers"] = {
+          path = "interactions.chat.editor_context.buffers",
+          description = "Share all open buffers with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["foo"] = {
-          callback = "tests.interactions.chat.variables.foo",
+          path = "tests.interactions.chat.editor_context.foo",
           description = "foo",
         },
-        -- Add test variables to verify word boundary matching
+        -- Add test editor_context to verify word boundary matching
         ["foo://10-20-30:40"] = {
-          callback = "tests.interactions.chat.variables.foo_special",
+          path = "tests.interactions.chat.editor_context.foo_special",
           description = "Variable with prefix starting with 'foo' and with special chars",
         },
         ["bar"] = {
-          callback = "tests.interactions.chat.variables.bar",
+          path = "tests.interactions.chat.editor_context.bar",
           description = "bar",
           opts = {
             has_params = true,
           },
         },
         ["screenshot://screenshot-2025-05-21T11-17-45.440Z"] = {
-          callback = "tests.interactions.chat.variables.screenshot",
+          path = "tests.interactions.chat.editor_context.screenshot",
           description = "Screenshot",
         },
         ["baz"] = {
-          callback = "tests.interactions.chat.variables.baz",
+          path = "tests.interactions.chat.editor_context.baz",
           description = "baz",
         },
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "interactions.chat.slash_commands.builtin.buffer",
+          path = "interactions.chat.slash_commands.builtin.buffer",
           description = "Insert open buffers",
           keymaps = {
             modes = {
@@ -344,7 +372,7 @@ return {
           },
         },
         ["fetch"] = {
-          callback = "interactions.chat.slash_commands.builtin.fetch",
+          path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina", -- jina|tavily
@@ -353,7 +381,7 @@ return {
           },
         },
         ["file"] = {
-          callback = "interactions.chat.slash_commands.builtin.file",
+          path = "interactions.chat.slash_commands.builtin.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -372,16 +400,24 @@ return {
     inline = {
       adapter = "test_adapter",
       keymaps = og_config.interactions.inline.keymaps,
-      variables = {
+      editor_context = {
         ["foo"] = {
-          callback = vim.fn.getcwd() .. "/tests/interactions/inline/variables/foo.lua",
+          path = vim.fn.getcwd() .. "/tests/interactions/inline/editor_context/foo.lua",
           description = "My foo variable",
         },
         ["bar"] = {
-          callback = "tests.interactions.inline.variables.bar",
+          path = "tests.interactions.inline.editor_context.bar",
           description = "bar",
         },
       },
+    },
+  },
+  mcp = {
+    servers = {},
+    opts = {
+      default_servers = {},
+      acp_enabled = true, -- Enable MCP servers with ACP adapters?
+      timeout = 10e3,
     },
   },
   prompt_library = {
@@ -463,7 +499,7 @@ return {
       show_settings = false,
       window = {
         buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat buffer remains open when switching tabs
+        sticky = false, -- Chat window follows when switching tabs
 
         layout = "vertical", -- float|vertical|horizontal|buffer
         full_height = true, -- for vertical layout
@@ -479,61 +515,15 @@ return {
           wrap = true,
         },
       },
+      floating_window = {},
+
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
       show_tools_processing = false, -- Show the loading message when tools are being executed?
     },
     diff = {
       enabled = false,
-      provider = "inline",
-      provider_opts = {
-        -- Options for inline diff provider
-        inline = {
-          layout = "float", -- float|buffer - Where to display the diff
-
-          diff_signs = {
-            signs = {
-              text = "▌", -- Sign text for normal changes
-              reject = "✗", -- Sign text for rejected changes in super_diff
-              highlight_groups = {
-                addition = "DiagnosticOk",
-                deletion = "DiagnosticError",
-                modification = "DiagnosticWarn",
-              },
-            },
-            -- Super Diff options
-            icons = {
-              accepted = " ",
-              rejected = " ",
-            },
-            colors = {
-              accepted = "DiagnosticOk",
-              rejected = "DiagnosticError",
-            },
-          },
-
-          opts = {
-            context_lines = 3, -- Number of context lines in hunks
-            dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
-            full_width_removed = true, -- Make removed lines span full width
-            show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
-            show_removed = true, -- Show removed lines as virtual text
-          },
-        },
-
-        -- Options for the split provider
-        split = {
-          close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split
-          opts = {
-            "internal",
-            "filler",
-            "closeoff",
-            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
-            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
-            "followwrap",
-            "linematch:120",
-          },
-        },
+      window = {
+        opts = {},
       },
     },
     icons = {
@@ -541,5 +531,12 @@ return {
       warning = " ",
     },
   },
-  opts = {},
+  opts = {
+    triggers = {
+      acp_slash_commands = "\\",
+      editor_context = "#",
+      slash_commands = "/",
+      tools = "@",
+    },
+  },
 }

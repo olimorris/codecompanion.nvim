@@ -7,6 +7,7 @@ local _prompts = {}
 ---@param config table
 ---@return table
 function M.resolve(context, config)
+  _prompts = {}
   local sort_index = true
 
   for name, prompt in pairs(config.prompt_library) do
@@ -35,10 +36,13 @@ function M.resolve(context, config)
       context = prompt.context,
       description = description,
       interaction = prompt.interaction or prompt.strategy,
+      mcp_servers = prompt.mcp_servers,
       name = name,
       opts = prompt.opts,
       picker = prompt.picker,
       prompts = prompt.prompts,
+      rules = prompt.rules,
+      tools = prompt.tools,
     })
 
     ::continue::

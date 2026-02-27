@@ -4,11 +4,9 @@ local M = {}
 
 ---Rejection message back to the LLM
 ---@param self CodeCompanion.Tools.Tool
----@param tools CodeCompanion.Tools
----@param cmd table
 ---@param opts table
 ---@return nil
-M.rejected = function(self, tools, cmd, opts)
+M.rejected = function(self, opts)
   opts = opts or {}
 
   local rejection = opts.message or "The user declined to execute the tool"
@@ -16,7 +14,7 @@ M.rejected = function(self, tools, cmd, opts)
     rejection = fmt('%s, with the reason: "%s"', rejection, opts.reason)
   end
 
-  return tools.chat:add_tool_output(self, rejection)
+  return opts.tools.chat:add_tool_output(self, rejection)
 end
 
 return M

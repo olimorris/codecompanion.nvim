@@ -142,11 +142,11 @@ T["can find basic text matches"] = function()
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
 
-  -- Should find matches in multiple files
-  h.expect_contains("Button.js:3 src/components", output) -- function Button declaration
-  h.expect_contains("Button.js:11 src/components", output) -- export default Button
-  h.expect_contains("button.test.js:2 tests", output) -- import Button
-  h.expect_contains("button.test.js:5 tests", output) -- render(<Button>
+  -- Should find matches in multiple files (output now uses absolute paths in filepath:line format)
+  h.expect_contains("src/components/Button.js:3", output) -- function Button declaration
+  h.expect_contains("src/components/Button.js:11", output) -- export default Button
+  h.expect_contains("tests/button.test.js:2", output) -- import Button
+  h.expect_contains("tests/button.test.js:5", output) -- render(<Button>
 end
 
 return T

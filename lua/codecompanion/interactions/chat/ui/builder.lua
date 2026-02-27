@@ -170,6 +170,9 @@ function Builder:add_message(data, opts)
     state:start_new_block()
   end
 
+  -- Track how many lines were added before the formatter content (header spacing, etc.)
+  local pre_content_lines = #lines
+
   local has_content = data.content or (data.reasoning and data.reasoning.content)
 
   if has_content then
@@ -185,6 +188,11 @@ function Builder:add_message(data, opts)
     if data.content ~= "" and data.role ~= config.constants.USER_ROLE then
       current_type = formatter:get_type(opts)
     end
+  end
+
+  -- NOTE: Adjust icon offset to account for header lines added before formatter content
+  if opts._icon_info and opts._icon_info.has_icon and pre_content_lines > 0 then
+    opts._icon_info.line_offset = (opts._icon_info.line_offset or 0) + pre_content_lines
   end
 
   local insert_line, icon_id
@@ -273,14 +281,15 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
 
-  if opts._icon_info and opts._icon_info.has_icon then
-    vim.schedule(function()
-      local target_line = last_line + (opts._icon_info.line_offset or 0)
-      Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status)
-    end)
-  end
-
   api.nvim_buf_set_text(self.chat.bufnr, insert_line, last_column, insert_line, last_column, lines)
+
+  local icon_id
+  if opts._icon_info and opts._icon_info.has_icon then
+    local target_line = insert_line + (opts._icon_info.line_offset or 0)
+    icon_id = Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status, {
+      virt_text_pos = opts.virt_text_pos,
+    })
+  end
 
   -- Record write bounds
   local end_line_written = insert_line + (#lines > 0 and (#lines - 1) or 0)
@@ -318,7 +327,7 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   self.chat.ui:move_cursor(cursor_moved)
 
-  return end_line_written + 1
+  return end_line_written + 1, icon_id
 end
 
 ---Sync formatting state back to builder's persistent state
@@ -364,6 +373,7 @@ function Builder:update_line(line_number, content, opts)
   local ok, _ = pcall(api.nvim_buf_set_lines, self.chat.bufnr, start_line, end_line, false, { content })
   if ok and opts.status then
     vim.schedule(function()
+      Icons.clear_line(self.chat.bufnr, start_line)
       Icons.apply(self.chat.bufnr, start_line, opts.status, opts)
     end)
   end

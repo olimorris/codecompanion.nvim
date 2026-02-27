@@ -27,7 +27,7 @@ T["Tools"]["resolve"] = new_set()
 T["Tools"]["resolve"]["can resolve built-in tools"] = function()
   child.lua([[
     _G.tool = _G.tools.resolve({
-      callback = "interactions.chat.tools.builtin.create_file",
+      path = "interactions.chat.tools.builtin.create_file",
       description = "Update a buffer with the LLM's response",
     })
   ]])
@@ -39,7 +39,7 @@ end
 T["Tools"]["resolve"]["can resolve user's tools"] = function()
   child.lua([[
     _G.tool = _G.tools.resolve({
-      callback = vim.fn.getcwd() .. "/tests/stubs/foo.lua",
+      path = vim.fn.getcwd() .. "/tests/stubs/foo.lua",
       description = "Some foo function",
     })
   ]])
@@ -91,7 +91,7 @@ T["Tools"][":find"]["should find tools added after a chat is initialized"] = fun
 
     -- Add a dynamic tool after chat is already created
     config.interactions.chat.tools.dynamic_test_tool = {
-    callback = "",
+      path = "",
       description = "Dynamic tool",
       enabled = true,
     }

@@ -50,7 +50,7 @@ T["can delete a file"] = function()
       {
         ["function"] = {
           name = "delete_file",
-          arguments = string.format('{"filepath": "%s"}', vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE))
+          arguments = string.format('{"filepath": "%s"}', _G.TEST_TMPFILE_ABSOLUTE)
         },
       },
     }
@@ -83,7 +83,7 @@ T["cannot delete a directory"] = function()
       {
         ["function"] = {
           name = "delete_file",
-          arguments = string.format('{"filepath": "%s"}', vim.fs.joinpath(_G.TEST_DIR, "test_subdir"))
+          arguments = string.format('{"filepath": "%s"}', vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, "test_subdir"))
         },
       },
     }
@@ -103,7 +103,7 @@ T["cannot delete a file that does not exist"] = function()
       {
         ["function"] = {
           name = "delete_file",
-          arguments = string.format('{"filepath": "%s"}', vim.fs.joinpath(_G.TEST_DIR, "nonexistent.txt"))
+          arguments = string.format('{"filepath": "%s"}', vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, "nonexistent.txt"))
         },
       },
     }

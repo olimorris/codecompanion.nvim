@@ -217,7 +217,7 @@ T["Inline"]["integration"] = function()
   ]])
 
   local submitted_prompts = child.lua([[return _G.submitted_prompts]])
-  h.eq("The output from foo variable", submitted_prompts[2].content)
+  h.eq("The output from foo editor context", submitted_prompts[2].content)
   h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
 end
 
@@ -229,8 +229,8 @@ T["Inline"]["can parse adapter syntax"] = function()
     end
 
     -- Mock the buffer variable to return predictable content
-    _G.original_buffer_variable = require("codecompanion.config").interactions.inline.variables.buffer
-    require("codecompanion.config").interactions.inline.variables.buffer = {
+    _G.original_buffer_variable = require("codecompanion.config").interactions.inline.editor_context.buffer
+    require("codecompanion.config").interactions.inline.editor_context.buffer = {
       callback = function()
         return "mocked buffer content"
       end,
@@ -255,7 +255,7 @@ T["Inline"]["can parse adapter syntax"] = function()
 
   -- Restore original buffer variable
   child.lua([[
-    require("codecompanion.config").interactions.inline.variables.buffer = _G.original_buffer_variable
+    require("codecompanion.config").interactions.inline.editor_context.buffer = _G.original_buffer_variable
   ]])
 end
 

@@ -1,39 +1,25 @@
-local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local interactions = require("codecompanion.interactions")
 local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
+local triggers = require("codecompanion.triggers")
+
+local buf_utils = require("codecompanion.utils.buffers")
 
 local api = vim.api
 
----ACP slash commands are triggered by a configurable trigger (default: "\")
----@return string
-local function get_acp_trigger()
-  if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
-    return config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
-  end
-  return "\\"
-end
+local _ec_aug = nil
+local _ec_cache = nil
+local _ec_cache_valid = false
 
-local trigger = {
-  acp_commands = get_acp_trigger(),
-  slash_commands = "/",
-  tools = "@",
-  variables = "#",
-}
-
-local _vars_aug = nil
-local _vars_cache = nil
-local _vars_cache_valid = false
-
----Setup the variable cache
+---Setup the editor context cache
 ---@return nil
-local function _vars_cache_setup()
-  if _vars_aug then
+local function _ec_cache_setup()
+  if _ec_aug then
     return
   end
 
-  _vars_aug = api.nvim_create_augroup("codecompanion.chat.variables", { clear = true })
+  _ec_aug = api.nvim_create_augroup("codecompanion.chat.editor_context", { clear = true })
 
   -- Keep track of the current buffer state across Neovim
   api.nvim_create_autocmd({
@@ -44,9 +30,9 @@ local function _vars_cache_setup()
     "BufNewFile",
     "BufReadPost",
   }, {
-    group = _vars_aug,
+    group = _ec_aug,
     callback = function()
-      _vars_cache_valid = false
+      _ec_cache_valid = false
     end,
   })
 end
@@ -117,7 +103,7 @@ function M.slash_commands()
     end)
     :map(function(label, v)
       return {
-        label = trigger.slash_commands .. label,
+        label = triggers.mappings.slash_commands .. label,
         detail = v.description,
         config = v,
         type = "slash_command",
@@ -152,9 +138,9 @@ function M.slash_commands()
         from_prompt_library = true,
       }
       if v.opts and v.opts.alias then
-        prompt.label = "/" .. v.opts.alias
+        prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.alias)
       else
-        prompt.label = "/" .. v.name
+        prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.name)
       end
       table.insert(slash_commands, prompt)
     end)
@@ -207,7 +193,6 @@ function M.acp_commands(bufnr)
 
   local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   local commands = acp_commands.get_commands_for_buffer(bufnr)
-  local acp_trigger = get_acp_trigger()
 
   return vim
     .iter(commands)
@@ -218,7 +203,7 @@ function M.acp_commands(bufnr)
       end
 
       return {
-        label = acp_trigger .. cmd.name,
+        label = triggers.mappings.acp_slash_commands .. cmd.name,
         detail = detail,
         command = cmd,
         type = "acp_command",
@@ -232,7 +217,7 @@ end
 ---@return string The text to insert
 function M.acp_commands_execute(selected)
   -- Return the command text with backslash trigger (will be transformed to forward slash on send)
-  local text = get_acp_trigger() .. selected.command.name
+  local text = triggers.mappings.acp_slash_commands .. selected.command.name
 
   -- Add a space if the command accepts arguments
   if
@@ -269,7 +254,7 @@ function M.tools()
     end)
     :map(function(label, v)
       return {
-        label = trigger.tools .. label,
+        label = triggers.mappings.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,
@@ -291,7 +276,7 @@ function M.tools()
       end
 
       table.insert(items, {
-        label = trigger.tools .. label,
+        label = triggers.mappings.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,
@@ -302,22 +287,26 @@ function M.tools()
   return items
 end
 
----Return the variables to be used for completion
+---Return the editor context to be used for completion
 ---@return table
-function M.variables()
-  _vars_cache_setup()
-  if _vars_cache and _vars_cache_valid then
-    return _vars_cache
+function M.editor_context()
+  _ec_cache_setup()
+  if _ec_cache and _ec_cache_valid then
+    return _ec_cache
   end
 
-  local config_vars = config.interactions.chat.variables
-  local variables = vim
-    .iter(config_vars)
+  local ec_config = config.interactions.chat.editor_context
+
+  local editor_context = vim
+    .iter(ec_config)
+    :filter(function(label, _)
+      return label ~= "opts"
+    end)
     :map(function(label, data)
       return {
-        label = trigger.variables .. label,
+        label = triggers.mappings.editor_context .. label,
         detail = data.description,
-        type = "variable",
+        type = "editor_context",
       }
     end)
     :totable()
@@ -334,23 +323,23 @@ function M.variables()
     :map(function(buf)
       local name
       if name_counts[buf.name] > 1 then
-        name = buf.relative_path
+        name = buf.path
       else
         name = buf.name
       end
 
       return {
-        label = trigger.variables .. "buffer:" .. name,
-        detail = "Path: " .. buf.relative_path .. "\nBuffer: " .. buf.bufnr,
-        type = "variable",
+        label = triggers.mappings.editor_context .. "buffer:" .. name,
+        detail = "Path: " .. buf.path .. "\nBuffer: " .. buf.bufnr,
+        type = "editor_context",
       }
     end)
     :totable()
 
-  _vars_cache = vim.list_extend(variables, buffers)
-  _vars_cache_valid = true
+  _ec_cache = vim.list_extend(editor_context, buffers)
+  _ec_cache_valid = true
 
-  return _vars_cache
+  return _ec_cache
 end
 
 return M

@@ -7,7 +7,7 @@ Heavily modified from the awesome Aerial.nvim plugin by stevearc:
 https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitter/init.lua
 --]]
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.interactions.chat.slash_commands.helpers")
+local helpers = require("codecompanion.interactions.chat.helpers.symbols")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 

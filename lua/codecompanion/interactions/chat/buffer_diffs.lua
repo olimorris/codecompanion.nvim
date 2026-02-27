@@ -151,7 +151,7 @@ function BufferDiffs:check_for_changes(chat)
       local has_changed, old_content = self:get_changes(item.bufnr)
 
       if has_changed and old_content then
-        local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(item.bufnr), ":.")
+        local filename = api.nvim_buf_get_name(item.bufnr)
         local current_content = api.nvim_buf_get_lines(item.bufnr, 0, -1, false)
         local diff_content = format_changes_as_diff(old_content, current_content)
 

@@ -172,6 +172,7 @@ CodeCompanion.chat = function(args)
     auto_submit = auto_submit,
     buffer_context = context,
     callbacks = args.callbacks,
+    hidden = args.hidden,
     messages = has_messages and messages or nil,
     window_opts = args and args.window_opts,
   })
@@ -243,9 +244,16 @@ CodeCompanion.toggle = function(args)
     return CodeCompanion.chat(chat_opts)
   end
 
-  -- If the chat is visible in a different tab, just hide it there
+  -- If the chat is visible in a different tab ...
   if chat.ui:is_visible_non_curtab() then
-    chat.ui:hide()
+    if config.display.chat.window.layout == "tab" then
+      -- ... open it (go there) if chat opens in tabs
+      chat.ui:open()
+      return
+    else
+      -- ... or close it so we can open it below
+      chat.ui:hide()
+    end
   -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()
@@ -436,7 +444,7 @@ CodeCompanion.setup = function(opts)
   end
 
   local window_config = config.display.chat.window
-  if window_config.sticky and (window_config.layout ~= "buffer") then
+  if window_config.sticky and window_config.layout ~= "buffer" and window_config.layout ~= "tab" then
     api.nvim_create_autocmd("TabEnter", {
       group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
       callback = function(args)

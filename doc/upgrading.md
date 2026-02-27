@@ -8,6 +8,38 @@ This document provides a guide for upgrading from one version of CodeCompanion t
 
 CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](installation) provides more information on how to do this.
 
+## v18.7.0 to v19.0.0
+
+- The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+- CodeCompanion now only supports a built-in diff which is enabled by default ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600)), dropping support for Mini.Diff
+- The `full_stack_dev` group has been renamed to [agent](/usage/chat-buffer/agents-tools#agent) ([#2786](https://github.com/olimorris/codecompanion.nvim/pull/2786))
+- The `next_edit_suggestion` and `list_code_usages` tools have been removed
+
+### Adapters
+
+- For the Claude Code adapter to work, you'll need to ensure you have Zed's [claude-agent-acp](https://github.com/zed-industries/claude-agent-acp) adapter installed. This has been renamed from _claude-code-acp_ in recent weeks ([#2779](https://github.com/olimorris/codecompanion.nvim/pull/2779))
+
+### Config
+
+- Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+- All diff config has moved to `display.diff` ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))
+- `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` ([#2719](https://github.com/olimorris/codecompanion.nvim/pull/2719))
+- Across _editor context_, _slash commands_ and _tools_, `callback` has been replaced by `path` for string values (module paths and file paths). `callback` is still used for function values, however
+
+### Prompt Library
+
+- The location of rules within a prompt library item has changed from `opts.rules` to `rules`:
+
+```markdown
+---
+name: Oli's test workflow
+strategy: chat
+description: Workflow test prompt
+rules:
+  - test_rule
+---
+```
+
 ## v17.33.0 to v18.0.0
 
 ### Config

@@ -40,17 +40,20 @@ local function make_all_properties_required(obj)
 
     -- Recurse for array items with object type
     if v.items and v.items.properties then
+      v.items.additionalProperties = false
       make_all_properties_required(v.items)
     end
 
     -- Recurse for nested object properties
     if v.properties then
+      v.additionalProperties = false
       make_all_properties_required(v)
     end
   end
 
   table.sort(property_keys)
   obj.required = property_keys
+  obj.additionalProperties = false
 end
 
 ---Enforce that the schema follows OpenAI's strictness rules
