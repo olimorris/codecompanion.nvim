@@ -7,6 +7,7 @@ local _prompts = {}
 ---@param config table
 ---@return table
 function M.resolve(context, config)
+  _prompts = {}
   local sort_index = true
 
   for name, prompt in pairs(config.prompt_library) do
