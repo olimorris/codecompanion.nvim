@@ -3754,7 +3754,7 @@ It contains the following tools:
 You can use it with:
 
 >md
-    @{agent} Can we create a todo list in Vue.js?
+    @{agent} Can we create a todo list app in Vue.js?
 <
 
 
@@ -3893,8 +3893,8 @@ LLM in the response (Default: 1000)
 GET_DIAGNOSTICS
 
 
-  [!WARNING] As the `get_changed_files` tool relies on external language servers,
-  it may be unreliable for certain filetypes.
+  [!WARNING] This tool relies on external language servers. It may be unreliable
+  for certain filetypes.
 This tool enables an LLM to retrieve LSP diagnostics for a given file. It
 returns all diagnostic messages (errors, warnings, hints and information) along
 with the relevant code lines. This is useful for understanding what issues

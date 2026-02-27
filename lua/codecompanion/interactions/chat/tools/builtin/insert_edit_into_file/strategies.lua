@@ -89,7 +89,7 @@ local function apply_line_replacement(content_lines, match, new_text)
     end
 
     -- Insert new content lines
-    for j, line in ipairs(new_text_lines) do
+    for _, line in ipairs(new_text_lines) do
       table.insert(new_content_lines, line)
     end
 
@@ -132,13 +132,11 @@ function M.exact_match(content, old_text)
     -- Multi-line search
     for start_line = 1, #content_lines - #old_text_lines + 1 do
       local match_found = true
-      local first_mismatch_line = nil
 
       -- Check if all lines match
       for i = 1, #old_text_lines do
         if content_lines[start_line + i - 1] ~= old_text_lines[i] then
           match_found = false
-          first_mismatch_line = i
           break
         end
       end
