@@ -565,7 +565,11 @@ function Chat.new(args)
 
   if not self.hidden then
     self.close_last_chat()
-    self.ui:open():render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
+    self.ui:open():render(self.buffer_context, self.messages, {
+      stop_context_insertion = args.stop_context_insertion,
+      auto_submit = args.auto_submit,
+      from_prompt_library = args.from_prompt_library,
+    })
   else
     self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
   end
