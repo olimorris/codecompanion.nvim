@@ -65,6 +65,7 @@ local function grep_search(action, opts)
   table.insert(cmd, tostring(math.min(max_results, 50)))
 
   -- Add the query
+  table.insert(cmd, "-e") -- Use -e option to explicitly specify search pattern
   table.insert(cmd, query)
 
   -- Add the search path

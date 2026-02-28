@@ -149,4 +149,44 @@ T["can find basic text matches"] = function()
   h.expect_contains("tests/button.test.js:5", output) -- render(<Button>
 end
 
+T["can search for patterns starting with hyphen"] = function()
+  -- Create a test file with content starting with hyphen
+  child.lua([[
+    local test_file_path = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, 'src/utils/config.js')
+    local content = {
+      '// Configuration file',
+      'const config = {',
+      '  -debug-mode: true,',
+      '  -verbose: false,',
+      '  -timeout: 5000',
+      '};',
+      '',
+      'export default config;',
+      '',
+      '// Another line with -debug-mode',
+      'const settings = { -debug-mode: true };'
+    }
+    vim.fn.writefile(content, test_file_path)
+  ]])
+
+  child.lua([[
+    local tool = {
+      {
+        ["function"] = {
+          name = "grep_search",
+          arguments = '{"query": "-debug-mode"}'
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+
+  h.expect_contains("config.js:3 src/utils", output) -- -debug-mode: true in config
+  h.expect_contains("config.js:10 src/utils", output) -- -debug-mode in comment
+  h.expect_contains("config.js:11 src/utils", output) -- -debug-mode in settings
+end
+
 return T
