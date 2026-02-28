@@ -19,8 +19,10 @@ You can give CodeCompanion knowledge of MCP servers via the `mcp.servers` config
 ```lua [Basic Example]
 require("codecompanion").setup({
   mcp = {
-    ["tavily-mcp"] = {
-      cmd = { "npx", "-y", "tavily-mcp@latest" },
+    servers = {
+      ["tavily-mcp"] = {
+        cmd = { "npx", "-y", "tavily-mcp@latest" },
+      },
     },
   },
 })
@@ -29,10 +31,12 @@ require("codecompanion").setup({
 ```lua [Environment Variables] {5-7}
 require("codecompanion").setup({
   mcp = {
-    ["tavily-mcp"] = {
-      cmd = { "npx", "-y", "tavily-mcp@latest" },
-      env = {
-        TAVILY_API_KEY = "cmd:op read op://personal/Tavily_API/credential --no-newline",
+    servers = {
+      ["tavily-mcp"] = {
+        cmd = { "npx", "-y", "tavily-mcp@latest" },
+        env = {
+          TAVILY_API_KEY = "cmd:op read op://personal/Tavily_API/credential --no-newline",
+        },
       },
     },
   },
@@ -55,12 +59,14 @@ In the environment variables example above, we're using [1Password CLI](https://
 ```lua [Roots]
 require("codecompanion").setup({
   mcp = {
-    filesystem = {
-      cmd = { "npx", "-y", "@modelcontextprotocol/server-filesystem" },
-      roots = function()
-        -- Return a list of names and directories as per:
-        -- https://modelcontextprotocol.io/specification/2025-11-25/client/roots#listing-roots
-      end,
+    servers = {
+      filesystem = {
+        cmd = { "npx", "-y", "@modelcontextprotocol/server-filesystem" },
+        roots = function()
+          -- Return a list of names and directories as per:
+          -- https://modelcontextprotocol.io/specification/2025-11-25/client/roots#listing-roots
+        end,
+      },
     },
   },
 })
@@ -69,12 +75,14 @@ require("codecompanion").setup({
 ```lua [Root List Changes]
 require("codecompanion").setup({
   mcp = {
-    filesystem = {
-      cmd = { "npx", "-y", "@modelcontextprotocol/server-filesystem" },
-      ---@param notify fun()
-      register_roots_list_changes = function(notify)
-        -- Call `notify()` whenever the list of roots changes.
-      end,
+    servers = {
+      filesystem = {
+        cmd = { "npx", "-y", "@modelcontextprotocol/server-filesystem" },
+        ---@param notify fun()
+        register_roots_list_changes = function(notify)
+          -- Call `notify()` whenever the list of roots changes.
+        end,
+      },
     },
   },
 })
@@ -122,12 +130,14 @@ The `tool_overrides` field is a table where keys are the **MCP tool names** (not
 ```lua [Requiring Approval]
 require("codecompanion").setup({
   mcp = {
-    ["math-server"] = {
-      cmd = { "npx", "-y", "math-mcp-server" },
-      tool_overrides = {
-        divide = {
-          opts = {
-            require_approval_before = true,
+    servers = {
+      ["math-server"] = {
+        cmd = { "npx", "-y", "math-mcp-server" },
+        tool_overrides = {
+          divide = {
+            opts = {
+              require_approval_before = true,
+            },
           },
         },
       },
@@ -139,18 +149,20 @@ require("codecompanion").setup({
 ```lua [Custom Output]
 require("codecompanion").setup({
   mcp = {
-    ["math-server"] = {
-      cmd = { "npx", "-y", "math-mcp-server" },
-      tool_overrides = {
-        add = {
-          output = {
-            success = function(self, tools, cmd, stdout)
-              local tool_bridge = require("codecompanion.mcp.tool_bridge")
-              local content = stdout and stdout[#stdout]
-              local output = tool_bridge.format_tool_result_content(content)
-              local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
-              tools.chat:add_tool_output(self, output, msg)
-            end,
+    servers = {
+      ["math-server"] = {
+        cmd = { "npx", "-y", "math-mcp-server" },
+        tool_overrides = {
+          add = {
+            output = {
+              success = function(self, tools, cmd, stdout)
+                local tool_bridge = require("codecompanion.mcp.tool_bridge")
+                local content = stdout and stdout[#stdout]
+                local output = tool_bridge.format_tool_result_content(content)
+                local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
+                tools.chat:add_tool_output(self, output, msg)
+              end,
+            },
           },
         },
       },
@@ -162,11 +174,13 @@ require("codecompanion").setup({
 ```lua [System Prompt]
 require("codecompanion").setup({
   mcp = {
-    ["math-server"] = {
-      cmd = { "npx", "-y", "math-mcp-server" },
-      tool_overrides = {
-        multiply = {
-          system_prompt = "When using the multiply tool, always show your working.",
+    servers = {
+      ["math-server"] = {
+        cmd = { "npx", "-y", "math-mcp-server" },
+        tool_overrides = {
+          multiply = {
+            system_prompt = "When using the multiply tool, always show your working.",
+          },
         },
       },
     },
@@ -183,16 +197,18 @@ You can set default options for all tools by setting the `tool_defaults` option.
 ```lua
 require("codecompanion").setup({
   mcp = {
-    ["math-server"] = {
-      cmd = { "npx", "-y", "math-mcp-server" },
-      tool_defaults = {
-        require_approval_before = true,
-      },
-      -- Per-tool overrides take precedence over tool_defaults
-      tool_overrides = {
-        add = {
-          opts = {
-            require_approval_before = false,
+    servers = {
+      ["math-server"] = {
+        cmd = { "npx", "-y", "math-mcp-server" },
+        tool_defaults = {
+          require_approval_before = true,
+        },
+        -- Per-tool overrides take precedence over tool_defaults
+        tool_overrides = {
+          add = {
+            opts = {
+              require_approval_before = false,
+            },
           },
         },
       },
