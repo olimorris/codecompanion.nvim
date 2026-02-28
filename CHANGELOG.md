@@ -1,5 +1,14 @@
 # Changelog
 
+## [19.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v19.0.0...v19.0.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* **chat:** chatting with rules ([#2809](https://github.com/olimorris/codecompanion.nvim/issues/2809)) ([8d9357c](https://github.com/olimorris/codecompanion.nvim/commit/8d9357c4bfa08c793fe641edd022fb47323009fa))
+* **prompts:** prevent duplicate prompts in action palette ([#2818](https://github.com/olimorris/codecompanion.nvim/issues/2818)) ([99ec85a](https://github.com/olimorris/codecompanion.nvim/commit/99ec85a74fa2b8ae17cad4a7b854ef612912c9df)), closes [#2816](https://github.com/olimorris/codecompanion.nvim/issues/2816)
+* **ui:** cursor placement after user prompt ([#2813](https://github.com/olimorris/codecompanion.nvim/issues/2813)) ([a3710ff](https://github.com/olimorris/codecompanion.nvim/commit/a3710ff4f10a8f215ace1a4f5f0f881d0c6c4e93))
+
 ## [19.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.7.0...v19.0.0) (2026-02-27)
 
 
