@@ -121,7 +121,35 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      local system_content = {}
+      local other_messages = {}
+
+      -- 1. Separate system messages from everything else
+      for _, msg in ipairs(messages) do
+        if msg.role == "system" then
+          table.insert(system_content, msg.content)
+        else
+          table.insert(other_messages, msg)
+        end
+      end
+
+      local final_messages = {}
+
+      -- 2. If there are system messages, merge them into ONE message at the top
+      if #system_content > 0 then
+        table.insert(final_messages, {
+          role = "system",
+          content = table.concat(system_content, "\n\n"),
+        })
+      end
+
+      -- 3. Append all the user/assistant messages
+      for _, msg in ipairs(other_messages) do
+        table.insert(final_messages, msg)
+      end
+
+      -- 4. Pass the cleaned messages to the standard OpenAI handler
+      return openai.handlers.form_messages(self, final_messages)
     end,
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
