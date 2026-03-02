@@ -351,7 +351,6 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
     if msg.context and msg.context.id then
-      -- add_files_or_buffers now uses <rules> IDs to match add_context()
       local path = msg.context.id:match("<rules>(.-)</rules>")
       if path then
         local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
