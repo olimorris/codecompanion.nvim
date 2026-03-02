@@ -282,6 +282,21 @@ return {
     },
   },
   {
+    cmd = "CodeCompanionCLI",
+    callback = function(opts)
+      local prompt = table.concat(opts.fargs, " ")
+      if #vim.trim(prompt) == 0 then
+        return codecompanion.toggle_cli()
+      end
+      codecompanion.ask_cli(prompt)
+    end,
+    opts = {
+      desc = "Send a prompt to a CLI agent or toggle the CLI window",
+      range = false,
+      nargs = "*",
+    },
+  },
+  {
     cmd = "CodeCompanionActions",
     callback = function(opts)
       if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then

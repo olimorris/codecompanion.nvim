@@ -1818,4 +1818,67 @@ function Chat.close_last_chat()
   end
 end
 
+---Check if the last chat is currently visible
+---@return boolean
+function Chat.is_visible()
+  local chat = Chat.last_chat()
+  return chat ~= nil and chat.ui:is_visible()
+end
+
+---Toggle the chat buffer
+---@param args? { params?: table, window_opts?: table, context?: table }
+---@return nil
+function Chat.toggle(args)
+  args = args or {}
+  local window_opts = args.window_opts
+
+  local chat = Chat.last_chat()
+  if not chat then
+    local chat_opts = { buffer_context = args.context }
+    if window_opts then
+      chat_opts.window_opts = window_opts
+    end
+    -- Adapter resolution from params
+    if args.params and args.params.adapter then
+      local adapter_name = args.params.adapter
+      local adapter = config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
+      adapter = require("codecompanion.adapters").resolve(adapter)
+      if args.params.model then
+        adapter.schema.model.default = args.params.model
+      end
+      chat_opts.adapter = adapter
+    end
+    return Chat.new(chat_opts)
+  end
+
+  -- If the chat is visible in a different tab ...
+  if chat.ui:is_visible_non_curtab() then
+    if config.display.chat.window.layout == "tab" then
+      -- ... open it (go there) if chat opens in tabs
+      chat.ui:open()
+      return
+    else
+      -- ... or close it so we can open it below
+      chat.ui:hide()
+    end
+  -- If the chat is visible in the current tab, hide it and return early
+  elseif chat.ui:is_visible() then
+    return chat.ui:hide()
+  end
+
+  chat.buffer_context = args.context or chat.buffer_context
+
+  -- At this point, the chat exists but is not visible in the current tab
+
+  -- Close the chat window (if it's open elsewhere)
+  Chat.close_last_chat()
+
+  -- Reopen the chat in the current tab with the toggled flag
+  local opts = { toggled = true }
+  if window_opts then
+    opts.window_opts = window_opts
+  end
+  chat.ui:open(opts)
+end
+
 return Chat

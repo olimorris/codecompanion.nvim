@@ -823,6 +823,24 @@ The user is working on a %s machine. Please respond with system specific command
 - Ensure the command is relevant to the user's request]],
       },
     },
+    -- CLI INTERACTION ---------------------------------------------------------
+    cli = {
+      agent = "claude_code", -- Default agent
+      agents = {
+        claude_code = {
+          cmd = "claude",
+          args = {},
+          description = "Claude Code CLI",
+        },
+      },
+      -- keymaps = {
+      --   hide = {
+      --     modes = { n = "q" },
+      --     callback = "keymaps.hide",
+      --     description = "[CLI] Hide window",
+      --   },
+      -- },
+    },
     shared = {
       keymaps = {
         always_accept = {
@@ -1052,6 +1070,15 @@ The user is working on a %s machine. Please respond with system specific command
         return " (" .. tokens .. " tokens)"
       end,
     },
+
+    cli = {
+      window = {
+        opts = {
+          list = false, -- listchars render as `.` without this
+        },
+      },
+    },
+
     diff = {
       enabled = true,
       -- Options for any diff windows (extends from floating_window)
@@ -1188,6 +1215,7 @@ M.setup = function(args)
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
   M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
+  -- M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
 
   local project_config = get_per_project_config()
   if project_config then
