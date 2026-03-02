@@ -1,5 +1,20 @@
 # Changelog
 
+## [19.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.0.0...v19.1.0) (2026-03-02)
+
+
+### Features
+
+* **adapters:** change gemini default to 3.1 pro ([#2829](https://github.com/olimorris/codecompanion.nvim/issues/2829)) ([758e3fb](https://github.com/olimorris/codecompanion.nvim/commit/758e3fbb357a49ba823d6498eb745b0deec64abc))
+
+
+### Bug Fixes
+
+* **chat:** chatting with rules ([#2809](https://github.com/olimorris/codecompanion.nvim/issues/2809)) ([8d9357c](https://github.com/olimorris/codecompanion.nvim/commit/8d9357c4bfa08c793fe641edd022fb47323009fa))
+* **prompts:** prevent duplicate prompts in action palette ([#2818](https://github.com/olimorris/codecompanion.nvim/issues/2818)) ([99ec85a](https://github.com/olimorris/codecompanion.nvim/commit/99ec85a74fa2b8ae17cad4a7b854ef612912c9df)), closes [#2816](https://github.com/olimorris/codecompanion.nvim/issues/2816)
+* **tools:** grep_search cannot search patterns starting with `-` ([#2748](https://github.com/olimorris/codecompanion.nvim/issues/2748)) ([f26671f](https://github.com/olimorris/codecompanion.nvim/commit/f26671fc504c72e9ab1aee511125df30c711a97b))
+* **ui:** cursor placement after user prompt ([#2813](https://github.com/olimorris/codecompanion.nvim/issues/2813)) ([a3710ff](https://github.com/olimorris/codecompanion.nvim/commit/a3710ff4f10a8f215ace1a4f5f0f881d0c6c4e93))
+
 ## [19.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.7.0...v19.0.0) (2026-02-27)
 
 
