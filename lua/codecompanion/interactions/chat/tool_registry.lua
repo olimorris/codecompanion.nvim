@@ -4,6 +4,7 @@ Methods for handling interactions between the chat buffer and tools
 
 ---@class CodeCompanion.Chat.ToolRegistry
 ---@field chat CodeCompanion.Chat
+---@field ctx CodeCompanion.SystemPrompt.Context The context for the system prompt
 ---@field flags table Flags that external functions can update and subscribers can interact with
 ---@field groups table<string, string[]> Groups and their member tool names
 ---@field in_use table<string, boolean> Tools that are in use on the chat buffer
@@ -33,11 +34,13 @@ end
 
 ---@class CodeCompanion.Chat.ToolsArgs
 ---@field chat CodeCompanion.Chat
+---@field ctx CodeCompanion.SystemPrompt.Context
 
 ---@param args CodeCompanion.Chat.ToolsArgs
 function ToolRegistry.new(args)
   local self = setmetatable({
     chat = args.chat,
+    ctx = args.ctx,
     flags = {},
     groups = {},
     in_use = {},
@@ -236,7 +239,7 @@ function ToolRegistry:add_tool_system_prompt()
 
   local prompt = opts.prompt
   if type(prompt) == "function" then
-    prompt = prompt({ tools = vim.tbl_keys(self.in_use) })
+    prompt = prompt({ ctx = self.ctx, tools = vim.tbl_keys(self.in_use) })
   end
 
   local index = 2 -- Add after the main system prompt if not replacing

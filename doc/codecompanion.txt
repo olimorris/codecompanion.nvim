@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 02
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3170,7 +3170,7 @@ There are additional options available when working with tool system prompts:
                 replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
     
                 ---The tool system prompt
-                ---@param args { tools: string[]} The tools available
+                ---@param args { ctx: CodeCompanion.SystemPrompt.Context, tools: string[]} The tools available
                 ---@return string
                 prompt = function(args)
                   return "My custom tools prompt"
