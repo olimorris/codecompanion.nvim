@@ -177,17 +177,20 @@ function M.add_files_or_buffers(included_files, chat)
       end
     end
 
+    -- Use <rules> ID format to match add_context() and prevent duplicates
+    -- when a file is both directly listed and referenced via @include
+    local id = "<rules>" .. path .. "</rules>"
+    local context_exists = chat_helpers.has_context(id, chat.messages)
+    if context_exists then
+      return
+    end
+
     -- Then determine if the file is open as a buffer
     local bufnr = buf_utils.get_bufnr_from_path(path)
     if bufnr then
-      local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
+      local ok, content, _, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
       if not ok then
         return log:debug("[Rules] Could not add buffer %d to chat buffer", bufnr)
-      end
-
-      local context_exists = chat_helpers.has_context(id, chat.messages)
-      if context_exists then
-        return
       end
 
       local buffer_opts = config.rules.opts.chat and config.rules.opts.chat.default_params
@@ -207,14 +210,11 @@ function M.add_files_or_buffers(included_files, chat)
     end
 
     -- Otherwise, add it as file context
-    local ok, content, id, _, _, _ = pcall(chat_helpers.format_file_for_llm, path, opts)
+    local ok, content, _, _, _, _ = pcall(chat_helpers.format_file_for_llm, path, opts)
     if ok then
-      local context_exists = chat_helpers.has_context(id, chat.messages)
-      if not context_exists then
-        chat:add_context({ content = content }, "rules", id, {
-          path = path,
-        })
-      end
+      chat:add_context({ content = content }, "rules", id, {
+        path = path,
+      })
     end
   end)
 end
