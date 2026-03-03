@@ -534,7 +534,10 @@ function Chat.new(args)
     bufnr = self.bufnr,
     messages = self.messages,
   })
-  self.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({ chat = self })
+  self.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({
+    chat = self,
+    ctx = self:make_system_prompt_context(),
+  })
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
