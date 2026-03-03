@@ -147,6 +147,7 @@ function ToolRegistry:add_single_tool(tool, opts)
         },
       },
     }, id)
+    self.in_use[tool] = true
   else
     local resolved_tool = self.chat.tools.resolve(tool_config)
     if not resolved_tool then
@@ -156,11 +157,11 @@ function ToolRegistry:add_single_tool(tool, opts)
     add_context(self.chat, id, opts)
     add_system_prompt(self.chat, resolved_tool, id)
     add_schema(self, resolved_tool, id)
+    self.in_use[tool] = true
     self:add_tool_system_prompt()
   end
 
   utils.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
-  self.in_use[tool] = true
 
   return self
 end

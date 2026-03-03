@@ -172,6 +172,35 @@ T["ToolRegistry"][":add_group"]["adds group system prompt"] = function()
   h.eq(true, child.lua_get([[_G.has_system_prompt]]))
 end
 
+T["ToolRegistry"]["add_tool_system_prompt"] = new_set()
+
+T["ToolRegistry"]["add_tool_system_prompt"]["receives the added tool in its argument"] = function()
+  child.lua([[
+    _G.chat2, _G.tools2 = h.setup_chat_buffer({
+      interactions = {
+        chat = {
+          tools = {
+            opts = {
+              system_prompt = {
+                enabled = true,
+                replace_main_system_prompt = false,
+                prompt = function(args)
+                  _G.prompt_tools_arg = vim.deepcopy(args.tools)
+                  return "tool system prompt"
+                end,
+              },
+            },
+          },
+        },
+      },
+    })
+    _G.chat2.tool_registry:add_single_tool("func")
+  ]])
+
+  local prompt_tools_arg = child.lua_get([[_G.prompt_tools_arg]])
+  h.expect_tbl_contains("func", prompt_tools_arg)
+end
+
 T["ToolRegistry"][":loaded"] = new_set()
 
 T["ToolRegistry"][":loaded"]["returns false when no tools loaded"] = function()
