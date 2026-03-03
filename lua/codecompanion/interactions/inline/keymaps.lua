@@ -19,7 +19,7 @@ end
 M.stop = {
   callback = function(inline)
     inline:stop()
-    clear_map(config.interactions.inline.keymaps, inline.diff.bufnr)
+    clear_map(config.interactions.inline.keymaps, inline.bufnr)
     log:trace("[Inline] Cancelling the request")
   end,
 }
