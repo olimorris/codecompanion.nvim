@@ -497,6 +497,8 @@ return {
       show_context = true,
       fold_context = false,
       show_settings = false,
+      fold_reasoning = true,
+      show_reasoning = true,
       window = {
         buflisted = false, -- List the chat buffer in the buffer list?
         sticky = false, -- Chat window follows when switching tabs
