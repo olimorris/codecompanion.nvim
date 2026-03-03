@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local registry = require("codecompanion.interactions.shared.registry")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -21,6 +22,16 @@ local keymap_callbacks = {
   hide = {
     callback = function(cli)
       cli.ui:hide()
+    end,
+  },
+  next_chat = {
+    callback = function(cli)
+      registry.move(cli.bufnr, 1)
+    end,
+  },
+  previous_chat = {
+    callback = function(cli)
+      registry.move(cli.bufnr, -1)
     end,
   },
 }
@@ -97,6 +108,18 @@ function CLI.get_or_create(args)
 
   _instance = self
 
+  registry.add(bufnr, {
+    name = agent_name,
+    description = agent.description or "CLI agent",
+    interaction = "cli",
+    open = function()
+      self.ui:open()
+    end,
+    hide = function()
+      self.ui:hide()
+    end,
+  })
+
   log:debug("CLI instance created with agent '%s'", agent_name)
   utils.fire("CLICreated", { bufnr = bufnr })
 
@@ -136,6 +159,8 @@ function CLI:close()
   if api.nvim_buf_is_valid(self.bufnr) then
     pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   end
+
+  registry.remove(self.bufnr)
 
   log:debug("CLI instance closed")
   utils.fire("CLIClosed", { bufnr = self.bufnr })

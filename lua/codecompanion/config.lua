@@ -833,13 +833,23 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Claude Code CLI",
         },
       },
-      -- keymaps = {
-      --   hide = {
-      --     modes = { n = "q" },
-      --     callback = "keymaps.hide",
-      --     description = "[CLI] Hide window",
-      --   },
-      -- },
+      keymaps = {
+        hide = {
+          modes = { n = "q" },
+          callback = "keymaps.hide",
+          description = "[CLI] Hide window",
+        },
+        next_chat = {
+          modes = { n = "}" },
+          callback = "keymaps.next_chat",
+          description = "[Nav] Next interaction",
+        },
+        previous_chat = {
+          modes = { n = "{" },
+          callback = "keymaps.previous_chat",
+          description = "[Nav] Previous interaction",
+        },
+      },
     },
     shared = {
       keymaps = {

@@ -398,9 +398,10 @@ end
 -- Public methods
 --=============================================================================
 
----Methods that are available outside of CodeCompanion
----@type table<CodeCompanion.Chat>
-local chatmap = {}
+local registry = require("codecompanion.interactions.shared.registry")
+
+---@type table<number, CodeCompanion.Chat>
+local chats = {}
 
 ---@type table
 _G.codecompanion_buffers = {}
@@ -483,12 +484,21 @@ function Chat.new(args)
   end
 
   table.insert(_G.codecompanion_buffers, self.bufnr)
-  chatmap[self.bufnr] = {
-    name = "Chat " .. vim.tbl_count(chatmap) + 1,
+  chats[self.bufnr] = self
+
+  local chat_name = "Chat " .. vim.tbl_count(chats)
+  registry.add(self.bufnr, {
+    name = chat_name,
     description = CONSTANTS.BLANK_DESC,
     interaction = "chat",
-    chat = self,
-  }
+    open = function()
+      Chat.close_last_chat()
+      self.ui:open()
+    end,
+    hide = function()
+      self.ui:hide()
+    end,
+  })
 
   if args.adapter and adapters.resolved(args.adapter) then
     self.adapter = args.adapter
@@ -1588,7 +1598,8 @@ function Chat:close()
       return v == self.bufnr
     end)
   )
-  chatmap[self.bufnr] = nil
+  chats[self.bufnr] = nil
+  registry.remove(self.bufnr)
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
@@ -1766,7 +1777,7 @@ function Chat:set_title(title)
 
   self.title = title
   self.ui.title = title
-  chatmap[self.bufnr].description = title
+  registry.update(self.bufnr, { description = title })
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)
   end)
@@ -1780,9 +1791,16 @@ end
 function Chat.buf_get_chat(bufnr)
   if not bufnr then
     return vim
-      .iter(pairs(chatmap))
-      :map(function(_, v)
-        return v
+      .iter(pairs(chats))
+      :map(function(buf, chat)
+        local entry = registry.get(buf)
+        return {
+          name = entry and entry.name or "",
+          description = entry and entry.description or "",
+          title = chat.title,
+          interaction = "chat",
+          chat = chat,
+        }
       end)
       :totable()
   end
@@ -1790,7 +1808,7 @@ function Chat.buf_get_chat(bufnr)
   if bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  return chatmap[bufnr].chat
+  return chats[bufnr]
 end
 
 ---Returns the last chat that was visible
