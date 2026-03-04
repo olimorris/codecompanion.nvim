@@ -230,9 +230,6 @@ end
 
 T["ACPHandler"]["suppresses thought chunks when show_reasoning is false"] = function()
   local result = child.lua([[
-    local config = require("codecompanion.config")
-    config.display.chat.show_reasoning = false
-
     local chat = h.setup_chat_buffer({}, {
       name = "test_acp",
       config = {
@@ -241,6 +238,9 @@ T["ACPHandler"]["suppresses thought chunks when show_reasoning is false"] = func
         handlers = { form_messages = function(a, m) return m end }
       }
     })
+
+    local config = require("codecompanion.config")
+    config.display.chat.show_reasoning = false
 
     local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
     local handler = ACPHandler.new(chat)
