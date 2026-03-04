@@ -25,7 +25,9 @@ local function build_choices(tool, fallback_prompt)
     table.insert(lines, "````")
   end
 
-  local prompt = (args and next(args)) and table.concat(lines, "\n") or fallback_prompt or fmt("Run the %q tool?", tool.name)
+  local prompt = (args and next(args)) and table.concat(lines, "\n")
+    or fallback_prompt
+    or fmt("Run the %q tool?", tool.name)
 
   local choices = {
     { label = "Allow always", value = "allow_always" },
