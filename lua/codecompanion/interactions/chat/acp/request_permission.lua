@@ -228,12 +228,17 @@ local function build_choices(request)
     table.insert(lines, description)
   end
   if args and next(args) then
-    table.insert(lines, "")
-    table.insert(lines, "````json")
-    for _, json_line in ipairs(vim.split(vim.json.encode(args, { indent = "  " }), "\n")) do
-      table.insert(lines, json_line)
+    local details = vim.deepcopy(args)
+    details.description = nil
+
+    if next(details) then
+      table.insert(lines, "")
+      table.insert(lines, "````json")
+      for _, json_line in ipairs(vim.split(vim.json.encode(details, { indent = "  " }), "\n")) do
+        table.insert(lines, json_line)
+      end
+      table.insert(lines, "````")
     end
-    table.insert(lines, "````")
   end
 
   local choices = {}
