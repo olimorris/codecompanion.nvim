@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 
@@ -101,7 +102,6 @@ function ACPHandler:transform_acp_commands(messages)
   end
 
   -- Get trigger character
-  local config = require("codecompanion.config")
   local trigger = "\\"
   if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
     trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
@@ -174,7 +174,7 @@ end
 function ACPHandler:handle_message_chunk(content)
   table.insert(self.output, content)
   self.chat:add_buf_message(
-    { role = require("codecompanion.config").constants.LLM_ROLE, content = content },
+    { role = config.constants.LLM_ROLE, content = content },
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 end
@@ -183,10 +183,12 @@ end
 ---@param content string
 function ACPHandler:handle_thought_chunk(content)
   table.insert(self.reasoning, content)
-  self.chat:add_buf_message(
-    { role = require("codecompanion.config").constants.LLM_ROLE, content = content },
-    { type = self.chat.MESSAGE_TYPES.REASONING_MESSAGE }
-  )
+  if config.display.chat.show_reasoning then
+    self.chat:add_buf_message(
+      { role = config.constants.LLM_ROLE, content = content },
+      { type = self.chat.MESSAGE_TYPES.REASONING_MESSAGE }
+    )
+  end
 end
 
 ---Output tool call to the chat
@@ -241,7 +243,7 @@ function ACPHandler:process_tool_call(tool_call)
 
   table.insert(self.output, content)
   local line_number, icon_id = self.chat:add_buf_message({
-    role = require("codecompanion.config").constants.LLM_ROLE,
+    role = config.constants.LLM_ROLE,
     content = content,
   }, {
     status = tool_call.status or "in_progress",
@@ -303,7 +305,7 @@ function ACPHandler:handle_error(error)
   log:error("[ACP::Handler] %s", error)
 
   self.chat:add_buf_message(
-    { role = require("codecompanion.config").constants.LLM_ROLE, content = string.format("````txt\n%s\n````", error) },
+    { role = config.constants.LLM_ROLE, content = string.format("````txt\n%s\n````", error) },
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 
