@@ -18,6 +18,7 @@ local ACPHandlerUI = {} -- Cache of tool call UI states by chat buffer
 function ACPHandler.new(chat)
   local self = setmetatable({
     chat = chat,
+    modified_paths = {},
     output = {},
     reasoning = {},
     tools = {},
@@ -207,6 +208,24 @@ function ACPHandler:process_tool_call(tool_call)
     content = "[Error formatting tool output]"
   end
 
+  -- Track file paths from edit/write tool calls for targeted buffer reload
+  if tool_call.kind == "edit" or tool_call.kind == "write" then
+    if type(tool_call.locations) == "table" then
+      for _, loc in ipairs(tool_call.locations) do
+        if type(loc.path) == "string" then
+          self.modified_paths[loc.path] = true
+        end
+      end
+    end
+    if type(tool_call.content) == "table" then
+      for _, c in ipairs(tool_call.content) do
+        if c.type == "diff" and type(c.path) == "string" then
+          self.modified_paths[c.path] = true
+        end
+      end
+    end
+  end
+
   -- Cache or cleanup
   if tool_call.status == "completed" then
     self.tools[id] = nil
@@ -295,6 +314,19 @@ function ACPHandler:handle_completion(stop_reason)
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
   end
+
+  -- Reload buffers that the agent modified on disk
+  if next(self.modified_paths) then
+    local buf_utils = require("codecompanion.utils.buffers")
+    for path, _ in pairs(self.modified_paths) do
+      local bufnr = buf_utils.get_bufnr_from_path(path)
+      if bufnr then
+        vim.cmd.checktime(bufnr)
+      end
+    end
+    self.modified_paths = {}
+  end
+
   self.chat:done(self.output, self.reasoning, {})
 end
 
