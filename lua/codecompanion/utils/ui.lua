@@ -526,9 +526,21 @@ function M.confirm(prompt, choices, callback, opts)
   end
   footer_width = footer_width + 1
 
-  local width = math.max(max_line_width + 4, footer_width)
-  width = math.min(width, math.floor(vim.o.columns * 0.8))
-  local height = math.min(math.max(#lines, 1), math.floor(vim.o.lines * 0.6))
+  local window_config = require("codecompanion.config").display.chat.tool_approval_window
+  local cfg_width = window_config.width
+  local cfg_height = window_config.height
+  if type(cfg_width) == "function" then
+    cfg_width = cfg_width()
+  end
+  if type(cfg_height) == "function" then
+    cfg_height = cfg_height()
+  end
+
+  local max_width = math.min(math.floor(vim.o.columns * cfg_width), vim.o.columns - 2)
+  local max_height = math.min(math.floor(vim.o.lines * cfg_height), vim.o.lines - 4)
+
+  local width = math.min(math.max(max_line_width + 4, footer_width), max_width)
+  local height = math.min(math.max(#lines, 1), max_height)
 
   -- Create buffer with markdown filetype for syntax highlighting
   local bufnr = api.nvim_create_buf(false, true)
@@ -538,19 +550,18 @@ function M.confirm(prompt, choices, callback, opts)
   vim.bo[bufnr].bufhidden = "wipe"
 
   -- Open floating window
-  local confirm_config = require("codecompanion.config").display.chat.tool_approval_window
   local winnr = api.nvim_open_win(bufnr, true, {
-    relative = confirm_config.relative,
+    relative = window_config.relative,
     row = math.floor((vim.o.lines - height) / 2) - 1,
     col = math.floor((vim.o.columns - width) / 2),
     width = width,
     height = height,
-    style = confirm_config.style,
-    border = confirm_config.border,
+    style = window_config.style,
+    border = window_config.border,
     footer = create_confirm_footer(choices, active),
     footer_pos = "center",
   })
-  M.set_win_options(winnr, confirm_config.opts)
+  M.set_win_options(winnr, window_config.opts)
 
   local function update_footer()
     if api.nvim_win_is_valid(winnr) then

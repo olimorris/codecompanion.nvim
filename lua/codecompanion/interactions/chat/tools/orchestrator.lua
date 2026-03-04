@@ -8,10 +8,11 @@ local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
----Build a markdown prompt string for the tool approval dialog
+---Build the prompt and choices for the tool approval dialog
 ---@param tool CodeCompanion.Tools.Tool
----@return string
-local function build_prompt(tool)
+---@param fallback_prompt? string
+---@return string prompt, table choices
+local function build_choices(tool, fallback_prompt)
   local lines = { fmt("## Run `%s`?", tool.name) }
 
   local args = tool.args
@@ -24,7 +25,16 @@ local function build_prompt(tool)
     table.insert(lines, "````")
   end
 
-  return table.concat(lines, "\n")
+  local prompt = (args and next(args)) and table.concat(lines, "\n") or fallback_prompt or fmt("Run the %q tool?", tool.name)
+
+  local choices = {
+    { label = "Allow always", value = "allow_always" },
+    { label = "Allow once", value = "allow_once", default = true },
+    { label = "Reject", value = "reject" },
+    { label = "Cancel", value = "cancel" },
+  }
+
+  return prompt, choices
 end
 
 ---Strip any ANSI color codes which don't render in the chat buffer
@@ -315,23 +325,7 @@ function Orchestrator:setup_next_tool(input)
         args = self.tool.args,
       })
 
-      -- build rich prompt with tool metadata, fall back to plain string
-      local prompt
-      if self.tool.args and next(self.tool.args) then
-        prompt = build_prompt(self.tool)
-      else
-        prompt = self.output.prompt()
-        if prompt == nil or prompt == "" then
-          prompt = ("Run the %q tool?"):format(self.tool.name)
-        end
-      end
-
-      local choices = {
-        { label = "Allow always", value = "allow_always" },
-        { label = "Allow once", value = "allow_once", default = true },
-        { label = "Reject", value = "reject" },
-        { label = "Cancel", value = "cancel" },
-      }
+      local prompt, choices = build_choices(self.tool, self.output.prompt())
 
       ui_utils.confirm(prompt, choices, function(choice)
         log:debug("[Orchestrator::setup_next_tool] User choice: %s", choice)

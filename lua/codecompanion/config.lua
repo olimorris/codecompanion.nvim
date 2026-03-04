@@ -1028,6 +1028,8 @@ The user is working on a %s machine. Please respond with system specific command
 
       -- Options for the tool approval window
       tool_approval_window = {
+        width = 0.5, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
         border = "single",
         style = "minimal",
         relative = "editor",

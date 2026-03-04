@@ -211,10 +211,10 @@ local function show_diff(chat, request)
   setup_diff_keymaps(diff_ui, normalized, kind_map, request)
 end
 
----Build a markdown prompt string for the ACP permission dialog
+---Build the prompt and choices for the ACP permission dialog
 ---@param request table
----@return string
-local function build_prompt(request)
+---@return string prompt, table choices
+local function build_choices(request)
   local tool_call = request.tool_call
   local kind = tool_call and tool_call.kind or "permission"
   local title = tool_call and tool_call.title or "Agent requested permission"
@@ -236,7 +236,16 @@ local function build_prompt(request)
     table.insert(lines, "````")
   end
 
-  return table.concat(lines, "\n")
+  local choices = {}
+  for _, opt in ipairs(request.options or {}) do
+    table.insert(choices, {
+      label = CONSTANTS.LABELS[opt.kind] or opt.name or opt.kind,
+      value = opt.optionId,
+      default = opt.kind == "allow_once",
+    })
+  end
+
+  return table.concat(lines, "\n"), choices
 end
 
 ---Show the permission request to the user and handle their response
@@ -249,17 +258,7 @@ function M.confirm(chat, request)
     return show_diff(chat, request)
   end
 
-  local prompt = build_prompt(request)
-
-  local choices = {}
-  for _, opt in ipairs(request.options or {}) do
-    table.insert(choices, {
-      label = CONSTANTS.LABELS[opt.kind] or opt.name or opt.kind,
-      value = opt.optionId,
-      default = opt.kind == "allow_once",
-    })
-  end
-
+  local prompt, choices = build_choices(request)
   log:debug("[acp::request_permission] Available choices %s", choices)
 
   ui_utils.confirm(prompt, choices, function(option_id)
