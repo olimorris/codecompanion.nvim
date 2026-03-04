@@ -592,32 +592,30 @@ function M.confirm(prompt, choices, callback, opts)
   end
 
   -- Navigation and selection keymaps
-  local function map(key, fn)
-    vim.keymap.set("n", key, fn, { buffer = bufnr, nowait = true, silent = true })
-  end
+  local map_opts = { buffer = bufnr, nowait = true, silent = true }
 
-  map("<Tab>", function()
+  vim.keymap.set("n", "<Tab>", function()
     active = (active % #choices) + 1
     update_footer()
-  end)
-  map("<S-Tab>", function()
+  end, map_opts)
+  vim.keymap.set("n", "<S-Tab>", function()
     active = ((active - 2) % #choices) + 1
     update_footer()
-  end)
-  map("<CR>", function()
+  end, map_opts)
+  vim.keymap.set("n", "<CR>", function()
     close(choices[active].value)
-  end)
-  map("<Esc>", function()
+  end, map_opts)
+  vim.keymap.set("n", "<Esc>", function()
     close(nil)
-  end)
-  map("q", function()
+  end, map_opts)
+  vim.keymap.set("n", "q", function()
     close(nil)
-  end)
+  end, map_opts)
 
   for i = 1, math.min(#choices, 9) do
-    map(tostring(i), function()
+    vim.keymap.set("n", tostring(i), function()
       close(choices[i].value)
-    end)
+    end, map_opts)
   end
 
   -- Handle window being closed externally
