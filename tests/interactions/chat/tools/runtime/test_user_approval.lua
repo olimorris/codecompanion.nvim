@@ -35,11 +35,11 @@ T["Tools"]["user approval"] = new_set()
 
 T["Tools"]["user approval"]["prompts a user when tool requires approval"] = function()
   child.lua([[
-    ui_utils.confirm = function(prompt, choices, opts)
+    ui_utils.confirm = function(prompt, choices, callback)
       _G.ui_called = true
       _G.ui_prompt = prompt
       _G.ui_choices = choices
-      return 1 -- Simulate user selecting "Yes"
+      callback("allow_once")
     end
 
     local tool_calls = {
@@ -55,7 +55,7 @@ T["Tools"]["user approval"]["prompts a user when tool requires approval"] = func
 
   -- Check that UI was called with expected values
   h.eq(true, child.lua_get([[_G.ui_called]]))
-  h.eq("Run the func_approval tool?", child.lua_get([[_G.ui_prompt]]))
+  h.eq('## Run `func_approval`?\n\n````json\n{\n  "data": "Test Data"\n}\n````', child.lua_get([[_G.ui_prompt]]))
 
   -- Check that tool executed after approval
   h.eq("Test Data", child.lua_get([[_G._test_func]]))
@@ -64,13 +64,11 @@ end
 
 T["Tools"]["user approval"]["approval can be conditionally set - true in this case"] = function()
   child.lua([[
-    -- Mock vim.ui.select to capture what gets called
-    local original_select = vim.ui.select
     _G.ui_called = false
 
-    ui_utils.confirm = function(prompt, choices, opts)
+    ui_utils.confirm = function(prompt, choices, callback)
       _G.ui_called = true
-      return 1 -- Simulate user selecting "Yes"
+      callback("allow_once")
     end
 
     local tool_calls = {
@@ -91,13 +89,11 @@ end
 
 T["Tools"]["user approval"]["approval can be conditionally set - false in this case"] = function()
   child.lua([[
-    -- Mock vim.ui.select to capture what gets called
-    local original_select = vim.ui.select
     _G.ui_called = false
 
-    ui_utils.confirm = function(prompt, choices, opts)
+    ui_utils.confirm = function(prompt, choices, callback)
       _G.ui_called = true
-      return 1 -- Simulate user selecting "Yes"
+      callback("allow_once")
     end
 
     local tool_calls = {
@@ -116,8 +112,6 @@ end
 
 T["Tools"]["user approval"]["approval can be rejected"] = function()
   child.lua([[
-    -- Mock vim.ui.select to capture what gets called
-    local original_select = vim.ui.select
     _G.ui_called = true
 
     -- Monkey patch the async function
@@ -125,9 +119,9 @@ T["Tools"]["user approval"]["approval can be rejected"] = function()
       return callback("Rejected")
     end
 
-    ui_utils.confirm = function(prompt, choices, opts)
+    ui_utils.confirm = function(prompt, choices, callback)
       _G.ui_called = true
-      return 3 -- Simulate user pressing "Reject"
+      callback("reject")
     end
     local tool_calls = {
       {
