@@ -8,6 +8,25 @@ local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
+---Build a markdown prompt string for the tool approval dialog
+---@param tool CodeCompanion.Tools.Tool
+---@return string
+local function build_prompt(tool)
+  local lines = { fmt("## Run `%s`?", tool.name) }
+
+  local args = tool.args
+  if args and next(args) then
+    table.insert(lines, "")
+    table.insert(lines, "````json")
+    for _, json_line in ipairs(vim.split(vim.json.encode(args, { indent = "  " }), "\n")) do
+      table.insert(lines, json_line)
+    end
+    table.insert(lines, "````")
+  end
+
+  return table.concat(lines, "\n")
+end
+
 ---Strip any ANSI color codes which don't render in the chat buffer
 ---@param tbl table
 ---@return table
@@ -296,29 +315,40 @@ function Orchestrator:setup_next_tool(input)
         args = self.tool.args,
       })
 
-      local prompt = self.output.prompt()
-      if prompt == nil or prompt == "" then
-        prompt = ("Run the %q tool?"):format(self.tool.name)
+      -- build rich prompt with tool metadata, fall back to plain string
+      local prompt
+      if self.tool.args and next(self.tool.args) then
+        prompt = build_prompt(self.tool)
+      else
+        prompt = self.output.prompt()
+        if prompt == nil or prompt == "" then
+          prompt = ("Run the %q tool?"):format(self.tool.name)
+        end
       end
 
-      -- Schedule the confirmation dialog to ensure UI is ready
-      vim.schedule(function()
-        local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
+      local choices = {
+        { label = "Allow always", value = "allow_always" },
+        { label = "Allow once", value = "allow_once", default = true },
+        { label = "Reject", value = "reject" },
+        { label = "Cancel", value = "cancel" },
+      }
+
+      ui_utils.confirm(prompt, choices, function(choice)
         log:debug("[Orchestrator::setup_next_tool] User choice: %s", choice)
 
-        -- Handle invalid/failed dialog (returns 0 or nil)
-        if not choice or choice == 0 then
-          self.output.rejected(cmd, { reason = "Confirmation dialog failed" })
+        -- Handle cancelled/dismissed dialog (returns nil)
+        if not choice then
+          self.output.rejected(cmd, { reason = "Confirmation dialog dismissed" })
           self:finalize_tool()
           return self:setup_next_tool()
         end
 
-        if choice == 1 or choice == 2 then
-          if choice == 1 then
+        if choice == "allow_always" or choice == "allow_once" then
+          if choice == "allow_always" then
             Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
           end
           return self:execute_tool({ cmd = cmd, input = input })
-        elseif choice == 3 then
+        elseif choice == "reject" then
           ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
             self.output.rejected(cmd, { reason = i })
             return self:setup_next_tool()
@@ -330,7 +360,7 @@ function Orchestrator:setup_next_tool(input)
           self:cancel_pending_tools()
           return self:_finalize_tools()
         end
-      end)
+      end, { key = self.tools.bufnr })
     else
       return self:execute_tool({ cmd = cmd, input = input })
     end

@@ -1026,6 +1026,17 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {},
       },
 
+      -- Options for the tool approval window
+      tool_approval_window = {
+        border = "single",
+        style = "minimal",
+        relative = "editor",
+        opts = {
+          wrap = true,
+          cursorline = false,
+        },
+      },
+
       -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",

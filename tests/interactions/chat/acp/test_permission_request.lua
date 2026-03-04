@@ -45,6 +45,7 @@ T = new_set({
         end
         -- Unload modules
         package.loaded["codecompanion.interactions.chat.acp.request_permission"] = nil
+        package.loaded["codecompanion.utils.ui"] = nil
         package.loaded["codecompanion.helpers"] = nil
         package.loaded["codecompanion.diff"] = nil
         package.loaded["codecompanion.diff.ui"] = nil
@@ -57,9 +58,8 @@ T = new_set({
 T["no diff -> confirm dialog -> return selected option"] = function()
   local result = child.lua([[
     -- Stub confirm to pick the first choice ("Allow")
-    vim.fn.confirm = function(_, _, _)
-      return 1
-    end
+    local ui_utils = require("codecompanion.utils.ui")
+    ui_utils.confirm = function(_, _, callback) callback(1) end
 
     local responded = {}
     local chat = { bufnr = 0 }
@@ -92,9 +92,8 @@ end
 T["no diff -> confirm dialog -> reject option"] = function()
   local result = child.lua([[
     -- Stub confirm to pick the second choice ("Reject")
-    vim.fn.confirm = function(_, _, _)
-      return 2
-    end
+    local ui_utils = require("codecompanion.utils.ui")
+    ui_utils.confirm = function(_, _, callback) callback(2) end
 
     local responded = {}
     local chat = { bufnr = 0 }
@@ -126,10 +125,9 @@ end
 
 T["no diff -> confirm dialog -> cancel"] = function()
   local result = child.lua([[
-    -- Stub confirm to cancel (return 0)
-    vim.fn.confirm = function(_, _, _)
-      return 0
-    end
+    -- Stub confirm to cancel (return nil)
+    local ui_utils = require("codecompanion.utils.ui")
+    ui_utils.confirm = function(_, _, callback) callback(nil) end
 
     local responded = {}
     local chat = { bufnr = 0 }
@@ -349,9 +347,9 @@ end
 
 T["diff flow -> empty oldText and newText does not show diff"] = function()
   local result = child.lua([[
-    vim.fn.confirm = function(_, _, _)
-      return 1 -- pick allow
-    end
+    -- Stub confirm to pick the first choice ("Allow")
+    local ui_utils = require("codecompanion.utils.ui")
+    ui_utils.confirm = function(_, _, callback) callback(1) end
 
     local responded = {}
     local chat = { bufnr = 0 }
