@@ -351,7 +351,7 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
   local has_tmp2 = false
   for _, msg in ipairs(messages) do
     if msg.context and msg.context.id then
-      local path = msg.context.id:match("<file>(.-)</file>")
+      local path = msg.context.id:match("<rules>(.-)</rules>")
       if path then
         local abs_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
         if abs_path == vim.fs.normalize(tmp1) then
@@ -409,6 +409,72 @@ T["add_context() prevents duplicate rules context from being added"] = function(
 
   h.eq(#messages, 1)
   h.eq(call_count, 2)
+end
+
+T["Rules:make()"]["file referenced in both rules.files and @include should not be duplicated"] = function()
+  -- Create a temp directory for our test files
+  local tmpdir = child.lua("return vim.fn.tempname()")
+  child.fn.mkdir(tmpdir)
+
+  -- Create AGENTS.md - this will be both directly listed AND referenced via @include
+  local agents_md = vim.fs.joinpath(tmpdir, "AGENTS.md")
+  child.fn.writefile({ "# Agents", "", "This is the agents content" }, agents_md)
+
+  -- Create CLAUDE.md that references AGENTS.md via @include syntax
+  local claude_md = vim.fs.joinpath(tmpdir, "CLAUDE.md")
+  child.fn.writefile({ "# Claude", "", "@" .. agents_md, "", "Additional Claude content" }, claude_md)
+
+  -- Set up and run the rules with both files in the files list
+  -- This mimics the default config where both CLAUDE.md and AGENTS.md are listed
+  child.lua(string.format(
+    [[
+    local h = require("tests.helpers")
+    local cc = h.setup_plugin()
+    local config = require("codecompanion.config")
+
+    config.rules = vim.tbl_deep_extend("force", config.rules or {}, {
+      default = {
+        description = "test duplication",
+        files = {
+          { path = %q, parser = "claude" },  -- CLAUDE.md with claude parser
+          %q,  -- AGENTS.md directly listed
+        },
+        is_preset = true,
+      },
+      parsers = {
+        claude = "claude",
+      },
+      opts = {
+        chat = {
+          enabled = true,
+          autoload = "default",
+        },
+        show_presets = true,
+      },
+    })
+
+    _G.test_chat = cc.chat()
+    _G.test_messages = _G.test_chat and _G.test_chat.messages or nil
+  ]],
+    claude_md,
+    agents_md
+  ))
+
+  local messages = child.lua_get([[_G.test_messages]])
+
+  -- Count how many times AGENTS.md content appears in messages
+  local agents_count = 0
+  for _, msg in ipairs(messages) do
+    if msg.context and msg.context.id then
+      if msg.context.id:find("AGENTS.md") then
+        agents_count = agents_count + 1
+      end
+    end
+  end
+
+  -- AGENTS.md should only appear once, not twice
+  -- (once as direct rules file, NOT again from @include in CLAUDE.md)
+  h.eq(agents_count, 1)
 end
 
 return T

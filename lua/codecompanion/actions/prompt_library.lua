@@ -16,7 +16,12 @@ function M.resolve(context, config)
     end
 
     if not prompt.opts or not prompt.opts.index then
-      sort_index = false
+      if name == "markdown" then
+        prompt.opts = prompt.opts or {}
+        prompt.opts.index = 1
+      else
+        sort_index = false
+      end
     end
 
     if type(prompt.name) == "function" then

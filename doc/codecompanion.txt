@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 25
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -599,7 +599,7 @@ ADAPTERS ~
 <
 
 - The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively (#2494 <https://github.com/olimorris/codecompanion.nvim/pull/2494>)
-- If you wish to hide the adapters that come with CodeCompanion, `adapter.[acp|http].opts.show_defaults` has been renamed to `adapter.[acp|http].opts.show_presets` for both HTTP and ACP adapters (#2497 <https://github.com/olimorris/codecompanion.nvim/pull/2497>)
+- If you wish to hide the adapters that come with CodeCompanion, `adapters.[acp|http].opts.show_defaults` has been renamed to `adapters.[acp|http].opts.show_presets` for both HTTP and ACP adapters (#2497 <https://github.com/olimorris/codecompanion.nvim/pull/2497>)
 
 
 CHAT ~
@@ -1327,9 +1327,10 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents (e.g.�
-enabling `yolo` mode). As there is a lot of shared functionality between the
-two adapters, it is recommend that you read this page alongside the ACP one.
+`commands` to allow users to customize their interaction with agents
+(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
+the two adapters, it is recommend that you read this page alongside the ACP
+one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1383,7 +1384,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -2444,16 +2445,18 @@ option. However, note that `tool_overrides` take precedence over them:
 >lua
     require("codecompanion").setup({
       mcp = {
-        ["math-server"] = {
-          cmd = { "npx", "-y", "math-mcp-server" },
-          tool_defaults = {
-            require_approval_before = true,
-          },
-          -- Per-tool overrides take precedence over tool_defaults
-          tool_overrides = {
-            add = {
-              opts = {
-                require_approval_before = false,
+        servers = {
+          ["math-server"] = {
+            cmd = { "npx", "-y", "math-mcp-server" },
+            tool_defaults = {
+              require_approval_before = true,
+            },
+            -- Per-tool overrides take precedence over tool_defaults
+            tool_overrides = {
+              add = {
+                opts = {
+                  require_approval_before = false,
+                },
               },
             },
           },
@@ -3167,7 +3170,7 @@ There are additional options available when working with tool system prompts:
                 replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
     
                 ---The tool system prompt
-                ---@param args { tools: string[]} The tools available
+                ---@param args { ctx: CodeCompanion.SystemPrompt.Context, tools: string[]} The tools available
                 ---@return string
                 prompt = function(args)
                   return "My custom tools prompt"
@@ -3349,7 +3352,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -4187,7 +4190,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
+  data changes (e.g. new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -5083,7 +5086,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -6989,7 +6992,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e.� a
+they’re an adapter tool that requires a client-side component (i.e. a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has

@@ -67,7 +67,7 @@ return {
 ```
 
 - The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively ([#2494](https://github.com/olimorris/codecompanion.nvim/pull/2494))
-- If you wish to hide the adapters that come with CodeCompanion, `adapter.[acp|http].opts.show_defaults` has been renamed to `adapter.[acp|http].opts.show_presets` for both HTTP and ACP adapters ([#2497](https://github.com/olimorris/codecompanion.nvim/pull/2497))
+- If you wish to hide the adapters that come with CodeCompanion, `adapters.[acp|http].opts.show_defaults` has been renamed to `adapters.[acp|http].opts.show_presets` for both HTTP and ACP adapters ([#2497](https://github.com/olimorris/codecompanion.nvim/pull/2497))
 
 ### Chat
 
