@@ -194,4 +194,58 @@ T["Editor Context"][":replace"]["should be in sync with finding logic"] = functi
   h.eq("pre ! Use these editor context items and handle newline editor context", result)
 end
 
+T["Editor Context"][":parse_cli"] = new_set()
+
+T["Editor Context"][":parse_cli"]["should return CLI-formatted strings from apply_cli()"] = function()
+  local message = { content = "#{foo} what does this do?" }
+  local buffer_context = { bufnr = 1, filetype = "lua" }
+
+  local results = ec:parse_cli(buffer_context, message)
+
+  h.eq(true, results ~= nil)
+  h.eq(1, #results)
+  h.eq("cli:foo", results[1])
+end
+
+T["Editor Context"][":parse_cli"]["should return nil when no references found"] = function()
+  local message = { content = "what does this do?" }
+  local buffer_context = { bufnr = 1, filetype = "lua" }
+
+  local results = ec:parse_cli(buffer_context, message)
+  h.eq(nil, results)
+end
+
+T["Editor Context"][":parse_cli"]["should handle params correctly"] = function()
+  local message = { content = "#{bar}{pin} check this" }
+  local buffer_context = { bufnr = 1, filetype = "lua" }
+
+  local results = ec:parse_cli(buffer_context, message)
+
+  h.eq(true, results ~= nil)
+  h.eq(1, #results)
+  h.eq("cli:bar pin", results[1])
+end
+
+T["Editor Context"][":parse_cli"]["should skip modules without apply_cli()"] = function()
+  local message = { content = "#{baz} check this" }
+  local buffer_context = { bufnr = 1, filetype = "lua" }
+
+  local results = ec:parse_cli(buffer_context, message)
+  h.eq(nil, results)
+end
+
+T["Editor Context"][":parse_cli"]["should return multiple results for multiple references"] = function()
+  local message = { content = "#{foo} #{bar} check these" }
+  local buffer_context = { bufnr = 1, filetype = "lua" }
+
+  local results = ec:parse_cli(buffer_context, message)
+
+  h.eq(true, results ~= nil)
+  h.eq(2, #results)
+
+  table.sort(results)
+  h.eq("cli:bar", results[1])
+  h.eq("cli:foo", results[2])
+end
+
 return T

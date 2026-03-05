@@ -28,4 +28,12 @@ function Bar:apply()
   }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
+---@return string
+function Bar:apply_cli()
+  if self.params then
+    return "cli:bar " .. self.params
+  end
+  return "cli:bar"
+end
+
 return Bar

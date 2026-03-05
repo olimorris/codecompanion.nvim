@@ -20,4 +20,9 @@ function Foo:apply()
   }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
+---@return string
+function Foo:apply_cli()
+  return "cli:foo"
+end
+
 return Foo
