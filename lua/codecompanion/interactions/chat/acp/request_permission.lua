@@ -226,7 +226,7 @@ local function build_choices(request)
   if vim.list_contains({ string.lower("execute") }, kind) then
     table.insert(lines, fmt("## %s: %s", utils.capitalize(kind), title))
   else
-    table.insert(lines, fmt("## %s", kind))
+    table.insert(lines, fmt("## %s", utils.capitalize(kind)))
   end
 
   if description then
@@ -242,7 +242,8 @@ local function build_choices(request)
     if details.command then
       vim.list_extend(lines, {
         "",
-        "### Command to be executed:",
+        "### Command",
+        "",
         "````bash",
         details.command,
         "````",
@@ -253,6 +254,7 @@ local function build_choices(request)
     if next(details) then
       vim.list_extend(lines, {
         "",
+        "### Arguments",
         "````json",
       })
       vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
