@@ -239,6 +239,16 @@ local function build_choices(request)
     local details = vim.deepcopy(args)
     details.description = nil
 
+    if details.plan then
+      vim.list_extend(lines, {
+        "",
+        "### Plan",
+        "",
+        details.plan,
+      })
+      details.plan = nil
+    end
+
     if details.command then
       vim.list_extend(lines, {
         "",
