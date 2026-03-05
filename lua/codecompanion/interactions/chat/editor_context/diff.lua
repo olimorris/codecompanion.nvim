@@ -10,6 +10,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -56,6 +57,34 @@ function EditorContext:apply()
     role = config.constants.USER_ROLE,
     content = table.concat(content, "\n\n"),
   }, { _meta = { source = "editor_context", tag = "diff" }, visible = false })
+end
+
+---Return a CLI-formatted string with the current git diff
+---@return string|nil
+function EditorContext:apply_cli()
+  local is_git = git({ "git", "rev-parse", "--is-inside-work-tree" })
+  if not is_git then
+    log:warn("Not inside a git repository")
+    return nil
+  end
+
+  local unstaged = git({ "git", "diff", "--no-ext-diff" }) or ""
+  local staged = git({ "git", "diff", "--no-ext-diff", "--cached" }) or ""
+
+  if unstaged == "" and staged == "" then
+    log:warn("No git changes found")
+    return nil
+  end
+
+  local content = {}
+  if unstaged ~= "" then
+    table.insert(content, fmt("Unstaged changes:\n\n````diff\n%s````", unstaged))
+  end
+  if staged ~= "" then
+    table.insert(content, fmt("Staged changes:\n\n````diff\n%s````", staged))
+  end
+
+  return table.concat(content, "\n\n")
 end
 
 return EditorContext

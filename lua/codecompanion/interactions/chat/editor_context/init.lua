@@ -42,27 +42,41 @@ local function require_module(path)
   return require(path)
 end
 
----@param chat CodeCompanion.Chat
+---@param interaction CodeCompanion.Chat|table
 ---@param ctx_config table
 ---@param params? string
 ---@param target? string
----@return table
-local function resolve(chat, ctx_config, params, target)
+---@param interaction_type? "chat"|"cli"
+---@return table|string|nil
+local function resolve(interaction, ctx_config, params, target, interaction_type)
+  interaction_type = interaction_type or "chat"
+
   local init = {
-    Chat = chat,
+    Chat = interaction_type == "chat" and interaction or nil,
+    buffer_context = interaction.buffer_context,
     config = ctx_config,
     params = params or (ctx_config.opts and ctx_config.opts.default_params),
     target = target,
   }
 
+  local module
   if ctx_config.path then
     log:trace("Calling editor context: %s", ctx_config.path)
-    return require_module(ctx_config.path).new(init):apply()
+    module = require_module(ctx_config.path).new(init)
+  else
+    -- No path means a user-defined callback
+    log:trace("Calling user editor context: %s", ctx_config.name)
+    module = require("codecompanion.interactions.chat.editor_context.user").new(init)
   end
 
-  -- No path means a user-defined callback
-  log:trace("Calling user editor context: %s", ctx_config.name)
-  return require("codecompanion.interactions.chat.editor_context.user").new(init):apply()
+  if interaction_type == "cli" then
+    if module.apply_cli then
+      return module:apply_cli()
+    end
+    return nil
+  end
+
+  return module:apply()
 end
 
 ---@class CodeCompanion.EditorContext
@@ -177,6 +191,51 @@ function EditorContext:parse(chat, message)
   return false
 end
 
+---Parse a message for editor context and return CLI-formatted strings
+---@param buffer_context CodeCompanion.BufferContext
+---@param message table
+---@return string[]|nil
+function EditorContext:parse_cli(buffer_context, message)
+  local instances = self:find(message)
+  if not instances then
+    return nil
+  end
+
+  local results = {}
+  for _, instance in ipairs(instances) do
+    local ctx = instance.ctx
+    local ctx_config = self.editor_context[ctx]
+    log:debug("Editor context found (CLI): %s (target: %s)", ctx, instance.target or "none")
+
+    ctx_config["name"] = ctx
+
+    if (ctx_config.opts and ctx_config.opts.contains_code) and not config.can_send_code() then
+      log:warn("Sending of code has been disabled")
+      goto continue
+    end
+
+    local target = instance.target
+    local params = nil
+
+    if ctx_config.opts and ctx_config.opts.has_params then
+      params = find_params(message, ctx, target)
+    end
+
+    local result = resolve({ buffer_context = buffer_context }, ctx_config, params, target, "cli")
+    if result then
+      table.insert(results, result)
+    end
+
+    ::continue::
+  end
+
+  if #results == 0 then
+    return nil
+  end
+
+  return results
+end
+
 ---Replace editor context in a given message
 ---@param message string
 ---@param bufnr number
@@ -201,6 +260,19 @@ function EditorContext:replace(message, bufnr)
     ::continue::
   end
   return message
+end
+
+---Replace editor context in a message for CLI (always strips to empty)
+---@param message string
+---@return string
+function EditorContext:replace_cli(message)
+  for ctx, _ in pairs(self.editor_context) do
+    message = regex.replace(message, self:_pattern(ctx, true, true), "")
+    message = regex.replace(message, self:_pattern(ctx, false, true), "")
+    message = regex.replace(message, self:_pattern(ctx, true), "")
+    message = regex.replace(message, self:_pattern(ctx), "")
+  end
+  return vim.trim(message)
 end
 
 return EditorContext

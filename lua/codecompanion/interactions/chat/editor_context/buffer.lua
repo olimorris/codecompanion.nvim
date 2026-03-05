@@ -15,6 +15,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -116,6 +117,29 @@ end
 
 -- Alias for sync_all_buffer_content compatibility (shared interface with slash commands)
 EditorContext.output = EditorContext.apply
+
+---Return a CLI-formatted string for sharing this buffer with a CLI agent
+---@return string|nil
+function EditorContext:apply_cli()
+  local bufnr = self.buffer_context and self.buffer_context.bufnr
+
+  if self.target then
+    local found = self:find_buffer(self.target)
+    if found then
+      bufnr = found
+    else
+      log:warn("Could not find buffer for display option: %s", self.target)
+      return nil
+    end
+  end
+
+  if not bufnr then
+    return nil
+  end
+
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  return string.format('Sharing: <file path="%s">', path)
+end
 
 ---Replace the editor context in the message
 ---@param prefix string

@@ -9,6 +9,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -30,7 +31,8 @@ function EditorContext:_resolve_bufnr()
     log:warn("Diagnostics: could not find buffer for target: %s, using current buffer", self.target)
   end
 
-  return self.Chat.buffer_context.bufnr
+  local ctx = self.buffer_context or (self.Chat and self.Chat.buffer_context)
+  return ctx and ctx.bufnr
 end
 
 ---Return all of the diagnostic information and code for the current buffer
@@ -89,6 +91,42 @@ Code:
     role = config.constants.USER_ROLE,
     content = content,
   }, { _meta = { source = "editor_context", tag = "diagnostics" }, visible = false })
+end
+
+---Return a CLI-formatted string with diagnostics for the current buffer
+---@return string|nil
+function EditorContext:apply_cli()
+  local severity = {
+    [1] = "ERROR",
+    [2] = "WARNING",
+    [3] = "INFORMATION",
+    [4] = "HINT",
+  }
+
+  local bufnr = self:_resolve_bufnr()
+  if not bufnr then
+    return nil
+  end
+
+  local buf_info = buf_utils.get_info(bufnr)
+  local diagnostics = vim.diagnostic.get(bufnr, {
+    severity = { min = vim.diagnostic.severity.HINT },
+  })
+
+  if #diagnostics == 0 then
+    log:warn("No diagnostics found")
+    return nil
+  end
+
+  local formatted = {}
+  for _, diagnostic in ipairs(diagnostics) do
+    table.insert(
+      formatted,
+      string.format("Line %d [%s]: %s", diagnostic.lnum + 1, severity[diagnostic.severity], diagnostic.message)
+    )
+  end
+
+  return string.format("Diagnostics for `%s`:\n\n%s", buf_info.path, table.concat(formatted, "\n"))
 end
 
 return EditorContext

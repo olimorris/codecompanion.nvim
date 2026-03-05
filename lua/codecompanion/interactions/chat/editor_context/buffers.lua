@@ -10,6 +10,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -84,6 +85,26 @@ function EditorContext:apply()
   if count == 0 then
     log:warn("No open buffers to share")
   end
+end
+
+---Return CLI-formatted strings for sharing all open buffers with a CLI agent
+---@return string|nil
+function EditorContext:apply_cli()
+  local buffers = buf_utils.get_open()
+  local paths = {}
+
+  for _, buf_info in ipairs(buffers) do
+    if not self:_is_excluded(buf_info.bufnr) then
+      table.insert(paths, string.format('Sharing: <file path="%s">', buf_info.path))
+    end
+  end
+
+  if #paths == 0 then
+    log:warn("No open buffers to share")
+    return nil
+  end
+
+  return table.concat(paths, "\n")
 end
 
 return EditorContext
