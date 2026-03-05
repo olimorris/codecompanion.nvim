@@ -286,13 +286,14 @@ return {
     callback = function(opts)
       local prompt = table.concat(opts.fargs, " ")
       if #vim.trim(prompt) == 0 then
-        return codecompanion.toggle_cli()
+        require("codecompanion.interactions.cli.input").open({ args = opts })
+        return
       end
-      codecompanion.ask_cli(prompt)
+      codecompanion.ask_cli(prompt, { args = opts })
     end,
     opts = {
-      desc = "Send a prompt to a CLI agent or toggle the CLI window",
-      range = false,
+      desc = "Send a prompt to a CLI agent or open the CLI input buffer",
+      range = true,
       nargs = "*",
     },
   },
