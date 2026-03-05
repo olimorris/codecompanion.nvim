@@ -441,15 +441,204 @@ function M.set_winbar(winnr, text, hl)
   vim.wo[winnr].winbar = centered
 end
 
----A simple confirmation dialog using vim.fn.confirm
----@param prompt string The prompt message
----@param choices table Choices
----@param opts? {default: number, highlight_group: string}  Additional options (currently unused)
----@return number The index of the selected choice (1-based), or 0 if cancelled
-function M.confirm(prompt, choices, opts)
-  opts = opts or { default = 1, highlight_group = "Question" }
-  local formatted_choices = table.concat(choices, "\n")
-  return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
+---@type table<any, table<number, fun()>> Registry of open confirm dialogs: key -> { [id] = cancel_fn }
+local pending_confirms = {}
+
+---Cancel all open confirm dialogs for a given key
+---@param key any The key used when creating the confirm dialogs
+function M.cancel_confirm(key)
+  local group = pending_confirms[key]
+  if not group then
+    return
+  end
+  pending_confirms[key] = nil
+  for _, cancel in pairs(group) do
+    cancel()
+  end
+end
+
+---Normalize a choice entry into { label: string, value: any }
+---Accepts either a plain string or a table with label/value/default fields.
+---@param choice string|{ label: string, value?: any, default?: boolean }
+---@return { label: string, value: any, default?: boolean }
+local function normalize_choice(choice)
+  if type(choice) == "string" then
+    return { label = choice, value = choice }
+  end
+  return { label = choice.label, value = choice.value or choice.label, default = choice.default }
+end
+
+---Create the footer with button highlights for the confirm dialog
+---@param choices table The list of normalized choice objects
+---@param active_idx number The 1-based index of the currently active choice
+---@return table footer The footer spec for nvim_open_win / nvim_win_set_config
+local function create_confirm_footer(choices, active_idx)
+  local footer = { { " ", "FloatBorder" } }
+  for i, choice in ipairs(choices) do
+    if i > 1 then
+      table.insert(footer, { " ", "FloatBorder" })
+    end
+    local hl = (i == active_idx) and "CodeCompanionButtonActive" or "CodeCompanionButtonInactive"
+    table.insert(footer, { " " .. choice.label .. " ", hl })
+  end
+  table.insert(footer, { " ", "FloatBorder" })
+
+  return footer
+end
+
+---Confirmation dialog that is rendered as a floating window.
+---Navigate with Tab/S-Tab, confirm with Enter, dismiss with Esc/q, or press 1-9 for direct selection.
+---@param prompt string The prompt message (supports markdown syntax highlighting)
+---@param choices table List of choices — each can be a string or { label: string, value?: any, default?: boolean }
+---@param callback fun(value: any|nil) Called with the value of the selected choice, or nil if cancelled
+---@param opts? { key: any } Options. If `key` is provided, the dialog is tracked and can be cancelled via `cancel_confirm(key)`.
+---@return fun() cancel A function that closes the dialog (calling callback with nil)
+function M.confirm(prompt, choices, callback, opts)
+  opts = opts or {}
+  local key = opts.key
+
+  local id = math.random(1000000)
+
+  -- Normalize choices into { label, value, default } objects
+  local normalized = {}
+  local active = 1
+  for i, choice in ipairs(choices) do
+    normalized[i] = normalize_choice(choice)
+    if normalized[i].default then
+      active = i
+    end
+  end
+  choices = normalized
+
+  local lines = {}
+  for _, line in ipairs(vim.split(prompt, "\n")) do
+    table.insert(lines, line)
+  end
+
+  -- Calculate window dimensions
+  local max_line_width = 0
+  for _, line in ipairs(lines) do
+    max_line_width = math.max(max_line_width, api.nvim_strwidth(line))
+  end
+  local footer_width = 0
+  for _, choice in ipairs(choices) do
+    footer_width = footer_width + api.nvim_strwidth(choice.label) + 3
+  end
+  footer_width = footer_width + 1
+
+  local window_config = require("codecompanion.config").display.chat.tool_approval_window
+  local cfg_width = window_config.width
+  local cfg_height = window_config.height
+  if type(cfg_width) == "function" then
+    cfg_width = cfg_width()
+  end
+  if type(cfg_height) == "function" then
+    cfg_height = cfg_height()
+  end
+
+  local max_width = math.min(math.floor(vim.o.columns * cfg_width), vim.o.columns - 2)
+  local max_height = math.min(math.floor(vim.o.lines * cfg_height), vim.o.lines - 4)
+
+  local width = math.min(math.max(max_line_width + 4, footer_width), max_width)
+  local height = math.min(math.max(#lines, 1), max_height)
+
+  -- Create buffer with markdown filetype for syntax highlighting
+  local bufnr = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  vim.bo[bufnr].filetype = "markdown"
+  vim.bo[bufnr].modifiable = false
+  vim.bo[bufnr].bufhidden = "wipe"
+
+  -- Open floating window
+  local winnr = api.nvim_open_win(bufnr, true, {
+    relative = window_config.relative,
+    row = math.floor((vim.o.lines - height) / 2) - 1,
+    col = math.floor((vim.o.columns - width) / 2),
+    width = width,
+    height = height,
+    style = window_config.style,
+    border = window_config.border,
+    footer = create_confirm_footer(choices, active),
+    footer_pos = "center",
+  })
+  M.set_win_options(winnr, window_config.opts)
+
+  local function update_footer()
+    if api.nvim_win_is_valid(winnr) then
+      api.nvim_win_set_config(winnr, {
+        footer = create_confirm_footer(choices, active),
+      })
+    end
+  end
+
+  local closed = false
+  local function close(value, skip_callback)
+    if closed then
+      return
+    end
+    closed = true
+    if key and pending_confirms[key] then
+      pending_confirms[key][id] = nil
+      if next(pending_confirms[key]) == nil then
+        pending_confirms[key] = nil
+      end
+    end
+    pcall(api.nvim_win_close, winnr, true)
+    if not skip_callback then
+      vim.schedule(function()
+        callback(value)
+      end)
+    end
+  end
+
+  -- Navigation and selection keymaps
+  local map_opts = { buffer = bufnr, nowait = true, silent = true }
+
+  vim.keymap.set("n", "<Tab>", function()
+    active = (active % #choices) + 1
+    update_footer()
+  end, map_opts)
+  vim.keymap.set("n", "<S-Tab>", function()
+    active = ((active - 2) % #choices) + 1
+    update_footer()
+  end, map_opts)
+  vim.keymap.set("n", "<CR>", function()
+    close(choices[active].value)
+  end, map_opts)
+  vim.keymap.set("n", "<Esc>", function()
+    close(nil)
+  end, map_opts)
+  vim.keymap.set("n", "q", function()
+    close(nil)
+  end, map_opts)
+
+  for i = 1, math.min(#choices, 9) do
+    vim.keymap.set("n", tostring(i), function()
+      close(choices[i].value)
+    end, map_opts)
+  end
+
+  -- Handle window being closed externally
+  api.nvim_create_autocmd("WinClosed", {
+    buffer = bufnr,
+    once = true,
+    callback = function()
+      close(nil)
+    end,
+  })
+
+  local cancel = function()
+    close(nil, true)
+  end
+
+  if key then
+    if not pending_confirms[key] then
+      pending_confirms[key] = {}
+    end
+    pending_confirms[key][id] = cancel
+  end
+
+  return cancel
 end
 
 ---Wait for user input via vim.ui.input, wrapped in plenary.async

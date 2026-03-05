@@ -1534,6 +1534,8 @@ function Chat:stop()
   self:dispatch("on_cancelled")
   utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
+  require("codecompanion.utils.ui").cancel_confirm(self.bufnr)
+
   if self.current_tool then
     local tool_job = self.current_tool
     self.current_tool = nil
@@ -1681,6 +1683,7 @@ end
 function Chat:reset()
   self.status = ""
   self.ui:unlock_buf()
+  require("codecompanion.utils.ui").cancel_confirm(self.bufnr)
 end
 
 ---Restore the chat buffer to an editable state (used when a submission is prevented)

@@ -205,16 +205,26 @@ function PromptBuilder:handle_permission_request(id, params)
     self.connection:send_result(id, { outcome = outcome })
   end
 
+  self._permission_pending = true
+
   local request = {
     id = id,
     session_id = params.sessionId,
     tool_call = tool_call,
     options = options,
     respond = function(option_id, canceled)
+      self._permission_pending = false
+
       if canceled or not option_id then
         respond({ outcome = "canceled" })
       else
         respond({ outcome = "selected", optionId = option_id })
+      end
+
+      if self._queued_done then
+        local stop_reason = self._queued_done
+        self._queued_done = nil
+        self:handle_done(stop_reason)
       end
     end,
   }
@@ -252,6 +262,12 @@ end
 ---@param stop_reason string
 ---@return nil
 function PromptBuilder:handle_done(stop_reason)
+  if self._permission_pending then
+    self._queued_done = stop_reason
+
+    return
+  end
+
   local status = "success"
   if stop_reason == "refusal" then
     status = "error"
