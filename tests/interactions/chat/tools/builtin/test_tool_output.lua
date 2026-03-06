@@ -43,6 +43,12 @@ function tool_call(c)
         type = "function",
       },
     }
+
+    -- Add the tool call message to chat.messages (as done() would do)
+    _G.chat:add_message({
+      role = "assistant",
+      tool_calls = { _G.tool.function_call },
+    }, { visible = false })
   ]])
 end
 
@@ -98,13 +104,14 @@ T["Tool output"]["first call creates one message"] = function()
     chat:add_tool_output(_G.tool, "Hello!")
 
     -- return how many chat.messages and that message's content
+    -- Expected: system message + tool call message + tool result message = 3
     return {
       count = #chat.messages,
       content = chat.messages[#chat.messages].content,
     }
   ]])
 
-  h.eq(output.count, 2)
+  h.eq(output.count, 3)
   h.eq(output.content, "Hello!")
 end
 
@@ -124,7 +131,8 @@ T["Tool output"]["second call appends to same message"] = function()
     }
   ]])
 
-  h.eq(output.count, 2)
+  -- Still 3 messages because second call merges with first tool result
+  h.eq(output.count, 3)
   h.eq(output.content, "Hello!\n\nAgain!")
 end
 
