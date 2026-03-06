@@ -834,11 +834,6 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
       keymaps = {
-        hide = {
-          modes = { n = "q" },
-          callback = "keymaps.hide",
-          description = "[CLI] Hide window",
-        },
         next_chat = {
           modes = { n = "}" },
           callback = "keymaps.next_chat",
@@ -1100,12 +1095,29 @@ The user is working on a %s machine. Please respond with system specific command
         deletions = true,
       },
     },
+
+    icons = {
+      warning = " ",
+    },
+
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
     },
-    icons = {
-      warning = " ",
+
+    -- Display options for the input buffer
+    input = {
+      window = {
+        layout = "float",
+        width = { min = 80, max = 0.6 },
+        height = { min = 8, max = 0.3 },
+        border = "single",
+        relative = "editor",
+        opts = {
+          number = false,
+          relativenumber = false,
+        },
+      },
     },
   },
   -- EXTENSIONS ------------------------------------------------------

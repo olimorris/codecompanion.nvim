@@ -131,4 +131,5 @@ Command
 - [ravitemer](https://github.com/ravitemer) for the fantastic extensions API
 - [Davidyz](https://github.com/Davidyz) for his continued, excellent contributions that keep CodeCompanion going
 - [Conrad Irwin](https://github.com/conradirwin), [Agus Zubiaga](https://github.com/agu-z) and Morgan Krey from [Zed Industries](https://github.com/zed-industries) for their support in implementing [ACP](https://agentclientprotocol.com)
+- [Sidekick.nvim](https://github.com/folke/sidekick.nvim) for the diff and terminal input inspiration
 <!-- panvimdoc-ignore-end -->
