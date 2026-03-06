@@ -1108,7 +1108,6 @@ The user is working on a %s machine. Please respond with system specific command
     -- Display options for the input buffer
     input = {
       window = {
-        layout = "float",
         width = { min = 80, max = 0.6 },
         height = { min = 8, max = 0.3 },
         border = "single",
@@ -1116,6 +1115,7 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {
           number = false,
           relativenumber = false,
+          signcolumn = "no",
         },
       },
     },
