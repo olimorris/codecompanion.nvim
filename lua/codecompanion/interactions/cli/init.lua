@@ -19,11 +19,6 @@ local _instance = nil
 
 ---Keymap callbacks for the CLI buffer
 local keymap_callbacks = {
-  hide = {
-    callback = function(cli)
-      cli.ui:hide()
-    end,
-  },
   next_chat = {
     callback = function(cli)
       registry.move(cli.bufnr, 1)
