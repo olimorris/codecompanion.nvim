@@ -308,10 +308,12 @@ end
 
 ---Send a prompt to a CLI agent running in a terminal buffer
 ---@param prompt string The text to send
----@param opts? { agent?: string }
+---@param opts? { agent?: string, args?: table }
 ---@return nil
 CodeCompanion.ask_cli = function(prompt, opts)
   opts = opts or {}
+
+  local context = get_context(api.nvim_get_current_buf(), opts.args)
 
   local cli = require("codecompanion.interactions.cli")
   local instance = cli.get_or_create({ agent = opts.agent })
@@ -324,7 +326,7 @@ CodeCompanion.ask_cli = function(prompt, opts)
     instance.ui:open()
   end
 
-  instance:send(prompt)
+  instance:send(cli.resolve_editor_context(prompt, context))
   _last_toggle = "cli"
 end
 

@@ -131,6 +131,27 @@ function CLI.get_instance()
   return nil
 end
 
+---Resolve editor context references in a prompt for CLI output
+---@param prompt string
+---@param buffer_context CodeCompanion.BufferContext
+---@return string
+function CLI.resolve_editor_context(prompt, buffer_context)
+  local ec = require("codecompanion.interactions.chat.editor_context").new()
+  local message = { content = prompt }
+
+  local sharing = ec:parse_cli(buffer_context, message)
+  local clean_prompt = ec:replace_cli(prompt)
+
+  if not sharing then
+    return clean_prompt
+  end
+
+  local parts = {}
+  vim.list_extend(parts, sharing)
+  table.insert(parts, clean_prompt)
+  return table.concat(parts, "\n")
+end
+
 ---Send text to the running CLI agent
 ---@param text string
 ---@return nil
