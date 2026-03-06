@@ -1,6 +1,8 @@
+local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 -- Keep a record of UI changes in the chat buffer
 
@@ -285,6 +287,14 @@ function ACPHandler:handle_permission_request(request)
       request.tool_call = merge_tool_call(cached, tool_call)
     end
   end
+
+  log:debug("[ACPHandler::handle_permission_request] Asking for approval")
+  utils.fire("ToolApprovalRequested", {
+    bufnr = self.chat.bufnr,
+    id = request.id,
+    name = tool_call.kind,
+    args = tool_call.title,
+  })
 
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end
