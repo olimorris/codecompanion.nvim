@@ -72,6 +72,6 @@ local function ensure_buffer_attached()
 end
 
 vim.api.nvim_create_autocmd("FileType", {
-  pattern = "codecompanion",
+  pattern = { "codecompanion", "codecompanion_input" },
   callback = ensure_buffer_attached,
 })
