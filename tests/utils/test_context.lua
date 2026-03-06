@@ -196,4 +196,28 @@ T["Utils->Context"]["should handle current buffer when no buffer specified"] = f
   h.eq(buf, ctx.bufnr)
 end
 
+T["Utils->Context"]["should return the user's prompt when provided"] = function()
+  local ctx = child.lua([[
+    return _G.context.get(_G.test_buffer, { user_prompt = "This is some prompt" })
+  ]])
+
+  h.eq("This is some prompt", ctx.user_prompt)
+end
+
+T["Utils->Context"]["should return an empty string when the prompt is not provided"] = function()
+  -- Args but no prompt
+  local ctx = child.lua([[
+    return _G.context.get(_G.test_buffer, {})
+  ]])
+
+  h.eq("", ctx.user_prompt)
+
+  -- No args
+  ctx = child.lua([[
+    return _G.context.get(_G.test_buffer)
+  ]])
+
+  h.eq("", ctx.user_prompt)
+end
+
 return T
