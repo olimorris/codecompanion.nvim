@@ -37,26 +37,22 @@ local keymap_callbacks = {
 function CLI.get_or_create(args)
   args = args or {}
 
-  -- Return existing instance if valid
+  -- If an instance already exists and is valid, return it
   if _instance and api.nvim_buf_is_valid(_instance.bufnr) then
     return _instance
   end
 
-  -- Resolve agent config
   local agent_name = args.agent or config.interactions.cli.agent
   local agent = config.interactions.cli.agents[agent_name]
   if not agent then
-    log:error("CLI agent '%s' not found in config", agent_name)
-    return nil
+    return log:error("CLI agent `%s` not found in config", agent_name or "nil")
   end
 
-  -- Create scratch buffer
   local bufnr = api.nvim_create_buf(false, true)
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion CLI] %d", bufnr))
 
   local id = math.random(10000000)
 
-  -- Create provider and start terminal
   local provider = require("codecompanion.interactions.cli.providers").new({
     bufnr = bufnr,
     agent = agent,
@@ -77,7 +73,7 @@ function CLI.get_or_create(args)
     id = id,
     provider = provider,
     ui = ui,
-  }, { __index = CLI })
+  }, { __index = CLI }) ---@cast self CodeCompanion.CLI
 
   if config.interactions.cli.keymaps then
     keymaps

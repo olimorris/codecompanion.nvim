@@ -825,14 +825,7 @@ The user is working on a %s machine. Please respond with system specific command
     },
     -- CLI INTERACTION ---------------------------------------------------------
     cli = {
-      agent = "claude_code", -- Default agent
-      agents = {
-        claude_code = {
-          cmd = "claude",
-          args = {},
-          description = "Claude Code CLI",
-        },
-      },
+      agents = {},
       keymaps = {
         next_chat = {
           modes = { n = "}" },

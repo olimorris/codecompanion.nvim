@@ -22,10 +22,12 @@ end
 ---@param args { bufnr: number }
 ---@return CodeCompanion.CLI.UI
 function UI.new(args)
-  return setmetatable({
+  local self = setmetatable({
     bufnr = args.bufnr,
     winnr = nil,
-  }, { __index = UI })
+  }, { __index = UI }) ---@cast self CodeCompanion.CLI.UI
+
+  return self
 end
 
 ---Open the CLI window
