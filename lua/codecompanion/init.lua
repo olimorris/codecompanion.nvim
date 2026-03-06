@@ -358,8 +358,8 @@ CodeCompanion.has = function(feature)
     "function-calling",
     "extensions",
     "acp",
-    "cli",
     "rules",
+    "cli",
   }
 
   if type(feature) == "string" then
