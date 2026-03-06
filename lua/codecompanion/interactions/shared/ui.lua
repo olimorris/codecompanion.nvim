@@ -14,31 +14,28 @@ local function cols()
   return vim.o.columns
 end
 
----Resolve dimension values (function, string, fraction, absolute)
+---Resolve dimension values (function, string, fraction, absolute, { min, max } table)
 ---@param window table The window config table
 ---@return number height
 ---@return number width
 function M.resolve_dimensions(window)
-  local h = window.height
-  local w = window.width
+  local function resolve(value, total)
+    if type(value) == "function" then
+      value = value()
+    end
+    if type(value) == "string" then
+      return total
+    end
+    if type(value) == "table" then
+      local min = value.min or 0
+      local max = value.max or 1
+      local computed = max > 1 and max or math.floor(total * max)
+      return math.max(min, computed)
+    end
+    return value > 1 and value or math.floor(total * value)
+  end
 
-  if type(h) == "string" then
-    h = rows()
-  end
-  if type(w) == "string" then
-    w = cols()
-  end
-  if type(h) == "function" then
-    h = h()
-  end
-  if type(w) == "function" then
-    w = w()
-  end
-
-  local height = h > 1 and h or math.floor(rows() * h)
-  local width = w > 1 and w or math.floor(cols() * w)
-
-  return height, width
+  return resolve(window.height, rows()), resolve(window.width, cols())
 end
 
 ---Open a window with the given layout and place a buffer in it
