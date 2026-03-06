@@ -30,7 +30,21 @@ local configs = {
     condition = function()
       local has_cmp, _ = pcall(require, "cmp")
       local has_blink, _ = pcall(require, "blink.cmp")
-      local has_coc = vim.fn.exists("*coc#rpc#ready") == 1
+
+      local has_coc = vim.g.did_coc_loaded == 1
+        or vim.g.coc_global_extensions ~= nil
+        or vim.fn.exists("*coc#rpc#ready") == 1
+
+      if not has_coc then
+        -- Fallback: check runtimepath for coc.nvim
+        for _, path in ipairs(vim.api.nvim_list_runtime_paths()) do
+          if path:find("coc%.nvim") then
+            has_coc = true
+            break
+          end
+        end
+      end
+
       return has_coc and not has_blink and not has_cmp
     end,
   },
@@ -51,6 +65,12 @@ local function find_provider(providers, providers_config, fallback)
             return config.name
           end
         else
+          return config.name
+        end
+      elseif config.condition then
+        -- Module doesn't exist as a Lua module, but has a condition check
+        -- (e.g., coc.nvim is a VimScript/Node.js plugin, not a Lua module)
+        if config.condition() then
           return config.name
         end
       end

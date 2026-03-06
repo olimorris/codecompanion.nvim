@@ -16,7 +16,7 @@ function! coc#source#codecompanion#complete(opt, cb) abort
 endfunction
 
 function! coc#source#codecompanion#on_complete(opt) abort
-  return a:cb(v:lua.codecompanion_coc_execute(a:opt))
+  call v:lua.codecompanion_coc_execute(a:opt)
 endfunction
 ]],
 }
