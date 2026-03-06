@@ -254,7 +254,7 @@ CodeCompanion.toggle = function(args)
       -- ... or close it so we can open it below
       chat.ui:hide()
     end
-    -- If the chat is visible in the current tab, hide it and return early
+  -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end
