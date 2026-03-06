@@ -58,9 +58,22 @@ function M.open(opts)
   })
 
   -- Keymaps
-  -- vim.keymap.set("n", "<CR>", send, { buffer = bufnr, desc = "[Input] Send" })
-  -- vim.keymap.set("n", "q", M.close, { buffer = bufnr, desc = "[Input] Close" })
-  -- vim.keymap.set("n", "<Esc>", M.close, { buffer = bufnr, desc = "[Input] Close" })
+  local callbacks = { send = send, close = M.close }
+  for action, keymap in pairs(config.display.input.keymaps) do
+    if keymap and keymap ~= false then
+      local fn = callbacks[action]
+      if fn then
+        for mode, keys in pairs(keymap.modes) do
+          if type(keys) == "string" then
+            keys = { keys }
+          end
+          for _, key in ipairs(keys) do
+            vim.keymap.set(mode, key, fn, { buffer = bufnr, desc = "[Input] " .. keymap.description })
+          end
+        end
+      end
+    end
+  end
 
   -- Start in insert mode
   vim.cmd("startinsert")

@@ -1118,6 +1118,19 @@ The user is working on a %s machine. Please respond with system specific command
           signcolumn = "no",
         },
       },
+      keymaps = {
+        send = {
+          modes = {
+            n = { "<CR>", "<C-s>" },
+            i = "<C-s>",
+          },
+          description = "Send",
+        },
+        close = {
+          modes = { n = { "q", "<Esc>" } },
+          description = "Close",
+        },
+      },
     },
   },
   -- EXTENSIONS ------------------------------------------------------
