@@ -209,7 +209,7 @@ function ACPHandler:process_tool_call(tool_call)
   end
 
   -- Track file paths from edit/write tool calls for targeted buffer reload
-  if tool_call.kind == "edit" or tool_call.kind == "write" then
+  if tool_call.kind == "edit" then
     if type(tool_call.locations) == "table" then
       for _, loc in ipairs(tool_call.locations) do
         if type(loc.path) == "string" then
@@ -317,14 +317,17 @@ function ACPHandler:handle_completion(stop_reason)
 
   -- Reload buffers that the agent modified on disk
   if next(self.modified_paths) then
-    local buf_utils = require("codecompanion.utils.buffers")
-    for path, _ in pairs(self.modified_paths) do
-      local bufnr = buf_utils.get_bufnr_from_path(path)
-      if bufnr then
-        vim.cmd.checktime(bufnr)
-      end
-    end
+    local modified = self.modified_paths
     self.modified_paths = {}
+    vim.schedule(function()
+      local buf_utils = require("codecompanion.utils.buffers")
+      for path, _ in pairs(modified) do
+        local bufnr = buf_utils.get_bufnr_from_path(path)
+        if bufnr then
+          vim.cmd.checktime(bufnr)
+        end
+      end
+    end)
   end
 
   self.chat:done(self.output, self.reasoning, {})
