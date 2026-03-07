@@ -73,6 +73,7 @@ Callbacks allow you to hook into the chat buffer's lifecycle and react to specif
 | `on_created` | Chat buffer has been created | - |
 | `on_before_submit` | Before the message is sent to the LLM. Return `false` to prevent submission | `{ adapter }` |
 | `on_submitted` | After the message has been sent to the LLM | `{ payload }` |
+| `on_tool_output` | Before tool output is added to the chat. Mutate `args.for_llm`/`args.for_user` to modify | `{ tool, for_llm, for_user }` |
 | `on_ready` | Chat is ready for the next turn (after LLM response) | - |
 | `on_completed` | LLM response has been fully processed | `{ status }` |
 | `on_cancelled` | Request has been stopped/cancelled | - |
@@ -173,6 +174,34 @@ vim.api.nvim_create_autocmd("User", {
 The `info` table passed to `on_before_submit` contains:
 
 - `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
+
+### Truncating Tool Output
+
+The `on_tool_output` callback fires before a tool's output is added to the chat. The `args` table contains `tool` (the tool name), `for_llm` (the content sent to the LLM) and `for_user` (what's shown in the buffer). Mutate `args.for_llm` and/or `args.for_user` to modify the output:
+
+```lua
+vim.api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
+  callback = function(args)
+    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+    chat:add_callback("on_tool_output", function(c, data)
+      local tokens = require("codecompanion.utils.tokens")
+      local max_tokens = 10000
+
+      if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
+        -- Trim to roughly max_tokens worth of characters
+        local max_chars = max_tokens * 6
+        data.for_llm = data.for_llm:sub(1, max_chars) .. "\n\n[Output truncated]"
+        data.for_user = data.for_llm
+        vim.notify(
+          string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
+          vim.log.levels.WARN
+        )
+      end
+    end)
+  end,
+})
+```
 
 ## Diff
 
