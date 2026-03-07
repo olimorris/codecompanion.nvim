@@ -1,4 +1,3 @@
-local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
