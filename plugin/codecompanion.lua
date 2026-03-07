@@ -69,7 +69,7 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
 end)
 
 api.nvim_create_autocmd("FileType", {
-  pattern = "codecompanion",
+  pattern = { "codecompanion", "codecompanion_input" },
   group = syntax_group,
   callback = function(args)
     make_hl_syntax(args.buf)
@@ -122,3 +122,4 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 vim.treesitter.language.register("markdown", "codecompanion")
+vim.treesitter.language.register("markdown", "codecompanion_input")

@@ -22,6 +22,11 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
+- `CodeCompanionCLICreated` - Fired after a CLI buffer has been created for the first time
+- `CodeCompanionCLIOpened` - Fired after a CLI buffer has been opened
+- `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
+- `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
+- `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools

@@ -10,6 +10,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
   }, { __index = EditorContext })
@@ -43,6 +44,30 @@ function EditorContext:apply()
     role = config.constants.USER_ROLE,
     content = content,
   }, { _meta = { source = "editor_context", tag = "selection" }, visible = false })
+end
+
+---Return a CLI-formatted string for sharing the visual selection with a CLI agent
+---@return string|nil
+function EditorContext:apply_cli()
+  local ctx = self.buffer_context
+
+  if not ctx or not ctx.is_visual or not ctx.lines or #ctx.lines == 0 then
+    log:warn("No visual selection found")
+    return nil
+  end
+
+  return fmt(
+    [[Selected code from `%s` (lines %d-%d):
+
+````%s
+%s
+````]],
+    ctx.filename,
+    ctx.start_line,
+    ctx.end_line,
+    ctx.filetype or "",
+    table.concat(ctx.lines, "\n")
+  )
 end
 
 return EditorContext

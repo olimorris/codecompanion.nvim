@@ -80,7 +80,7 @@ function M.init()
   return {
     priority = 99,
     shortcut = "CodeCompanion",
-    filetypes = { "codecompanion" },
+    filetypes = { "codecompanion", "codecompanion_input" },
     triggerCharacters = trigger_chars,
   }
 end

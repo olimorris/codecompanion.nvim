@@ -13,6 +13,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -351,6 +352,23 @@ function EditorContext:apply()
       })
     end
   end
+end
+
+---Return a CLI-formatted string with quickfix list entries
+---@return string|nil
+function EditorContext:apply_cli()
+  local entries = get_qflist_entries()
+  if #entries == 0 then
+    log:warn("Quickfix list is empty")
+    return nil
+  end
+
+  local lines = {}
+  for _, entry in ipairs(entries) do
+    table.insert(lines, entry.display)
+  end
+
+  return "Quickfix list:\n\n" .. table.concat(lines, "\n")
 end
 
 return EditorContext

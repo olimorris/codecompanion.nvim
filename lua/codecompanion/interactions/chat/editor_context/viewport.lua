@@ -10,6 +10,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
   }, { __index = EditorContext })
@@ -42,6 +43,29 @@ function EditorContext:apply()
   if count == 0 then
     log:warn("No visible buffers to share")
   end
+end
+
+---Return CLI-formatted strings for sharing visible buffers with a CLI agent
+---@return string|nil
+function EditorContext:apply_cli()
+  local ec_opts = config.interactions.chat.editor_context.opts
+  local excluded = ec_opts and ec_opts.excluded
+  local buf_lines = buf_utils.get_visible_lines(excluded)
+
+  local paths = {}
+  for bufnr, _ in pairs(buf_lines) do
+    local path = vim.api.nvim_buf_get_name(bufnr)
+    if path ~= "" then
+      table.insert(paths, string.format('Sharing: <file path="%s">', path))
+    end
+  end
+
+  if #paths == 0 then
+    log:warn("No visible buffers to share")
+    return nil
+  end
+
+  return table.concat(paths, "\n")
 end
 
 return EditorContext

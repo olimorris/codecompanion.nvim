@@ -282,6 +282,22 @@ return {
     },
   },
   {
+    cmd = "CodeCompanionCLI",
+    callback = function(opts)
+      local prompt = table.concat(opts.fargs, " ")
+      if #vim.trim(prompt) == 0 then
+        require("codecompanion.interactions.cli.input").open({ args = opts })
+        return
+      end
+      codecompanion.ask_cli(prompt, { args = opts })
+    end,
+    opts = {
+      desc = "Send a prompt to a CLI agent or open the CLI input buffer",
+      range = true,
+      nargs = "*",
+    },
+  },
+  {
     cmd = "CodeCompanionActions",
     callback = function(opts)
       if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then

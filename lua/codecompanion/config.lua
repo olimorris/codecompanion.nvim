@@ -823,6 +823,22 @@ The user is working on a %s machine. Please respond with system specific command
 - Ensure the command is relevant to the user's request]],
       },
     },
+    -- CLI INTERACTION ---------------------------------------------------------
+    cli = {
+      agents = {},
+      keymaps = {
+        next_chat = {
+          modes = { n = "}" },
+          callback = "keymaps.next_chat",
+          description = "[Nav] Next interaction",
+        },
+        previous_chat = {
+          modes = { n = "{" },
+          callback = "keymaps.previous_chat",
+          description = "[Nav] Previous interaction",
+        },
+      },
+    },
     shared = {
       keymaps = {
         always_accept = {
@@ -1052,6 +1068,15 @@ The user is working on a %s machine. Please respond with system specific command
         return " (" .. tokens .. " tokens)"
       end,
     },
+
+    cli = {
+      window = {
+        opts = {
+          list = false, -- listchars render as `.` without this
+        },
+      },
+    },
+
     diff = {
       enabled = true,
       -- Options for any diff windows (extends from floating_window)
@@ -1063,12 +1088,42 @@ The user is working on a %s machine. Please respond with system specific command
         deletions = true,
       },
     },
+
+    icons = {
+      warning = " ",
+    },
+
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
     },
-    icons = {
-      warning = " ",
+
+    -- Display options for the input buffer
+    input = {
+      window = {
+        width = { min = 80, max = 0.6 },
+        height = { min = 8, max = 0.3 },
+        border = "single",
+        relative = "editor",
+        opts = {
+          number = false,
+          relativenumber = false,
+          signcolumn = "no",
+        },
+      },
+      keymaps = {
+        send = {
+          modes = {
+            n = { "<CR>", "<C-s>" },
+            i = "<C-s>",
+          },
+          description = "Send",
+        },
+        close = {
+          modes = { n = { "q", "<Esc>" } },
+          description = "Close",
+        },
+      },
     },
   },
   -- EXTENSIONS ------------------------------------------------------
@@ -1188,6 +1243,7 @@ M.setup = function(args)
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
   M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
+  -- M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
 
   local project_config = get_per_project_config()
   if project_config then

@@ -8,6 +8,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -28,6 +29,18 @@ function EditorContext:apply()
     role = config.constants.USER_ROLE,
     content = "Neovim message history (`:messages`):\n\n````\n" .. vim.trim(messages) .. "\n````",
   }, { _meta = { source = "editor_context", tag = "messages" }, visible = false })
+end
+
+---Return a CLI-formatted string with the Neovim message history
+---@return string|nil
+function EditorContext:apply_cli()
+  local msgs = vim.fn.execute("messages")
+  if not msgs or vim.trim(msgs) == "" then
+    log:warn("No messages found")
+    return nil
+  end
+
+  return "Neovim message history:\n\n````\n" .. vim.trim(msgs) .. "\n````"
 end
 
 return EditorContext
