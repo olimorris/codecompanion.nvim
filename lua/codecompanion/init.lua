@@ -308,7 +308,7 @@ end
 
 ---Send a prompt to a CLI agent running in a terminal buffer
 ---@param prompt string The text to send
----@param opts? { agent?: string, args?: table }
+---@param opts? { agent?: string, width?: number, height?: number, args?: table }
 ---@return nil
 CodeCompanion.ask_cli = function(prompt, opts)
   opts = opts or {}
@@ -322,8 +322,16 @@ CodeCompanion.ask_cli = function(prompt, opts)
     return log:error("Could not create CLI instance")
   end
 
+  local ui_opts = {}
+  if opts.width then
+    ui_opts.width = opts.width
+  end
+  if opts.height then
+    ui_opts.height = opts.height
+  end
+
   if not instance.ui:is_visible() then
-    instance.ui:open()
+    instance.ui:open(ui_opts)
   end
 
   instance:send(cli.resolve_editor_context(prompt, context))

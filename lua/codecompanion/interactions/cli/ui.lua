@@ -31,7 +31,7 @@ function UI.new(args)
 end
 
 ---Open the CLI window
----@param opts? table
+---@param opts? { width?: number, height?: number }
 ---@return CodeCompanion.CLI.UI
 function UI:open(opts)
   opts = opts or {}
@@ -41,6 +41,12 @@ function UI:open(opts)
   end
 
   local window = resolve_window_config()
+  if opts.width then
+    window.width = opts.width
+  end
+  if opts.height then
+    window.height = opts.height
+  end
 
   self.winnr = shared_ui.open(self.bufnr, window, {
     title = " CodeCompanion CLI ",
