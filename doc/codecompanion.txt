@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 05
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1327,10 +1327,9 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents
-(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
-the two adapters, it is recommend that you read this page alongside the ACP
-one.
+`commands` to allow users to customize their interaction with agents (e.g.�
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1384,7 +1383,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -1735,33 +1734,34 @@ the first argument.
 
 AVAILABLE EVENTS
 
-  -----------------------------------------------------------------------
-  Event                   Description             Extra Args
-  ----------------------- ----------------------- -----------------------
-  on_created              Chat buffer has been    -
-                          created                 
+  ----------------------------------------------------------------------------------
+  Event                   Description                  Extra Args
+  ----------------------- ---------------------------- -----------------------------
+  on_created              Chat buffer has been created -
 
-  on_before_submit        Before the message is   { adapter }
-                          sent to the LLM. Return 
-                          false to prevent        
-                          submission              
+  on_before_submit        Before the message is sent   { adapter }
+                          to the LLM. Return false to  
+                          prevent submission           
 
-  on_submitted            After the message has   { payload }
-                          been sent to the LLM    
+  on_submitted            After the message has been   { payload }
+                          sent to the LLM              
 
-  on_ready                Chat is ready for the   -
-                          next turn (after LLM    
-                          response)               
+  on_tool_output          Before tool output is added  { tool, for_llm, for_user }
+                          to the chat. Mutate          
+                          args.for_llm/args.for_user   
+                          to modify                    
 
-  on_completed            LLM response has been   { status }
-                          fully processed         
+  on_ready                Chat is ready for the next   -
+                          turn (after LLM response)    
 
-  on_cancelled            Request has been        -
-                          stopped/cancelled       
+  on_completed            LLM response has been fully  { status }
+                          processed                    
 
-  on_closed               Chat buffer has been    -
-                          closed                  
-  -----------------------------------------------------------------------
+  on_cancelled            Request has been             -
+                          stopped/cancelled            
+
+  on_closed               Chat buffer has been closed  -
+  ----------------------------------------------------------------------------------
 
 REGISTERING CALLBACKS
 
@@ -1838,6 +1838,38 @@ This is useful for implementing safeguards such as token/context limit checks:
 The `info` table passed to `on_before_submit` contains:
 
 - `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
+
+
+TRUNCATING TOOL OUTPUT
+
+The `on_tool_output` callback fires before a tool’s output is added to the
+chat. The `args` table contains `tool` (the tool name), `for_llm` (the content
+sent to the LLM) and `for_user` (what’s shown in the buffer). Mutate
+`args.for_llm` and/or `args.for_user` to modify the output:
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionChatCreated",
+      callback = function(args)
+        local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+        chat:add_callback("on_tool_output", function(c, data)
+          local tokens = require("codecompanion.utils.tokens")
+          local max_tokens = 10000
+    
+          if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
+            -- Trim to roughly max_tokens worth of characters
+            local max_chars = max_tokens * 6
+            data.for_llm = data.for_llm:sub(1, max_chars) .. "\n\n[Output truncated]"
+            data.for_user = data.for_llm
+            vim.notify(
+              string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
+              vim.log.levels.WARN
+            )
+          end
+        end)
+      end,
+    })
+<
 
 
 DIFF ~
@@ -3352,7 +3384,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -4190,7 +4222,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g. new diagnostics, a different quickfix list), simply use the
+  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -5086,7 +5118,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -6992,7 +7024,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e. a
+they’re an adapter tool that requires a client-side component (i.e.� a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has
