@@ -62,6 +62,8 @@ local M = {}
 local function apply_line_replacement(content_lines, match, new_text)
   local new_content_lines = {}
   local new_text_lines = vim.split(new_text, "\n", { plain = true })
+  local replacement_end_index
+  local old_text_has_trailing_newline = match.matched_text:match("\n$")
 
   -- Handle boundary markers specially
   if match.strategy == "start_marker" then
@@ -92,10 +94,21 @@ local function apply_line_replacement(content_lines, match, new_text)
     for _, line in ipairs(new_text_lines) do
       table.insert(new_content_lines, line)
     end
+    replacement_end_index = #new_content_lines
 
     -- Copy lines after match
     for i = match.end_line + 1, #content_lines do
       table.insert(new_content_lines, content_lines[i])
+    end
+
+    if old_text_has_trailing_newline then
+      -- new_content_lines { ..., "", ... }, delete that "" to remove the extra \n
+      -- new_content_lines { ..., "xx", "yy", ... }, manually concat "xx" and "yy" to remove the newline
+      if replacement_end_index < #new_content_lines then
+        new_content_lines[replacement_end_index + 1] = new_content_lines[replacement_end_index]
+          .. new_content_lines[replacement_end_index + 1]
+      end
+      table.remove(new_content_lines, replacement_end_index)
     end
   end
 
