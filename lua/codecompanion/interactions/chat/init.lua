@@ -10,7 +10,7 @@
 ---@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_ready, on_completed, on_cancelled, on_closed)
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
@@ -45,7 +45,7 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
----@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_ready, on_completed, on_cancelled, on_closed)
+---@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
@@ -1107,9 +1107,9 @@ function Chat:_submit_http(payload)
 
   local function process_chunk(data)
     if adapter.features.tokens then
-      local tokens = adapters.call_handler(adapter, "parse_tokens", data)
-      if tokens then
-        self.ui.tokens = tokens
+      local token_count = adapters.call_handler(adapter, "parse_tokens", data)
+      if token_count then
+        self.ui.tokens = token_count
       end
     end
 
@@ -1650,6 +1650,12 @@ end
 function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
+
+  -- Allow users to modify the tool output before it's added to the message history
+  local args = { tool = tool_call.name, for_llm = for_llm, for_user = for_user }
+  self:dispatch("on_tool_output", args)
+  for_llm = args.for_llm
+  for_user = args.for_user
 
   local output = adapters.call_handler(self.adapter, "format_response", tool_call, for_llm)
   if not output then
