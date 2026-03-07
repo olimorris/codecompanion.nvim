@@ -508,7 +508,7 @@ T["Apply Replacement Tests"]["removes one newline when only old_text ends with n
   }
   local new_text = "const firstRenamed = 1;"
 
-  local result = strategies.apply_replacement(content, {match1, match2}, new_text)
+  local result = strategies.apply_replacement(content, { match1, match2 }, new_text)
   h.eq(result, "const firstRenamed = 1;\nconst firstRenamed = 1;")
 end
 

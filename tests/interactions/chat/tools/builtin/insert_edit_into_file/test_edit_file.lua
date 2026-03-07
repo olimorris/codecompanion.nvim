@@ -122,7 +122,16 @@ T["Core Functionality"]["does not add extra blank lines around newline-terminate
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
   h.eq(
     output,
-    { "function firstRenamed() {", "  return 10", "}", "", "function secondRenamed() {", "  return 20", "}", "local done = true" }
+    {
+      "function firstRenamed() {",
+      "  return 10",
+      "}",
+      "",
+      "function secondRenamed() {",
+      "  return 20",
+      "}",
+      "local done = true",
+    }
   )
 end
 
