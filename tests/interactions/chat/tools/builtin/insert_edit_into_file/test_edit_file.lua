@@ -83,6 +83,69 @@ T["Core Functionality"]["handles multiple sequential edits"] = function()
   )
 end
 
+T["Core Functionality"]["preserves blank line when replacement ends with newline"] = function()
+  child.lua([[
+    local initial = "before\ntarget\nafter"
+    vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+
+    local tool = {{
+      ["function"] = {
+        name = "insert_edit_into_file",
+        arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "target", "newText": "replacement\\n"}]}', _G.TEST_TMPFILE)
+      },
+    }}
+
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  h.eq(output, { "before", "replacement", "", "after" })
+end
+
+T["Core Functionality"]["does not add extra blank lines around newline-terminated block edits"] = function()
+  child.lua([[
+    local initial = "function first() {\n  return 1\n}\n\nfunction second() {\n  return 2\n}\nlocal done = true"
+    vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+
+    local tool = {{
+      ["function"] = {
+        name = "insert_edit_into_file",
+        arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "function first() {\\n  return 1\\n}\\n", "newText": "function firstRenamed() {\\n  return 10\\n}\\n"}, {"oldText": "function second() {\\n  return 2\\n}\\n", "newText": "function secondRenamed() {\\n  return 20\\n}\\n"}]}', _G.TEST_TMPFILE)
+      },
+    }}
+
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  h.eq(
+    output,
+    { "function firstRenamed() {", "  return 10", "}", "", "function secondRenamed() {", "  return 20", "}", "local done = true" }
+  )
+end
+
+T["Core Functionality"]["removes one blank line when only oldText ends with newline"] = function()
+  child.lua([[
+    local initial = "const first = 1;\n\nconst second = 2;"
+    vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+
+    local tool = {{
+      ["function"] = {
+        name = "insert_edit_into_file",
+        arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "const first = 1;\\n", "newText": "const firstRenamed = 1;"}]}', _G.TEST_TMPFILE)
+      },
+    }}
+
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  h.eq(output, { "const firstRenamed = 1;", "const second = 2;" })
+end
+
 -- ============================================================================
 -- Edit Types Tests
 -- ============================================================================

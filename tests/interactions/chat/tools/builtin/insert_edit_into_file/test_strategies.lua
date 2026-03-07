@@ -455,6 +455,63 @@ T["Apply Replacement Tests"]["applies multiple replacements correctly"] = functi
   h.eq(result, "line1\nnewline\nline3\nnewline\nline4")
 end
 
+T["Apply Replacement Tests"]["preserves trailing newline in the replacement"] = function()
+  local content = "before\ntarget\nafter"
+  local match = {
+    start_line = 2,
+    end_line = 2,
+    matched_text = "target",
+  }
+  local new_text = "replacement\n"
+
+  local result = strategies.apply_replacement(content, match, new_text)
+  h.eq(result, "before\nreplacement\n\nafter")
+end
+
+T["Apply Replacement Tests"]["does not add extra blank line if content and replacement both have newlines"] = function()
+  local content = "function first() {\n  return 1\n}\nfunction second() {\n  return 2\n}"
+  local match = {
+    start_line = 1,
+    end_line = 3,
+    matched_text = "function first() {\n  return 1\n}\n",
+  }
+  local new_text = "function firstRenamed() {\n  return 10\n}\n"
+
+  local result = strategies.apply_replacement(content, match, new_text)
+  h.eq(result, "function firstRenamed() {\n  return 10\n}\nfunction second() {\n  return 2\n}")
+end
+
+T["Apply Replacement Tests"]["removes one newline when only old_text ends with newline"] = function()
+  local content = "const first = 1;\n\nconst second = 2;"
+  local match = {
+    start_line = 1,
+    end_line = 1,
+    matched_text = "const first = 1;\n",
+  }
+  local new_text = "const firstRenamed = 1;"
+
+  local result = strategies.apply_replacement(content, match, new_text)
+  h.eq(result, "const firstRenamed = 1;\nconst second = 2;")
+end
+
+T["Apply Replacement Tests"]["removes one newline when only old_text ends with newline, multi match"] = function()
+  local content = "const first = 1;\n\nconst second = 2;\n"
+  local match1 = {
+    start_line = 1,
+    end_line = 1,
+    matched_text = "const first = 1;\n",
+  }
+  local match2 = {
+    start_line = 3,
+    end_line = 3,
+    matched_text = "const second = 2;\n",
+  }
+  local new_text = "const firstRenamed = 1;"
+
+  local result = strategies.apply_replacement(content, {match1, match2}, new_text)
+  h.eq(result, "const firstRenamed = 1;\nconst firstRenamed = 1;")
+end
+
 -- Test select_best_match functionality
 T["Select Best Match Tests"] = new_set()
 
