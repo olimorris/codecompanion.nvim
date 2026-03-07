@@ -1,5 +1,38 @@
 # Changelog
 
+## [19.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.1.0...v19.2.0) (2026-03-04)
+
+
+### Features
+
+* **chat:** pass context to chat interaction when prompt is function ([#2762](https://github.com/olimorris/codecompanion.nvim/issues/2762)) ([c079e95](https://github.com/olimorris/codecompanion.nvim/commit/c079e95c0ec9f1371dadc91a1a5eaf24b6e6c4e3))
+* **tools:** provide ctx arg to tool system prompt ([#2838](https://github.com/olimorris/codecompanion.nvim/issues/2838)) ([d96c833](https://github.com/olimorris/codecompanion.nvim/commit/d96c83350dee7fe25b1a82e9ab2c0f906c552f32))
+
+
+### Bug Fixes
+
+* **chat:** enable reasoning to be disabled for acp ([#2848](https://github.com/olimorris/codecompanion.nvim/issues/2848)) ([5e31b99](https://github.com/olimorris/codecompanion.nvim/commit/5e31b9967da0e085bc06b468ea48c8293067fabd))
+* **chat:** prevent duplicated rule files ([#2837](https://github.com/olimorris/codecompanion.nvim/issues/2837)) ([1913b5a](https://github.com/olimorris/codecompanion.nvim/commit/1913b5aa05745bca90d7912c76ed118f1744a620))
+* **inline:** error in stop kepmap handler ([4918653](https://github.com/olimorris/codecompanion.nvim/commit/4918653e98aba390b97dfff1a6c5f11d3beb97fa))
+* **inline:** error in stop keymap handler ([#2840](https://github.com/olimorris/codecompanion.nvim/issues/2840)) ([4918653](https://github.com/olimorris/codecompanion.nvim/commit/4918653e98aba390b97dfff1a6c5f11d3beb97fa))
+* **prompt_library:** sort user's lua prompts ([#2841](https://github.com/olimorris/codecompanion.nvim/issues/2841)) ([ed36794](https://github.com/olimorris/codecompanion.nvim/commit/ed367944ece02d0ab2a2552ba3ad0b092f1a2144))
+* **tools:** ensure added tool included in tool system prompt arg ([#2839](https://github.com/olimorris/codecompanion.nvim/issues/2839)) ([e5643f2](https://github.com/olimorris/codecompanion.nvim/commit/e5643f230eea64dae8989f5f0cbcea57225b1b1e))
+
+## [19.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.0.0...v19.1.0) (2026-03-02)
+
+
+### Features
+
+* **adapters:** change gemini default to 3.1 pro ([#2829](https://github.com/olimorris/codecompanion.nvim/issues/2829)) ([758e3fb](https://github.com/olimorris/codecompanion.nvim/commit/758e3fbb357a49ba823d6498eb745b0deec64abc))
+
+
+### Bug Fixes
+
+* **chat:** chatting with rules ([#2809](https://github.com/olimorris/codecompanion.nvim/issues/2809)) ([8d9357c](https://github.com/olimorris/codecompanion.nvim/commit/8d9357c4bfa08c793fe641edd022fb47323009fa))
+* **prompts:** prevent duplicate prompts in action palette ([#2818](https://github.com/olimorris/codecompanion.nvim/issues/2818)) ([99ec85a](https://github.com/olimorris/codecompanion.nvim/commit/99ec85a74fa2b8ae17cad4a7b854ef612912c9df)), closes [#2816](https://github.com/olimorris/codecompanion.nvim/issues/2816)
+* **tools:** grep_search cannot search patterns starting with `-` ([#2748](https://github.com/olimorris/codecompanion.nvim/issues/2748)) ([f26671f](https://github.com/olimorris/codecompanion.nvim/commit/f26671fc504c72e9ab1aee511125df30c711a97b))
+* **ui:** cursor placement after user prompt ([#2813](https://github.com/olimorris/codecompanion.nvim/issues/2813)) ([a3710ff](https://github.com/olimorris/codecompanion.nvim/commit/a3710ff4f10a8f215ace1a4f5f0f881d0c6c4e93))
+
 ## [19.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.7.0...v19.0.0) (2026-02-27)
 
 

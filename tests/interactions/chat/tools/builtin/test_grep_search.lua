@@ -63,6 +63,12 @@ local T = new_set({
             path = 'src/utils/helpers.js',
             content = {
               '// Utility functions',
+              'const config = {',
+              '  -debug-mode: true,',
+              '  -debug-level: "verbose",',
+              '  -verbose: false,',
+              '};',
+              '',
               'export function formatDate(date) {',
               '  return date.toLocaleDateString();',
               '}',
@@ -73,7 +79,9 @@ local T = new_set({
               '    clearTimeout(timeoutId);',
               '    timeoutId = setTimeout(() => func.apply(this, args), delay);',
               '  };',
-              '}'
+              '}',
+              '',
+              'const settings = { -debug-mode: true };'
             }
           },
           {
@@ -147,6 +155,27 @@ T["can find basic text matches"] = function()
   h.expect_contains("src/components/Button.js:11", output) -- export default Button
   h.expect_contains("tests/button.test.js:2", output) -- import Button
   h.expect_contains("tests/button.test.js:5", output) -- render(<Button>
+end
+
+T["can search for patterns starting with hyphen"] = function()
+  child.lua([[
+    local tool = {
+      {
+        ["function"] = {
+          name = "grep_search",
+          arguments = [=[{"query": "-debug-\\w+", "is_regexp": true}]=]
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+
+  h.expect_contains("src/utils/helpers.js:3", output) -- -debug-mode: true in config
+  h.expect_contains("src/utils/helpers.js:4", output) -- -debug-level: "verbose" in config
+  h.expect_contains("src/utils/helpers.js:20", output) -- -debug-mode in settings
 end
 
 return T

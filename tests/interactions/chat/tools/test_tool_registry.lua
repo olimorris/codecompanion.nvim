@@ -172,6 +172,35 @@ T["ToolRegistry"][":add_group"]["adds group system prompt"] = function()
   h.eq(true, child.lua_get([[_G.has_system_prompt]]))
 end
 
+T["ToolRegistry"]["add_tool_system_prompt"] = new_set()
+
+T["ToolRegistry"]["add_tool_system_prompt"]["receives the added tool in its argument"] = function()
+  child.lua([[
+    _G.chat2, _G.tools2 = h.setup_chat_buffer({
+      interactions = {
+        chat = {
+          tools = {
+            opts = {
+              system_prompt = {
+                enabled = true,
+                replace_main_system_prompt = false,
+                prompt = function(args)
+                  _G.prompt_tools_arg = vim.deepcopy(args.tools)
+                  return "tool system prompt"
+                end,
+              },
+            },
+          },
+        },
+      },
+    })
+    _G.chat2.tool_registry:add_single_tool("func")
+  ]])
+
+  local prompt_tools_arg = child.lua_get([[_G.prompt_tools_arg]])
+  h.expect_tbl_contains("func", prompt_tools_arg)
+end
+
 T["ToolRegistry"][":loaded"] = new_set()
 
 T["ToolRegistry"][":loaded"]["returns false when no tools loaded"] = function()
@@ -369,6 +398,101 @@ T["ToolRegistry"][":add_group"]["ignore_tool_system_prompt is restored on remove
   ]])
 
   h.eq(vim.NIL, child.lua_get([[_G.chat.tool_registry.flags.ignore_tool_system_prompt]]))
+end
+
+T["ToolRegistry"]["ctx"] = new_set()
+
+T["ToolRegistry"]["ctx"]["is stored on the registry"] = function()
+  local ctx = child.lua_get([[_G.chat.tool_registry.ctx]])
+
+  h.not_eq(vim.NIL, ctx)
+  h.not_eq(nil, ctx)
+end
+
+T["ToolRegistry"]["ctx"]["contains system prompt context fields"] = function()
+  local ctx = child.lua_get([[_G.chat.tool_registry.ctx]])
+
+  -- Static fields are directly accessible
+  h.not_eq(nil, ctx.nvim_version)
+  -- Dynamic fields (os, adapter) use metatables and are not serialized by child.lua_get
+  -- but nvim_version is a static field that should be present
+  local expected_version =
+    child.lua_get([[vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch]])
+  h.eq(expected_version, ctx.nvim_version)
+end
+
+T["ToolRegistry"]["ctx"]["is passed to tool system prompt function"] = function()
+  child.lua([[
+    local config_module = require("codecompanion.config")
+    local test_config = vim.deepcopy(require("tests.config"))
+    test_config.interactions.chat.tools.opts.system_prompt = {
+      enabled = true,
+      replace_main_system_prompt = false,
+      prompt = function(args)
+        _G.captured_args = args
+        return "tool system prompt"
+      end,
+    }
+    config_module.setup(test_config)
+
+    _G.chat2, _ = require("tests.helpers").setup_chat_buffer(test_config)
+    _G.chat2.tool_registry:add_single_tool("func")
+  ]])
+
+  local captured = child.lua_get([[_G.captured_args]])
+  h.not_eq(vim.NIL, captured)
+  h.not_eq(nil, captured.ctx)
+  h.not_eq(nil, captured.tools)
+end
+
+T["ToolRegistry"]["ctx"]["ctx passed to tool system prompt has correct fields"] = function()
+  child.lua([[
+    local config_module = require("codecompanion.config")
+    local test_config = vim.deepcopy(require("tests.config"))
+    test_config.interactions.chat.tools.opts.system_prompt = {
+      enabled = true,
+      replace_main_system_prompt = false,
+      prompt = function(args)
+        _G.captured_ctx = args.ctx
+        return "tool system prompt"
+      end,
+    }
+    config_module.setup(test_config)
+
+    _G.chat3, _ = require("tests.helpers").setup_chat_buffer(test_config)
+    _G.chat3.tool_registry:add_single_tool("func")
+  ]])
+
+  local nvim_version =
+    child.lua_get([[vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch]])
+  local captured_ctx = child.lua_get([[_G.captured_ctx]])
+  h.eq(nvim_version, captured_ctx.nvim_version)
+end
+
+T["ToolRegistry"]["ctx"]["tools list is passed alongside ctx"] = function()
+  child.lua([[
+    local config_module = require("codecompanion.config")
+    local test_config = vim.deepcopy(require("tests.config"))
+    test_config.interactions.chat.tools.opts.system_prompt = {
+      enabled = true,
+      replace_main_system_prompt = false,
+      prompt = function(args)
+        _G.captured_tools = args.tools
+        return "tool system prompt"
+      end,
+    }
+    config_module.setup(test_config)
+
+    _G.chat4, _ = require("tests.helpers").setup_chat_buffer(test_config)
+    _G.chat4.tool_registry:add_single_tool("func")
+    -- Add a second tool so that prompt is called again with func already in in_use
+    _G.chat4.tool_registry:add_single_tool("weather")
+  ]])
+
+  local captured_tools = child.lua_get([[_G.captured_tools]])
+  h.not_eq(vim.NIL, captured_tools)
+  -- After adding weather, prompt is called with func already in in_use
+  h.expect_tbl_contains("func", captured_tools)
 end
 
 return T

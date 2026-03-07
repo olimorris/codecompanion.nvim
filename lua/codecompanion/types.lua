@@ -216,3 +216,4 @@
 ---@field start_line number The start line of the selection
 ---@field start_col number The start column of the selection
 ---@field winnr number The window number
+---@field user_prompt string The prompt provided by the user

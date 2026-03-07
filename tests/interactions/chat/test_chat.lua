@@ -79,6 +79,56 @@ T["Chat"]["chat buffer is initialized"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["Chat"]["cursor is placed after last character when prompt library has non-empty user prompt"] = function()
+  local child_test = MiniTest.new_child_neovim()
+  h.child_start(child_test)
+
+  local result = child_test.lua([[
+    h = require('tests.helpers')
+    codecompanion = h.setup_plugin()
+    codecompanion.setup({
+      prompt_library = {
+        ["Test Cursor"] = {
+          strategy = "chat",
+          description = "Test cursor position",
+          opts = {
+            alias = "test_cursor",
+            auto_submit = false,
+          },
+          prompts = {
+            {
+              role = "user",
+              content = "Test",
+            },
+          },
+        },
+      },
+    })
+    codecompanion.prompt("test_cursor")
+    local bufnr = vim.api.nvim_get_current_buf()
+    -- Get the last line of the buffer
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
+    local last_line = vim.api.nvim_buf_get_lines(bufnr, line_count - 1, line_count, false)[1]
+    -- Get cursor position
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    return {
+      last_line = last_line,
+      cursor_row = cursor[1],
+      cursor_col = cursor[2],
+      line_count = line_count,
+    }
+  ]])
+
+  child_test.stop()
+
+  -- The last line should be empty (buffer ends with a blank line)
+  h.eq("", result.last_line)
+  -- The cursor should be on the last line
+  h.eq(result.line_count, result.cursor_row)
+  -- The cursor column should be 0 (start of empty line)
+  h.eq(0, result.cursor_col)
+end
+
 T["Chat"]["loading from the prompt library sets the correct header_line"] = function()
   local output = child.lua([[
     --require("tests.log")
