@@ -103,7 +103,7 @@ local function apply_line_replacement(content_lines, match, new_text)
 
     if old_text_has_trailing_newline then
       -- new_content_lines { ..., "", ... }, delete that "" to remove the extra \n
-      -- new_content_lines { ..., "xx", "yy", ... }, manully concat "xx" and "yy" to remove the newline
+      -- new_content_lines { ..., "xx", "yy", ... }, manually concat "xx" and "yy" to remove the newline
       if replacement_end_index < #new_content_lines then
         new_content_lines[replacement_end_index + 1] = new_content_lines[replacement_end_index]
           .. new_content_lines[replacement_end_index + 1]
