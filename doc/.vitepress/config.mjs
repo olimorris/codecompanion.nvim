@@ -139,6 +139,7 @@ export default withMermaid(
             { text: "Adapters - ACP", link: "/configuration/adapters-acp" },
             { text: "Adapters - HTTP", link: "/configuration/adapters-http" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
+            { text: "CLI", link: "/configuration/cli" },
             { text: "Extensions", link: "/configuration/extensions" },
             {
               text: "Inline Assistant",

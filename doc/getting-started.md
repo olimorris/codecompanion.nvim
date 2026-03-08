@@ -54,14 +54,39 @@ can be used in a _lazy.nvim_ configuration like so:
 
 ## Interactions
 
-The plugin uses the notion of _interactions_ to describe the many different ways that you can interact with an LLM from within CodeCompanion. There are four main types of interactions:
+The plugin uses the notion of _interactions_ to describe the many different ways that you can interact with an Agent or LLM from within CodeCompanion. There are five main types of interactions:
 
 - **Chat** - A chat buffer where you can converse with an LLM (`:CodeCompanionChat`)
+- **CLI** - A terminal wrapper around agent CLI tools such a Claude Code or Codex (`:CodeCompanionCLI`)
 - **Inline** - An inline assistant that can write code directly into a buffer (`:CodeCompanion`)
 - **Cmd** - Create Neovim commands in the command-line (`:CodeCompanionCmd`)
 - **Background** - Runs tasks in the background such as compacting chat messages or generating titles for chats
 
-## Configuring an Adapter
+## Configuration
+
+### Agents for CLI
+
+You need to define an agent and it's corresponding command:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    cli = {
+      agent = "claude_code",
+      agents = {
+        claude_code = {
+          cmd = "claude",
+          args = {},
+          description = "Claude Code CLI",
+          provider = "terminal",
+        },
+      },
+    },
+  },
+})
+```
+
+### Adapters for Chat and Inline
 
 > [!NOTE]
 > The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters-http#community-adapters)
@@ -104,7 +129,7 @@ There are two "types" of adapter in CodeCompanion; [HTTP](/configuration/adapter
 
 Refer to the respective sections to understand more about working with adapters that enable agents like [Claude Code](/configuration/adapters-acp#setup-claude-code).
 
-### Setting an API Key
+#### Setting an API Key
 
 Because most LLMs require an API key, you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. Refer to the documentation of the LLM or agent you're using to find out what the environment variable is called.
 
@@ -162,6 +187,17 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and leverage ex
 > Use them in your prompt like:
 >
 > `Can you use @{grep_search} to find occurrences of "hello world"`
+
+## CLI
+
+The CLI interactions allows you to interact with agents that have a command line interface such as Claude Code and Codex.
+
+Running `:CodeCompanionCLI` will open a terminal buffer where you can interact with the agent. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the agent, or you can run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](#editor-context). For the latter, simply do `:w` to save the buffer and transmit the prompt to the agent.
+
+You can also specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
+
+> [!NOTE]
+> Editor context in CLI interactions reference paths to buffers rather than contents.
 
 ## Inline Assistant
 

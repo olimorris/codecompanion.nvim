@@ -826,6 +826,12 @@ The user is working on a %s machine. Please respond with system specific command
     -- CLI INTERACTION ---------------------------------------------------------
     cli = {
       agents = {},
+      providers = {
+        terminal = {
+          path = "interactions.cli.providers.terminal",
+          description = "Terminal CLI provider",
+        },
+      },
       keymaps = {
         next_chat = {
           modes = { n = "}" },
@@ -1241,9 +1247,9 @@ M.setup = function(args)
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
+  M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
   M.config.interactions.shared.keymaps = remove_disabled_keymaps(M.config.interactions.shared.keymaps)
-  -- M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
 
   local project_config = get_per_project_config()
   if project_config then
