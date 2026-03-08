@@ -1,5 +1,7 @@
+local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 -- Keep a record of UI changes in the chat buffer
 
@@ -17,6 +19,7 @@ local ACPHandlerUI = {} -- Cache of tool call UI states by chat buffer
 function ACPHandler.new(chat)
   local self = setmetatable({
     chat = chat,
+    modified_paths = {},
     output = {},
     reasoning = {},
     tools = {},
@@ -101,7 +104,6 @@ function ACPHandler:transform_acp_commands(messages)
   end
 
   -- Get trigger character
-  local config = require("codecompanion.config")
   local trigger = "\\"
   if config.interactions.chat.slash_commands.opts and config.interactions.chat.slash_commands.opts.acp then
     trigger = config.interactions.chat.slash_commands.opts.acp.trigger or "\\"
@@ -174,7 +176,7 @@ end
 function ACPHandler:handle_message_chunk(content)
   table.insert(self.output, content)
   self.chat:add_buf_message(
-    { role = require("codecompanion.config").constants.LLM_ROLE, content = content },
+    { role = config.constants.LLM_ROLE, content = content },
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 end
@@ -183,10 +185,12 @@ end
 ---@param content string
 function ACPHandler:handle_thought_chunk(content)
   table.insert(self.reasoning, content)
-  self.chat:add_buf_message(
-    { role = require("codecompanion.config").constants.LLM_ROLE, content = content },
-    { type = self.chat.MESSAGE_TYPES.REASONING_MESSAGE }
-  )
+  if config.display.chat.show_reasoning then
+    self.chat:add_buf_message(
+      { role = config.constants.LLM_ROLE, content = content },
+      { type = self.chat.MESSAGE_TYPES.REASONING_MESSAGE }
+    )
+  end
 end
 
 ---Output tool call to the chat
@@ -203,6 +207,24 @@ function ACPHandler:process_tool_call(tool_call)
   local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
   if not ok then
     content = "[Error formatting tool output]"
+  end
+
+  -- Track file paths from edit/write tool calls for targeted buffer reload
+  if tool_call.kind == "edit" then
+    if type(tool_call.locations) == "table" then
+      for _, loc in ipairs(tool_call.locations) do
+        if type(loc.path) == "string" then
+          self.modified_paths[loc.path] = true
+        end
+      end
+    end
+    if type(tool_call.content) == "table" then
+      for _, c in ipairs(tool_call.content) do
+        if c.type == "diff" and type(c.path) == "string" then
+          self.modified_paths[c.path] = true
+        end
+      end
+    end
   end
 
   -- Cache or cleanup
@@ -241,7 +263,7 @@ function ACPHandler:process_tool_call(tool_call)
 
   table.insert(self.output, content)
   local line_number, icon_id = self.chat:add_buf_message({
-    role = require("codecompanion.config").constants.LLM_ROLE,
+    role = config.constants.LLM_ROLE,
     content = content,
   }, {
     status = tool_call.status or "in_progress",
@@ -284,6 +306,14 @@ function ACPHandler:handle_permission_request(request)
     end
   end
 
+  log:debug("[ACPHandler::handle_permission_request] Asking for approval")
+  utils.fire("ToolApprovalRequested", {
+    bufnr = self.chat.bufnr,
+    id = request.id,
+    name = tool_call.kind,
+    args = tool_call.title,
+  })
+
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end
 
@@ -293,6 +323,22 @@ function ACPHandler:handle_completion(stop_reason)
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
   end
+
+  -- Reload buffers that the agent modified on disk
+  if next(self.modified_paths) then
+    local modified = self.modified_paths
+    self.modified_paths = {}
+    vim.schedule(function()
+      local buf_utils = require("codecompanion.utils.buffers")
+      for path, _ in pairs(modified) do
+        local bufnr = buf_utils.get_bufnr_from_path(path)
+        if bufnr then
+          vim.cmd.checktime(bufnr)
+        end
+      end
+    end)
+  end
+
   self.chat:done(self.output, self.reasoning, {})
 end
 
@@ -303,7 +349,7 @@ function ACPHandler:handle_error(error)
   log:error("[ACP::Handler] %s", error)
 
   self.chat:add_buf_message(
-    { role = require("codecompanion.config").constants.LLM_ROLE, content = string.format("````txt\n%s\n````", error) },
+    { role = config.constants.LLM_ROLE, content = string.format("````txt\n%s\n````", error) },
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 

@@ -228,6 +228,44 @@ T["ACPHandler"]["handles thought chunks"] = function()
   h.eq(2, result.reasoning_collected)
 end
 
+T["ACPHandler"]["suppresses thought chunks when show_reasoning is false"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({
+      display = {
+        chat = {
+          show_reasoning = false
+        }
+      }
+    }, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local buffer_messages = {}
+    chat.add_buf_message = function(self, data, opts)
+      table.insert(buffer_messages, { data = data, opts = opts })
+    end
+
+    handler:handle_thought_chunk("Let me think about this...")
+    handler:handle_thought_chunk("I need to consider...")
+
+    return {
+      message_count = #buffer_messages,
+      reasoning_collected = #handler.reasoning
+    }
+  ]])
+
+  h.eq(0, result.message_count)
+  h.eq(2, result.reasoning_collected)
+end
+
 T["ACPHandler"]["coordinates completion flow"] = function()
   local result = child.lua([[
     local chat = h.setup_chat_buffer({}, {
