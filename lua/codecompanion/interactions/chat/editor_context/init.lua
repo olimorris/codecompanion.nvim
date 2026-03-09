@@ -262,16 +262,53 @@ function EditorContext:replace(message, bufnr)
   return message
 end
 
----Replace editor context in a message for CLI (always strips to empty)
+---Replace editor context tags in a message for CLI by inlining apply_cli() output
 ---@param message string
+---@param buffer_context CodeCompanion.BufferContext
 ---@return string
-function EditorContext:replace_cli(message)
-  for ctx, _ in pairs(self.editor_context) do
-    message = regex.replace(message, self:_pattern(ctx, true, true), "")
-    message = regex.replace(message, self:_pattern(ctx, false, true), "")
-    message = regex.replace(message, self:_pattern(ctx, true), "")
-    message = regex.replace(message, self:_pattern(ctx), "")
+function EditorContext:replace_cli(message, buffer_context)
+  local prefix = vim.pesc(CONSTANTS.PREFIX)
+
+  for ctx, ctx_config in pairs(self.editor_context) do
+    local escaped_ctx = vim.pesc(ctx)
+
+    ---Resolve a single editor context match to its CLI output
+    ---@param target? string
+    ---@param params? string
+    ---@return string
+    local function resolve_inline(target, params)
+      if (ctx_config.opts and ctx_config.opts.contains_code) and not config.can_send_code() then
+        return ""
+      end
+
+      ctx_config["name"] = ctx
+
+      if not params and ctx_config.opts and ctx_config.opts.has_params then
+        params = ctx_config.opts.default_params
+      end
+
+      local result = resolve({ buffer_context = buffer_context }, ctx_config, params, target, "cli")
+      return result or ""
+    end
+
+    -- #{ctx:target}{params}
+    message = message:gsub(prefix .. "{" .. escaped_ctx .. ":([^}]*)}{([^}]*)}", function(target, params)
+      return resolve_inline(target, params)
+    end)
+    -- #{ctx:target}
+    message = message:gsub(prefix .. "{" .. escaped_ctx .. ":([^}]*)}", function(target)
+      return resolve_inline(target)
+    end)
+    -- #{ctx}{params}
+    message = message:gsub(prefix .. "{" .. escaped_ctx .. "}{([^}]*)}", function(params)
+      return resolve_inline(nil, params)
+    end)
+    -- #{ctx}
+    message = message:gsub(prefix .. "{" .. escaped_ctx .. "}", function()
+      return resolve_inline()
+    end)
   end
+
   return vim.trim(message)
 end
 

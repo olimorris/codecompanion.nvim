@@ -16,7 +16,7 @@ function M.open(opts)
 
   shared_input.open({
     title = " CodeCompanion CLI ",
-    on_submit = function(text)
+    on_submit = function(text, submit_opts)
       local cli_module = require("codecompanion.interactions.cli")
       local formatted = cli_module.resolve_editor_context(text, buffer_context)
 
@@ -29,7 +29,7 @@ function M.open(opts)
         instance.ui:open()
       end
 
-      instance:send(formatted)
+      instance:send(formatted, { submit = submit_opts.bang })
     end,
   })
 end

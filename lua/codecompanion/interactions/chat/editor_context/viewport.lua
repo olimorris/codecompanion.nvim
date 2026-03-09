@@ -56,7 +56,7 @@ function EditorContext:apply_cli()
   for bufnr, _ in pairs(buf_lines) do
     local path = vim.api.nvim_buf_get_name(bufnr)
     if path ~= "" then
-      table.insert(paths, string.format('Sharing: <file path="%s">', path))
+      table.insert(paths, string.format('<file path="%s">', path))
     end
   end
 

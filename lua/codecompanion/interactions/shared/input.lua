@@ -8,7 +8,7 @@ local M = {}
 local _input = nil
 
 ---Open an input buffer
----@param opts { title?: string, on_submit: fun(text: string), on_open?: fun(bufnr: number, winnr: number) }
+---@param opts { title?: string, on_submit: fun(text: string, submit_opts: { bang: boolean }), on_open?: fun(bufnr: number, winnr: number) }
 ---@return nil
 function M.open(opts)
   if _input and api.nvim_buf_is_valid(_input.bufnr) then
@@ -37,14 +37,14 @@ function M.open(opts)
   vim.wo[winnr].linebreak = true
 
   -- Send the input to the provider
-  local function send()
+  local function send(submit_opts)
     local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
     local text = vim.trim(table.concat(lines, "\n"))
     if text == "" then
       return
     end
     M.close()
-    opts.on_submit(text)
+    opts.on_submit(text, submit_opts or {})
   end
 
   local aug = api.nvim_create_augroup("codecompanion.input." .. bufnr, { clear = true })
@@ -53,7 +53,7 @@ function M.open(opts)
     buffer = bufnr,
     callback = function()
       vim.bo[bufnr].modified = false
-      send()
+      send({ bang = vim.v.cmdbang == 1 })
     end,
   })
 

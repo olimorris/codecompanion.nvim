@@ -138,7 +138,7 @@ function EditorContext:apply_cli()
   end
 
   local path = vim.api.nvim_buf_get_name(bufnr)
-  return string.format('Sharing: <file path="%s">', path)
+  return string.format('<file path="%s">', path)
 end
 
 ---Replace the editor context in the message

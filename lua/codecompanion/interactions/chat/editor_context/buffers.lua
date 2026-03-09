@@ -95,7 +95,7 @@ function EditorContext:apply_cli()
 
   for _, buf_info in ipairs(buffers) do
     if not self:_is_excluded(buf_info.bufnr) then
-      table.insert(paths, string.format('Sharing: <file path="%s">', buf_info.path))
+      table.insert(paths, string.format('<file path="%s">', buf_info.path))
     end
   end
 

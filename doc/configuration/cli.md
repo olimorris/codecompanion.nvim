@@ -4,6 +4,8 @@ description: Learn how to configure agents via the Command-Line Interface (CLI) 
 
 # Configuring the Command-Line Interface (CLI)
 
+By default, CodeCompanion uses the _terminal_ provider for CLI interactions, which runs agents in a Neovim terminal buffer. However, the CLI system is flexible and allows you to define custom agents and providers to suit your workflow.
+
 ## Agents
 
 To use the CLI interaction, you need to define at least one agent in your configuration:
@@ -137,3 +139,60 @@ require("codecompanion").setup({
   },
 })
 ```
+
+
+## Options
+
+There are a number of options available for CLI interactions:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    cli = {
+      opts = {
+        auto_insert = true, -- Enter insert mode when focusing the CLI terminal
+        reload = true, -- Reload buffers when an agent modifies files on disk
+      },
+    },
+  },
+})
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `auto_insert` | `boolean` | `true` | Automatically enter insert mode when the CLI terminal is focused |
+| `reload` | `boolean` | `true` | Watches the cwd for file changes and runs `:checktime` to reload buffers |
+
+
+## User Interface (UI)
+
+The CLI window inherits its layout from `display.chat.window` by default. You can override specific options via `display.cli.window`:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    cli = {
+      window = {
+        layout = "vertical",
+        width = 0.4,
+        height = 0.6,
+        opts = {
+          list = false,
+        },
+      },
+    },
+  },
+})
+```
+
+Any options set in `display.cli.window` are merged on top of the chat window defaults. This means you only need to specify what you want to change.
+
+You can also pass `width` and `height` overrides via the Lua API:
+
+```lua
+require("codecompanion").ask_cli("fix the tests", {
+  width = 0.5,
+  height = 0.8,
+})
+```
+

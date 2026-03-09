@@ -77,14 +77,15 @@ end
 
 ---Queue text to send to the terminal (consumed once ready)
 ---@param text string
+---@param opts? { submit: boolean }
 ---@return boolean
-function Terminal:send(text)
+function Terminal:send(text, opts)
   if not self.chan then
     log:warn("CLI agent is not running")
     return false
   end
 
-  self.queue:push(text)
+  self.queue:push({ text = text, submit = opts and opts.submit })
 
   if self.ready then
     self:_consume()
@@ -188,10 +189,15 @@ function Terminal:_consume()
         return
       end
 
-      local text = self.queue:pop():gsub("\r\n", "\n")
-      api.nvim_buf_call(self.bufnr, function()
-        api.nvim_put(vim.split(text .. "\n", "\n", { plain = true }), "c", false, true)
-      end)
+      local item = self.queue:pop()
+      local text = item.text:gsub("\r\n", "\n")
+      if item.submit and self.chan then
+        vim.fn.chansend(self.chan, text .. "\r")
+      else
+        api.nvim_buf_call(self.bufnr, function()
+          api.nvim_put(vim.split(text .. "\n", "\n", { plain = true }), "c", false, true)
+        end)
+      end
     end)
   )
 end

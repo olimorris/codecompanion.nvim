@@ -307,13 +307,18 @@ CodeCompanion.close_last_chat = function()
 end
 
 ---Send a prompt to a CLI agent running in a terminal buffer
----@param prompt string The text to send
----@param opts? { agent?: string, width?: number, height?: number, args?: table }
+---@param prompt? string The text to send (nil to just open the CLI)
+---@param opts? { agent?: string, submit?: boolean, width?: number, height?: number, args?: table }
 ---@return nil
 CodeCompanion.ask_cli = function(prompt, opts)
   opts = opts or {}
 
-  local context = get_context(api.nvim_get_current_buf(), opts.args)
+  local prev_win = opts.submit and api.nvim_get_current_win() or nil
+
+  local context
+  if prompt then
+    context = get_context(api.nvim_get_current_buf(), opts.args)
+  end
 
   local cli = require("codecompanion.interactions.cli")
   local instance = cli.get_or_create({ agent = opts.agent })
@@ -334,7 +339,15 @@ CodeCompanion.ask_cli = function(prompt, opts)
     instance.ui:open(ui_opts)
   end
 
-  instance:send(cli.resolve_editor_context(prompt, context))
+  if prompt then
+    instance:send(cli.resolve_editor_context(prompt, context), { submit = opts.submit })
+  end
+
+  -- With bang, stay in the previous window
+  if prev_win and api.nvim_win_is_valid(prev_win) then
+    api.nvim_set_current_win(prev_win)
+  end
+
   _last_toggle = "cli"
 end
 

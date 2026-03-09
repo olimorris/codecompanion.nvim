@@ -284,17 +284,69 @@ return {
   {
     cmd = "CodeCompanionCLI",
     callback = function(opts)
-      local prompt = table.concat(opts.fargs, " ")
-      if #vim.trim(prompt) == 0 then
+      local params = {}
+      local prompt_parts = {}
+
+      for _, arg in ipairs(opts.fargs) do
+        local key, value = arg:match("^(%w+)=(.+)$")
+        if key and value then
+          params[key] = value
+        else
+          table.insert(prompt_parts, arg)
+        end
+      end
+
+      local prompt = table.concat(prompt_parts, " ")
+      local cli_opts = { args = opts, submit = opts.bang }
+
+      if params.agent then
+        cli_opts.agent = params.agent
+      end
+
+      -- :CodeCompanionCLI Ask — open rich input box
+      if prompt == "Ask" then
         require("codecompanion.interactions.cli.input").open({ args = opts })
         return
       end
-      codecompanion.ask_cli(prompt, { args = opts })
+
+      -- :CodeCompanionCLI (no prompt) — new CLI interaction
+      if #vim.trim(prompt) == 0 then
+        codecompanion.ask_cli(nil, cli_opts)
+        return
+      end
+
+      -- :CodeCompanionCLI prompt — send to last or create new
+      codecompanion.ask_cli(prompt, cli_opts)
     end,
     opts = {
       desc = "Send a prompt to a CLI agent or open the CLI input buffer",
+      bang = true,
       range = true,
       nargs = "*",
+      complete = function(arg_lead, cmdline, _cursor_pos)
+        local param_key = arg_lead:match("^(%w+)=$")
+        if param_key == "agent" then
+          local agents = vim.tbl_keys(config.interactions.cli.agents)
+          return vim
+            .iter(agents)
+            :map(function(agent)
+              return "agent=" .. agent
+            end)
+            :totable()
+        end
+
+        if cmdline:match("^['<,'>]*CodeCompanionCLI[!]*%s+$") or arg_lead == "" then
+          local completions = { "Ask", "agent=" }
+          return vim
+            .iter(completions)
+            :filter(function(key)
+              return key:find(vim.pesc(arg_lead), 1, true) == 1
+            end)
+            :totable()
+        end
+
+        return {}
+      end,
     },
   },
   {

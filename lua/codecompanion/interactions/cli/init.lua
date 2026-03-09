@@ -132,32 +132,29 @@ end
 ---@param buffer_context CodeCompanion.BufferContext
 ---@return string
 function CLI.resolve_editor_context(prompt, buffer_context)
-  local ec = require("codecompanion.interactions.chat.editor_context").new()
-  local message = { content = prompt }
+  local editor_context = require("codecompanion.interactions.chat.editor_context").new()
 
-  local sharing = ec:parse_cli(buffer_context, message)
-  local clean_prompt = ec:replace_cli(prompt)
-
-  if not sharing then
-    return clean_prompt
+  -- If the user makes a visiual selection then include it in the prompt
+  local triggers = require("codecompanion.triggers")
+  local selection_tag = triggers.mappings.editor_context .. "{selection}"
+  if buffer_context.is_visual and not prompt:find(vim.pesc(selection_tag), 1, true) then
+    prompt = selection_tag .. "\n" .. prompt
   end
 
-  local parts = {}
-  vim.list_extend(parts, sharing)
-  table.insert(parts, clean_prompt)
-  return table.concat(parts, "\n")
+  return editor_context:replace_cli(prompt, buffer_context)
 end
 
 ---Send text to the running CLI agent
 ---@param text string
+---@param opts? { submit: boolean }
 ---@return nil
-function CLI:send(text)
+function CLI:send(text, opts)
   if not self.provider:is_running() then
     log:warn("CLI agent is not running")
     return
   end
 
-  self.provider:send(text)
+  self.provider:send(text, opts)
   utils.fire("CLISent", { bufnr = self.bufnr, text = text })
 end
 
