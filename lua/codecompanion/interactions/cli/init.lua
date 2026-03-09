@@ -1,3 +1,6 @@
+-- File watching logic inspired and adapted from sidekick.nvim
+-- https://github.com/folke/sidekick.nvim
+
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
@@ -6,13 +9,21 @@ local utils = require("codecompanion.utils")
 
 local api = vim.api
 
+local uv = vim.uv or vim.loop
+
+---@type table
+_G.codecompanion_cli_metadata = {}
+
 ---@class CodeCompanion.CLI
 ---@field agent table
+---@field agent_name string
 ---@field aug number
 ---@field bufnr number
 ---@field id number
 ---@field provider CodeCompanion.CLI.Provider
 ---@field ui CodeCompanion.CLI.UI
+---@field watcher uv.uv_fs_event_t|nil
+---@field watch_timer uv.uv_timer_t|nil
 local CLI = {}
 
 local _instance = nil
@@ -69,22 +80,21 @@ function CLI.get_or_create(args)
 
   local self = setmetatable({
     agent = agent,
+    agent_name = agent_name,
     bufnr = bufnr,
     id = id,
     provider = provider,
     ui = ui,
   }, { __index = CLI }) ---@cast self CodeCompanion.CLI
 
-  if config.interactions.cli.keymaps then
-    keymaps
-      .new({
-        bufnr = bufnr,
-        callbacks = keymap_callbacks,
-        data = self,
-        keymaps = config.interactions.cli.keymaps,
-      })
-      :set()
-  end
+  keymaps
+    .new({
+      bufnr = bufnr,
+      callbacks = keymap_callbacks,
+      data = self,
+      keymaps = config.interactions.cli.keymaps,
+    })
+    :set()
 
   self.aug = api.nvim_create_augroup("codecompanion.cli." .. id, { clear = true })
   api.nvim_create_autocmd("TermClose", {
@@ -96,6 +106,27 @@ function CLI.get_or_create(args)
       end)
     end,
   })
+
+  if config.interactions.cli.opts.auto_insert then
+    api.nvim_create_autocmd("BufEnter", {
+      group = self.aug,
+      buffer = bufnr,
+      callback = function()
+        vim.cmd.startinsert()
+      end,
+    })
+    api.nvim_create_autocmd("BufLeave", {
+      group = self.aug,
+      buffer = bufnr,
+      callback = function()
+        vim.cmd.stopinsert()
+      end,
+    })
+  end
+
+  if config.interactions.cli.opts.reload then
+    self:_start_watcher()
+  end
 
   _instance = self
 
@@ -110,6 +141,8 @@ function CLI.get_or_create(args)
       self.ui:hide()
     end,
   })
+
+  self:update_metadata()
 
   log:debug("CLI instance created with agent '%s'", agent_name)
   utils.fire("CLICreated", { bufnr = bufnr })
@@ -144,6 +177,17 @@ function CLI.resolve_editor_context(prompt, buffer_context)
   return editor_context:replace_cli(prompt, buffer_context)
 end
 
+---Update the global metadata table for statusline integrations
+---@return nil
+function CLI:update_metadata()
+  _G.codecompanion_cli_metadata[self.bufnr] = {
+    agent = self.agent_name,
+    description = self.agent.description,
+    id = self.id,
+    running = self.provider:is_running(),
+  }
+end
+
 ---Send text to the running CLI agent
 ---@param text string
 ---@param opts? { submit: boolean }
@@ -161,6 +205,7 @@ end
 ---Close the CLI instance and clean up
 ---@return nil
 function CLI:close()
+  self:_stop_watcher()
   self.provider:stop()
 
   pcall(api.nvim_del_augroup_by_id, self.aug)
@@ -170,12 +215,63 @@ function CLI:close()
   end
 
   registry.remove(self.bufnr)
+  _G.codecompanion_cli_metadata[self.bufnr] = nil
 
   log:debug("CLI instance closed")
   utils.fire("CLIClosed", { bufnr = self.bufnr })
 
   _instance = nil
 end
+
+--=============================================================================
+-- Watcher for auto-reloading buffers on file changes
+-- =============================================================================
+
+---Start watching the cwd for file changes and reload buffers
+---@return nil
+function CLI:_start_watcher()
+  local cwd = vim.fn.getcwd()
+
+  self.watcher = uv.new_fs_event()
+  if not self.watcher then
+    return log:warn("Could not create file watcher")
+  end
+
+  self.watch_timer = uv.new_timer()
+
+  self.watcher:start(cwd, { recursive = true }, function()
+    -- Debounce: restart a 100ms timer on each event
+    if self.watch_timer then
+      self.watch_timer:stop()
+      self.watch_timer:start(100, 0, function()
+        vim.schedule(function()
+          vim.cmd.checktime()
+        end)
+      end)
+    end
+  end)
+
+  log:debug("File watcher started on %s", cwd)
+end
+
+---Stop the file watcher
+---@return nil
+function CLI:_stop_watcher()
+  if self.watch_timer then
+    self.watch_timer:stop()
+    self.watch_timer:close()
+    self.watch_timer = nil
+  end
+  if self.watcher then
+    self.watcher:stop()
+    self.watcher:close()
+    self.watcher = nil
+  end
+end
+
+--=============================================================================
+-- Public API
+-- =============================================================================
 
 ---Check if the CLI is currently visible
 ---@return boolean
