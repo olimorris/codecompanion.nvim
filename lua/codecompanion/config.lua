@@ -431,6 +431,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
           },
         },
+        ["this"] = {
+          path = "interactions.chat.editor_context.this",
+          description = "Smart context: visual selection if present, otherwise the current buffer (CLI only)",
+          opts = {
+            contains_code = true,
+          },
+        },
       },
       slash_commands = {
         ["buffer"] = {
@@ -826,6 +833,10 @@ The user is working on a %s machine. Please respond with system specific command
     -- CLI INTERACTION ---------------------------------------------------------
     cli = {
       agents = {},
+      opts = {
+        auto_insert = true, -- Enter insert mode when focusing the CLI terminal
+        reload = true, -- Reload buffers when an agent modifies files on disk
+      },
       providers = {
         terminal = {
           path = "interactions.cli.providers.terminal",
