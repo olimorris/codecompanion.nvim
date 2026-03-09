@@ -362,7 +362,13 @@ require("codecompanion").setup({
 
 ### Ollama (remotely)
 
-To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
+The simplest way to connect to a remote Ollama instance is to set the `OLLAMA_HOST` environment variable (the same variable used by the Ollama CLI):
+
+```bash
+export OLLAMA_HOST="http://192.168.1.100:11434"
+```
+
+Alternatively, configure it directly in your setup using `extend()`. If you need authentication, set an API key and pass it via an "Authorization" header:
 
 ```lua
 require("codecompanion").setup({
