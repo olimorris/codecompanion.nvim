@@ -178,6 +178,7 @@ export default withMermaid(
                 },
               ],
             },
+            { text: "CLI", link: "/usage/cli" },
             { text: "Events", link: "/usage/events" },
             { text: "Inline Assistant", link: "/usage/inline-assistant" },
             { text: "Prompt Library", link: "/usage/prompt-library" },

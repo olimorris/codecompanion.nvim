@@ -190,11 +190,11 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and leverage ex
 
 ## CLI
 
-The CLI interactions allows you to interact with agents that have a command line interface such as Claude Code and Codex.
+The CLI interaction allows you to interact with agents that have a command-line interface such as Claude Code and Codex.
 
-Running `:CodeCompanionCLI` will open a terminal buffer where you can interact with the agent. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the agent, or you can run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](#editor-context). For the latter, simply do `:w` to save the buffer and transmit the prompt to the agent.
+Running `:CodeCompanionCLI` will open a new CLI interaction. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](#editor-context). Save with `:w` to transmit the prompt to the agent, or `:w!` to transmit and auto-submit it.
 
-You can also specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
+Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit the prompt and keep your cursor in the current buffer. You can also specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
 
 > [!NOTE]
 > Editor context in CLI interactions reference paths to buffers rather than contents.
@@ -239,10 +239,11 @@ By default the plugin uses `vim.ui.select`, however, you can change the provider
 
 ## List of Commands
 
-The plugin has four core commands:
+The plugin has five core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
+- `CodeCompanionCLI` - Open a CLI interaction
 - `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the _Action Palette_
 
@@ -257,6 +258,11 @@ However, there are multiple options available:
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
+- `CodeCompanionCLI` - Open a new CLI interaction
+- `CodeCompanionCLI <prompt>` - Send a prompt to the last CLI interaction (or create a new one)
+- `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
+- `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
+- `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
 
 ## Suggested Plugin Workflow
 
