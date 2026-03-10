@@ -537,7 +537,7 @@ function Chat.new(args)
   self.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = self })
   self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   self.context = require("codecompanion.interactions.chat.context").new({ chat = self })
-  self.editor_context = require("codecompanion.interactions.chat.editor_context").new()
+  self.editor_context = require("codecompanion.interactions.shared.editor_context").new()
   self.subscribers = require("codecompanion.interactions.chat.subscribers").new()
   self.tools = require("codecompanion.interactions.chat.tools").new({
     adapter = self.adapter,

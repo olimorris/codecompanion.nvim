@@ -23,7 +23,7 @@ end
 ---@param bufnr number
 ---@return boolean
 function EditorContext:_is_excluded(bufnr)
-  local ec_opts = config.interactions.chat.editor_context.opts
+  local ec_opts = config.interactions.shared.editor_context.opts
   local excluded = ec_opts and ec_opts.excluded
   if not excluded then
     return false
@@ -74,7 +74,7 @@ function EditorContext:apply()
         self.Chat.context:add({
           bufnr = buf_info.bufnr,
           id = id,
-          source = "codecompanion.interactions.chat.editor_context.buffers",
+          source = "codecompanion.interactions.shared.editor_context.buffers",
         })
 
         count = count + 1

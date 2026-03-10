@@ -111,7 +111,7 @@ function EditorContext:apply(selected, opts)
       sync_all = (params and params == "all"),
       sync_diff = (params and params == "diff"),
     },
-    source = "codecompanion.interactions.chat.editor_context.buffer",
+    source = "codecompanion.interactions.shared.editor_context.buffer",
   })
 end
 

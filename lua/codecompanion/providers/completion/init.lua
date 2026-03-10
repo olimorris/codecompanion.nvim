@@ -295,7 +295,7 @@ function M.editor_context()
     return _ec_cache
   end
 
-  local ec_config = config.interactions.chat.editor_context
+  local ec_config = config.interactions.shared.editor_context
 
   local editor_context = vim
     .iter(ec_config)

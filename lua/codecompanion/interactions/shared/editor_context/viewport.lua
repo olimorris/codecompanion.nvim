@@ -21,7 +21,7 @@ end
 ---Share the visible lines in the editor's viewport as per-buffer messages
 ---@return nil
 function EditorContext:apply()
-  local ec_opts = config.interactions.chat.editor_context.opts
+  local ec_opts = config.interactions.shared.editor_context.opts
   local excluded = ec_opts and ec_opts.excluded
   local buf_lines = buf_utils.get_visible_lines(excluded)
 
@@ -48,7 +48,7 @@ end
 ---Return CLI-formatted strings for sharing visible buffers with a CLI agent
 ---@return string|nil
 function EditorContext:apply_cli()
-  local ec_opts = config.interactions.chat.editor_context.opts
+  local ec_opts = config.interactions.shared.editor_context.opts
   local excluded = ec_opts and ec_opts.excluded
   local buf_lines = buf_utils.get_visible_lines(excluded)
 

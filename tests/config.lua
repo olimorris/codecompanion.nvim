@@ -315,47 +315,6 @@ return {
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      editor_context = {
-        ["buffer"] = {
-          path = "interactions.chat.editor_context.buffer",
-          description = "Share the current buffer with the LLM",
-          opts = {
-            contains_code = true,
-            has_params = true,
-          },
-        },
-        ["buffers"] = {
-          path = "interactions.chat.editor_context.buffers",
-          description = "Share all open buffers with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["foo"] = {
-          path = "tests.interactions.chat.editor_context.foo",
-          description = "foo",
-        },
-        -- Add test editor_context to verify word boundary matching
-        ["foo://10-20-30:40"] = {
-          path = "tests.interactions.chat.editor_context.foo_special",
-          description = "Variable with prefix starting with 'foo' and with special chars",
-        },
-        ["bar"] = {
-          path = "tests.interactions.chat.editor_context.bar",
-          description = "bar",
-          opts = {
-            has_params = true,
-          },
-        },
-        ["screenshot://screenshot-2025-05-21T11-17-45.440Z"] = {
-          path = "tests.interactions.chat.editor_context.screenshot",
-          description = "Screenshot",
-        },
-        ["baz"] = {
-          path = "tests.interactions.chat.editor_context.baz",
-          description = "baz",
-        },
-      },
       slash_commands = {
         ["buffer"] = {
           path = "interactions.chat.slash_commands.builtin.buffer",
@@ -408,6 +367,49 @@ return {
         ["bar"] = {
           path = "tests.interactions.inline.editor_context.bar",
           description = "bar",
+        },
+      },
+    },
+    shared = {
+      editor_context = {
+        ["buffer"] = {
+          path = "interactions.shared.editor_context.buffer",
+          description = "Share the current buffer with the LLM",
+          opts = {
+            contains_code = true,
+            has_params = true,
+          },
+        },
+        ["buffers"] = {
+          path = "interactions.shared.editor_context.buffers",
+          description = "Share all open buffers with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["foo"] = {
+          path = "tests.interactions.shared.editor_context.foo",
+          description = "foo",
+        },
+        -- Add test editor_context to verify word boundary matching
+        ["foo://10-20-30:40"] = {
+          path = "tests.interactions.shared.editor_context.foo_special",
+          description = "Variable with prefix starting with 'foo' and with special chars",
+        },
+        ["bar"] = {
+          path = "tests.interactions.shared.editor_context.bar",
+          description = "bar",
+          opts = {
+            has_params = true,
+          },
+        },
+        ["screenshot://screenshot-2025-05-21T11-17-45.440Z"] = {
+          path = "tests.interactions.shared.editor_context.screenshot",
+          description = "Screenshot",
+        },
+        ["baz"] = {
+          path = "tests.interactions.shared.editor_context.baz",
+          description = "baz",
         },
       },
     },

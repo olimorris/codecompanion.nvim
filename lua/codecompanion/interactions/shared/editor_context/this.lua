@@ -24,12 +24,12 @@ function EditorContext:apply_cli()
   end
 
   if ctx.is_visual and ctx.lines and #ctx.lines > 0 then
-    return require("codecompanion.interactions.chat.editor_context.selection")
+    return require("codecompanion.interactions.shared.editor_context.selection")
       .new({ buffer_context = ctx, config = self.config, params = self.params })
       :apply_cli()
   end
 
-  return require("codecompanion.interactions.chat.editor_context.buffer")
+  return require("codecompanion.interactions.shared.editor_context.buffer")
     .new({ buffer_context = ctx, config = self.config, params = self.params })
     :apply_cli()
 end

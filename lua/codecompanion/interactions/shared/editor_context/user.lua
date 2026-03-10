@@ -28,7 +28,7 @@ function EditorContext:apply()
   self.Chat.context:add({
     bufnr = self.Chat.bufnr,
     id = id,
-    source = "codecompanion.interactions.chat.editor_context.user",
+    source = "codecompanion.interactions.shared.editor_context.user",
   })
 end
 

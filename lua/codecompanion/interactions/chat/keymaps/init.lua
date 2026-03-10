@@ -94,7 +94,7 @@ M.options = {
     local keymaps_max = max("description", keymaps)
 
     local ec = {}
-    vim.iter(config.interactions.chat.editor_context):each(function(key, val)
+    vim.iter(config.interactions.shared.editor_context):each(function(key, val)
       if not val.hide_in_help_window then
         ec[key] = val
       end

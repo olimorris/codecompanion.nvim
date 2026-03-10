@@ -22,7 +22,7 @@ end
 ---@return number
 function EditorContext:_resolve_bufnr()
   if self.target then
-    local buffer_ctx = require("codecompanion.interactions.chat.editor_context.buffer")
+    local buffer_ctx = require("codecompanion.interactions.shared.editor_context.buffer")
     local found = buffer_ctx._find_buffer(self.target)
     if found then
       log:debug("Diagnostics: found buffer %d for target: %s", found, self.target)

@@ -69,7 +69,7 @@ end
 
 T["Editor Context"][":parse"]["should parse a message with editor context and use default params if set"] = function()
   local config = require("codecompanion.config")
-  config.interactions.chat.editor_context.baz.opts = { default_params = "with default" }
+  config.interactions.shared.editor_context.baz.opts = { default_params = "with default" }
 
   table.insert(chat.messages, {
     role = "user",
@@ -155,7 +155,7 @@ T["Editor Context"][":parse"]["buffers editor context adds context items"] = fun
   for _, item in ipairs(chat.context_items) do
     h.eq(true, item.id ~= nil)
     h.eq(true, item.bufnr ~= nil)
-    h.eq("codecompanion.interactions.chat.editor_context.buffers", item.source)
+    h.eq("codecompanion.interactions.shared.editor_context.buffers", item.source)
   end
 end
 
