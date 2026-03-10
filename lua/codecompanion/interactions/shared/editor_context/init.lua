@@ -82,12 +82,16 @@ end
 ---@class CodeCompanion.EditorContext
 local EditorContext = {}
 
-function EditorContext.new()
+---@param interaction? string The interaction type ("chat", "cli") to filter contexts by
+function EditorContext.new(interaction)
   local ec = config.interactions.shared.editor_context
   local contexts = {}
   for k, v in pairs(ec) do
     if k ~= "opts" then
-      contexts[k] = v
+      local allowed = v.opts and v.opts.interactions
+      if not allowed or not interaction or vim.tbl_contains(allowed, interaction) then
+        contexts[k] = v
+      end
     end
   end
 

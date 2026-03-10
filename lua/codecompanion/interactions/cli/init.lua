@@ -165,7 +165,7 @@ end
 ---@param buffer_context CodeCompanion.BufferContext
 ---@return string
 function CLI.resolve_editor_context(prompt, buffer_context)
-  local editor_context = require("codecompanion.interactions.shared.editor_context").new()
+  local editor_context = require("codecompanion.interactions.shared.editor_context").new("cli")
 
   -- If the user makes a visiual selection then include it in the prompt
   local triggers = require("codecompanion.triggers")

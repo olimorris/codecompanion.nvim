@@ -356,89 +356,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
-      editor_context = {
-        opts = {
-          excluded = {
-            buftypes = {
-              "nofile",
-              "quickfix",
-              "prompt",
-              "popup",
-            },
-            fts = {
-              "codecompanion",
-              "help",
-              "terminal",
-            },
-          },
-        },
-        ["buffer"] = {
-          path = "interactions.chat.editor_context.buffer",
-          description = "Share the current buffer with the LLM",
-          opts = {
-            contains_code = true,
-            default_params = "diff", -- all|diff
-            has_params = true,
-          },
-        },
-        ["buffers"] = {
-          path = "interactions.chat.editor_context.buffers",
-          description = "Share all open buffers with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["diagnostics"] = {
-          path = "interactions.chat.editor_context.diagnostics",
-          description = "Share diagnostics and code for the current buffer",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["diff"] = {
-          path = "interactions.chat.editor_context.diff",
-          description = "Share the current git diff with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["messages"] = {
-          path = "interactions.chat.editor_context.messages",
-          description = "Share Neovim's message history with the LLM",
-        },
-        ["quickfix"] = {
-          path = "interactions.chat.editor_context.quickfix",
-          description = "Share the quickfix list with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["selection"] = {
-          path = "interactions.chat.editor_context.selection",
-          description = "Share the current visual selection with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["terminal"] = {
-          path = "interactions.chat.editor_context.terminal",
-          description = "Share the latest terminal output with the LLM",
-        },
-        ["viewport"] = {
-          path = "interactions.chat.editor_context.viewport",
-          description = "Share the code that you see in Neovim with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["this"] = {
-          path = "interactions.chat.editor_context.this",
-          description = "Smart context: visual selection if present, otherwise the current buffer (CLI only)",
-          opts = {
-            contains_code = true,
-          },
-        },
-      },
       slash_commands = {
         ["buffer"] = {
           path = "interactions.chat.slash_commands.builtin.buffer",
@@ -857,6 +774,90 @@ The user is working on a %s machine. Please respond with system specific command
       },
     },
     shared = {
+      editor_context = {
+        opts = {
+          excluded = {
+            buftypes = {
+              "nofile",
+              "quickfix",
+              "prompt",
+              "popup",
+            },
+            fts = {
+              "codecompanion",
+              "help",
+              "terminal",
+            },
+          },
+        },
+        ["buffer"] = {
+          path = "interactions.shared.editor_context.buffer",
+          description = "Share the current buffer with the LLM",
+          opts = {
+            contains_code = true,
+            default_params = "diff", -- all|diff
+            has_params = true,
+          },
+        },
+        ["buffers"] = {
+          path = "interactions.shared.editor_context.buffers",
+          description = "Share all open buffers with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["diagnostics"] = {
+          path = "interactions.shared.editor_context.diagnostics",
+          description = "Share diagnostics and code for the current buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["diff"] = {
+          path = "interactions.shared.editor_context.diff",
+          description = "Share the current git diff with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["messages"] = {
+          path = "interactions.shared.editor_context.messages",
+          description = "Share Neovim's message history with the LLM",
+        },
+        ["quickfix"] = {
+          path = "interactions.shared.editor_context.quickfix",
+          description = "Share the quickfix list with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["selection"] = {
+          path = "interactions.shared.editor_context.selection",
+          description = "Share the current visual selection with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["terminal"] = {
+          path = "interactions.shared.editor_context.terminal",
+          description = "Share the latest terminal output with the LLM",
+        },
+        ["viewport"] = {
+          path = "interactions.shared.editor_context.viewport",
+          description = "Share the code that you see in Neovim with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["this"] = {
+          path = "interactions.shared.editor_context.this",
+          description = "Smart context: visual selection if present, otherwise the current buffer (CLI only)",
+          opts = {
+            contains_code = true,
+            interactions = { "cli" },
+          },
+        },
+      },
       keymaps = {
         always_accept = {
           callback = "keymaps.always_accept",
@@ -1256,6 +1257,13 @@ M.setup = function(args)
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
+
+  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
+  if args.interactions and args.interactions.chat and args.interactions.chat.editor_context then
+    M.config.interactions.shared.editor_context =
+      vim.tbl_deep_extend("force", M.config.interactions.shared.editor_context, args.interactions.chat.editor_context)
+    M.config.interactions.chat.editor_context = nil
+  end
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
