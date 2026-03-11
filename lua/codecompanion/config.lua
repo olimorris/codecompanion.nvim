@@ -751,7 +751,7 @@ The user is working on a %s machine. Please respond with system specific command
     cli = {
       agents = {},
       opts = {
-        auto_insert = true, -- Enter insert mode when focusing the CLI terminal
+        auto_insert = false, -- Enter insert mode when focusing the CLI terminal
         reload = true, -- Reload buffers when an agent modifies files on disk
       },
       providers = {
