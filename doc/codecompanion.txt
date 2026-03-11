@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 09
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -4485,7 +4485,7 @@ contents, LSP diagnostics, or your current viewport. Type `#` in the chat
 buffer to see available context through code completion, or type them manually.
 
 Custom context can be shared in the chat buffer by adding them to the
-`interactions.chat.editor_context` table in your configuration.
+`interactions.shared.editor_context` table in your configuration.
 
 
 BASIC USAGE ~
@@ -4946,7 +4946,7 @@ RICH INPUT BUFFER
 
 Running `:CodeCompanionCLI Ask` opens an input buffer where you can write
 multi-line prompts and use |codecompanion-usage-chat-buffer-editor-context|
-references (e.g.� `#buffer`, `#selection`).
+references (e.g.� `#{buffer}`, `#{this}`).
 
 - `:w` — Sends the prompt to the CLI agent
 - `:w!` — Sends and auto-submits the prompt

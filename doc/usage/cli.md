@@ -33,7 +33,7 @@ This is useful for "fire and forget" workflows where you want to send a prompt w
 
 ### Rich Input Buffer
 
-Running `:CodeCompanionCLI Ask` opens an input buffer where you can write multi-line prompts and use [editor context](/usage/chat-buffer/editor-context) references (e.g. `#buffer`, `#selection`).
+Running `:CodeCompanionCLI Ask` opens an input buffer where you can write multi-line prompts and use [editor context](/usage/chat-buffer/editor-context) references (e.g. `#{buffer}`, `#{this}`).
 
 - `:w` — Sends the prompt to the CLI agent
 - `:w!` — Sends and auto-submits the prompt
