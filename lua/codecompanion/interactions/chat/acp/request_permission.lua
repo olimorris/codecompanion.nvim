@@ -223,7 +223,7 @@ local function build_choices(request)
   local description = args and args.description
 
   local lines = {}
-  if vim.list_contains({ string.lower("execute") }, kind) then
+  if vim.list_contains({ "execute" }, string.lower(kind)) then
     table.insert(lines, fmt("## %s: %s", utils.capitalize(kind), title))
   else
     table.insert(lines, fmt("## %s", utils.capitalize(kind)))
