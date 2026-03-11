@@ -1383,9 +1383,10 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents (e.g.�
-enabling `yolo` mode). As there is a lot of shared functionality between the
-two adapters, it is recommend that you read this page alongside the ACP one.
+`commands` to allow users to customize their interaction with agents
+(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
+the two adapters, it is recommend that you read this page alongside the ACP
+one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1439,7 +1440,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -1616,8 +1617,15 @@ LLAMA.CPP WITH --REASONING-FORMAT DEEPSEEK
 
 OLLAMA (REMOTELY)
 
-To use Ollama remotely, change the URL in the env table, set an API key and
-pass it via an "Authorization" header:
+The simplest way to connect to a remote Ollama instance is to set the
+`OLLAMA_HOST` environment variable (the same variable used by the Ollama CLI):
+
+>bash
+    export OLLAMA_HOST="http://192.168.1.100:11434"
+<
+
+Alternatively, configure it directly in your setup using `extend()`. If you
+need authentication, set an API key and pass it via an "Authorization" header:
 
 >lua
     require("codecompanion").setup({
@@ -3659,7 +3667,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -4497,7 +4505,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
+  data changes (e.g. new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -5506,7 +5514,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -7412,7 +7420,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e.� a
+they’re an adapter tool that requires a client-side component (i.e. a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has

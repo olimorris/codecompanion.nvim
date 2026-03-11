@@ -343,4 +343,21 @@ T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   h.eq("Dynamic Scripting language", adapter.handlers.inline_output(adapter, json).output)
 end
 
+T["Ollama adapter"]["OLLAMA_HOST"] = new_set()
+
+T["Ollama adapter"]["OLLAMA_HOST"]["uses OLLAMA_HOST when set"] = function()
+  local adapter_utils = require("codecompanion.utils.adapters")
+  vim.env.OLLAMA_HOST = "http://192.168.1.100:11434"
+  adapter_utils.get_env_vars(adapter)
+  h.eq("http://192.168.1.100:11434", adapter.env_replaced.url)
+  vim.env.OLLAMA_HOST = nil
+end
+
+T["Ollama adapter"]["OLLAMA_HOST"]["fallback to localhost when OLLAMA_HOST is not set"] = function()
+  local adapter_utils = require("codecompanion.utils.adapters")
+  vim.env.OLLAMA_HOST = nil
+  adapter_utils.get_env_vars(adapter)
+  h.eq("http://localhost:11434", adapter.env_replaced.url)
+end
+
 return T

@@ -1,5 +1,21 @@
 # Changelog
 
+## [19.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.2.0...v19.3.0) (2026-03-09)
+
+
+### Features
+
+* **acp:** add tool request approval event ([#2870](https://github.com/olimorris/codecompanion.nvim/issues/2870)) ([d87556a](https://github.com/olimorris/codecompanion.nvim/commit/d87556a843c56bedbfd941d08bf795d2c71cc06a))
+* **adapters:** respect OLLAMA_HOST env var for remote connections ([#2878](https://github.com/olimorris/codecompanion.nvim/issues/2878)) ([45b31a9](https://github.com/olimorris/codecompanion.nvim/commit/45b31a9d818007d978bd7d8007bbed4bfbaa5d78))
+* **prompt_library:** add user prompt to context ([#2864](https://github.com/olimorris/codecompanion.nvim/issues/2864)) ([bade403](https://github.com/olimorris/codecompanion.nvim/commit/bade4034395d327f1fd3defd34cce4793e412a27))
+* **tools:** add callback to allow modification of tool output ([#2872](https://github.com/olimorris/codecompanion.nvim/issues/2872)) ([2e1bbed](https://github.com/olimorris/codecompanion.nvim/commit/2e1bbedf9de85a256b12f3636dbaf153cca450de))
+
+
+### Bug Fixes
+
+* **acp:** reload buffers after edits ([#2869](https://github.com/olimorris/codecompanion.nvim/issues/2869)) ([972ca95](https://github.com/olimorris/codecompanion.nvim/commit/972ca950e0e432d0fa6fa4a585b6005db44e94c8))
+* **tools:** handle newline correctly for insert_edit_into_file ([#2871](https://github.com/olimorris/codecompanion.nvim/issues/2871)) ([45dd9e4](https://github.com/olimorris/codecompanion.nvim/commit/45dd9e4f6382f19dadd6768bb0e90452848b49fb))
+
 ## [19.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.1.0...v19.2.0) (2026-03-04)
 
 
