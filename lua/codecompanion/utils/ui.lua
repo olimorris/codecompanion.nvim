@@ -613,6 +613,10 @@ function M.confirm(prompt, choices, callback, opts)
     footer = create_confirm_footer(choices, active),
     footer_pos = "center",
   }
+  if window_config.focus_keymap then
+    win_opts.title = { { " " .. window_config.focus_keymap .. " to focus ", "Comment" } }
+    win_opts.title_pos = "right"
+  end
   if anchor_winnr then
     win_opts.relative = "win"
     win_opts.win = anchor_winnr
