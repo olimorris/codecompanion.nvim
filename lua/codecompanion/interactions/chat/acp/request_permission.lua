@@ -217,7 +217,15 @@ end
 local function build_choices(request)
   local tool_call = request.tool_call
   local kind = tool_call and tool_call.kind or "permission"
-  local title = tool_call and tool_call.title or utils.capitalize(string.lower(kind))
+  local tool_title = tool_call and tool_call.title
+  local kind_label = utils.capitalize(string.lower(kind))
+
+  local win_title
+  if not tool_title or vim.tbl_contains({ "execute", "search", "think", "fetch" }, string.lower(kind)) then
+    win_title = kind_label
+  else
+    win_title = fmt("%s: %s", kind_label, tool_title)
+  end
 
   local args = tool_call and tool_call.rawInput
   local description = args and args.description
@@ -293,7 +301,7 @@ local function build_choices(request)
     })
   end
 
-  return title, table.concat(lines, "\n"), choices
+  return win_title, table.concat(lines, "\n"), choices
 end
 
 ---Show the permission request to the user and handle their response

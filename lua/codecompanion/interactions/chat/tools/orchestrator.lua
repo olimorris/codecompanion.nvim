@@ -11,9 +11,9 @@ local fmt = string.format
 ---Build the prompt and choices for the tool approval dialog
 ---@param tool CodeCompanion.Tools.Tool
 ---@param fallback_prompt? string
----@return string prompt, table choices
+---@return string title, string prompt, table choices
 local function build_choices(tool, fallback_prompt)
-  local title = tool.name
+  local title = utils.capitalize(tool.name)
 
   local lines = {}
   local args = tool.args
