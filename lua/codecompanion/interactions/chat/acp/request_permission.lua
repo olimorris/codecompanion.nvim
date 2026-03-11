@@ -278,6 +278,10 @@ local function build_choices(request)
         "````",
       })
     end
+
+    vim.list_extend(lines, {
+      "",
+    })
   end
 
   local choices = {}
