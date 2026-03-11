@@ -85,7 +85,10 @@ function Terminal:send(text, opts)
     return false
   end
 
-  self.queue:push({ text = text, submit = opts and opts.submit })
+  self.queue:push({ text = text })
+  if opts and opts.submit then
+    self.queue:push({ enter = true })
+  end
 
   if self.ready then
     self:_consume()
@@ -190,13 +193,11 @@ function Terminal:_consume()
       end
 
       local item = self.queue:pop()
-      local text = item.text:gsub("\r\n", "\n")
-      if item.submit and self.chan then
-        vim.fn.chansend(self.chan, text .. "\r")
+      if item.enter then
+        vim.fn.chansend(self.chan, "\r")
       else
-        api.nvim_buf_call(self.bufnr, function()
-          api.nvim_put(vim.split(text .. "\n", "\n", { plain = true }), "c", false, true)
-        end)
+        local text = item.text:gsub("\r\n", "\n")
+        vim.fn.chansend(self.chan, text)
       end
     end)
   )
