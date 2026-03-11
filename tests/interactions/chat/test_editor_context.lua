@@ -155,7 +155,7 @@ T["Editor Context"][":parse"]["buffers editor context adds context items"] = fun
   for _, item in ipairs(chat.context_items) do
     h.eq(true, item.id ~= nil)
     h.eq(true, item.bufnr ~= nil)
-    h.eq("codecompanion.interactions.shared.editor_context.buffers", item.source)
+    h.eq("codecompanion.interactions.shared.editor_context.buffer", item.source)
   end
 end
 

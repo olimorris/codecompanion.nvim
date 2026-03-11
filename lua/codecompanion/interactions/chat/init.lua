@@ -170,7 +170,7 @@ local function sync_all_buffer_content(chat)
     if not exists then
       require(item.source)
         .new({ Chat = chat })
-        :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { item = true })
+        :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { sync_all = true })
     end
   end
 end

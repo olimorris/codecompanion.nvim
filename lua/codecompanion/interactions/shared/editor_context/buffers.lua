@@ -74,7 +74,11 @@ function EditorContext:apply()
         self.Chat.context:add({
           bufnr = buf_info.bufnr,
           id = id,
-          source = "codecompanion.interactions.shared.editor_context.buffers",
+          path = buf_info.path,
+          opts = {
+            sync_all = true,
+          },
+          source = "codecompanion.interactions.shared.editor_context.buffer",
         })
 
         count = count + 1
