@@ -1032,7 +1032,8 @@ The user is working on a %s machine. Please respond with system specific command
         height = 0.8, ---@return number|fun(): number
         border = "single",
         style = "minimal",
-        relative = "editor",
+        relative = "window", -- "window" anchors to the chat window, "editor" centers on the full editor
+        focus_keymap = "<C-w><C-f>", -- Keymap to focus the most recent approval window. Set to false to disable.
         opts = {
           wrap = true,
           cursorline = false,

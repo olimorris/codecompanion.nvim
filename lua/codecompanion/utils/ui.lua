@@ -441,7 +441,7 @@ function M.set_winbar(winnr, text, hl)
   vim.wo[winnr].winbar = centered
 end
 
----@type table<any, table<number, fun()>> Registry of open confirm dialogs: key -> { [id] = cancel_fn }
+---@type table<any, table<number, { cancel: fun(), winnr: number, ts: number }>> Registry of open confirm dialogs: key -> { [id] = entry }
 local pending_confirms = {}
 
 ---Cancel all open confirm dialogs for a given key
@@ -452,9 +452,45 @@ function M.cancel_confirm(key)
     return
   end
   pending_confirms[key] = nil
-  for _, cancel in pairs(group) do
-    cancel()
+  for _, entry in pairs(group) do
+    entry.cancel()
   end
+end
+
+---Focus the most recently spawned confirm dialog window.
+---If the most recent one is already focused, cycle to the next.
+---@return boolean focused Whether a window was focused
+function M.focus_confirm()
+  local entries = {}
+  for _, group in pairs(pending_confirms) do
+    for _, entry in pairs(group) do
+      if api.nvim_win_is_valid(entry.winnr) then
+        table.insert(entries, entry)
+      end
+    end
+  end
+
+  if #entries == 0 then
+    return false
+  end
+
+  table.sort(entries, function(a, b)
+    return a.ts > b.ts
+  end)
+
+  local current_win = api.nvim_get_current_win()
+  for _, entry in ipairs(entries) do
+    if entry.winnr ~= current_win then
+      api.nvim_set_current_win(entry.winnr)
+
+      return true
+    end
+  end
+
+  -- All entries are the current window (single dialog), just re-focus it
+  api.nvim_set_current_win(entries[1].winnr)
+
+  return true
 end
 
 ---Normalize a choice entry into { label: string, value: any }
@@ -527,6 +563,25 @@ function M.confirm(prompt, choices, callback, opts)
   footer_width = footer_width + 1
 
   local window_config = require("codecompanion.config").display.chat.tool_approval_window
+
+  -- Determine anchor: "window" positions over the chat window, "editor" centers on the full editor
+  local anchor_winnr
+  if window_config.relative == "window" and type(key) == "number" then
+    local win_id = vim.fn.bufwinid(key)
+    if win_id > 0 and api.nvim_win_is_valid(win_id) then
+      anchor_winnr = win_id
+    end
+  end
+
+  local ref_width, ref_height
+  if anchor_winnr then
+    ref_width = api.nvim_win_get_width(anchor_winnr)
+    ref_height = api.nvim_win_get_height(anchor_winnr)
+  else
+    ref_width = vim.o.columns
+    ref_height = vim.o.lines
+  end
+
   local cfg_width = window_config.width
   local cfg_height = window_config.height
   if type(cfg_width) == "function" then
@@ -536,8 +591,8 @@ function M.confirm(prompt, choices, callback, opts)
     cfg_height = cfg_height()
   end
 
-  local max_width = math.min(math.floor(vim.o.columns * cfg_width), vim.o.columns - 2)
-  local max_height = math.min(math.floor(vim.o.lines * cfg_height), vim.o.lines - 4)
+  local max_width = math.min(math.floor(ref_width * cfg_width), ref_width - 2)
+  local max_height = math.min(math.floor(ref_height * cfg_height), ref_height - 4)
 
   local width = math.min(math.max(max_line_width + 4, footer_width), max_width)
   local height = math.min(math.max(#lines, 1), max_height)
@@ -549,18 +604,27 @@ function M.confirm(prompt, choices, callback, opts)
   vim.bo[bufnr].modifiable = false
   vim.bo[bufnr].bufhidden = "wipe"
 
-  -- Open floating window
-  local winnr = api.nvim_open_win(bufnr, true, {
-    relative = window_config.relative,
-    row = math.floor((vim.o.lines - height) / 2) - 1,
-    col = math.floor((vim.o.columns - width) / 2),
+  -- Open floating window without focus, positioned over the chat window when possible
+  local win_opts = {
     width = width,
     height = height,
     style = window_config.style,
     border = window_config.border,
     footer = create_confirm_footer(choices, active),
     footer_pos = "center",
-  })
+  }
+  if anchor_winnr then
+    win_opts.relative = "win"
+    win_opts.win = anchor_winnr
+    win_opts.row = math.floor((ref_height - height) / 2)
+    win_opts.col = math.floor((ref_width - width) / 2)
+  else
+    win_opts.relative = "editor"
+    win_opts.row = math.floor((vim.o.lines - height) / 2) - 1
+    win_opts.col = math.floor((vim.o.columns - width) / 2)
+  end
+
+  local winnr = api.nvim_open_win(bufnr, false, win_opts)
   M.set_win_options(winnr, window_config.opts)
 
   local function update_footer()
@@ -635,7 +699,7 @@ function M.confirm(prompt, choices, callback, opts)
     if not pending_confirms[key] then
       pending_confirms[key] = {}
     end
-    pending_confirms[key][id] = cancel
+    pending_confirms[key][id] = { cancel = cancel, winnr = winnr, ts = vim.uv.hrtime() }
   end
 
   return cancel

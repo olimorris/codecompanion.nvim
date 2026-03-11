@@ -34,6 +34,17 @@ T = new_set({
           reject_change = { modes = { n = "gr" } },
           always_accept = { modes = { n = "gA" } },
         }
+
+        -- Helper to focus the first floating window (confirm dialogs now open unfocused)
+        _G.__focus_float = function()
+          for _, win in ipairs(vim.api.nvim_list_wins()) do
+            local c = vim.api.nvim_win_get_config(win)
+            if c.relative and c.relative ~= "" then
+              vim.api.nvim_set_current_win(win)
+              return
+            end
+          end
+        end
       ]])
     end,
     post_case = function()
@@ -329,6 +340,7 @@ T["confirm -> Enter selects the default choice"] = function()
     end)
   ]])
 
+  child.lua([[_G.__focus_float()]])
   child.type_keys("<CR>")
   child.lua([[vim.wait(100, function() return _G.__selected ~= nil end, 10)]])
 
@@ -349,6 +361,7 @@ T["confirm -> Tab cycles to next choice"] = function()
     end)
   ]])
 
+  child.lua([[_G.__focus_float()]])
   child.type_keys("<Tab>")
   child.type_keys("<CR>")
   child.lua([[vim.wait(100, function() return _G.__selected ~= nil end, 10)]])
@@ -371,6 +384,7 @@ T["confirm -> S-Tab cycles to previous choice"] = function()
   ]])
 
   -- Default is index 1 (A), S-Tab wraps to index 3 (C)
+  child.lua([[_G.__focus_float()]])
   child.type_keys("<S-Tab>")
   child.type_keys("<CR>")
   child.lua([[vim.wait(100, function() return _G.__selected ~= nil end, 10)]])
@@ -392,6 +406,7 @@ T["confirm -> number key selects directly"] = function()
     end)
   ]])
 
+  child.lua([[_G.__focus_float()]])
   child.type_keys("3")
   child.lua([[vim.wait(100, function() return _G.__selected ~= nil end, 10)]])
 
@@ -410,6 +425,7 @@ T["confirm -> Esc cancels with nil"] = function()
     end)
   ]])
 
+  child.lua([[_G.__focus_float()]])
   child.type_keys("<Esc>")
   child.lua([[vim.wait(100, function() return _G.__selected ~= "not_called" end, 10)]])
 
@@ -428,6 +444,7 @@ T["confirm -> q cancels with nil"] = function()
     end)
   ]])
 
+  child.lua([[_G.__focus_float()]])
   child.type_keys("q")
   child.lua([[vim.wait(100, function() return _G.__selected ~= "not_called" end, 10)]])
 
@@ -445,6 +462,7 @@ T["confirm -> normalizes plain string choices"] = function()
   ]])
 
   -- Default is index 1, Enter selects "Yes" (label == value for strings)
+  child.lua([[_G.__focus_float()]])
   child.type_keys("<CR>")
   child.lua([[vim.wait(100, function() return _G.__selected ~= nil end, 10)]])
 

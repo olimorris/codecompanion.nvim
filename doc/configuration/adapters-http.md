@@ -362,7 +362,13 @@ require("codecompanion").setup({
 
 ### Ollama (remotely)
 
-To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
+The simplest way to connect to a remote Ollama instance is to set the `OLLAMA_HOST` environment variable (the same variable used by the Ollama CLI):
+
+```bash
+export OLLAMA_HOST="http://192.168.1.100:11434"
+```
+
+Alternatively, configure it directly in your setup using `extend()`. If you need authentication, set an API key and pass it via an "Authorization" header:
 
 ```lua
 require("codecompanion").setup({
@@ -430,9 +436,12 @@ By default, CodeCompanion sets `store = false` to ensure that state isn't [store
 
 Thanks to the community for building the following adapters:
 
-- [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
-- [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
-- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
 - [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
+- [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
+- [InceptionLabs - Mercury 2](https://github.com/olimorris/codecompanion.nvim/discussions/2867)
+- [Nvidia NIM](https://github.com/olimorris/codecompanion.nvim/discussions/2810)
+- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
+- [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
+- [Vertex AI](https://github.com/viespejo/cc-adapter-vertex-ai.nvim)
 
 The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
