@@ -13,11 +13,11 @@ local fmt = string.format
 ---@param fallback_prompt? string
 ---@return string prompt, table choices
 local function build_choices(tool, fallback_prompt)
-  local lines = { fmt("## Run `%s`?", tool.name) }
+  local title = tool.name
 
+  local lines = {}
   local args = tool.args
   if args and next(args) then
-    table.insert(lines, "")
     table.insert(lines, "````json")
     for _, json_line in ipairs(vim.split(vim.json.encode(args, { indent = "  " }), "\n")) do
       table.insert(lines, json_line)
@@ -36,7 +36,7 @@ local function build_choices(tool, fallback_prompt)
     { label = "Cancel", value = "cancel" },
   }
 
-  return prompt, choices
+  return title, prompt, choices
 end
 
 ---Strip any ANSI color codes which don't render in the chat buffer
@@ -327,7 +327,7 @@ function Orchestrator:setup_next_tool(input)
         args = self.tool.args,
       })
 
-      local prompt, choices = build_choices(self.tool, self.output.prompt())
+      local win_title, prompt, choices = build_choices(self.tool, self.output.prompt())
 
       ui_utils.confirm(prompt, choices, function(choice)
         log:debug("[Orchestrator::setup_next_tool] User choice: %s", choice)
@@ -356,7 +356,7 @@ function Orchestrator:setup_next_tool(input)
           self:cancel_pending_tools()
           return self:_finalize_tools()
         end
-      end, { key = self.tools.bufnr })
+      end, { key = self.tools.bufnr, title = win_title })
     else
       return self:execute_tool({ cmd = cmd, input = input })
     end

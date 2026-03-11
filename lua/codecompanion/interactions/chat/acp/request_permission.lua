@@ -211,23 +211,18 @@ local function show_diff(chat, request)
   setup_diff_keymaps(diff_ui, normalized, kind_map, request)
 end
 
----Build the prompt and choices for the ACP permission dialog
+---Build the prompt, title and choices for the ACP permission dialog
 ---@param request table
----@return string prompt, table choices
+---@return string title, string prompt, table choices
 local function build_choices(request)
   local tool_call = request.tool_call
   local kind = tool_call and tool_call.kind or "permission"
-  local title = tool_call and tool_call.title or "Agent requested permission"
+  local title = tool_call and tool_call.title or utils.capitalize(string.lower(kind))
 
   local args = tool_call and tool_call.rawInput
   local description = args and args.description
 
   local lines = {}
-  if vim.list_contains({ "execute" }, string.lower(kind)) then
-    table.insert(lines, fmt("## %s: %s", utils.capitalize(kind), title))
-  else
-    table.insert(lines, fmt("## %s", utils.capitalize(kind)))
-  end
 
   if description then
     vim.list_extend(lines, {
@@ -261,10 +256,21 @@ local function build_choices(request)
       details.command = nil
     end
 
+    local path = details.path or details.file_path
+    if path then
+      vim.list_extend(lines, {
+        "",
+        fmt("**Path:** `%s`", path),
+      })
+      details.path = nil
+      details.file_path = nil
+    end
+
     if next(details) then
       vim.list_extend(lines, {
         "",
         "### Arguments",
+        "",
         "````json",
       })
       vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
@@ -283,7 +289,7 @@ local function build_choices(request)
     })
   end
 
-  return table.concat(lines, "\n"), choices
+  return title, table.concat(lines, "\n"), choices
 end
 
 ---Show the permission request to the user and handle their response
@@ -296,7 +302,7 @@ function M.confirm(chat, request)
     return show_diff(chat, request)
   end
 
-  local prompt, choices = build_choices(request)
+  local win_title, prompt, choices = build_choices(request)
   log:debug("[acp::request_permission] Available choices %s", choices)
 
   ui_utils.confirm(prompt, choices, function(option_id)
@@ -306,7 +312,7 @@ function M.confirm(chat, request)
     else
       request.respond(nil, true)
     end
-  end, { key = chat.bufnr })
+  end, { key = chat.bufnr, title = win_title })
 end
 
 return M

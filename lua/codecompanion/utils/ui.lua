@@ -546,7 +546,7 @@ end
 ---@param prompt string The prompt message (supports markdown syntax highlighting)
 ---@param choices table List of choices — each can be a string or { label: string, value?: any, default?: boolean }
 ---@param callback fun(value: any|nil) Called with the value of the selected choice, or nil if cancelled
----@param opts? { key: any } Options. If `key` is provided, the dialog is tracked and can be cancelled via `cancel_confirm(key)`.
+---@param opts? { key: any, title: string } Options. `key` tracks the dialog for `cancel_confirm`. `title` sets the window title.
 ---@return fun() cancel A function that closes the dialog (calling callback with nil)
 function M.confirm(prompt, choices, callback, opts)
   opts = opts or {}
@@ -667,7 +667,7 @@ function M.confirm(prompt, choices, callback, opts)
     footer = create_confirm_footer(choices, active),
     footer_pos = "center",
   }
-  local title_left = " Permission Request "
+  local title_left = " " .. (opts.title or "Confirm") .. " "
   if window_config.focus_keymap then
     local hint = " " .. window_config.focus_keymap .. " to focus "
     local pad_len = math.max(0, width - api.nvim_strwidth(title_left) - api.nvim_strwidth(hint))
@@ -687,7 +687,9 @@ function M.confirm(prompt, choices, callback, opts)
     win_opts.col = math.floor((vim.o.columns - width) / 2)
   end
 
-  local winnr = api.nvim_open_win(bufnr, false, win_opts)
+  -- Auto-focus if the user is already in the chat window
+  local auto_focus = anchor_winnr and api.nvim_get_current_win() == anchor_winnr
+  local winnr = api.nvim_open_win(bufnr, auto_focus or false, win_opts)
   M.set_win_options(winnr, window_config.opts)
 
   local function update_footer()
