@@ -15,17 +15,66 @@ local fmt = string.format
 local function build_choices(tool, fallback_prompt)
   local title = utils.capitalize(tool.name)
 
-  local lines = {}
   local args = tool.args
+  local lines = {}
+
   if args and next(args) then
-    table.insert(lines, "````json")
-    for _, json_line in ipairs(vim.split(vim.json.encode(args, { indent = "  " }), "\n")) do
-      table.insert(lines, json_line)
+    local details = vim.deepcopy(args)
+
+    if details.explanation then
+      table.insert(lines, details.explanation)
+      details.explanation = nil
     end
-    table.insert(lines, "````")
+
+    local filepath = details.filepath or details.path
+    if filepath then
+      vim.list_extend(lines, { "", fmt("**Path:** `%s`", filepath) })
+      details.filepath = nil
+      details.path = nil
+    end
+
+    if details.url then
+      vim.list_extend(lines, { "", fmt("**URL:** `%s`", details.url) })
+      details.url = nil
+    end
+
+    if details.cmd then
+      vim.list_extend(lines, { "", "### Command", "", "````bash", details.cmd, "````" })
+      details.cmd = nil
+    end
+
+    if details.query then
+      vim.list_extend(lines, { "", fmt("**Query:** `%s`", details.query) })
+      details.query = nil
+    end
+
+    if details.content then
+      vim.list_extend(lines, { "", "### Content", "", "````", details.content, "````" })
+      details.content = nil
+    end
+
+    if details.edits then
+      for i, edit in ipairs(details.edits) do
+        vim.list_extend(lines, { "", fmt("### Edit %d", i) })
+        if edit.oldText and edit.oldText ~= "" then
+          vim.list_extend(lines, { "", "**Old:**", "````", edit.oldText, "````" })
+        end
+        if edit.newText and edit.newText ~= "" then
+          vim.list_extend(lines, { "", "**New:**", "````", edit.newText, "````" })
+        end
+      end
+      details.edits = nil
+    end
+
+    -- Remaining args as JSON
+    if next(details) then
+      vim.list_extend(lines, { "", "### Arguments", "", "````json" })
+      vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
+      table.insert(lines, "````")
+    end
   end
 
-  local prompt = (args and next(args)) and table.concat(lines, "\n")
+  local prompt = (#lines > 0) and table.concat(lines, "\n")
     or fallback_prompt
     or fmt("Run the %q tool?", tool.name)
 

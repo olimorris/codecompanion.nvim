@@ -55,7 +55,7 @@ T["Tools"]["user approval"]["prompts a user when tool requires approval"] = func
 
   -- Check that UI was called with expected values
   h.eq(true, child.lua_get([[_G.ui_called]]))
-  h.eq('````json\n{\n  "data": "Test Data"\n}\n````', child.lua_get([[_G.ui_prompt]]))
+  h.eq('\n### Arguments\n\n````json\n{\n  "data": "Test Data"\n}\n````', child.lua_get([[_G.ui_prompt]]))
 
   -- Check that tool executed after approval
   h.eq("Test Data", child.lua_get([[_G._test_func]]))
