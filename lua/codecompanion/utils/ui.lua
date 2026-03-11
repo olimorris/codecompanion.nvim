@@ -441,7 +441,9 @@ function M.set_winbar(winnr, text, hl)
   vim.wo[winnr].winbar = centered
 end
 
----@type table<any, table<number, { cancel: fun(), winnr: number, ts: number }>> Registry of open confirm dialogs: key -> { [id] = entry }
+---@type table<any, table<number, { cancel?: fun(), winnr?: number, ts: number, prompt?: string, choices?: table, callback?: fun(value: any|nil), opts?: table }>>
+---Registry of confirm dialogs: key -> { [id] = entry }
+---Entries with `winnr` are currently shown; entries without are queued.
 local pending_confirms = {}
 
 ---Cancel all open confirm dialogs for a given key
@@ -453,43 +455,56 @@ function M.cancel_confirm(key)
   end
   pending_confirms[key] = nil
   for _, entry in pairs(group) do
-    entry.cancel()
+    if entry.cancel then
+      entry.cancel()
+    end
   end
 end
 
----Focus the most recently spawned confirm dialog window.
----If the most recent one is already focused, cycle to the next.
+---Focus the currently visible confirm dialog window.
 ---@return boolean focused Whether a window was focused
 function M.focus_confirm()
-  local entries = {}
   for _, group in pairs(pending_confirms) do
     for _, entry in pairs(group) do
-      if api.nvim_win_is_valid(entry.winnr) then
-        table.insert(entries, entry)
+      if entry.winnr and api.nvim_win_is_valid(entry.winnr) then
+        api.nvim_set_current_win(entry.winnr)
+        return true
+      end
+    end
+  end
+  return false
+end
+
+---Show the next queued confirm dialog (oldest first).
+---Called automatically after a dialog is resolved.
+---@return boolean shown Whether a queued dialog was shown
+function M.show_next_queued()
+  local oldest_entry, oldest_key, oldest_id
+  for k, group in pairs(pending_confirms) do
+    for id, entry in pairs(group) do
+      if not entry.winnr then
+        if not oldest_entry or entry.ts < oldest_entry.ts then
+          oldest_entry = entry
+          oldest_key = k
+          oldest_id = id
+        end
       end
     end
   end
 
-  if #entries == 0 then
+  if not oldest_entry then
     return false
   end
 
-  table.sort(entries, function(a, b)
-    return a.ts > b.ts
-  end)
-
-  local current_win = api.nvim_get_current_win()
-  for _, entry in ipairs(entries) do
-    if entry.winnr ~= current_win then
-      api.nvim_set_current_win(entry.winnr)
-
-      return true
+  -- Remove the queued entry before re-calling confirm
+  if pending_confirms[oldest_key] then
+    pending_confirms[oldest_key][oldest_id] = nil
+    if next(pending_confirms[oldest_key]) == nil then
+      pending_confirms[oldest_key] = nil
     end
   end
 
-  -- All entries are the current window (single dialog), just re-focus it
-  api.nvim_set_current_win(entries[1].winnr)
-
+  M.confirm(oldest_entry.prompt, oldest_entry.choices, oldest_entry.callback, oldest_entry.opts)
   return true
 end
 
@@ -507,8 +522,9 @@ end
 ---Create the footer with button highlights for the confirm dialog
 ---@param choices table The list of normalized choice objects
 ---@param active_idx number The 1-based index of the currently active choice
+---@param focus_hint? string Optional focus keymap hint to show at the right
 ---@return table footer The footer spec for nvim_open_win / nvim_win_set_config
-local function create_confirm_footer(choices, active_idx)
+local function create_confirm_footer(choices, active_idx, focus_hint)
   local footer = { { " ", "FloatBorder" } }
   for i, choice in ipairs(choices) do
     if i > 1 then
@@ -516,6 +532,9 @@ local function create_confirm_footer(choices, active_idx)
     end
     local hl = (i == active_idx) and "CodeCompanionButtonActive" or "CodeCompanionButtonInactive"
     table.insert(footer, { " " .. choice.label .. " ", hl })
+  end
+  if focus_hint then
+    table.insert(footer, { "  " .. focus_hint .. " to focus ", "Comment" })
   end
   table.insert(footer, { " ", "FloatBorder" })
 
@@ -534,6 +553,41 @@ function M.confirm(prompt, choices, callback, opts)
   local key = opts.key
 
   local id = math.random(1000000)
+
+  -- Check if there is already a visible dialog — if so, queue this one
+  local has_visible = false
+  for _, group in pairs(pending_confirms) do
+    for _, entry in pairs(group) do
+      if entry.winnr and api.nvim_win_is_valid(entry.winnr) then
+        has_visible = true
+        break
+      end
+    end
+    if has_visible then
+      break
+    end
+  end
+
+  if has_visible and key then
+    if not pending_confirms[key] then
+      pending_confirms[key] = {}
+    end
+    pending_confirms[key][id] = {
+      ts = vim.uv.hrtime(),
+      prompt = prompt,
+      choices = choices,
+      callback = callback,
+      opts = opts,
+    }
+    return function()
+      if pending_confirms[key] then
+        pending_confirms[key][id] = nil
+        if next(pending_confirms[key]) == nil then
+          pending_confirms[key] = nil
+        end
+      end
+    end
+  end
 
   -- Normalize choices into { label, value, default } objects
   local normalized = {}
@@ -613,10 +667,15 @@ function M.confirm(prompt, choices, callback, opts)
     footer = create_confirm_footer(choices, active),
     footer_pos = "center",
   }
+  local title_left = " Permission Request "
   if window_config.focus_keymap then
-    win_opts.title = { { " " .. window_config.focus_keymap .. " to focus ", "Comment" } }
-    win_opts.title_pos = "right"
+    local hint = " " .. window_config.focus_keymap .. " to focus "
+    local pad_len = math.max(0, width - api.nvim_strwidth(title_left) - api.nvim_strwidth(hint))
+    win_opts.title = { { title_left, "FloatTitle" }, { string.rep(" ", pad_len), "FloatBorder" }, { hint, "Comment" } }
+  else
+    win_opts.title = { { title_left, "FloatTitle" } }
   end
+  win_opts.title_pos = "left"
   if anchor_winnr then
     win_opts.relative = "win"
     win_opts.win = anchor_winnr
@@ -655,7 +714,7 @@ function M.confirm(prompt, choices, callback, opts)
     if not skip_callback then
       vim.schedule(function()
         callback(value)
-        M.focus_confirm()
+        M.show_next_queued()
       end)
     end
   end

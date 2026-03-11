@@ -257,7 +257,7 @@ T["cancel_confirm -> cancels multiple dialogs for same key"] = function()
       end, { key = "multi_key" })
     end
 
-    -- Count floating windows before cancel
+    -- Only 1 floating window should be visible (others are queued)
     local floats_before = 0
     for _, win in ipairs(vim.api.nvim_list_wins()) do
       local cfg = vim.api.nvim_win_get_config(win)
@@ -285,7 +285,7 @@ T["cancel_confirm -> cancels multiple dialogs for same key"] = function()
   ]])
 
   h.eq(0, result.call_count)
-  h.eq(3, result.floats_before)
+  h.eq(1, result.floats_before)
   h.eq(0, result.floats_after)
 end
 
