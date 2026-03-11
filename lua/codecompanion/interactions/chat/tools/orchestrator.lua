@@ -74,9 +74,7 @@ local function build_choices(tool, fallback_prompt)
     end
   end
 
-  local prompt = (#lines > 0) and table.concat(lines, "\n")
-    or fallback_prompt
-    or fmt("Run the %q tool?", tool.name)
+  local prompt = (#lines > 0) and table.concat(lines, "\n") or fallback_prompt or fmt("Run the %q tool?", tool.name)
 
   local choices = {
     { label = "Allow always", value = "allow_always" },
