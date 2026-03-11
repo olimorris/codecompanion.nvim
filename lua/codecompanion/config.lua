@@ -1028,8 +1028,20 @@ The user is working on a %s machine. Please respond with system specific command
 
       -- Options for the tool approval window
       tool_approval_window = {
-        width = 0.5, ---@return number|fun(): number
-        height = 0.8, ---@return number|fun(): number
+        width = function(opts)
+          if opts.relative == "window" then
+            return 0.9
+          end
+
+          return 0.5
+        end, ---@return number|fun(opts): number
+        height = function(opts)
+          if opts.relative == "window" then
+            return 0.9
+          end
+
+          return 0.5
+        end, ---@return number|fun(opts): number
         border = "single",
         style = "minimal",
         relative = "window", -- "window" anchors to the chat window, "editor" centers on the full editor

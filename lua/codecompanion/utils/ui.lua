@@ -505,6 +505,7 @@ function M.show_next_queued()
   end
 
   M.confirm(oldest_entry.prompt, oldest_entry.choices, oldest_entry.callback, oldest_entry.opts)
+  M.focus_confirm()
   return true
 end
 
@@ -639,10 +640,10 @@ function M.confirm(prompt, choices, callback, opts)
   local cfg_width = window_config.width
   local cfg_height = window_config.height
   if type(cfg_width) == "function" then
-    cfg_width = cfg_width()
+    cfg_width = cfg_width(window_config)
   end
   if type(cfg_height) == "function" then
-    cfg_height = cfg_height()
+    cfg_height = cfg_height(window_config)
   end
 
   local max_width = math.min(math.floor(ref_width * cfg_width), ref_width - 2)
