@@ -26,7 +26,8 @@ _G.codecompanion_cli_metadata = {}
 ---@field watch_timer uv.uv_timer_t|nil
 local CLI = {}
 
-local _instance = nil
+local clis = {} ---@type table<number, CodeCompanion.CLI>
+local last_cli = nil ---@type CodeCompanion.CLI|nil
 
 ---Keymap callbacks for the CLI buffer
 local keymap_callbacks = {
@@ -42,16 +43,11 @@ local keymap_callbacks = {
   },
 }
 
----Create or return the singleton CLI instance
+---Create a new CLI instance
 ---@param args? { agent?: string }
 ---@return CodeCompanion.CLI|nil
-function CLI.get_or_create(args)
+function CLI.create(args)
   args = args or {}
-
-  -- If an instance already exists and is valid, return it
-  if _instance and api.nvim_buf_is_valid(_instance.bufnr) then
-    return _instance
-  end
 
   local agent_name = args.agent or config.interactions.cli.agent
   local agent = config.interactions.cli.agents[agent_name]
@@ -128,7 +124,8 @@ function CLI.get_or_create(args)
     self:_start_watcher()
   end
 
-  _instance = self
+  clis[bufnr] = self
+  last_cli = self
 
   registry.add(bufnr, {
     name = agent_name,
@@ -150,13 +147,25 @@ function CLI.get_or_create(args)
   return self
 end
 
----Return the singleton instance or nil
+---Return the last-used CLI instance, or nil if none exist
 ---@return CodeCompanion.CLI|nil
-function CLI.get_instance()
-  if _instance and api.nvim_buf_is_valid(_instance.bufnr) then
-    return _instance
+function CLI.last_cli()
+  if last_cli and api.nvim_buf_is_valid(last_cli.bufnr) then
+    return last_cli
   end
-  _instance = nil
+  last_cli = nil
+  return nil
+end
+
+---Find an existing CLI instance by agent name
+---@param agent_name string
+---@return CodeCompanion.CLI|nil
+function CLI.find_by_agent(agent_name)
+  for _, instance in pairs(clis) do
+    if instance.agent_name == agent_name and api.nvim_buf_is_valid(instance.bufnr) then
+      return instance
+    end
+  end
   return nil
 end
 
@@ -217,10 +226,13 @@ function CLI:close()
   registry.remove(self.bufnr)
   _G.codecompanion_cli_metadata[self.bufnr] = nil
 
+  clis[self.bufnr] = nil
+  if last_cli and last_cli.bufnr == self.bufnr then
+    last_cli = nil
+  end
+
   log:debug("CLI instance closed")
   utils.fire("CLIClosed", { bufnr = self.bufnr })
-
-  _instance = nil
 end
 
 --=============================================================================
@@ -273,11 +285,21 @@ end
 -- Public API
 -- =============================================================================
 
----Check if the CLI is currently visible
+---Return the first visible CLI instance, or nil
+---@return CodeCompanion.CLI|nil
+function CLI.get_visible()
+  for _, instance in pairs(clis) do
+    if instance.ui:is_visible() then
+      return instance
+    end
+  end
+  return nil
+end
+
+---Check if any CLI instance is currently visible
 ---@return boolean
 function CLI.is_visible()
-  local instance = CLI.get_instance()
-  return instance ~= nil and instance.ui:is_visible()
+  return CLI.get_visible() ~= nil
 end
 
 ---Toggle the CLI terminal buffer
@@ -286,10 +308,10 @@ end
 function CLI.toggle(args)
   args = args or {}
 
-  local instance = CLI.get_instance()
+  local instance = CLI.last_cli()
 
   if not instance then
-    instance = CLI.get_or_create({ agent = args.agent })
+    instance = CLI.create({ agent = args.agent })
     if instance then
       instance.ui:open()
     end

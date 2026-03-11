@@ -236,7 +236,7 @@ CodeCompanion.toggle = function(args)
   -- If the CLI is visible, hide it
   if cli.is_visible() then
     _last_toggle = "cli"
-    return cli.get_instance().ui:hide()
+    return cli.get_visible().ui:hide()
   end
 
   -- If the chat is visible, hide it
@@ -321,7 +321,18 @@ CodeCompanion.ask_cli = function(prompt, opts)
   end
 
   local cli = require("codecompanion.interactions.cli")
-  local instance = cli.get_or_create({ agent = opts.agent })
+  local instance
+  if prompt then
+    -- With a prompt: find the right instance to send to, or create one
+    if opts.agent then
+      instance = cli.find_by_agent(opts.agent) or cli.create({ agent = opts.agent })
+    else
+      instance = cli.last_cli() or cli.create()
+    end
+  else
+    -- No prompt: always create a new instance
+    instance = cli.create({ agent = opts.agent })
+  end
 
   if not instance then
     return log:error("Could not create CLI instance")

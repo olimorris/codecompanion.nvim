@@ -20,7 +20,7 @@ function M.open(opts)
       local cli_module = require("codecompanion.interactions.cli")
       local formatted = cli_module.resolve_editor_context(text, buffer_context)
 
-      local instance = cli_module.get_or_create({ agent = opts.agent })
+      local instance = cli_module.last_cli() or cli_module.create({ agent = opts.agent })
       if not instance then
         return log:error("Could not create CLI instance")
       end
