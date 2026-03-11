@@ -655,6 +655,7 @@ function M.confirm(prompt, choices, callback, opts)
     if not skip_callback then
       vim.schedule(function()
         callback(value)
+        M.focus_confirm()
       end)
     end
   end
