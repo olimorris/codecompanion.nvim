@@ -191,7 +191,10 @@ T["Editor Context"][":replace"]["should be in sync with finding logic"] = functi
   local message =
     "#{foo}{doesnotsupport} #{bar}{supports} #{foo://10-20-30:40} pre#{foo} #{baz}! Use these editor context items and handle newline editor context #{foo}\n"
   local result = ec:replace(message, 0)
-  h.eq("foo bar foo://10-20-30:40 prefoo baz! Use these editor context items and handle newline editor context foo", result)
+  h.eq(
+    "foo bar foo://10-20-30:40 prefoo baz! Use these editor context items and handle newline editor context foo",
+    result
+  )
 end
 
 T["Editor Context"][":parse_cli"] = new_set()
