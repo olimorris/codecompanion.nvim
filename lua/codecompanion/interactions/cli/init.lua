@@ -22,12 +22,19 @@ _G.codecompanion_cli_metadata = {}
 ---@field id number
 ---@field provider CodeCompanion.CLI.Provider
 ---@field ui CodeCompanion.CLI.UI
----@field watcher uv.uv_fs_event_t|nil
----@field watch_timer uv.uv_timer_t|nil
+---@field watch_cwd string|nil
 local CLI = {}
 
 local clis = {} ---@type table<number, CodeCompanion.CLI>
 local last_cli = nil ---@type CodeCompanion.CLI|nil
+
+---@class CodeCompanion.CLI.Watcher
+---@field watcher uv.uv_fs_event_t
+---@field timer uv.uv_timer_t
+---@field count number
+
+---Shared watchers keyed by cwd — one watcher per directory, ref-counted
+local watchers = {} ---@type table<string, CodeCompanion.CLI.Watcher>
 
 ---Keymap callbacks for the CLI buffer
 local keymap_callbacks = {
@@ -121,7 +128,8 @@ function CLI.create(args)
   end
 
   if config.interactions.cli.opts.reload then
-    self:_start_watcher()
+    self.watch_cwd = vim.fn.getcwd()
+    self._start_watcher(self.watch_cwd)
   end
 
   clis[bufnr] = self
@@ -214,7 +222,9 @@ end
 ---Close the CLI instance and clean up
 ---@return nil
 function CLI:close()
-  self:_stop_watcher()
+  if self.watch_cwd then
+    self._stop_watcher(self.watch_cwd)
+  end
   self.provider:stop()
 
   pcall(api.nvim_del_augroup_by_id, self.aug)
@@ -237,48 +247,67 @@ end
 
 --=============================================================================
 -- Watcher for auto-reloading buffers on file changes
--- =============================================================================
+-- Shared per-cwd: multiple CLI instances on the same directory reuse one watcher
+--=============================================================================
 
----Start watching the cwd for file changes and reload buffers
+---Start (or increment the refcount of) the shared watcher for a given cwd
+---@param cwd string
 ---@return nil
-function CLI:_start_watcher()
-  local cwd = vim.fn.getcwd()
-
-  self.watcher = uv.new_fs_event()
-  if not self.watcher then
-    return log:warn("Could not create file watcher")
+function CLI._start_watcher(cwd)
+  if watchers[cwd] then
+    watchers[cwd].count = watchers[cwd].count + 1
+    return
   end
 
-  self.watch_timer = uv.new_timer()
+  local watcher = uv.new_fs_event()
+  if not watcher then
+    return log:warn("Could not create file watcher for %s", cwd)
+  end
 
-  self.watcher:start(cwd, { recursive = true }, function()
-    -- Debounce: restart a 100ms timer on each event
-    if self.watch_timer then
-      self.watch_timer:stop()
-      self.watch_timer:start(100, 0, function()
-        vim.schedule(function()
-          vim.cmd.checktime()
-        end)
+  local timer = uv.new_timer()
+  if not timer then
+    watcher:close()
+    return log:warn("Could not create debounce timer for %s", cwd)
+  end
+
+  watcher:start(cwd, { recursive = true }, function()
+    if not timer:is_closing() then
+      timer:stop()
+      timer:start(100, 0, function()
+        vim.schedule(vim.cmd.checktime)
       end)
     end
   end)
 
+  watchers[cwd] = { watcher = watcher, timer = timer, count = 1 }
   log:debug("File watcher started on %s", cwd)
 end
 
----Stop the file watcher
+---Decrement the refcount for a cwd watcher, stopping it when the last user closes
+---@param cwd string
 ---@return nil
-function CLI:_stop_watcher()
-  if self.watch_timer then
-    self.watch_timer:stop()
-    self.watch_timer:close()
-    self.watch_timer = nil
+function CLI._stop_watcher(cwd)
+  local entry = watchers[cwd]
+  if not entry then
+    return
   end
-  if self.watcher then
-    self.watcher:stop()
-    self.watcher:close()
-    self.watcher = nil
+
+  entry.count = entry.count - 1
+  if entry.count > 0 then
+    return
   end
+
+  if not entry.timer:is_closing() then
+    entry.timer:stop()
+    entry.timer:close()
+  end
+  if not entry.watcher:is_closing() then
+    entry.watcher:stop()
+    entry.watcher:close()
+  end
+
+  watchers[cwd] = nil
+  log:debug("File watcher stopped for %s", cwd)
 end
 
 --=============================================================================
