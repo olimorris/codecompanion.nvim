@@ -255,11 +255,11 @@ function EditorContext:replace(message, bufnr)
       end
     end
 
-    -- Generic replacement: strip all forms of #{ctx...}
-    message = regex.replace(message, self:_pattern(ctx, true, true), "")
-    message = regex.replace(message, self:_pattern(ctx, false, true), "")
-    message = regex.replace(message, self:_pattern(ctx, true), "")
-    message = vim.trim(regex.replace(message, self:_pattern(ctx), ""))
+    -- Generic replacement: replace all forms of #{ctx...} with the ctx name
+    message = regex.replace(message, self:_pattern(ctx, true, true), ctx)
+    message = regex.replace(message, self:_pattern(ctx, false, true), ctx)
+    message = regex.replace(message, self:_pattern(ctx, true), ctx)
+    message = vim.trim(regex.replace(message, self:_pattern(ctx), ctx))
 
     ::continue::
   end

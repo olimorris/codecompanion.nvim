@@ -66,7 +66,7 @@ function Terminal:start()
     return false
   end
 
-  if not self.chan then
+  if not self.chan or self.chan <= 0 then
     return false
   end
 

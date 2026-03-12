@@ -1127,6 +1127,10 @@ The user is working on a %s machine. Please respond with system specific command
           number = false,
           relativenumber = false,
           signcolumn = "no",
+
+          breakindent = true,
+          linebreak = true,
+          wrap = true,
         },
       },
       keymaps = {

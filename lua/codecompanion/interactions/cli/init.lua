@@ -176,7 +176,7 @@ end
 function CLI.resolve_editor_context(prompt, buffer_context)
   local editor_context = require("codecompanion.interactions.shared.editor_context").new("cli")
 
-  -- If the user makes a visiual selection then include it in the prompt
+  -- If the user makes a visual selection then include it in the prompt
   local triggers = require("codecompanion.triggers")
   local selection_tag = triggers.mappings.editor_context .. "{selection}"
   if buffer_context.is_visual and not prompt:find(vim.pesc(selection_tag), 1, true) then

@@ -162,7 +162,7 @@ end
 T["Editor Context"][":replace"]["should replace the editor context in the message"] = function()
   local message = "#{foo} #{bar} replace this editor context"
   local result = ec:replace(message, 0)
-  h.eq("replace this editor context", result)
+  h.eq("foo bar replace this editor context", result)
 end
 
 T["Editor Context"][":replace"]["should partly replace #buffer in the message"] = function()
@@ -191,7 +191,7 @@ T["Editor Context"][":replace"]["should be in sync with finding logic"] = functi
   local message =
     "#{foo}{doesnotsupport} #{bar}{supports} #{foo://10-20-30:40} pre#{foo} #{baz}! Use these editor context items and handle newline editor context #{foo}\n"
   local result = ec:replace(message, 0)
-  h.eq("pre ! Use these editor context items and handle newline editor context", result)
+  h.eq("foo bar foo://10-20-30:40 prefoo baz! Use these editor context items and handle newline editor context foo", result)
 end
 
 T["Editor Context"][":parse_cli"] = new_set()

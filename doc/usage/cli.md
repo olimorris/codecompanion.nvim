@@ -19,7 +19,7 @@ There are many ways to start a CLI interaction, depending on your workflow:
 | `:CodeCompanionCLI <prompt>` | Send a prompt to the last CLI interaction (or create a new one) |
 | `:CodeCompanionCLI! <prompt>` | Send a prompt and auto-submit it, keeping focus in the current buffer |
 | `:CodeCompanionCLI agent=<name> <prompt>` | Start a new CLI interaction with a specific agent |
-| `:CodeCompanionCLI Ask` | Open the rich input buffer for composing prompts |
+| `:CodeCompanionCLI Ask` | Open the rich input buffer for composing prompts (case-sensitive) |
 
 
 ### The Bang Modifier
