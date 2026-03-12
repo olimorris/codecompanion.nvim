@@ -332,6 +332,7 @@ return {
         if not self.opts.stream then
           -- Reasoning
           local reasoning = {}
+          local content = nil
           if json.output then
             for _, item in ipairs(json.output) do
               if item.type == "reasoning" then
@@ -340,6 +341,12 @@ return {
                 for _, block in ipairs(item.summary) do
                   if block.type == "summary_text" then
                     reasoning.content = reasoning.content and (reasoning.content .. "\n\n" .. block.text) or block.text
+                  end
+                end
+              elseif item.type == "message" then
+                for _, block in ipairs(item.content) do
+                  if block.type == "output_text" then
+                    content = content and (content .. "\n\n" .. block.text) or block.text
                   end
                 end
               end
@@ -368,13 +375,6 @@ return {
                 index = index + 1
               end)
           end
-
-          local content = json.output
-              and json.output[1]
-              and json.output[1].content
-              and json.output[1].content[1]
-              and json.output[1].content[1].text
-            or nil
 
           return {
             status = "success",
