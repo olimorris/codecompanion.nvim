@@ -245,7 +245,12 @@ end
 ---@param bufnr number
 ---@return string
 function EditorContext:replace(message, bufnr)
-  for ctx, ctx_config in pairs(self.editor_context) do
+  local ctx_keys = vim.tbl_keys(self.editor_context)
+  table.sort(ctx_keys, function(a, b)
+    return #a > #b
+  end)
+  for _, ctx in ipairs(ctx_keys) do
+    local ctx_config = self.editor_context[ctx]
     -- Delegate to the module's replace method if it has one
     if ctx_config.path then
       local ok, module = pcall(require_module, ctx_config.path)
