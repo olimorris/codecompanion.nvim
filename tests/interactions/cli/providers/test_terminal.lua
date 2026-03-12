@@ -74,6 +74,61 @@ T["Terminal provider"]["send() returns false when not running"] = function()
   h.eq(false, result)
 end
 
+T["Terminal provider"]["send() queues text only when submit is false"] = function()
+  local result = child.lua([[
+    local Terminal = require("codecompanion.interactions.cli.providers.terminal")
+    local bufnr = vim.api.nvim_create_buf(false, true)
+
+    local provider = Terminal.new({
+      bufnr = bufnr,
+      agent = { cmd = "cat", args = {} },
+    })
+
+    provider:start()
+    -- Queue is drained once ready, so we test before readiness fires
+    provider.ready = false
+    provider:send("hello world")
+
+    local items = provider.queue:contents()
+    return {
+      count = provider.queue:count(),
+      first_text = items[1] and items[1].text,
+      first_enter = items[1] and items[1].enter,
+    }
+  ]])
+
+  h.eq(1, result.count)
+  h.eq("hello world", result.first_text)
+  h.eq(nil, result.first_enter)
+end
+
+T["Terminal provider"]["send() queues text and enter when submit is true"] = function()
+  local result = child.lua([[
+    local Terminal = require("codecompanion.interactions.cli.providers.terminal")
+    local bufnr = vim.api.nvim_create_buf(false, true)
+
+    local provider = Terminal.new({
+      bufnr = bufnr,
+      agent = { cmd = "cat", args = {} },
+    })
+
+    provider:start()
+    provider.ready = false
+    provider:send("hello world", { submit = true })
+
+    local items = provider.queue:contents()
+    return {
+      count = provider.queue:count(),
+      first_text = items[1] and items[1].text,
+      second_enter = items[2] and items[2].enter,
+    }
+  ]])
+
+  h.eq(2, result.count)
+  h.eq("hello world", result.first_text)
+  h.eq(true, result.second_enter)
+end
+
 T["Terminal provider"]["stop() clears the channel"] = function()
   local result = child.lua([[
     local Terminal = require("codecompanion.interactions.cli.providers.terminal")
