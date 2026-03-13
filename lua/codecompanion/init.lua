@@ -308,7 +308,7 @@ end
 
 ---Send a prompt to a CLI agent running in a terminal buffer
 ---@param prompt? string The text to send (nil to just open the CLI)
----@param opts? { agent?: string, submit?: boolean, width?: number, height?: number, args?: table }
+---@param opts? { agent?: string, focus?: boolean, submit?: boolean, width?: number, height?: number, args?: table }
 ---@return nil
 CodeCompanion.ask_cli = function(prompt, opts)
   opts = opts or {}
@@ -346,7 +346,9 @@ CodeCompanion.ask_cli = function(prompt, opts)
     ui_opts.height = opts.height
   end
 
-  if not instance.ui:is_visible() then
+  local should_focus = opts.focus ~= false
+
+  if not instance.ui:is_visible() and should_focus then
     instance.ui:open(ui_opts)
   end
 
@@ -354,9 +356,11 @@ CodeCompanion.ask_cli = function(prompt, opts)
     instance:send(cli.resolve_editor_context(prompt, context), { submit = opts.submit })
   end
 
-  -- With bang, stay in the previous window
+  -- With bang or focus=false, stay in the previous window; otherwise focus CLI and enter insert mode
   if prev_win and api.nvim_win_is_valid(prev_win) then
     api.nvim_set_current_win(prev_win)
+  elseif prompt and should_focus then
+    instance:focus()
   end
 
   _last_toggle = "cli"
