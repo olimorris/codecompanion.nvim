@@ -173,6 +173,90 @@ T["cmds"]["chat variable syntax highlighting"] = function()
   h.eq(hl, "CodeCompanionChatEditorContext")
 end
 
+T["cmds_cli"] = new_set({
+  hooks = {
+    pre_once = function()
+      h.child_start(child)
+      child.lua([[
+        h = require("tests.helpers")
+        local config = require("codecompanion.config")
+        config.interactions.cli.agents = {
+          test_agent_a = { cmd = "cat", args = {}, description = "Agent A" },
+          test_agent_b = { cmd = "cat", args = {}, description = "Agent B" },
+        }
+        config.interactions.cli.agent = "test_agent_a"
+        h.setup_plugin(config)
+      ]])
+    end,
+    pre_case = function()
+      child.lua([[
+        for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+          local name = vim.api.nvim_buf_get_name(bufnr)
+          if name:find("%[CodeCompanion CLI%]") then
+            pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+          end
+        end
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          if win ~= vim.api.nvim_list_wins()[1] then
+            pcall(vim.api.nvim_win_close, win, true)
+          end
+        end
+        package.loaded["codecompanion.interactions.cli"] = nil
+        package.loaded["codecompanion"] = nil
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["cmds_cli"][":CodeCompanionCLI with no args creates a new instance"] = function()
+  child.lua([[vim.cmd("CodeCompanionCLI")]])
+
+  local result = child.lua([[
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.last_cli()
+    return {
+      created = instance ~= nil,
+      visible = instance and instance.ui:is_visible(),
+    }
+  ]])
+
+  h.eq(true, result.created)
+  h.eq(true, result.visible)
+end
+
+T["cmds_cli"][":CodeCompanionCLI with prompt reuses last instance"] = function()
+  local result = child.lua([[
+    local cli = require("codecompanion.interactions.cli")
+
+    vim.cmd("CodeCompanionCLI")
+    local first_bufnr = cli.last_cli().bufnr
+
+    vim.cmd("CodeCompanionCLI hello")
+    local second_bufnr = cli.last_cli().bufnr
+
+    return {
+      same_instance = first_bufnr == second_bufnr,
+    }
+  ]])
+
+  h.eq(true, result.same_instance)
+end
+
+T["cmds_cli"][":CodeCompanionCLI with agent= creates instance with that agent"] = function()
+  local result = child.lua([[
+    vim.cmd("CodeCompanionCLI agent=test_agent_b")
+
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.last_cli()
+    return {
+      agent = instance and instance.agent_name,
+    }
+  ]])
+
+  h.eq("test_agent_b", result.agent)
+end
+
 T["cmds_tab"] = new_set({
   hooks = {
     pre_once = function()

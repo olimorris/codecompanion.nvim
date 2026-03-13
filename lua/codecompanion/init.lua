@@ -306,14 +306,24 @@ CodeCompanion.close_last_chat = function()
   return require("codecompanion.interactions.chat").close_last_chat()
 end
 
----Send a prompt to a CLI agent running in a terminal buffer
----@param prompt? string The text to send (nil to just open the CLI)
----@param opts? { agent?: string, focus?: boolean, submit?: boolean, width?: number, height?: number, args?: table }
+---Open, send to, or interact with a CLI agent
+---@param prompt_or_opts? string|table A prompt string, or an opts table when no prompt is needed
+---@param opts? { agent?: string, focus?: boolean, submit?: boolean, rich?: boolean, width?: number, height?: number, args?: table }
 ---@return nil
-CodeCompanion.ask_cli = function(prompt, opts)
+CodeCompanion.cli = function(prompt_or_opts, opts)
+  local prompt
+
+  if type(prompt_or_opts) == "table" then
+    opts = prompt_or_opts
+  elseif type(prompt_or_opts) == "string" then
+    prompt = prompt_or_opts
+  end
   opts = opts or {}
 
-  local prev_win = opts.submit and api.nvim_get_current_win() or nil
+  -- Rich input mode: open the input buffer
+  if opts.rich then
+    return require("codecompanion.interactions.cli.input").open({ agent = opts.agent, args = opts.args })
+  end
 
   local context
   if prompt then
@@ -323,14 +333,12 @@ CodeCompanion.ask_cli = function(prompt, opts)
   local cli = require("codecompanion.interactions.cli")
   local instance
   if prompt then
-    -- With a prompt: find the right instance to send to, or create one
     if opts.agent then
       instance = cli.find_by_agent(opts.agent) or cli.create({ agent = opts.agent })
     else
       instance = cli.last_cli() or cli.create()
     end
   else
-    -- No prompt: always create a new instance
     instance = cli.create({ agent = opts.agent })
   end
 
@@ -338,28 +346,40 @@ CodeCompanion.ask_cli = function(prompt, opts)
     return log:error("Could not create CLI instance")
   end
 
-  local ui_opts = {}
-  if opts.width then
-    ui_opts.width = opts.width
-  end
-  if opts.height then
-    ui_opts.height = opts.height
-  end
-
   local should_focus = opts.focus ~= false
 
   if not instance.ui:is_visible() and should_focus then
+    local ui_opts = {}
+    if opts.width then
+      ui_opts.width = opts.width
+    end
+    if opts.height then
+      ui_opts.height = opts.height
+    end
     instance.ui:open(ui_opts)
   end
 
   if prompt then
-    instance:send(cli.resolve_editor_context(prompt, context), { submit = opts.submit })
+    local resolved = cli.resolve_editor_context(prompt, context)
+
+    -- Auto-include visual selection, but only if the prompt doesn't use
+    -- # tags (which may already reference the selection via #{this} or #{selection})
+    if context.is_visual and context.lines and #context.lines > 0 and not prompt:find("#") then
+      local selection = string.format(
+        "Selected code from `%s` (lines %d-%d):\n\n````%s\n%s\n````",
+        context.filename,
+        context.start_line,
+        context.end_line,
+        context.filetype or "",
+        table.concat(context.lines, "\n")
+      )
+      resolved = selection .. "\n" .. resolved
+    end
+
+    instance:send(resolved, { submit = opts.submit })
   end
 
-  -- With bang or focus=false, stay in the previous window; otherwise focus CLI and enter insert mode
-  if prev_win and api.nvim_win_is_valid(prev_win) then
-    api.nvim_set_current_win(prev_win)
-  elseif prompt and should_focus then
+  if should_focus and prompt then
     instance:focus()
   end
 

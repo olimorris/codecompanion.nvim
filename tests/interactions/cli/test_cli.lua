@@ -29,8 +29,15 @@ local T = new_set({
             pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
           end
         end
+        -- Close any extra windows (leave only the first one)
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          if win ~= vim.api.nvim_list_wins()[1] then
+            pcall(vim.api.nvim_win_close, win, true)
+          end
+        end
         -- Reset module state by re-requiring
         package.loaded["codecompanion.interactions.cli"] = nil
+        package.loaded["codecompanion"] = nil
       ]])
     end,
     post_once = child.stop,
@@ -42,7 +49,7 @@ T["CLI"] = new_set()
 T["CLI"]["create() returns a CLI instance"] = function()
   local result = child.lua([[
     local cli = require("codecompanion.interactions.cli")
-    local instance = cli.create({ agent = "test_agent_a" })
+    local instance = cli.create()
     return {
       created = instance ~= nil,
       agent_name = instance and instance.agent_name,

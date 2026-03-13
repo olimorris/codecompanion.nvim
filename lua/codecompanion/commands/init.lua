@@ -305,18 +305,23 @@ return {
 
       -- :CodeCompanionCLI Ask — open rich input box
       if prompt == "Ask" then
-        require("codecompanion.interactions.cli.input").open({ args = opts })
+        cli_opts.rich = true
+        codecompanion.cli(cli_opts)
         return
       end
 
-      -- :CodeCompanionCLI (no prompt) — new CLI interaction
+      -- :CodeCompanionCLI (no prompt) — new CLI interaction or send visual selection
       if #vim.trim(prompt) == 0 then
-        codecompanion.ask_cli(nil, cli_opts)
+        if opts.range > 0 then
+          codecompanion.cli("", cli_opts)
+        else
+          codecompanion.cli(cli_opts)
+        end
         return
       end
 
       -- :CodeCompanionCLI prompt — send to last or create new
-      codecompanion.ask_cli(prompt, cli_opts)
+      codecompanion.cli(prompt, cli_opts)
     end,
     opts = {
       desc = "Send a prompt to a CLI agent or open the CLI input buffer",
