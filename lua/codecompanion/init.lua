@@ -308,7 +308,7 @@ end
 
 ---Open, send to, or interact with a CLI agent
 ---@param prompt_or_opts? string|table A prompt string, or an opts table when no prompt is needed
----@param opts? { agent?: string, focus?: boolean, submit?: boolean, rich?: boolean, width?: number, height?: number, args?: table }
+---@param opts? { agent?: string, focus?: boolean, submit?: boolean, prompt?: boolean, width?: number, height?: number, args?: table }
 ---@return nil
 CodeCompanion.cli = function(prompt_or_opts, opts)
   local prompt
@@ -320,9 +320,13 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
   end
   opts = opts or {}
 
-  -- Rich input mode: open the input buffer
-  if opts.rich then
-    return require("codecompanion.interactions.cli.input").open({ agent = opts.agent, args = opts.args })
+  -- Prompt input mode: open the input buffer
+  if opts.prompt then
+    return require("codecompanion.interactions.cli.input").open({
+      agent = opts.agent,
+      args = opts.args,
+      initial_content = prompt,
+    })
   end
 
   local context

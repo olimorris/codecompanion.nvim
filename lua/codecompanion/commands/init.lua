@@ -303,9 +303,9 @@ return {
         cli_opts.agent = params.agent
       end
 
-      -- :CodeCompanionCLI Ask — open rich input box
+      -- :CodeCompanionCLI Ask — open prompt input buffer
       if prompt == "Ask" then
-        cli_opts.rich = true
+        cli_opts.prompt = true
         codecompanion.cli(cli_opts)
         return
       end

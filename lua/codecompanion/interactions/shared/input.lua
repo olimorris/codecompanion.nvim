@@ -75,6 +75,12 @@ function M.open(opts)
     end
   end
 
+  -- Set initial content if provided
+  if opts.initial_content and opts.initial_content ~= "" then
+    local lines = vim.split(opts.initial_content, "\n", { plain = true })
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  end
+
   -- Start in insert mode
   vim.cmd("startinsert")
 

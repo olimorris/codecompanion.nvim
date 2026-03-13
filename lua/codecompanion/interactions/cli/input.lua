@@ -6,7 +6,7 @@ local api = vim.api
 local M = {}
 
 ---Open the CLI input buffer
----@param opts? { agent?: string, args?: table }
+---@param opts? { agent?: string, args?: table, initial_content?: string }
 ---@return nil
 function M.open(opts)
   opts = opts or {}
@@ -16,6 +16,7 @@ function M.open(opts)
 
   shared_input.open({
     title = " CodeCompanion CLI ",
+    initial_content = opts.initial_content,
     on_submit = function(text, submit_opts)
       local cli_module = require("codecompanion.interactions.cli")
       local formatted = cli_module.resolve_editor_context(text, buffer_context)
