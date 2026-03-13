@@ -30,6 +30,10 @@ function M.open(opts)
       end
 
       instance:send(formatted, { submit = submit_opts.bang })
+
+      if not submit_opts.bang then
+        instance:focus()
+      end
     end,
   })
 end
