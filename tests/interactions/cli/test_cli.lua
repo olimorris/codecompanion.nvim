@@ -171,4 +171,38 @@ T["CLI"]["create() returns nil for unknown agent"] = function()
   h.eq(true, result)
 end
 
+T["CLI"]["focus() switches to the CLI window"] = function()
+  local result = child.lua([[
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.create({ agent = "test_agent_a" })
+
+    instance.ui:open()
+    local cli_winnr = instance.ui.winnr
+
+    -- Move away to a different window
+    vim.cmd("vsplit")
+    local other_winnr = vim.api.nvim_get_current_win()
+
+    instance:focus()
+
+    -- Wait for defer_fn + schedule to complete (window switch + startinsert)
+    vim.wait(200, function()
+      return vim.api.nvim_get_current_win() == cli_winnr
+        and vim.api.nvim_get_mode().mode == "t"
+    end)
+
+    local mode = vim.api.nvim_get_mode().mode
+    return {
+      cli_win = cli_winnr,
+      current_win = vim.api.nvim_get_current_win(),
+      in_terminal_mode = mode == "t" or mode == "nt", -- "t" in real session, "nt" in headless
+      was_different = other_winnr ~= cli_winnr,
+    }
+  ]])
+
+  h.eq(true, result.was_different)
+  h.eq(result.cli_win, result.current_win)
+  h.eq(true, result.in_terminal_mode)
+end
+
 return T
