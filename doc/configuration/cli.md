@@ -190,7 +190,7 @@ Any options set in `display.cli.window` are merged on top of the chat window def
 You can also pass `width` and `height` overrides via the Lua API:
 
 ```lua
-require("codecompanion").ask_cli("fix the tests", {
+require("codecompanion").cli("fix the tests", {
   width = 0.5,
   height = 0.8,
 })

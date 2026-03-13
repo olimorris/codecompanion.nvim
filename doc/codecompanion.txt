@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 11
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 13
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1383,10 +1383,9 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents
-(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
-the two adapters, it is recommend that you read this page alongside the ACP
-one.
+`commands` to allow users to customize their interaction with agents (e.g.�
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1440,7 +1439,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -1700,10 +1699,13 @@ COMMUNITY ADAPTERS ~
 
 Thanks to the community for building the following adapters:
 
-- Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
-- Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
-- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
 - DashScope <https://github.com/olimorris/codecompanion.nvim/discussions/2239>
+- Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
+- InceptionLabs - Mercury 2 <https://github.com/olimorris/codecompanion.nvim/discussions/2867>
+- Nvidia NIM <https://github.com/olimorris/codecompanion.nvim/discussions/2810>
+- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
+- Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
+- Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
 The section of the discussion forums which is dedicated to user created
 adapters can be found here
@@ -2551,7 +2553,7 @@ defaults. This means you only need to specify what you want to change.
 You can also pass `width` and `height` overrides via the Lua API:
 
 >lua
-    require("codecompanion").ask_cli("fix the tests", {
+    require("codecompanion").cli("fix the tests", {
       width = 0.5,
       height = 0.8,
     })
@@ -3667,7 +3669,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -4505,7 +4507,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g. new diagnostics, a different quickfix list), simply use the
+  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -4935,8 +4937,8 @@ There are many ways to start a CLI interaction, depending on your workflow:
   :CodeCompanionCLI agent=<name> <prompt>   Start a new CLI interaction with a
                                             specific agent
 
-  :CodeCompanionCLI Ask                     Open the rich input buffer for
-                                            composing prompts
+  :CodeCompanionCLI Ask                     Open the prompt input buffer for
+                                            composing prompts (case-sensitive)
   -----------------------------------------------------------------------------
 
 THE BANG MODIFIER
@@ -4950,9 +4952,9 @@ This is useful for "fire and forget" workflows where you want to send a prompt
 without leaving your current context.
 
 
-RICH INPUT BUFFER
+PROMPT INPUT BUFFER
 
-Running `:CodeCompanionCLI Ask` opens an input buffer where you can write
+Running `:CodeCompanionCLI Ask` opens a prompt input buffer where you can write
 multi-line prompts and use |codecompanion-usage-chat-buffer-editor-context|
 references (e.g.� `#{buffer}`, `#{this}`).
 
@@ -4992,25 +4994,147 @@ current mode:
 <
 
 
-LUA API ~
+VISUAL SELECTION
 
-You can also interact with the CLI, programmatically:
+When you make a visual selection, the selected code is automatically included
+with your prompt:
+
+>
+    :'<,'>CodeCompanionCLI what does this code do?
+<
+
+This also works with the Lua API when called from a visual mode keymap:
 
 >lua
-    -- Open a new CLI interaction (no prompt)
-    require("codecompanion").ask_cli()
+    vim.keymap.set("v", "<LocalLeader>ca", function()
+      require("codecompanion").cli("what does this code do?")
+    end)
+<
+
+
+LUA API ~
+
+The `cli()` function is the main entry point for interacting with CLI agents
+programmatically:
+
+>lua
+    ---Open, send to, or interact with a CLI agent
+    ---@param prompt_or_opts? string|table A prompt string, or an opts table when no prompt is needed
+    ---@param opts? table Options (see below)
+    require("codecompanion").cli(prompt_or_opts, opts)
+<
+
+
+PARAMETERS
+
+The first argument to the `cli` function is polymorphic. It can be a prompt
+string or an options table:
+
+- `cli()` — create and open a new CLI instance with the default agent
+- `cli("prompt")` — send a prompt to the last instance (or create one)
+- `cli("prompt", opts)` — send a prompt with options
+- `cli(opts)` — create a new instance with the given options (no prompt)
+
+
+OPTIONS
+
+  -----------------------------------------------------------------------
+  Option            Type              Default           Description
+  ----------------- ----------------- ----------------- -----------------
+  agent             string            config default    Which agent to
+                                                        use. When sending
+                                                        a prompt, reuses
+                                                        an existing
+                                                        instance of that
+                                                        agent if one
+                                                        exists
+
+  submit            boolean           false             Auto-submit the
+                                                        prompt (sends
+                                                        Enter after the
+                                                        text)
+
+  focus             boolean           true              Open the CLI
+                                                        window and move
+                                                        the cursor to it.
+                                                        When false, the
+                                                        prompt is sent in
+                                                        the background
+
+  prompt            boolean           false             Open the prompt
+                                                        input buffer for
+                                                        composing
+                                                        multi-line
+                                                        prompts
+
+  width             number            —                 Override the
+                                                        window width
+                                                        (fraction of
+                                                        editor, e.g. 0.5)
+
+  height            number            —                 Override the
+                                                        window height
+                                                        (fraction of
+                                                        editor, e.g. 0.8)
+  -----------------------------------------------------------------------
+
+EXAMPLES
+
+>lua
+    -- Open a new CLI interaction
+    require("codecompanion").cli()
     
-    -- Send a prompt to the last CLI interaction (or create a new one)
-    require("codecompanion").ask_cli("fix the failing tests")
+    -- Open a new CLI interaction with a specific agent
+    require("codecompanion").cli({ agent = "codex" })
     
-    -- Send and auto-submit a prompt, keeping focus in the current buffer
-    require("codecompanion").ask_cli("fix the failing tests", { submit = true })
+    -- Send a prompt to the last CLI interaction (or create one)
+    require("codecompanion").cli("fix the failing tests")
     
-    -- Use a specific agent
-    require("codecompanion").ask_cli("hello", { agent = "codex" })
+    -- Send and auto-submit a prompt
+    require("codecompanion").cli("fix the failing tests", { submit = true })
     
-    -- Toggle the CLI terminal buffer
+    -- Send a prompt without opening or focusing the CLI
+    require("codecompanion").cli("explain #{buffer}", { focus = false })
+    
+    -- Fire-and-forget: submit to a specific agent, stay in current buffer
+    require("codecompanion").cli("run the test suite", { agent = "claude_code", submit = true, focus = false })
+    
+    -- Open the prompt input buffer for composing a multi-line prompt
+    require("codecompanion").cli({ prompt = true })
+    
+    -- Override window dimensions
+    require("codecompanion").cli("fix the tests", { width = 0.5, height = 0.8 })
+<
+
+
+KEYMAP EXAMPLES
+
+>lua
+    -- Toggle the CLI (show/hide)
+    vim.keymap.set("n", "<Leader>ct", function()
+      require("codecompanion").toggle()
+    end)
+    
+    -- Quick send: buffer (normal mode) or selection (visual mode) straight to the CLI
+    vim.keymap.set({ "n", "v" }, "<Leader>ca", function()
+      require("codecompanion").cli("#{this}")
+    end)
+    
+    -- Compose: open the prompt input buffer to write a multi-line prompt
+    vim.keymap.set({ "n", "v" }, "<Leader>cp", function()
+      require("codecompanion").cli({ prompt = true })
+    end)
+<
+
+
+OTHER FUNCTIONS
+
+>lua
+    -- Toggle the CLI terminal buffer (show/hide)
     require("codecompanion").toggle_cli()
+    
+    -- Toggle the last used interaction (chat or CLI)
+    require("codecompanion").toggle()
 <
 
 
@@ -5514,7 +5638,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -7420,7 +7544,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e. a
+they’re an adapter tool that requires a client-side component (i.e.� a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has
