@@ -205,6 +205,20 @@ function CLI:update_metadata()
   }
 end
 
+---Focus the CLI window and enter insert mode
+---@return nil
+function CLI:focus()
+  local winnr = self.ui.winnr
+  vim.defer_fn(function()
+    if winnr and api.nvim_win_is_valid(winnr) then
+      api.nvim_set_current_win(winnr)
+      vim.schedule(function()
+        vim.cmd.startinsert()
+      end)
+    end
+  end, 10)
+end
+
 ---Send text to the running CLI agent
 ---@param text string
 ---@param opts? { submit: boolean }
