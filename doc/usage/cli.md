@@ -139,14 +139,14 @@ vim.keymap.set("n", "<LocalLeader>cd", function()
 end, { desc = "Send diagnostics to CLI agent" })
 ```
 
-This keymap shares the LSP diagnostics for the current buffer with the agent, automatically submiting the prompt.
+This keymap shares the LSP diagnostics for the current buffer with the agent, automatically submitting the prompt.
 
 ### Fix Failing Tests
 
 ```lua
 -- [C]odeCompanion [T]erminal
 vim.keymap.set("n", "<LocalLeader>ct", function()
-  return require("codecompanion").cli("This failed, can you fix it? #{terminal}", { focus = false, submit = true })
+  return require("codecompanion").cli("#{terminal} Sharing the output from the terminal. Can you fix it?", { focus = false, submit = true })
 end, { desc = "Send terminal output to CLI agent" })
 ```
 
