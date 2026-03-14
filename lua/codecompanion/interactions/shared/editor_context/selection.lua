@@ -57,11 +57,7 @@ function EditorContext:apply_cli()
   end
 
   return fmt(
-    [[Selected code from `%s` (lines %d-%d):
-
-````%s
-%s
-````]],
+    "Selected code from `%s` (lines %d-%d):\n\n````%s\n%s\n````\n\n",
     ctx.filename,
     ctx.start_line,
     ctx.end_line,
