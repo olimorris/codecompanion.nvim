@@ -1118,11 +1118,15 @@ The user is working on a %s machine. Please respond with system specific command
 
     -- Display options for the input buffer
     input = {
+      title = "󰅂 CodeCompanion Prompt",
       window = {
-        width = { min = 80, max = 0.6 },
-        height = { min = 8, max = 0.3 },
         border = "single",
-        relative = "editor",
+        width = { min = 30, max = 0.6 },
+        height = { min = 3, max = 0.3 },
+        relative = "cursor",
+        title_pos = "left",
+        row = 1,
+        col = 0,
         opts = {
           number = false,
           relativenumber = false,

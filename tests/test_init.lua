@@ -349,7 +349,7 @@ T["cli()"]["without visual selection does not include selection content"] = func
     }
   ]])
 
-  h.eq("hello world", result.text)
+  h.eq("hello world\n", result.text)
   h.eq(true, result.no_selected_code)
 end
 
