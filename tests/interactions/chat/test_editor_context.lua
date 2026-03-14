@@ -206,15 +206,15 @@ T["Editor Context"][":replace_cli"]["should handle multiple editor context tags"
   h.expect_contains("cli:bar", result)
 end
 
-T["Editor Context"][":replace_cli"]["should work when tag is standalone"] = function()
+T["Editor Context"][":replace_cli"]["standalone tag returns only context block"] = function()
   child.lua([[
     _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
     _G.replace_cli_result = _G.ec:replace_cli("#{foo}", _G.replace_cli_ctx)
   ]])
 
   local result = child.lua_get([[_G.replace_cli_result]])
-  h.expect_contains("inline:foo", result)
-  h.expect_contains("cli:foo", result)
+  -- Context-only: no inline label, just the context block
+  h.eq("cli:foo", result)
 end
 
 T["Editor Context"][":replace_cli"]["should skip modules without inline_cli"] = function()
@@ -300,6 +300,142 @@ T["Editor Context"][":parse_cli"]["should return multiple results for multiple r
   h.eq(2, #results)
   h.eq("cli:bar", results[1])
   h.eq("cli:foo", results[2])
+end
+
+--=============================================================================
+-- resolve_editor_context: end-to-end tests using real editor context modules
+-- These mirror the keymaps documented in doc/usage/cli.md
+--=============================================================================
+
+local child2 = MiniTest.new_child_neovim()
+T["resolve_editor_context"] = new_set({
+  hooks = {
+    pre_case = function()
+      h.child_start(child2)
+      child2.lua([[
+        h = require("tests.helpers")
+        h.setup_plugin()
+      ]])
+    end,
+    post_case = function()
+      child2.lua([[
+        h.teardown_chat_buffer()
+      ]])
+    end,
+    post_once = child2.stop,
+  },
+})
+
+T["resolve_editor_context"]["#buffer inline in a sentence"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("What does #{buffer} do?", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- Inline label should be the path in backticks
+  h.expect_contains("What does `", result)
+  h.expect_contains("init.lua` do?", result)
+  -- Context block appended
+  h.expect_contains("Sharing file at path", result)
+end
+
+T["resolve_editor_context"]["#buffer standalone returns only context block"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("#{buffer}", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  h.expect_starts_with("- Sharing file at path", result)
+  -- Should NOT have the inline label before the context block
+  local first_line = result:match("^([^\n]*)")
+  h.expect_starts_with("- Sharing file", first_line)
+end
+
+T["resolve_editor_context"]["#this with visual selection standalone"] = function()
+  child2.lua([[
+    local buf = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_set_current_buf(buf)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "alpha", "beta", "gamma" })
+    vim.bo[buf].filetype = "lua"
+    vim.api.nvim_buf_set_mark(buf, "<", 1, 0, {})
+    vim.api.nvim_buf_set_mark(buf, ">", 2, 3, {})
+
+    local ctx = require("codecompanion.utils.context").get(buf, { range = 2 })
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("#{this}", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- Context-only: starts directly with the context block
+  h.expect_starts_with("- Selected code from", result)
+  h.expect_contains("alpha", result)
+  h.expect_contains("beta", result)
+  -- No redundant inline label before it
+  h.eq(nil, result:match("^the selected code"))
+end
+
+T["resolve_editor_context"]["#this with visual selection and surrounding text"] = function()
+  child2.lua([[
+    local buf = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_set_current_buf(buf)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "alpha", "beta", "gamma" })
+    vim.bo[buf].filetype = "lua"
+    vim.api.nvim_buf_set_mark(buf, "<", 1, 0, {})
+    vim.api.nvim_buf_set_mark(buf, ">", 2, 3, {})
+
+    local ctx = require("codecompanion.utils.context").get(buf, { range = 2 })
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("explain #{this} please", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- Inline label in sentence
+  h.expect_contains("explain the selected code in", result)
+  h.expect_contains("please", result)
+  -- Context block appended
+  h.expect_contains("Selected code from", result)
+  h.expect_contains("alpha", result)
+end
+
+T["resolve_editor_context"]["#diagnostics with surrounding text"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("#{diagnostics} Can you fix these?", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- When there are no diagnostics, the tag resolves to empty
+  -- The important thing is the user text survives
+  h.expect_contains("Can you fix these?", result)
+end
+
+T["resolve_editor_context"]["multiple tags in a sentence"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    vim.cmd("edit lua/codecompanion/config.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("compare #{buffer:init.lua} and #{buffer:config.lua}", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  h.expect_contains("compare", result)
+  h.expect_contains("init.lua", result)
+  h.expect_contains("config.lua", result)
+  -- Both context blocks appended
+  local count = 0
+  for _ in result:gmatch("Sharing file at path") do
+    count = count + 1
+  end
+  h.eq(2, count)
 end
 
 return T
