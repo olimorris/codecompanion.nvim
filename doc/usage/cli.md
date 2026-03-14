@@ -55,7 +55,9 @@ CodeCompanionCLI What does this #{buffer} do?
 Which will be expanded in the agent CLI to be:
 
 ```log
-❯ What does <file path="your_file_path"> do?
+❯ What does `your_file_path` do?
+
+  - Sharing file at path `your_file_path`
 ```
 
 Alternatively, you can use the `require("codecompanion").cli()` function:
@@ -75,20 +77,21 @@ CodeCompanionCLI What does #{this} do?
 In normal mode, this will resolve to be:
 
 ```log
-❯ What does <file path="your_file_path"> do?
+❯ What does `your_file_path` do?
+
+  - Sharing file at path `your_file_path`
 ```
 
 and with a visual selection, will resolve to be:
 
 `````log
-❯ What does Selected code from `your_file_path` (lines 3-4):
+❯ What does the selected code in `your_file_path` do?
 
+  - Selected code from `your_file_path` (lines 3-4):
   ````lua
   local new_set = MiniTest.new_set
   local T = new_set()
   ````
-
-  do?
 `````
 
 
