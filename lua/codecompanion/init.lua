@@ -103,7 +103,7 @@ CodeCompanion.add = function(args)
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = "Here is some code from "
-      .. context.filename
+      .. context.path
       .. ":\n\n```"
       .. context.filetype
       .. "\n"
@@ -207,7 +207,7 @@ CodeCompanion.cmd = function(args)
           context.filetype,
           context.line_count,
           context.cursor_pos[1],
-          context.filename
+          context.path
         ),
         opts = {
           visible = false,

@@ -68,7 +68,7 @@ function M.get_info(bufnr)
     number = bufnr,
     path = bufname,
     relative_path = vim.fn.fnamemodify(bufname, ":."),
-    short_path = vim.fn.fnamemodify(bufname, ":h:t") .. "/" .. vim.fn.fnamemodify(bufname, ":t"),
+    short_path = vim.fs.joinpath(vim.fn.fnamemodify(bufname, ":h:t"), vim.fn.fnamemodify(bufname, ":t")),
   }
 end
 

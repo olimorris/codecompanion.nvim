@@ -135,7 +135,7 @@ This can be useful as you carefully move between buffers and code, determining w
 ```lua
 -- [C]odeCompanion [D]iagnostics
 vim.keymap.set("n", "<LocalLeader>cd", function()
-  return require("codecompanion").cli("Fix these issues: #{diagnostics}", { focus = false, submit = true })
+  return require("codecompanion").cli("#{diagnostics} Can you fix these?", { focus = false, submit = true })
 end, { desc = "Send diagnostics to CLI agent" })
 ```
 

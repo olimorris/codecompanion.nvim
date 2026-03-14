@@ -190,15 +190,19 @@ function CLI.resolve_editor_context(prompt, buffer_context)
   -- stop this, we check for any editor context and only then share the
   -- visual selection with the agent.
   if buffer_context.is_visual and buffer_context.lines and #buffer_context.lines > 0 and not prompt:find("#{") then
-    local selection = string.format(
-      "Selected code from `%s` (lines %d-%d):\n\n````%s\n%s\n````",
-      buffer_context.filename,
+    resolved = string.format(
+      [[- Selected code from `%s` (lines %d-%d):
+````%s
+%s
+````
+%s]],
+      buffer_context.relative_path, -- Keep the CLI
       buffer_context.start_line,
       buffer_context.end_line,
       buffer_context.filetype or "",
-      table.concat(buffer_context.lines, "\n")
+      table.concat(buffer_context.lines, "\n"),
+      resolved
     )
-    resolved = selection .. "\n" .. resolved
   end
 
   return resolved
