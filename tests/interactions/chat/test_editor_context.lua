@@ -180,6 +180,65 @@ T["Editor Context"][":replace"]["should be in sync with finding logic"] = functi
   )
 end
 
+T["Editor Context"][":replace_cli"] = new_set()
+
+T["Editor Context"][":replace_cli"]["should use inline labels in the message and append context blocks"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("what does #{foo} do?", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_starts_with("what does inline:foo do?", result)
+  h.expect_contains("cli:foo", result)
+end
+
+T["Editor Context"][":replace_cli"]["should handle multiple editor context tags"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("compare #{foo} and #{bar}", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_contains("inline:foo", result)
+  h.expect_contains("inline:bar", result)
+  h.expect_contains("cli:foo", result)
+  h.expect_contains("cli:bar", result)
+end
+
+T["Editor Context"][":replace_cli"]["should work when tag is standalone"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("#{foo}", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_contains("inline:foo", result)
+  h.expect_contains("cli:foo", result)
+end
+
+T["Editor Context"][":replace_cli"]["should skip modules without inline_cli"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("check #{baz} here", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  -- baz has no apply_cli or inline_cli, so tag should be stripped
+  h.eq("check  here", result)
+end
+
+T["Editor Context"][":replace_cli"]["should handle params"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("look at #{bar}{pin}", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_contains("inline:bar", result)
+  h.expect_contains("cli:bar pin", result)
+end
+
 T["Editor Context"][":parse_cli"] = new_set()
 
 T["Editor Context"][":parse_cli"]["should return CLI-formatted strings from apply_cli()"] = function()

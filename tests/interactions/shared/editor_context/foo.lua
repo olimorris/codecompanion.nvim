@@ -21,6 +21,11 @@ function Foo:apply()
 end
 
 ---@return string
+function Foo:inline_cli()
+  return "inline:foo"
+end
+
+---@return string
 function Foo:apply_cli()
   return "cli:foo"
 end

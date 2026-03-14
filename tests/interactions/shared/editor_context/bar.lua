@@ -29,6 +29,11 @@ function Bar:apply()
 end
 
 ---@return string
+function Bar:inline_cli()
+  return "inline:bar"
+end
+
+---@return string
 function Bar:apply_cli()
   if self.params then
     return "cli:bar " .. self.params
