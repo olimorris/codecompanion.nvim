@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local shared_input = require("codecompanion.interactions.shared.input")
 
@@ -6,7 +7,7 @@ local api = vim.api
 local M = {}
 
 ---Open the CLI input buffer
----@param opts? { agent?: string, args?: table, initial_content?: string }
+---@param opts? { agent?: string, args?: table, initial_content?: string, title?: string }
 ---@return nil
 function M.open(opts)
   opts = opts or {}
@@ -15,7 +16,7 @@ function M.open(opts)
   local buffer_context = context_utils.get(api.nvim_get_current_buf(), opts.args)
 
   shared_input.open({
-    title = " CodeCompanion CLI ",
+    title = " " .. (opts.title or config.display.input.title) .. " ",
     initial_content = opts.initial_content,
     on_submit = function(text, submit_opts)
       local cli_module = require("codecompanion.interactions.cli")

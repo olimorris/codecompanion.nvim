@@ -49,7 +49,7 @@ function UI:open(opts)
   end
 
   self.winnr = shared_ui.open(self.bufnr, window, {
-    title = " CodeCompanion CLI ",
+    title = " " .. config.display.input.title .. " ",
   })
 
   log:trace("CLI window opened")
