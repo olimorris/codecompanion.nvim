@@ -137,7 +137,7 @@
 ---@field params string Any additional parameters for the variable
 
 ---@class CodeCompanion.EditorContextArgs
----@field Chat CodeCompanion.Chat The chat buffer
+---@field Chat? CodeCompanion.Chat The chat buffer (nil for CLI interactions)
 ---@field buffer_context CodeCompanion.BufferContext The buffer context to share with the LLM
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
