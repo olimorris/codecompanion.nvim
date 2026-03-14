@@ -118,6 +118,28 @@ end
 -- Alias for sync_all_buffer_content compatibility (shared interface with slash commands)
 EditorContext.output = EditorContext.apply
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  local bufnr = self.buffer_context and self.buffer_context.bufnr
+
+  if self.target then
+    local found = self:find_buffer(self.target)
+    if found then
+      bufnr = found
+    else
+      return nil
+    end
+  end
+
+  if not bufnr then
+    return nil
+  end
+
+  local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+  return string.format("`%s`", relative_path)
+end
+
 ---Return a CLI-formatted string for sharing this buffer with a CLI agent
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -137,8 +159,8 @@ function EditorContext:apply_cli()
     return nil
   end
 
-  local path = vim.api.nvim_buf_get_name(bufnr)
-  return string.format('<file path="%s">', path)
+  local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+  return string.format("- Sharing file at path `%s`", relative_path)
 end
 
 ---Replace the editor context in the message

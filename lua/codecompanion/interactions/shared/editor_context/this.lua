@@ -14,6 +14,25 @@ function EditorContext.new(args)
   return self
 end
 
+---Return a short inline label: delegates to selection or buffer
+---@return string|nil
+function EditorContext:inline_cli()
+  local ctx = self.buffer_context
+  if not ctx then
+    return nil
+  end
+
+  if ctx.is_visual and ctx.lines and #ctx.lines > 0 then
+    return require("codecompanion.interactions.shared.editor_context.selection")
+      .new({ buffer_context = ctx, config = self.config, params = self.params })
+      :inline_cli()
+  end
+
+  return require("codecompanion.interactions.shared.editor_context.buffer")
+    .new({ buffer_context = ctx, config = self.config, params = self.params })
+    :inline_cli()
+end
+
 ---Return a CLI-formatted string: visual selection if present, otherwise the current buffer
 ---@return string|nil
 function EditorContext:apply_cli()

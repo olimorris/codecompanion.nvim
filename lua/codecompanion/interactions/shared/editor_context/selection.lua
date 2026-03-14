@@ -46,6 +46,18 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "selection" }, visible = false })
 end
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  local ctx = self.buffer_context
+
+  if not ctx or not ctx.is_visual or not ctx.lines or #ctx.lines == 0 then
+    return nil
+  end
+
+  return fmt("the selected code in `%s`", ctx.relative_path)
+end
+
 ---Return a CLI-formatted string for sharing the visual selection with a CLI agent
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -57,8 +69,13 @@ function EditorContext:apply_cli()
   end
 
   return fmt(
-    "Selected code from `%s` (lines %d-%d):\n\n````%s\n%s\n````\n\n",
-    ctx.filename,
+    [[- Selected code from `%s` (lines %d-%d):
+````%s
+%s
+````
+
+]],
+    ctx.relative_path,
     ctx.start_line,
     ctx.end_line,
     ctx.filetype or "",

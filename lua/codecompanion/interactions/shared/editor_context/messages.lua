@@ -31,6 +31,12 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "messages" }, visible = false })
 end
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  return "the Neovim messages"
+end
+
 ---Return a CLI-formatted string with the Neovim message history
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -40,7 +46,13 @@ function EditorContext:apply_cli()
     return nil
   end
 
-  return "Neovim message history:\n\n````\n" .. vim.trim(msgs) .. "\n````"
+  return string.format(
+    [[- Neovim message history:
+````
+%s
+````]],
+    vim.trim(msgs)
+  )
 end
 
 return EditorContext

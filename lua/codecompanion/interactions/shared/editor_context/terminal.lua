@@ -50,6 +50,12 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "terminal" }, visible = false })
 end
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  return "the terminal output"
+end
+
 ---Return a CLI-formatted string with the latest terminal output
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -75,7 +81,14 @@ function EditorContext:apply_cli()
     timestamp = os.time(),
   }
 
-  return fmt("Latest terminal output:\n\n````\n%s\n````", table.concat(content, "\n"))
+  return fmt(
+    [[- Latest terminal output:
+````
+%s
+````
+]],
+    table.concat(content, "\n")
+  )
 end
 
 return EditorContext

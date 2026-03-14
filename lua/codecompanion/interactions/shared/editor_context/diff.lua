@@ -59,6 +59,12 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "diff" }, visible = false })
 end
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  return "the git diff"
+end
+
 ---Return a CLI-formatted string with the current git diff
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -78,10 +84,28 @@ function EditorContext:apply_cli()
 
   local content = {}
   if unstaged ~= "" then
-    table.insert(content, fmt("Unstaged changes:\n\n````diff\n%s````", unstaged))
+    table.insert(
+      content,
+      fmt(
+        [[- Unstaged changes:
+````diff
+%s
+````]],
+        unstaged
+      )
+    )
   end
   if staged ~= "" then
-    table.insert(content, fmt("Staged changes:\n\n````diff\n%s````", staged))
+    table.insert(
+      content,
+      fmt(
+        [[- Staged changes:
+````diff
+%s
+````]],
+        staged
+      )
+    )
   end
 
   return table.concat(content, "\n\n")

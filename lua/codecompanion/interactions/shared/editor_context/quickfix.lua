@@ -354,6 +354,12 @@ function EditorContext:apply()
   end
 end
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  return "the quickfix list"
+end
+
 ---Return a CLI-formatted string with quickfix list entries
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -368,7 +374,11 @@ function EditorContext:apply_cli()
     table.insert(lines, entry.display)
   end
 
-  return "Quickfix list:\n\n" .. table.concat(lines, "\n")
+  return string.format(
+    [[- Quickfix list:
+%s]],
+    table.concat(lines, "\n")
+  )
 end
 
 return EditorContext

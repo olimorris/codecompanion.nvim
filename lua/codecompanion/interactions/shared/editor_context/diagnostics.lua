@@ -93,6 +93,18 @@ Code:
   }, { _meta = { source = "editor_context", tag = "diagnostics" }, visible = false })
 end
 
+---Return a short inline label for use within a sentence
+---@return string|nil
+function EditorContext:inline_cli()
+  local bufnr = self:_resolve_bufnr()
+  if not bufnr then
+    return nil
+  end
+
+  local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+  return string.format("the diagnostics in `%s`", relative_path)
+end
+
 ---Return a CLI-formatted string with diagnostics for the current buffer
 ---@return string|nil
 function EditorContext:apply_cli()
@@ -126,7 +138,13 @@ function EditorContext:apply_cli()
     )
   end
 
-  return string.format("Diagnostics for `%s`:\n\n%s", buf_info.path, table.concat(formatted, "\n"))
+  return string.format(
+    [[Diagnostics for `%s`:
+%s
+]],
+    buf_info.relative_path,
+    table.concat(formatted, "\n")
+  )
 end
 
 return EditorContext
