@@ -177,13 +177,31 @@ function CLI.find_by_agent(agent_name)
   return nil
 end
 
----Resolve editor context references in a prompt for CLI output
+---Resolve any editor context references in a prompt
 ---@param prompt string
 ---@param buffer_context CodeCompanion.BufferContext
 ---@return string
 function CLI.resolve_editor_context(prompt, buffer_context)
   local editor_context = require("codecompanion.interactions.shared.editor_context").new("cli")
-  return editor_context:replace_cli(prompt, buffer_context)
+  local resolved = editor_context:replace_cli(prompt, buffer_context)
+
+  -- A user may make a visual seleection and also include editor context such as
+  -- #{this}, which would result in the same context being added twice. To
+  -- stop this, we check for any editor context and only then share the
+  -- visual selection with the agent.
+  if buffer_context.is_visual and buffer_context.lines and #buffer_context.lines > 0 and not prompt:find("#{") then
+    local selection = string.format(
+      "Selected code from `%s` (lines %d-%d):\n\n````%s\n%s\n````",
+      buffer_context.filename,
+      buffer_context.start_line,
+      buffer_context.end_line,
+      buffer_context.filetype or "",
+      table.concat(buffer_context.lines, "\n")
+    )
+    resolved = selection .. "\n" .. resolved
+  end
+
+  return resolved
 end
 
 ---Update the global metadata table for statusline integrations
@@ -252,11 +270,10 @@ function CLI:close()
 end
 
 --=============================================================================
--- Watcher for auto-reloading buffers on file changes
--- Shared per-cwd: multiple CLI instances on the same directory reuse one watcher
+-- Watchers - Monitor files in the cwd for any changes
 --=============================================================================
 
----Start (or increment the refcount of) the shared watcher for a given cwd
+---Start a watcher for a given cwd
 ---@param cwd string
 ---@return nil
 function CLI._start_watcher(cwd)
@@ -289,7 +306,7 @@ function CLI._start_watcher(cwd)
   log:debug("File watcher started on %s", cwd)
 end
 
----Decrement the refcount for a cwd watcher, stopping it when the last user closes
+---Stop a watcher for the given cwd
 ---@param cwd string
 ---@return nil
 function CLI._stop_watcher(cwd)

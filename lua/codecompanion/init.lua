@@ -366,18 +366,12 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
   if prompt then
     local resolved = cli.resolve_editor_context(prompt, context)
 
-    -- Auto-include visual selection, but only if the prompt doesn't use
-    -- # tags (which may already reference the selection via #{this} or #{selection})
-    if context.is_visual and context.lines and #context.lines > 0 and not prompt:find("#") then
-      local selection = string.format(
-        "Selected code from `%s` (lines %d-%d):\n\n````%s\n%s\n````",
-        context.filename,
-        context.start_line,
-        context.end_line,
-        context.filetype or "",
-        table.concat(context.lines, "\n")
-      )
-      resolved = selection .. "\n" .. resolved
+    -- When not submitting, append a newline so successive cli() calls
+    -- don't stack text on the same terminal line. Skip when submitting
+    -- because the \r handles the line ending and a trailing \n would be
+    -- interpreted as an extra Enter by the TUI agent.
+    if not opts.submit and not resolved:match("\n$") then
+      resolved = resolved .. "\n"
     end
 
     instance:send(resolved, { submit = opts.submit })

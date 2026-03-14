@@ -6,166 +6,148 @@ description: Learn how to use the Command-Line Interface (CLI) interaction to in
 
 The CLI interaction allows you to interact with agents that have a command-line interface such as [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) and [Codex](https://github.com/openai/codex).
 
-You can toggle a CLI buffer with `require("codecompanion").toggle()` and you can use `{` and `}` to cycle through chat and CLI interactions.
+You can toggle a CLI interaction with `require("codecompanion").toggle()`, just as you would with a chat buffer. You can use `{` and `}` to cycle through all the chat and CLI interactions.
 
-## Commands
+## Initiating a CLI Interaction
 
-There are many ways to start a CLI interaction, depending on your workflow:
+You can use `:CodeCompanionCLI` to start a new CLI interaction and CodeCompanion will leverage the agent you've configured in your config at `interactions.cli.agent`. If you want to specify an agent on the fly, you can use `:CodeCompanionCLI agent=<agent_name>`.
 
+## Sending Context
 
-| Command | Behaviour |
-|---|---|
-| `:CodeCompanionCLI` | Open a new CLI interaction |
-| `:CodeCompanionCLI <prompt>` | Send a prompt to the last CLI interaction (or create a new one) |
-| `:CodeCompanionCLI! <prompt>` | Send a prompt and auto-submit it, keeping focus in the current buffer |
-| `:CodeCompanionCLI agent=<name> <prompt>` | Start a new CLI interaction with a specific agent |
-| `:CodeCompanionCLI Ask` | Open the prompt input buffer for composing prompts (case-sensitive) |
-
-
-### The Bang Modifier
-
-Adding `!` to the command (e.g. `:CodeCompanionCLI! fix the tests`) will:
-
-1. Send the prompt directly to the terminal process (auto-submit)
-2. Keep your cursor in the current buffer instead of switching to the terminal
-
-This is useful for "fire and forget" workflows where you want to send a prompt without leaving your current context.
-
-### Prompt Input Buffer
-
-Running `:CodeCompanionCLI Ask` opens a prompt input buffer where you can write multi-line prompts and use [editor context](/usage/chat-buffer/editor-context) references (e.g. `#{buffer}`, `#{this}`).
-
-- `:w` — Sends the prompt to the CLI agent
-- `:w!` — Sends and auto-submits the prompt
-
-> [!NOTE]
-> Editor context in CLI interactions reference paths to buffers rather than contents.
-
-## Editor Context
-
-You can share context from your editor using `#` references in your prompts, just like in the [chat buffer](/usage/chat-buffer/editor-context). For example:
-
-````
-What does this #{buffer} do?
-````
-
-Will be expanded to:
-
-````
-What does <file path="your_file_path"> do?
-````
-
-### #this
-
-The `#{this}` editor context is a smart shortcut that adapts based on your current mode:
-
-- **Normal mode** — resolves to the current buffer (like `#{buffer}`)
-- **Visual mode** — resolves to the visual selection (like `#{selection}`)
-
-````
-:'<,'>CodeCompanionCLI #{this} what does this code do?
-````
+One of the key advantages of using an agent with CodeCompanion is the ability to share context from Neovim quickly. This section will cover the many different ways you can achieve this.
 
 ### Visual Selection
 
-When you make a visual selection, the selected code is automatically included with your prompt:
+To start off, you can use a visual selection as a source of context, by visually selecting some code and running:
 
-````
-:'<,'>CodeCompanionCLI what does this code do?
-````
+```
+CodeCompanionCLI Can you explain this code?
+```
 
-This also works with the Lua API when called from a visual mode keymap:
+You could also achieve this via a keymap:
 
 ```lua
-vim.keymap.set("v", "<LocalLeader>ca", function()
-  require("codecompanion").cli("what does this code do?")
+vim.keymap.set("v", "<LocalLeader>cp", function()
+  return require("codecompanion").cli({ prompt = true })
 end)
 ```
 
-## Lua API
+This will result in the visual selection being passed to an input prompt, allowing you to type _"Can you explain this code?"_ before sending it to the agent.
 
-The `cli()` function is the main entry point for interacting with CLI agents programmatically:
-
-```lua
----Open, send to, or interact with a CLI agent
----@param prompt_or_opts? string|table A prompt string, or an opts table when no prompt is needed
----@param opts? table Options (see below)
-require("codecompanion").cli(prompt_or_opts, opts)
-```
-
-### Parameters
-
-The first argument to the `cli` function is polymorphic. It can be a prompt string or an options table:
-
-- `cli()` — create and open a new CLI instance with the default agent
-- `cli("prompt")` — send a prompt to the last instance (or create one)
-- `cli("prompt", opts)` — send a prompt with options
-- `cli(opts)` — create a new instance with the given options (no prompt)
-
-### Options
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `agent` | `string` | config default | Which agent to use. When sending a prompt, reuses an existing instance of that agent if one exists |
-| `submit` | `boolean` | `false` | Auto-submit the prompt (sends `Enter` after the text) |
-| `focus` | `boolean` | `true` | Open the CLI window and move the cursor to it. When `false`, the prompt is sent in the background |
-| `prompt` | `boolean` | `false` | Open the prompt input buffer for composing multi-line prompts |
-| `width` | `number` | — | Override the window width (fraction of editor, e.g. `0.5`) |
-| `height` | `number` | — | Override the window height (fraction of editor, e.g. `0.8`) |
-
-### Examples
+Alternatively, you could hard code the prompt in the keymap:
 
 ```lua
--- Open a new CLI interaction
-require("codecompanion").cli()
-
--- Open a new CLI interaction with a specific agent
-require("codecompanion").cli({ agent = "codex" })
-
--- Send a prompt to the last CLI interaction (or create one)
-require("codecompanion").cli("fix the failing tests")
-
--- Send and auto-submit a prompt
-require("codecompanion").cli("fix the failing tests", { submit = true })
-
--- Send a prompt without opening or focusing the CLI
-require("codecompanion").cli("explain #{buffer}", { focus = false })
-
--- Fire-and-forget: submit to a specific agent, stay in current buffer
-require("codecompanion").cli("run the test suite", { agent = "claude_code", submit = true, focus = false })
-
--- Open the prompt input buffer for composing a multi-line prompt
-require("codecompanion").cli({ prompt = true })
-
--- Override window dimensions
-require("codecompanion").cli("fix the tests", { width = 0.5, height = 0.8 })
-```
-
-### Keymap Examples
-
-```lua
--- Toggle the CLI (show/hide)
-vim.keymap.set("n", "<Leader>ct", function()
-  require("codecompanion").toggle()
-end)
-
--- Quick send: buffer (normal mode) or selection (visual mode) straight to the CLI
-vim.keymap.set({ "n", "v" }, "<Leader>ca", function()
-  require("codecompanion").cli("#{this}")
-end)
-
--- Compose: open the prompt input buffer to write a multi-line prompt
-vim.keymap.set({ "n", "v" }, "<Leader>cp", function()
-  require("codecompanion").cli({ prompt = true })
+vim.keymap.set("v", "<LocalLeader>cx", function()
+  return require("codecompanion").cli("Can you explain this code?")
 end)
 ```
 
-### Other Functions
+### Editor Context
+
+Similarly to the [chat buffer](/usage/chat-buffer), you can use [editor context](/usage/chat-buffer/editor-context) references in your prompts to share information about your current Neovim session. This makes it trivial to share the current buffer (`#{buffer}`), all currently open buffers (`#{buffers}`), or LSP diagnostics (`#{diagnostics}`) to name but a few.
+
+You can use the `:CodeCompanionCLI` command:
+
+```
+CodeCompanionCLI What does this #{buffer} do?
+```
+
+Which will be expanded in the agent CLI to be:
+
+```log
+❯ What does <file path="your_file_path"> do?
+```
+
+Alternatively, you can use the `require("codecompanion").cli()` function:
 
 ```lua
--- Toggle the CLI terminal buffer (show/hide)
-require("codecompanion").toggle_cli()
-
--- Toggle the last used interaction (chat or CLI)
-require("codecompanion").toggle()
+require("codecompanion").cli("What does #{buffer} do?")
 ```
+
+---
+
+CodeCompanion also provides `#{this}` (unique to the CLI interaction) which resolves to the current buffer in normal mode, and the visual selection in visual mode:
+
+```
+CodeCompanionCLI What does #{this} do?
+```
+
+In normal mode, this will resolve to be:
+
+```log
+❯ What does <file path="your_file_path"> do?
+```
+
+and with a visual selection, will resolve to be:
+
+`````log
+❯ What does Selected code from `your_file_path` (lines 3-4):
+
+  ````lua
+  local new_set = MiniTest.new_set
+  local T = new_set()
+  ````
+
+  do?
+`````
+
+
+### Prompts
+
+There will come a time when you need to send a more complex prompt to the agent. Whilst you can do `:CodeCompanionCLI <my long prompt>`, you can also bring up a prompt input with:
+
+```
+CodeCompanionCLI Ask
+```
+
+This will open up a `codecompanion_input` buffer. This gives you access to all of the available editor context and a much a larger character window. To send the prompt to the agent, you can write the buffer with `:w`. Or, to automatically send and submit, you can forcefully write with `:w!`.
+
+## Useful Keymaps
+
+So, with all of the above in mind, what are some useful keymaps to enable you to be as productive as possible when working with agents in the CLI with CodeCompanion? Below are some examples:
+
+### Prompt the Agent
+
+```lua
+-- [C]odeCompanion [P]rompt]
+vim.keymap.set({ "n", "v" }, "<LocalLeader>cp", function()
+  return require("codecompanion").cli({ prompt = true })
+end, { desc = "Prompt the CLI agent" })
+```
+
+In normal mode, this brings up the prompt input, allowing you to specify editor context before sending to the agent. In visual mode however, it shares the selection alongside your prompt, saving you from manually specifying editor context.
+
+### Add Context
+
+```lua
+-- [C]odeCompanion [A]dd
+vim.keymap.set({ "n", "v" }, "<LocalLeader>ca", function()
+  return require("codecompanion").cli("#{this}", { focus = false })
+end, { desc = "Add context to the CLI agent" })
+```
+
+This keymap allows you to quickly share the current buffer or visual selection with the agent, without needing to specify a prompt, utilising `#{this}`. This is useful for quickly sharing context before following up with a more specific prompt. You'll also note the inclusion of `focus = false` to ensure that the cursor doesn't move into the CLI buffer.
+
+This can be useful as you carefully move between buffers and code, determining what context is relevant to share with the agent, without losing your current position in the CLI buffer.
+
+### Fix LSP Diagnostics
+
+```lua
+-- [C]odeCompanion [D]iagnostics
+vim.keymap.set("n", "<LocalLeader>cd", function()
+  return require("codecompanion").cli("Fix these issues: #{diagnostics}", { focus = false, submit = true })
+end, { desc = "Send diagnostics to CLI agent" })
+```
+
+This keymap shares the LSP diagnostics for the current buffer with the agent, automatically submiting the prompt.
+
+### Fix Failing Tests
+
+```lua
+-- [C]odeCompanion [T]erminal
+vim.keymap.set("n", "<LocalLeader>ct", function()
+  return require("codecompanion").cli("This failed, can you fix it? #{terminal}", { focus = false, submit = true })
+end, { desc = "Send terminal output to CLI agent" })
+```
+
+This keymap shares the output from the most recent terminal with the agent, which is especially useful for sharing failing test output. Again, the prompt is automatically submitted to save you time.
