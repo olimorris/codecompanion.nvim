@@ -469,14 +469,14 @@ function Chat.new(args)
   -- NOTE: Put the parser on the chat buffer for performance reasons
   local ok, chat_parser, yaml_parser
   ok, chat_parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
-  if not ok then
+  if not ok or not chat_parser then
     return log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
   end
   self.chat_parser = chat_parser
 
   if show_settings then
     ok, yaml_parser = pcall(vim.treesitter.get_parser, self.bufnr, "yaml", { ignore_injections = false })
-    if not ok then
+    if not ok or not yaml_parser then
       return log:error("Could not find the Yaml Tree-sitter parser")
     end
     self.yaml_parser = yaml_parser
