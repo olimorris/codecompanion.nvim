@@ -29,10 +29,15 @@ function M.resolve_dimensions(window)
     if type(value) == "table" then
       local min = value.min or 0
       local max = value.max or 1
-      local computed = max > 1 and max or math.floor(total * max)
-      return math.max(min, computed)
+
+      -- Resolve fractions (0 < v < 1) to absolute values
+      local resolved_min = min > 0 and min < 1 and math.floor(total * min) or min
+      local resolved_max = max > 0 and max < 1 and math.floor(total * max) or max
+
+      -- Clamp: at least min, at most max
+      return math.max(resolved_min, math.min(resolved_max, total))
     end
-    return value > 1 and value or math.floor(total * value)
+    return value >= 1 and value or math.floor(total * value)
   end
 
   return resolve(window.height, rows()), resolve(window.width, cols())
@@ -60,7 +65,7 @@ function M.open(bufnr, window, opts)
       row = window.row or math.floor((rows() - height) / 2),
       border = window.border,
       title = title,
-      title_pos = "center",
+      title_pos = window.title_pos or "center",
       zindex = 45,
     }
     winnr = api.nvim_open_win(bufnr, true, win_opts)
