@@ -5030,7 +5030,7 @@ visually selecting some code and running:
     CodeCompanionCLI Can you explain this code?
 <
 
-You could also achieve this in Lua::
+You could also achieve this in Lua:
 
 >lua
     require("codecompanion").cli({ prompt = true })
@@ -5131,6 +5131,94 @@ of the available editor context and a much a larger character window. To send
 the prompt to the agent, you can write the buffer with `:w`. Or, to
 automatically send and submit, you can forcefully write with `:w!`.
 
+
+AUTO-SUBMIT
+
+By default, prompts are sent to the agent but `not` submitted. The text appears
+in the CLI and you can review it before pressing enter. To automatically submit
+a prompt so the agent starts working immediately, you can:
+
+Use the `bang` form of the command:
+
+>
+    CodeCompanionCLI! #{diagnostics} Can you fix these?
+<
+
+Or pass `submit = true` in Lua:
+
+>lua
+    require("codecompanion").cli("#{diagnostics} Can you fix these?", { submit = true })
+<
+
+This is especially useful in keymaps where you want a fire-and-forget workflow,
+like the diagnostics and terminal examples in the |codecompanion--workflow|
+section.
+
+
+API REFERENCE ~
+
+The `require("codecompanion").cli()` function is the main entry point for
+interacting with CLI agents. It has a polymorphic signature:
+
+>lua
+    -- No args: create a new CLI instance and open it
+    require("codecompanion").cli()
+    
+    -- Opts table: create a new instance with options
+    require("codecompanion").cli({ agent = "claude_code" })
+    
+    -- String prompt: send to the last instance (or create one)
+    require("codecompanion").cli("Can you explain this code?")
+    
+    -- String prompt with opts
+    require("codecompanion").cli("Fix #{diagnostics}", { submit = true, focus = false })
+<
+
+
+OPTIONS
+
+  -----------------------------------------------------------------------
+  Option            Type              Default           Description
+  ----------------- ----------------- ----------------- -----------------
+  agent             string            config default    The CLI agent to
+                                                        use. When sending
+                                                        a prompt, reuses
+                                                        an existing
+                                                        instance of this
+                                                        agent if one
+                                                        exists
+
+  focus             boolean           true              Whether to open
+                                                        the CLI window
+                                                        and move the
+                                                        cursor to it. Set
+                                                        to false to send
+                                                        context in the
+                                                        background
+
+  submit            boolean           false             Automatically
+                                                        submit the prompt
+                                                        (press enter) so
+                                                        the agent starts
+                                                        working
+                                                        immediately
+
+  prompt            boolean           false             Open the prompt
+                                                        input buffer
+                                                        instead of
+                                                        sending directly.
+                                                        If a string
+                                                        prompt is also
+                                                        provided, it
+                                                        pre-fills the
+                                                        input
+
+  width             number            config default    Override the CLI
+                                                        window width
+
+  height            number            config default    Override the CLI
+                                                        window height
+  -----------------------------------------------------------------------
 
 EVENTS / HOOKS                            *codecompanion-usage-events-/-hooks*
 
