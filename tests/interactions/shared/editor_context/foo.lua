@@ -13,21 +13,19 @@ end
 
 ---Return the contents of the current buffer that the chat was initiated from
 ---@return nil
-function Foo:apply()
+function Foo:chat_render()
   self.Chat:add_message({
     role = "user",
     content = "foo",
   }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
----@return string
-function Foo:inline_cli()
-  return "inline:foo"
-end
-
----@return string
-function Foo:apply_cli()
-  return "cli:foo"
+---@return { inline: string, block: string }
+function Foo:cli_render()
+  return {
+    inline = "inline:foo",
+    block = "cli:foo",
+  }
 end
 
 return Foo

@@ -23,7 +23,7 @@ local _terminal_data = {}
 
 ---Add the latest terminal output to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local bufnr = _G.codecompanion_last_terminal
   if not bufnr then
     return log:warn("No recent terminal buffer found")
@@ -50,15 +50,9 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "terminal" }, visible = false })
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
-  return "the terminal output"
-end
-
----Return a CLI-formatted string with the latest terminal output
----@return string|nil
-function EditorContext:apply_cli()
+---Return inline label and context block for the CLI interaction
+---@return { inline: string, block: string }|nil
+function EditorContext:cli_render()
   local bufnr = _G.codecompanion_last_terminal
   if not bufnr then
     log:warn("No recent terminal buffer found")
@@ -81,14 +75,17 @@ function EditorContext:apply_cli()
     timestamp = os.time(),
   }
 
-  return fmt(
-    [[- Latest terminal output:
+  return {
+    inline = "the terminal output",
+    block = fmt(
+      [[- Latest terminal output:
 ````
 %s
 ````
 ]],
-    table.concat(content, "\n")
-  )
+      table.concat(content, "\n")
+    ),
+  }
 end
 
 return EditorContext

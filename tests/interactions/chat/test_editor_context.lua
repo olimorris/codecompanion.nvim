@@ -217,14 +217,14 @@ T["Editor Context"][":replace_cli"]["standalone tag returns only context block"]
   h.eq("cli:foo", result)
 end
 
-T["Editor Context"][":replace_cli"]["should skip modules without inline_cli"] = function()
+T["Editor Context"][":replace_cli"]["should skip modules without cli_render"] = function()
   child.lua([[
     _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
     _G.replace_cli_result = _G.ec:replace_cli("check #{baz} here", _G.replace_cli_ctx)
   ]])
 
   local result = child.lua_get([[_G.replace_cli_result]])
-  -- baz has no apply_cli or inline_cli, so tag should be stripped
+  -- baz has no cli_render, so tag should be stripped
   h.eq("check  here", result)
 end
 
@@ -237,69 +237,6 @@ T["Editor Context"][":replace_cli"]["should handle params"] = function()
   local result = child.lua_get([[_G.replace_cli_result]])
   h.expect_contains("inline:bar", result)
   h.expect_contains("cli:bar pin", result)
-end
-
-T["Editor Context"][":parse_cli"] = new_set()
-
-T["Editor Context"][":parse_cli"]["should return CLI-formatted strings from apply_cli()"] = function()
-  child.lua([[
-    _G.parse_cli_msg = { content = "#{foo} what does this do?" }
-    _G.parse_cli_ctx = { bufnr = 1, filetype = "lua" }
-    _G.parse_cli_result = _G.ec:parse_cli(_G.parse_cli_ctx, _G.parse_cli_msg)
-  ]])
-
-  local results = child.lua_get([[_G.parse_cli_result]])
-  h.eq(true, results ~= nil)
-  h.eq(1, #results)
-  h.eq("cli:foo", results[1])
-end
-
-T["Editor Context"][":parse_cli"]["should return nil when no references found"] = function()
-  child.lua([[
-    _G.parse_cli_msg = { content = "what does this do?" }
-    _G.parse_cli_ctx = { bufnr = 1, filetype = "lua" }
-    _G.parse_cli_result = _G.ec:parse_cli(_G.parse_cli_ctx, _G.parse_cli_msg)
-  ]])
-
-  h.eq(true, child.lua_get([[_G.parse_cli_result == nil]]))
-end
-
-T["Editor Context"][":parse_cli"]["should handle params correctly"] = function()
-  child.lua([[
-    _G.parse_cli_msg = { content = "#{bar}{pin} check this" }
-    _G.parse_cli_ctx = { bufnr = 1, filetype = "lua" }
-    _G.parse_cli_result = _G.ec:parse_cli(_G.parse_cli_ctx, _G.parse_cli_msg)
-  ]])
-
-  local results = child.lua_get([[_G.parse_cli_result]])
-  h.eq(true, results ~= nil)
-  h.eq(1, #results)
-  h.eq("cli:bar pin", results[1])
-end
-
-T["Editor Context"][":parse_cli"]["should skip modules without apply_cli()"] = function()
-  child.lua([[
-    _G.parse_cli_msg = { content = "#{baz} check this" }
-    _G.parse_cli_ctx = { bufnr = 1, filetype = "lua" }
-    _G.parse_cli_result = _G.ec:parse_cli(_G.parse_cli_ctx, _G.parse_cli_msg)
-  ]])
-
-  h.eq(true, child.lua_get([[_G.parse_cli_result == nil]]))
-end
-
-T["Editor Context"][":parse_cli"]["should return multiple results for multiple references"] = function()
-  child.lua([[
-    _G.parse_cli_msg = { content = "#{foo} #{bar} check these" }
-    _G.parse_cli_ctx = { bufnr = 1, filetype = "lua" }
-    _G.parse_cli_result = _G.ec:parse_cli(_G.parse_cli_ctx, _G.parse_cli_msg)
-    table.sort(_G.parse_cli_result)
-  ]])
-
-  local results = child.lua_get([[_G.parse_cli_result]])
-  h.eq(true, results ~= nil)
-  h.eq(2, #results)
-  h.eq("cli:bar", results[1])
-  h.eq("cli:foo", results[2])
 end
 
 --=============================================================================
@@ -335,14 +272,12 @@ T["resolve_editor_context"]["#buffer inline in a sentence"] = function()
   ]])
 
   local result = child2.lua_get([[_G.result]])
-  -- Inline label should be the path in backticks
-  h.expect_contains("What does `", result)
-  h.expect_contains("init.lua` do?", result)
-  -- Context block appended
-  h.expect_contains("Sharing file at path", result)
+  -- Inline label should be the path with @ prefix, no block appended
+  h.expect_contains("What does @", result)
+  h.expect_contains("init.lua do?", result)
 end
 
-T["resolve_editor_context"]["#buffer standalone returns only context block"] = function()
+T["resolve_editor_context"]["#buffer standalone returns inline path"] = function()
   child2.lua([[
     vim.cmd("edit lua/codecompanion/init.lua")
     local ctx = require("codecompanion.utils.context").get(0)
@@ -351,10 +286,7 @@ T["resolve_editor_context"]["#buffer standalone returns only context block"] = f
   ]])
 
   local result = child2.lua_get([[_G.result]])
-  h.expect_starts_with("- Sharing file at path", result)
-  -- Should NOT have the inline label before the context block
-  local first_line = result:match("^([^\n]*)")
-  h.expect_starts_with("- Sharing file", first_line)
+  h.expect_contains("init.lua", result)
 end
 
 T["resolve_editor_context"]["#this with visual selection standalone"] = function()
@@ -430,12 +362,6 @@ T["resolve_editor_context"]["multiple tags in a sentence"] = function()
   h.expect_contains("compare", result)
   h.expect_contains("init.lua", result)
   h.expect_contains("config.lua", result)
-  -- Both context blocks appended
-  local count = 0
-  for _ in result:gmatch("Sharing file at path") do
-    count = count + 1
-  end
-  h.eq(2, count)
 end
 
 return T

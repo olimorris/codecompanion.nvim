@@ -13,7 +13,7 @@ end
 
 ---Return the contents of the current buffer that the chat was initiated from
 ---@return nil
-function Bar:apply()
+function Bar:chat_render()
   if self.params then
     self.Chat:add_message({
       role = "user",
@@ -28,17 +28,18 @@ function Bar:apply()
   }, { _meta = { tag = "editor_context" }, visible = false })
 end
 
----@return string
-function Bar:inline_cli()
-  return "inline:bar"
-end
-
----@return string
-function Bar:apply_cli()
+---@return { inline: string, block: string }
+function Bar:cli_render()
   if self.params then
-    return "cli:bar " .. self.params
+    return {
+      inline = "inline:bar",
+      block = "cli:bar " .. self.params,
+    }
   end
-  return "cli:bar"
+  return {
+    inline = "inline:bar",
+    block = "cli:bar",
+  }
 end
 
 return Bar

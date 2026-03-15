@@ -19,7 +19,7 @@ end
 
 ---Add Neovim's message history to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local messages = vim.fn.execute("messages")
   if not messages or vim.trim(messages) == "" then
     return log:warn("No messages found")
@@ -31,28 +31,25 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "messages" }, visible = false })
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
-  return "the Neovim messages"
-end
-
----Return a CLI-formatted string with the Neovim message history
----@return string|nil
-function EditorContext:apply_cli()
+---Return inline label and context block for the CLI interaction
+---@return { inline: string, block: string }|nil
+function EditorContext:cli_render()
   local msgs = vim.fn.execute("messages")
   if not msgs or vim.trim(msgs) == "" then
     log:warn("No messages found")
     return nil
   end
 
-  return string.format(
-    [[- Neovim message history:
+  return {
+    inline = "the Neovim messages",
+    block = string.format(
+      [[- Neovim message history:
 ````
 %s
 ````]],
-    vim.trim(msgs)
-  )
+      vim.trim(msgs)
+    ),
+  }
 end
 
 return EditorContext

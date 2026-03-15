@@ -32,7 +32,7 @@ end
 
 ---Add the current git diff to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local is_git = git({ "git", "rev-parse", "--is-inside-work-tree" })
   if not is_git then
     return log:warn("Not inside a git repository")
@@ -59,15 +59,9 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "diff" }, visible = false })
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
-  return "the git diff"
-end
-
----Return a CLI-formatted string with the current git diff
----@return string|nil
-function EditorContext:apply_cli()
+---Return inline label and context block for the CLI interaction
+---@return { inline: string, block: string }|nil
+function EditorContext:cli_render()
   local is_git = git({ "git", "rev-parse", "--is-inside-work-tree" })
   if not is_git then
     log:warn("Not inside a git repository")
@@ -108,7 +102,10 @@ function EditorContext:apply_cli()
     )
   end
 
-  return table.concat(content, "\n\n")
+  return {
+    inline = "the git diff",
+    block = table.concat(content, "\n\n"),
+  }
 end
 
 return EditorContext

@@ -331,7 +331,7 @@ end
 
 ---Add quickfix list entries to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local entries = get_qflist_entries()
   if #entries == 0 then
     return log:warn("Quickfix list is empty")
@@ -354,15 +354,9 @@ function EditorContext:apply()
   end
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
-  return "the quickfix list"
-end
-
----Return a CLI-formatted string with quickfix list entries
----@return string|nil
-function EditorContext:apply_cli()
+---Return inline label and context block for the CLI interaction
+---@return { inline: string, block: string }|nil
+function EditorContext:cli_render()
   local entries = get_qflist_entries()
   if #entries == 0 then
     log:warn("Quickfix list is empty")
@@ -374,11 +368,14 @@ function EditorContext:apply_cli()
     table.insert(lines, entry.display)
   end
 
-  return string.format(
-    [[- Quickfix list:
+  return {
+    inline = "the quickfix list",
+    block = string.format(
+      [[- Quickfix list:
 %s]],
-    table.concat(lines, "\n")
-  )
+      table.concat(lines, "\n")
+    ),
+  }
 end
 
 return EditorContext

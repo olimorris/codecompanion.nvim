@@ -20,7 +20,7 @@ end
 
 ---Add the current visual selection to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local ctx = self.Chat.buffer_context
 
   if not ctx.is_visual or not ctx.lines or #ctx.lines == 0 then
@@ -46,21 +46,9 @@ function EditorContext:apply()
   }, { _meta = { source = "editor_context", tag = "selection" }, visible = false })
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
-  local ctx = self.buffer_context
-
-  if not ctx or not ctx.is_visual or not ctx.lines or #ctx.lines == 0 then
-    return nil
-  end
-
-  return fmt("the selected code in `%s`", ctx.relative_path)
-end
-
----Return a CLI-formatted string for sharing the visual selection with a CLI agent
----@return string|nil
-function EditorContext:apply_cli()
+---Return inline label and context block for the CLI interaction
+---@return { inline: string, block: string }|nil
+function EditorContext:cli_render()
   local ctx = self.buffer_context
 
   if not ctx or not ctx.is_visual or not ctx.lines or #ctx.lines == 0 then
@@ -68,19 +56,22 @@ function EditorContext:apply_cli()
     return nil
   end
 
-  return fmt(
-    [[- Selected code from `%s` (lines %d-%d):
+  return {
+    inline = fmt("the selected code in @%s", ctx.relative_path),
+    block = fmt(
+      [[- Selected code from @%s (lines %d-%d):
 ````%s
 %s
 ````
 
 ]],
-    ctx.relative_path,
-    ctx.start_line,
-    ctx.end_line,
-    ctx.filetype or "",
-    table.concat(ctx.lines, "\n")
-  )
+      ctx.relative_path,
+      ctx.start_line,
+      ctx.end_line,
+      ctx.filetype or "",
+      table.concat(ctx.lines, "\n")
+    ),
+  }
 end
 
 return EditorContext

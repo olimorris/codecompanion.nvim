@@ -70,24 +70,16 @@ local function create_module(interaction, ctx_config, params, target, interactio
   return require("codecompanion.interactions.shared.editor_context.user").new(init)
 end
 
----Create and resolve an editor context module
----@param interaction CodeCompanion.Chat|{buffer_context: CodeCompanion.BufferContext}
----@param ctx_config table
----@param params? string
----@param target? string
----@param interaction_type? "chat"|"cli"
----@return table|string|nil
-local function resolve(interaction, ctx_config, params, target, interaction_type)
-  local module = create_module(interaction, ctx_config, params, target, interaction_type)
-
-  if interaction_type == "cli" then
-    if module.apply_cli then
-      return module:apply_cli()
-    end
-    return nil
+---Render an editor context module for the chat interaction
+---Checks for chat_render first (new API), falls back to apply (user-defined contexts)
+---@param module table
+---@return nil
+local function chat_render(module)
+  if module.chat_render then
+    return module:chat_render()
+  elseif module.apply then
+    return module:apply()
   end
-
-  return module:apply()
 end
 
 ---@class CodeCompanion.EditorContext
@@ -195,7 +187,8 @@ function EditorContext:parse(chat, message)
         params = find_params(message, ctx, target)
       end
 
-      resolve(chat, ctx_config, params, target)
+      local module = create_module(chat, ctx_config, params, target)
+      chat_render(module)
 
       ::continue::
     end
@@ -204,51 +197,6 @@ function EditorContext:parse(chat, message)
   end
 
   return false
-end
-
----Parse a message for editor context and return CLI-formatted strings
----@param buffer_context CodeCompanion.BufferContext
----@param message table
----@return string[]|nil
-function EditorContext:parse_cli(buffer_context, message)
-  local instances = self:find(message)
-  if not instances then
-    return nil
-  end
-
-  local results = {}
-  for _, instance in ipairs(instances) do
-    local ctx = instance.ctx
-    local ctx_config = self.editor_context[ctx]
-    log:debug("Editor context found (CLI): %s (target: %s)", ctx, instance.target or "none")
-
-    ctx_config["name"] = ctx
-
-    if (ctx_config.opts and ctx_config.opts.contains_code) and not config.can_send_code() then
-      log:warn("Sending of code has been disabled")
-      goto continue
-    end
-
-    local target = instance.target
-    local params = nil
-
-    if ctx_config.opts and ctx_config.opts.has_params then
-      params = find_params(message, ctx, target)
-    end
-
-    local result = resolve({ buffer_context = buffer_context }, ctx_config, params, target, "cli")
-    if result then
-      table.insert(results, result)
-    end
-
-    ::continue::
-  end
-
-  if #results == 0 then
-    return nil
-  end
-
-  return results
 end
 
 ---Replace editor context in a given message
@@ -283,8 +231,8 @@ function EditorContext:replace(message, bufnr)
 end
 
 ---Replace editor context tags in a message for CLI
----Tags are replaced inline with short labels (inline_cli) and the full
----context blocks (apply_cli) are appended after the message.
+---Tags are replaced inline with short labels and the full
+---context blocks are appended after the message.
 ---@param message string
 ---@param buffer_context CodeCompanion.BufferContext
 ---@return string
@@ -302,11 +250,12 @@ function EditorContext:replace_cli(message, buffer_context)
     stripped = stripped:gsub(prefix .. "{" .. escaped_ctx .. "}", "")
   end
   local context_only = vim.trim(stripped) == ""
+  local inline_labels = {}
 
   for ctx, ctx_config in pairs(self.editor_context) do
     local escaped_ctx = vim.pesc(ctx)
 
-    ---Resolve a single editor context match
+    ---Resolve a single editor context match via cli_render()
     ---@param target? string
     ---@param params? string
     ---@return string The inline label to substitute in place of the tag
@@ -324,25 +273,29 @@ function EditorContext:replace_cli(message, buffer_context)
       local interaction = { buffer_context = buffer_context }
       local module = create_module(interaction, ctx_config, params, target, "cli")
 
-      -- Collect the full context block
-      if module.apply_cli then
-        local block = module:apply_cli()
-        if block then
-          table.insert(context_blocks, block)
-        end
-      end
-
-      -- When the prompt is only tags, skip inline labels
-      if context_only then
+      if not module.cli_render then
         return ""
       end
 
-      -- Return the inline label for substitution
-      if module.inline_cli then
-        return module:inline_cli() or ""
+      local result = module:cli_render()
+      if not result then
+        return ""
       end
 
-      return ""
+      -- Collect the full context block
+      if result.block then
+        table.insert(context_blocks, result.block)
+      end
+
+      -- When the prompt is only tags, collect inline labels as fallback
+      if context_only then
+        if result.inline then
+          table.insert(inline_labels, result.inline)
+        end
+        return ""
+      end
+
+      return result.inline or ""
     end
 
     -- #{ctx:target}{params}
@@ -363,21 +316,23 @@ function EditorContext:replace_cli(message, buffer_context)
     end)
   end
 
-  if #context_blocks > 0 then
-    local trimmed = vim.trim(message)
-    local blocks = table.concat(context_blocks, "\n")
-
-    -- If the prompt was only tags, return just the context blocks
-    if context_only then
-      return blocks
+  if context_only then
+    -- Prefer blocks when available, fall back to inline labels
+    if #context_blocks > 0 then
+      return table.concat(context_blocks, "\n")
     end
+    if #inline_labels > 0 then
+      return table.concat(inline_labels, "\n")
+    end
+  end
 
+  if #context_blocks > 0 then
     return string.format(
       [[%s
 
 %s]],
-      trimmed,
-      blocks
+      vim.trim(message),
+      table.concat(context_blocks, "\n")
     )
   end
 

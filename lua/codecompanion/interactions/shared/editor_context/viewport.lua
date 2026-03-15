@@ -20,7 +20,7 @@ end
 
 ---Share the visible lines in the editor's viewport as per-buffer messages
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local ec_opts = config.interactions.shared.editor_context.opts
   local excluded = ec_opts and ec_opts.excluded
   local buf_lines = buf_utils.get_visible_lines(excluded)
@@ -45,9 +45,9 @@ function EditorContext:apply()
   end
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
+---Return inline label for the CLI interaction
+---@return { inline: string }|nil
+function EditorContext:cli_render()
   local ec_opts = config.interactions.shared.editor_context.opts
   local excluded = ec_opts and ec_opts.excluded
   local buf_lines = buf_utils.get_visible_lines(excluded)
@@ -56,29 +56,7 @@ function EditorContext:inline_cli()
   for bufnr, _ in pairs(buf_lines) do
     local path = buf_utils.get_info(bufnr).relative_path
     if path ~= "" then
-      table.insert(paths, string.format("`%s`", path))
-    end
-  end
-
-  if #paths == 0 then
-    return nil
-  end
-
-  return "the visible code in " .. table.concat(paths, ", ")
-end
-
----Return CLI-formatted strings for sharing visible buffers with a CLI agent
----@return string|nil
-function EditorContext:apply_cli()
-  local ec_opts = config.interactions.shared.editor_context.opts
-  local excluded = ec_opts and ec_opts.excluded
-  local buf_lines = buf_utils.get_visible_lines(excluded)
-
-  local paths = {}
-  for bufnr, _ in pairs(buf_lines) do
-    local path = buf_utils.get_info(bufnr).relative_path
-    if path ~= "" then
-      table.insert(paths, string.format("- Sharing file at path `%s`", path))
+      table.insert(paths, string.format("@%s", path))
     end
   end
 
@@ -87,7 +65,9 @@ function EditorContext:apply_cli()
     return nil
   end
 
-  return table.concat(paths, "\n")
+  return {
+    inline = "the visible code in " .. table.concat(paths, ", "),
+  }
 end
 
 return EditorContext

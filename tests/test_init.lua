@@ -1,6 +1,7 @@
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
+local expect = MiniTest.expect
 local child = MiniTest.new_child_neovim()
 
 T = new_set()
@@ -134,28 +135,12 @@ T["cli()"]["focus=false does not open the UI"] = function()
   h.eq(false, result.visible)
 end
 
-T["cli()"]["focus=false does not move cursor"] = function()
-  local result = child.lua([[
-    local cc = require("codecompanion")
-    local original_win = vim.api.nvim_get_current_win()
-
-    -- Send with focus=false — should create instance but not open or move cursor
-    cc.cli("hello", { focus = false })
-
-    -- Small delay for any deferred actions
-    vim.wait(200, function() return false end)
-
-    local cli = require("codecompanion.interactions.cli")
-    return {
-      same_window = vim.api.nvim_get_current_win() == original_win,
-      not_visible = not cli.last_cli().ui:is_visible(),
-      instance_exists = cli.last_cli() ~= nil,
-    }
+T["cli()"]["prompt=true opens the input buffer"] = function()
+  child.lua([[
+    vim.cmd("enew")
+    require("codecompanion").cli({ prompt = true })
   ]])
-
-  h.eq(true, result.same_window)
-  h.eq(true, result.not_visible)
-  h.eq(true, result.instance_exists)
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 --=============================================================================
@@ -256,19 +241,9 @@ T["cli()"]["visual selection is not duplicated when prompt contains #this"] = fu
   h.eq(1, result.selected_count)
 end
 
-T["cli()"]["prompt with # tags skips auto-prepend of visual selection"] = function()
+T["cli()"]["#this in normal mode sends buffer path"] = function()
   local result = child.lua([[
-    local buf = vim.api.nvim_create_buf(true, false)
-    vim.api.nvim_set_current_buf(buf)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-      "alpha",
-      "beta",
-      "gamma",
-    })
-    vim.bo[buf].filetype = "lua"
-
-    vim.api.nvim_buf_set_mark(buf, "<", 1, 0, {})
-    vim.api.nvim_buf_set_mark(buf, ">", 2, 3, {})
+    vim.cmd("edit lua/codecompanion/init.lua")
 
     local sent_text
     local cli = require("codecompanion.interactions.cli")
@@ -278,17 +253,16 @@ T["cli()"]["prompt with # tags skips auto-prepend of visual selection"] = functi
       sent_text = text
     end
 
-    -- Prompt uses #{buffer} — auto-prepend should be skipped
-    require("codecompanion").cli("look at #{buffer}", { args = { range = 2 }, focus = false })
+    require("codecompanion").cli("#{this}", { focus = false })
 
     return {
-      has_buffer_ref = sent_text ~= nil and sent_text:find("file") ~= nil,
-      no_auto_prepend = sent_text == nil or sent_text:find("Selected code from") == nil,
+      has_path = sent_text ~= nil and sent_text:find("init.lua") ~= nil,
+      no_selection = sent_text == nil or sent_text:find("Selected code from") == nil,
     }
   ]])
 
-  h.eq(true, result.has_buffer_ref)
-  h.eq(true, result.no_auto_prepend)
+  h.eq(true, result.has_path)
+  h.eq(true, result.no_selection)
 end
 
 T["cli()"]["empty prompt with visual selection sends only the selection"] = function()

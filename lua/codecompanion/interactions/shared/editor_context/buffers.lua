@@ -48,7 +48,7 @@ end
 
 ---Add all open buffers to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local buffers = buf_utils.get_open()
   local count = 0
 
@@ -91,36 +91,16 @@ function EditorContext:apply()
   end
 end
 
----Return a short inline label for use within a sentence
----@return string|nil
-function EditorContext:inline_cli()
+---Return inline label for the CLI interaction
+---@return { inline: string }|nil
+function EditorContext:cli_render()
   local buffers = buf_utils.get_open()
   local paths = {}
 
   for _, buf_info in ipairs(buffers) do
     if not self:_is_excluded(buf_info.bufnr) then
       local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf_info.bufnr), ":.")
-      table.insert(paths, string.format("`%s`", relative_path))
-    end
-  end
-
-  if #paths == 0 then
-    return nil
-  end
-
-  return "the open buffers: " .. table.concat(paths, ", ")
-end
-
----Return CLI-formatted strings for sharing all open buffers with a CLI agent
----@return string|nil
-function EditorContext:apply_cli()
-  local buffers = buf_utils.get_open()
-  local paths = {}
-
-  for _, buf_info in ipairs(buffers) do
-    if not self:_is_excluded(buf_info.bufnr) then
-      local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf_info.bufnr), ":.")
-      table.insert(paths, string.format("- Sharing file with path `%s`", relative_path))
+      table.insert(paths, string.format("@%s", relative_path))
     end
   end
 
@@ -129,7 +109,9 @@ function EditorContext:apply_cli()
     return nil
   end
 
-  return table.concat(paths, "\n")
+  return {
+    inline = "the open buffers: " .. table.concat(paths, ", "),
+  }
 end
 
 return EditorContext

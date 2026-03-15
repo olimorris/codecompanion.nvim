@@ -17,7 +17,7 @@ end
 
 ---Return the user's custom context
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local id = "<editor_context>" .. self.config.name .. "</editor_context>"
 
   self.Chat:add_message({
