@@ -191,7 +191,7 @@ function CLI.resolve_editor_context(prompt, buffer_context)
   -- visual selection with the agent.
   if buffer_context.is_visual and buffer_context.lines and #buffer_context.lines > 0 and not prompt:find("#{") then
     resolved = string.format(
-      [[- Selected code from `%s` (lines %d-%d):
+      [[- Selected code from @%s (lines %d-%d):
 ````%s
 %s
 ````
