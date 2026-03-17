@@ -1,5 +1,5 @@
 --[[
-The Inline Assistant - This is where code is applied directly to a Neovim buffer
+The Inline Interaction - This is where code is applied directly to a Neovim buffer
 --]]
 
 ---@class CodeCompanion.Inline

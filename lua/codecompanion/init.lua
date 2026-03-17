@@ -414,6 +414,7 @@ CodeCompanion.has = function(feature)
     "acp",
     "rules",
     "cli",
+    "inline",
   }
 
   if type(feature) == "string" then

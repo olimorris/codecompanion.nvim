@@ -142,8 +142,8 @@ export default withMermaid(
             { text: "CLI", link: "/configuration/cli" },
             { text: "Extensions", link: "/configuration/extensions" },
             {
-              text: "Inline Assistant",
-              link: "/configuration/inline-assistant",
+              text: "Inline",
+              link: "/configuration/inline",
             },
             { text: "MCP", link: "/configuration/mcp" },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
@@ -180,7 +180,7 @@ export default withMermaid(
             },
             { text: "CLI", link: "/usage/cli" },
             { text: "Events", link: "/usage/events" },
-            { text: "Inline Assistant", link: "/usage/inline-assistant" },
+            { text: "Inline", link: "/usage/inline" },
             { text: "Prompt Library", link: "/usage/prompt-library" },
             { text: "Workflows", link: "/usage/workflows" },
             { text: "UI", link: "/usage/ui" },
@@ -210,7 +210,7 @@ export default withMermaid(
       },
 
       footer: {
-        message: "Released under the MIT License.",
+        message: "Released under the Apache-2.0 License.",
         copyright: "Copyright © 2024-present Oli Morris",
       },
 

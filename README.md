@@ -34,7 +34,7 @@ Thank you to the following people:
 - :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/docs/cli/), [Mistral Vibe](https://github.com/mistralai/mistral-vibe) and [OpenCode](https://opencode.ai)
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters-http#community-adapters)
 - :battery: Support for [Model Context Protocol (MCP)](https://codecompanion.olimorris.dev/model-context-protocol#model-context-protocol-mcp-support)
-- :rocket: [Inline transformations](https://codecompanion.olimorris.dev/usage/inline-assistant.html), code creation and refactoring
+- :rocket: [Inline transformations](https://codecompanion.olimorris.dev/usage/inline.html), code creation and refactoring
 - :art: [Editor Context](https://codecompanion.olimorris.dev/usage/chat-buffer/editor-context.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Agents/Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/agents-tools) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
 - :brain: Support for [rules](https://codecompanion.olimorris.dev/usage/chat-buffer/rules.html) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 - :sparkles: Built-in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
@@ -57,7 +57,7 @@ Thank you to the following people:
     <video controls muted src="https://github.com/user-attachments/assets/59efa262-e768-4f36-9901-9d02b018fcf0"></video>
   </p>
   <p>
-    <h3><a href="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee">Inline Assistant</a></h3>
+    <h3><a href="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee">Inline Interaction</a></h3>
     <video controls muted src="https://github.com/user-attachments/assets/11a42705-d9de-4eb5-a9ab-c8a2772fb4d4"></video>
   </p>
 </div>

@@ -16,11 +16,11 @@ You can toggle a CLI interaction with `require("codecompanion").toggle()`, just 
 
 ## Workflow
 
-Below are some useful workflow tips to enable you to be as productive as possible when working with agents in the CLI with CodeCompanion:
+Below are some useful workflow tips to enable you to be productive when working with agents in the CLI with CodeCompanion:
 
 ### Prompting the Agent
 
-You can send a prompt the agent in the CLI from within Neovim:
+You can send a custom prompt to the agent from within a Neovim buffer:
 
 ```lua
 -- [C]odeCompanion [P]rompt]
@@ -114,12 +114,6 @@ Which will be expanded in the agent CLI to be:
 ❯ Can you explain the open buffers:
   @your_file_path
   @your_other_file_path?
-```
-
-You can use a _bang_ to automatically submit the prompt, keeping the cursor in the current buffer:
-
-```
-CodeCompanionCLI! Can you explain #{buffers}?
 ```
 
 Alternatively:
