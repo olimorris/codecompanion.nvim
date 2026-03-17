@@ -1122,7 +1122,7 @@ The user is working on a %s machine. Please respond with system specific command
       window = {
         border = "single",
         width = { min = 40, max = 60 },
-        height = { min = 1, max = 3 },
+        height = { min = 1, max = 2 },
         relative = "cursor",
         title_pos = "left",
         row = 1,
