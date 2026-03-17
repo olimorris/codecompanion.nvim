@@ -1,5 +1,12 @@
 # Changelog
 
+## [19.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.3.0...v19.4.0) (2026-03-17)
+
+
+### Features
+
+* **cli:** new interaction type ([#2836](https://github.com/olimorris/codecompanion.nvim/issues/2836)) ([b3760b9](https://github.com/olimorris/codecompanion.nvim/commit/b3760b96aa9af194fae2ed89f923afb4b7951049))
+
 ## [19.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.2.0...v19.3.0) (2026-03-09)
 
 
