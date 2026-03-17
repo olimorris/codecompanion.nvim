@@ -1,5 +1,5 @@
 --[[
-The Inline Assistant - This is where code is applied directly to a Neovim buffer
+The Inline Interaction - This is where code is applied directly to a Neovim buffer
 --]]
 
 ---@class CodeCompanion.Inline
@@ -754,12 +754,20 @@ function Inline:to_chat()
   -- Turn streaming back on
   self.adapter.opts.stream = _streaming
 
-  return require("codecompanion.interactions.chat").new({
+  local chat_opts = {
     adapter = self.adapter,
     auto_submit = true,
     buffer_context = self.buffer_context,
     messages = prompt,
-  })
+  }
+
+  -- Add rules to the chat buffer
+  local rules_cb = require("codecompanion.interactions.chat.rules.helpers").add_callbacks(chat_opts)
+  if rules_cb then
+    chat_opts.callbacks = rules_cb
+  end
+
+  return require("codecompanion.interactions.chat").new(chat_opts)
 end
 
 ---Build the banner text for the inline diff

@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 09
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -17,12 +17,8 @@ Table of Contents                            *codecompanion-table-of-contents*
 3. Getting Started                             |codecompanion-getting-started|
   - Documentation                |codecompanion-getting-started-documentation|
   - Interactions                  |codecompanion-getting-started-interactions|
-  - Setup: Adapter              |codecompanion-getting-started-setup:-adapter|
-  - Chat Buffer                    |codecompanion-getting-started-chat-buffer|
-  - Inline Assistant          |codecompanion-getting-started-inline-assistant|
-  - Commands                          |codecompanion-getting-started-commands|
-  - Action Palette              |codecompanion-getting-started-action-palette|
-  - List of Commands          |codecompanion-getting-started-list-of-commands|
+  - Setup                                |codecompanion-getting-started-setup|
+  - Usage                                |codecompanion-getting-started-usage|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. ACP                                                     |codecompanion-acp|
   - Implementation                          |codecompanion-acp-implementation|
@@ -39,7 +35,8 @@ Table of Contents                            *codecompanion-table-of-contents*
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
-  - Inline Assistant            |codecompanion-configuration-inline-assistant|
+  - Command-Line Interface (CLI)|codecompanion-configuration-command-line-interface-(cli)|
+  - Inline Interaction        |codecompanion-configuration-inline-interaction|
   - MCP Servers                      |codecompanion-configuration-mcp-servers|
   - Rules                                  |codecompanion-configuration-rules|
   - Prompt Library                |codecompanion-configuration-prompt-library|
@@ -54,8 +51,9 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Editor Context                        |codecompanion-usage-editor-context|
   - Rules                                          |codecompanion-usage-rules|
   - Slash Commands                        |codecompanion-usage-slash-commands|
+  - Command-Line Interface (CLI)|codecompanion-usage-command-line-interface-(cli)|
   - Events / Hooks                        |codecompanion-usage-events-/-hooks|
-  - Inline Assistant                    |codecompanion-usage-inline-assistant|
+  - Inline Interaction                |codecompanion-usage-inline-interaction|
   - Prompt Library                        |codecompanion-usage-prompt-library|
   - User Interface                        |codecompanion-usage-user-interface|
   - Workflows                                  |codecompanion-usage-workflows|
@@ -79,11 +77,12 @@ and agents, in Neovim.
 FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
+-  Integrates Neovim with LLMs and Agents in the CLI
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
--  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
+-  |codecompanion-usage-inline.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 -  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
@@ -295,26 +294,45 @@ can be used in a `lazy.nvim` configuration like so:
 INTERACTIONS                      *codecompanion-getting-started-interactions*
 
 The plugin uses the notion of `interactions` to describe the many different
-ways that you can interact with an LLM from within CodeCompanion. There are
-four main types of interactions:
+ways that you can interact with an Agent or LLM from within CodeCompanion.
+There are five main types of interactions:
 
 - **Chat** - A chat buffer where you can converse with an LLM (`:CodeCompanionChat`)
-- **Inline** - An inline assistant that can write code directly into a buffer (`:CodeCompanion`)
+- **CLI** - A terminal wrapper around agent CLI tools such a Claude Code or Opencode (`:CodeCompanionCLI`)
+- **Inline** - An inline interaction that can write code directly into a buffer (`:CodeCompanion`)
 - **Cmd** - Create Neovim commands in the command-line (`:CodeCompanionCmd`)
 - **Background** - Runs tasks in the background such as compacting chat messages or generating titles for chats
 
 
-SETUP: ADAPTER                  *codecompanion-getting-started-setup:-adapter*
+SETUP                                    *codecompanion-getting-started-setup*
+
+
+CHAT AND INLINE ~
 
 
   [!NOTE] The adapters that the plugin supports out of the box can be found here
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
   Or, see the user contributed adapters
-  |codecompanion-configuration-adapters-http-community-adapters|
-An adapter is what connects Neovim to an LLM (via `HTTP`) or an agent (via ACP
-<https://agentclientprotocol.com/overview/introduction>). It’s the interface
-that allows data to be sent, received and processed. In order to use the
-plugin, you need to make sure you’ve configured an adapter first:
+  |codecompanion-configuration-adapters-http-community-adapters|.
+  |codecompanion-configuration-adapters-acp| are only supported for the chat
+  interaction.
+The Chat Buffer is where you can converse with an LLM from within a Neovim
+buffer. It operates on a single response per turn basis. The inline interaction
+enables an LLM to write code directly into a Neovim buffer.
+
+The |codecompanion-usage-chat-buffer-| and |codecompanion-usage-inline|
+interactions need an adapter to function. In CodeCompanion terminology, an
+adapter is the connection between Neovim and an LLM or agent. CodeCompanion has
+two `types` of adapters; HTTP adapters which connect you to an LLM via it’s
+API and ACP adapters which connect you to an agent via the Agent Client
+Protocol <https://agentclientprotocol.com>. CodeCompanion has a number of
+built-in adapters
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
+that you can leverage and you can find more details in the respective
+|codecompanion-configuration-adapters-http| and
+|codecompanion-configuration-adapters-acp| sections of the documentation.
+
+To set an adapter:
 
 >lua
     require("codecompanion").setup({
@@ -348,29 +366,15 @@ interaction and the Anthropic one for the inline. We’re also using something
 cheap for the background adapter (although these interactions are opt-in). You
 can mix and match adapters as you see fit for your workflow.
 
-
-  [!IMPORTANT] |codecompanion-configuration-adapters-acp| are only supported for
-  the chat interaction.
-There are two "types" of adapter in CodeCompanion;
-|codecompanion-configuration-adapters-http| adapters which connect you to an
-LLM and |codecompanion-configuration-adapters-acp| adapters which leverage the
-Agent Client Protocol <https://agentclientprotocol.com> to connect you to an
-agent.
-
-Refer to the respective sections to understand more about working with adapters
-that enable agents like
-|codecompanion-configuration-adapters-acp-setup-claude-code|.
-
-
-SETTING AN API KEY ~
+**Setting an API Key**
 
 Because most LLMs require an API key, you’ll need to share that with the
-adapter. By default, adapters will look in your environment for a `*_API_KEY`
-where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. Refer to
-the documentation of the LLM or agent you’re using to find out what the
-environment variable is called.
+adapter. By default, the built-in adapters will look in your environment for a
+`*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or
+`OPENAI`. Refer to the documentation of the LLM or agent you’re using to find
+out what the environment variable is called.
 
-You can extend an adapter and change the API key like so:
+You can set/change the API key by using the `extend` function:
 
 >lua
     require("codecompanion").setup({
@@ -393,12 +397,42 @@ Refer to the |codecompanion-configuration-adapters-http-environment-variables|
 section for more information.
 
 
-CHAT BUFFER                        *codecompanion-getting-started-chat-buffer*
+CLI ~
 
-The Chat Buffer is where you can converse with an LLM from within Neovim. It
-operates on a single response per turn, basis. Once your adapter has been
-configured, you can start using the chat buffer and begin interacting with an
-LLM.
+The CLI interaction allows you to interact with agents that operate in the
+command-line like Claude Code and Opencode. To use CodeCompanion with a CLI
+agent, you’ll need to configure an agent first:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          agent = "claude_code",
+          agents = {
+            claude_code = {
+              cmd = "claude",
+              args = {},
+              description = "Claude Code CLI",
+              provider = "terminal",
+            },
+          },
+        },
+      },
+    })
+<
+
+In the example above, we’re setting up Claude Code in the `agents` table,
+specifying the command to run it. Then we’re setting it as the default CLI
+interaction with `agent = "claude_code"`.
+
+
+USAGE                                    *codecompanion-getting-started-usage*
+
+The below section has been curated from the lengthier usage documentation to
+give you a quick overview of how each feature works.
+
+
+CHAT ~
 
 Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by
 pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively,
@@ -409,8 +443,7 @@ the chat buffer and send a prompt at the same time. Toggle the chat buffer with
 You can add context from your code base by using `Editor Context` and `Slash
 Commands` in the chat buffer.
 
-
-EDITOR CONTEXT ~
+**Editor Context**
 
 `Editor Context`, accessed via `#` (by default), contain data about the present
 state of Neovim. You can find a list of available editor context,
@@ -418,45 +451,63 @@ state of Neovim. You can find a list of available editor context,
 will automatically link a buffer to the chat buffer, by default, updating the
 LLM when the buffer changes.
 
+You can use them in your prompts like:
 
-  [!TIP] Use them in your prompt like: `What does the code in #{buffer} do?`
+>
+    What does the code in #{buffer} do?`
+<
 
-SLASH COMMANDS ~
+**Slash Commands**
 
 
   [!IMPORTANT] These have been designed to work with native Neovim completions
   alongside nvim-cmp and blink.cmp. To open the native completion menu use
   `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should
   also work with coc.nvim.
-`Slash commands`, accessed via `/`, run commands to insert additional context
-into the chat buffer. You can find a list of available commands as well as how
-to use them, |codecompanion-usage-chat-buffer-slash-commands.html|.
+`Slash commands`, accessed via `/` (by default), run commands to insert
+additional context into the chat buffer. You can find a list of available
+commands as well as how to use them,
+|codecompanion-usage-chat-buffer-slash-commands.html|.
+
+**Tools**
+
+`Tools`, accessed via `@` (by default), allow the LLM to function as an agent
+and leverage external tools. You can find a list of available tools as well as
+how to use them,
+|codecompanion-usage-chat-buffer-agents-tools-available-tools|.
+
+You can use them in your prompts like:
+
+>
+    Can you use @{grep_search} to find occurrences of "hello world"
+<
 
 
-TOOLS ~
+CLI ~
 
-`Tools`, accessed via `@`, allow the LLM to function as an agent and leverage
-external tools. You can find a list of available tools as well as how to use
-them, |codecompanion-usage-chat-buffer-agents-tools-available-tools|.
+Running `:CodeCompanionCLI` will open a new CLI interaction. Running
+`:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI
+interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to
+use a rich prompt input field complete with |codecompanion--editor-context|.
+Save with `:w` to send the prompt to the agent, or `:w!` to send and
+auto-submit it.
+
+Adding `!` to the command (e.g.� `:CodeCompanionCLI! <prompt>`) will
+auto-submit the prompt and keep your cursor in the current buffer. You can also
+specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
 
 
-  [!TIP] Use them in your prompt like:
-  `Can you use @{grep_search} to find occurrences of "hello world"`
-
-INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
+INLINE ~
 
 
   [!NOTE] The diff provider in the video is mini.diff
   <https://github.com/echasnovski/mini.diff>
-The inline assistant enables an LLM to write code directly into a Neovim
-buffer.
-
-Run `:CodeCompanion your prompt` to call the inline assistant. The assistant
-will evaluate the prompt and either write code or open a chat buffer. You can
-also make a visual selection and call the assistant. To send additional context
-alongside your prompt, you can leverage
-|codecompanion-usage-inline-assistant-editor-context| such as `:CodeCompanion
-#{buffer} <your prompt>`.
+Run `:CodeCompanion your prompt` to call the inline interaction. The
+interaction will evaluate the prompt and either write code or open a chat
+buffer. You can also make a visual selection and call the inline interaction.
+To send additional context alongside your prompt, you can leverage
+|codecompanion-usage-inline-editor-context| such as `:CodeCompanion #{buffer}
+<your prompt>`.
 
 For convenience, you can call prompts with their `alias` from the prompt
 library
@@ -471,13 +522,7 @@ following presets:
 - `/tests` - Generate unit tests for selected code
 
 
-COMMANDS                              *codecompanion-getting-started-commands*
-
-Use CodeCompanion to create Neovim commands in command-line mode
-(|Command-line|) via `:CodeCompanionCmd <your prompt>`.
-
-
-ACTION PALETTE                  *codecompanion-getting-started-action-palette*
+ACTION PALETTE ~
 
 Run `:CodeCompanionActions` to open the action palette, which gives you access
 to the plugin’s features, including your prompts from the
@@ -492,19 +537,20 @@ with `:Telescope codecompanion`.
   [!NOTE] Some actions and prompts will only be visible if you’re in `Visual
   mode`.
 
-LIST OF COMMANDS              *codecompanion-getting-started-list-of-commands*
+LIST OF COMMANDS ~
 
-The plugin has four core commands:
+The plugin has five core commands:
 
-- `CodeCompanion` - Open the inline assistant
+- `CodeCompanion` - Open the inline interaction
 - `CodeCompanionChat` - Open a chat buffer
+- `CodeCompanionCLI` - Open a CLI interaction
 - `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the `Action Palette`
 
 However, there are multiple options available:
 
-- `CodeCompanion <prompt>` - Prompt the inline assistant
-- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
+- `CodeCompanion <prompt>` - Prompt the inline interaction
+- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline interaction with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item via its alias from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
@@ -512,11 +558,16 @@ However, there are multiple options available:
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
+- `CodeCompanionCLI` - Open a new CLI interaction
+- `CodeCompanionCLI <prompt>` - Send a prompt to the last CLI interaction (or create a new one)
+- `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
+- `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
+- `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
 
 
 SUGGESTED WORKFLOW          *codecompanion-getting-started-suggested-workflow*
 
-For an optimum plugin workflow, I recommend the following:
+For an optimum plugin workflow, the author recommends the following:
 
 >lua
     vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -1327,10 +1378,9 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents
-(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
-the two adapters, it is recommend that you read this page alongside the ACP
-one.
+`commands` to allow users to customize their interaction with agents (e.g.�
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1384,7 +1434,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -1644,10 +1694,13 @@ COMMUNITY ADAPTERS ~
 
 Thanks to the community for building the following adapters:
 
-- Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
-- Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
-- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
 - DashScope <https://github.com/olimorris/codecompanion.nvim/discussions/2239>
+- Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
+- InceptionLabs - Mercury 2 <https://github.com/olimorris/codecompanion.nvim/discussions/2867>
+- Nvidia NIM <https://github.com/olimorris/codecompanion.nvim/discussions/2810>
+- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
+- Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
+- Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
 The section of the discussion forums which is dedicated to user created
 adapters can be found here
@@ -2283,20 +2336,239 @@ set the `default_params` option to either `diff` or `all`:
 <
 
 
-INLINE ASSISTANT                *codecompanion-configuration-inline-assistant*
+COMMAND-LINE INTERFACE (CLI)*codecompanion-configuration-command-line-interface-(cli)*
+
+By default, CodeCompanion uses the `terminal` provider for CLI interactions,
+which runs agents in a Neovim terminal buffer. However, the CLI system is
+flexible and allows you to define custom agents and providers to suit your
+workflow.
 
 
-  [!IMPORTANT] Only **http** adapters are supported for the inline assistant.
+AGENTS ~
+
+To use the CLI interaction, you need to define at least one agent in your
+configuration:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          agent = "claude_code",
+          agents = {
+            claude_code = {
+              cmd = "claude",
+              args = {},
+              description = "Claude Code CLI",
+              provider = "terminal",
+            },
+          },
+        },
+      },
+    })
+<
+
+The `agent` field sets the default agent. You can override it per-command with
+`:CodeCompanionCLI agent=<name>`.
+
+
+AGENT OPTIONS
+
+  Option        Type     Description
+  ------------- -------- ------------------------------------------------
+  cmd           string   The command to run (e.g. "claude", "codex")
+  args          table    Arguments to pass to the command
+  description   string   Description shown in the action palette
+  provider      string   Which provider to use (defaults to "terminal")
+
+MULTIPLE AGENTS
+
+You can define multiple agents and switch between them:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          agent = "claude_code",
+          agents = {
+            claude_code = {
+              cmd = "claude",
+              args = {},
+              description = "Claude Code CLI",
+            },
+            codex = {
+              cmd = "codex",
+              args = {},
+              description = "OpenAI Codex CLI",
+            },
+          },
+        },
+      },
+    })
+<
+
+Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
+
+
+PROVIDERS ~
+
+Providers determine how the CLI agent is run. The built-in `terminal` provider
+uses a Neovim terminal buffer with `jobstart()`:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          providers = {
+            terminal = {
+              path = "interactions.cli.providers.terminal",
+              description = "Terminal CLI provider",
+            },
+          },
+        },
+      },
+    })
+<
+
+
+CUSTOM PROVIDERS
+
+You can create custom providers and reference them by module path or file path:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          providers = {
+            my_provider = {
+              -- Can be a codecompanion module, a Lua module, or a file path
+              path = "my_custom.cli_provider",
+              description = "My custom CLI provider",
+            },
+          },
+          agents = {
+            my_agent = {
+              cmd = "my-cli",
+              args = {},
+              provider = "my_provider",
+            },
+          },
+        },
+      },
+    })
+<
+
+If an agent’s `provider` field doesn’t match any entry in the `providers`
+table, the `terminal` provider is used as a fallback.
+
+
+KEYMAPS ~
+
+The CLI buffer supports keymaps for navigating between interactions:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          keymaps = {
+            next_chat = {
+              modes = { n = "}" },
+              callback = "keymaps.next_chat",
+              description = "[Nav] Next interaction",
+            },
+            previous_chat = {
+              modes = { n = "{" },
+              callback = "keymaps.previous_chat",
+              description = "[Nav] Previous interaction",
+            },
+          },
+        },
+      },
+    })
+<
+
+
+OPTIONS ~
+
+There are a number of options available for CLI interactions:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          opts = {
+            auto_insert = true, -- Enter insert mode when focusing the CLI terminal
+            reload = true, -- Reload buffers when an agent modifies files on disk
+          },
+        },
+      },
+    })
+<
+
+  -----------------------------------------------------------------------
+  Option            Type              Default           Description
+  ----------------- ----------------- ----------------- -----------------
+  auto_insert       boolean           true              Automatically
+                                                        enter insert mode
+                                                        when the CLI
+                                                        terminal is
+                                                        focused
+
+  reload            boolean           true              Watches the cwd
+                                                        for file changes
+                                                        and runs
+                                                        :checktime to
+                                                        reload buffers
+  -----------------------------------------------------------------------
+
+USER INTERFACE (UI) ~
+
+The CLI window inherits its layout from `display.chat.window` by default. You
+can override specific options via `display.cli.window`:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        cli = {
+          window = {
+            layout = "vertical",
+            width = 0.4,
+            height = 0.6,
+            opts = {
+              list = false,
+            },
+          },
+        },
+      },
+    })
+<
+
+Any options set in `display.cli.window` are merged on top of the chat window
+defaults. This means you only need to specify what you want to change.
+
+You can also pass `width` and `height` overrides via the Lua API:
+
+>lua
+    require("codecompanion").cli("fix the tests", {
+      width = 0.5,
+      height = 0.8,
+    })
+<
+
+
+INLINE INTERACTION            *codecompanion-configuration-inline-interaction*
+
+
+  [!IMPORTANT] Only **http** adapters are supported for the inline interaction.
 CodeCompanion provides an `inline` interaction for quick, direct editing of
-your code. Unlike the chat buffer, the inline assistant integrates responses
+your code. Unlike the chat buffer, the inline interaction integrates responses
 directly into the current buffer—allowing the LLM to add or replace code as
 needed.
 
 
 CHANGING ADAPTER ~
 
-By default, CodeCompanion sets the `copilot` adapter for the inline assistant.
-You can change this to any other HTTP adapter:
+By default, CodeCompanion sets the `copilot` adapter for the inline
+interaction. You can change this to any other HTTP adapter:
 
 >lua
     require("codecompanion").setup({
@@ -2317,7 +2589,7 @@ information.
 
 KEYMAPS ~
 
-The inline assistant supports keymaps for accepting or rejecting changes:
+The inline interaction supports keymaps for accepting or rejecting changes:
 
 >lua
     require("codecompanion").setup({
@@ -2364,9 +2636,9 @@ You can also cancel an inline request with:
 EDITOR CONTEXT ~
 
 The plugin comes with a number of
-|codecompanion-usage-inline-assistant.html-editor-context| items that can be
-used alongside your prompt using the `#{}` syntax (e.g.,
-`#{my_new_context_item}`). You can also add your own:
+|codecompanion-usage-inline.html-editor-context| items that can be used
+alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`).
+You can also add your own:
 
 >lua
     require("codecompanion").setup({
@@ -3392,7 +3664,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -4218,7 +4490,7 @@ contents, LSP diagnostics, or your current viewport. Type `#` in the chat
 buffer to see available context through code completion, or type them manually.
 
 Custom context can be shared in the chat buffer by adding them to the
-`interactions.chat.editor_context` table in your configuration.
+`interactions.shared.editor_context` table in your configuration.
 
 
 BASIC USAGE ~
@@ -4230,7 +4502,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g. new diagnostics, a different quickfix list), simply use the
+  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -4631,6 +4903,310 @@ providers available. Also, multiple symbols can be selected and added to the
 chat buffer.
 
 
+COMMAND-LINE INTERFACE (CLI)*codecompanion-usage-command-line-interface-(cli)*
+
+The CLI interaction allows you to interact with agents that have a command-line
+interface such as Claude Code
+<https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview> and
+Codex <https://github.com/openai/codex>.
+
+`Why?` Sharing context with an agent in the CLI can be cumbersome. You have to
+navigate to the CLI, press `@` search for the file or trigger a slash command.
+If you want to share a code snippet then that’s a good ol’ copy and paste
+job. With CodeCompanion, you can share context from Neovim in keystrokes,
+without leaving the buffer or the editor.
+
+
+INITIATING A CLI INTERACTION ~
+
+You can use `:CodeCompanionCLI` to start a new CLI interaction and
+CodeCompanion will leverage the agent you’ve configured in your config at
+`interactions.cli.agent`. If you want to specify an agent on the fly, you can
+use `:CodeCompanionCLI agent=<agent_name>`.
+
+You can toggle a CLI interaction with `require("codecompanion").toggle()`, just
+as you would with a chat buffer. You can use `{` and `}` to cycle through all
+the chat and CLI interactions.
+
+
+WORKFLOW ~
+
+Below are some useful workflow tips to enable you to be productive when working
+with agents in the CLI with CodeCompanion:
+
+
+PROMPTING THE AGENT
+
+You can send a custom prompt to the agent from within a Neovim buffer:
+
+>lua
+    -- [C]odeCompanion [P]rompt]
+    vim.keymap.set({ "n", "v" }, "<LocalLeader>cp", function()
+      return require("codecompanion").cli({ prompt = true })
+    end, { desc = "Prompt the CLI agent" })
+<
+
+In normal mode, this brings up the prompt input, allowing you to specify editor
+context before sending to the agent. In visual mode however, it shares the
+selection alongside your prompt, saving you from manually specifying editor
+context.
+
+
+ADDING CONTEXT
+
+You’re working in a buffer and think `“I should share this with the
+agent”` or `“This code is relevant to the conversation…”`:
+
+>lua
+    -- [C]odeCompanion [A]dd
+    vim.keymap.set({ "n", "v" }, "<LocalLeader>ca", function()
+      return require("codecompanion").cli("#{this}", { focus = false })
+    end, { desc = "Add context to the CLI agent" })
+<
+
+This keymap allows you to quickly share the current buffer or visual selection
+with the agent, without needing to specify a prompt, utilising `#{this}`. This
+is useful for quickly sharing context before following up with a more specific
+prompt. You’ll also note the inclusion of `focus = false` to ensure that the
+cursor doesn’t move into the CLI buffer.
+
+This can be useful as you carefully move between buffers and code, determining
+what context is relevant to share with the agent, without losing your current
+position in the CLI buffer.
+
+
+FIXING LSP DIAGNOSTICS
+
+If the LSP is throwing some warnings, share them with the agent in the CLI and
+ask it to fix them:
+
+>lua
+    -- [C]odeCompanion [D]iagnostics
+    vim.keymap.set("n", "<LocalLeader>cd", function()
+      return require("codecompanion").cli("#{diagnostics} Can you fix these?", { focus = false, submit = true })
+    end, { desc = "Send diagnostics to CLI agent" })
+<
+
+This keymap shares the LSP diagnostics for the current buffer with the agent,
+automatically submitting the prompt.
+
+
+FIXING FAILING TESTS
+
+You’ve run your test suite in the terminal and observe some failures. Share
+them with the agent:
+
+>lua
+    -- [C]odeCompanion [T]erminal
+    vim.keymap.set("n", "<LocalLeader>ct", function()
+      return require("codecompanion").cli("#{terminal} Sharing the output from the terminal. Can you fix it?", { focus = false, submit = true })
+    end, { desc = "Send terminal output to CLI agent" })
+<
+
+This keymap shares the output from the most recent terminal with the agent,
+which is especially useful for sharing failing test output. Again, the prompt
+is automatically submitted to save you time.
+
+
+SENDING CONTEXT ~
+
+This section covers, more broadly, the ways that you can send context to an
+agent in the CLI. This should serve as inspiration for how you can leverage the
+CLI for your own workflow.
+
+
+VISUAL SELECTION
+
+To start off, you can use a visual selection as a source of context, by
+visually selecting some code and running:
+
+>
+    CodeCompanionCLI Can you explain this code?
+<
+
+You could also achieve this in Lua:
+
+>lua
+    require("codecompanion").cli({ prompt = true })
+<
+
+This will result in the visual selection being passed to an input prompt,
+allowing you to type `“Can you explain this code?”` before sending it to
+the agent.
+
+Alternatively, you could hard code the prompt:
+
+>lua
+    require("codecompanion").cli("Can you explain this code?")
+<
+
+
+EDITOR CONTEXT
+
+Similarly to the |codecompanion-usage-chat-buffer-index|, you can use
+|codecompanion-usage-chat-buffer-editor-context| references in your prompts to
+share information about your current Neovim session. This makes it trivial to
+share the current buffer (`#{buffer}`), all currently open buffers
+(`#{buffers}`), or LSP diagnostics (`#{diagnostics}`) to name but a few.
+
+You can use the `:CodeCompanionCLI` command:
+
+>
+    CodeCompanionCLI Can you explain #{buffers}?
+<
+
+Which will be expanded in the agent CLI to be:
+
+>log
+    ❯ Can you explain the open buffers:
+      @your_file_path
+      @your_other_file_path?
+<
+
+Alternatively:
+
+>lua
+    require("codecompanion").cli("Can you explain #{buffers}?")
+<
+
+------------------------------------------------------------------------------
+CodeCompanion also provides `#{this}` (unique to the CLI interaction) which
+resolves to the current buffer in normal mode, and the visual selection in
+visual mode:
+
+>
+    CodeCompanionCLI What does #{this} do?
+<
+
+In normal mode, this will resolve to be:
+
+>log
+    ❯ What does @your_file_path do?
+<
+
+and with a visual selection, will resolve to be:
+
+>log
+    ❯ What does the selected code in @your_file_path do?
+    
+      - Selected code from @your_file_path (lines 3-4):
+      ````lua
+      local new_set = MiniTest.new_set
+      local T = new_set()
+      ````
+<
+
+
+PROMPTS
+
+There will come a time when you need to send a more complex prompt to the
+agent. Whilst you can do `:CodeCompanionCLI <my long prompt>`, you can also
+bring up a prompt input with:
+
+>
+    CodeCompanionCLI Ask
+<
+
+or:
+
+>lua
+    require("codecompanion").cli({ prompt = true })
+<
+
+This will open up a `codecompanion_input` buffer. This gives you access to all
+of the available editor context and a much a larger character window. To send
+the prompt to the agent, you can write the buffer with `:w`. Or, to
+automatically send and submit, you can forcefully write with `:w!`.
+
+
+AUTO-SUBMIT
+
+By default, prompts are sent to the agent but `not` submitted. The text appears
+in the CLI and you can review it before pressing enter. To automatically submit
+a prompt so the agent starts working immediately, you can:
+
+Use the `bang` form of the command:
+
+>
+    CodeCompanionCLI! #{diagnostics} Can you fix these?
+<
+
+Or pass `submit = true` in Lua:
+
+>lua
+    require("codecompanion").cli("#{diagnostics} Can you fix these?", { submit = true })
+<
+
+This is especially useful in keymaps where you want a fire-and-forget workflow,
+like the diagnostics and terminal examples in the |codecompanion--workflow|
+section.
+
+
+API REFERENCE ~
+
+The `require("codecompanion").cli()` function is the main entry point for
+interacting with CLI agents. It has a polymorphic signature:
+
+>lua
+    -- No args: create a new CLI instance and open it
+    require("codecompanion").cli()
+    
+    -- Opts table: create a new instance with options
+    require("codecompanion").cli({ agent = "claude_code" })
+    
+    -- String prompt: send to the last instance (or create one)
+    require("codecompanion").cli("Can you explain this code?")
+    
+    -- String prompt with opts
+    require("codecompanion").cli("Fix #{diagnostics}", { submit = true, focus = false })
+<
+
+
+OPTIONS
+
+  -----------------------------------------------------------------------
+  Option            Type              Default           Description
+  ----------------- ----------------- ----------------- -----------------
+  agent             string            config default    The CLI agent to
+                                                        use. When sending
+                                                        a prompt, reuses
+                                                        an existing
+                                                        instance of this
+                                                        agent if one
+                                                        exists
+
+  focus             boolean           true              Whether to open
+                                                        the CLI window
+                                                        and move the
+                                                        cursor to it. Set
+                                                        to false to send
+                                                        context in the
+                                                        background
+
+  submit            boolean           false             Automatically
+                                                        submit the prompt
+                                                        (press enter) so
+                                                        the agent starts
+                                                        working
+                                                        immediately
+
+  prompt            boolean           false             Open the prompt
+                                                        input buffer
+                                                        instead of
+                                                        sending directly.
+                                                        If a string
+                                                        prompt is also
+                                                        provided, it
+                                                        pre-fills the
+                                                        input
+
+  width             number            config default    Override the CLI
+                                                        window width
+
+  height            number            config default    Override the CLI
+                                                        window height
+  -----------------------------------------------------------------------
+
 EVENTS / HOOKS                            *codecompanion-usage-events-/-hooks*
 
 In order to enable a tighter integration between CodeCompanion and your Neovim
@@ -4653,6 +5229,11 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
+- `CodeCompanionCLICreated` - Fired after a CLI buffer has been created for the first time
+- `CodeCompanionCLIOpened` - Fired after a CLI buffer has been opened
+- `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
+- `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
+- `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
@@ -4733,15 +5314,15 @@ You can trigger an event with:
 <
 
 
-INLINE ASSISTANT                        *codecompanion-usage-inline-assistant*
+INLINE INTERACTION                    *codecompanion-usage-inline-interaction*
 
-As per the |codecompanion-getting-started-inline-assistant| guide, the inline
-assistant enables you to code directly into a Neovim buffer. Simply run
-`:CodeCompanion <your prompt>`, or make a visual selection to send that as
-context to the LLM alongside your prompt.
+As per the |codecompanion-getting-started-inline| guide, the inline interaction
+enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion
+<your prompt>`, or make a visual selection to send that as context to the LLM
+alongside your prompt.
 
 For convenience, you can call prompts from the
-|codecompanion-configuration-prompt-library| via the assistant. For example,
+|codecompanion-configuration-prompt-library| via the interaction. For example,
 `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from
 the selected text.
 
@@ -4773,7 +5354,7 @@ LLM you’ve specified in your config to determine if the response should:
 
 DIFF MODE ~
 
-By default, an inline assistant prompt will trigger the diff feature, showing
+By default, an inline interaction prompt will trigger the diff feature, showing
 differences between the original buffer and the changes made by the LLM. This
 can be turned off in your config via the `display.diff.provider` table. You can
 also choose to accept or reject the LLM’s suggestions with the following
@@ -4791,7 +5372,7 @@ EDITOR CONTEXT ~
 
   [!TIP] To ensure the LLM has enough context to complete a complex ask, it’s
   recommended to use the `buffer` editor context
-The inline assistant allows you to send context alongside your prompt via the
+The inline interaction allows you to send context alongside your prompt via the
 notion of editor context. That is, context that relates to your current Neovim
 session:
 
@@ -4802,7 +5383,7 @@ session:
 Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
 new method to this file`. Multiple context items can be sent as part of the
 same prompt. You can even add your own custom variables as per the
-|codecompanion-configuration-inline-assistant-editor-context|.
+|codecompanion-configuration-inline-editor-context|.
 
 You can also have multiple editor context as part of a prompt, for example:
 `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
@@ -5126,7 +5707,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -7032,7 +7613,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e. a
+they’re an adapter tool that requires a client-side component (i.e.� a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has
@@ -7088,7 +7669,7 @@ As per the comment on #640
 <https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279>.
 
 
-STATUS COLUMN EXTMARKS WITH THE INLINE ASSISTANT BY @LUCOBELLIC ~
+STATUS COLUMN EXTMARKS WITH THE INLINE INTERACTION BY @LUCOBELLIC ~
 
 As per the discussion over at #1297
 <https://github.com/olimorris/codecompanion.nvim/discussions/1297>.

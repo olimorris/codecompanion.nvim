@@ -70,11 +70,11 @@ T["cmds"][":CodeCompanionChat Toggle does not recurse when no chat exists"] = fu
     local CC = require('codecompanion')
     -- Ensure clean state
     pcall(CC.close_last_chat)
-    _G.calls = { chat = 0, toggle = 0 }
+    _G.calls = { chat = 0, toggle_chat = 0 }
     _G.chat_args = {}
     _G.toggle_err = nil
 
-    local orig_chat, orig_toggle = CC.chat, CC.toggle
+    local orig_chat, orig_toggle_chat = CC.chat, CC.toggle_chat
 
     -- Recursion guard
     local call_depth, MAX_DEPTH = 0, 5
@@ -90,11 +90,11 @@ T["cmds"][":CodeCompanionChat Toggle does not recurse when no chat exists"] = fu
       return res
     end
 
-    CC.toggle = function(window_opts)
-      _G.calls.toggle = _G.calls.toggle + 1
+    CC.toggle_chat = function(args)
+      _G.calls.toggle_chat = _G.calls.toggle_chat + 1
       call_depth = call_depth + 1
-      if call_depth > MAX_DEPTH then error('Recursion guard tripped in CC.toggle') end
-      local ok, res = pcall(orig_toggle, window_opts)
+      if call_depth > MAX_DEPTH then error('Recursion guard tripped in CC.toggle_chat') end
+      local ok, res = pcall(orig_toggle_chat, args)
       call_depth = call_depth - 1
       if not ok then error(res) end
       return res
@@ -110,19 +110,19 @@ T["cmds"][":CodeCompanionChat Toggle does not recurse when no chat exists"] = fu
 
     -- Restore originals
     CC.chat = orig_chat
-    CC.toggle = orig_toggle
+    CC.toggle_chat = orig_toggle_chat
   ]])
 
   -- No recursion error should have occurred
   h.eq(vim.NIL, child.lua_get("_G.toggle_err"))
 
-  -- Toggle should be called once by chat()
-  h.eq(1, child.lua_get("_G.calls.toggle"))
+  -- toggle_chat should be called once by chat()
+  h.eq(1, child.lua_get("_G.calls.toggle_chat"))
 
-  -- Chat should be called once (by the test)
-  h.eq(1, child.lua_get("_G.calls.chat"))
+  -- Chat should be called at least once (by the test), and possibly again by toggle_chat
+  h.expect_truthy(child.lua_get("_G.calls.chat >= 1"))
 
-  -- The chat() call should have subcommand set
+  -- The first chat() call should have subcommand set
   h.eq(
     "toggle",
     child.lua_get([[
@@ -143,9 +143,9 @@ T["cmds"]["chat variable syntax highlighting"] = function()
     -- Make sure test variable exists before setting filetype
     local cfg = require('codecompanion.config')
     cfg.interactions = cfg.interactions or {}
-    cfg.interactions.chat = cfg.interactions.chat or {}
-    cfg.interactions.chat.editor_context = cfg.interactions.chat.editor_context or {}
-    cfg.interactions.chat.editor_context.testvar = cfg.interactions.chat.editor_context.testvar or {}
+    cfg.interactions.shared = cfg.interactions.shared or {}
+    cfg.interactions.shared.editor_context = cfg.interactions.shared.editor_context or {}
+    cfg.interactions.shared.editor_context.testvar = cfg.interactions.shared.editor_context.testvar or {}
 
     -- New buffer with placeholder
     vim.cmd('enew')
@@ -171,6 +171,90 @@ T["cmds"]["chat variable syntax highlighting"] = function()
   ]])
 
   h.eq(hl, "CodeCompanionChatEditorContext")
+end
+
+T["cmds_cli"] = new_set({
+  hooks = {
+    pre_once = function()
+      h.child_start(child)
+      child.lua([[
+        h = require("tests.helpers")
+        local config = require("codecompanion.config")
+        config.interactions.cli.agents = {
+          test_agent_a = { cmd = "cat", args = {}, description = "Agent A" },
+          test_agent_b = { cmd = "cat", args = {}, description = "Agent B" },
+        }
+        config.interactions.cli.agent = "test_agent_a"
+        h.setup_plugin(config)
+      ]])
+    end,
+    pre_case = function()
+      child.lua([[
+        for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+          local name = vim.api.nvim_buf_get_name(bufnr)
+          if name:find("%[CodeCompanion CLI%]") then
+            pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+          end
+        end
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          if win ~= vim.api.nvim_list_wins()[1] then
+            pcall(vim.api.nvim_win_close, win, true)
+          end
+        end
+        package.loaded["codecompanion.interactions.cli"] = nil
+        package.loaded["codecompanion"] = nil
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["cmds_cli"][":CodeCompanionCLI with no args creates a new instance"] = function()
+  child.lua([[vim.cmd("CodeCompanionCLI")]])
+
+  local result = child.lua([[
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.last_cli()
+    return {
+      created = instance ~= nil,
+      visible = instance and instance.ui:is_visible(),
+    }
+  ]])
+
+  h.eq(true, result.created)
+  h.eq(true, result.visible)
+end
+
+T["cmds_cli"][":CodeCompanionCLI with prompt reuses last instance"] = function()
+  local result = child.lua([[
+    local cli = require("codecompanion.interactions.cli")
+
+    vim.cmd("CodeCompanionCLI")
+    local first_bufnr = cli.last_cli().bufnr
+
+    vim.cmd("CodeCompanionCLI hello")
+    local second_bufnr = cli.last_cli().bufnr
+
+    return {
+      same_instance = first_bufnr == second_bufnr,
+    }
+  ]])
+
+  h.eq(true, result.same_instance)
+end
+
+T["cmds_cli"][":CodeCompanionCLI with agent= creates instance with that agent"] = function()
+  local result = child.lua([[
+    vim.cmd("CodeCompanionCLI agent=test_agent_b")
+
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.last_cli()
+    return {
+      agent = instance and instance.agent_name,
+    }
+  ]])
+
+  h.eq("test_agent_b", result.agent)
 end
 
 T["cmds_tab"] = new_set({

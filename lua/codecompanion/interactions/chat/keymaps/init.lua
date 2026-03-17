@@ -94,7 +94,7 @@ M.options = {
     local keymaps_max = max("description", keymaps)
 
     local ec = {}
-    vim.iter(config.interactions.chat.editor_context):each(function(key, val)
+    vim.iter(config.interactions.shared.editor_context):each(function(key, val)
       if not val.hide_in_help_window then
         ec[key] = val
       end
@@ -468,47 +468,17 @@ M.buffer_sync_diff = {
   end,
 }
 
----@param chat CodeCompanion.Chat
----@param direction number
-local function move_buffer(chat, direction)
-  local bufs = _G.codecompanion_buffers
-  local len = #bufs
-  local next_buf = vim
-    .iter(bufs)
-    :enumerate()
-    :filter(function(_, v)
-      return v == chat.bufnr
-    end)
-    :map(function(i, _)
-      return direction > 0 and bufs[(i % len) + 1] or bufs[((i - 2 + len) % len) + 1]
-    end)
-    :next()
-
-  local codecompanion = require("codecompanion")
-
-  local prev_ui = codecompanion.buf_get_chat(chat.bufnr).ui
-  prev_ui:hide()
-  local window_opts = prev_ui.window_opts or { default = true }
-  codecompanion.buf_get_chat(next_buf).ui:open({ window_opts = window_opts })
-end
-
 M.next_chat = {
   desc = "Move to the next chat",
   callback = function(chat)
-    if vim.tbl_count(_G.codecompanion_buffers) == 1 then
-      return
-    end
-    move_buffer(chat, 1)
+    require("codecompanion.interactions.shared.registry").move(chat.bufnr, 1)
   end,
 }
 
 M.previous_chat = {
   desc = "Move to the previous chat",
   callback = function(chat)
-    if vim.tbl_count(_G.codecompanion_buffers) == 1 then
-      return
-    end
-    move_buffer(chat, -1)
+    require("codecompanion.interactions.shared.registry").move(chat.bufnr, -1)
   end,
 }
 

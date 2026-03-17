@@ -131,12 +131,14 @@
 
 ---@class CodeCompanion.EditorContext
 ---@field Chat CodeCompanion.Chat The chat buffer
+---@field buffer_context CodeCompanion.BufferContext The buffer context to share with the LLM-
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
 ---@field params string Any additional parameters for the variable
 
 ---@class CodeCompanion.EditorContextArgs
----@field Chat CodeCompanion.Chat The chat buffer
+---@field Chat? CodeCompanion.Chat The chat buffer (nil for CLI interactions)
+---@field buffer_context CodeCompanion.BufferContext The buffer context to share with the LLM
 ---@field config table The config for the variable
 ---@field target string The buffer that's being targeted by the variable
 ---@field params string Any additional parameters for the variable
@@ -213,6 +215,7 @@
 ---@field lines string[] The lines in the buffer
 ---@field line_count number The number of lines in the buffer
 ---@field mode string The current mode
+---@field relative_path string The path to the buffer relative to the current working directory
 ---@field start_line number The start line of the selection
 ---@field start_col number The start column of the selection
 ---@field winnr number The window number

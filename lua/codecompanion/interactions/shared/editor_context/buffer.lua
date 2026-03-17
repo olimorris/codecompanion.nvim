@@ -15,6 +15,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -56,7 +57,7 @@ end
 ---@param selected table
 ---@param opts? table
 ---@return nil
-function EditorContext:apply(selected, opts)
+function EditorContext:chat_render(selected, opts)
   selected = selected or {}
   opts = opts or {}
 
@@ -110,12 +111,37 @@ function EditorContext:apply(selected, opts)
       sync_all = (params and params == "all"),
       sync_diff = (params and params == "diff"),
     },
-    source = "codecompanion.interactions.chat.editor_context.buffer",
+    source = "codecompanion.interactions.shared.editor_context.buffer",
   })
 end
 
 -- Alias for sync_all_buffer_content compatibility (shared interface with slash commands)
-EditorContext.output = EditorContext.apply
+EditorContext.output = EditorContext.chat_render
+
+---Return inline label for the CLI interaction
+---@return { inline: string }|nil
+function EditorContext:cli_render()
+  local bufnr = self.buffer_context and self.buffer_context.bufnr
+
+  if self.target then
+    local found = self:find_buffer(self.target)
+    if found then
+      bufnr = found
+    else
+      log:warn("Could not find buffer for display option: %s", self.target)
+      return nil
+    end
+  end
+
+  if not bufnr then
+    return nil
+  end
+
+  local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+  return {
+    inline = string.format("@%s", relative_path),
+  }
+end
 
 ---Replace the editor context in the message
 ---@param prefix string
@@ -128,34 +154,34 @@ function EditorContext.replace(prefix, message, bufnr)
   -- Handle #{buffer:filename}{param} - display option with parameters
   local display = prefix .. "{buffer:([^}]*)}{[^}]*}"
   result = result:gsub(display, function(target)
-    local found = EditorContext._find_buffer(target)
-    if found then
-      local bufname = buf_utils.name_from_bufnr(found)
-      return "file `" .. bufname .. "` (with buffer number: " .. found .. ")"
+    local found_bufnr = EditorContext._find_buffer(target)
+    if found_bufnr then
+      local path = buf_utils.get_info(found_bufnr).path
+      return "file `" .. path .. "` (with buffer number: " .. found_bufnr .. ")"
     else
       -- Fallback to original behavior if buffer not found
-      local bufname = buf_utils.name_from_bufnr(bufnr)
-      return "file `" .. bufname .. "` (with buffer number: " .. bufnr .. ")"
+      local path = buf_utils.get_info(bufnr).path
+      return "file `" .. path .. "` (with buffer number: " .. bufnr .. ")"
     end
   end)
 
   -- Handle #{buffer:filename} - Just display option
   local display_option_pattern = prefix .. "{buffer:([^}]*)}"
   result = result:gsub(display_option_pattern, function(target)
-    local found = EditorContext._find_buffer(target)
-    if found then
-      local bufname = buf_utils.name_from_bufnr(found)
-      return "file `" .. bufname .. "` (with buffer number: " .. found .. ")"
+    local found_bufnr = EditorContext._find_buffer(target)
+    if found_bufnr then
+      local path = buf_utils.get_info(found_bufnr).path
+      return "file `" .. path .. "` (with buffer number: " .. found_bufnr .. ")"
     else
       -- Fallback to original behavior if buffer not found
-      local bufname = buf_utils.name_from_bufnr(bufnr)
-      return "file `" .. bufname .. "` (with buffer number: " .. bufnr .. ")"
+      local path = buf_utils.get_info(bufnr).path
+      return "file `" .. path .. "` (with buffer number: " .. bufnr .. ")"
     end
   end)
 
   -- Finally handle #{buffer}
-  local bufname = buf_utils.name_from_bufnr(bufnr)
-  local replacement = "file `" .. bufname .. "` (with buffer number: " .. bufnr .. ")"
+  local path = buf_utils.get_info(bufnr).path
+  local replacement = "file `" .. path .. "` (with buffer number: " .. bufnr .. ")"
 
   result = result:gsub(prefix .. "{buffer}{[^}]*}", replacement)
   result = result:gsub(prefix .. "{buffer}", replacement)

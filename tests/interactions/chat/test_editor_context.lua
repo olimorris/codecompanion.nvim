@@ -3,16 +3,22 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local T = new_set()
 
-local chat, ec
-
+local child = MiniTest.new_child_neovim()
 T["Editor Context"] = new_set({
   hooks = {
     pre_case = function()
-      chat, _, ec = h.setup_chat_buffer()
+      h.child_start(child)
+      child.lua([[
+        h = require('tests.helpers')
+        _G.chat, _, _G.ec = h.setup_chat_buffer()
+      ]])
     end,
     post_case = function()
-      h.teardown_chat_buffer()
+      child.lua([[
+        h.teardown_chat_buffer()
+      ]])
     end,
+    post_once = child.stop,
   },
 })
 
@@ -23,175 +29,339 @@ T["Editor Context"][":replace"] = new_set()
 -- Removed obsolete tests for word boundaries, spaces, newlines, and partial matches
 
 T["Editor Context"][":parse"]["should parse a message with editor context"] = function()
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#{foo} what does this do?",
-  })
-  local result = ec:parse(chat, chat.messages[#chat.messages])
+  child.lua([[
+    table.insert(_G.chat.messages, { role = "user", content = "#{foo} what does this do?" })
+    _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.message = _G.chat.messages[#_G.chat.messages]
+  ]])
 
-  h.eq(true, result)
-
-  local message = chat.messages[#chat.messages]
-  h.eq("foo", message.content)
+  h.eq(true, child.lua_get([[_G.result]]))
+  h.eq("foo", child.lua_get([[_G.message.content]]))
 end
 
 T["Editor Context"][":parse"]["should return nil if no editor context is found"] = function()
-  table.insert(chat.messages, {
-    role = "user",
-    content = "what does this do?",
-  })
-  local result = ec:parse(chat, chat.messages[#chat.messages])
+  child.lua([[
+    table.insert(_G.chat.messages, { role = "user", content = "what does this do?" })
+    _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+  ]])
 
-  h.eq(false, result)
+  h.eq(false, child.lua_get([[_G.result]]))
 end
 
 T["Editor Context"][":parse"]["should parse a message with editor context and string params"] = function()
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#{bar}{pin} Can you parse this editor context?",
-  })
-  ec:parse(chat, chat.messages[#chat.messages])
+  child.lua([[
+    table.insert(_G.chat.messages, { role = "user", content = "#{bar}{pin} Can you parse this editor context?" })
+    _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.message = _G.chat.messages[#_G.chat.messages]
+  ]])
 
-  local message = chat.messages[#chat.messages]
-  h.eq("bar pin", message.content)
+  h.eq("bar pin", child.lua_get([[_G.message.content]]))
 end
 
 T["Editor Context"][":parse"]["should parse a message with editor context and ignore params if they're not enabled"] = function()
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#{baz}{qux} Can you parse this editor context?",
-  })
-  ec:parse(chat, chat.messages[#chat.messages])
+  child.lua([[
+    table.insert(_G.chat.messages, { role = "user", content = "#{baz}{qux} Can you parse this editor context?" })
+    _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.message = _G.chat.messages[#_G.chat.messages]
+  ]])
 
-  local message = chat.messages[#chat.messages]
-  h.eq("baz", message.content)
+  h.eq("baz", child.lua_get([[_G.message.content]]))
 end
 
 T["Editor Context"][":parse"]["should parse a message with editor context and use default params if set"] = function()
-  local config = require("codecompanion.config")
-  config.interactions.chat.editor_context.baz.opts = { default_params = "with default" }
+  child.lua([[
+    local config = require("codecompanion.config")
+    config.interactions.shared.editor_context.baz.opts = { default_params = "with default" }
+    table.insert(_G.chat.messages, { role = "user", content = "#{baz} Can you parse this editor context?" })
+    _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.message = _G.chat.messages[#_G.chat.messages]
+  ]])
 
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#{baz} Can you parse this editor context?",
-  })
-  ec:parse(chat, chat.messages[#chat.messages])
-
-  local message = chat.messages[#chat.messages]
-  h.eq("baz with default", message.content)
+  h.eq("baz with default", child.lua_get([[_G.message.content]]))
 end
 
 T["Editor Context"][":parse"]["should parse a message with special characters in the name of editor context"] = function()
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#{screenshot://screenshot-2025-05-21T11-17-45.440Z} what does this do?",
-  })
-  local result = ec:parse(chat, chat.messages[#chat.messages])
+  child.lua([[
+    table.insert(_G.chat.messages, { role = "user", content = "#{screenshot://screenshot-2025-05-21T11-17-45.440Z} what does this do?" })
+    _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.message = _G.chat.messages[#_G.chat.messages]
+  ]])
 
-  h.eq(true, result)
-
-  local message = chat.messages[#chat.messages]
-  h.eq("Resolved screenshot editor context", message.content)
+  h.eq(true, child.lua_get([[_G.result]]))
+  h.eq("Resolved screenshot editor context", child.lua_get([[_G.message.content]]))
 end
 
 T["Editor Context"][":parse"]["multiple buffer editor context"] = function()
-  vim.cmd("edit lua/codecompanion/init.lua")
-  vim.cmd("edit lua/codecompanion/config.lua")
+  child.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    vim.cmd("edit lua/codecompanion/config.lua")
+    table.insert(_G.chat.messages, { role = "user", content = "Look at #{buffer:init.lua} and then #{buffer:config.lua}" })
+    _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.buffer_messages = vim.tbl_filter(function(msg)
+      return msg._meta and msg._meta.tag == "buffer"
+    end, _G.chat.messages)
+  ]])
 
-  table.insert(chat.messages, {
-    role = "user",
-    content = "Look at #{buffer:init.lua} and then #{buffer:config.lua}",
-  })
-
-  local result = ec:parse(chat, chat.messages[#chat.messages])
-  h.eq(true, result)
-
-  local buffer_messages = vim.tbl_filter(function(msg)
-    return msg._meta and msg._meta.tag == "buffer"
-  end, chat.messages)
-
-  h.eq(2, #buffer_messages)
-  h.eq(2, #chat.context_items)
+  h.eq(true, child.lua_get([[_G.result]]))
+  h.eq(2, child.lua_get([[#_G.buffer_messages]]))
+  h.eq(2, child.lua_get([[#_G.chat.context_items]]))
 end
 
 T["Editor Context"][":parse"]["buffer editor context with params"] = function()
-  vim.cmd("edit lua/codecompanion/init.lua")
+  child.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    table.insert(_G.chat.messages, { role = "user", content = "Look at #{buffer:init.lua}{all} Isn't it marvellous?" })
+    _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.buffer_messages = vim.tbl_filter(function(msg)
+      return msg._meta and msg._meta.tag == "buffer"
+    end, _G.chat.messages)
+  ]])
 
-  table.insert(chat.messages, {
-    role = "user",
-    content = "Look at #{buffer:init.lua}{all} Isn't it marvellous?",
-  })
-
-  ec:parse(chat, chat.messages[#chat.messages])
-
-  local buffer_messages = vim.tbl_filter(function(msg)
-    return msg._meta and msg._meta.tag == "buffer"
-  end, chat.messages)
-
-  h.eq(1, #buffer_messages)
-  h.eq(true, chat.context_items[1].opts.sync_all)
+  h.eq(1, child.lua_get([[#_G.buffer_messages]]))
+  h.eq(true, child.lua_get([[_G.chat.context_items[1].opts.sync_all]]))
 end
 
 T["Editor Context"][":parse"]["buffers editor context adds context items"] = function()
-  vim.cmd("edit lua/codecompanion/init.lua")
-  vim.cmd("edit lua/codecompanion/config.lua")
+  child.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    vim.cmd("edit lua/codecompanion/config.lua")
+    table.insert(_G.chat.messages, { role = "user", content = "#{buffers} What do these files do?" })
+    _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
+    _G.buffer_messages = vim.tbl_filter(function(msg)
+      return msg._meta and msg._meta.tag == "buffer"
+    end, _G.chat.messages)
+    _G.items_valid = true
+    for _, item in ipairs(_G.chat.context_items) do
+      if item.id == nil or item.bufnr == nil or item.source ~= "codecompanion.interactions.shared.editor_context.buffer" then
+        _G.items_valid = false
+      end
+    end
+  ]])
 
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#{buffers} What do these files do?",
-  })
-
-  local result = ec:parse(chat, chat.messages[#chat.messages])
-  h.eq(true, result)
-
-  local buffer_messages = vim.tbl_filter(function(msg)
-    return msg._meta and msg._meta.tag == "buffer"
-  end, chat.messages)
-
-  h.eq(true, #buffer_messages >= 2)
-  h.eq(true, #chat.context_items >= 2)
-
-  -- Verify context items have the expected fields
-  for _, item in ipairs(chat.context_items) do
-    h.eq(true, item.id ~= nil)
-    h.eq(true, item.bufnr ~= nil)
-    h.eq("codecompanion.interactions.chat.editor_context.buffers", item.source)
-  end
+  h.eq(true, child.lua_get([[_G.result]]))
+  h.eq(true, child.lua_get([[#_G.buffer_messages >= 2]]))
+  h.eq(true, child.lua_get([[#_G.chat.context_items >= 2]]))
+  h.eq(true, child.lua_get([[_G.items_valid]]))
 end
 
 T["Editor Context"][":replace"]["should replace the editor context in the message"] = function()
-  local message = "#{foo} #{bar} replace this editor context"
-  local result = ec:replace(message, 0)
-  h.eq("replace this editor context", result)
+  local result = child.lua_get([[_G.ec:replace("#{foo} #{bar} replace this editor context", 0)]])
+  h.eq("foo bar replace this editor context", result)
 end
 
 T["Editor Context"][":replace"]["should partly replace #buffer in the message"] = function()
-  local message = "what does #{buffer} do?"
-  local result = ec:replace(message, 0)
-  h.expect_starts_with("what does buffer", result)
+  local result = child.lua_get([[_G.ec:replace("what does #{buffer} do?", 0)]])
+  h.expect_starts_with("what does file ", result)
 end
 
 T["Editor Context"][":replace"]["should replace buffer and the buffer name"] = function()
-  vim.cmd("edit lua/codecompanion/init.lua")
-  vim.cmd("edit lua/codecompanion/config.lua")
+  child.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    vim.cmd("edit lua/codecompanion/config.lua")
+  ]])
 
-  local message = "what does #{buffer:init.lua} do?"
-  local result = ec:replace(message, 0)
+  local result = child.lua_get([[_G.ec:replace("what does #{buffer:init.lua} do?", 0)]])
   h.expect_contains("what does file `", result)
   h.expect_contains("lua/codecompanion/init.lua`", result)
 end
 
-T["Editor Context"][":replace"]["should partly replace #buffer in the message"] = function()
-  local message = "what does #{buffer}{pin} do?"
-  local result = ec:replace(message, 0)
+T["Editor Context"][":replace"]["should partly replace #buffer with params in the message"] = function()
+  local result = child.lua_get([[_G.ec:replace("what does #{buffer}{pin} do?", 0)]])
   h.expect_starts_with("what does file ", result)
 end
 
 T["Editor Context"][":replace"]["should be in sync with finding logic"] = function()
-  local message =
-    "#{foo}{doesnotsupport} #{bar}{supports} #{foo://10-20-30:40} pre#{foo} #{baz}! Use these editor context items and handle newline editor context #{foo}\n"
-  local result = ec:replace(message, 0)
-  h.eq("pre ! Use these editor context items and handle newline editor context", result)
+  local result = child.lua_get(
+    [[_G.ec:replace("#{foo}{doesnotsupport} #{bar}{supports} #{foo://10-20-30:40} pre#{foo} #{baz}! Use these editor context items and handle newline editor context #{foo}\n", 0)]]
+  )
+  h.eq(
+    "foo bar foo://10-20-30:40 prefoo baz! Use these editor context items and handle newline editor context foo",
+    result
+  )
+end
+
+T["Editor Context"][":replace_cli"] = new_set()
+
+T["Editor Context"][":replace_cli"]["should use inline labels in the message and append context blocks"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("what does #{foo} do?", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_starts_with("what does inline:foo do?", result)
+  h.expect_contains("cli:foo", result)
+end
+
+T["Editor Context"][":replace_cli"]["should handle multiple editor context tags"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("compare #{foo} and #{bar}", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_contains("inline:foo", result)
+  h.expect_contains("inline:bar", result)
+  h.expect_contains("cli:foo", result)
+  h.expect_contains("cli:bar", result)
+end
+
+T["Editor Context"][":replace_cli"]["standalone tag returns only context block"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("#{foo}", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  -- Context-only: no inline label, just the context block
+  h.eq("cli:foo", result)
+end
+
+T["Editor Context"][":replace_cli"]["should skip modules without cli_render"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("check #{baz} here", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  -- baz has no cli_render, so tag should be stripped
+  h.eq("check  here", result)
+end
+
+T["Editor Context"][":replace_cli"]["should handle params"] = function()
+  child.lua([[
+    _G.replace_cli_ctx = { bufnr = 1, filetype = "lua" }
+    _G.replace_cli_result = _G.ec:replace_cli("look at #{bar}{pin}", _G.replace_cli_ctx)
+  ]])
+
+  local result = child.lua_get([[_G.replace_cli_result]])
+  h.expect_contains("inline:bar", result)
+  h.expect_contains("cli:bar pin", result)
+end
+
+--=============================================================================
+-- resolve_editor_context: end-to-end tests using real editor context modules
+-- These mirror the keymaps documented in doc/usage/cli.md
+--=============================================================================
+
+local child2 = MiniTest.new_child_neovim()
+T["resolve_editor_context"] = new_set({
+  hooks = {
+    pre_case = function()
+      h.child_start(child2)
+      child2.lua([[
+        h = require("tests.helpers")
+        h.setup_plugin()
+      ]])
+    end,
+    post_case = function()
+      child2.lua([[
+        h.teardown_chat_buffer()
+      ]])
+    end,
+    post_once = child2.stop,
+  },
+})
+
+T["resolve_editor_context"]["#buffer inline in a sentence"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("What does #{buffer} do?", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- Inline label should be the path with @ prefix, no block appended
+  h.expect_contains("What does @", result)
+  h.expect_contains("init.lua do?", result)
+end
+
+T["resolve_editor_context"]["#buffer standalone returns inline path"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("#{buffer}", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  h.expect_contains("init.lua", result)
+end
+
+T["resolve_editor_context"]["#this with visual selection standalone"] = function()
+  child2.lua([[
+    local buf = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_set_current_buf(buf)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "alpha", "beta", "gamma" })
+    vim.bo[buf].filetype = "lua"
+    vim.api.nvim_buf_set_mark(buf, "<", 1, 0, {})
+    vim.api.nvim_buf_set_mark(buf, ">", 2, 3, {})
+
+    local ctx = require("codecompanion.utils.context").get(buf, { range = 2 })
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("#{this}", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- Context-only: starts directly with the context block
+  h.expect_starts_with("- Selected code from", result)
+  h.expect_contains("alpha", result)
+  h.expect_contains("beta", result)
+  -- No redundant inline label before it
+  h.eq(nil, result:match("^the selected code"))
+end
+
+T["resolve_editor_context"]["#this with visual selection and surrounding text"] = function()
+  child2.lua([[
+    local buf = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_set_current_buf(buf)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "alpha", "beta", "gamma" })
+    vim.bo[buf].filetype = "lua"
+    vim.api.nvim_buf_set_mark(buf, "<", 1, 0, {})
+    vim.api.nvim_buf_set_mark(buf, ">", 2, 3, {})
+
+    local ctx = require("codecompanion.utils.context").get(buf, { range = 2 })
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("explain #{this} please", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- Inline label in sentence
+  h.expect_contains("explain the selected code in", result)
+  h.expect_contains("please", result)
+  -- Context block appended
+  h.expect_contains("Selected code from", result)
+  h.expect_contains("alpha", result)
+end
+
+T["resolve_editor_context"]["#diagnostics with surrounding text"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("#{diagnostics} Can you fix these?", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  -- When there are no diagnostics, the tag resolves to empty
+  -- The important thing is the user text survives
+  h.expect_contains("Can you fix these?", result)
+end
+
+T["resolve_editor_context"]["multiple tags in a sentence"] = function()
+  child2.lua([[
+    vim.cmd("edit lua/codecompanion/init.lua")
+    vim.cmd("edit lua/codecompanion/config.lua")
+    local ctx = require("codecompanion.utils.context").get(0)
+    local cli = require("codecompanion.interactions.cli")
+    _G.result = cli.resolve_editor_context("compare #{buffer:init.lua} and #{buffer:config.lua}", ctx)
+  ]])
+
+  local result = child2.lua_get([[_G.result]])
+  h.expect_contains("compare", result)
+  h.expect_contains("init.lua", result)
+  h.expect_contains("config.lua", result)
 end
 
 return T

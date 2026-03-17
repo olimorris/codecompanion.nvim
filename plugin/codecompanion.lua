@@ -57,7 +57,7 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
   -- As tools can now be created from outside of the config, apply a general pattern
   vim.cmd.syntax('match CodeCompanionChatTool "' .. triggers.mappings.tools .. '{[^}]*}"')
 
-  vim.iter(config.interactions.chat.editor_context):each(function(name)
+  vim.iter(config.interactions.shared.editor_context):each(function(name)
     vim.cmd.syntax('match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. '}"')
     vim.cmd.syntax(
       'match CodeCompanionChatEditorContext "' .. triggers.mappings.editor_context .. "{" .. name .. ':[^}]*}"'
@@ -69,7 +69,7 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
 end)
 
 api.nvim_create_autocmd("FileType", {
-  pattern = "codecompanion",
+  pattern = { "codecompanion", "codecompanion_input" },
   group = syntax_group,
   callback = function(args)
     make_hl_syntax(args.buf)
@@ -106,7 +106,7 @@ api.nvim_create_autocmd("BufEnter", {
 
     local config = require("codecompanion.config")
 
-    local buffer_config = config.interactions.chat.editor_context.opts
+    local buffer_config = config.interactions.shared.editor_context.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
     local excluded_buftypes = excluded.buftypes or {}
@@ -122,3 +122,4 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 vim.treesitter.language.register("markdown", "codecompanion")
+vim.treesitter.language.register("markdown", "codecompanion_input")

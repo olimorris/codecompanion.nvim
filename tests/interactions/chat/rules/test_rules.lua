@@ -308,6 +308,48 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
   h.eq(last_message.content, content .. "\n")
 end
 
+T["Rules:make()"]["integration: rules is added when chat is toggled"] = function()
+  local tmp = child.lua("return vim.fn.tempname()")
+  local content = "toggle rules content"
+  child.fn.writefile({ content }, tmp)
+
+  child.lua(string.format(
+    [[
+    local h = require("tests.helpers")
+    local cc = h.setup_plugin()
+    local config = require("codecompanion.config")
+
+    config.rules = vim.tbl_deep_extend("force", config.rules or {}, {
+      default = {
+        description = "toggle default",
+        files = { %q },
+        is_preset = true,
+      },
+      parsers = {},
+      opts = {
+        chat = {
+          enabled = true,
+          autoload = "default",
+        },
+        show_presets = true,
+      },
+    })
+
+    _G.toggle_chat = require("codecompanion.interactions.chat").toggle()
+    _G.toggle_messages = _G.toggle_chat and _G.toggle_chat.messages or nil
+  ]],
+    tmp
+  ))
+
+  local messages = child.lua_get([[_G.toggle_messages]])
+  local last_message = messages[#messages]
+
+  h.eq(#messages, 2)
+  h.eq(last_message._meta.tag, "rules")
+  h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
+  h.eq(last_message.content, content .. "\n")
+end
+
 T["add_files_or_buffers() prevents duplicate files from being added"] = function()
   local tmp1 = child.lua("return vim.fn.tempname()")
   local tmp2 = child.lua("return vim.fn.tempname()")

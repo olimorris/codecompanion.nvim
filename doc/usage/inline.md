@@ -1,16 +1,16 @@
 ---
-description: Learn how to use the Inline Assistant in CodeCompanion
+description: Learn how to use the Inline interaction type in CodeCompanion
 ---
 
-# Using the Inline Assistant
+# Using the Inline Interaction
 
 <p align="center">
   <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
 </p>
 
-As per the [Getting Started](/getting-started.md#inline-assistant) guide, the inline assistant enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.
+As per the [Getting Started](/getting-started.md#inline) guide, the inline interaction enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.
 
-For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the assistant. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
+For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the interaction. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
 
 ## Adapters
 
@@ -28,7 +28,7 @@ One of the challenges with inline editing is determining how the LLM's response 
 
 ## Diff Mode
 
-By default, an inline assistant prompt will trigger the diff feature, showing differences between the original buffer and the changes made by the LLM. This can be turned off in your config via the `display.diff.provider` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
+By default, an inline interaction prompt will trigger the diff feature, showing differences between the original buffer and the changes made by the LLM. This can be turned off in your config via the `display.diff.provider` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
 
 - `gda` - Accept an inline edit
 - `gdr` - Reject an inline edit
@@ -40,13 +40,13 @@ These keymaps can also be changed in your config via the `interactions.inline.ke
 > [!TIP]
 > To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` editor context
 
-The inline assistant allows you to send context alongside your prompt via the notion of editor context. That is, context that relates to your current Neovim session:
+The inline interaction allows you to send context alongside your prompt via the notion of editor context. That is, context that relates to your current Neovim session:
 
 - `buffer` - shares the contents of the current buffer
 - `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
-Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple context items can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#editor-context).
+Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple context items can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline#editor-context).
 
 You can also have multiple editor context as part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
 

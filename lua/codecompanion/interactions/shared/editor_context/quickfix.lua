@@ -13,6 +13,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -330,7 +331,7 @@ end
 
 ---Add quickfix list entries to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local entries = get_qflist_entries()
   if #entries == 0 then
     return log:warn("Quickfix list is empty")
@@ -351,6 +352,30 @@ function EditorContext:apply()
       })
     end
   end
+end
+
+---Return inline label and context block for the CLI interaction
+---@return { inline: string, block: string }|nil
+function EditorContext:cli_render()
+  local entries = get_qflist_entries()
+  if #entries == 0 then
+    log:warn("Quickfix list is empty")
+    return nil
+  end
+
+  local lines = {}
+  for _, entry in ipairs(entries) do
+    table.insert(lines, entry.display)
+  end
+
+  return {
+    inline = "the quickfix list",
+    block = string.format(
+      [[- Quickfix list:
+%s]],
+      table.concat(lines, "\n")
+    ),
+  }
 end
 
 return EditorContext
