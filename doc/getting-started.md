@@ -199,6 +199,10 @@ Can you use @{grep_search} to find occurrences of "hello world"
 
 ### CLI
 
+<p align="center">
+  <video controls src="https://github.com/user-attachments/assets/9b4e202d-a939-4daa-8344-74af91f9f366"></video>
+</p>
+
 Running `:CodeCompanionCLI` will open a new CLI interaction. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](#editor-context). Save with `:w` to send the prompt to the agent, or `:w!` to send and auto-submit it.
 
 Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit the prompt and keep your cursor in the current buffer. You can also specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
