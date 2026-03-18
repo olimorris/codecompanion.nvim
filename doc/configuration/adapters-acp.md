@@ -287,6 +287,10 @@ require("codecompanion").setup({
 })
 ```
 
+## Setup: Copilot CLI
+
+Install [Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli) as per the instructions and then in the terminal run `copilot` and ensure that you're authenticated.
+
 ## Setup: Gemini CLI
 
 1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
