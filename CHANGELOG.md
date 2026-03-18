@@ -1,5 +1,15 @@
 # Changelog
 
+## [19.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.5.0...v19.6.0) (2026-03-18)
+
+
+### Features
+
+* **acp:** can specify default mode ([#2901](https://github.com/olimorris/codecompanion.nvim/issues/2901)) ([6229e8f](https://github.com/olimorris/codecompanion.nvim/commit/6229e8fb75066878352a0bafd685598a78d907c8))
+* **chat:** change system prompt date and make configurable ([#2899](https://github.com/olimorris/codecompanion.nvim/issues/2899)) ([57d3f1b](https://github.com/olimorris/codecompanion.nvim/commit/57d3f1bd08d1f37bf483daf3a6ff72e76280553a))
+* **tools:** memory can have whitelisted paths ([#2898](https://github.com/olimorris/codecompanion.nvim/issues/2898)) ([8eae866](https://github.com/olimorris/codecompanion.nvim/commit/8eae86632268e7bd2b5cdbff2815c9b16e3e1a7f))
+* **ui:** don't stack extmarks in ACP chats ([#2902](https://github.com/olimorris/codecompanion.nvim/issues/2902)) ([ecb41c1](https://github.com/olimorris/codecompanion.nvim/commit/ecb41c17747334315ec0f7777eeace102c5c9db0))
+
 ## [19.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.4.0...v19.5.0) (2026-03-18)
 
 
