@@ -74,6 +74,12 @@ return {
     },
   },
   interactions = {
+    opts = {
+      watcher = {
+        enabled = true,
+        debounce = 500,
+      },
+    },
     background = {},
     chat = {
       adapter = "test_adapter",
