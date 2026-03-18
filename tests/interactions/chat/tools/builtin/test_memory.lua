@@ -177,7 +177,7 @@ T["view"]["rejects path outside memory directory"] = function()
   local output = child.lua_get("_G.result")
 
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["view"]["rejects directory traversal"] = function()
@@ -202,7 +202,7 @@ T["view"]["rejects directory traversal"] = function()
   local output = child.lua_get("_G.result")
 
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Must reside within the memories directory")
+  h.expect_match(output.data, "Must reside within the /memories directory")
 end
 
 T["view"]["handles non-existent path"] = function()
@@ -414,7 +414,7 @@ T["create"]["rejects path outside memory directory"] = function()
 
   local output = child.lua_get("_G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["create"]["rejects directory traversal"] = function()
@@ -439,7 +439,7 @@ T["create"]["rejects directory traversal"] = function()
 
   local output = child.lua_get("_G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Must reside within the memories directory")
+  h.expect_match(output.data, "Must reside within the /memories directory")
 end
 
 T["str_replace"] = new_set()
@@ -696,7 +696,7 @@ T["str_replace"]["rejects path outside memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["insert"] = new_set()
@@ -1017,7 +1017,7 @@ T["insert"]["rejects path outside memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["insert"]["rejects path outside memory directory"] = function()
@@ -1043,7 +1043,7 @@ T["insert"]["rejects path outside memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["delete"] = new_set()
@@ -1234,7 +1234,7 @@ T["delete"]["fails when trying to delete root memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Cannot delete the root memory directory")
+  h.expect_match(output.data, "Cannot delete the root directory")
 end
 
 T["delete"]["rejects path outside memory directory"] = function()
@@ -1258,7 +1258,7 @@ T["delete"]["rejects path outside memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["delete"]["rejects directory traversal"] = function()
@@ -1282,7 +1282,7 @@ T["delete"]["rejects directory traversal"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Must reside within the memories directory")
+  h.expect_match(output.data, "Must reside within the /memories directory")
 end
 
 T["delete"]["rejects directory traversal"] = function()
@@ -1306,7 +1306,7 @@ T["delete"]["rejects directory traversal"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Must reside within the memories directory")
+  h.expect_match(output.data, "Must reside within the /memories directory")
 end
 
 T["rename"] = new_set()
@@ -1554,7 +1554,7 @@ T["rename"]["rejects old_path outside memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["rename"]["rejects new_path outside memory directory"] = function()
@@ -1583,7 +1583,7 @@ T["rename"]["rejects new_path outside memory directory"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Path must start with /memories")
+  h.expect_match(output.data, "Path must start with one of: /memories")
 end
 
 T["rename"]["rejects directory traversal in old_path"] = function()
@@ -1608,7 +1608,7 @@ T["rename"]["rejects directory traversal in old_path"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Must reside within the memories directory")
+  h.expect_match(output.data, "Must reside within the /memories directory")
 end
 
 T["rename"]["rejects directory traversal in new_path"] = function()
@@ -1637,7 +1637,373 @@ T["rename"]["rejects directory traversal in new_path"] = function()
 
   local output = child.lua("return _G.result")
   h.eq(output.status, "error")
-  h.expect_match(output.data, "Must reside within the memories directory")
+  h.expect_match(output.data, "Must reside within the /memories directory")
+end
+
+T["whitelist"] = new_set()
+
+T["whitelist"]["can view a whitelisted directory"] = function()
+  child.lua([[
+    -- Create a whitelisted directory with a file
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+    vim.fn.writefile({"Whitelisted content"}, vim.fs.joinpath(_G.WHITELIST_DIR, "notes.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } }
+    local args = { command = "view", path = "/notes" }
+
+    -- Simulate self.tool.opts by wrapping
+    local self_mock = { tool = tool }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, args)
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "success")
+  h.expect_match(output.data, "notes%.txt")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["can view a file in a whitelisted directory"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+    vim.fn.writefile({"Line 1", "Line 2"}, vim.fs.joinpath(_G.WHITELIST_DIR, "file.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "view", path = "/notes/file.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "success")
+  h.eq(output.data, "Line 1\nLine 2\n")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["can create a file in a whitelisted directory"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "create", path = "/notes/new.txt", file_text = "New content" })
+  ]])
+
+  local output = child.lua("return _G.result")
+  h.eq(output.status, "success")
+
+  local content = child.lua([[
+    return vim.fn.readfile(vim.fs.joinpath(_G.WHITELIST_DIR, "new.txt"))
+  ]])
+  h.eq(content, { "New content" })
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["can str_replace in a whitelisted file"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+    vim.fn.writefile({"Hello World"}, vim.fs.joinpath(_G.WHITELIST_DIR, "file.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, {
+      command = "str_replace",
+      path = "/notes/file.txt",
+      old_str = "Hello World",
+      new_str = "Goodbye World",
+    })
+  ]])
+
+  local output = child.lua("return _G.result")
+  h.eq(output.status, "success")
+
+  local content = child.lua([[
+    return vim.fn.readfile(vim.fs.joinpath(_G.WHITELIST_DIR, "file.txt"))
+  ]])
+  h.eq(content, { "Goodbye World" })
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["can delete a file in a whitelisted directory"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+    vim.fn.writefile({"Content"}, vim.fs.joinpath(_G.WHITELIST_DIR, "delete_me.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "delete", path = "/notes/delete_me.txt" })
+  ]])
+
+  local output = child.lua("return _G.result")
+  h.eq(output.status, "success")
+
+  local exists = child.lua([[
+    return vim.uv.fs_stat(vim.fs.joinpath(_G.WHITELIST_DIR, "delete_me.txt")) ~= nil
+  ]])
+  h.eq(exists, false)
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["cannot delete the whitelisted root directory"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "delete", path = "/notes" })
+  ]])
+
+  local output = child.lua("return _G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "Cannot delete the root directory")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["rejects traversal out of whitelisted directory"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "view", path = "/notes/../etc/passwd" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "Must reside within the /notes directory")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["rejects paths not matching any allowed prefix"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "view", path = "/etc/passwd" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "Path must start with one of: /memories, /notes")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["memories still works when whitelisted paths are set"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+
+    -- Create a file in the memories directory
+    vim.fn.writefile({"Memory content"}, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "note.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "view", path = "/memories/note.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "success")
+  h.eq(output.data, "Memory content\n")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["can rename within whitelisted directory"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+    vim.fn.writefile({"Content"}, vim.fs.joinpath(_G.WHITELIST_DIR, "old.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, {
+      command = "rename",
+      old_path = "/notes/old.txt",
+      new_path = "/notes/new.txt",
+    })
+  ]])
+
+  local output = child.lua("return _G.result")
+  h.eq(output.status, "success")
+
+  local old_exists = child.lua([[
+    return vim.uv.fs_stat(vim.fs.joinpath(_G.WHITELIST_DIR, "old.txt")) ~= nil
+  ]])
+  h.eq(old_exists, false)
+
+  local content = child.lua([[
+    return vim.fn.readfile(vim.fs.joinpath(_G.WHITELIST_DIR, "new.txt"))
+  ]])
+  h.eq(content, { "Content" })
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["prefix without leading slash is normalized"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+    vim.fn.writefile({"Content"}, vim.fs.joinpath(_G.WHITELIST_DIR, "file.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    -- as = "notes" without leading slash
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    _G.result = builtin.cmds[1](self_mock, { command = "view", path = "/notes/file.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "success")
+  h.eq(output.data, "Content\n")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["whitelist"]["prevents prefix collision with similar names"] = function()
+  child.lua([[
+    _G.WHITELIST_DIR = vim.fn.tempname()
+    vim.fn.mkdir(_G.WHITELIST_DIR, "p")
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    local self_mock = { tool = { opts = { whitelist = { { path = _G.WHITELIST_DIR, as = "/notes" } } } } }
+    setmetatable(self_mock, { __index = builtin })
+
+    -- "/notesbackup/file.txt" should NOT match the "/notes" prefix
+    _G.result = builtin.cmds[1](self_mock, { command = "view", path = "/notesbackup/file.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "Path must start with one of")
+
+  child.lua([[ pcall(vim.fn.delete, _G.WHITELIST_DIR, "rf") ]])
+end
+
+T["validation"] = new_set()
+
+T["validation"]["returns error for missing path on view"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "view" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires a 'path' parameter")
+end
+
+T["validation"]["returns error for missing path on create"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "create", file_text = "content" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires a 'path' parameter")
+end
+
+T["validation"]["returns error for missing old_str on str_replace"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "str_replace", path = "/memories/file.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires an 'old_str' parameter")
+end
+
+T["validation"]["returns error for missing insert_line on insert"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "insert", path = "/memories/file.txt", insert_text = "text" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires an 'insert_line' parameter")
+end
+
+T["validation"]["returns error for missing insert_text on insert"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "insert", path = "/memories/file.txt", insert_line = 1 })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires an 'insert_text' parameter")
+end
+
+T["validation"]["returns error for missing old_path on rename"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "rename", new_path = "/memories/new.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires an 'old_path' parameter")
+end
+
+T["validation"]["returns error for missing new_path on rename"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "rename", old_path = "/memories/old.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "requires a 'new_path' parameter")
+end
+
+T["validation"]["rejects null bytes in path"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "view", path = "/memories/file\0.txt" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+  h.eq(output.status, "error")
+  h.expect_match(output.data, "invalid characters")
 end
 
 return T
