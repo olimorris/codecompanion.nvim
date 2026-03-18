@@ -58,6 +58,8 @@ local defaults = {
   constants = constants,
   interactions = {
     opts = {
+      date_format = "%A, %d %B %Y", -- The date format to use in system prompts
+
       watcher = {
         enabled = true, -- Reload buffers when an agent modifies files on disk
         debounce = 500, -- Debounce time in milliseconds
