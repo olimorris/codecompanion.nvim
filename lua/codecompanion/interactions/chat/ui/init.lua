@@ -174,7 +174,7 @@ function UI:open(opts)
 
   if self:is_visible() then
     if config.display.chat.window.layout == "tab" and self:is_visible_non_curtab() then
-      vim.cmd("tabnext " .. api.nvim_win_get_tabpage(self.winnr))
+      api.nvim_set_current_tabpage(api.nvim_win_get_tabpage(self.winnr))
     end
     return
   end

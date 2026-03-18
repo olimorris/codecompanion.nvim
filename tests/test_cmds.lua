@@ -299,6 +299,20 @@ T["cmds_tab"][":CodeCompanionChat Toggle goes to chat from any other tab"] = fun
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["cmds_tab"][":CodeCompanionChat Toggle after reopen does not error"] = function()
+  -- Reproduce: open chat, close it, reopen, then Toggle twice
+  -- Previously caused E475 because tabnext received a tabpage handle
+  -- instead of a tab index
+  child.lua([[vim.cmd("CodeCompanionChat")]])
+  child.cmd([[q]])
+  child.lua([[vim.cmd("CodeCompanionChat")]])
+  local ok, err = child.lua([[return pcall(function()
+    vim.cmd("CodeCompanionChat Toggle")
+    vim.cmd("CodeCompanionChat Toggle")
+  end)]])
+  h.eq(true, ok)
+end
+
 T["cmds_tab_sticky"] = new_set({
   hooks = {
     pre_once = function()
