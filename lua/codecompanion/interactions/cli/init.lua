@@ -64,6 +64,7 @@ function CLI.create(args)
 
   local bufnr = api.nvim_create_buf(false, true)
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion CLI] %d", bufnr))
+  vim.bo[bufnr].filetype = "codecompanion_cli"
 
   local id = math.random(10000000)
 
