@@ -57,6 +57,12 @@ local defaults = {
   },
   constants = constants,
   interactions = {
+    opts = {
+      watcher = {
+        enabled = true, -- Reload buffers when an agent modifies files on disk
+        debounce = 500, -- Debounce time in milliseconds
+      },
+    },
     -- BACKGROUND INTERACTION -------------------------------------------------
     background = {
       adapter = {
@@ -753,7 +759,6 @@ The user is working on a %s machine. Please respond with system specific command
       agents = {},
       opts = {
         auto_insert = false, -- Enter insert mode when focusing the CLI terminal
-        reload = true, -- Reload buffers when an agent modifies files on disk
       },
       providers = {
         terminal = {
