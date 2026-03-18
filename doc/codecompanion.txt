@@ -1033,6 +1033,17 @@ Using a `function` is useful for working around the limitations
 Code SDK (which enables ACP support).
 
 
+DEFAULT MODE ~
+
+You can configure an ACP adapter to start in a specific agent mode (e.g., plan
+mode) by setting the `defaults.mode` option. This is useful if you want to
+always start sessions in plan mode or another specific mode.
+
+
+The mode is applied automatically after the session is established. Available
+mode IDs can be viewed using the `/mode` slash command in the chat buffer.
+
+
 ADAPTER SETTINGS ~
 
 To change any of the default settings for an ACP adapter, you can extend it in
