@@ -264,6 +264,7 @@ The user is working on a %s machine. Please respond with system specific command
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             require_approval_before = true,
+            whitelist = {}, -- e.g. { { path = "/absolute/path", as = "/alias" } }
           },
         },
         ["read_file"] = {

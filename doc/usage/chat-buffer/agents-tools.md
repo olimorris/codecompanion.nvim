@@ -249,7 +249,7 @@ Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
 ### memory
 
 > [!IMPORTANT]
-> For security, all memory operations are restricted to the `/memories` directory
+> For security, all memory operations are restricted to the `/memories` directory and any whitelisted paths
 
 The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory (`/memories`).
 
@@ -269,6 +269,41 @@ To use the tool:
 ```md
 Use @{memory} to carry on our conversation about streamlining my dotfiles
 ```
+
+#### Whitelisted Paths
+
+By default, the memory tool can only access files in `<cwd>/memories/`. You can whitelist additional paths so the LLM can read and write to them. Each entry maps a path on disk to a virtual prefix that the LLM uses:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["memory"] = {
+          opts = {
+            whitelist = {
+              { path = "~/.dotfiles", as = "/dotfiles" },
+              { path = "/shared/notes", as = "/notes" },
+            },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+With this configuration, the LLM can use `/dotfiles/.zshrc` or `/notes/todo.md` as paths in memory tool calls, just as it uses `/memories/file.txt`. Tilde (`~`) is expanded automatically. Directory traversal protection applies to all whitelisted paths.
+
+You can also mount a single file. This is useful for a personal profile that the LLM can learn from and update over time:
+
+```lua
+whitelist = {
+  { path = "~/.dotfiles/PERSONAL.md", as = "/personal" },
+},
+```
+
+The LLM can then view and edit it via `/personal`.
 
 ### read_file
 
