@@ -22,7 +22,7 @@ As per the discussion over at [#813](https://github.com/olimorris/codecompanion.
 
 As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279).
 
-## Status column extmarks with the inline assistant by [@lucobellic](https://github.com/lucobellic)
+## Status column extmarks with the inline interaction by [@lucobellic](https://github.com/lucobellic)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/1daa7409-414e-4f4c-91fe-cd9c3ed0640e" />

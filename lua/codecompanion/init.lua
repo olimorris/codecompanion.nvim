@@ -4,6 +4,7 @@ local log = require("codecompanion.utils.log")
 
 local api = vim.api
 
+local _last_toggle = "chat"
 local _version
 
 -- Lazy load context_utils
@@ -102,7 +103,7 @@ CodeCompanion.add = function(args)
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = "Here is some code from "
-      .. context.filename
+      .. context.path
       .. ":\n\n```"
       .. context.filetype
       .. "\n"
@@ -113,7 +114,7 @@ CodeCompanion.add = function(args)
 end
 
 ---Open a chat buffer and converse with an LLM
----@param args? { auto_submit: boolean, params: table, subcommand: table,  callbacks: table, context: table, messages: CodeCompanion.Chat.Messages, user_prompt: table, window_opts: table }
+---@param args? table
 ---@return CodeCompanion.Chat|nil
 CodeCompanion.chat = function(args)
   args = args or {}
@@ -140,7 +141,7 @@ CodeCompanion.chat = function(args)
     if args.subcommand == "add" then
       return CodeCompanion.add(args)
     elseif args.subcommand == "toggle" then
-      return CodeCompanion.toggle(args)
+      return CodeCompanion.toggle_chat(args)
     elseif args.subcommand == "refreshcache" then
       return CodeCompanion.chat_refresh_cache()
     end
@@ -206,7 +207,7 @@ CodeCompanion.cmd = function(args)
           context.filetype,
           context.line_count,
           context.cursor_pos[1],
-          context.filename
+          context.path
         ),
         opts = {
           visible = false,
@@ -224,54 +225,44 @@ CodeCompanion.cmd = function(args)
   end
 end
 
----Toggle the chat buffer
+---Toggle the most recently used interaction (chat or CLI)
+---If either is visible, hide it. If neither is visible, show the last used one.
 ---@param args? table
 ---@return nil
 CodeCompanion.toggle = function(args)
-  local window_opts = args and args.window_opts
+  local cli = require("codecompanion.interactions.cli")
+  local chat = require("codecompanion.interactions.chat")
 
-  -- Get the most recent chat buffer, or create one
-  local chat = CodeCompanion.last_chat()
-  if not chat then
-    local chat_opts = {}
-    if args and args.params then
-      chat_opts.params = args.params
-    end
-    if window_opts then
-      chat_opts.window_opts = window_opts
-    end
-
-    return CodeCompanion.chat(chat_opts)
+  -- If the CLI is visible, hide it
+  if cli.is_visible() then
+    _last_toggle = "cli"
+    return cli.get_visible().ui:hide()
   end
 
-  -- If the chat is visible in a different tab ...
-  if chat.ui:is_visible_non_curtab() then
-    if config.display.chat.window.layout == "tab" then
-      -- ... open it (go there) if chat opens in tabs
-      chat.ui:open()
-      return
-    else
-      -- ... or close it so we can open it below
-      chat.ui:hide()
-    end
-  -- If the chat is visible in the current tab, hide it and return early
-  elseif chat.ui:is_visible() then
-    return chat.ui:hide()
+  -- If the chat is visible, hide it
+  if chat.is_visible() then
+    _last_toggle = "chat"
+    return chat.last_chat().ui:hide()
   end
 
-  chat.buffer_context = get_context(api.nvim_get_current_buf())
-
-  -- At this point, the chat exists but is not visible in the current tab
-
-  -- Close the chat window (if it's open elsewhere)
-  CodeCompanion.close_last_chat()
-
-  -- Reopen the chat in the current tab with the toggled flag
-  local opts = { toggled = true }
-  if window_opts then
-    opts.window_opts = window_opts
+  -- Neither is visible — show the last used one
+  if _last_toggle == "cli" then
+    return CodeCompanion.toggle_cli(args)
   end
-  chat.ui:open(opts)
+
+  return CodeCompanion.toggle_chat(args)
+end
+
+---Toggle the chat buffer specifically
+---@param args? table
+---@return nil
+CodeCompanion.toggle_chat = function(args)
+  _last_toggle = "chat"
+  return require("codecompanion.interactions.chat").toggle({
+    params = args and args.params,
+    window_opts = args and args.window_opts,
+    context = get_context(api.nvim_get_current_buf()),
+  })
 end
 
 ---Make a previously hidden chat buffer, visible again
@@ -315,6 +306,92 @@ CodeCompanion.close_last_chat = function()
   return require("codecompanion.interactions.chat").close_last_chat()
 end
 
+---Open, send to, or interact with a CLI agent
+---@param prompt_or_opts? string|table A prompt string, or an opts table when no prompt is needed
+---@param opts? { agent?: string, focus?: boolean, submit?: boolean, prompt?: boolean, width?: number, height?: number, args?: table }
+---@return nil
+CodeCompanion.cli = function(prompt_or_opts, opts)
+  local prompt
+
+  if type(prompt_or_opts) == "table" then
+    opts = prompt_or_opts
+  elseif type(prompt_or_opts) == "string" then
+    prompt = prompt_or_opts
+  end
+  opts = opts or {}
+
+  -- Prompt input mode: open the input buffer
+  if opts.prompt then
+    return require("codecompanion.interactions.cli.input").open({
+      agent = opts.agent,
+      args = opts.args,
+      initial_content = prompt,
+    })
+  end
+
+  local context
+  if prompt then
+    context = get_context(api.nvim_get_current_buf(), opts.args)
+  end
+
+  local cli = require("codecompanion.interactions.cli")
+  local instance
+  if prompt then
+    if opts.agent then
+      instance = cli.find_by_agent(opts.agent) or cli.create({ agent = opts.agent })
+    else
+      instance = cli.last_cli() or cli.create()
+    end
+  else
+    instance = cli.create({ agent = opts.agent })
+  end
+
+  if not instance then
+    return log:error("Could not create CLI instance")
+  end
+
+  local should_focus = opts.focus ~= false
+
+  if not instance.ui:is_visible() and should_focus then
+    local ui_opts = {}
+    if opts.width then
+      ui_opts.width = opts.width
+    end
+    if opts.height then
+      ui_opts.height = opts.height
+    end
+    instance.ui:open(ui_opts)
+  end
+
+  if prompt then
+    local resolved = cli.resolve_editor_context(prompt, context)
+
+    -- When not submitting, append a newline so successive cli() calls
+    -- don't stack text on the same terminal line. Skip when submitting
+    -- because the \r handles the line ending and a trailing \n would be
+    -- interpreted as an extra Enter by the TUI agent.
+    if not opts.submit and not resolved:match("\n$") then
+      resolved = resolved .. "\n"
+    end
+
+    instance:send(resolved, { submit = opts.submit })
+  end
+
+  if should_focus and prompt then
+    instance:focus()
+  end
+
+  _last_toggle = "cli"
+end
+
+---Toggle the CLI terminal buffer
+---@param args? { agent?: string }
+---@return nil
+CodeCompanion.toggle_cli = function(args)
+  _last_toggle = "cli"
+  return require("codecompanion.interactions.cli").toggle(args)
+end
+
 ---Show the action palette
 ---@param args table
 ---@return nil
@@ -336,6 +413,8 @@ CodeCompanion.has = function(feature)
     "extensions",
     "acp",
     "rules",
+    "cli",
+    "inline",
   }
 
   if type(feature) == "string" then

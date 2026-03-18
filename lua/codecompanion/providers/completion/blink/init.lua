@@ -21,7 +21,7 @@ function M:get_trigger_characters()
 end
 
 function M:enabled()
-  return vim.bo.filetype == "codecompanion"
+  return vim.bo.filetype == "codecompanion" or vim.bo.filetype == "codecompanion_input"
 end
 
 function M:get_completions(ctx, callback)

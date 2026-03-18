@@ -6,7 +6,7 @@ local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
-local ui_utils = require("codecompanion.utils.ui")
+local shared_ui = require("codecompanion.interactions.shared.ui")
 local utils = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
@@ -19,18 +19,6 @@ local CONSTANTS = {
 
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
-
----Finalize window setup by applying the options and setting the filetype. This
----This ensures that any codecompanion specific ftplugins can run after the
----window options are set, allowing the plugin defaults to be overridden
----@param winnr number
----@param bufnr number
----@param opts table Window options to apply
----@return nil
-local function apply_window_config(winnr, bufnr, opts)
-  ui_utils.set_win_options(winnr, opts)
-  api.nvim_set_option_value("filetype", "codecompanion", { buf = bufnr })
-end
 
 ---Set the LLM role based on the adapter
 ---@param role string|function
@@ -186,7 +174,7 @@ function UI:open(opts)
 
   if self:is_visible() then
     if config.display.chat.window.layout == "tab" and self:is_visible_non_curtab() then
-      vim.cmd("tabnext " .. api.nvim_win_get_tabpage(self.winnr))
+      api.nvim_set_current_tabpage(api.nvim_win_get_tabpage(self.winnr))
     end
     return
   end
@@ -212,105 +200,15 @@ function UI:open(opts)
     window = vim.deepcopy(config.display.chat.window)
   end
 
-  local function cols()
-    return vim.o.columns
-  end
-  local function rows()
-    return vim.o.lines
+  local title = window.title or " CodeCompanion "
+  if self.title then
+    title = string.format(" %s ", self.title)
   end
 
-  --NOTE: Previously we allowed "auto" values for the width, so guarding against that here
-  if type(window.height) == "string" then
-    window.height = rows()
-  end
-  if type(window.width) == "string" then
-    window.width = cols()
-  end
-
-  if type(window.height) == "function" then
-    window.height = window.height()
-  end
-  if type(window.width) == "function" then
-    window.width = window.width()
-  end
-
-  local height = window.height > 1 and window.height or math.floor(rows() * window.height)
-  local width = window.width > 1 and window.width or math.floor(cols() * window.width)
-
-  if window.layout == "float" then
-    local title = window.title or " CodeCompanion "
-    if self.title then
-      title = string.format(" %s ", self.title)
-    end
-
-    local win_opts = {
-      relative = window.relative,
-      width = width,
-      height = height,
-      col = window.col or math.floor((cols() - width) / 2),
-      row = window.row or math.floor((rows() - height) / 2),
-      border = window.border,
-      title = title,
-      title_pos = "center",
-      zindex = 45,
-    }
-    self.winnr = api.nvim_open_win(self.chat_bufnr, true, win_opts)
-    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
-  elseif window.layout == "vertical" then
-    local position = window.position
-    local full_height = window.full_height
-    if position == nil or (position ~= "left" and position ~= "right") then
-      position = vim.opt.splitright:get() and "right" or "left"
-    end
-    if full_height then
-      if position == "left" then
-        vim.cmd("topleft vsplit")
-      else
-        vim.cmd("botright vsplit")
-      end
-    else
-      vim.cmd("vsplit")
-    end
-    if position == "left" and vim.opt.splitright:get() then
-      vim.cmd("wincmd h")
-    end
-    if position == "right" and not vim.opt.splitright:get() then
-      vim.cmd("wincmd l")
-    end
-    if (window.width or 0) > 0 then
-      vim.cmd("vertical resize " .. width)
-    end
-    self.winnr = api.nvim_get_current_win()
-    api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
-    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
-  elseif window.layout == "horizontal" then
-    local position = window.position
-    if position == nil or (position ~= "top" and position ~= "bottom") then
-      position = vim.opt.splitbelow:get() and "bottom" or "top"
-    end
-    vim.cmd("split")
-    if position == "top" and vim.opt.splitbelow:get() then
-      vim.cmd("wincmd k")
-    end
-    if position == "bottom" and not vim.opt.splitbelow:get() then
-      vim.cmd("wincmd j")
-    end
-    if (window.height or 0) > 0 then
-      vim.cmd("resize " .. height)
-    end
-    self.winnr = api.nvim_get_current_win()
-    api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
-    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
-  elseif window.layout == "tab" then
-    vim.cmd("tabnew")
-    self.winnr = api.nvim_get_current_win()
-    api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
-    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
-  else
-    self.winnr = api.nvim_get_current_win()
-    api.nvim_set_current_buf(self.chat_bufnr)
-    apply_window_config(self.winnr, self.chat_bufnr, window.opts)
-  end
+  self.winnr = shared_ui.open(self.chat_bufnr, window, {
+    title = title,
+    filetype = "codecompanion",
+  })
 
   vim.bo[self.chat_bufnr].textwidth = 0
 
@@ -345,20 +243,7 @@ function UI:hide()
     layout = config.display.chat.window.layout
   end
 
-  if layout == "float" or layout == "vertical" or layout == "horizontal" then
-    if self:is_active() then
-      vim.cmd("hide")
-    else
-      if not self.winnr then
-        self.winnr = ui_utils.buf_get_win(self.chat_bufnr)
-      end
-      api.nvim_win_hide(self.winnr)
-    end
-  elseif layout == "tab" then
-    vim.cmd("tabprevious")
-  else
-    vim.cmd("buffer " .. vim.fn.bufnr("#"))
-  end
+  shared_ui.hide(self.winnr, self.chat_bufnr, layout)
 
   utils.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
 end
@@ -386,19 +271,19 @@ end
 ---Determine if the current chat buffer is active
 ---@return boolean
 function UI:is_active()
-  return api.nvim_get_current_buf() == self.chat_bufnr
+  return shared_ui.is_active(self.chat_bufnr)
 end
 
 ---Determine if the chat buffer is visible
 ---@return boolean
 function UI:is_visible()
-  return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.chat_bufnr
+  return shared_ui.is_visible(self.winnr, self.chat_bufnr)
 end
 
 ---Chat buffer is visible but not in the current tab
 ---@return boolean
 function UI:is_visible_non_curtab()
-  return self:is_visible() and api.nvim_get_current_tabpage() ~= api.nvim_win_get_tabpage(self.winnr)
+  return shared_ui.is_visible_non_curtab(self.winnr, self.chat_bufnr)
 end
 
 ---Get the formatted header for the chat buffer

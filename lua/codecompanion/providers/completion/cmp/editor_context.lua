@@ -7,7 +7,7 @@ function source.new()
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion"
+  return vim.bo.filetype == "codecompanion" or vim.bo.filetype == "codecompanion_input"
 end
 
 source.get_position_encoding_kind = function()

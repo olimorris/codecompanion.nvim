@@ -1,21 +1,21 @@
 ---
-description: Configure the Inline Assistant in CodeCompanion
+description: Configure the Inline Interaction in CodeCompanion
 ---
 
-# Configuring the Inline Assistant
+# Configuring the Inline Interaction
 
 > [!IMPORTANT]
-> Only **http** adapters are supported for the inline assistant.
+> Only **http** adapters are supported for the inline interaction.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Assistant">
+  <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Interaction">
 </p>
 
-CodeCompanion provides an _inline_ interaction for quick, direct editing of your code. Unlike the chat buffer, the inline assistant integrates responses directly into the current buffer—allowing the LLM to add or replace code as needed.
+CodeCompanion provides an _inline_ interaction for quick, direct editing of your code. Unlike the chat buffer, the inline interaction integrates responses directly into the current buffer—allowing the LLM to add or replace code as needed.
 
 ## Changing Adapter
 
-By default, CodeCompanion sets the _copilot_ adapter for the inline assistant. You can change this to any other HTTP adapter:
+By default, CodeCompanion sets the _copilot_ adapter for the inline interaction. You can change this to any other HTTP adapter:
 
 ```lua
 require("codecompanion").setup({
@@ -34,7 +34,7 @@ See the section on [HTTP Adapters](/configuration/adapters-http) for more inform
 
 ## Keymaps
 
-The inline assistant supports keymaps for accepting or rejecting changes:
+The inline interaction supports keymaps for accepting or rejecting changes:
 
 ```lua
 require("codecompanion").setup({
@@ -79,7 +79,7 @@ require("codecompanion").setup({
 
 ## Editor Context
 
-The plugin comes with a number of [editor context](/usage/inline-assistant.html#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
+The plugin comes with a number of [editor context](/usage/inline.html#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
 
 ```lua
 require("codecompanion").setup({

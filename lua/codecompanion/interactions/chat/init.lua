@@ -10,7 +10,7 @@
 ---@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
+---@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
@@ -45,7 +45,7 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
----@field callbacks table<string, fun(chat: CodeCompanion.Chat, ...: any): any> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
+---@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
@@ -170,7 +170,7 @@ local function sync_all_buffer_content(chat)
     if not exists then
       require(item.source)
         .new({ Chat = chat })
-        :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { item = true })
+        :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { sync_all = true })
     end
   end
 end
@@ -398,9 +398,10 @@ end
 -- Public methods
 --=============================================================================
 
----Methods that are available outside of CodeCompanion
----@type table<CodeCompanion.Chat>
-local chatmap = {}
+local registry = require("codecompanion.interactions.shared.registry")
+
+---@type table<number, CodeCompanion.Chat>
+local chats = {}
 
 ---@type table
 _G.codecompanion_buffers = {}
@@ -469,26 +470,35 @@ function Chat.new(args)
   -- NOTE: Put the parser on the chat buffer for performance reasons
   local ok, chat_parser, yaml_parser
   ok, chat_parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
-  if not ok then
+  if not ok or not chat_parser then
     return log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
   end
   self.chat_parser = chat_parser
 
   if show_settings then
     ok, yaml_parser = pcall(vim.treesitter.get_parser, self.bufnr, "yaml", { ignore_injections = false })
-    if not ok then
+    if not ok or not yaml_parser then
       return log:error("Could not find the Yaml Tree-sitter parser")
     end
     self.yaml_parser = yaml_parser
   end
 
   table.insert(_G.codecompanion_buffers, self.bufnr)
-  chatmap[self.bufnr] = {
-    name = "Chat " .. vim.tbl_count(chatmap) + 1,
+  chats[self.bufnr] = self
+
+  local chat_name = "Chat " .. vim.tbl_count(chats)
+  registry.add(self.bufnr, {
+    name = chat_name,
     description = CONSTANTS.BLANK_DESC,
     interaction = "chat",
-    chat = self,
-  }
+    open = function()
+      Chat.close_last_chat()
+      self.ui:open()
+    end,
+    hide = function()
+      self.ui:hide()
+    end,
+  })
 
   if args.adapter and adapters.resolved(args.adapter) then
     self.adapter = args.adapter
@@ -527,7 +537,7 @@ function Chat.new(args)
   self.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = self })
   self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   self.context = require("codecompanion.interactions.chat.context").new({ chat = self })
-  self.editor_context = require("codecompanion.interactions.chat.editor_context").new()
+  self.editor_context = require("codecompanion.interactions.shared.editor_context").new("chat")
   self.subscribers = require("codecompanion.interactions.chat.subscribers").new()
   self.tools = require("codecompanion.interactions.chat.tools").new({
     adapter = self.adapter,
@@ -1597,7 +1607,8 @@ function Chat:close()
       return v == self.bufnr
     end)
   )
-  chatmap[self.bufnr] = nil
+  chats[self.bufnr] = nil
+  registry.remove(self.bufnr)
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
@@ -1782,7 +1793,7 @@ function Chat:set_title(title)
 
   self.title = title
   self.ui.title = title
-  chatmap[self.bufnr].description = title
+  registry.update(self.bufnr, { description = title })
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)
   end)
@@ -1796,9 +1807,16 @@ end
 function Chat.buf_get_chat(bufnr)
   if not bufnr then
     return vim
-      .iter(pairs(chatmap))
-      :map(function(_, v)
-        return v
+      .iter(pairs(chats))
+      :map(function(buf, chat)
+        local entry = registry.get(buf)
+        return {
+          name = entry and entry.name or "",
+          description = entry and entry.description or "",
+          title = chat.title,
+          interaction = "chat",
+          chat = chat,
+        }
       end)
       :totable()
   end
@@ -1806,7 +1824,7 @@ function Chat.buf_get_chat(bufnr)
   if bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  return chatmap[bufnr].chat
+  return chats[bufnr]
 end
 
 ---Returns the last chat that was visible
@@ -1832,6 +1850,74 @@ function Chat.close_last_chat()
       last_chat.ui:hide()
     end
   end
+end
+
+---Check if the last chat is currently visible
+---@return boolean
+function Chat.is_visible()
+  local chat = Chat.last_chat()
+  return chat ~= nil and chat.ui:is_visible()
+end
+
+---Toggle the chat buffer
+---@param args? { params?: table, window_opts?: table, context?: table }
+---@return nil
+function Chat.toggle(args)
+  args = args or {}
+  local window_opts = args.window_opts
+
+  local chat = Chat.last_chat()
+  if not chat then
+    local chat_opts = { buffer_context = args.context } --[[@as CodeCompanion.ChatArgs]]
+    if window_opts then
+      chat_opts.window_opts = window_opts
+    end
+    -- Adapter resolution from params
+    if args.params and args.params.adapter then
+      local adapter_name = args.params.adapter
+      local adapter = config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
+      adapter = require("codecompanion.adapters").resolve(adapter)
+      if args.params.model then
+        adapter.schema.model.default = args.params.model
+      end
+      chat_opts.adapter = adapter
+    end
+    -- Add rules to the chat buffer
+    local rules_cb = require("codecompanion.interactions.chat.rules.helpers").add_callbacks(chat_opts)
+    if rules_cb then
+      chat_opts.callbacks = rules_cb
+    end
+    return Chat.new(chat_opts)
+  end
+
+  -- If the chat is visible in a different tab ...
+  if chat.ui:is_visible_non_curtab() then
+    if config.display.chat.window.layout == "tab" then
+      -- ... open it (go there) if chat opens in tabs
+      chat.ui:open()
+      return
+    else
+      -- ... or close it so we can open it below
+      chat.ui:hide()
+    end
+  -- If the chat is visible in the current tab, hide it and return early
+  elseif chat.ui:is_visible() then
+    return chat.ui:hide()
+  end
+
+  chat.buffer_context = args.context or chat.buffer_context
+
+  -- At this point, the chat exists but is not visible in the current tab
+
+  -- Close the chat window (if it's open elsewhere)
+  Chat.close_last_chat()
+
+  -- Reopen the chat in the current tab with the toggled flag
+  local opts = { toggled = true }
+  if window_opts then
+    opts.window_opts = window_opts
+  end
+  chat.ui:open(opts)
 end
 
 return Chat

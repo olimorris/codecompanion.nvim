@@ -16,7 +16,7 @@ function! coc#source#codecompanion#complete(opt, cb) abort
 endfunction
 
 function! coc#source#codecompanion#on_complete(opt) abort
-  return a:cb(v:lua.codecompanion_coc_execute(a:opt))
+  call v:lua.codecompanion_coc_execute(a:opt)
 endfunction
 ]],
 }
@@ -72,6 +72,6 @@ local function ensure_buffer_attached()
 end
 
 vim.api.nvim_create_autocmd("FileType", {
-  pattern = "codecompanion",
+  pattern = { "codecompanion", "codecompanion_input" },
   callback = ensure_buffer_attached,
 })

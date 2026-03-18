@@ -13,7 +13,8 @@ doc/configuration/action-palette.md
 doc/configuration/adapters-acp.md
 doc/configuration/adapters-http.md
 doc/configuration/chat-buffer.md
-doc/configuration/inline-assistant.md
+doc/configuration/cli.md
+doc/configuration/inline.md
 doc/configuration/mcp.md
 doc/configuration/rules.md
 doc/configuration/prompt-library.md
@@ -31,8 +32,9 @@ doc/usage/chat-buffer/agents-tools.md
 doc/usage/chat-buffer/editor-context.md
 doc/usage/chat-buffer/rules.md
 doc/usage/chat-buffer/slash-commands.md
+doc/usage/cli.md
 doc/usage/events.md
-doc/usage/inline-assistant.md
+doc/usage/inline.md
 doc/usage/prompt-library.md
 doc/usage/ui.md
 doc/usage/workflows.md

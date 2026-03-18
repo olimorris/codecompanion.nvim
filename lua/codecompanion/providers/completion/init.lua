@@ -9,7 +9,7 @@ local buf_utils = require("codecompanion.utils.buffers")
 local api = vim.api
 
 local _ec_aug = nil
-local _ec_cache = nil
+local _ec_cache = {} ---@type table<string, table>
 local _ec_cache_valid = false
 
 ---Setup the editor context cache
@@ -32,6 +32,7 @@ local function _ec_cache_setup()
   }, {
     group = _ec_aug,
     callback = function()
+      _ec_cache = {}
       _ec_cache_valid = false
     end,
   })
@@ -287,20 +288,39 @@ function M.tools()
   return items
 end
 
+---Determine the interaction type from the current buffer's filetype
+---@return string "chat"|"cli"
+function M.interaction_type()
+  if vim.bo.filetype == "codecompanion_input" then
+    return "cli"
+  end
+  return "chat"
+end
+
 ---Return the editor context to be used for completion
+---@param interaction? string The interaction type to filter by (defaults to current buffer)
 ---@return table
-function M.editor_context()
+function M.editor_context(interaction)
+  interaction = interaction or M.interaction_type()
+
   _ec_cache_setup()
-  if _ec_cache and _ec_cache_valid then
-    return _ec_cache
+  if _ec_cache[interaction] and _ec_cache_valid then
+    return _ec_cache[interaction]
   end
 
-  local ec_config = config.interactions.chat.editor_context
+  local ec_config = config.interactions.shared.editor_context
 
   local editor_context = vim
     .iter(ec_config)
-    :filter(function(label, _)
-      return label ~= "opts"
+    :filter(function(label, data)
+      if label == "opts" then
+        return false
+      end
+      local allowed = data.opts and data.opts.interactions
+      if allowed and not vim.tbl_contains(allowed, interaction) then
+        return false
+      end
+      return true
     end)
     :map(function(label, data)
       return {
@@ -336,10 +356,10 @@ function M.editor_context()
     end)
     :totable()
 
-  _ec_cache = vim.list_extend(editor_context, buffers)
+  _ec_cache[interaction] = vim.list_extend(editor_context, buffers)
   _ec_cache_valid = true
 
-  return _ec_cache
+  return _ec_cache[interaction]
 end
 
 return M

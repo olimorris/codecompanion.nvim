@@ -24,6 +24,18 @@ local function transform_complete_items(opt, complete_items)
     end
     item.abbr = item.label -- The text to show in the completion menu
     item.info = item.detail -- The details shown in the preview window
+    item.menu = item.detail -- Short description shown in the menu
+
+    -- Set kind for icon/highlight coloring (see :h complete-items)
+    if item.type == "slash_command" then
+      item.kind = "f" -- function
+    elseif item.type == "tool" then
+      item.kind = "m" -- member/module
+    elseif item.type == "editor_context" then
+      item.kind = "v" -- variable
+    elseif item.type == "acp_command" then
+      item.kind = "f" -- function
+    end
 
     -- Context to be used by CodeCompanion later
     item.context = {
@@ -80,7 +92,7 @@ function M.init()
   return {
     priority = 99,
     shortcut = "CodeCompanion",
-    filetypes = { "codecompanion" },
+    filetypes = { "codecompanion", "codecompanion_input" },
     triggerCharacters = trigger_chars,
   }
 end

@@ -282,6 +282,79 @@ return {
     },
   },
   {
+    cmd = "CodeCompanionCLI",
+    callback = function(opts)
+      local params = {}
+      local prompt_parts = {}
+
+      for _, arg in ipairs(opts.fargs) do
+        local key, value = arg:match("^(%w+)=(.+)$")
+        if key and value then
+          params[key] = value
+        else
+          table.insert(prompt_parts, arg)
+        end
+      end
+
+      local prompt = table.concat(prompt_parts, " ")
+      local cli_opts = { args = opts, submit = opts.bang }
+
+      if params.agent then
+        cli_opts.agent = params.agent
+      end
+
+      -- :CodeCompanionCLI Ask — open prompt input buffer
+      if prompt == "Ask" then
+        cli_opts.prompt = true
+        codecompanion.cli(cli_opts)
+        return
+      end
+
+      -- :CodeCompanionCLI (no prompt) — new CLI interaction or send visual selection
+      if #vim.trim(prompt) == 0 then
+        if opts.range > 0 then
+          codecompanion.cli("", cli_opts)
+        else
+          codecompanion.cli(cli_opts)
+        end
+        return
+      end
+
+      -- :CodeCompanionCLI prompt — send to last or create new
+      codecompanion.cli(prompt, cli_opts)
+    end,
+    opts = {
+      desc = "Send a prompt to a CLI agent or open the CLI input buffer",
+      bang = true,
+      range = true,
+      nargs = "*",
+      complete = function(arg_lead, cmdline, _cursor_pos)
+        local param_key = arg_lead:match("^(%w+)=$")
+        if param_key == "agent" then
+          local agents = vim.tbl_keys(config.interactions.cli.agents)
+          return vim
+            .iter(agents)
+            :map(function(agent)
+              return "agent=" .. agent
+            end)
+            :totable()
+        end
+
+        if cmdline:match("^['<,'>]*CodeCompanionCLI[!]*%s+$") or arg_lead == "" then
+          local completions = { "Ask", "agent=" }
+          return vim
+            .iter(completions)
+            :filter(function(key)
+              return key:find(vim.pesc(arg_lead), 1, true) == 1
+            end)
+            :totable()
+        end
+
+        return {}
+      end,
+    },
+  },
+  {
     cmd = "CodeCompanionActions",
     callback = function(opts)
       if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then

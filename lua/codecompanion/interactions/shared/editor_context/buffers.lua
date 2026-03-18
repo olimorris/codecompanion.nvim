@@ -10,6 +10,7 @@ local EditorContext = {}
 function EditorContext.new(args)
   local self = setmetatable({
     Chat = args.Chat,
+    buffer_context = args.buffer_context or (args.Chat and args.Chat.buffer_context),
     config = args.config,
     params = args.params,
     target = args.target,
@@ -22,7 +23,7 @@ end
 ---@param bufnr number
 ---@return boolean
 function EditorContext:_is_excluded(bufnr)
-  local ec_opts = config.interactions.chat.editor_context.opts
+  local ec_opts = config.interactions.shared.editor_context.opts
   local excluded = ec_opts and ec_opts.excluded
   if not excluded then
     return false
@@ -47,7 +48,7 @@ end
 
 ---Add all open buffers to the chat
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local buffers = buf_utils.get_open()
   local count = 0
 
@@ -73,7 +74,11 @@ function EditorContext:apply()
         self.Chat.context:add({
           bufnr = buf_info.bufnr,
           id = id,
-          source = "codecompanion.interactions.chat.editor_context.buffers",
+          path = buf_info.path,
+          opts = {
+            sync_all = true,
+          },
+          source = "codecompanion.interactions.shared.editor_context.buffer",
         })
 
         count = count + 1
@@ -84,6 +89,29 @@ function EditorContext:apply()
   if count == 0 then
     log:warn("No open buffers to share")
   end
+end
+
+---Return inline label for the CLI interaction
+---@return { inline: string }|nil
+function EditorContext:cli_render()
+  local buffers = buf_utils.get_open()
+  local paths = {}
+
+  for _, buf_info in ipairs(buffers) do
+    if not self:_is_excluded(buf_info.bufnr) then
+      local relative_path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf_info.bufnr), ":.")
+      table.insert(paths, string.format("@%s", relative_path))
+    end
+  end
+
+  if #paths == 0 then
+    log:warn("No open buffers to share")
+    return nil
+  end
+
+  return {
+    inline = "the open buffers: " .. table.concat(paths, ", "),
+  }
 end
 
 return EditorContext

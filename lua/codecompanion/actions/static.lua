@@ -1,5 +1,6 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+local registry = require("codecompanion.interactions.shared.registry")
 local rules = require("codecompanion.interactions.chat.rules")
 local rules_list = require("codecompanion.interactions.chat.rules.helpers").list()
 
@@ -50,29 +51,23 @@ return {
       stop_context_insertion = true,
     },
     condition = function()
-      return #codecompanion.buf_get_chat() > 0
+      return #registry.list() > 0
     end,
     picker = {
       prompt = "Select a chat",
       columns = { "description" },
       items = function()
-        local loaded_chats = codecompanion.buf_get_chat()
-        local open_chats = {}
-
-        for _, data in ipairs(loaded_chats) do
-          table.insert(open_chats, {
-            name = data.name,
-            interaction = "chat",
-            description = data.title or data.description,
-            bufnr = data.chat.bufnr,
-            callback = function()
-              codecompanion.close_last_chat()
-              data.chat.ui:open()
-            end,
+        local items = {}
+        for _, entry in ipairs(registry.list()) do
+          table.insert(items, {
+            name = entry.name,
+            interaction = entry.interaction,
+            description = entry.description,
+            bufnr = entry.bufnr,
+            callback = entry.open,
           })
         end
-
-        return open_chats
+        return items
       end,
     },
   },

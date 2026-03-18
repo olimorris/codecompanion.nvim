@@ -228,12 +228,12 @@ Helpers.setup_chat_buffer = function(config, adapter)
   })
   chat.vars = {
     foo = {
-      path = "spec.codecompanion.interactions.chat.editor_context.foo",
+      path = "spec.codecompanion.interactions.shared.editor_context.foo",
       description = "foo",
     },
   }
   local tools = require("codecompanion.interactions.chat.tools").new({ bufnr = 1 })
-  local vars = require("codecompanion.interactions.chat.editor_context").new()
+  local vars = require("codecompanion.interactions.shared.editor_context").new()
 
   return chat, tools, vars
 end

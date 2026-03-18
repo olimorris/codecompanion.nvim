@@ -17,7 +17,7 @@ end
 
 ---Return the user's custom context
 ---@return nil
-function EditorContext:apply()
+function EditorContext:chat_render()
   local id = "<editor_context>" .. self.config.name .. "</editor_context>"
 
   self.Chat:add_message({
@@ -28,7 +28,7 @@ function EditorContext:apply()
   self.Chat.context:add({
     bufnr = self.Chat.bufnr,
     id = id,
-    source = "codecompanion.interactions.chat.editor_context.user",
+    source = "codecompanion.interactions.shared.editor_context.user",
   })
 end
 
