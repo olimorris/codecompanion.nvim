@@ -2,6 +2,7 @@ local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
+local watch = require("codecompanion.interactions.shared.watch")
 
 -- Keep a record of UI changes in the chat buffer
 
@@ -83,6 +84,8 @@ function ACPHandler:ensure_connection()
     end
 
     self.chat:update_metadata()
+
+    watch.enable()
   end
   return true
 end
