@@ -142,8 +142,9 @@ function Rules:read_files(paths)
       local ok, content = pcall(file.read, path)
 
       if ok then
-        -- Find the parser for this file
+        -- Find the parser and original path for this file
         local file_parser = nil
+        local original_path = nil
         for _, file_spec in ipairs(self.files) do
           if type(file_spec) == "table" and file_spec.path then
             local normalized_spec_path = vim.fs.normalize(file_spec.path)
@@ -159,14 +160,20 @@ function Rules:read_files(paths)
               -- Exact path match
               if path == normalized_spec_path then
                 file_parser = file_spec.parser
+                original_path = file_spec.path
                 break
               end
+            end
+          elseif type(file_spec) == "string" then
+            if path == vim.fs.normalize(file_spec) then
+              original_path = file_spec
+              break
             end
           end
         end
 
         table.insert(files, {
-          name = path,
+          name = original_path or path,
           content = content,
           path = path,
           filename = vim.fn.fnamemodify(path, ":t"),
