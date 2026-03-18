@@ -40,6 +40,7 @@ local defaults = {
       cagent = "cagent",
       claude_code = "claude_code",
       codex = "codex",
+      copilot_acp = "copilot_acp",
       gemini_cli = "gemini_cli",
       goose = "goose",
       kimi_cli = "kimi_cli",
