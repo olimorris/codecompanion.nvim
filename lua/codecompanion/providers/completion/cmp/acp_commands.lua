@@ -18,8 +18,8 @@ function source:get_trigger_characters()
 end
 
 function source:get_keyword_pattern()
-  local escaped = vim.pesc(trigger)
-  return escaped .. [[\w\+]]
+  local escaped = vim.fn.escape(trigger, [[\]])
+  return escaped .. [[\%(\w\|-\)\+]]
 end
 
 function source:complete(params, callback)
@@ -52,7 +52,7 @@ function source:execute(item, callback)
   local line = vim.api.nvim_get_current_line()
 
   -- Remove the trigger character and partial command
-  local before = line:sub(1, col):gsub(string.format("%s%w*$", trigger), "")
+  local before = line:sub(1, col):gsub(vim.pesc(trigger) .. "[-%w]*$", "")
   local after = line:sub(col + 1)
   local new_line = before .. text .. after
 
