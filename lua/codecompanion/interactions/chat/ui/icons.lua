@@ -44,6 +44,9 @@ function Icons.apply(bufnr, line, status, opts)
     return
   end
 
+  -- Clear any existing tool icons on this line to prevent duplicates
+  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, line, line + 1)
+
   return api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_TOOL_ICONS, line, 0, {
     virt_text = { { config_entry.icon, config_entry.hl_group } },
     virt_text_pos = opts.virt_text_pos,
@@ -55,7 +58,7 @@ end
 ---@param bufnr number
 ---@param extmark_id number
 ---@return nil
-function Icons:clear_icon(bufnr, extmark_id)
+function Icons.clear_icon(bufnr, extmark_id)
   if not extmark_id then
     return
   end
@@ -73,6 +76,12 @@ end
 ---@param bufnr number
 function Icons.clear_icons(bufnr)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, 0, -1)
+end
+
+---Return the tool icons namespace ID
+---@return number
+function Icons.ns()
+  return CONSTANTS.NS_TOOL_ICONS
 end
 
 return Icons

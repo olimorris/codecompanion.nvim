@@ -150,7 +150,7 @@ function Builder:add_message(data, opts)
 
   if needs_header then
     state:update_role(data.role)
-    self:_add_header_spacing(lines, state)
+    self:_add_header_spacing(lines)
     self.chat.ui:set_header(lines, config.interactions.chat.roles[data.role])
 
     -- Section started: reset block trackers
@@ -243,9 +243,8 @@ end
 
 ---Add appropriate spacing before header
 ---@param lines table
----@param state table
 ---@return nil
-function Builder:_add_header_spacing(lines, state)
+function Builder:_add_header_spacing(lines)
   table.insert(lines, "")
   table.insert(lines, "")
 end
@@ -348,6 +347,7 @@ end
 ---@param content string The new content for the line
 ---@param opts? table Optional parameters
 ---@return boolean success Whether the update was successful
+---@return number|nil icon_id The new icon extmark ID, if an icon was placed
 function Builder:update_line(line_number, content, opts)
   opts = opts or {}
 
@@ -370,19 +370,23 @@ function Builder:update_line(line_number, content, opts)
   local start_line = zero_based_line
   local end_line = zero_based_line + 1
 
+  local new_icon_id
   local ok, _ = pcall(api.nvim_buf_set_lines, self.chat.bufnr, start_line, end_line, false, { content })
   if ok and opts.status then
-    vim.schedule(function()
-      Icons.clear_line(self.chat.bufnr, start_line)
-      Icons.apply(self.chat.bufnr, start_line, opts.status, opts)
-    end)
+    -- Clear by extmark ID first (handles extmarks that may have moved to a different line)
+    if opts.icon_id then
+      pcall(api.nvim_buf_del_extmark, self.chat.bufnr, Icons.ns(), opts.icon_id)
+    end
+    -- Also clear by line range as a safety net
+    Icons.clear_line(self.chat.bufnr, start_line)
+    new_icon_id = Icons.apply(self.chat.bufnr, start_line, opts.status, opts)
   end
 
   if self.state.last_role ~= config.constants.USER_ROLE then
     self.chat.ui:lock_buf()
   end
 
-  return true
+  return true, new_icon_id
 end
 
 return Builder
