@@ -151,6 +151,7 @@ function Connection:connect_and_initialize()
   end
 
   self:apply_default_model()
+  self:apply_default_mode()
 
   return self
 end
@@ -297,6 +298,53 @@ function Connection:apply_default_model()
   end
 
   return self:set_model(model_id)
+end
+
+---Apply the default mode from the adapter config
+---@return boolean
+function Connection:apply_default_mode()
+  if not self._modes then
+    return false
+  end
+
+  local default_mode = self.adapter_modified and self.adapter_modified.defaults and self.adapter_modified.defaults.mode
+  if not default_mode then
+    return false
+  end
+
+  -- Support function values for default mode
+  if type(default_mode) == "function" then
+    default_mode = default_mode(self.adapter_modified)
+  end
+
+  if type(default_mode) ~= "string" or default_mode == "" then
+    return false
+  end
+
+  -- Check if the requested mode is available
+  local mode_id = nil
+  for _, mode in ipairs(self._modes.availableModes or {}) do
+    -- Match by id first, then by partial name match (e.g., "plan" matches mode with name containing "plan")
+    if mode.id == default_mode then
+      mode_id = mode.id
+      break
+    elseif mode.name and mode.name:lower():find(default_mode:lower(), 1, true) then
+      mode_id = mode.id
+      break
+    end
+  end
+
+  if not mode_id then
+    log:warn("[acp::apply_default_mode] Mode `%s` not found in available modes", default_mode)
+    return false
+  end
+
+  if mode_id == self._modes.currentModeId then
+    log:debug("[acp::apply_default_mode] Mode `%s` is already selected", mode_id)
+    return true
+  end
+
+  return self:set_mode(mode_id)
 end
 
 ---Create the ACP process
