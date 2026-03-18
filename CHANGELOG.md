@@ -1,5 +1,22 @@
 # Changelog
 
+## [19.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.4.0...v19.5.0) (2026-03-18)
+
+
+### Features
+
+* **acp:** add copilot-cli ([#2896](https://github.com/olimorris/codecompanion.nvim/issues/2896)) ([4c381c2](https://github.com/olimorris/codecompanion.nvim/commit/4c381c2ae28f246319fe4fc5fad856360d1113ad))
+* **cli:** add filetype to terminal buffer ([#2894](https://github.com/olimorris/codecompanion.nvim/issues/2894)) ([20d45ca](https://github.com/olimorris/codecompanion.nvim/commit/20d45ca9912a886460a07109b3b70e4118eac6f1))
+* improve how buffers are watched ([#2897](https://github.com/olimorris/codecompanion.nvim/issues/2897)) ([f08d411](https://github.com/olimorris/codecompanion.nvim/commit/f08d4113fce494211b3eee7e7e4c86ac42d8b689))
+
+
+### Bug Fixes
+
+* **chat:** throw error with get_parser in nightly builds ([#2887](https://github.com/olimorris/codecompanion.nvim/issues/2887)) ([41bec16](https://github.com/olimorris/codecompanion.nvim/commit/41bec16c399393186c2ff0e2cbcb0a56623d402b))
+* **completion:** acp and slash commands with nvim-cmp ([#2889](https://github.com/olimorris/codecompanion.nvim/issues/2889)) ([b9a4af6](https://github.com/olimorris/codecompanion.nvim/commit/b9a4af6d1d9210bde624f8919cacbd45fd85b186))
+* **completion:** coc.nvim provider detection, execution, and highlighting ([#2868](https://github.com/olimorris/codecompanion.nvim/issues/2868)) ([7e78668](https://github.com/olimorris/codecompanion.nvim/commit/7e78668214a87c707bdd3a5a1f9ceb2e20451c06))
+* **ui:** switch to chat tab after closing prev chat ([#2855](https://github.com/olimorris/codecompanion.nvim/issues/2855)) ([df77d69](https://github.com/olimorris/codecompanion.nvim/commit/df77d6911286d8172b3e235c6aba8e736f0053fa))
+
 ## [19.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.3.0...v19.4.0) (2026-03-17)
 
 
