@@ -63,6 +63,18 @@ The user's Neovim version is ${version}.
 The user is working on a ${os} machine. Please respond with system specific commands if applicable.
 `````
 
+The format of the date can be changed in your config by altering the `date_format` option:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    opts = {
+      date_format = "%A, %d %B %Y", -- Example: "Monday, 01 January 2024"
+    },
+  },
+})
+```
+
 ## Tool System Prompt
 
 CodeCompanion also ships with a separate system prompt when [tools](/usage/chat-buffer/agents-tools) are used in the chat buffer:

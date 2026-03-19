@@ -888,7 +888,7 @@ function Chat:make_system_prompt_context()
   local winid = vim.fn.bufwinid(bufnr)
   local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
     cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
-    date = tostring(os.date("%Y-%m-%d")),
+    date = tostring(os.date(config.interactions.opts.date_format)),
     default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
     language = config.opts.language or "English",
     nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,

@@ -79,6 +79,52 @@ require("codecompanion").setup({
 
 Using a _function_ is useful for working around the [limitations](https://github.com/zed-industries/claude-code-acp/issues/225) in the Claude Code SDK (which enables ACP support).
 
+## Configuring Default Mode
+
+You can configure an ACP adapter to start in a specific agent mode (e.g., plan mode) by setting the `defaults.mode` option. This is useful if you want to always start sessions in plan mode or another specific mode.
+
+::: code-group
+
+```lua [Adapters: Text] {6-8}
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            mode = "plan"
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+```lua [Adapters: Function] {6-12}
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            ---@param self CodeCompanion.ACPAdapter
+            ---@return string
+            mode = function(self)
+              return "plan"
+            end,
+          },
+        })
+      end,
+    }
+  },
+}),
+```
+
+:::
+
+The mode is applied automatically after the session is established. Available mode IDs can be viewed using the `/mode` slash command in the chat buffer.
+
 ## Configuring Adapter Settings
 
 To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:

@@ -48,6 +48,7 @@ doc/.vitepress/cache
 doc/tags*
 doc/node_modules
 
+.codecompanion.lua
 .direnv/
 .testenv/
 .repro/

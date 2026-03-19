@@ -58,6 +58,8 @@ local defaults = {
   constants = constants,
   interactions = {
     opts = {
+      date_format = "%A, %d %B %Y", -- The date format to use in system prompts
+
       watcher = {
         enabled = true, -- Reload buffers when an agent modifies files on disk
         debounce = 500, -- Debounce time in milliseconds
@@ -264,6 +266,7 @@ The user is working on a %s machine. Please respond with system specific command
           description = "The memory tool enables LLMs to store and retrieve information across conversations through a memory file directory",
           opts = {
             require_approval_before = true,
+            whitelist = {}, -- e.g. { { path = "/absolute/path", as = "/alias" } }
           },
         },
         ["read_file"] = {

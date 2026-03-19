@@ -285,14 +285,32 @@ local function generate_smart_summary(tool_call, adapter)
   return title
 end
 
+---Clean tool text for display in a markdown buffer
+---@param text string
+---@return string
+local function clean_tool_text(text)
+  if not text or text == "" then
+    return text
+  end
+
+  text = text:gsub("`", "")
+
+  -- Shorten absolute paths
+  local cwd = vim.fn.getcwd()
+  if cwd and cwd ~= "" then
+    text = text:gsub(vim.pesc(cwd) .. "/", "")
+  end
+
+  return text
+end
+
 ---Create a one-line message for tool-call events
 ---@param tool_call table
 ---@param adapter CodeCompanion.ACPAdapter
 ---@return string
 function M.tool_message(tool_call, adapter)
-  -- Normalize the tool call to handle inconsistent data
   local normalized = M.normalize_tool_call(tool_call)
-  return generate_smart_summary(normalized, adapter)
+  return clean_tool_text(generate_smart_summary(normalized, adapter))
 end
 
 ---Create a one-line message for file-write

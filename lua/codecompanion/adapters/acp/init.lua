@@ -95,6 +95,12 @@ function Adapter.resolve(adapter, opts)
       })
     end
 
+    if opts.mode then
+      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
+        defaults = { mode = opts.mode },
+      })
+    end
+
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
     if not config.adapters.acp or not config.adapters.acp[adapter] then
