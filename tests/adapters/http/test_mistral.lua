@@ -50,6 +50,8 @@ T["Mistral adapter"]["form_messages"]["it can form messages with tools"] = funct
         },
       },
     },
+    { role = "tool", content = "ok" },
+    { role = "assistant", content = "that works" },
   }
 
   local expected = {
@@ -83,6 +85,56 @@ T["Mistral adapter"]["form_messages"]["it can form messages with tools"] = funct
           },
         },
       },
+      { role = "tool", content = "ok" },
+      { role = "assistant", content = "that works" },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+end
+
+T["Mistral adapter"]["form_messages"]["it skips messages when user follows tools"] = function()
+  local input = {
+    { role = "user", content = "User1" },
+    {
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+            type = "function",
+          },
+        },
+      },
+    },
+    { role = "tool", content = "ok" },
+    { role = "user", content = "my message" },
+  }
+
+  local expected = {
+    messages = {
+      {
+        content = "User1",
+        role = "user",
+      },
+      {
+        role = "llm",
+        tool_calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+            type = "function",
+          },
+        },
+      },
+      { role = "tool", content = "ok" },
     },
   }
 
