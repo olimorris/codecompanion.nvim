@@ -47,10 +47,16 @@ function Icons.apply(bufnr, line, status, opts)
   -- Clear any existing tool icons on this line to prevent duplicates
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, line, line + 1)
 
+  -- Apply a text highlight to override treesitter markdown rendering on tool lines
+  -- (prevents glob patterns like **/* rendering as bold, backtick remnants as code, etc.)
+  local line_text = api.nvim_buf_get_lines(bufnr, line, line + 1, false)[1] or ""
+
   return api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_TOOL_ICONS, line, 0, {
     virt_text = { { config_entry.icon, config_entry.hl_group } },
     virt_text_pos = opts.virt_text_pos,
-    priority = opts.priority,
+    priority = math.max(opts.priority, 200),
+    hl_group = "CodeCompanionChatToolText",
+    end_col = #line_text,
   })
 end
 
