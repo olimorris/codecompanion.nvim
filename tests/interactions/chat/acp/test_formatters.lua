@@ -261,7 +261,7 @@ T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
         }
       ]],
     [[_G.test_adapter = { opts = { verbose_output = true } }]],
-    "Search: Find `**/*add_buf_message*` — No files found"
+    "Search: Find **/*add_buf_message* — No files found"
   )
 end
 
