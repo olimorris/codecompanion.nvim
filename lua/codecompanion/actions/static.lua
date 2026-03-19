@@ -49,6 +49,7 @@ return {
     opts = {
       index = 2,
       stop_context_insertion = true,
+      short_name = "__default_open_chats",
     },
     condition = function()
       return #registry.list() > 0
