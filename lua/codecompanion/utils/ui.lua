@@ -655,7 +655,7 @@ function M.confirm(prompt, choices, callback, opts)
   -- Create buffer with markdown filetype for syntax highlighting
   local bufnr = api.nvim_create_buf(false, true)
   api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  vim.bo[bufnr].filetype = "markdown"
+  vim.bo[bufnr].filetype = "codecompanion"
   vim.bo[bufnr].modifiable = false
   vim.bo[bufnr].bufhidden = "wipe"
 
