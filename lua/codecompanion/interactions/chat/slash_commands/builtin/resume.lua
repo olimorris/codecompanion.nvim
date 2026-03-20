@@ -88,13 +88,24 @@ function SlashCommand:execute()
     end
 
     local selected = session_map[idx]
-    local ok = Chat.acp_connection:load_session(selected.sessionId)
+
+    -- Collect all session updates during the synchronous load
+    local updates = {}
+    local ok = Chat.acp_connection:load_session(selected.sessionId, {
+      on_session_update = function(update)
+        table.insert(updates, update)
+      end,
+    })
+
     if ok then
-      -- Link buffer to the loaded session
       local acp_commands = require("codecompanion.interactions.chat.acp.commands")
       acp_commands.link_buffer_to_session(Chat.bufnr, Chat.acp_connection.session_id)
 
-      Chat:update_metadata()
+      require("codecompanion.interactions.chat.acp.render").restore_session(Chat, updates)
+
+      if selected.title then
+        Chat:set_title(selected.title)
+      end
 
       utils.notify("Resumed session: " .. (selected.title or selected.sessionId), vim.log.levels.INFO)
     else

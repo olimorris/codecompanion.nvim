@@ -47,6 +47,8 @@ local uv = vim.uv
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
 ---@field _state {handle: table, id_gen: CodeCompanion.JsonRPC.IdGenerator, line_buffer: CodeCompanion.JsonRPC.LineBuffer}
+---@field _loading_session boolean|nil
+---@field _on_session_update function|nil
 ---@field _modes {currentModeId: string, availableModes: table[]}|nil
 ---@field _models {currentModelId: string, availableModels: table[]}|nil
 ---@field methods table
@@ -296,19 +298,29 @@ end
 
 ---Load an existing session by ID
 ---@param session_id string
+---@param opts? { on_session_update?: fun(update: table) }
 ---@return boolean success
-function Connection:load_session(session_id)
+function Connection:load_session(session_id, opts)
+  opts = opts or {}
+
   if not self:is_ready() then
     log:error("[acp::load_session] Connection not ready")
     return false
   end
 
   self.session_id = session_id
+  self._loading_session = true
+  self._on_session_update = opts.on_session_update
 
   if not self:_establish_session() then
     self.session_id = nil
+    self._loading_session = nil
+    self._on_session_update = nil
     return false
   end
+
+  self._loading_session = nil
+  self._on_session_update = nil
 
   self:apply_default_model()
   self:apply_default_mode()
@@ -665,6 +677,8 @@ local DISPATCH = {
       self:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
     elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
       self:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
+    elseif self._loading_session and self._on_session_update then
+      self._on_session_update(m.params.update)
     elseif self._active_prompt then
       self._active_prompt:handle_session_update(m.params.update)
     end
