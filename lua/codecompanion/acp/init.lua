@@ -684,6 +684,8 @@ local DISPATCH = {
       self:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
     elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
       self:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
+    elseif m.params.update and m.params.update.sessionUpdate == "session_info_update" then
+      self:handle_session_info_update(m.params.sessionId, m.params.update)
     elseif self._loading_session and self._on_session_update then
       self._on_session_update(m.params.update)
     elseif self._active_prompt then
@@ -855,6 +857,30 @@ function Connection:handle_current_mode_update(session_id, mode_id)
 
   -- Update the current mode
   self._modes.currentModeId = mode_id
+end
+
+---Handle session_info_update notification
+---@param session_id string
+---@param update { sessionUpdate?: string, title?: string, _meta?: table }
+---@return nil
+function Connection:handle_session_info_update(session_id, update)
+  --Ref: https://agentclientprotocol.com/rfds/session-info-update
+  if not session_id or session_id ~= self.session_id then
+    return
+  end
+
+  -- Set the title on the chat buffer
+  if type(update.title) == "string" then
+    local acp_commands = require("codecompanion.interactions.chat.acp.commands")
+    local bufnr = acp_commands.get_buffer_for_session(session_id)
+    if bufnr then
+      local Chat = require("codecompanion.interactions.chat")
+      local chat = Chat.buf_get_chat(bufnr)
+      if chat then
+        chat:set_title(update.title)
+      end
+    end
+  end
 end
 
 ---Handle process exit

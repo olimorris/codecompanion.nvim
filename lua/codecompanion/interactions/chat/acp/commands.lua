@@ -62,6 +62,18 @@ function ACPCommands.get_commands_for_session(session_id)
   return commands_by_session[session_id] or {}
 end
 
+---Get the buffer number linked to a session
+---@param session_id string
+---@return number|nil
+function ACPCommands.get_buffer_for_session(session_id)
+  for bufnr, sid in pairs(buffer_sessions) do
+    if sid == session_id then
+      return bufnr
+    end
+  end
+  return nil
+end
+
 ---Get commands for a buffer
 ---@param bufnr number
 ---@return ACP.availableCommands
