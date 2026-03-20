@@ -126,3 +126,4 @@ api.nvim_create_autocmd("BufEnter", {
 
 vim.treesitter.language.register("markdown", "codecompanion")
 vim.treesitter.language.register("markdown", "codecompanion_input")
+vim.treesitter.language.register("markdown", "codecompanion_approval")
