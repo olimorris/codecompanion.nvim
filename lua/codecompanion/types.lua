@@ -5,9 +5,13 @@
 ---@field embeddedContext boolean
 ---@field image boolean
 
+---@class ACP.sessionCapabilities
+---@field list? table|nil
+
 ---@class ACP.agentCapabilities
 ---@field loadSession boolean
 ---@field promptCapabilities ACP.promptCapabilities
+---@field sessionCapabilities? ACP.sessionCapabilities
 
 ---@class ACP.AuthMethod
 ---@field id string

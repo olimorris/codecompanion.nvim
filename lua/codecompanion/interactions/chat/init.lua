@@ -778,9 +778,14 @@ function Chat:change_adapter(adapter)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    -- We need to ensure the connection is created before proceeding so that
-    -- users are given a choice of models to select from
+    -- Ensure the ACP connection and session are created so users can select a model
     helpers.create_acp_connection(self)
+    if self.acp_connection then
+      self.acp_connection:ensure_session()
+
+      local acp_commands = require("codecompanion.interactions.chat.acp.commands")
+      acp_commands.link_buffer_to_session(self.bufnr, self.acp_connection.session_id)
+    end
 
     helpers.remove_mcp_tools(self)
   end

@@ -94,16 +94,22 @@ function Connection.new(args)
   return self
 end
 
----Check if the connection is ready
+---Check if the connection has a session ready for prompting
 ---@return boolean
 function Connection:is_connected()
   return self._state.handle and self._initialized and self._authenticated and self.session_id ~= nil
 end
 
----Connect and initialize the ACP process and establish session
----@return CodeCompanion.ACP.Connection|nil self for chaining, nil on error
-function Connection:connect_and_initialize()
-  if self:is_connected() then
+---Check if the connection is authenticated
+---@return boolean
+function Connection:is_ready()
+  return self._state.handle ~= nil and self._initialized and self._authenticated
+end
+
+---Connect, initialize and authenticate the ACP process
+---@return CodeCompanion.ACP.Connection|nil
+function Connection:connect_and_authenticate()
+  if self:is_ready() then
     return self
   end
 
@@ -114,17 +120,17 @@ function Connection:connect_and_initialize()
   if not self._initialized then
     local initialized = self:send_rpc_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
     if not initialized then
-      return log:error("[acp::connect_and_initialize] Failed to initialize")
+      return log:error("[acp::connect_and_authenticate] Failed to initialize")
     end
     self._agent_info = initialized
 
-    log:debug("[acp::connect_and_initialize] Agent info: %s", initialized)
+    log:debug("[acp::connect_and_authenticate] Agent info: %s", initialized)
 
     if
       initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
     then
       log:warn(
-        "[acp::connect_and_initialize] Agent selected protocolVersion=%s (client sent=%s)",
+        "[acp::connect_and_authenticate] Agent selected protocolVersion=%s (client sent=%s)",
         initialized.protocolVersion,
         self.adapter_modified.parameters.protocolVersion
       )
@@ -143,6 +149,20 @@ function Connection:connect_and_initialize()
   end
 
   if not self:_authenticate() then
+    return nil
+  end
+
+  return self
+end
+
+---Connect and initialize the ACP process and establish the session
+---@return CodeCompanion.ACP.Connection|nil
+function Connection:connect_and_initialize()
+  if self:is_connected() then
+    return self
+  end
+
+  if not self:connect_and_authenticate() then
     return nil
   end
 
@@ -200,6 +220,98 @@ function Connection:_authenticate()
     end
     self._authenticated = true
   end
+
+  return true
+end
+
+---Ensure a session exists or create one if needed
+---@return boolean success
+function Connection:ensure_session()
+  if self.session_id then
+    return true
+  end
+
+  if not self:is_ready() then
+    return false
+  end
+
+  if not self:_establish_session() then
+    return false
+  end
+
+  self:apply_default_model()
+  self:apply_default_mode()
+
+  return true
+end
+
+---Check if the agent supports session/list
+---@return boolean
+function Connection:can_list_sessions()
+  return self._agent_info
+      and self._agent_info.agentCapabilities
+      and self._agent_info.agentCapabilities.sessionCapabilities
+      and self._agent_info.agentCapabilities.sessionCapabilities.list ~= nil
+    or false
+end
+
+---List previous sessions from the agent
+---@param opts? { max_sessions?: number }
+---@return table[] sessions Array of SessionInfo objects
+function Connection:session_list(opts)
+  opts = opts or {}
+  local max_sessions = opts.max_sessions or 500
+
+  if not self:is_ready() then
+    log:error("[acp::session_list] Connection not ready")
+    return {}
+  end
+
+  local all_sessions = {}
+  local cursor = nil
+
+  repeat
+    local params = { cwd = vim.fn.getcwd() }
+    if cursor then
+      params.cursor = cursor
+    end
+
+    local result = self:send_rpc_request(METHODS.SESSION_LIST, params)
+    if not result then
+      break
+    end
+
+    for _, session in ipairs(result.sessions or {}) do
+      table.insert(all_sessions, session)
+      if #all_sessions >= max_sessions then
+        break
+      end
+    end
+
+    cursor = result.nextCursor
+  until not cursor or #all_sessions >= max_sessions
+
+  return all_sessions
+end
+
+---Load an existing session by ID
+---@param session_id string
+---@return boolean success
+function Connection:load_session(session_id)
+  if not self:is_ready() then
+    log:error("[acp::load_session] Connection not ready")
+    return false
+  end
+
+  self.session_id = session_id
+
+  if not self:_establish_session() then
+    self.session_id = nil
+    return false
+  end
+
+  self:apply_default_model()
+  self:apply_default_mode()
 
   return true
 end
