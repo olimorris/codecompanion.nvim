@@ -257,6 +257,13 @@ function Connection:can_list_sessions()
     or false
 end
 
+---Check if the agent supports session/load
+---@return boolean
+function Connection:can_load_session()
+  return self._agent_info and self._agent_info.agentCapabilities and self._agent_info.agentCapabilities.loadSession
+    or false
+end
+
 ---List previous sessions from the agent
 ---@param opts? { max_sessions?: number }
 ---@return table[] sessions Array of SessionInfo objects

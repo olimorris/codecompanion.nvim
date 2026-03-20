@@ -26,6 +26,10 @@ function SlashCommand.enabled(chat)
     return false, "This agent does not support listing sessions"
   end
 
+  if not chat.acp_connection:can_load_session() then
+    return false, "This agent does not support loading sessions"
+  end
+
   return true, ""
 end
 
