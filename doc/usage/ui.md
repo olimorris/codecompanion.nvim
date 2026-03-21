@@ -30,7 +30,6 @@ The video at the top of this page shows how the author has incorporated the meta
 The plugin sets the following highlight groups during setup:
 
 - `CodeCompanionChatInfo` - Information messages in the chat buffer
-- `CodeCompanionChatInfoBanner` - Banner showing useful information in the chat buffer
 - `CodeCompanionChatError` - Error messages in the chat buffer
 - `CodeCompanionChatWarn` - Warning messages in the chat buffer
 - `CodeCompanionChatSubtext` - Messages that appear under the information, error or warning messages in the chat buffer
