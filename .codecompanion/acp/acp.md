@@ -4,6 +4,8 @@ ACP (Agent Client Protocol) is a JSON-RPC based protocol that enables sophistica
 
 ## What is ACP?
 
+Warning! The schema file is huge:
+
 @.codecompanion/acp/acp_json_schema.json
 
 ACP is a protocol specification that defines how clients (like CodeCompanion.nvim) communicate with AI agents through a standardized message format. Key features include:

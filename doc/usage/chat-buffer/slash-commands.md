@@ -75,6 +75,13 @@ The _mode_ slash command is specific to [ACP](/configuration/adapters-acp) adapt
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
 
+## /resume
+
+The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) adapters that support the `session/list` capability. It allows you to resume a previous session by listing your past sessions and restoring the selected one into the chat buffer. The conversation history is rendered so you can continue where you left off.
+
+> [!NOTE]
+> The `/resume` command must be used before sending any messages. It is only available on a fresh chat buffer.
+
 ## /symbols
 
 > [!NOTE]
