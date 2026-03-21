@@ -1,5 +1,18 @@
 # Changelog
 
+## [19.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.6.0...v19.7.0) (2026-03-21)
+
+
+### Features
+
+* **acp:** add Cursor CLI adapter ([#2907](https://github.com/olimorris/codecompanion.nvim/issues/2907)) ([d5551b1](https://github.com/olimorris/codecompanion.nvim/commit/d5551b1aac60e164fb569eba422ea9b65cd2d6f4))
+* **ui:** make acp tool calls cleaner ([#2904](https://github.com/olimorris/codecompanion.nvim/issues/2904)) ([cc0d298](https://github.com/olimorris/codecompanion.nvim/commit/cc0d298b6b7bdbdcfe48f7e70deb0e6215fe4d32))
+
+
+### Bug Fixes
+
+* **ui:** improve ACP tool call output ([#2912](https://github.com/olimorris/codecompanion.nvim/issues/2912)) ([9827dbd](https://github.com/olimorris/codecompanion.nvim/commit/9827dbdde55217e7b4185e744eae15f74e9c5e8b))
+
 ## [19.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.5.0...v19.6.0) (2026-03-18)
 
 
