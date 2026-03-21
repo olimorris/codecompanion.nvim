@@ -1070,6 +1070,32 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {},
       },
 
+      -- Options for the tool approval window
+      tool_approval_window = {
+        width = function(opts)
+          if opts.relative == "window" then
+            return 0.9
+          end
+
+          return 0.5
+        end, ---@return number|fun(opts): number
+        height = function(opts)
+          if opts.relative == "window" then
+            return 0.9
+          end
+
+          return 0.5
+        end, ---@return number|fun(opts): number
+        border = "single",
+        style = "minimal",
+        relative = "window", -- "window" anchors to the chat window, "editor" centers on the full editor
+        focus_keymap = "<C-w><C-f>", -- Keymap to focus the most recent approval window. Set to false to disable.
+        opts = {
+          wrap = true,
+          cursorline = false,
+        },
+      },
+
       -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",

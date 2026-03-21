@@ -441,15 +441,335 @@ function M.set_winbar(winnr, text, hl)
   vim.wo[winnr].winbar = centered
 end
 
----A simple confirmation dialog using vim.fn.confirm
----@param prompt string The prompt message
----@param choices table Choices
----@param opts? {default: number, highlight_group: string}  Additional options (currently unused)
----@return number The index of the selected choice (1-based), or 0 if cancelled
-function M.confirm(prompt, choices, opts)
-  opts = opts or { default = 1, highlight_group = "Question" }
-  local formatted_choices = table.concat(choices, "\n")
-  return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
+---@type table<any, table<number, { cancel?: fun(), winnr?: number, ts: number, prompt?: string, choices?: table, callback?: fun(value: any|nil), opts?: table }>>
+---Registry of confirm dialogs: key -> { [id] = entry }
+---Entries with `winnr` are currently shown; entries without are queued.
+local pending_confirms = {}
+
+---Cancel all open confirm dialogs for a given key
+---@param key any The key used when creating the confirm dialogs
+function M.cancel_confirm(key)
+  local group = pending_confirms[key]
+  if not group then
+    return
+  end
+  pending_confirms[key] = nil
+  for _, entry in pairs(group) do
+    if entry.cancel then
+      entry.cancel()
+    end
+  end
+end
+
+---Focus the currently visible confirm dialog window.
+---@return boolean focused Whether a window was focused
+function M.focus_confirm()
+  for _, group in pairs(pending_confirms) do
+    for _, entry in pairs(group) do
+      if entry.winnr and api.nvim_win_is_valid(entry.winnr) then
+        api.nvim_set_current_win(entry.winnr)
+        return true
+      end
+    end
+  end
+  return false
+end
+
+---Show the next queued confirm dialog (oldest first).
+---Called automatically after a dialog is resolved.
+---@return boolean shown Whether a queued dialog was shown
+function M.show_next_queued()
+  local oldest_entry, oldest_key, oldest_id
+  for k, group in pairs(pending_confirms) do
+    for id, entry in pairs(group) do
+      if not entry.winnr then
+        if not oldest_entry or entry.ts < oldest_entry.ts then
+          oldest_entry = entry
+          oldest_key = k
+          oldest_id = id
+        end
+      end
+    end
+  end
+
+  if not oldest_entry then
+    return false
+  end
+
+  -- Remove the queued entry before re-calling confirm
+  if pending_confirms[oldest_key] then
+    pending_confirms[oldest_key][oldest_id] = nil
+    if next(pending_confirms[oldest_key]) == nil then
+      pending_confirms[oldest_key] = nil
+    end
+  end
+
+  M.confirm(oldest_entry.prompt, oldest_entry.choices, oldest_entry.callback, oldest_entry.opts)
+  M.focus_confirm()
+  return true
+end
+
+---Normalize a choice entry into { label: string, value: any }
+---Accepts either a plain string or a table with label/value/default fields.
+---@param choice string|{ label: string, value?: any, default?: boolean }
+---@return { label: string, value: any, default?: boolean }
+local function normalize_choice(choice)
+  if type(choice) == "string" then
+    return { label = choice, value = choice }
+  end
+  return { label = choice.label, value = choice.value or choice.label, default = choice.default }
+end
+
+---Create the footer with button highlights for the confirm dialog
+---@param choices table The list of normalized choice objects
+---@param active_idx number The 1-based index of the currently active choice
+---@param focus_hint? string Optional focus keymap hint to show at the right
+---@return table footer The footer spec for nvim_open_win / nvim_win_set_config
+local function create_confirm_footer(choices, active_idx, focus_hint)
+  local footer = { { " ", "FloatBorder" } }
+  for i, choice in ipairs(choices) do
+    if i > 1 then
+      table.insert(footer, { " ", "FloatBorder" })
+    end
+    local hl = (i == active_idx) and "CodeCompanionButtonActive" or "CodeCompanionButtonInactive"
+    table.insert(footer, { " " .. choice.label .. " ", hl })
+  end
+  if focus_hint then
+    table.insert(footer, { "  " .. focus_hint .. " to focus ", "Comment" })
+  end
+  table.insert(footer, { " ", "FloatBorder" })
+
+  return footer
+end
+
+---Confirmation dialog that is rendered as a floating window.
+---Navigate with Tab/S-Tab, confirm with Enter, dismiss with Esc/q, or press 1-9 for direct selection.
+---@param prompt string The prompt message (supports markdown syntax highlighting)
+---@param choices table List of choices — each can be a string or { label: string, value?: any, default?: boolean }
+---@param callback fun(value: any|nil) Called with the value of the selected choice, or nil if cancelled
+---@param opts? { key: any, title: string } Options. `key` tracks the dialog for `cancel_confirm`. `title` sets the window title.
+---@return fun() cancel A function that closes the dialog (calling callback with nil)
+function M.confirm(prompt, choices, callback, opts)
+  opts = opts or {}
+  local key = opts.key
+
+  local id = math.random(1000000)
+
+  -- Check if there is already a visible dialog — if so, queue this one
+  local has_visible = false
+  for _, group in pairs(pending_confirms) do
+    for _, entry in pairs(group) do
+      if entry.winnr and api.nvim_win_is_valid(entry.winnr) then
+        has_visible = true
+        break
+      end
+    end
+    if has_visible then
+      break
+    end
+  end
+
+  if has_visible and key then
+    if not pending_confirms[key] then
+      pending_confirms[key] = {}
+    end
+    pending_confirms[key][id] = {
+      ts = vim.uv.hrtime(),
+      prompt = prompt,
+      choices = choices,
+      callback = callback,
+      opts = opts,
+    }
+    return function()
+      if pending_confirms[key] then
+        pending_confirms[key][id] = nil
+        if next(pending_confirms[key]) == nil then
+          pending_confirms[key] = nil
+        end
+      end
+    end
+  end
+
+  -- Normalize choices into { label, value, default } objects
+  local normalized = {}
+  local active = 1
+  for i, choice in ipairs(choices) do
+    normalized[i] = normalize_choice(choice)
+    if normalized[i].default then
+      active = i
+    end
+  end
+  choices = normalized
+
+  local lines = {}
+  for _, line in ipairs(vim.split(prompt, "\n")) do
+    table.insert(lines, line)
+  end
+
+  -- Calculate window dimensions
+  local max_line_width = 0
+  for _, line in ipairs(lines) do
+    max_line_width = math.max(max_line_width, api.nvim_strwidth(line))
+  end
+  local footer_width = 0
+  for _, choice in ipairs(choices) do
+    footer_width = footer_width + api.nvim_strwidth(choice.label) + 3
+  end
+  footer_width = footer_width + 1
+
+  local window_config = require("codecompanion.config").display.chat.tool_approval_window
+
+  -- Determine anchor: "window" positions over the chat window, "editor" centers on the full editor
+  local anchor_winnr
+  if window_config.relative == "window" and type(key) == "number" then
+    local win_id = vim.fn.bufwinid(key)
+    if win_id > 0 and api.nvim_win_is_valid(win_id) then
+      anchor_winnr = win_id
+    end
+  end
+
+  local ref_width, ref_height
+  if anchor_winnr then
+    ref_width = api.nvim_win_get_width(anchor_winnr)
+    ref_height = api.nvim_win_get_height(anchor_winnr)
+  else
+    ref_width = vim.o.columns
+    ref_height = vim.o.lines
+  end
+
+  local cfg_width = window_config.width
+  local cfg_height = window_config.height
+  if type(cfg_width) == "function" then
+    cfg_width = cfg_width(window_config)
+  end
+  if type(cfg_height) == "function" then
+    cfg_height = cfg_height(window_config)
+  end
+
+  local max_width = math.min(math.floor(ref_width * cfg_width), ref_width - 2)
+  local max_height = math.min(math.floor(ref_height * cfg_height), ref_height - 4)
+
+  local width = math.min(math.max(max_line_width + 4, footer_width), max_width)
+  local height = math.min(math.max(#lines, 1), max_height)
+
+  -- Create buffer with markdown filetype for syntax highlighting
+  local bufnr = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  vim.bo[bufnr].filetype = "codecompanion_approval"
+  vim.bo[bufnr].bufhidden = "wipe"
+  vim.bo[bufnr].modifiable = false
+
+  -- Open floating window without focus, positioned over the chat window when possible
+  local win_opts = {
+    width = width,
+    height = height,
+    style = window_config.style,
+    border = window_config.border,
+    footer = create_confirm_footer(choices, active),
+    footer_pos = "center",
+  }
+  local title_left = " " .. (opts.title or "Confirm") .. " "
+  if window_config.focus_keymap then
+    local hint = " " .. window_config.focus_keymap .. " to focus "
+    local pad_len = math.max(0, width - api.nvim_strwidth(title_left) - api.nvim_strwidth(hint))
+    win_opts.title = { { title_left, "FloatTitle" }, { string.rep(" ", pad_len), "FloatBorder" }, { hint, "Comment" } }
+  else
+    win_opts.title = { { title_left, "FloatTitle" } }
+  end
+  win_opts.title_pos = "left"
+  if anchor_winnr then
+    win_opts.relative = "win"
+    win_opts.win = anchor_winnr
+    win_opts.row = math.floor((ref_height - height) / 2)
+    win_opts.col = math.floor((ref_width - width) / 2)
+  else
+    win_opts.relative = "editor"
+    win_opts.row = math.floor((vim.o.lines - height) / 2) - 1
+    win_opts.col = math.floor((vim.o.columns - width) / 2)
+  end
+
+  -- Auto-focus if the user is already in the chat window
+  local auto_focus = anchor_winnr and api.nvim_get_current_win() == anchor_winnr
+  local winnr = api.nvim_open_win(bufnr, auto_focus or false, win_opts)
+  M.set_win_options(winnr, window_config.opts)
+
+  local function update_footer()
+    if api.nvim_win_is_valid(winnr) then
+      api.nvim_win_set_config(winnr, {
+        footer = create_confirm_footer(choices, active),
+      })
+    end
+  end
+
+  local closed = false
+  local function close(value, skip_callback)
+    if closed then
+      return
+    end
+    closed = true
+    if key and pending_confirms[key] then
+      pending_confirms[key][id] = nil
+      if next(pending_confirms[key]) == nil then
+        pending_confirms[key] = nil
+      end
+    end
+    pcall(api.nvim_win_close, winnr, true)
+    if not skip_callback then
+      vim.schedule(function()
+        callback(value)
+        M.show_next_queued()
+      end)
+    end
+  end
+
+  -- Navigation and selection keymaps
+  local map_opts = { buffer = bufnr, nowait = true, silent = true }
+
+  vim.keymap.set("n", "<Tab>", function()
+    active = (active % #choices) + 1
+    update_footer()
+  end, map_opts)
+  vim.keymap.set("n", "<S-Tab>", function()
+    active = ((active - 2) % #choices) + 1
+    update_footer()
+  end, map_opts)
+  vim.keymap.set("n", "<CR>", function()
+    close(choices[active].value)
+  end, map_opts)
+  vim.keymap.set("n", "<Esc>", function()
+    close(nil)
+  end, map_opts)
+  vim.keymap.set("n", "q", function()
+    close(nil)
+  end, map_opts)
+
+  for i = 1, math.min(#choices, 9) do
+    vim.keymap.set("n", tostring(i), function()
+      close(choices[i].value)
+    end, map_opts)
+  end
+
+  -- Handle window being closed externally
+  api.nvim_create_autocmd("WinClosed", {
+    buffer = bufnr,
+    once = true,
+    callback = function()
+      close(nil)
+    end,
+  })
+
+  local cancel = function()
+    close(nil, true)
+  end
+
+  if key then
+    if not pending_confirms[key] then
+      pending_confirms[key] = {}
+    end
+    pending_confirms[key][id] = { cancel = cancel, winnr = winnr, ts = vim.uv.hrtime() }
+  end
+
+  return cancel
 end
 
 ---Wait for user input via vim.ui.input, wrapped in plenary.async

@@ -8,6 +8,84 @@ local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
+---Build the prompt and choices for the tool approval dialog
+---@param tool CodeCompanion.Tools.Tool
+---@param fallback_prompt? string
+---@return string title, string prompt, table choices
+local function build_choices(tool, fallback_prompt)
+  local title = utils.capitalize(tool.name)
+
+  local args = tool.args
+  local lines = {}
+
+  if args and next(args) then
+    local details = vim.deepcopy(args)
+
+    if details.explanation then
+      table.insert(lines, details.explanation)
+      details.explanation = nil
+    end
+
+    local filepath = details.filepath or details.path
+    if filepath then
+      vim.list_extend(lines, { "", fmt("**Path:** `%s`", filepath) })
+      details.filepath = nil
+      details.path = nil
+    end
+
+    if details.url then
+      vim.list_extend(lines, { "", fmt("**URL:** `%s`", details.url) })
+      details.url = nil
+    end
+
+    if details.cmd then
+      vim.list_extend(lines, { "", "### Command", "", "````bash", details.cmd, "````" })
+      details.cmd = nil
+    end
+
+    if details.query then
+      vim.list_extend(lines, { "", fmt("**Query:** `%s`", details.query) })
+      details.query = nil
+    end
+
+    if details.content then
+      vim.list_extend(lines, { "", "### Content", "", "````", details.content, "````" })
+      details.content = nil
+    end
+
+    if details.edits then
+      for i, edit in ipairs(details.edits) do
+        vim.list_extend(lines, { "", fmt("### Edit %d", i) })
+        if edit.oldText and edit.oldText ~= "" then
+          vim.list_extend(lines, { "", "**Old:**", "````", edit.oldText, "````" })
+        end
+        if edit.newText and edit.newText ~= "" then
+          vim.list_extend(lines, { "", "**New:**", "````", edit.newText, "````" })
+        end
+      end
+      details.edits = nil
+    end
+
+    -- Remaining args as JSON
+    if next(details) then
+      vim.list_extend(lines, { "", "### Arguments", "", "````json" })
+      vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
+      table.insert(lines, "````")
+    end
+  end
+
+  local prompt = (#lines > 0) and table.concat(lines, "\n") or fallback_prompt or fmt("Run the %q tool?", tool.name)
+
+  local choices = {
+    { label = "Allow always", value = "allow_always" },
+    { label = "Allow once", value = "allow_once", default = true },
+    { label = "Reject", value = "reject" },
+    { label = "Cancel", value = "cancel" },
+  }
+
+  return title, prompt, choices
+end
+
 ---Strip any ANSI color codes which don't render in the chat buffer
 ---@param tbl table
 ---@return table
@@ -296,29 +374,24 @@ function Orchestrator:setup_next_tool(input)
         args = self.tool.args,
       })
 
-      local prompt = self.output.prompt()
-      if prompt == nil or prompt == "" then
-        prompt = ("Run the %q tool?"):format(self.tool.name)
-      end
+      local win_title, prompt, choices = build_choices(self.tool, self.output.prompt())
 
-      -- Schedule the confirmation dialog to ensure UI is ready
-      vim.schedule(function()
-        local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
+      ui_utils.confirm(prompt, choices, function(choice)
         log:debug("[Orchestrator::setup_next_tool] User choice: %s", choice)
 
-        -- Handle invalid/failed dialog (returns 0 or nil)
-        if not choice or choice == 0 then
-          self.output.rejected(cmd, { reason = "Confirmation dialog failed" })
+        -- Handle cancelled/dismissed dialog (returns nil)
+        if not choice then
+          self.output.rejected(cmd, { reason = "Confirmation dialog dismissed" })
           self:finalize_tool()
           return self:setup_next_tool()
         end
 
-        if choice == 1 or choice == 2 then
-          if choice == 1 then
+        if choice == "allow_always" or choice == "allow_once" then
+          if choice == "allow_always" then
             Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
           end
           return self:execute_tool({ cmd = cmd, input = input })
-        elseif choice == 3 then
+        elseif choice == "reject" then
           ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
             self.output.rejected(cmd, { reason = i })
             return self:setup_next_tool()
@@ -330,7 +403,7 @@ function Orchestrator:setup_next_tool(input)
           self:cancel_pending_tools()
           return self:_finalize_tools()
         end
-      end)
+      end, { key = self.tools.bufnr, title = win_title })
     else
       return self:execute_tool({ cmd = cmd, input = input })
     end

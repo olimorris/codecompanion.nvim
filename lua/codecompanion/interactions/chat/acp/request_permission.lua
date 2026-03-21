@@ -1,13 +1,16 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
+
+local fmt = string.format
 
 local CONSTANTS = {
   LABELS = {
-    allow_always = "1 Allow always",
-    allow_once = "2 Allow",
-    reject_once = "3 Reject",
-    reject_always = "4 Reject always",
+    allow_always = "Allow always",
+    allow_once = "Allow",
+    reject_once = "Reject",
+    reject_always = "Reject always",
   },
 
   MAPPINGS_PREFIX = "_acp_",
@@ -27,26 +30,7 @@ local function find_reject_option(options)
   return nil
 end
 
----Build out the choices available to the user from the request
----@param request table
----@return string, string[], table<number, string>
-local function build_choices(request)
-  local prompt = string.format(
-    "%s: %s ?",
-    utils.capitalize(request.tool_call and request.tool_call.kind or "permission"),
-    request.tool_call and request.tool_call.title or "Agent requested permission"
-  )
-
-  local choices, index_to_option = {}, {}
-  for i, opt in ipairs(request.options or {}) do
-    table.insert(choices, "&" .. (CONSTANTS.LABELS[opt.kind] or (tostring(i) .. " " .. opt.name)))
-    index_to_option[i] = opt.optionId
-  end
-
-  return prompt, choices, index_to_option
-end
-
----Kinds are the kind of options (e.g., allow_once, reject_always) available to
+---Kinds are the kind of options
 ---the usrer. Build a map of kind -> optionId for easy lookup
 ---@param options table
 ---@return table<string, string> kind -> optionId
@@ -95,7 +79,7 @@ local function build_banner(normalized, kind_map)
   for _, kind in ipairs(sorted_kinds) do
     local lhs = normalized[kind]
     if lhs then
-      local label = CONSTANTS.LABELS[kind]:sub(3) or kind:gsub("_", " ")
+      local label = CONSTANTS.LABELS[kind] or kind:gsub("_", " ")
       table.insert(parts, string.format("%s %s", lhs, label))
     end
   end
@@ -227,6 +211,99 @@ local function show_diff(chat, request)
   setup_diff_keymaps(diff_ui, normalized, kind_map, request)
 end
 
+---Build the prompt, title and choices for the ACP permission dialog
+---@param request table
+---@return string title, string prompt, table choices
+local function build_choices(request)
+  local tool_call = request.tool_call
+  local kind = tool_call and tool_call.kind or "permission"
+  local tool_title = tool_call and tool_call.title
+  local kind_label = utils.capitalize(string.lower(kind))
+
+  local win_title
+  if not tool_title or vim.tbl_contains({ "execute", "search", "think", "fetch" }, string.lower(kind)) then
+    win_title = kind_label
+  else
+    win_title = fmt("%s: %s", kind_label, tool_title)
+  end
+
+  local args = tool_call and tool_call.rawInput
+  local description = args and args.description
+
+  local lines = {}
+
+  if description then
+    vim.list_extend(lines, {
+      "",
+      description,
+    })
+  end
+  if args and next(args) then
+    local details = vim.deepcopy(args)
+    details.description = nil
+
+    if details.plan then
+      vim.list_extend(lines, {
+        "",
+        "### Plan",
+        "",
+        details.plan,
+      })
+      details.plan = nil
+    end
+
+    if details.command then
+      vim.list_extend(lines, {
+        "",
+        "### Command",
+        "",
+        "````bash",
+        details.command,
+        "````",
+      })
+      details.command = nil
+    end
+
+    local path = details.path or details.file_path
+    if path then
+      vim.list_extend(lines, {
+        "",
+        fmt("**Path:** `%s`", path),
+      })
+      details.path = nil
+      details.file_path = nil
+    end
+
+    if next(details) then
+      vim.list_extend(lines, {
+        "",
+        "### Arguments",
+        "",
+        "````json",
+      })
+      vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
+      vim.list_extend(lines, {
+        "````",
+      })
+    end
+
+    vim.list_extend(lines, {
+      "",
+    })
+  end
+
+  local choices = {}
+  for _, opt in ipairs(request.options or {}) do
+    table.insert(choices, {
+      label = CONSTANTS.LABELS[opt.kind] or opt.name or opt.kind,
+      value = opt.optionId,
+      default = opt.kind == "allow_once",
+    })
+  end
+
+  return win_title, table.concat(lines, "\n"), choices
+end
+
 ---Show the permission request to the user and handle their response
 ---@param chat CodeCompanion.Chat
 ---@param request table
@@ -237,16 +314,17 @@ function M.confirm(chat, request)
     return show_diff(chat, request)
   end
 
-  local prompt, choices, index_to_option = build_choices(request)
+  local win_title, prompt, choices = build_choices(request)
   log:debug("[acp::request_permission] Available choices %s", choices)
 
-  local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
-  if picked > 0 and index_to_option[picked] then
-    log:debug("[acp::request_permission] User selected option %s", index_to_option[picked])
-    request.respond(index_to_option[picked], false)
-  else
-    request.respond(nil, true)
-  end
+  ui_utils.confirm(prompt, choices, function(option_id)
+    if option_id then
+      log:debug("[acp::request_permission] User selected option %s", option_id)
+      request.respond(option_id, false)
+    else
+      request.respond(nil, true)
+    end
+  end, { key = chat.bufnr, title = win_title })
 end
 
 return M

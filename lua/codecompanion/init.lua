@@ -522,6 +522,14 @@ CodeCompanion.setup = function(opts)
     end
   end
 
+  -- Set up the focus keymap for tool approval windows
+  local focus_keymap = config.display.chat.tool_approval_window.focus_keymap
+  if focus_keymap then
+    vim.keymap.set("n", focus_keymap, function()
+      require("codecompanion.utils.ui").focus_confirm()
+    end, { desc = "Focus CodeCompanion approval window" })
+  end
+
   local window_config = config.display.chat.window
   if window_config.sticky and window_config.layout ~= "buffer" and window_config.layout ~= "tab" then
     api.nvim_create_autocmd("TabEnter", {
