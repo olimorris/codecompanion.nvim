@@ -20,7 +20,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **File System** | ✅ | Read/write text files with line ranges |
 | **MCP Integration** | ✅ | Stdio, HTTP, and SSE transports |
 | **Permissions** | ✅ | Interactive UI with diff preview for tool approval |
-| **Session Management** | ❔️ | Create, load, and persist sessions with state tracking. No restore |
+| **Session Management** | ✅ | Create, list, load, and restore sessions with state tracking |
 | **Session Modes** | ✅ | Mode switching  |
 | **Session Models** | ✅ | Select specific models |
 | **Tool Calls** | ✅ | Content blocks, file diffs, status updates |
@@ -69,6 +69,10 @@ When sending files as embedded resources to agents, CodeCompanion re-reads the f
 ### Slash Commands
 
 ACP agents can advertise their own slash commands dynamically. You can access them with `\command` in the chat buffer. CodeCompanion transforms this to `/command` before sending your prompt to the agent.
+
+### Session Resume
+
+If an agent supports the `session/list` capability, you can resume a previous session using the `/resume` slash command in a fresh chat buffer. This calls `session/list` to discover previous sessions, then `session/load` to restore the selected session's conversation history into the chat buffer. See [Slash Commands](/usage/chat-buffer/slash-commands#resume) for usage details.
 
 ### Model Selection
 

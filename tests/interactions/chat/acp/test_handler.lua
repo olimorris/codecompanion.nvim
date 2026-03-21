@@ -17,10 +17,14 @@ T = new_set({
           connected = false,
           session_id = nil,
 
-          connect_and_initialize = function(self)
+          connect_and_authenticate = function(self)
             self.connected = true
-            self.session_id = "test-session-123"
             return self
+          end,
+
+          ensure_session = function(self)
+            self.session_id = "test-session-123"
+            return true
           end,
 
           session_prompt = function(self, messages)
@@ -324,7 +328,7 @@ T["ACPHandler"]["handles connection errors"] = function()
     package.loaded["codecompanion.acp"] = {
       new = function(args)
         return {
-          connect_and_initialize = function() return nil end -- Connection fails
+          connect_and_authenticate = function() return nil end -- Connection fails
         }
       end
     }

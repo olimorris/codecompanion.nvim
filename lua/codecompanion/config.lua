@@ -479,6 +479,22 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+        ["resume"] = {
+          path = "interactions.chat.slash_commands.builtin.resume",
+          description = "Resume a previous ACP session",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+            max_sessions = 500,
+          },
+        },
         ["rules"] = {
           path = "interactions.chat.slash_commands.builtin.rules",
           description = "Insert rules into the chat buffer",
