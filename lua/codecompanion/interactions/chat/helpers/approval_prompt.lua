@@ -56,7 +56,7 @@ end
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param opts { id: string|number, title?: string, prompt?: string, name?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
----@return nil
+---@return fun(choice_label: string) on_done Callback to finalize the prompt from external code (e.g. diff keymaps)
 function M.request(chat, opts)
   local bufnr = chat.bufnr
 
@@ -72,6 +72,18 @@ function M.request(chat, opts)
   end
 
   local resolved = false
+
+  ---Finalize the approval prompt: clean up keymaps and fire the event
+  ---@param choice_label string
+  local function on_done(choice_label)
+    if resolved then
+      return
+    end
+    resolved = true
+    cleanup_keymaps(bufnr, opts.choices)
+    utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
+  end
+
   for _, choice in ipairs(opts.choices) do
     vim.keymap.set("n", choice.keymap, function()
       if resolved then
@@ -79,9 +91,7 @@ function M.request(chat, opts)
       end
 
       if not choice.preview then
-        resolved = true
-        cleanup_keymaps(bufnr, opts.choices)
-        utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice.label })
+        on_done(choice.label)
       end
 
       log:debug("[approval_prompt] User selected: %s", choice.label)
@@ -94,6 +104,8 @@ function M.request(chat, opts)
       nowait = true,
     })
   end
+
+  return on_done
 end
 
 return M

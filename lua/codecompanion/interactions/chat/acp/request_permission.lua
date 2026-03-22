@@ -116,25 +116,24 @@ local function get_diff(tool_call)
 end
 
 ---Set up keymaps on the diff buffer for ACP permission responses
----@param diff_ui CodeCompanion.DiffUI
----@param kind_map table<string, string> kind -> optionId
----@param keys table Resolved keymaps from labels.keymaps()
----@param request table The permission request with respond callback
-local function setup_diff_keymaps(diff_ui, kind_map, keys, request)
-  for kind, option_id in pairs(kind_map) do
-    local lhs = key_for_kind(kind, keys)
+---@param opts { diff_ui: CodeCompanion.DiffUI, kind_map: table<string, string>, keys: table, request: table, on_done: fun(choice_label: string) }
+local function setup_diff_keymaps(opts)
+  for kind, option_id in pairs(opts.kind_map) do
+    local lhs = key_for_kind(kind, opts.keys)
     if lhs and option_id then
+      local label = (ACP_OPTIONS[kind] and ACP_OPTIONS[kind].label) or kind
       vim.keymap.set("n", lhs, function()
-        if diff_ui.resolved then
+        if opts.diff_ui.resolved then
           return
         end
-        diff_ui.resolved = true
+        opts.diff_ui.resolved = true
         log:debug("[acp::request_permission] User selected option: %s (%s)", kind, option_id)
-        request.respond(option_id, false)
-        diff_ui:close()
+        opts.on_done(label)
+        opts.request.respond(option_id, false)
+        opts.diff_ui:close()
       end, {
-        buffer = diff_ui.bufnr,
-        desc = (ACP_OPTIONS[kind] and ACP_OPTIONS[kind].label) or kind,
+        buffer = opts.diff_ui.bufnr,
+        desc = label,
         silent = true,
         nowait = true,
       })
@@ -142,9 +141,9 @@ local function setup_diff_keymaps(diff_ui, kind_map, keys, request)
   end
 
   vim.keymap.set("n", "q", function()
-    diff_ui:close()
+    opts.diff_ui:close()
   end, {
-    buffer = diff_ui.bufnr,
+    buffer = opts.diff_ui.bufnr,
     desc = "Close diff",
     silent = true,
     nowait = true,
@@ -152,34 +151,40 @@ local function setup_diff_keymaps(diff_ui, kind_map, keys, request)
 end
 
 ---Display the diff preview and resolve permission by user decision
----@param chat CodeCompanion.Chat
----@param request table
+---@param opts { chat: CodeCompanion.Chat, request: table, on_done: fun(choice_label: string) }
 ---@return nil
-local function show_diff(chat, request)
-  local d = get_diff(request.tool_call)
+local function show_diff(opts)
+  local d = get_diff(opts.request.tool_call)
 
   local diff_id = math.random(1000000)
-  local kind_map = build_kind_map(request.options)
+  local kind_map = build_kind_map(opts.request.options)
   local keys = labels.keymaps()
 
   local diff_ui = require("codecompanion.helpers").show_diff({
     from_lines = vim.split(d.old or "", "\n", { plain = true }),
     to_lines = vim.split(d.new or "", "\n", { plain = true }),
     banner = build_banner(kind_map, keys),
-    chat_bufnr = chat.bufnr,
+    chat_bufnr = opts.chat.bufnr,
     diff_id = diff_id,
     ft = vim.filetype.match({ filename = d.path }) or "text",
     keymaps = {
       on_reject = function()
-        local rejected = find_reject_option(request.options)
-        request.respond(rejected, false)
+        opts.on_done(labels.reject)
+        local rejected = find_reject_option(opts.request.options)
+        opts.request.respond(rejected, false)
       end,
     },
     skip_default_keymaps = true,
     title = vim.fn.fnamemodify(d.path, ":."),
   })
 
-  setup_diff_keymaps(diff_ui, kind_map, keys, request)
+  setup_diff_keymaps({
+    diff_ui = diff_ui,
+    kind_map = kind_map,
+    keys = keys,
+    request = opts.request,
+    on_done = opts.on_done,
+  })
 end
 
 ---Show the permission request to the user and handle their response
@@ -201,6 +206,8 @@ function M.confirm(chat, request)
 
   local choices = {}
 
+  local on_done
+
   if has_diff then
     table.insert(choices, {
       keymap = keys.view,
@@ -208,7 +215,7 @@ function M.confirm(chat, request)
       preview = true,
       callback = function()
         log:debug("[acp::request_permission] Opening diff for review")
-        show_diff(chat, request)
+        show_diff({ chat = chat, request = request, on_done = on_done })
       end,
     })
   end
@@ -236,7 +243,7 @@ function M.confirm(chat, request)
     end,
   })
 
-  approval_prompt.request(chat, {
+  on_done = approval_prompt.request(chat, {
     id = request.id,
     name = tool_call and tool_call.kind or nil,
     title = has_diff and "View Proposed Edits" or nil,
