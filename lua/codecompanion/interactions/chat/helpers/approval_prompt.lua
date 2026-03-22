@@ -22,7 +22,7 @@ local function build_message(opts)
   end
 
   for _, choice in ipairs(opts.choices) do
-    table.insert(lines, fmt("- `%s` - %s", choice.key, choice.label))
+    table.insert(lines, fmt("- `%s` - %s", choice.keymap, choice.label))
   end
 
   -- table.insert(lines, "")
@@ -37,7 +37,7 @@ end
 ---@param choices table
 local function cleanup_keymaps(bufnr, choices)
   for _, choice in ipairs(choices) do
-    pcall(vim.keymap.del, "n", choice.key, { buffer = bufnr })
+    pcall(vim.keymap.del, "n", choice.keymap, { buffer = bufnr })
   end
 end
 
@@ -47,39 +47,41 @@ local function clear_processing_msg(bufnr)
   ui_utils.clear_notification(bufnr, { namespace = TOOLS_NS .. "_" .. tostring(bufnr) })
 end
 
----@class CodeCompanion.ApprovalChoice
----@field key string The keymap to trigger this choice (e.g. "g1")
+---@class CodeCompanion.Chat.ApprovalChoice
+---@field keymap string The keymap to trigger this choice
 ---@field label string Display label (e.g. "Always accept")
 ---@field callback function Called when the user selects this choice
----@field resolves? boolean Whether this choice resolves the prompt (default true). Set to false for non-terminal actions like "View"
+---@field preview? boolean When true, the callback fires but the approval prompt stays active (e.g. "View")
 
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
----@param opts { id: string|number, title?: string, prompt?: string, choices: CodeCompanion.ApprovalChoice[] }
+---@param opts { id: string|number, title?: string, prompt?: string, name?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
 ---@return nil
 function M.request(chat, opts)
   local bufnr = chat.bufnr
 
   clear_processing_msg(bufnr)
 
+  utils.fire("ToolApprovalRequested", { bufnr = bufnr, name = opts.name })
+
   local content = build_message(opts)
   chat:add_buf_message({ content = content })
 
-  if config.interactions.chat.tools.opts.notify_on_approval then
-    utils.notify("Approval required")
+  if config.interactions.chat.tools.opts.notify_on_approval and not ui_utils.buf_is_active(bufnr) then
+    utils.notify("Tool approval required")
   end
 
   local resolved = false
   for _, choice in ipairs(opts.choices) do
-    vim.keymap.set("n", choice.key, function()
+    vim.keymap.set("n", choice.keymap, function()
       if resolved then
         return
       end
 
-      local resolves = choice.resolves ~= false
-      if resolves then
+      if not choice.preview then
         resolved = true
         cleanup_keymaps(bufnr, opts.choices)
+        utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice.label })
       end
 
       log:debug("[approval_prompt] User selected: %s", choice.label)

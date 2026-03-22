@@ -41,7 +41,7 @@ T["Tools"]["user approval"]["prompts a user when tool requires approval"] = func
       _G.ui_prompt = opts.prompt
       -- Auto-select "Approve" (g2)
       for _, choice in ipairs(opts.choices) do
-        if choice.key == "g2" then
+        if choice.keymap == "g2" then
           choice.callback()
           return
         end
@@ -77,7 +77,7 @@ T["Tools"]["user approval"]["approval can be conditionally set - true in this ca
       _G.ui_called = true
       -- Auto-select "Approve" (g2)
       for _, choice in ipairs(opts.choices) do
-        if choice.key == "g2" then
+        if choice.keymap == "g2" then
           choice.callback()
           return
         end
@@ -138,7 +138,7 @@ T["Tools"]["user approval"]["approval can be rejected"] = function()
       _G.ui_called = true
       -- Auto-select "Reject" (g3)
       for _, choice in ipairs(opts.choices) do
-        if choice.key == "g3" then
+        if choice.keymap == "g3" then
           choice.callback()
           return
         end

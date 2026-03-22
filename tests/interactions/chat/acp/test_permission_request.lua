@@ -151,7 +151,7 @@ T["diff flow -> approval prompt shows view option"] = function()
         choice_labels = {},
       }
       for _, choice in ipairs(opts.choices) do
-        table.insert(_G.__approval_opts.choice_keys, choice.key)
+        table.insert(_G.__approval_opts.choice_keys, choice.keymap)
         table.insert(_G.__approval_opts.choice_labels, choice.label)
       end
     end

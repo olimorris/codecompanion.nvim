@@ -347,7 +347,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
       table.insert(confirmations, opts.prompt)
       -- Auto-select "Approve" (g2)
       for _, choice in ipairs(opts.choices) do
-        if choice.key == "g2" then
+        if choice.keymap == "g2" then
           choice.callback()
           return
         end

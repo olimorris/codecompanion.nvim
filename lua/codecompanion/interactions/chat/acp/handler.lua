@@ -1,7 +1,6 @@
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
 ---@class CodeCompanion.Chat.ACPHandler
@@ -267,12 +266,6 @@ function ACPHandler:handle_permission_request(request)
   end
 
   log:debug("[ACPHandler::handle_permission_request] Asking for approval")
-  utils.fire("ToolApprovalRequested", {
-    bufnr = self.chat.bufnr,
-    id = request.id,
-    name = tool_call.kind,
-    args = tool_call.title,
-  })
 
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end

@@ -64,38 +64,39 @@ function M.approve_and_diff(opts)
   end
 
   local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
+  local labels = require("codecompanion.interactions.chat.tools.labels")
+  local keys = labels.keymaps()
 
-  local keymaps = config.interactions.shared.keymaps
   approval_prompt.request(opts.chat, {
     title = "View Proposed Edits",
     prompt = opts.title,
     choices = {
       {
-        key = keymaps.view_diff.modes.n,
-        label = "View",
-        resolves = false,
+        keymap = keys.view,
+        label = labels.view,
+        preview = true,
         callback = function()
           show_diff(opts)
         end,
       },
       {
-        key = keymaps.always_accept.modes.n,
-        label = "Always accept",
+        keymap = keys.always_accept,
+        label = labels.always_accept,
         callback = function()
           approvals:always(opts.chat_bufnr, { tool_name = "insert_edit_into_file" })
           opts.apply_fn()
         end,
       },
       {
-        key = keymaps.accept_change.modes.n,
-        label = "Accept",
+        keymap = keys.accept,
+        label = labels.accept,
         callback = function()
           opts.apply_fn()
         end,
       },
       {
-        key = keymaps.reject_change.modes.n,
-        label = "Reject",
+        keymap = keys.reject,
+        label = labels.reject,
         callback = function()
           get_rejection_reason(function(reason)
             local msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.title, reason)
@@ -104,8 +105,8 @@ function M.approve_and_diff(opts)
         end,
       },
       {
-        key = keymaps.cancel.modes.n,
-        label = "Cancel",
+        keymap = keys.cancel,
+        label = labels.cancel,
         callback = function()
           opts.output_cb(make_response("error", fmt("User cancelled the edits for `%s`", opts.title)))
         end,

@@ -1,6 +1,7 @@
 local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
+
 local log = require("codecompanion.utils.log")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
@@ -289,41 +290,37 @@ function Orchestrator:setup_next_tool(input)
 
     if require_approval_before then
       log:debug("[Orchestrator::setup_next_tool] Asking for approval")
-      utils.fire("ToolApprovalRequested", {
-        bufnr = self.tools.bufnr,
-        id = self.id,
-        name = self.tool.name,
-        args = self.tool.args,
-      })
 
       local prompt = self.output.prompt()
       if prompt == nil or prompt == "" then
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      local keymaps = require("codecompanion.config").interactions.shared.keymaps
+      local labels = require("codecompanion.interactions.chat.tools.labels")
+      local keys = labels.keymaps()
       require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
         id = self.id,
+        name = self.tool.name,
         prompt = prompt,
         choices = {
           {
-            key = keymaps.always_accept.modes.n,
-            label = "Always accept",
+            keymap = keys.always_accept,
+            label = labels.always_accept,
             callback = function()
               Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
               self:execute_tool({ cmd = cmd, input = input })
             end,
           },
           {
-            key = keymaps.accept_change.modes.n,
-            label = "Accept",
+            keymap = keys.accept,
+            label = labels.accept,
             callback = function()
               self:execute_tool({ cmd = cmd, input = input })
             end,
           },
           {
-            key = keymaps.reject_change.modes.n,
-            label = "Reject",
+            keymap = keys.reject,
+            label = labels.reject,
             callback = function()
               ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
                 self.output.rejected(cmd, { reason = i })
@@ -332,8 +329,8 @@ function Orchestrator:setup_next_tool(input)
             end,
           },
           {
-            key = keymaps.cancel.modes.n,
-            label = "Cancel",
+            keymap = keys.cancel,
+            label = labels.cancel,
             callback = function()
               self.output.cancelled(cmd)
               self:finalize_tool()
