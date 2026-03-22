@@ -140,23 +140,11 @@ local function setup_diff_keymaps(diff_ui, kind_map, request)
     end
   end
 
-  -- Override q to use our reject handler
   vim.keymap.set("n", "q", function()
-    if diff_ui.resolved then
-      return
-    end
-    diff_ui.resolved = true
-
-    local rejected = find_reject_option(request.options)
-    if rejected then
-      request.respond(rejected, false)
-    else
-      request.respond(nil, true)
-    end
     diff_ui:close()
   end, {
     buffer = diff_ui.bufnr,
-    desc = "Close and reject",
+    desc = "Close diff",
     silent = true,
     nowait = true,
   })
@@ -215,6 +203,7 @@ function M.confirm(chat, request)
     table.insert(choices, {
       key = keymaps.view_diff.modes.n,
       label = "View",
+      resolves = false,
       callback = function()
         log:debug("[acp::request_permission] Opening diff for review")
         show_diff(chat, request)
@@ -235,6 +224,15 @@ function M.confirm(chat, request)
       })
     end
   end
+
+  table.insert(choices, {
+    key = keymaps.cancel.modes.n,
+    label = "Cancel",
+    callback = function()
+      log:debug("[acp::request_permission] User cancelled")
+      request.respond(nil, true)
+    end,
+  })
 
   approval_prompt.request(chat, {
     id = request.id,

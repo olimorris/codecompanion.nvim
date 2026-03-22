@@ -51,6 +51,7 @@ end
 ---@field key string The keymap to trigger this choice (e.g. "g1")
 ---@field label string Display label (e.g. "Always accept")
 ---@field callback function Called when the user selects this choice
+---@field resolves? boolean Whether this choice resolves the prompt (default true). Set to false for non-terminal actions like "View"
 
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
@@ -74,11 +75,14 @@ function M.request(chat, opts)
       if resolved then
         return
       end
-      resolved = true
+
+      local resolves = choice.resolves ~= false
+      if resolves then
+        resolved = true
+        cleanup_keymaps(bufnr, opts.choices)
+      end
 
       log:debug("[approval_prompt] User selected: %s", choice.label)
-
-      cleanup_keymaps(bufnr, opts.choices)
 
       choice.callback()
     end, {

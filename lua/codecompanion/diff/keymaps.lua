@@ -85,12 +85,9 @@ M.reject_change = {
 }
 
 M.close_window = {
-  desc = "Close window and reject",
+  desc = "Close window",
   callback = function(diff_ui)
-    resolve_diff(diff_ui, {
-      log_action = "Closing",
-      handler = diff_ui.keymaps.on_reject,
-    })
+    diff_ui:close()
   end,
 }
 

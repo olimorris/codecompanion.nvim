@@ -73,6 +73,7 @@ function M.approve_and_diff(opts)
       {
         key = keymaps.view_diff.modes.n,
         label = "View",
+        resolves = false,
         callback = function()
           show_diff(opts)
         end,
@@ -100,6 +101,13 @@ function M.approve_and_diff(opts)
             local msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.title, reason)
             opts.output_cb(make_response("error", msg))
           end)
+        end,
+      },
+      {
+        key = keymaps.cancel.modes.n,
+        label = "Cancel",
+        callback = function()
+          opts.output_cb(make_response("error", fmt("User cancelled the edits for `%s`", opts.title)))
         end,
       },
     },
