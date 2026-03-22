@@ -27,25 +27,6 @@ local function find_reject_option(options)
   return nil
 end
 
----Build out the choices available to the user from the request
----@param request table
----@return string, string[], table<number, string>
-local function build_choices(request)
-  local prompt = string.format(
-    "%s: %s ?",
-    utils.capitalize(request.tool_call and request.tool_call.kind or "permission"),
-    request.tool_call and request.tool_call.title or "Agent requested permission"
-  )
-
-  local choices, index_to_option = {}, {}
-  for i, opt in ipairs(request.options or {}) do
-    table.insert(choices, "&" .. (CONSTANTS.LABELS[opt.kind] or (tostring(i) .. " " .. opt.name)))
-    index_to_option[i] = opt.optionId
-  end
-
-  return prompt, choices, index_to_option
-end
-
 ---Kinds are the kind of options (e.g., allow_once, reject_always) available to
 ---the usrer. Build a map of kind -> optionId for easy lookup
 ---@param options table
@@ -237,16 +218,32 @@ function M.confirm(chat, request)
     return show_diff(chat, request)
   end
 
-  local prompt, choices, index_to_option = build_choices(request)
-  log:debug("[acp::request_permission] Available choices %s", choices)
+  local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
 
-  local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
-  if picked > 0 and index_to_option[picked] then
-    log:debug("[acp::request_permission] User selected option %s", index_to_option[picked])
-    request.respond(index_to_option[picked], false)
-  else
-    request.respond(nil, true)
+  local tool_call = request.tool_call
+  local prompt = string.format(
+    "%s: %s",
+    utils.capitalize(tool_call and tool_call.kind or "Permission"),
+    tool_call and tool_call.title or "Agent requested permission"
+  )
+
+  local choices = {}
+  for i, opt in ipairs(request.options or {}) do
+    table.insert(choices, {
+      key = "g" .. i,
+      label = CONSTANTS.LABELS[opt.kind] and CONSTANTS.LABELS[opt.kind]:sub(3) or opt.name,
+      callback = function()
+        log:debug("[acp::request_permission] User selected option %s", opt.optionId)
+        request.respond(opt.optionId, false)
+      end,
+    })
   end
+
+  approval_prompt.request(chat, {
+    id = request.id,
+    prompt = prompt,
+    choices = choices,
+  })
 end
 
 return M

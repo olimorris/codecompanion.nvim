@@ -303,6 +303,8 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {
           auto_submit_errors = true, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
+          notify_on_approval = true, -- Notify the user when a tool requires approval?,
+
           folds = {
             enabled = true, -- Fold tool output in the buffer?
             failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting

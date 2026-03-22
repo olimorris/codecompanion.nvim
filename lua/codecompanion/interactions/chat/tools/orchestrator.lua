@@ -1,6 +1,7 @@
 local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
+local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
 local log = require("codecompanion.utils.log")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
@@ -98,7 +99,7 @@ end
 ---@field index number The index of the current command
 ---@field handlers table<string, function>
 ---@field output table<string, function>
----@field queue CodeCompanion.Tools.Orchestrator.Queue
+---@field queue CodeCompanion.Queue
 ---@field status string The status of the tool execution "success" | "error"
 ---@field tool CodeCompanion.Tools.Tool The current tool being executed
 ---@field tool_output table? The output collected from the tool
@@ -301,36 +302,37 @@ function Orchestrator:setup_next_tool(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      -- Schedule the confirmation dialog to ensure UI is ready
-      vim.schedule(function()
-        local choice = ui_utils.confirm(prompt, { "1 Allow always", "2 Allow once", "3 Reject", "4 Cancel" })
-        log:debug("[Orchestrator::setup_next_tool] User choice: %s", choice)
-
-        -- Handle invalid/failed dialog (returns 0 or nil)
-        if not choice or choice == 0 then
-          self.output.rejected(cmd, { reason = "Confirmation dialog failed" })
-          self:finalize_tool()
-          return self:setup_next_tool()
-        end
-
-        if choice == 1 or choice == 2 then
-          if choice == 1 then
-            Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
-          end
-          return self:execute_tool({ cmd = cmd, input = input })
-        elseif choice == 3 then
-          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
-            self.output.rejected(cmd, { reason = i })
-            return self:setup_next_tool()
-          end)
-        else
-          -- NOTE: Cancel current tool, then cancel all queued tools
-          self.output.cancelled(cmd)
-          self:finalize_tool()
-          self:cancel_pending_tools()
-          return self:_finalize_tools()
-        end
-      end)
+      approval_prompt.request(self.tools.chat, {
+        id = self.id,
+        prompt = prompt,
+        choices = {
+          {
+            key = "g1",
+            label = "Always approve",
+            callback = function()
+              Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
+              self:execute_tool({ cmd = cmd, input = input })
+            end,
+          },
+          {
+            key = "g2",
+            label = "Approve",
+            callback = function()
+              self:execute_tool({ cmd = cmd, input = input })
+            end,
+          },
+          {
+            key = "g3",
+            label = "Reject",
+            callback = function()
+              ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+                self.output.rejected(cmd, { reason = i })
+                self:setup_next_tool()
+              end)
+            end,
+          },
+        },
+      })
     else
       return self:execute_tool({ cmd = cmd, input = input })
     end
