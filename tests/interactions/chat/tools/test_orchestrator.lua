@@ -24,7 +24,7 @@ T = new_set({
   },
 })
 
-local function setup_with_tools_and_approval_stub(n_tools, choice_key)
+local function setup_with_tools_and_approval_stub(n_tools, choice_label)
   child.lua(string.format(
     [[
     -- Build a minimal config with custom tools that require approval
@@ -78,11 +78,11 @@ local function setup_with_tools_and_approval_stub(n_tools, choice_key)
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools = chat, tools
 
-    -- Stub approval_prompt to auto-select a choice
+    -- Stub approval_prompt to auto-select a choice by label
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
     ap.request = function(_, opts)
       for _, choice in ipairs(opts.choices) do
-        if choice.key == %q then
+        if choice.label == %q then
           choice.callback()
           return
         end
@@ -111,28 +111,28 @@ local function setup_with_tools_and_approval_stub(n_tools, choice_key)
   ]],
     n_tools,
     n_tools,
-    choice_key,
+    choice_label,
     n_tools,
     n_tools
   ))
 end
 
 T["approves all queued tools when user selects approve"] = function()
-  setup_with_tools_and_approval_stub(3, "g2")
+  setup_with_tools_and_approval_stub(3, "Accept")
 
   local executed = child.lua_get("_G.executed or {}")
   h.eq(executed, { "t1", "t2", "t3" })
 end
 
 T["approves single tool when user selects approve"] = function()
-  setup_with_tools_and_approval_stub(1, "g2")
+  setup_with_tools_and_approval_stub(1, "Accept")
 
   local executed = child.lua_get("_G.executed or {}")
   h.eq(executed, { "t1" })
 end
 
 T["rejects all queued tools when user selects reject"] = function()
-  setup_with_tools_and_approval_stub(3, "g3")
+  setup_with_tools_and_approval_stub(3, "Reject")
 
   -- No tools should have executed
   local executed = child.lua_get("_G.executed or {}")

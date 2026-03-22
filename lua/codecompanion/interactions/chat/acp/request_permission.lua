@@ -2,15 +2,12 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
-local CONSTANTS = {
-  LABELS = {
-    allow_always = "1 Allow always",
-    allow_once = "2 Allow",
-    reject_once = "3 Reject",
-    reject_always = "4 Reject always",
-  },
-
-  MAPPINGS_PREFIX = "_acp_",
+---Ref: https://agentclientprotocol.com/protocol/schema#permissionoptionkind
+local ACP_OPTIONS = {
+  allow_once = { label = "Accept", keymap = "accept_change" },
+  allow_always = { label = "Always accept", keymap = "always_accept" },
+  reject_once = { label = "Reject", keymap = "reject_change" },
+  reject_always = { label = "Reject always" },
 }
 
 local M = {}
@@ -27,8 +24,7 @@ local function find_reject_option(options)
   return nil
 end
 
----Kinds are the kind of options (e.g., allow_once, reject_always) available to
----the usrer. Build a map of kind -> optionId for easy lookup
+---Build a map of kind -> optionId for easy lookup
 ---@param options table
 ---@return table<string, string> kind -> optionId
 local function build_kind_map(options)
@@ -41,47 +37,37 @@ local function build_kind_map(options)
   return map
 end
 
----We allow users to set acp keymaps in the same way as any other keymap.
----Whilst this is convenient, we need to normalize the input to a
----simpler structure so we can set them properly in the diff
----@param keymaps table
----@return table<string, string> kind -> lhs
-local function normalize_maps(keymaps)
-  local normalized = {}
-  for name, entry in pairs(keymaps or {}) do
-    if type(name) == "string" and name:sub(1, #CONSTANTS.MAPPINGS_PREFIX) == CONSTANTS.MAPPINGS_PREFIX then
-      local kind = (type(entry) == "table" and entry.kind) or name:match("^" .. CONSTANTS.MAPPINGS_PREFIX .. "(.*)$")
-      local lhs = entry and entry.modes and entry.modes.n
-      if kind and lhs then
-        normalized[kind] = lhs
-      end
-    end
+---Get the shared keymap key for an ACP option kind
+---@param kind string
+---@return string|nil
+local function key_for_kind(kind)
+  local keymaps = config.interactions.shared.keymaps
+  local opt = ACP_OPTIONS[kind]
+  if opt and opt.keymap and keymaps[opt.keymap] then
+    return keymaps[opt.keymap].modes.n
   end
-  return normalized
+  return nil
 end
 
----When diffing, we display a banner at the top of the hunk with the available
----keymaps. So here, we build that banner with normalized keymaps.
----@param normalized table<string, string> kind -> lhs
+---Build the banner displayed in the diff window winbar
 ---@param kind_map table<string, string> kind -> optionId
 ---@return string
-local function build_banner(normalized, kind_map)
-  local next_hunk = config.interactions.shared.keymaps.next_hunk.modes.n
-  local previous_hunk = config.interactions.shared.keymaps.previous_hunk.modes.n
+local function build_banner(kind_map)
+  local keymaps = config.interactions.shared.keymaps
 
   local parts = {}
   local sorted_kinds = vim.tbl_keys(kind_map)
   table.sort(sorted_kinds)
 
   for _, kind in ipairs(sorted_kinds) do
-    local lhs = normalized[kind]
+    local lhs = key_for_kind(kind)
     if lhs then
-      local label = CONSTANTS.LABELS[kind]:sub(3) or kind:gsub("_", " ")
+      local label = (ACP_OPTIONS[kind] and ACP_OPTIONS[kind].label) or kind:gsub("_", " ")
       table.insert(parts, string.format("%s %s", lhs, label))
     end
   end
 
-  table.insert(parts, string.format("%s/%s Next/Prev", next_hunk, previous_hunk))
+  table.insert(parts, string.format("%s/%s Next/Prev", keymaps.next_hunk.modes.n, keymaps.previous_hunk.modes.n))
   table.insert(parts, "q Close")
 
   return table.concat(parts, " | ")
@@ -131,12 +117,11 @@ end
 
 ---Set up keymaps on the diff buffer for ACP permission responses
 ---@param diff_ui CodeCompanion.DiffUI
----@param normalized table<string, string> kind -> lhs
 ---@param kind_map table<string, string> kind -> optionId
 ---@param request table The permission request with respond callback
-local function setup_diff_keymaps(diff_ui, normalized, kind_map, request)
+local function setup_diff_keymaps(diff_ui, kind_map, request)
   for kind, option_id in pairs(kind_map) do
-    local lhs = normalized[kind]
+    local lhs = key_for_kind(kind)
     if lhs and option_id then
       vim.keymap.set("n", lhs, function()
         if diff_ui.resolved then
@@ -148,7 +133,7 @@ local function setup_diff_keymaps(diff_ui, normalized, kind_map, request)
         diff_ui:close()
       end, {
         buffer = diff_ui.bufnr,
-        desc = CONSTANTS.LABELS[kind] or kind,
+        desc = (ACP_OPTIONS[kind] and ACP_OPTIONS[kind].label) or kind,
         silent = true,
         nowait = true,
       })
@@ -186,12 +171,11 @@ local function show_diff(chat, request)
 
   local diff_id = math.random(1000000)
   local kind_map = build_kind_map(request.options)
-  local normalized = normalize_maps(config.interactions.chat.keymaps)
 
   local diff_ui = require("codecompanion.helpers").show_diff({
     from_lines = vim.split(d.old or "", "\n", { plain = true }),
     to_lines = vim.split(d.new or "", "\n", { plain = true }),
-    banner = build_banner(normalized, kind_map),
+    banner = build_banner(kind_map),
     chat_bufnr = chat.bufnr,
     diff_id = diff_id,
     ft = vim.filetype.match({ filename = d.path }) or "text",
@@ -205,7 +189,7 @@ local function show_diff(chat, request)
     title = vim.fn.fnamemodify(d.path, ":."),
   })
 
-  setup_diff_keymaps(diff_ui, normalized, kind_map, request)
+  setup_diff_keymaps(diff_ui, kind_map, request)
 end
 
 ---Show the permission request to the user and handle their response
@@ -213,11 +197,6 @@ end
 ---@param request table
 ---@return nil
 function M.confirm(chat, request)
-  if request.tool_call and requires_diff(request.tool_call) then
-    log:debug("[acp::request_permission] Showing diff for permission request")
-    return show_diff(chat, request)
-  end
-
   local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
 
   local tool_call = request.tool_call
@@ -227,20 +206,39 @@ function M.confirm(chat, request)
     tool_call and tool_call.title or "Agent requested permission"
   )
 
+  local has_diff = request.tool_call and requires_diff(request.tool_call)
+  local keymaps = config.interactions.shared.keymaps
+
   local choices = {}
-  for i, opt in ipairs(request.options or {}) do
+
+  if has_diff then
     table.insert(choices, {
-      key = "g" .. i,
-      label = CONSTANTS.LABELS[opt.kind] and CONSTANTS.LABELS[opt.kind]:sub(3) or opt.name,
+      key = keymaps.view_diff.modes.n,
+      label = "View",
       callback = function()
-        log:debug("[acp::request_permission] User selected option %s", opt.optionId)
-        request.respond(opt.optionId, false)
+        log:debug("[acp::request_permission] Opening diff for review")
+        show_diff(chat, request)
       end,
     })
   end
 
+  for _, opt in ipairs(request.options or {}) do
+    local key = key_for_kind(opt.kind)
+    if key then
+      table.insert(choices, {
+        key = key,
+        label = (ACP_OPTIONS[opt.kind] and ACP_OPTIONS[opt.kind].label) or opt.name,
+        callback = function()
+          log:debug("[acp::request_permission] User selected option %s", opt.optionId)
+          request.respond(opt.optionId, false)
+        end,
+      })
+    end
+  end
+
   approval_prompt.request(chat, {
     id = request.id,
+    title = has_diff and "View Proposed Edits" or nil,
     prompt = prompt,
     choices = choices,
   })

@@ -1,7 +1,6 @@
 local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
-local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
 local log = require("codecompanion.utils.log")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
@@ -302,33 +301,44 @@ function Orchestrator:setup_next_tool(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      approval_prompt.request(self.tools.chat, {
+      local keymaps = require("codecompanion.config").interactions.shared.keymaps
+      require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
         id = self.id,
         prompt = prompt,
         choices = {
           {
-            key = "g1",
-            label = "Always approve",
+            key = keymaps.always_accept.modes.n,
+            label = "Always accept",
             callback = function()
               Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
               self:execute_tool({ cmd = cmd, input = input })
             end,
           },
           {
-            key = "g2",
-            label = "Approve",
+            key = keymaps.accept_change.modes.n,
+            label = "Accept",
             callback = function()
               self:execute_tool({ cmd = cmd, input = input })
             end,
           },
           {
-            key = "g3",
+            key = keymaps.reject_change.modes.n,
             label = "Reject",
             callback = function()
               ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
                 self.output.rejected(cmd, { reason = i })
                 self:setup_next_tool()
               end)
+            end,
+          },
+          {
+            key = keymaps.cancel.modes.n,
+            label = "Cancel",
+            callback = function()
+              self.output.cancelled(cmd)
+              self:finalize_tool()
+              self:cancel_pending_tools()
+              self:_finalize_tools()
             end,
           },
         },

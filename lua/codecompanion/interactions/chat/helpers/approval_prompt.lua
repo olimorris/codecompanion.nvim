@@ -13,7 +13,8 @@ local M = {}
 ---@param opts table
 ---@return string
 local function build_message(opts)
-  local lines = { "", "", "---", "**Approval Required**", "" }
+  local title = opts.title or "Approval Required"
+  local lines = { "", "", "---", "**" .. title .. "**", "" }
 
   if opts.prompt then
     table.insert(lines, opts.prompt)
@@ -48,12 +49,12 @@ end
 
 ---@class CodeCompanion.ApprovalChoice
 ---@field key string The keymap to trigger this choice (e.g. "g1")
----@field label string Display label (e.g. "Always approve")
+---@field label string Display label (e.g. "Always accept")
 ---@field callback function Called when the user selects this choice
 
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
----@param opts { id: string|number, prompt?: string, choices: CodeCompanion.ApprovalChoice[] }
+---@param opts { id: string|number, title?: string, prompt?: string, choices: CodeCompanion.ApprovalChoice[] }
 ---@return nil
 function M.request(chat, opts)
   local bufnr = chat.bufnr

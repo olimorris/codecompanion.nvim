@@ -652,23 +652,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.copilot_stats",
           description = "[Adapter] Copilot statistics",
         },
-        -- Keymaps for ACP permission requests
-        _acp_allow_always = {
-          modes = { n = "g1" },
-          description = "Allow Always",
-        },
-        _acp_allow_once = {
-          modes = { n = "g2" },
-          description = "Allow Once",
-        },
-        _acp_reject_once = {
-          modes = { n = "g3" },
-          description = "Reject Once",
-        },
-        _acp_reject_always = {
-          modes = { n = "g4" },
-          description = "Reject Always",
-        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -870,6 +853,11 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
       keymaps = {
+        view_diff = {
+          description = "View the proposed diff",
+          modes = { n = "gv" },
+          opts = { nowait = true },
+        },
         always_accept = {
           callback = "keymaps.always_accept",
           description = "Always accept changes in this buffer",
@@ -890,6 +878,11 @@ The user is working on a %s machine. Please respond with system specific command
           index = 3,
           modes = { n = "g3" },
           opts = { nowait = true, noremap = true },
+        },
+        cancel = {
+          description = "Cancel all pending tool calls",
+          modes = { n = "g4" },
+          opts = { nowait = true },
         },
         next_hunk = {
           callback = "keymaps.next_hunk",
