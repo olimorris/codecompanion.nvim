@@ -319,7 +319,7 @@ function Orchestrator:setup_next_tool(input)
           end
           return self:execute_tool({ cmd = cmd, input = input })
         elseif choice == 3 then
-          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
             self.output.rejected(cmd, { reason = i })
             return self:setup_next_tool()
           end)
