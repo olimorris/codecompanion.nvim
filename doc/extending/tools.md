@@ -541,6 +541,8 @@ You should see: `5000`, in the chat buffer.
 
 ### Adding in User Approvals
 
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/8600ef01-c61d-4f49-92f4-9f9d3978b624" />
+
 A big concern for users when they create and deploy their own tools is _"what if an LLM does something I'm not aware of or I don't approve?"_. To that end, CodeCompanion tries to make it easy for a user to be the "human in the loop" and approve tool use before execution.
 
 To enable this for any tool, simply add the `require_approval_before = true` in a tool's `opts` table:

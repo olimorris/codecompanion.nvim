@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 19
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5313,6 +5313,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
+- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
@@ -5524,7 +5525,6 @@ HIGHLIGHT GROUPS
 The plugin sets the following highlight groups during setup:
 
 - `CodeCompanionChatInfo` - Information messages in the chat buffer
-- `CodeCompanionChatInfoBanner` - Banner showing useful information in the chat buffer
 - `CodeCompanionChatError` - Error messages in the chat buffer
 - `CodeCompanionChatWarn` - Warning messages in the chat buffer
 - `CodeCompanionChatSubtext` - Messages that appear under the information, error or warning messages in the chat buffer
@@ -7431,6 +7431,8 @@ You should see: `5000`, in the chat buffer.
 
 
 ADDING IN USER APPROVALS
+
+
 
 A big concern for users when they create and deploy their own tools is `“what
 if an LLM does something I’m not aware of or I don’t approve?”`. To that

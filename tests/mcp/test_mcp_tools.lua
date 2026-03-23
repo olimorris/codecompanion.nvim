@@ -342,15 +342,16 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
     chat:add_buf_message({ role = "user", content = "@{mcp:other_mcp}" })
 
     local confirmations = {}
-    local ui = require("codecompanion.utils.ui")
-    ui.confirm = function(prompt, choices)
-      table.insert(confirmations, prompt)
-      for i, choice in ipairs(choices) do
-        if choice:find("Allow once") then
-          return i
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
+      table.insert(confirmations, opts.prompt)
+      -- Auto-select "Approve" (g2)
+      for _, choice in ipairs(opts.choices) do
+        if choice.keymap == "g2" then
+          choice.callback()
+          return
         end
       end
-      assert(false, "No 'Allow once' choice found")
     end
 
     chat:submit()

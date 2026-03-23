@@ -24,7 +24,7 @@ T = new_set({
   },
 })
 
-local function setup_with_tools_and_cancel_stub(n_tools)
+local function setup_with_tools_and_approval_stub(n_tools, choice_label)
   child.lua(string.format(
     [[
     -- Build a minimal config with custom tools that require approval
@@ -41,12 +41,15 @@ local function setup_with_tools_and_cancel_stub(n_tools)
       },
     }
 
+    _G.executed = {}
+
     local function make_tool(n)
       return {
         name = n,
         cmds = {
           function(self, args, opts)
-            -- Should not run when 'Cancel' is selected, but return success if it does
+            _G.executed = _G.executed or {}
+            table.insert(_G.executed, n)
             opts.output_cb({ status = "success", data = n .. "_ran" })
           end,
         },
@@ -59,13 +62,6 @@ local function setup_with_tools_and_cancel_stub(n_tools)
           },
         },
         opts = { require_approval_before = true },
-        output = {
-          cancelled = function(self, meta)
-            _G.cancelled = _G.cancelled or {}
-            table.insert(_G.cancelled, self.name)
-            meta.tools.chat:add_tool_output(self, "cancelled:" .. self.name)
-          end,
-        },
       }
     end
 
@@ -82,9 +78,21 @@ local function setup_with_tools_and_cancel_stub(n_tools)
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools = chat, tools
 
-    -- Stub confirm to always choose "4 Cancel"
-    local ui = require("codecompanion.utils.ui")
-    ui.confirm = function(_) return 4 end
+    -- Stub approval_prompt to auto-select a choice by label
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
+      for _, choice in ipairs(opts.choices) do
+        if choice.label == %q then
+          choice.callback()
+          return
+        end
+      end
+    end
+
+    -- Stub vim.ui.input for rejection reason
+    vim.ui.input = function(_, cb)
+      cb("test rejection")
+    end
 
     -- Build tool calls
     local calls = {
@@ -103,44 +111,32 @@ local function setup_with_tools_and_cancel_stub(n_tools)
   ]],
     n_tools,
     n_tools,
+    choice_label,
     n_tools,
     n_tools
   ))
 end
 
-T["cancels all queued tools when user selects cancel"] = function()
-  setup_with_tools_and_cancel_stub(3)
+T["approves all queued tools when user selects approve"] = function()
+  setup_with_tools_and_approval_stub(3, "Accept")
 
-  local cancelled = child.lua_get("_G.cancelled or {}")
-  h.eq(cancelled, { "t1", "t2", "t3" })
-
-  -- Ensure chat received cancellation outputs for each tool
-  local all = child.lua([[
-    local msgs = {}
-    for _, m in ipairs(_G.chat.messages or {}) do
-      if type(m.content) == "string" then table.insert(msgs, m.content) end
-    end
-    return table.concat(msgs, "\n")
-  ]])
-  h.expect_contains("cancelled:t1", all)
-  h.expect_contains("cancelled:t2", all)
-  h.expect_contains("cancelled:t3", all)
+  local executed = child.lua_get("_G.executed or {}")
+  h.eq(executed, { "t1", "t2", "t3" })
 end
 
-T["cancels current tool when it is the only one"] = function()
-  setup_with_tools_and_cancel_stub(1)
+T["approves single tool when user selects approve"] = function()
+  setup_with_tools_and_approval_stub(1, "Accept")
 
-  local cancelled = child.lua_get("_G.cancelled or {}")
-  h.eq(cancelled, { "t1" })
+  local executed = child.lua_get("_G.executed or {}")
+  h.eq(executed, { "t1" })
+end
 
-  local all = child.lua([[
-    local msgs = {}
-    for _, m in ipairs(_G.chat.messages or {}) do
-      if type(m.content) == "string" then table.insert(msgs, m.content) end
-    end
-    return table.concat(msgs, "\n")
-  ]])
-  h.expect_contains("cancelled:t1", all)
+T["rejects all queued tools when user selects reject"] = function()
+  setup_with_tools_and_approval_stub(3, "Reject")
+
+  -- No tools should have executed
+  local executed = child.lua_get("_G.executed or {}")
+  h.eq(executed, {})
 end
 
 T["tools only receive output that relates to their execution"] = function()
