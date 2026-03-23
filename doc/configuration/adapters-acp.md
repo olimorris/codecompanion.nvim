@@ -337,6 +337,14 @@ require("codecompanion").setup({
 
 Install [Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli) as per the instructions and then in the terminal run `copilot` and ensure that you're authenticated.
 
+## Setup: Cursor CLI
+
+To use [Cursor](https://www.cursor.com/) within CodeCompanion, you'll need to take the following steps:
+
+1. Install `agent` as per the [Cursor CLI documentation](https://cursor.com/docs/cli/overview)
+2. Authenticate by running `agent login` in your terminal
+3. Select the `cursor_cli` adapter in your chat buffer
+
 ## Setup: Gemini CLI
 
 1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
