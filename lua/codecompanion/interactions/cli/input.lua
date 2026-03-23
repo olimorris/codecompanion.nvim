@@ -45,16 +45,16 @@ end
 ---@return nil
 function M.toggle(opts)
   if input.is_visible() then
-    input.close()
+    input.hide()
   else
     M.open(opts)
   end
 end
 
----Close the input buffer
+---Hide the input window
 ---@return nil
-function M.close()
-  input.close()
+function M.hide()
+  input.hide()
 end
 
 ---Check if the input buffer exists (even if hidden)
