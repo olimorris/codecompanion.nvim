@@ -73,9 +73,11 @@ function M.request(chat, opts)
 
   local resolved = false
 
-  ---Finalize the approval prompt: clean up keymaps and fire the event
+  ---Function to call when the user has made a choice
   ---@param choice_label string
+  ---@return nil
   local function on_done(choice_label)
+    -- Guard against multiple calls
     if resolved then
       return
     end
