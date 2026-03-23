@@ -57,7 +57,7 @@ function Tools:_pattern(tool)
   return CONSTANTS.PREFIX .. "{" .. tool .. "}"
 end
 
----Handle missing or invalid tool errors
+---Handle missing or invalid tool errors by reporting them to the LLM
 ---@param tool table The tool that failed
 ---@param error_message string The error message
 ---@return nil
@@ -87,8 +87,8 @@ function Tools:_handle_tool_error(tool, error_message)
     available_tools_msg = "No tools available"
   end
 
+  self.status = CONSTANTS.STATUS_ERROR
   self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
-  return utils.fire("ToolsFinished", { bufnr = self.bufnr })
 end
 
 ---Resolve and prepare a tool for execution
@@ -280,13 +280,18 @@ function Tools:execute(chat, tools)
         if is_json_error then
           -- JSON error was already handled by _resolve_and_prepare_tool
           return
-        else
-          return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
         end
+        -- Report the error to the LLM but continue processing remaining tools
+        self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
+      else
+        self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
+        orchestrator.queue:push(resolved_tool)
       end
+    end
 
-      self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
-      orchestrator.queue:push(resolved_tool)
+    -- If no tools were resolved, finalize with error status
+    if orchestrator.queue:is_empty() then
+      return utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
     end
 
     utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
