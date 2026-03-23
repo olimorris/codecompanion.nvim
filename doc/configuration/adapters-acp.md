@@ -308,6 +308,15 @@ require("codecompanion").setup({
 })
 ```
 
+## Setup: Cline CLI
+
+To use [Cline CLI](https://cline.bot/cli) within CodeCompanion, you'll need to take the following steps:
+
+1. [Install](https://docs.cline.bot/getting-started/installing-cline#cli) Cline CLI.
+2. Authenticate by running `cline auth`.
+3. Select the `cline_cli` adapter in your chat buffer
+
+
 ## Setup: Codex
 
 To use OpenAI's [Codex](https://openai.com/codex/), install an ACP-compatible adapter like [this](https://github.com/zed-industries/codex-acp) one from [Zed](https://zed.dev).

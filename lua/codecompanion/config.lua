@@ -39,6 +39,7 @@ local defaults = {
       auggie_cli = "auggie_cli",
       cagent = "cagent",
       claude_code = "claude_code",
+      cline_cli = "cline_cli",
       codex = "codex",
       cursor_cli = "cursor_cli",
       copilot_acp = "copilot_acp",
