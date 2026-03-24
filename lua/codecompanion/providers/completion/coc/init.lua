@@ -106,7 +106,7 @@ function M.complete(opt)
   if opt.triggerCharacter == triggers.mappings.acp_slash_commands then
     complete_items = transform_complete_items(opt, completion.acp_commands(opt.bufnr))
   elseif opt.triggerCharacter == triggers.mappings.slash_commands then
-    complete_items = transform_complete_items(opt, completion.slash_commands())
+    complete_items = transform_complete_items(opt, completion.slash_commands(completion.interaction_type()))
   elseif opt.triggerCharacter == triggers.mappings.tools then
     complete_items = transform_complete_items(opt, completion.tools())
   elseif opt.triggerCharacter == triggers.mappings.editor_context then
@@ -145,9 +145,15 @@ function M.execute(opt)
     opt.config.callback = callbacks_cache[opt.label]
   end
 
-  local chat = require("codecompanion").buf_get_chat(bufnr)
-
-  completion.slash_commands_execute(opt, chat)
+  local slash_commands = require("codecompanion.interactions.chat.slash_commands")
+  if completion.interaction_type() == "cli" then
+    slash_commands.new():execute_cli(opt, function(paths)
+      slash_commands.insert_path(bufnr, paths)
+    end)
+  else
+    local chat = require("codecompanion").buf_get_chat(bufnr)
+    slash_commands.run(opt, chat)
+  end
 end
 
 return M
