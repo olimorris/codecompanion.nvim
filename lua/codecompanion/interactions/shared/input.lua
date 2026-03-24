@@ -3,6 +3,8 @@ local ui = require("codecompanion.interactions.shared.ui")
 
 local api = vim.api
 
+local HISTORY_MAX = 20
+
 local M = {}
 
 ---@class CodeCompanion.Input
@@ -12,6 +14,9 @@ local M = {}
 ---@field winnr number|nil
 
 local _input = nil ---@type CodeCompanion.Input|nil
+local _history = {} ---@type string[]
+local _history_index = 0
+local _draft = ""
 
 ---Show the input window as a float
 ---@param opts { title?: string }
@@ -47,6 +52,14 @@ local function _buf_send(opts)
     return
   end
 
+  -- Add to history
+  table.insert(_history, text)
+  if #_history > HISTORY_MAX then
+    table.remove(_history, 1)
+  end
+  _history_index = 0
+  _draft = ""
+
   -- Clear the buffer content and hide the window
   api.nvim_buf_set_lines(_input.bufnr, 0, -1, false, { "" })
   vim.bo[_input.bufnr].modified = false
@@ -54,6 +67,58 @@ local function _buf_send(opts)
 
   if _input.on_submit then
     _input.on_submit(text, opts or {})
+  end
+end
+
+---Set the input buffer content
+---@param text string
+local function _set_content(text)
+  if not _input or not api.nvim_buf_is_valid(_input.bufnr) then
+    return
+  end
+
+  local lines = vim.split(text, "\n", { plain = true })
+  api.nvim_buf_set_lines(_input.bufnr, 0, -1, false, lines)
+  vim.bo[_input.bufnr].modified = false
+end
+
+---Get the current input buffer content
+---@return string
+local function _get_content()
+  if not _input or not api.nvim_buf_is_valid(_input.bufnr) then
+    return ""
+  end
+
+  local lines = api.nvim_buf_get_lines(_input.bufnr, 0, -1, false)
+  return vim.trim(table.concat(lines, "\n"))
+end
+
+---Navigate to the previous history entry
+local function _history_up()
+  if #_history == 0 then
+    return
+  end
+
+  if _history_index == 0 then
+    _draft = _get_content()
+  end
+
+  _history_index = math.min(_history_index + 1, #_history)
+  _set_content(_history[#_history - _history_index + 1])
+end
+
+---Navigate to the next history entry
+local function _history_down()
+  if _history_index == 0 then
+    return
+  end
+
+  _history_index = _history_index - 1
+
+  if _history_index == 0 then
+    _set_content(_draft)
+  else
+    _set_content(_history[#_history - _history_index + 1])
   end
 end
 
@@ -125,7 +190,7 @@ function M.open(opts)
   _input.aug = aug
 
   -- Keymaps (set once, persist with the buffer)
-  local callbacks = { send = _buf_send, close = M.hide }
+  local callbacks = { send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down }
   for action, keymap in pairs(config.display.input.keymaps) do
     if keymap and keymap ~= false then
       local fn = callbacks[action]

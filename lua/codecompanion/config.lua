@@ -1158,6 +1158,20 @@ The user is working on a %s machine. Please respond with system specific command
           modes = { n = { "q", "<Esc>" } },
           description = "Close",
         },
+        history_up = {
+          modes = {
+            i = "<Up>",
+            n = "<Up>",
+          },
+          description = "Previous prompt",
+        },
+        history_down = {
+          modes = {
+            i = "<Down>",
+            n = "<Down>",
+          },
+          description = "Next prompt",
+        },
       },
     },
   },
