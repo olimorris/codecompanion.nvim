@@ -152,6 +152,8 @@ and with a visual selection, will resolve to be:
   ````
 `````
 
+> [!NOTE]
+> `@path` references are understood natively by CLI agents like Claude Code and Codex, allowing them to read files directly.
 
 ### Prompts
 
@@ -168,6 +170,23 @@ require("codecompanion").cli({ prompt = true })
 ```
 
 This will open up a `codecompanion_input` buffer. This gives you access to all of the available editor context and a much a larger character window. To send the prompt to the agent, you can write the buffer with `:w`. Or, to automatically send and submit, you can forcefully write with `:w!`.
+
+### Slash Commands
+
+The prompt input buffer also supports the `/file` and `/buffer` [slash commands](/usage/chat-buffer/slash-commands), which better enable you to share lots of context with a CLI agent at once. Simply type `/` in the buffer to bring up the completion menu for you selected provider.
+
+Instead of sharing file contents, the slash commands insert `@path` references into the prompt. For example, selecting a file via `/file` will insert:
+
+```markdown
+@./lua/codecompanion/init.lua
+```
+
+If you select multiple files, each one is added on its own line:
+
+```markdown
+@./lua/codecompanion/init.lua
+@./lua/codecompanion/config.lua
+```
 
 ### Auto-Submit
 

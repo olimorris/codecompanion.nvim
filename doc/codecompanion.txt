@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 22
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -79,7 +79,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline.html|, code creation and refactoring
@@ -1291,6 +1291,16 @@ Install Copilot CLI
 <https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli>
 as per the instructions and then in the terminal run `copilot` and ensure that
 you’re authenticated.
+
+
+SETUP: CURSOR CLI ~
+
+To use Cursor <https://www.cursor.com/> within CodeCompanion, you’ll need to
+take the following steps:
+
+1. Install `agent` as per the Cursor CLI documentation <https://cursor.com/docs/cli/overview>
+2. Authenticate by running `agent login` in your terminal
+3. Select the `cursor_cli` adapter in your chat buffer
 
 
 SETUP: GEMINI CLI ~
@@ -4863,6 +4873,10 @@ in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 `fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
 selected and added to the chat buffer as per the video above.
 
+This slash command is also available in the
+|codecompanion-usage-cli-slash-commands|, where it inserts `@path` references
+instead of buffer contents.
+
 
 /COMMAND ~
 
@@ -4904,7 +4918,11 @@ URL.
 The `file` slash command allows you to add the contents of a file in the
 current working directory to the chat buffer. The command has native,
 `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
-Also, multiple files can be selected and added to the chat buffer:
+Also, multiple files can be selected and added to the chat buffer.
+
+This slash command is also available in the
+|codecompanion-usage-cli-slash-commands|, where it inserts `@path` references
+instead of file contents.
 
 - Select a single file: `⏎ enter`
 - Select multiple files: `⇥ tab`
@@ -5171,6 +5189,9 @@ and with a visual selection, will resolve to be:
 <
 
 
+  [!NOTE] `@path` references are understood natively by CLI agents like Claude
+  Code and Codex, allowing them to read files directly.
+
 PROMPTS
 
 There will come a time when you need to send a more complex prompt to the
@@ -5191,6 +5212,28 @@ This will open up a `codecompanion_input` buffer. This gives you access to all
 of the available editor context and a much a larger character window. To send
 the prompt to the agent, you can write the buffer with `:w`. Or, to
 automatically send and submit, you can forcefully write with `:w!`.
+
+
+SLASH COMMANDS
+
+The prompt input buffer also supports the `/file` and `/buffer`
+|codecompanion-usage-chat-buffer-slash-commands|, which better enable you to
+share lots of context with a CLI agent at once. Simply type `/` in the buffer
+to bring up the completion menu for you selected provider.
+
+Instead of sharing file contents, the slash commands insert `@path` references
+into the prompt. For example, selecting a file via `/file` will insert:
+
+>markdown
+    @./lua/codecompanion/init.lua
+<
+
+If you select multiple files, each one is added on its own line:
+
+>markdown
+    @./lua/codecompanion/init.lua
+    @./lua/codecompanion/config.lua
+<
 
 
 AUTO-SUBMIT
