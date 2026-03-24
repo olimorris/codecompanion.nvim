@@ -1,6 +1,9 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
+local interactions = require("codecompanion.interactions")
 local log = require("codecompanion.utils.log")
+
+local api = vim.api
 
 ---Resolve a path to the correct module
 ---@param path string The module or file path
@@ -88,6 +91,26 @@ function SlashCommands:execute(item, chat)
     :execute(self)
 end
 
+---Execute the selected slash command for the CLI interaction
+---@param item table
+---@param callback fun(paths: string[])
+---@return nil
+function SlashCommands:execute_cli(item, callback)
+  local label = item.label:sub(1)
+  log:debug("Executing slash command (CLI): %s", label)
+
+  local resolved = resolve(item.config.path)
+  if not resolved then
+    return log:error("Slash command not found: %s", label)
+  end
+
+  if not resolved.cli_render then
+    return log:error("Slash command does not support CLI: %s", label)
+  end
+
+  return resolved.cli_render(item.config, callback)
+end
+
 ---Function for external objects to add context via Slash Commands
 ---@param chat CodeCompanion.Chat
 ---@param slash_command string
@@ -145,6 +168,54 @@ function SlashCommands.context(chat, slash_command, opts)
 
     return slash_commands[slash_command]:output(opts.url, opts)
   end
+end
+
+---Execute a slash command (use this when calling externally)
+---@param selected table
+---@param chat CodeCompanion.Chat
+---@return nil
+function SlashCommands.run(selected, chat)
+  if selected.from_prompt_library then
+    local context = selected.config.context
+    if context then
+      interactions.add_context(selected.config, chat)
+    end
+
+    local prompts = {}
+    if selected.config.opts and selected.config.opts.is_markdown then
+      prompts =
+        require("codecompanion.actions.markdown").resolve_placeholders(selected.config, selected.context).prompts
+    else
+      prompts = interactions.evaluate_prompts(selected.config.prompts, selected.context)
+    end
+
+    vim.iter(prompts):each(function(prompt)
+      if prompt.role == config.constants.SYSTEM_ROLE then
+        chat:add_message(prompt, { visible = false })
+      elseif prompt.role == config.constants.USER_ROLE then
+        chat:add_buf_message(prompt)
+      end
+    end)
+  else
+    SlashCommands.new():execute(selected, chat)
+  end
+end
+
+---Insert file paths into a buffer from a CLI slash command selection
+---@param bufnr number
+---@param paths string[]
+---@return nil
+function SlashCommands.insert_path(bufnr, paths)
+  if not paths or #paths == 0 then
+    return
+  end
+
+  local lines = vim.tbl_map(function(path)
+    return "@" .. path
+  end, paths)
+
+  local cursor_row = api.nvim_win_get_cursor(0)[1]
+  api.nvim_buf_set_lines(bufnr, cursor_row - 1, cursor_row - 1, false, lines)
 end
 
 return SlashCommands
