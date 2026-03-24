@@ -35,11 +35,17 @@ T["Tools"]["user approval"] = new_set()
 
 T["Tools"]["user approval"]["prompts a user when tool requires approval"] = function()
   child.lua([[
-    ui_utils.confirm = function(prompt, choices, opts)
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
       _G.ui_called = true
-      _G.ui_prompt = prompt
-      _G.ui_choices = choices
-      return 1 -- Simulate user selecting "Yes"
+      _G.ui_prompt = opts.prompt
+      -- Auto-select "Approve" (g2)
+      for _, choice in ipairs(opts.choices) do
+        if choice.keymap == "g2" then
+          choice.callback()
+          return
+        end
+      end
     end
 
     local tool_calls = {
@@ -53,7 +59,7 @@ T["Tools"]["user approval"]["prompts a user when tool requires approval"] = func
     tools:execute(chat, tool_calls)
   ]])
 
-  -- Check that UI was called with expected values
+  -- Check that approval prompt was called with expected values
   h.eq(true, child.lua_get([[_G.ui_called]]))
   h.eq("Run the func_approval tool?", child.lua_get([[_G.ui_prompt]]))
 
@@ -64,13 +70,18 @@ end
 
 T["Tools"]["user approval"]["approval can be conditionally set - true in this case"] = function()
   child.lua([[
-    -- Mock vim.ui.select to capture what gets called
-    local original_select = vim.ui.select
     _G.ui_called = false
 
-    ui_utils.confirm = function(prompt, choices, opts)
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
       _G.ui_called = true
-      return 1 -- Simulate user selecting "Yes"
+      -- Auto-select "Approve" (g2)
+      for _, choice in ipairs(opts.choices) do
+        if choice.keymap == "g2" then
+          choice.callback()
+          return
+        end
+      end
     end
 
     local tool_calls = {
@@ -84,20 +95,19 @@ T["Tools"]["user approval"]["approval can be conditionally set - true in this ca
     tools:execute(chat, tool_calls)
   ]])
 
-  -- Check that UI was called with expected values
+  -- Check that approval prompt was called
   h.eq(true, child.lua_get([[_G.ui_called]]))
   h.eq("Setup->Success->Exit", child.lua_get([[_G._test_order]]))
 end
 
 T["Tools"]["user approval"]["approval can be conditionally set - false in this case"] = function()
   child.lua([[
-    -- Mock vim.ui.select to capture what gets called
-    local original_select = vim.ui.select
     _G.ui_called = false
 
-    ui_utils.confirm = function(prompt, choices, opts)
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
       _G.ui_called = true
-      return 1 -- Simulate user selecting "Yes"
+      opts.choices[1].callback()
     end
 
     local tool_calls = {
@@ -116,19 +126,25 @@ end
 
 T["Tools"]["user approval"]["approval can be rejected"] = function()
   child.lua([[
-    -- Mock vim.ui.select to capture what gets called
-    local original_select = vim.ui.select
-    _G.ui_called = true
+    _G.ui_called = false
 
-    -- Monkey patch the async function
-    ui_utils.input = function(prompt, callback)
-      return callback("Rejected")
+    -- Stub vim.ui.input for rejection reason
+    vim.ui.input = function(_, cb)
+      cb("Rejected")
     end
 
-    ui_utils.confirm = function(prompt, choices, opts)
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
       _G.ui_called = true
-      return 3 -- Simulate user pressing "Reject"
+      -- Auto-select "Reject" (g3)
+      for _, choice in ipairs(opts.choices) do
+        if choice.keymap == "g3" then
+          choice.callback()
+          return
+        end
+      end
     end
+
     local tool_calls = {
       {
         ["function"] = {
