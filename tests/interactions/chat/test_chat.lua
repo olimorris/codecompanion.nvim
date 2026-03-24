@@ -165,7 +165,7 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
   h.eq("<prompt>" .. prompt .. "</prompt>", output)
 end
 
-T["Chat"]["images are replaced in text and base64 encoded"] = function()
+T["Chat"]["CodeCompanion images are replaced in text and base64 encoded"] = function()
   local prompt =
     string.format("What does this [Image](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
   local message = child.lua(string.format(
@@ -207,6 +207,75 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
   }, message.context)
 
   h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
+end
+
+T["Chat"]["markdown images are replaced in text and base64 encoded"] = function()
+  local prompt =
+    string.format("What does this ![logo](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
+  local message = child.lua(string.format(
+    [[
+      _G.chat:add_buf_message({
+        role = "user",
+        content = "%s",
+      })
+      _G.chat:submit()
+      local messages = _G.chat.messages
+      return messages[#messages - 1].content
+  ]],
+    prompt
+  ))
+
+  h.eq("What does this image do?", message)
+
+  message = child.lua([[
+    local messages = _G.chat.messages
+    return messages[#messages]
+  ]])
+
+  h.eq({
+    visible = false,
+  }, message.opts)
+
+  h.eq({
+    cycle = 1,
+    estimated_tokens = message._meta.estimated_tokens,
+    index = message._meta.index,
+    id = message._meta.id,
+    tag = "image",
+  }, message._meta)
+
+  h.eq({
+    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fs.normalize(vim.fn.getcwd())),
+    mimetype = "image/png",
+    path = string.format("%s/tests/stubs/logo.png", vim.fs.normalize(vim.fn.getcwd())),
+  }, message.context)
+
+  h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
+end
+
+T["Chat"]["ordinary markdown links are not treated as images"] = function()
+  local prompt =
+    string.format("What does this [file](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
+  local result = child.lua(string.format(
+    [[
+      _G.chat:add_buf_message({
+        role = "user",
+        content = "%s",
+      })
+      _G.chat:submit()
+      local messages = _G.chat.messages
+      return {
+        content = messages[#messages].content,
+        tag = messages[#messages]._meta and messages[#messages]._meta.tag,
+        context_items = vim.tbl_count(_G.chat.context_items),
+      }
+  ]],
+    prompt
+  ))
+
+  h.eq(prompt, result.content)
+  h.eq(nil, result.tag)
+  h.eq(0, result.context_items)
 end
 
 local get_lines = function()

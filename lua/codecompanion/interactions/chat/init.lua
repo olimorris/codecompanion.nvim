@@ -1407,6 +1407,9 @@ function Chat:check_images(message)
       -- Replace the image link in the message with "image"
       local to_remove = fmt("[Image](%s)", image.path)
       message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
+
+      to_remove = fmt("![%s](%s)", image.text or "", image.path)
+      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
     end
   end
 end
