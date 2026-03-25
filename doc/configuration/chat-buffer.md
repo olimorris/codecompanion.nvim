@@ -209,7 +209,9 @@ vim.api.nvim_create_autocmd("User", {
 
 CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
 
-There are a number of configuration option available to you:
+For small changes, the diff is shown inline in the chat buffer. This can be controlled by the `inline_threshold`, which corresponds to the size of the diff in terms of changed lines. For larger changes, the diff will automatically open in a floating window when the chat buffer is active. Or, you will be prompted to view the diff manually (`gv` by default).
+
+There are a number of configuration options available to you:
 
 ::: code-group
 
@@ -218,6 +220,10 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
+
+      -- At or below this diff size, always display the diff in the chat buffer
+      inline_threshold = 6,
+
       word_highlights = {
         additions = true,
         deletions = true,
