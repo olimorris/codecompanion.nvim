@@ -178,7 +178,10 @@ T["diff flow -> approval prompt shows view option"] = function()
     return _G.__approval_opts
   ]])
 
-  h.eq("View Proposed Edits", result.title)
+  -- Small diff triggers inline mode with "Proposed Edits" title
+  h.eq("Proposed Edits", result.title)
+  -- Inline diff text is included in the prompt
+  h.eq(true, result.prompt:find("diff") ~= nil)
   h.eq("gv", result.choice_keys[1])
   h.eq("View", result.choice_labels[1])
   h.eq("Always accept", result.choice_labels[2])
