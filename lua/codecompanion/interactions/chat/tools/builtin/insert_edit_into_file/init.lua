@@ -172,6 +172,7 @@ local function execute_edit(source, action, opts)
       opts.output_cb(make_response("success", success_msg))
     end,
     approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),
+    chat = opts.chat,
     chat_bufnr = opts.chat_bufnr,
     ft = source.ft,
     output_cb = opts.output_cb,
@@ -212,6 +213,7 @@ return {
       end
 
       return execute_edit(source, args, {
+        chat = self.chat,
         chat_bufnr = self.chat.bufnr,
         output_cb = opts.output_cb,
         tool_opts = self.tool.opts,

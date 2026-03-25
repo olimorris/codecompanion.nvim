@@ -377,6 +377,7 @@ return {
       },
     },
     shared = {
+      keymaps = og_config.interactions.shared.keymaps,
       editor_context = {
         ["buffer"] = {
           path = "interactions.shared.editor_context.buffer",
