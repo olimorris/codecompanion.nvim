@@ -32,6 +32,8 @@ return {
     end,
     rejected = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Rejected"
+      local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
+      helpers.rejected(self, meta)
     end,
   },
 }

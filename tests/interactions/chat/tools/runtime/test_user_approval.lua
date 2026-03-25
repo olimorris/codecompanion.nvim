@@ -160,4 +160,43 @@ T["Tools"]["user approval"]["approval can be rejected"] = function()
   h.eq("Setup->Rejected", child.lua_get([[_G._test_order]]))
 end
 
+T["Tools"]["user approval"]["rejection reason is passed to LLM"] = function()
+  child.lua([[
+    -- Stub vim.ui.input for rejection reason
+    vim.ui.input = function(_, cb)
+      cb("this is my rejection reason")
+    end
+
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
+      -- Auto-select "Reject" (g3)
+      for _, choice in ipairs(opts.choices) do
+        if choice.keymap == "g3" then
+          choice.callback()
+          return
+        end
+      end
+    end
+
+    local tool_calls = {
+      {
+        ["function"] = {
+          name = "func_approval",
+          arguments = { data = "Test Data" },
+        },
+      },
+    }
+    _G._initial_count = #chat.messages
+    tools:execute(chat, tool_calls)
+    vim.wait(2000, function()
+      return #chat.messages > _G._initial_count
+    end)
+  ]])
+
+  h.eq(true, child.lua_get("#chat.messages > _G._initial_count"), "rejection message was not added to chat")
+
+  local last_msg = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_match(last_msg, "this is my rejection reason")
+end
+
 return T
