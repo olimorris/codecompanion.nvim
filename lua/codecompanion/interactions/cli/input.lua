@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
+local input = require("codecompanion.interactions.shared.input")
 local log = require("codecompanion.utils.log")
-local shared_input = require("codecompanion.interactions.shared.input")
 
 local api = vim.api
 
@@ -15,7 +15,7 @@ function M.open(opts)
   local context_utils = require("codecompanion.utils.context")
   local buffer_context = context_utils.get(api.nvim_get_current_buf(), opts.args)
 
-  shared_input.open({
+  input.open({
     title = " " .. (opts.title or config.display.input.title) .. " ",
     initial_content = opts.initial_content,
     on_submit = function(text, submit_opts)
@@ -40,16 +40,33 @@ function M.open(opts)
   })
 end
 
----Close the input buffer
+---Toggle the input buffer
+---@param opts? { agent?: string, args?: table, initial_content?: string, title?: string }
 ---@return nil
-function M.close()
-  shared_input.close()
+function M.toggle(opts)
+  if input.is_visible() then
+    input.hide()
+  else
+    M.open(opts)
+  end
 end
 
----Check if the input buffer is currently open
+---Hide the input window
+---@return nil
+function M.hide()
+  input.hide()
+end
+
+---Check if the input buffer exists (even if hidden)
 ---@return boolean
 function M.is_open()
-  return shared_input.is_open()
+  return input.is_open()
+end
+
+---Check if the input window is currently visible
+---@return boolean
+function M.is_visible()
+  return input.is_visible()
 end
 
 return M

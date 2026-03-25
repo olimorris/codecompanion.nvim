@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local interactions = require("codecompanion.interactions")
 local slash_command_filter = require("codecompanion.interactions.chat.slash_commands.filter")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 local triggers = require("codecompanion.triggers")
@@ -87,8 +86,11 @@ api.nvim_create_autocmd("User", {
 })
 
 ---Return the slash commands to be used for completion
+---@param interaction? string The interaction type to filter by (defaults to current buffer)
 ---@return table
-function M.slash_commands()
+function M.slash_commands(interaction)
+  interaction = interaction or M.interaction_type()
+
   local bufnr = api.nvim_get_current_buf()
   local adapter_info = adapter_cache[bufnr]
 
@@ -99,8 +101,24 @@ function M.slash_commands()
 
   local slash_commands = vim
     .iter(filtered_slash_commands)
-    :filter(function(name)
-      return name ~= "opts"
+    :filter(function(name, v)
+      if name == "opts" then
+        return false
+      end
+      -- CLI: strict opt-in only via opts.interactions
+      if interaction == "cli" then
+        local allowed = v.opts and v.opts.interactions
+        if not allowed or not vim.tbl_contains(allowed, "cli") then
+          return false
+        end
+      else
+        -- Chat: backwards compatible — only filter out if explicitly excluded
+        local allowed = v.opts and v.opts.interactions
+        if allowed and not vim.tbl_contains(allowed, interaction) then
+          return false
+        end
+      end
+      return true
     end)
     :map(function(label, v)
       return {
@@ -112,72 +130,43 @@ function M.slash_commands()
     end)
     :totable()
 
-  -- Slash commands from prompt library
-  vim
-    .iter(pairs(require("codecompanion.helpers").get_prompts()))
-    :filter(function(_, v)
-      if not (v.opts and v.opts.is_slash_cmd and v.interaction == "chat") then
-        return false
-      end
-
-      -- Check if this prompt library slash command should be enabled
-      if v.enabled ~= nil then
-        if type(v.enabled) == "function" then
-          local ok, result = pcall(v.enabled, { adapter = adapter_info })
-          return ok and result
-        elseif type(v.enabled) == "boolean" then
-          return v.enabled
+  -- Prompt library slash commands (chat only)
+  if interaction == "chat" then
+    vim
+      .iter(pairs(require("codecompanion.helpers").get_prompts()))
+      :filter(function(_, v)
+        if not (v.opts and v.opts.is_slash_cmd and v.interaction == "chat") then
+          return false
         end
-      end
-      return true
-    end)
-    :each(function(_, v)
-      local prompt = {
-        detail = v.description,
-        config = v,
-        type = "slash_command",
-        from_prompt_library = true,
-      }
-      if v.opts and v.opts.alias then
-        prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.alias)
-      else
-        prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.name)
-      end
-      table.insert(slash_commands, prompt)
-    end)
+
+        -- Check if this prompt library slash command should be enabled
+        if v.enabled ~= nil then
+          if type(v.enabled) == "function" then
+            local ok, result = pcall(v.enabled, { adapter = adapter_info })
+            return ok and result
+          elseif type(v.enabled) == "boolean" then
+            return v.enabled
+          end
+        end
+        return true
+      end)
+      :each(function(_, v)
+        local prompt = {
+          detail = v.description,
+          config = v,
+          type = "slash_command",
+          from_prompt_library = true,
+        }
+        if v.opts and v.opts.alias then
+          prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.alias)
+        else
+          prompt.label = string.format("%s%s", triggers.mappings.slash_commands, v.opts.name)
+        end
+        table.insert(slash_commands, prompt)
+      end)
+  end
 
   return slash_commands
-end
-
----Execute selected slash command
----@param selected table The selected item from the completion menu
----@param chat CodeCompanion.Chat
----@return nil
-function M.slash_commands_execute(selected, chat)
-  if selected.from_prompt_library then
-    local context = selected.config.context
-    if context then
-      interactions.add_context(selected.config, chat)
-    end
-
-    local prompts = {}
-    if selected.config.opts and selected.config.opts.is_markdown then
-      prompts =
-        require("codecompanion.actions.markdown").resolve_placeholders(selected.config, selected.context).prompts
-    else
-      prompts = interactions.evaluate_prompts(selected.config.prompts, selected.context)
-    end
-
-    vim.iter(prompts):each(function(prompt)
-      if prompt.role == config.constants.SYSTEM_ROLE then
-        chat:add_message(prompt, { visible = false })
-      elseif prompt.role == config.constants.USER_ROLE then
-        chat:add_buf_message(prompt)
-      end
-    end)
-  else
-    require("codecompanion.interactions.chat.slash_commands"):execute(selected, chat)
-  end
 end
 
 ---Return the ACP commands to be used for completion

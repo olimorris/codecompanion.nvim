@@ -46,7 +46,7 @@ function M:get_completions(ctx, callback)
       is_incomplete_forward = false,
       is_incomplete_backward = false,
       items = vim
-        .iter(completion.slash_commands())
+        .iter(completion.slash_commands(completion.interaction_type()))
         :map(function(item)
           return {
             kind = vim.lsp.protocol.CompletionItemKind.Function,
@@ -201,8 +201,15 @@ function M:execute(ctx, item, callback, default_implementation)
     item[k] = v
   end
 
-  local chat = require("codecompanion").buf_get_chat(ctx.bufnr)
-  completion.slash_commands_execute(item, chat)
+  local slash_commands = require("codecompanion.interactions.chat.slash_commands")
+  if completion.interaction_type() == "cli" then
+    slash_commands.new():execute_cli(item, function(paths)
+      slash_commands.insert_path(ctx.bufnr, paths)
+    end)
+  else
+    local chat = require("codecompanion").buf_get_chat(ctx.bufnr)
+    slash_commands.run(item, chat)
+  end
 
   callback()
 end

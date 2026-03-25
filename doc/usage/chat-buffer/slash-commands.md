@@ -21,6 +21,8 @@ Slash Commands enable you to quickly add context to the chat buffer. They are co
 
 The _buffer_ slash command enables you to add the contents of any open buffers in Neovim to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple buffers can be selected and added to the chat buffer as per the video above.
 
+This slash command is also available in the [CLI prompt input](/usage/cli#slash-commands), where it inserts `@path` references instead of buffer contents.
+
 ## /command
 
 The _command_ slash command is specific to [ACP](/configuration/adapters-acp) adapters and allows users to switch between different adapter commands. For instance, some ACP adapters may allow you to run the agent command with a specific flag. Be mindful that switching commands is destructive and essentially resets the chat buffer for the purposes of a conversation with an agent.
@@ -44,7 +46,9 @@ The _fetch_ slash command allows you to add the contents of a URL to the chat bu
   <video controls muted src="https://github.com/user-attachments/assets/3359c752-e5e0-41bf-8952-557edf11efdf"></video>
 </p>
 
-The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer:
+The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
+
+This slash command is also available in the [CLI prompt input](/usage/cli#slash-commands), where it inserts `@path` references instead of file contents.
 
 - Select a single file: `⏎ enter`
 - Select multiple files: `⇥ tab`

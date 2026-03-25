@@ -320,9 +320,9 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
   end
   opts = opts or {}
 
-  -- Prompt input mode: open the input buffer
+  -- Prompt input mode: toggle the input buffer
   if opts.prompt then
-    return require("codecompanion.interactions.cli.input").open({
+    return require("codecompanion.interactions.cli.input").toggle({
       agent = opts.agent,
       args = opts.args,
       initial_content = prompt,

@@ -18,6 +18,7 @@ T["cli()"] = new_set({
           test_agent_b = { cmd = "cat", args = {}, description = "Agent B" },
         }
         config.interactions.cli.agent = "test_agent_a"
+        config.display.input.window.height = 5
         h.setup_plugin(config)
       ]])
     end,

@@ -371,11 +371,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       slash_commands = {
         ["buffer"] = {
-          path = "interactions.chat.slash_commands.builtin.buffer",
+          path = "interactions.shared.slash_commands.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
             default_params = "diff", -- all|diff
+            interactions = { "chat", "cli" },
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -417,10 +418,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["file"] = {
-          path = "interactions.chat.slash_commands.builtin.file",
+          path = "interactions.shared.slash_commands.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
+            interactions = { "chat", "cli" },
             max_lines = 1000,
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
@@ -1143,7 +1145,7 @@ The user is working on a %s machine. Please respond with system specific command
       window = {
         border = "single",
         width = { min = 40, max = 60 },
-        height = { min = 1, max = 2 },
+        height = { min = 3, max = 5 },
         relative = "cursor",
         title_pos = "left",
         row = 1,
@@ -1171,6 +1173,20 @@ The user is working on a %s machine. Please respond with system specific command
         close = {
           modes = { n = { "q", "<Esc>" } },
           description = "Close",
+        },
+        history_up = {
+          modes = {
+            i = "<Up>",
+            n = "<Up>",
+          },
+          description = "Previous prompt",
+        },
+        history_down = {
+          modes = {
+            i = "<Down>",
+            n = "<Down>",
+          },
+          description = "Next prompt",
         },
       },
     },

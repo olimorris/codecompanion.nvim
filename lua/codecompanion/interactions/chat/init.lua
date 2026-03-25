@@ -62,7 +62,6 @@
 ---@field window_opts? table Window configuration options for the chat buffer
 
 local adapters = require("codecompanion.adapters")
-local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
@@ -256,7 +255,7 @@ local function set_autocmds(chat)
         local row, col = unpack(api.nvim_win_get_cursor(0))
         api.nvim_buf_set_text(bufnr, row - 1, col - #item.word, row - 1, col, { "" })
 
-        completion.slash_commands_execute(item.user_data, chat)
+        require("codecompanion.interactions.chat.slash_commands").run(item.user_data, chat)
       end
     end,
   })
