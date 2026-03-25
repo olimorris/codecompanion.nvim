@@ -186,16 +186,16 @@ T["Tools"]["user approval"]["rejection reason is passed to LLM"] = function()
         },
       },
     }
+    _G._initial_count = #chat.messages
     tools:execute(chat, tool_calls)
-    vim.wait(100)
+    vim.wait(2000, function()
+      return #chat.messages > _G._initial_count
+    end)
   ]])
 
-  -- Check that the rejection message includes the reason
-  local last_msg = child.lua([[
-    local last_msg = chat.messages[#chat.messages]
-    return last_msg and last_msg.content or ""
-  ]])
+  h.eq(true, child.lua_get("#chat.messages > _G._initial_count"), "rejection message was not added to chat")
 
+  local last_msg = child.lua_get("chat.messages[#chat.messages].content")
   h.expect_match(last_msg, "this is my rejection reason")
 end
 

@@ -33,8 +33,6 @@ return {
     rejected = function(self, meta)
       _G._test_order = (_G._test_order or "") .. "->Rejected"
       local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
-      local message = "The user rejected the func_approval tool"
-      meta = vim.tbl_extend("force", { message = message }, meta or {})
       helpers.rejected(self, meta)
     end,
   },

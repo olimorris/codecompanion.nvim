@@ -26,11 +26,11 @@ format:
 
 test: deps
 	@echo Testing...
-	LC_ALL=C nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run()"
+	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run()"
 
 test_file: deps
 	@echo Testing File...
-	LC_ALL=C nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')"
+	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')"
 
 deps: deps/plenary.nvim deps/nvim-treesitter deps/mini.nvim deps/panvimdoc
 	@echo Pulling...
