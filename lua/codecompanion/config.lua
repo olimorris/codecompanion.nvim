@@ -1120,6 +1120,8 @@ The user is working on a %s machine. Please respond with system specific command
 
     diff = {
       enabled = true,
+      inline_threshold = 6, -- At or below this, always display the diff in the chat buffer
+
       -- Options for any diff windows (extends from floating_window)
       window = {
         opts = {},
