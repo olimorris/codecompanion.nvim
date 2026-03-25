@@ -48,33 +48,55 @@ function ACPHandler:submit(payload)
     return self.chat:done(self.output)
   end
 
+  if not self:ensure_session() then
+    self.chat.status = "error"
+    return self.chat:done(self.output)
+  end
+
   return self:create_and_send_prompt(payload)
 end
 
----Ensure ACP connection is established
+---Ensure the ACP connection is authenticated
 ---@return boolean success
 function ACPHandler:ensure_connection()
   if not self.chat.acp_connection then
     self.chat.acp_connection = require("codecompanion.acp").new({
-      adapter = self.chat.adapter, --[[@type CodeCompanion.ACPAdapter]]
+      adapter = self.chat.adapter, ---@type CodeCompanion.ACPAdapter
     })
 
-    local connected = self.chat.acp_connection:connect_and_initialize()
+    local connected = self.chat.acp_connection:connect_and_authenticate()
 
     if not connected then
       return false
-    end
-
-    -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
-    if self.chat.acp_connection.session_id then
-      local acp_commands = require("codecompanion.interactions.chat.acp.commands")
-      acp_commands.link_buffer_to_session(self.chat.bufnr, self.chat.acp_connection.session_id)
     end
 
     self.chat:update_metadata()
 
     watch.enable()
   end
+  return true
+end
+
+---Ensure a session exists on the connection or create one if required
+---@return boolean success
+function ACPHandler:ensure_session()
+  local conn = self.chat.acp_connection
+  if not conn then
+    return false
+  end
+
+  if conn.session_id then
+    return true
+  end
+
+  if not conn:ensure_session() then
+    return false
+  end
+
+  -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
+  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
+  acp_commands.link_buffer_to_session(self.chat.bufnr, conn.session_id)
+
   return true
 end
 

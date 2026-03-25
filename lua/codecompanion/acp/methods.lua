@@ -2,6 +2,7 @@ return {
   INITIALIZE = "initialize",
   AUTHENTICATE = "authenticate",
   SESSION_CANCEL = "session/cancel",
+  SESSION_LIST = "session/list",
   SESSION_LOAD = "session/load",
   SESSION_NEW = "session/new",
   SESSION_PROMPT = "session/prompt",

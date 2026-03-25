@@ -185,6 +185,29 @@ function M.set_option(bufnr, opt, value)
   end
 end
 
+---Parse an ISO 8601 timestamp to a Unix timestamp
+---@param iso string ISO 8601 timestamp (e.g. "2026-03-18T22:29:29.993Z")
+---@return number|nil
+function M.parse_iso8601(iso)
+  local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)"
+  local year, month, day, hour, min, sec = iso:match(pattern)
+  if not year then
+    return nil
+  end
+
+  ---@type osdateparam
+  local date = {
+    year = tonumber(year) --[[@as integer]],
+    month = tonumber(month) --[[@as integer]],
+    day = tonumber(day) --[[@as integer]],
+    hour = tonumber(hour) --[[@as integer]],
+    min = tonumber(min) --[[@as integer]],
+    sec = tonumber(sec) --[[@as integer]],
+  }
+
+  return os.time(date)
+end
+
 ---Make a timestamp relative
 ---@param timestamp number Unix timestamp
 ---@return string Relative time string (e.g. "5m", "2h")

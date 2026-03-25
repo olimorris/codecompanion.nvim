@@ -120,10 +120,10 @@ function PromptBuilder:send()
   }
 end
 
----Extract renderable text from a content block
+---Extract text from an ACP content block
 ---@param block table|nil
 ---@return string|nil
-function PromptBuilder:get_renderable_text(block)
+local function extract_text(block)
   if not block or type(block) ~= "table" then
     return nil
   end
@@ -151,6 +151,9 @@ function PromptBuilder:get_renderable_text(block)
   return nil
 end
 
+-- Export as static for reuse (e.g. session restore)
+PromptBuilder.extract_text = extract_text
+
 ---Handle session update from the server
 ---@param params table
 ---@return nil
@@ -165,13 +168,13 @@ function PromptBuilder:handle_session_update(params)
 
   if params.sessionUpdate == "agent_message_chunk" then
     if self.handlers.message_chunk then
-      local text = self:get_renderable_text(params.content)
+      local text = extract_text(params.content)
       if text and text ~= "" then
         self.handlers.message_chunk(text)
       end
     end
   elseif params.sessionUpdate == "agent_thought_chunk" then
-    local text = self:get_renderable_text(params.content)
+    local text = extract_text(params.content)
     if text and text ~= "" and self.handlers.thought_chunk then
       self.handlers.thought_chunk(text)
     end

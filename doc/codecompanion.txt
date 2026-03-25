@@ -769,11 +769,11 @@ CodeCompanion provides comprehensive support for the ACP specification:
                                                            preview for
                                                            tool approval
 
-  Session Management             ❔️                        Create, load,
-                                                           and persist
+  Session Management             ✅                        Create, list,
+                                                           load, and
+                                                           restore
                                                            sessions with
-                                                           state tracking.
-                                                           No restore
+                                                           state tracking
 
   Session Modes                  ✅                        Mode switching
 
@@ -844,6 +844,15 @@ SLASH COMMANDS ~
 ACP agents can advertise their own slash commands dynamically. You can access
 them with `\command` in the chat buffer. CodeCompanion transforms this to
 `/command` before sending your prompt to the agent.
+
+
+SESSION RESUME ~
+
+If an agent supports the `session/list` capability, you can resume a previous
+session using the `/resume` slash command in a fresh chat buffer. This calls
+`session/list` to discover previous sessions, then `session/load` to restore
+the selected session’s conversation history into the chat buffer. See
+|codecompanion-usage-chat-buffer-slash-commands-resume| for usage details.
 
 
 MODEL SELECTION ~
@@ -4958,6 +4967,18 @@ between different agent operating modes, as per the protocol
 The `now` slash command simply inserts the current datetime stamp into the chat
 buffer.
 
+
+/RESUME ~
+
+The `resume` slash command is specific to
+|codecompanion-configuration-adapters-acp| adapters that support the
+`session/list` capability. It allows you to resume a previous session by
+listing your past sessions and restoring the selected one into the chat buffer.
+The conversation history is rendered so you can continue where you left off.
+
+
+  [!NOTE] The `/resume` command must be used before sending any messages. It is
+  only available on a fresh chat buffer.
 
 /SYMBOLS ~
 
