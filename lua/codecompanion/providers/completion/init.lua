@@ -7,6 +7,7 @@ local buf_utils = require("codecompanion.utils.buffers")
 
 local api = vim.api
 
+-- Editor context groups and cache
 local _ec_aug = nil
 local _ec_cache = {} ---@type table<string, table>
 local _ec_cache_valid = false
@@ -200,26 +201,6 @@ function M.acp_commands(bufnr)
       }
     end)
     :totable()
-end
-
----Execute selected ACP command (insert as text, no auto-submit)
----@param selected table The selected item from the completion menu
----@return string The text to insert
-function M.acp_commands_execute(selected)
-  -- Return the command text with backslash trigger (will be transformed to forward slash on send)
-  local text = triggers.mappings.acp_slash_commands .. selected.command.name
-
-  -- Add a space if the command accepts arguments
-  if
-    selected.command.input
-    and selected.command.input ~= vim.NIL
-    and type(selected.command.input) == "table"
-    and selected.command.input.hint
-  then
-    text = text .. " "
-  end
-
-  return text
 end
 
 ---Return the tools to be used for completion
