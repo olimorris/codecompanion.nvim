@@ -490,7 +490,8 @@ CodeCompanion.setup = function(opts)
     api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
 
-  -- Set up completion
+  -- Load the main completion module first to register its autocmds
+  require("codecompanion.providers.completion")
   local completion = config.interactions.chat.opts.completion_provider
   local ok, completion_module = pcall(require, "codecompanion.providers.completion." .. completion .. ".setup")
   if not ok then
