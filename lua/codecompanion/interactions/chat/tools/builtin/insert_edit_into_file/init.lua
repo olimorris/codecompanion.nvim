@@ -28,7 +28,7 @@
 local Path = require("plenary.path")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
-local diff_mod = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.diff")
+local diff = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.diff")
 local io_mod = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.io")
 local json_repair = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.json_repair")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
@@ -161,10 +161,10 @@ local function execute_edit(source, action, opts)
 
   local success_msg = fmt("Edited `%s`%s", source.display_name, extract_explanation(action))
 
-  return diff_mod.approve_and_diff({
+  return diff.review({
     from_lines = vim.split(source.content, "\n", { plain = true }),
     to_lines = vim.split(edit.content, "\n", { plain = true }),
-    apply_fn = function()
+    apply = function()
       local write_ok, write_err = source.write(edit.content)
       if not write_ok then
         return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", source.display_name, write_err)))

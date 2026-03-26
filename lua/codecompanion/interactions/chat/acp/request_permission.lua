@@ -1,7 +1,12 @@
+local config = require("codecompanion.config")
+local diff_utils = require("codecompanion.diff.utils")
 local log = require("codecompanion.utils.log")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local labels = require("codecompanion.interactions.chat.tools.labels")
+
+local fmt = string.format
 
 ---Ref: https://agentclientprotocol.com/protocol/schema#permissionoptionkind
 local ACP_OPTIONS = {
@@ -14,10 +19,10 @@ local ACP_OPTIONS = {
 local M = {}
 
 ---Find the first reject option from the request options
----@param options table
+---@param opts table
 ---@return string|nil optionId
-local function find_reject_option(options)
-  for _, opt in ipairs(options or {}) do
+local function find_reject_option(opts)
+  for _, opt in ipairs(opts or {}) do
     if opt.kind:find("^reject", 1, true) then
       return opt.optionId
     end
@@ -26,11 +31,11 @@ local function find_reject_option(options)
 end
 
 ---Build a map of kind -> optionId for easy lookup
----@param options table
+---@param opts table
 ---@return table<string, string> kind -> optionId
-local function build_kind_map(options)
+local function build_kind_map(opts)
   local map = {}
-  for _, opt in ipairs(options or {}) do
+  for _, opt in ipairs(opts or {}) do
     if type(opt.kind) == "string" and type(opt.optionId) == "string" then
       map[opt.kind] = opt.optionId
     end
@@ -40,7 +45,7 @@ end
 
 ---Get the shared keymap key for an ACP option kind
 ---@param kind string
----@param keys table Resolved keymaps from labels.keymaps()
+---@param keys table
 ---@return string|nil
 local function key_for_kind(kind, keys)
   local opt = ACP_OPTIONS[kind]
@@ -51,8 +56,8 @@ local function key_for_kind(kind, keys)
 end
 
 ---Build the banner displayed in the diff window winbar
----@param kind_map table<string, string> kind -> optionId
----@param keys table Resolved keymaps from labels.keymaps()
+---@param kind_map table<string, string>
+---@param keys table
 ---@return string
 local function build_banner(kind_map, keys)
   local parts = {}
@@ -63,11 +68,11 @@ local function build_banner(kind_map, keys)
     local lhs = key_for_kind(kind, keys)
     if lhs then
       local label = (ACP_OPTIONS[kind] and ACP_OPTIONS[kind].label) or kind:gsub("_", " ")
-      table.insert(parts, string.format("%s %s", lhs, label))
+      table.insert(parts, fmt("%s %s", lhs, label))
     end
   end
 
-  table.insert(parts, string.format("%s/%s Next/Prev", keys.next_hunk, keys.previous_hunk))
+  table.insert(parts, fmt("%s/%s Next/Prev", keys.next_hunk, keys.previous_hunk))
   table.insert(parts, "q Close")
 
   return table.concat(parts, " | ")
@@ -150,28 +155,26 @@ local function setup_diff_keymaps(opts)
   })
 end
 
----Display the diff preview and resolve permission by user decision
----@param opts { chat: CodeCompanion.Chat, request: table, on_done: fun(choice_label: string) }
----@return nil
-local function show_diff(opts)
-  local d = get_diff(opts.request.tool_call)
+---Open the floating diff view for an ACP permission request
+---@param permission table
+local function open_diff_view(permission)
+  local d = get_diff(permission.request.tool_call)
 
-  local diff_id = math.random(1000000)
-  local kind_map = build_kind_map(opts.request.options)
+  local kind_map = build_kind_map(permission.request.options)
   local keys = labels.keymaps()
 
   local diff_ui = require("codecompanion.helpers").show_diff({
     from_lines = vim.split(d.old or "", "\n", { plain = true }),
     to_lines = vim.split(d.new or "", "\n", { plain = true }),
     banner = build_banner(kind_map, keys),
-    chat_bufnr = opts.chat.bufnr,
-    diff_id = diff_id,
+    chat_bufnr = permission.chat.bufnr,
+    diff_id = math.random(1000000),
     ft = vim.filetype.match({ filename = d.path }) or "text",
     keymaps = {
       on_reject = function()
-        opts.on_done(labels.reject)
-        local rejected = find_reject_option(opts.request.options)
-        opts.request.respond(rejected, false)
+        permission.on_done(labels.reject)
+        local rejected = find_reject_option(permission.request.options)
+        permission.request.respond(rejected, false)
       end,
     },
     skip_default_keymaps = true,
@@ -182,31 +185,18 @@ local function show_diff(opts)
     diff_ui = diff_ui,
     kind_map = kind_map,
     keys = keys,
-    request = opts.request,
-    on_done = opts.on_done,
+    request = permission.request,
+    on_done = permission.on_done,
   })
 end
 
----Show the permission request to the user and handle their response
----@param chat CodeCompanion.Chat
----@param request table
----@return nil
-function M.confirm(chat, request)
-  local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
-
-  local tool_call = request.tool_call
-  local prompt = string.format(
-    "%s: %s",
-    utils.capitalize(tool_call and tool_call.kind or "Permission"),
-    tool_call and tool_call.title or "Agent requested permission"
-  )
-
-  local has_diff = request.tool_call and requires_diff(request.tool_call)
+---Build the approval choices for an ACP permission request
+---@param permission table
+---@param has_diff boolean
+---@return CodeCompanion.Chat.ApprovalChoice[]
+local function build_choices(permission, has_diff)
   local keys = labels.keymaps()
-
   local choices = {}
-
-  local on_done
 
   if has_diff then
     table.insert(choices, {
@@ -215,12 +205,12 @@ function M.confirm(chat, request)
       preview = true,
       callback = function()
         log:debug("[acp::request_permission] Opening diff for review")
-        show_diff({ chat = chat, request = request, on_done = on_done })
+        open_diff_view(permission)
       end,
     })
   end
 
-  for _, opt in ipairs(request.options or {}) do
+  for _, opt in ipairs(permission.request.options or {}) do
     local key = key_for_kind(opt.kind, keys)
     if key then
       table.insert(choices, {
@@ -228,7 +218,7 @@ function M.confirm(chat, request)
         label = (ACP_OPTIONS[opt.kind] and ACP_OPTIONS[opt.kind].label) or opt.name,
         callback = function()
           log:debug("[acp::request_permission] User selected option %s", opt.optionId)
-          request.respond(opt.optionId, false)
+          permission.request.respond(opt.optionId, false)
         end,
       })
     end
@@ -239,17 +229,77 @@ function M.confirm(chat, request)
     label = labels.cancel,
     callback = function()
       log:debug("[acp::request_permission] User cancelled")
-      request.respond(nil, true)
+      permission.request.respond(nil, true)
     end,
   })
 
-  on_done = approval_prompt.request(chat, {
-    id = request.id,
-    name = tool_call and tool_call.kind or nil,
-    title = has_diff and "View Proposed Edits" or nil,
-    prompt = prompt,
+  return choices
+end
+
+---Allow the user to approve from within the chat buffer
+---@param permission table
+---@param choices CodeCompanion.Chat.ApprovalChoice[]
+---@param prompt_opts { title?: string, prompt: string }
+local function approve_in_chat(permission, choices, prompt_opts)
+  local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
+  permission.on_done = approval_prompt.request(permission.chat, {
     choices = choices,
+    id = permission.request.id,
+    name = permission.request.tool_call and permission.request.tool_call.kind or nil,
+    prompt = prompt_opts.prompt,
+    title = prompt_opts.title,
   })
+end
+
+---Show the permission request to the user and handle their response
+---@param chat CodeCompanion.Chat
+---@param request table
+---@return nil
+function M.confirm(chat, request)
+  local tool_call = request.tool_call
+  local has_diff = tool_call and requires_diff(tool_call)
+
+  local base_prompt = fmt(
+    "%s: %s",
+    utils.capitalize(tool_call and tool_call.kind or "Permission"),
+    tool_call and tool_call.title or "Agent requested permission"
+  )
+
+  local permission = { chat = chat, request = request }
+  local choices = build_choices(permission, has_diff)
+
+  if not has_diff then
+    return approve_in_chat(permission, choices, { prompt = base_prompt })
+  end
+
+  local d = get_diff(tool_call)
+  local from_lines = vim.split(d.old or "", "\n", { plain = true })
+  local to_lines = vim.split(d.new or "", "\n", { plain = true })
+  local changed_lines = diff_utils.changed_lines(from_lines, to_lines)
+  local threshold = config.display.diff.inline_threshold
+  local threshold_met = threshold and threshold > 0 and changed_lines > 0 and changed_lines <= threshold
+
+  if threshold_met then
+    -- Show small diffs in the chat buffer
+    local diff_text = diff_utils.unified(from_lines, to_lines)
+    local prompt = fmt(
+      [[%s
+
+`````diff
+%s
+`````]],
+      base_prompt,
+      diff_text
+    )
+    return approve_in_chat(permission, choices, { title = "Proposed Edits", prompt = prompt })
+  elseif ui_utils.buf_is_active(chat.bufnr) then
+    -- If the chat is active, show the diff in the floating window
+    approve_in_chat(permission, choices, { title = "View Proposed Edits", prompt = base_prompt })
+    return open_diff_view(permission)
+  else
+    -- Otherwise, don't force the diff on the user, just show the approval
+    return approve_in_chat(permission, choices, { title = "View Proposed Edits", prompt = base_prompt })
+  end
 end
 
 return M

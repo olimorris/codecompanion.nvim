@@ -13,9 +13,10 @@ Neovim plugin (Lua) providing LLM-powered coding assistance: chat, inline transf
 
 - **Naming:** snake_case for files/functions, PascalCase for classes, underscore prefix for private functions
 - **Explicit names:** `pattern` not `pat`, `should_include` not `include_ok`
+- **Readable code:** names, variables, and control flow should read like clean English. Prefer `threshold_met` over a long inline condition. Avoid generic names like `ctx` — use domain-specific names (`permission`, `request`, `source`)
 - **Function params:** prefer a single table argument over positional args
 - **Error handling:** `pcall` + `log:error()`, return nil on failure
-- **Type annotations:** LuaCATS for public APIs
+- **Type annotations:** LuaCATS for public APIs. Keep doc blocks concise — one description line, params should be self-explanatory without inline comments
 - **Functions:** keep under 50 lines
 - **Globals:** avoid; use module-local state
 - **Code blocks:** use four backticks with language spec
