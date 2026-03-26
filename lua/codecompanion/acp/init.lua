@@ -24,6 +24,7 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local TIMEOUTS = {
   DEFAULT = 2e4, -- 20 seconds
@@ -168,6 +169,11 @@ function Connection:connect_and_initialize()
     return nil
   end
 
+  utils.fire("ACPSessionPre", {
+    adapter_modified = self.adapter_modified,
+    agent_capabilities = self._agent_info and self._agent_info.agentCapabilities,
+  })
+
   if not self:_establish_session() then
     return nil
   end
@@ -236,6 +242,11 @@ function Connection:ensure_session()
   if not self:is_ready() then
     return false
   end
+
+  utils.fire("ACPSessionPre", {
+    adapter_modified = self.adapter_modified,
+    agent_capabilities = self._agent_info and self._agent_info.agentCapabilities,
+  })
 
   if not self:_establish_session() then
     return false
