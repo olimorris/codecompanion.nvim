@@ -137,7 +137,7 @@ function M.review(opts)
   end
 
   local changed_lines = diff_utils.changed_lines(opts.from_lines, opts.to_lines)
-  local threshold = config.display.diff.inline_threshold
+  local threshold = config.display.diff.threshold_for_chat
   local threshold_met = threshold and threshold > 0 and changed_lines > 0 and changed_lines <= threshold
 
   if threshold_met then

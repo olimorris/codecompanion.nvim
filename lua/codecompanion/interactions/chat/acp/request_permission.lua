@@ -276,7 +276,7 @@ function M.confirm(chat, request)
   local from_lines = vim.split(d.old or "", "\n", { plain = true })
   local to_lines = vim.split(d.new or "", "\n", { plain = true })
   local changed_lines = diff_utils.changed_lines(from_lines, to_lines)
-  local threshold = config.display.diff.inline_threshold
+  local threshold = config.display.diff.threshold_for_chat
   local threshold_met = threshold and threshold > 0 and changed_lines > 0 and changed_lines <= threshold
 
   if threshold_met then
