@@ -587,43 +587,45 @@ return {
       choices = {
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
+          meta = { context_window = 1000000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-sonnet-4-6"] = {
           formatted_name = "Claude Sonnet 4.6",
+          meta = { context_window = 1000000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
+          meta = { context_window = 200000 },
           opts = { can_reason = true, has_vision = true },
         },
+
+        -- Legacy models
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
+          meta = { context_window = 200000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
+          meta = { context_window = 200000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
+          meta = { context_window = 200000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-opus-4-0"] = {
           formatted_name = "Claude Opus 4",
+          meta = { context_window = 200000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-sonnet-4-0"] = {
           formatted_name = "Claude Sonnet 4",
+          meta = { context_window = 200000 },
           opts = { can_reason = true, has_vision = true },
-        },
-        ["claude-3-7-sonnet-latest"] = {
-          formatted_name = "Claude Sonnet 3.7",
-          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
-        },
-        ["claude-3-5-haiku-latest"] = {
-          formatted_name = "Claude Haiku 3.5",
-          opts = { has_vision = true },
         },
       },
     },
