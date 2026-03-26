@@ -1,7 +1,4 @@
-local config = require("codecompanion.config")
-local diff_utils = require("codecompanion.diff.utils")
 local log = require("codecompanion.utils.log")
-local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local labels = require("codecompanion.interactions.chat.tools.labels")
@@ -259,47 +256,36 @@ function M.confirm(chat, request)
   local tool_call = request.tool_call
   local has_diff = tool_call and requires_diff(tool_call)
 
-  local base_prompt = fmt(
-    "%s: %s",
-    utils.capitalize(tool_call and tool_call.kind or "Permission"),
-    tool_call and tool_call.title or "Agent requested permission"
-  )
-
   local permission = { chat = chat, request = request }
   local choices = build_choices(permission, has_diff)
 
   if not has_diff then
-    return approve_in_chat(permission, choices, { prompt = base_prompt })
+    local prompt = fmt(
+      "%s: %s",
+      utils.capitalize(tool_call and tool_call.kind or "Permission"),
+      tool_call and tool_call.title or "Agent requested permission"
+    )
+    return approve_in_chat(permission, choices, { prompt = prompt })
   end
 
   local d = get_diff(tool_call)
+  local title = fmt("Proposed edits for `%s`:", vim.fn.fnamemodify(d.path, ":."))
   local from_lines = vim.split(d.old or "", "\n", { plain = true })
   local to_lines = vim.split(d.new or "", "\n", { plain = true })
-  local changed_lines = diff_utils.changed_lines(from_lines, to_lines)
-  local threshold = config.display.diff.threshold_for_chat
-  local threshold_met = threshold and threshold > 0 and changed_lines > 0 and changed_lines <= threshold
 
-  if threshold_met then
-    -- Show small diffs in the chat buffer
-    local diff_text = diff_utils.unified(from_lines, to_lines)
-    local prompt = fmt(
-      [[%s
-
-`````diff
-%s
-`````]],
-      base_prompt,
-      diff_text
-    )
-    return approve_in_chat(permission, choices, { title = "Proposed Edits", prompt = prompt })
-  elseif ui_utils.buf_is_active(chat.bufnr) then
-    -- If the chat is active, show the diff in the floating window
-    approve_in_chat(permission, choices, { title = "View Proposed Edits", prompt = base_prompt })
-    return open_diff_view(permission)
-  else
-    -- Otherwise, don't force the diff on the user, just show the approval
-    return approve_in_chat(permission, choices, { title = "View Proposed Edits", prompt = base_prompt })
-  end
+  local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
+  approval_prompt.present_diff({
+    chat_bufnr = chat.bufnr,
+    from_lines = from_lines,
+    to_lines = to_lines,
+    title = title,
+    approve = function(prompt_opts)
+      approve_in_chat(permission, choices, prompt_opts)
+    end,
+    open_diff_view = function()
+      open_diff_view(permission)
+    end,
+  })
 end
 
 return M

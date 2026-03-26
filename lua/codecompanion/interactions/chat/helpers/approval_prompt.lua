@@ -110,4 +110,28 @@ function M.request(chat, opts)
   return on_done
 end
 
+---Present the diff to the user
+---@param opts { chat_bufnr: number, from_lines: string[], to_lines: string[], title: string, approve: fun(prompt_opts: table), open_diff_view: fun() }
+function M.present_diff(opts)
+  local diff_utils = require("codecompanion.diff.utils")
+
+  local changed_lines = diff_utils.changed_lines(opts.from_lines, opts.to_lines)
+  local threshold = config.display.diff.threshold_for_chat
+  local threshold_met = threshold and threshold > 0 and changed_lines > 0 and changed_lines <= threshold
+
+  if threshold_met then
+    -- Show small diffs in the chat buffer
+    local diff_text = diff_utils.unified(opts.from_lines, opts.to_lines)
+    local prompt = fmt("`````diff\n%s\n`````", diff_text)
+    return opts.approve({ title = opts.title, prompt = prompt })
+  elseif ui_utils.buf_is_active(opts.chat_bufnr) then
+    -- If the chat is active, show the diff in the floating window
+    opts.approve({ title = opts.title, prompt = opts.title })
+    return opts.open_diff_view()
+  else
+    -- Otherwise, don't force the diff on the user, just show the approval
+    return opts.approve({ title = opts.title, prompt = opts.title })
+  end
+end
+
 return M
