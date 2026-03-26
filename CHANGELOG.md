@@ -1,5 +1,27 @@
 # Changelog
 
+## [19.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.6.0...v19.7.0) (2026-03-26)
+
+
+### Features
+
+* **acp:** add Cursor CLI adapter ([#2907](https://github.com/olimorris/codecompanion.nvim/issues/2907)) ([d5551b1](https://github.com/olimorris/codecompanion.nvim/commit/d5551b1aac60e164fb569eba422ea9b65cd2d6f4))
+* **acp:** add support for `session/list` and `session/load` ([#2910](https://github.com/olimorris/codecompanion.nvim/issues/2910)) ([d782bd1](https://github.com/olimorris/codecompanion.nvim/commit/d782bd1cc5fa365f0dc8a7cdc5dcb66877ab7212))
+* **acp:** support `session-info-update` ([#2911](https://github.com/olimorris/codecompanion.nvim/issues/2911)) ([03cab40](https://github.com/olimorris/codecompanion.nvim/commit/03cab4077d1b91af78edb58afc5954bd67004b28))
+* **adapters:** add cline_cli acp ([#2931](https://github.com/olimorris/codecompanion.nvim/issues/2931)) ([34ffd4b](https://github.com/olimorris/codecompanion.nvim/commit/34ffd4b9f96726b061dee57cb57380f06813ee0a))
+* **cli:** persistent prompt, history, slash commands ([#2922](https://github.com/olimorris/codecompanion.nvim/issues/2922)) ([e91c035](https://github.com/olimorris/codecompanion.nvim/commit/e91c03573ad466ce25a273694bf51b2cbb633f85))
+* **tools:** better tool approvals and removal of `vim.fn.confirm` ([#2917](https://github.com/olimorris/codecompanion.nvim/issues/2917)) ([0c361ec](https://github.com/olimorris/codecompanion.nvim/commit/0c361ec27738eb7f2e39a071b85b950f68244fb6))
+* **ui:** inline diff in chat ([#2934](https://github.com/olimorris/codecompanion.nvim/issues/2934)) ([d5fd611](https://github.com/olimorris/codecompanion.nvim/commit/d5fd611dfb0be28e047bf89235f3b28ebd22b58b))
+* **ui:** make acp tool calls cleaner ([#2904](https://github.com/olimorris/codecompanion.nvim/issues/2904)) ([cc0d298](https://github.com/olimorris/codecompanion.nvim/commit/cc0d298b6b7bdbdcfe48f7e70deb0e6215fe4d32))
+
+
+### Bug Fixes
+
+* **chat:** markdown parsing of images ([#2926](https://github.com/olimorris/codecompanion.nvim/issues/2926)) ([4830417](https://github.com/olimorris/codecompanion.nvim/commit/4830417353a5430002403f6751b027a56b595863))
+* **chat:** show tools on chat creation ([#2929](https://github.com/olimorris/codecompanion.nvim/issues/2929)) ([e010179](https://github.com/olimorris/codecompanion.nvim/commit/e010179d64538ce1fd88310d08b4697b356b17c8))
+* **tools:** send rejection reason to LLM ([#2924](https://github.com/olimorris/codecompanion.nvim/issues/2924)) ([dfb50b2](https://github.com/olimorris/codecompanion.nvim/commit/dfb50b21462b64ae1a917e21e69793dc412d92f2)), closes [#2916](https://github.com/olimorris/codecompanion.nvim/issues/2916)
+* **ui:** improve ACP tool call output ([#2912](https://github.com/olimorris/codecompanion.nvim/issues/2912)) ([9827dbd](https://github.com/olimorris/codecompanion.nvim/commit/9827dbdde55217e7b4185e744eae15f74e9c5e8b))
+
 ## [19.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.5.0...v19.6.0) (2026-03-18)
 
 
