@@ -158,15 +158,16 @@ local function sync_all_buffer_content(chat)
     return
   end
 
+  -- Build a set of context IDs already present in this cycle for O(1) duplicate checks
+  local seen = {}
+  for _, msg in ipairs(chat.messages) do
+    if msg.context and msg.context.id and msg._meta and msg._meta.cycle == chat.cycle then
+      seen[msg.context.id] = true
+    end
+  end
+
   for _, item in ipairs(synced) do
-    -- Don't add the item twice in the same cycle
-    local exists = false
-    vim.iter(chat.messages):each(function(msg)
-      if (msg.context and msg.context.id == item.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
-        exists = true
-      end
-    end)
-    if not exists then
+    if not seen[item.id] then
       require(item.source)
         .new({ Chat = chat })
         :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { sync_all = true })
@@ -827,7 +828,7 @@ function Chat:make_system_prompt_context()
     -- These can be slow-to-run or too complex for a one-liner. So wrap them in
     -- functions and use a metatable to handle the eval when needed.
     adapter = function()
-      return vim.deepcopy(self.adapter)
+      return adapters.make_safe(self.adapter)
     end,
     os = function()
       local machine = vim.uv.os_uname().sysname
@@ -1560,18 +1561,13 @@ function Chat:close()
   utils.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
   utils.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
 
-  table.remove(
-    _G.codecompanion_buffers,
-    vim.iter(_G.codecompanion_buffers):enumerate():find(function(_, v)
-      return v == self.bufnr
-    end)
-  )
-  table.remove(
-    _G.codecompanion_chat_metadata,
-    vim.iter(_G.codecompanion_chat_metadata):enumerate():find(function(_, v)
-      return v == self.bufnr
-    end)
-  )
+  for i = #_G.codecompanion_buffers, 1, -1 do
+    if _G.codecompanion_buffers[i] == self.bufnr then
+      table.remove(_G.codecompanion_buffers, i)
+      break
+    end
+  end
+  _G.codecompanion_chat_metadata[self.bufnr] = nil
   chats[self.bufnr] = nil
   registry.remove(self.bufnr)
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
