@@ -1,6 +1,5 @@
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
-local diff_utils = require("codecompanion.diff.utils")
 local ui_utils = require("codecompanion.utils.ui")
 
 local fmt = string.format
@@ -136,32 +135,23 @@ function M.review(opts)
     return opts.apply()
   end
 
-  local changed_lines = diff_utils.changed_lines(opts.from_lines, opts.to_lines)
-  local threshold = config.display.diff.threshold_for_chat
-  local threshold_met = threshold and threshold > 0 and changed_lines > 0 and changed_lines <= threshold
+  opts.title = fmt("Proposed edits for `%s`:", opts.title)
 
-  if threshold_met then
-    -- Show small diffs in the chat buffer
-    local diff_text = diff_utils.unified(opts.from_lines, opts.to_lines)
-    opts.title = "Proposed Edits"
-    opts.prompt = fmt("`%s`\n\n`````diff\n%s\n`````", opts.title, diff_text)
-
-    return approve_in_chat(opts.chat, opts)
-  elseif ui_utils.buf_is_active(opts.chat_bufnr) then
-    -- If the chat is active, show the diff in the floating window
-    opts.title = "View Proposed Edits"
-    opts.prompt = opts.title
-    approve_in_chat(opts.chat, opts)
-
-    opts.title = opts.title
-    return open_diff_view(opts)
-  else
-    -- Otherwise, don't force the diff on the user, just show the approval
-    opts.title = "View Proposed Edits"
-    opts.prompt = opts.title
-
-    return approve_in_chat(opts.chat, opts)
-  end
+  local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
+  approval_prompt.present_diff({
+    chat_bufnr = opts.chat_bufnr,
+    from_lines = opts.from_lines,
+    to_lines = opts.to_lines,
+    title = opts.title,
+    approve = function(prompt_opts)
+      opts.prompt = prompt_opts.prompt
+      opts.title = prompt_opts.title
+      approve_in_chat(opts.chat, opts)
+    end,
+    open_diff_view = function()
+      open_diff_view(opts)
+    end,
+  })
 end
 
 return M
