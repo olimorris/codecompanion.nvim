@@ -41,7 +41,9 @@ T["MCP"] = MiniTest.new_set()
 
 T["MCP"]["start() starts and initializes the client once"] = function()
   local transformed_config = child.lua([[
-    return MCP.transform_to_acp()
+    local result = MCP.transform_to_acp()
+    table.sort(result, function(a, b) return a.name < b.name end)
+    return result
   ]])
 
   h.eq({
