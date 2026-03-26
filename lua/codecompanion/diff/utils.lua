@@ -234,4 +234,35 @@ function M.split_words(str)
   return ret
 end
 
+---Count the number of changed lines (additions + deletions)
+---@param from_lines string[]
+---@param to_lines string[]
+---@return number
+function M.changed_lines(from_lines, to_lines)
+  local hunks = require("codecompanion.diff")._diff(from_lines, to_lines)
+
+  local count = 0
+  for _, hunk in ipairs(hunks) do
+    count = count + hunk[2] + hunk[4]
+  end
+
+  return count
+end
+
+---Generate a unified diff string suitable for inline display
+---@param from_lines string[]
+---@param to_lines string[]
+---@return string
+function M.unified(from_lines, to_lines)
+  ---@diagnostic disable-next-line: deprecated
+  local diff_fn = vim.text.diff or vim.diff
+  local result =
+    diff_fn(table.concat(from_lines, "\n"), table.concat(to_lines, "\n"), { result_type = "unified", ctxlen = 3 })
+
+  -- Strip the newline marker
+  result = (result or ""):gsub("\n?\\ No newline at end of file%s*", ""):gsub("\n$", "")
+
+  return result
+end
+
 return M
