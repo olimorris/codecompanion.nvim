@@ -301,4 +301,61 @@ T["Keymaps"]["change_adapter"]["select_model ensures an ACP session before showi
   h.eq(result.choice_count, 2)
 end
 
+T["Keymaps"]["change_adapter"]["select_model bootstraps an ACP session and refreshes chat metadata even when the picker is cancelled"] = function()
+  local result = child.lua([[
+      h.setup_plugin()
+      _G.ensure_acp_session_calls = 0
+
+      local helpers = require("codecompanion.interactions.chat.helpers")
+      local original_ensure_acp_session = helpers.ensure_acp_session
+      helpers.ensure_acp_session = function(chat)
+        _G.ensure_acp_session_calls = _G.ensure_acp_session_calls + 1
+        return true
+      end
+
+      local chat = {
+        adapter = { type = "acp" },
+        acp_connection = {
+          get_models = function()
+            return {
+              currentModelId = "opus",
+              availableModels = {
+                { modelId = "default", name = "Default" },
+                { modelId = "opus", name = "Opus" },
+              },
+            }
+          end,
+        },
+        metadata_updates = 0,
+        model_changes = 0,
+        update_metadata = function(self)
+          self.metadata_updates = self.metadata_updates + 1
+        end,
+        change_model = function(self)
+          self.model_changes = self.model_changes + 1
+        end,
+      }
+
+      local original_select = vim.ui.select
+      vim.ui.select = function(items, opts, cb)
+        cb(nil)
+      end
+
+      change_adapter.select_model(chat)
+
+      vim.ui.select = original_select
+      helpers.ensure_acp_session = original_ensure_acp_session
+
+      return {
+        ensured = _G.ensure_acp_session_calls,
+        metadata_updates = chat.metadata_updates,
+        model_changes = chat.model_changes,
+      }
+    ]])
+
+  h.eq(result.ensured, 1)
+  h.eq(result.metadata_updates, 1)
+  h.eq(result.model_changes, 0)
+end
+
 return T

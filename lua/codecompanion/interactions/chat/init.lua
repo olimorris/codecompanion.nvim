@@ -757,6 +757,9 @@ function Chat:change_model(args)
     self:set_system_prompt()
     self:apply_settings()
   elseif self.adapter.type == "acp" then
+    if not helpers.ensure_acp_session(self) then
+      return self
+    end
     apply()
   end
 

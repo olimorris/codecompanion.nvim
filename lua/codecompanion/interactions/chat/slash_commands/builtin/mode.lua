@@ -26,6 +26,9 @@ function SlashCommand:execute()
     end
     return utils.notify("No ACP session available", vim.log.levels.WARN)
   end
+  if Chat.update_metadata then
+    Chat:update_metadata()
+  end
 
   local modes = Chat.acp_connection:get_modes()
   if not modes or not modes.availableModes then
@@ -71,11 +74,6 @@ function SlashCommand:execute()
         end
       end
       utils.notify("Switched to " .. mode_name .. " mode", vim.log.levels.INFO)
-
-      -- Update the chat metadata display
-      if Chat.update_metadata then
-        Chat:update_metadata()
-      end
 
       utils.fire("ChatACPModeChanged", {
         session_id = Chat.acp_connection.session_id,

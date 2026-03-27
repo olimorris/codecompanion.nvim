@@ -1,3 +1,4 @@
+local helpers = require("codecompanion.interactions.chat.helpers")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.SlashCommand.Resume: CodeCompanion.SlashCommand
@@ -102,12 +103,17 @@ function SlashCommand:execute()
     })
 
     if ok then
-      require("codecompanion.interactions.chat.acp.handler").new(Chat):ensure_session()
+      -- relink the current chat buffer so ACP commands resolve to the resumed session
+      helpers.link_buffer_to_acp_session(Chat)
 
       require("codecompanion.interactions.chat.acp.render").restore_session(Chat, updates)
 
       if selected.title then
         Chat:set_title(selected.title)
+      end
+
+      if Chat.update_metadata then
+        Chat:update_metadata()
       end
 
       utils.notify("Resumed session: " .. (selected.title or selected.sessionId), vim.log.levels.INFO)

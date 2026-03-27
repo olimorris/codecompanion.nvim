@@ -165,6 +165,9 @@ function M.select_model(chat)
     if not helpers.ensure_acp_session(chat) then
       return log:debug("No ACP session available")
     end
+    if chat.update_metadata then
+      chat:update_metadata()
+    end
 
     ---@diagnostic disable-next-line: param-type-mismatch
     local acp_models = M.list_acp_models(chat.acp_connection)

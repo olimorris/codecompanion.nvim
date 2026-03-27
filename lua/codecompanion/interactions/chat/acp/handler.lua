@@ -90,8 +90,7 @@ function ACPHandler:ensure_session()
   end
 
   -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
-  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
-  acp_commands.link_buffer_to_session(self.chat.bufnr, conn.session_id)
+  require("codecompanion.interactions.chat.helpers").link_buffer_to_acp_session(self.chat)
 
   return true
 end
