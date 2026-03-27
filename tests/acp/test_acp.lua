@@ -189,6 +189,128 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
   h.eq(result.session_id, "prev-session")
 end
 
+T["ACP Connection"]["parses and stores modes and models returned by session/load"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    connection.session_id = "prev-session"
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return {
+          modes = {
+            currentModeId = "ask",
+            availableModes = {
+              { id = "ask", name = "Ask" },
+              { id = "code", name = "Code" },
+            },
+          },
+          models = {
+            currentModelId = "default",
+            availableModels = {
+              { modelId = "default", name = "Default" },
+              { modelId = "opus", name = "Opus" },
+            },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      current_mode = connection._modes and connection._modes.currentModeId or nil,
+      mode_count = connection._modes and #connection._modes.availableModes or 0,
+      current_model = connection._models and connection._models.currentModelId or nil,
+      model_count = connection._models and #connection._models.availableModels or 0,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.current_mode, "ask")
+  h.eq(result.mode_count, 2)
+  h.eq(result.current_model, "default")
+  h.eq(result.model_count, 2)
+end
+
+T["ACP Connection"]["clears cached models when session/load returns no models"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    connection.session_id = "prev-session"
+    connection._models = {
+      currentModelId = "stale",
+      availableModels = {
+        { modelId = "stale", name = "Stale" },
+      },
+    }
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return {
+          modes = {
+            currentModeId = "ask",
+            availableModes = {
+              { id = "ask", name = "Ask" },
+            },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      has_models = connection._models ~= nil,
+      current_mode = connection._modes and connection._modes.currentModeId or nil,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.has_models, false)
+  h.eq(result.current_mode, "ask")
+end
+
+T["ACP Connection"]["clears cached modes when session/load returns no modes"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    connection.session_id = "prev-session"
+    connection._modes = {
+      currentModeId = "stale",
+      availableModes = {
+        { id = "stale", name = "Stale" },
+      },
+    }
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return {
+          models = {
+            currentModelId = "default",
+            availableModels = {
+              { modelId = "default", name = "Default" },
+            },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      has_modes = connection._modes ~= nil,
+      current_model = connection._models and connection._models.currentModelId or nil,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.has_modes, false)
+  h.eq(result.current_model, "default")
+end
+
 T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
   local result = child.lua([[
     local calls = {}
@@ -213,6 +335,100 @@ T["ACP Connection"]["falls back to session/new if session/load fails"] = functio
   h.eq(true, vim.tbl_contains(result.called, "session/load"))
   h.eq(true, vim.tbl_contains(result.called, "session/new"))
   h.eq(result.session_id, "new-session")
+end
+
+T["ACP Connection"]["clears cached models when session/load falls back and session/new returns no models"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    connection.session_id = "prev-session"
+    connection._modes = {
+      currentModeId = "stale",
+      availableModes = {
+        { id = "stale", name = "Stale" },
+      },
+    }
+    connection._models = {
+      currentModelId = "stale",
+      availableModels = {
+        { modelId = "stale", name = "Stale" },
+      },
+    }
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return nil
+      elseif method == "session/new" then
+        return {
+          sessionId = "new-session",
+          modes = {
+            currentModeId = "ask",
+            availableModes = {
+              { id = "ask", name = "Ask" },
+            },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      session_id = connection.session_id,
+      current_mode = connection._modes and connection._modes.currentModeId or nil,
+      has_models = connection._models ~= nil,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.session_id, "new-session")
+  h.eq(result.current_mode, "ask")
+  h.eq(result.has_models, false)
+end
+
+T["ACP Connection"]["clears cached modes when session/load falls back and session/new returns no modes"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    connection.session_id = "prev-session"
+    connection._modes = {
+      currentModeId = "stale",
+      availableModes = {
+        { id = "stale", name = "Stale" },
+      },
+    }
+
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return nil
+      elseif method == "session/new" then
+        return {
+          sessionId = "new-session",
+          models = {
+            currentModelId = "default",
+            availableModels = {
+              { modelId = "default", name = "Default" },
+            },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      session_id = connection.session_id,
+      has_modes = connection._modes ~= nil,
+      current_model = connection._models and connection._models.currentModelId or nil,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.session_id, "new-session")
+  h.eq(result.has_modes, false)
+  h.eq(result.current_model, "default")
 end
 
 T["ACP Responses"] = new_set()

@@ -85,11 +85,7 @@ function ACPHandler:ensure_session()
     return false
   end
 
-  if conn.session_id then
-    return true
-  end
-
-  if not conn:ensure_session() then
+  if not conn.session_id and not conn:ensure_session() then
     return false
   end
 

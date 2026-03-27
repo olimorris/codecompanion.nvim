@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
@@ -144,7 +145,7 @@ function M.update_system_prompt(chat)
   end
 end
 
----Handle model selection for HTTP adapters
+---Handle model selection for HTTP and ACP adapters
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function M.select_model(chat)
@@ -161,11 +162,15 @@ function M.select_model(chat)
     current_model = models_list[1]
   end
   if adapter_type == "acp" then
+    if not helpers.ensure_acp_session(chat) then
+      return log:debug("No ACP session available")
+    end
+
     ---@diagnostic disable-next-line: param-type-mismatch
     local acp_models = M.list_acp_models(chat.acp_connection)
     models_list = acp_models and acp_models.availableModels or nil
     if not acp_models or not models_list then
-      return log:debug("No models to select for the HTTP adapter")
+      return log:debug("No models to select for the ACP adapter")
     end
     current_model = acp_models.currentModelId
   end

@@ -324,6 +324,44 @@ T["Chat"]["can load default tools"] = function()
   )
 end
 
+T["Chat"]["change_adapter creates an ACP connection without creating a session"] = function()
+  local result = child.lua([[
+    local calls = {
+      create = 0,
+      ensure = 0,
+    }
+
+    local helpers = require("codecompanion.interactions.chat.helpers")
+    local original_create = helpers.create_acp_connection
+    local original_ensure = helpers.ensure_acp_session
+
+    helpers.create_acp_connection = function(chat)
+      calls.create = calls.create + 1
+      return true
+    end
+
+    helpers.ensure_acp_session = function(chat)
+      calls.ensure = calls.ensure + 1
+      return true
+    end
+
+    _G.chat:change_adapter("test_acp")
+
+    helpers.create_acp_connection = original_create
+    helpers.ensure_acp_session = original_ensure
+
+    return {
+      adapter_type = _G.chat.adapter.type,
+      create_calls = calls.create,
+      ensure_calls = calls.ensure,
+    }
+  ]])
+
+  h.eq("acp", result.adapter_type)
+  h.eq(1, result.create_calls)
+  h.eq(0, result.ensure_calls)
+end
+
 T["Chat"]["ftplugin window options override plugin defaults"] = function()
   -- This test verifies that user's after/ftplugin/codecompanion.lua can override
   -- the plugin's default window options. This ensures setting filetype

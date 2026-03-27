@@ -102,8 +102,7 @@ function SlashCommand:execute()
     })
 
     if ok then
-      local acp_commands = require("codecompanion.interactions.chat.acp.commands")
-      acp_commands.link_buffer_to_session(Chat.bufnr, Chat.acp_connection.session_id)
+      require("codecompanion.interactions.chat.acp.handler").new(Chat):ensure_session()
 
       require("codecompanion.interactions.chat.acp.render").restore_session(Chat, updates)
 

@@ -363,12 +363,26 @@ function Connection:_establish_session()
   end
 
   if self.session_id and can_load then
-    local ok = self:send_rpc_request(
+    local loaded_session = self:send_rpc_request(
       METHODS.SESSION_LOAD,
       vim.tbl_extend("force", session_args, { sessionId = self.session_id })
     )
-    if ok == nil then
+    if loaded_session == nil then
+      log:debug("[acp::_establish_session] session/load failed for `%s`, falling back to session/new", self.session_id)
       can_load = false
+    else
+      self._modes = loaded_session.modes
+      if self._modes then
+        log:debug("[acp::_establish_session] Available modes from session/load: %s", loaded_session.modes)
+      else
+        log:debug("[acp::_establish_session] session/load returned no modes, clearing cached modes")
+      end
+      self._models = loaded_session.models
+      if self._models then
+        log:debug("[acp::_establish_session] Available models from session/load: %s", loaded_session.models)
+      else
+        log:debug("[acp::_establish_session] session/load returned no models, clearing cached models")
+      end
     end
   end
 
@@ -380,13 +394,17 @@ function Connection:_establish_session()
     end
     self.session_id = new_session.sessionId
 
-    if new_session.modes then
-      self._modes = new_session.modes
+    self._modes = new_session.modes
+    if self._modes then
       log:debug("[acp::_establish_session] Available modes: %s", new_session.modes)
+    else
+      log:debug("[acp::_establish_session] session/new returned no modes, clearing cached modes")
     end
-    if new_session.models then
-      self._models = new_session.models
+    self._models = new_session.models
+    if self._models then
       log:debug("[acp::_establish_session] Available models: %s", new_session.models)
+    else
+      log:debug("[acp::_establish_session] session/new returned no models, clearing cached models")
     end
   end
 
