@@ -111,6 +111,13 @@ function SlashCommand:execute()
         Chat:set_title(selected.title)
       end
 
+      utils.fire("ChatACPResumed", {
+        bufnr = Chat.bufnr,
+        id = Chat.id,
+        session_id = Chat.acp_connection.session_id,
+        title = Chat.title,
+      })
+
       utils.notify("Resumed session: " .. (selected.title or selected.sessionId), vim.log.levels.INFO)
     else
       utils.notify("Failed to load session", vim.log.levels.ERROR)

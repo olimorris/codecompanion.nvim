@@ -12,6 +12,7 @@ The events that are fired from within the plugin are:
 
 - `CodeCompanionACPSessionPre` - Fired after ACP authentication completes but before a new session is established; allows subscribers to modify the connection (e.g. inject MCP servers) synchronously
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
+- `CodeCompanionChatACPResumed` - Fired after an ACP session has been resumed into the chat buffer (e.g. through `session/load`)
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
