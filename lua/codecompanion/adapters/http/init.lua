@@ -119,16 +119,19 @@ end
 ---@field url string The URL of the generative AI service to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
+---
+---@field body table Additional body parameters to pass to the request
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
----@field body table Additional body parameters to pass to the request
----@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
----@field opts? table Additional options for the adapter
----@field model? {name: string, formatted_name?: string, vendor?: string, opts: table, info?: table } The model to use for the request
+---
 ---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
----@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field meta? { context_window: number } Data about the selected model
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
+---@field model? { name: string, formatted_name?: string, vendor?: string, opts: table, info?: table } The model to use for the request
+---@field opts? table Additional options for the adapter
+---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field temp? table A table to store temporary values which are not passed to the request
 
 ---@class CodeCompanion.HTTPAdapter.Safe
 ---@field name string The name of the adapter
