@@ -608,7 +608,7 @@ return {
           meta = { context_window = 400000 },
           opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
-        -- ChatGPT mdoels
+        -- ChatGPT models
         ["gpt-5-chat-latest"] = {
           formatted_name = "GPT-5 Chat",
           opts = { has_function_calling = true, has_vision = true },
