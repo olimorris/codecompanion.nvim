@@ -1,5 +1,26 @@
 # Changelog
 
+## [19.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.7.0...v19.8.0) (2026-03-28)
+
+
+### Features
+
+* **acp:** add acp session events ([#2938](https://github.com/olimorris/codecompanion.nvim/issues/2938)) ([754979b](https://github.com/olimorris/codecompanion.nvim/commit/754979bd326ab144b4a30dc99049518878efe256))
+* **acp:** add restore event on successful `session/load` ([#2950](https://github.com/olimorris/codecompanion.nvim/issues/2950)) ([78203cc](https://github.com/olimorris/codecompanion.nvim/commit/78203ccaa36469b4a212123c7d532e2367ad9dd4))
+
+
+### Bug Fixes
+
+* **acp:** file reads/writes with empty sessionId ([#2947](https://github.com/olimorris/codecompanion.nvim/issues/2947)) ([d4532d8](https://github.com/olimorris/codecompanion.nvim/commit/d4532d89fe23a59b2f5e06f58669ab548be44b86))
+* **acp:** terminate processes correctly ([#2949](https://github.com/olimorris/codecompanion.nvim/issues/2949)) ([9553570](https://github.com/olimorris/codecompanion.nvim/commit/9553570146adf37fac501863d0cc5f010616c8a5)), closes [#2944](https://github.com/olimorris/codecompanion.nvim/issues/2944)
+* **ui:** file edit approval message ([#2939](https://github.com/olimorris/codecompanion.nvim/issues/2939)) ([8f4a3d3](https://github.com/olimorris/codecompanion.nvim/commit/8f4a3d3450e2223fec8747465be16a9f821f02b4))
+* **ui:** stop duplicate approval messages ([#2943](https://github.com/olimorris/codecompanion.nvim/issues/2943)) ([9809e46](https://github.com/olimorris/codecompanion.nvim/commit/9809e463e786dafb8e0c86093d5648f1fb40769f))
+
+
+### Performance Improvements
+
+* **chat:** improve the chat buffer ([#2941](https://github.com/olimorris/codecompanion.nvim/issues/2941)) ([f0c6487](https://github.com/olimorris/codecompanion.nvim/commit/f0c6487a0c0b750b29e7e602ebc8a2062aef0ba2))
+
 ## [19.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.6.0...v19.7.0) (2026-03-26)
 
 
