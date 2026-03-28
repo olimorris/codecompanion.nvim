@@ -142,7 +142,7 @@ function Connection:connect_and_authenticate()
     self._initialized = true
 
     api.nvim_create_autocmd("VimLeavePre", {
-      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
+      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = false }),
       callback = function()
         pcall(function()
           return self:disconnect()
