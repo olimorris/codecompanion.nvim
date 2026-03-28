@@ -1,4 +1,4 @@
-local log = require("codecompanion.utils.log")
+local helpers = require("codecompanion.interactions.chat.helpers")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.SlashCommand.Mode: CodeCompanion.SlashCommand
@@ -20,8 +20,14 @@ end
 function SlashCommand:execute()
   local Chat = self.Chat
 
-  if not Chat.acp_connection then
-    return utils.notify("No ACP connection available", vim.log.levels.WARN)
+  if not helpers.ensure_acp_session(Chat) then
+    if not Chat.acp_connection then
+      return utils.notify("No ACP connection available", vim.log.levels.WARN)
+    end
+    return utils.notify("No ACP session available", vim.log.levels.WARN)
+  end
+  if Chat.update_metadata then
+    Chat:update_metadata()
   end
 
   local modes = Chat.acp_connection:get_modes()
@@ -68,11 +74,6 @@ function SlashCommand:execute()
         end
       end
       utils.notify("Switched to " .. mode_name .. " mode", vim.log.levels.INFO)
-
-      -- Update the chat metadata display
-      if Chat.update_metadata then
-        Chat:update_metadata()
-      end
 
       utils.fire("ChatACPModeChanged", {
         session_id = Chat.acp_connection.session_id,

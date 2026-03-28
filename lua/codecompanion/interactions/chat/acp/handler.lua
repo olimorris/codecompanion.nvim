@@ -85,17 +85,12 @@ function ACPHandler:ensure_session()
     return false
   end
 
-  if conn.session_id then
-    return true
-  end
-
-  if not conn:ensure_session() then
+  if not conn.session_id and not conn:ensure_session() then
     return false
   end
 
   -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
-  local acp_commands = require("codecompanion.interactions.chat.acp.commands")
-  acp_commands.link_buffer_to_session(self.chat.bufnr, conn.session_id)
+  require("codecompanion.interactions.chat.helpers").link_buffer_to_acp_session(self.chat)
 
   return true
 end

@@ -324,6 +324,102 @@ T["Chat"]["can load default tools"] = function()
   )
 end
 
+T["Chat"]["change_adapter creates an ACP connection without creating a session"] = function()
+  local result = child.lua([[
+    local calls = {
+      create = 0,
+      ensure = 0,
+    }
+
+    local helpers = require("codecompanion.interactions.chat.helpers")
+    local original_create = helpers.create_acp_connection
+    local original_ensure = helpers.ensure_acp_session
+
+    helpers.create_acp_connection = function(chat)
+      calls.create = calls.create + 1
+      return true
+    end
+
+    helpers.ensure_acp_session = function(chat)
+      calls.ensure = calls.ensure + 1
+      return true
+    end
+
+    _G.chat:change_adapter("test_acp")
+
+    helpers.create_acp_connection = original_create
+    helpers.ensure_acp_session = original_ensure
+
+    return {
+      adapter_type = _G.chat.adapter.type,
+      create_calls = calls.create,
+      ensure_calls = calls.ensure,
+    }
+  ]])
+
+  h.eq("acp", result.adapter_type)
+  h.eq(1, result.create_calls)
+  h.eq(0, result.ensure_calls)
+end
+
+T["Chat"]["change_model ensures an ACP session before setting the ACP model"] = function()
+  local result = child.lua([[
+    local calls = {
+      create = 0,
+      ensure = 0,
+      set_model = 0,
+    }
+
+    local helpers = require("codecompanion.interactions.chat.helpers")
+    local adapters = require("codecompanion.adapters")
+    local original_create = helpers.create_acp_connection
+    local original_ensure = helpers.ensure_acp_session
+    local original_set_model = adapters.set_model
+
+    helpers.create_acp_connection = function(chat)
+      calls.create = calls.create + 1
+      return true
+    end
+
+    helpers.ensure_acp_session = function(chat)
+      calls.ensure = calls.ensure + 1
+      chat.acp_connection = chat.acp_connection or {}
+      chat.acp_connection.session_id = "test-session-123"
+      return true
+    end
+
+    adapters.set_model = function(args)
+      calls.set_model = calls.set_model + 1
+      calls.model = args.model
+      calls.session_id = args.acp_connection and args.acp_connection.session_id or nil
+      return true
+    end
+
+    _G.chat:change_adapter("test_acp")
+    _G.chat:change_model({ model = "opus" })
+
+    helpers.create_acp_connection = original_create
+    helpers.ensure_acp_session = original_ensure
+    adapters.set_model = original_set_model
+
+    return {
+      adapter_type = _G.chat.adapter.type,
+      create_calls = calls.create,
+      ensure_calls = calls.ensure,
+      set_model_calls = calls.set_model,
+      model = calls.model,
+      session_id = calls.session_id,
+    }
+  ]])
+
+  h.eq("acp", result.adapter_type)
+  h.eq(1, result.create_calls)
+  h.eq(1, result.ensure_calls)
+  h.eq(1, result.set_model_calls)
+  h.eq("opus", result.model)
+  h.eq("test-session-123", result.session_id)
+end
+
 T["Chat"]["ftplugin window options override plugin defaults"] = function()
   -- This test verifies that user's after/ftplugin/codecompanion.lua can override
   -- the plugin's default window options. This ensures setting filetype

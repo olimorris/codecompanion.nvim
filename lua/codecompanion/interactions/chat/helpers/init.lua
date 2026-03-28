@@ -13,9 +13,36 @@ local fmt = string.format
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return boolean
 function M.create_acp_connection(chat)
-  local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
-  local handler = ACPHandler.new(chat)
-  return handler:ensure_connection()
+  return require("codecompanion.interactions.chat.acp.handler").new(chat):ensure_connection()
+end
+
+---Ensure the chat has an ACP connection and session
+---@param chat CodeCompanion.Chat The chat instance
+---@return boolean
+function M.ensure_acp_session(chat)
+  local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+  if not handler:ensure_connection() then
+    return false
+  end
+  if not handler:ensure_session() then
+    return false
+  end
+  return true
+end
+
+---Link the chat buffer to the active ACP session
+---@param chat CodeCompanion.Chat The chat instance
+---@return boolean
+function M.link_buffer_to_acp_session(chat)
+  if not chat.acp_connection or not chat.acp_connection.session_id then
+    return false
+  end
+
+  require("codecompanion.interactions.chat.acp.commands").link_buffer_to_session(
+    chat.bufnr,
+    chat.acp_connection.session_id
+  )
+  return true
 end
 
 ---Format the given role without any separator

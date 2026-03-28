@@ -157,6 +157,55 @@ T["ACPHandler"]["establishes connection when needed"] = function()
   h.is_true(result.request_sent)
 end
 
+T["ACPHandler"]["links the buffer when a session already exists"] = function()
+  local result = child.lua([[
+    local linked = {}
+
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = {
+          form_messages = function(adapter, messages)
+            return vim.tbl_map(function(msg)
+              return { type = "text", text = msg.content }
+            end, messages)
+          end
+        }
+      }
+    })
+
+    chat.acp_connection = {
+      session_id = "existing-session",
+      ensure_session = function()
+        error("ensure_session should not be called when the session already exists")
+      end,
+    }
+
+    package.loaded["codecompanion.interactions.chat.acp.commands"] = {
+      link_buffer_to_session = function(bufnr, session_id)
+        linked.bufnr = bufnr
+        linked.session_id = session_id
+      end,
+    }
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    return {
+      ok = handler:ensure_session(),
+      linked_bufnr = linked.bufnr,
+      linked_session_id = linked.session_id,
+      bufnr = chat.bufnr,
+    }
+  ]])
+
+  h.is_true(result.ok)
+  h.eq(result.bufnr, result.linked_bufnr)
+  h.eq("existing-session", result.linked_session_id)
+end
+
 T["ACPHandler"]["handles streaming message chunks"] = function()
   local result = child.lua([[
     local chat = h.setup_chat_buffer({}, {
