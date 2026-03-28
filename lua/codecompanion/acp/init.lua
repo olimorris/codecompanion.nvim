@@ -142,7 +142,7 @@ function Connection:connect_and_authenticate()
     self._initialized = true
 
     api.nvim_create_autocmd("VimLeavePre", {
-      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = true }),
+      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = false }),
       callback = function()
         pcall(function()
           return self:disconnect()
@@ -759,11 +759,11 @@ function Connection:write_message(data)
   return true
 end
 
----Check if params contain a mismatched sessionId
+---Check if params target the active session
 ---@param params table
----@return boolean valid true if sessionId matches or is absent
+---@return boolean valid true if an active session exists and sessionId matches it
 function Connection:_has_valid_session_id(params)
-  return not params.sessionId or not self.session_id or params.sessionId == self.session_id
+  return self.session_id ~= nil and params.sessionId == self.session_id
 end
 
 ---Handle fs/read_text_file requests

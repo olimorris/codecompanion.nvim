@@ -126,11 +126,11 @@ function M.present_diff(opts)
     return opts.approve({ title = opts.title, prompt = prompt })
   elseif ui_utils.buf_is_active(opts.chat_bufnr) then
     -- If the chat is active, show the diff in the floating window
-    opts.approve({ title = opts.title, prompt = opts.title })
+    opts.approve({ title = opts.title })
     return opts.open_diff_view()
   else
     -- Otherwise, don't force the diff on the user, just show the approval
-    return opts.approve({ title = opts.title, prompt = opts.title })
+    return opts.approve({ title = opts.title })
   end
 end
 

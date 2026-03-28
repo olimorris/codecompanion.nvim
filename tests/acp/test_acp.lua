@@ -446,6 +446,37 @@ T["ACP Responses"]["fs/read_text_file rejects invalid sessionId"] = function()
   h.eq(result.error.code, -32602)
 end
 
+T["ACP Responses"]["fs/read_text_file rejects requests without an active session"] = function()
+  local result = child.lua([[
+    local called = false
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
+      read_text_file = function(path)
+        called = true
+        return true, "should_not_be_called"
+      end
+    }
+    local connection = create_test_connection()
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+    local req = vim.json.encode({
+      jsonrpc = "2.0", id = 61, method = "fs/read_text_file",
+      params = { sessionId = "missing-session", path = "/tmp/x" }
+    })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+    return {
+      called = called,
+      reply = vim.json.decode(sent[#sent]),
+    }
+  ]])
+
+  h.is_false(result.called)
+  h.eq(result.reply.id, 61)
+  h.eq(result.reply.error.code, -32602)
+end
+
 T["ACP Responses"]["fs/write_text_file and responds with null"] = function()
   local result = child.lua([[
     local writes = {}
@@ -531,6 +562,47 @@ T["ACP Responses"]["fs/write_text_file rejects invalid sessionId"] = function()
   -- JSON-RPC error response expected
   h.eq(type(result[1].error), "table")
   h.eq(result[1].error.code, -32602)
+end
+
+T["ACP Responses"]["fs/write_text_file rejects requests without an active session"] = function()
+  local result = child.lua([[
+    local called = false
+    package.loaded["codecompanion.interactions.chat.acp.fs"] = {
+      write_text_file = function(path, content)
+        called = true
+        return true
+      end
+    }
+
+    local connection = create_test_connection()
+
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 71,
+      method = "fs/write_text_file",
+      params = {
+        sessionId = "missing-session",
+        path = "/tmp/cc_write_bad.lua",
+        content = "nope",
+      }
+    })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+
+    return {
+      called = called,
+      reply = vim.json.decode(sent[#sent]),
+    }
+  ]])
+
+  h.is_false(result.called)
+  h.eq(result.reply.id, 71)
+  h.eq(result.reply.error.code, -32602)
 end
 
 T["ACP Responses"]["fs/write_text_file failure returns JSON-RPC error"] = function()
