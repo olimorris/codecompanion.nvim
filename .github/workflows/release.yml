@@ -18,3 +18,22 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           release-type: simple
+
+  luarocks-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload to LuaRocks
+        uses: nvim-neorocks/luarocks-tag-release@v7
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+        with:
+          name: codecompanion.nvim
+          version: scm
+          dependencies: |
+            plenary.nvim
+          summary: "LLM-powered coding assistance for Neovim"
+          detailed_description: "CodeCompanion is a Neovim plugin which enables you to code with AI, using LLMs and agents, in Neovim."
+          labels: |
+            neovim
