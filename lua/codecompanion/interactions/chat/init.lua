@@ -158,15 +158,16 @@ local function sync_all_buffer_content(chat)
     return
   end
 
+  -- Build a set of context IDs already present in this cycle for O(1) duplicate checks
+  local seen = {}
+  for _, msg in ipairs(chat.messages) do
+    if msg.context and msg.context.id and msg._meta and msg._meta.cycle == chat.cycle then
+      seen[msg.context.id] = true
+    end
+  end
+
   for _, item in ipairs(synced) do
-    -- Don't add the item twice in the same cycle
-    local exists = false
-    vim.iter(chat.messages):each(function(msg)
-      if (msg.context and msg.context.id == item.id) and (msg._meta and msg._meta.cycle == chat.cycle) then
-        exists = true
-      end
-    end)
-    if not exists then
+    if not seen[item.id] then
       require(item.source)
         .new({ Chat = chat })
         :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { sync_all = true })
@@ -827,7 +828,7 @@ function Chat:make_system_prompt_context()
     -- These can be slow-to-run or too complex for a one-liner. So wrap them in
     -- functions and use a metatable to handle the eval when needed.
     adapter = function()
-      return vim.deepcopy(self.adapter)
+      return adapters.make_safe(self.adapter)
     end,
     os = function()
       local machine = vim.uv.os_uname().sysname
@@ -1168,7 +1169,9 @@ function Chat:submit(opts)
       return log:warn("No messages to submit")
     end
 
-    if self:dispatch_cancellable("on_before_submit", { adapter = adapters.make_safe(self.adapter) }) then
+    local safe_adapter = adapters.make_safe(self.adapter)
+
+    if self:dispatch_cancellable("on_before_submit", { adapter = safe_adapter }) then
       log:info("Chat submission prevented by on_before_submit callback")
       return self:restore()
     end
@@ -1180,7 +1183,7 @@ function Chat:submit(opts)
       local chat_opts = config.interactions.chat.opts
       if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
         message_to_submit.content =
-          chat_opts.prompt_decorator(message_to_submit.content, adapters.make_safe(self.adapter), self.buffer_context)
+          chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
       end
       self:add_message({
         role = config.constants.USER_ROLE,
@@ -1211,8 +1214,18 @@ function Chat:submit(opts)
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
   end
 
+  -- Shallow-copy each message so map_roles can mutate role without affecting self.messages
+  local shallow_messages = {}
+  for i, msg in ipairs(self.messages) do
+    local copy = {}
+    for k, v in pairs(msg) do
+      copy[k] = v
+    end
+    shallow_messages[i] = copy
+  end
+
   local payload = {
-    messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
+    messages = self.adapter:map_roles(shallow_messages),
     tools = (not vim.tbl_isempty(self.tool_registry.schemas) and { self.tool_registry.schemas } or {}),
   }
 
@@ -1386,50 +1399,45 @@ function Chat:check_context()
     end, group_config.tools or {})
   end
 
-  local groups_in_chat = {}
+  -- Build a set of IDs present in the chat buffer for O(1) lookups
+  local context_set = {}
   for _, id in ipairs(context_in_chat) do
+    context_set[id] = true
     local group_name = id:match("<group>(.*)</group>")
     if group_name and vim.trim(group_name) ~= "" then
-      table.insert(groups_in_chat, group_name)
+      for _, tool_id in ipairs(expand_group_ref(group_name)) do
+        context_set[tool_id] = true
+      end
     end
   end
-  -- Populate the context_in_chat with tool refs from groups
-  vim.iter(groups_in_chat):each(function(group_name)
-    vim.list_extend(context_in_chat, expand_group_ref(group_name))
-  end)
 
-  -- Fetch context items that exist on the chat object but not in the buffer
-  local to_remove = vim
-    .iter(self.context_items)
-    :filter(function(ctx)
-      return not vim.tbl_contains(context_in_chat, ctx.id)
-    end)
-    :map(function(ctx)
-      return ctx.id
-    end)
-    :totable()
+  -- Collect IDs to remove into a set
+  local remove_set = {}
+  for _, ctx in ipairs(self.context_items) do
+    if not context_set[ctx.id] then
+      remove_set[ctx.id] = true
+    end
+  end
 
-  if vim.tbl_isempty(to_remove) then
+  if vim.tbl_isempty(remove_set) then
     return
   end
 
-  local groups_to_remove = vim.tbl_filter(function(id)
-    return id:match("<group>(.*)</group>")
-  end, to_remove)
-
-  -- Extend to_remove with tools in the groups
-  vim.iter(groups_to_remove):each(function(group_name)
-    vim.list_extend(to_remove, expand_group_ref(group_name))
-  end)
+  -- Remove tools when groups are deleted
+  for id in pairs(remove_set) do
+    local group_name = id:match("<group>(.*)</group>")
+    if group_name then
+      for _, tool_id in ipairs(expand_group_ref(group_name)) do
+        remove_set[tool_id] = true
+      end
+    end
+  end
 
   -- Remove them from the messages table
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.context and msg.context.id and vim.tbl_contains(to_remove, msg.context.id) then
-        return false
-      end
-      return true
+      return not (msg.context and msg.context.id and remove_set[msg.context.id])
     end)
     :totable()
 
@@ -1437,7 +1445,7 @@ function Chat:check_context()
   self.context_items = vim
     .iter(self.context_items)
     :filter(function(ctx)
-      return not vim.tbl_contains(to_remove, ctx.id)
+      return not remove_set[ctx.id]
     end)
     :totable()
 
@@ -1445,14 +1453,14 @@ function Chat:check_context()
   local schemas_to_keep = {}
   local tools_in_use_to_keep = {}
   for id, tool_schema in pairs(self.tool_registry.schemas) do
-    if not vim.tbl_contains(to_remove, id) then
+    if not remove_set[id] then
       schemas_to_keep[id] = tool_schema
       local tool_name = id:match("<tool>(.*)</tool>")
       if tool_name and self.tool_registry.in_use[tool_name] then
         tools_in_use_to_keep[tool_name] = true
       end
     else
-      log:debug("Removing tool schema and usage flag for ID: %s", id) -- Optional logging
+      log:debug("Removing tool schema and usage flag for ID: %s", id)
     end
   end
   self.tool_registry.schemas = schemas_to_keep
@@ -1553,18 +1561,13 @@ function Chat:close()
   utils.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
   utils.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
 
-  table.remove(
-    _G.codecompanion_buffers,
-    vim.iter(_G.codecompanion_buffers):enumerate():find(function(_, v)
-      return v == self.bufnr
-    end)
-  )
-  table.remove(
-    _G.codecompanion_chat_metadata,
-    vim.iter(_G.codecompanion_chat_metadata):enumerate():find(function(_, v)
-      return v == self.bufnr
-    end)
-  )
+  for i = #_G.codecompanion_buffers, 1, -1 do
+    if _G.codecompanion_buffers[i] == self.bufnr then
+      table.remove(_G.codecompanion_buffers, i)
+      break
+    end
+  end
+  _G.codecompanion_chat_metadata[self.bufnr] = nil
   chats[self.bufnr] = nil
   registry.remove(self.bufnr)
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
