@@ -111,7 +111,7 @@ function SlashCommand:execute()
         Chat:set_title(selected.title)
       end
 
-      utils.fire("ChatACPResumed", {
+      utils.fire("ACPChatRestored", {
         bufnr = Chat.bufnr,
         id = Chat.id,
         session_id = Chat.acp_connection.session_id,
