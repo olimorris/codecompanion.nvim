@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        nvim_tag: [nightly, v0.11.0]
+        nvim_tag: [nightly, v0.12.0, v0.11.0]
     name: ${{ matrix.os }} / ${{ matrix.nvim_tag }}
     runs-on: ${{ matrix.os }}
     env:
