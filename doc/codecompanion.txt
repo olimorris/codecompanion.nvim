@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 26
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 March 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5366,7 +5366,9 @@ LIST OF EVENTS ~
 
 The events that are fired from within the plugin are:
 
+- `CodeCompanionACPSessionPre` - Fired after ACP authentication completes but before a new session is established; allows subscribers to modify the connection (e.g. inject MCP servers) synchronously
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
+- `CodeCompanionACPChatRestored` - Fired after an ACP session has been restored
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
