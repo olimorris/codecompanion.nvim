@@ -96,7 +96,7 @@ local function ask_sync(background, messages, opts)
   end
 
   local parse_handler = opts.parse_handler or "parse_chat"
-  local result = adapters.call_handler(background.adapter, parse_handler, response.body)
+  local result = adapters.call_handler(background.adapter, parse_handler, response)
   return result, nil
 end
 
@@ -128,7 +128,7 @@ local function ask_async(background, messages, opts)
       return
     end
 
-    local result = adapters.call_handler(adapter, parse_handler, response.body)
+    local result = adapters.call_handler(adapter, parse_handler, response)
     original_on_done(result, meta)
   end
 
