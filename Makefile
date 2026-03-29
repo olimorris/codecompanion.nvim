@@ -32,6 +32,10 @@ test_file: deps
 	@echo Testing File...
 	LC_ALL=C nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')"
 
+rockspec:
+	@echo Updating rockspec modules...
+	@lua scripts/rockspec.lua
+
 deps: deps/plenary.nvim deps/nvim-treesitter deps/mini.nvim deps/panvimdoc
 	@echo Pulling...
 

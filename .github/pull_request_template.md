@@ -34,4 +34,5 @@
 - [ ] I confirm that this PR has been majority created by me, and not AI (unless stated in the "AI Usage" section above)
 - [ ] I've run `make all` to ensure docs are generated, tests pass and [StyLua](https://github.com/JohnnyMorganz/StyLua) has formatted the code
 - [ ] _(optional)_ I've added [test](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md#testing) coverage for this fix/feature
+- [ ] _(optional)_ I've run `make rockspec` as I added a new file to the repository
 - [ ] _(optional)_ I've updated the README and/or relevant docs pages
