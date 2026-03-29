@@ -9,13 +9,18 @@ local M = {}
 local api = vim.api
 local fmt = string.format
 
----Create a new ACP connection for the given chat
+---Establishes the connection, authenticates, creates a session and links the buffer
 ---@param chat CodeCompanion.Chat The chat instance
 ---@return boolean
 function M.create_acp_connection(chat)
   local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
   local handler = ACPHandler.new(chat)
-  return handler:ensure_connection()
+
+  if not handler:ensure_connection() then
+    return false
+  end
+
+  return handler:ensure_session()
 end
 
 ---Format the given role without any separator
