@@ -585,6 +585,7 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-4-6",
       choices = {
+        -- Current models
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
           meta = { context_window = 1000000 },
