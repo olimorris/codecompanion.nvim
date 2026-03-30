@@ -189,6 +189,66 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
   h.eq(result.session_id, "prev-session")
 end
 
+T["ACP Connection"]["session/load restores modes and models metadata"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    connection.session_id = "prev-session"
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return {
+          modes = { { id = "code", name = "Code" }, { id = "ask", name = "Ask" } },
+          models = { { id = "claude-sonnet", name = "Claude Sonnet" } },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      modes = connection._modes,
+      models = connection._models,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(#result.modes, 2)
+  h.eq(result.modes[1].id, "code")
+  h.eq(#result.models, 1)
+  h.eq(result.models[1].id, "claude-sonnet")
+end
+
+T["ACP Connection"]["session/new stores modes and models metadata"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
+      elseif method == "session/new" then
+        return {
+          sessionId = "new-session",
+          modes = { { id = "agent", name = "Agent" } },
+          models = { { id = "claude-opus", name = "Claude Opus" } },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      modes = connection._modes,
+      models = connection._models,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(#result.modes, 1)
+  h.eq(result.modes[1].id, "agent")
+  h.eq(#result.models, 1)
+  h.eq(result.models[1].id, "claude-opus")
+end
+
 T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
   local result = child.lua([[
     local calls = {}

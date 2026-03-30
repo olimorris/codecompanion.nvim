@@ -362,12 +362,25 @@ function Connection:_establish_session()
     session_args.mcpServers = require("codecompanion.mcp").transform_to_acp()
   end
 
+  local function apply_session_metadata(session_data, source)
+    if session_data.modes then
+      self._modes = session_data.modes
+      log:debug("[acp::_establish_session] %s modes: %s", source, session_data.modes)
+    end
+    if session_data.models then
+      self._models = session_data.models
+      log:debug("[acp::_establish_session] %s models: %s", source, session_data.models)
+    end
+  end
+
   if self.session_id and can_load then
-    local ok = self:send_rpc_request(
+    local loaded_session = self:send_rpc_request(
       METHODS.SESSION_LOAD,
       vim.tbl_extend("force", session_args, { sessionId = self.session_id })
     )
-    if ok == nil then
+    if loaded_session then
+      apply_session_metadata(loaded_session, "Loaded session")
+    else
       can_load = false
     end
   end
@@ -379,15 +392,7 @@ function Connection:_establish_session()
       return false
     end
     self.session_id = new_session.sessionId
-
-    if new_session.modes then
-      self._modes = new_session.modes
-      log:debug("[acp::_establish_session] Available modes: %s", new_session.modes)
-    end
-    if new_session.models then
-      self._models = new_session.models
-      log:debug("[acp::_establish_session] Available models: %s", new_session.models)
-    end
+    apply_session_metadata(new_session, "New session")
   end
 
   return true
