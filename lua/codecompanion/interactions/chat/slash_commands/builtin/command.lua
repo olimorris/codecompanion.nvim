@@ -54,7 +54,15 @@ function SlashCommand:execute()
     local command = Chat.adapter.commands[selected]
     if command then
       Chat.adapter.commands.selected = command
-      Chat.acp_connection = nil
+
+      -- Disconnect the existing ACP process before starting a new one
+      if Chat.acp_connection then
+        pcall(function()
+          Chat.acp_connection:disconnect()
+        end)
+        Chat.acp_connection = nil
+      end
+
       require("codecompanion.interactions.chat.helpers").create_acp_connection(Chat)
       utils.notify(string.format("Switched to `%s` command", selected))
     end

@@ -1,0 +1,26 @@
+name: Rockspec Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+  rockspec:
+    name: Rockspec
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 📋
+        uses: actions/checkout@v6
+
+      - name: Install Lua 🌙
+        uses: leso-kn/gh-actions-lua@v12
+        with:
+          luaVersion: "luajit-2.1.1774638290"
+
+      - name: Check rockspec 🪨
+        run: |
+          make rockspec
+          git diff --exit-code codecompanion.nvim-dev-1.rockspec || {
+            echo "::error::Rockspec is out of date. Run 'make rockspec' and commit the result."
+            exit 1
+          }
