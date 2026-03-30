@@ -37,6 +37,5 @@ jobs:
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
         with:
-          rockspec: codecompanion.nvim-dev-1.rockspec
           labels: |
             neovim
