@@ -1297,8 +1297,9 @@ function Chat:done(output, reasoning, tools, meta, opts)
       content = content,
       reasoning = reasoning_content,
     }
+    local token_meta = { cumulative_tokens = self.ui.tokens }
     self:add_message(message, {
-      _meta = has_meta and meta or nil,
+      _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
     })
     reasoning_content = nil
   end
@@ -1313,14 +1314,15 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if has_tools then
     tools = adapters.call_handler(self.adapter, "format_calls", tools)
     if tools then
+      local token_meta = { cumulative_tokens = self.ui.tokens }
       local message = {
         role = config.constants.LLM_ROLE,
         reasoning = reasoning_content,
         tool_calls = tools,
-        _meta = has_meta and meta or nil,
       }
       self:add_message(message, {
         visible = false,
+        _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
       })
       return self.tools:execute(self, tools)
     end
