@@ -15,6 +15,7 @@ return {
     text = true,
   },
   opts = {
+    context_management = true,
     stream = true,
     tools = true,
     vision = true,
@@ -121,6 +122,12 @@ return {
       if self.opts.has_token_efficient_tools then
         local beta = self.headers["anthropic-beta"]
         self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "token-efficient-tools-2025-02-19"
+      end
+
+      -- Ref: https://platform.claude.com/docs/en/build-with-claude/context-editing#tool-result-clearing-usage
+      if self.opts.context_management then
+        local beta = self.headers["anthropic-beta"]
+        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "context-management-2025-06-27"
       end
 
       return true
@@ -315,12 +322,39 @@ return {
         end
       end
 
+      local context_management = nil
+      if self.opts.context_management then
+        context_management = {
+          ["edits"] = {
+            {
+              type = "clear_thinking_20251015",
+              keep = {
+                type = "thinking_turns",
+                value = 3,
+              },
+            },
+            {
+              type = "clear_tool_uses_20250919",
+              keep = {
+                type = "tool_uses",
+                value = 5,
+              },
+              trigger = {
+                type = "input_tokens",
+                value = 50000,
+              },
+            },
+          },
+        }
+      end
+
       -- 11. Enable automatic prompt caching
       -- Ref: https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching
       return {
         cache_control = { type = "ephemeral" },
         system = system,
         messages = messages,
+        context_management = context_management,
       }
     end,
 
@@ -355,7 +389,7 @@ return {
     ---@return table|nil
     form_tools = function(self, tools)
       if not self.opts.tools or not tools then
-        return
+        return nil
       end
 
       local transformed = {}
