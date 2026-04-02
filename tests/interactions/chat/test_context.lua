@@ -227,7 +227,7 @@ T["Context"]["Can share all of a buffer"] = function()
    ]])
 
   h.eq(child.lua_get([[#_G.chat.messages]]), 4, "There are four messages")
-  h.eq(child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]), "Basic Slash Command")
+  h.eq(child.lua_get([[_G.chat.messages[#_G.chat.messages - 1].content]]), "Basic Slash Command")
 
   local buffer = child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]])
 
@@ -359,12 +359,12 @@ T["Context"]["file context_items use absolute paths"] = function()
      _G.chat:submit()
    ]])
 
-  local content = child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
+  local content = child.lua_get([[_G.chat.messages[#_G.chat.messages - 1].content]])
   h.expect_contains("tests/stubs/file.txt", content)
   h.expect_contains('<attachment filepath="', content)
   h.expect_contains("Here is the content from the file", content)
 
-  local context_id = child.lua_get([[_G.chat.messages[#_G.chat.messages].context.id]])
+  local context_id = child.lua_get([[_G.chat.messages[#_G.chat.messages - 1].context.id]])
   h.expect_contains("tests/stubs/file.txt", context_id)
 end
 
