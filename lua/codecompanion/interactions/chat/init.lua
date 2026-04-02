@@ -1119,6 +1119,11 @@ function Chat:submit(opts)
     return log:debug("Chat request already in progress")
   end
 
+  -- The chat buffer can be submitted in insert mode, but we want to ensure that
+  -- we revert to normal mode so the user can scroll the chat buffer without
+  -- unintentionally hitting the "modifiable is off" error
+  vim.cmd("stopinsert")
+
   opts = opts or {}
 
   if opts.callback then
