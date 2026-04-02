@@ -24,6 +24,7 @@ end
 ---@class CodeCompanion.HTTPAdapter.OpenAIResponses: CodeCompanion.HTTPAdapter
 return {
   name = "openai_responses",
+  vendor = "openai",
   formatted_name = "OpenAI_Responses",
   roles = {
     llm = "assistant",
@@ -545,7 +546,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5-2025-08-07",
+      default = "gpt-5",
       choices = {
         ["gpt-5.4-pro"] = {
           formatted_name = "GPT 5.4 Pro",

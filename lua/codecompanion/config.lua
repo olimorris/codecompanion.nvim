@@ -82,6 +82,12 @@ local defaults = {
             },
             enabled = true,
           },
+          ["at_token_limit"] = {
+            actions = {
+              "interactions.background.builtin.chat_make_title",
+            },
+            enabled = true,
+          },
         },
         opts = {
           enabled = false, -- Enable ALL background chat interactions?
@@ -664,6 +670,20 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       opts = {
+        compaction = {
+          trigger = 0.75, -- Compaction starts at 75% of the context window limit
+          enabled = function(adapter)
+            if adapter.type ~= "http" then
+              return false
+            end
+            -- Anthropic and OpenAI have their own server-side compaction
+            if adapter.vendor and (adapter.vendor == "anthropic" or adapter.vendor == "openai") then
+              return false
+            end
+            return true
+          end,
+        },
+
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         debounce = 150, -- Time to debounce user input (milliseconds)
@@ -671,9 +691,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         register = "+", -- The register to use for yanking code
         wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
         yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
-
-        -- What to do when an ACP permission request times out? (allow_once|reject_once)
-        acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
         goto_file_action = ui_utils.tabnew_reuse,

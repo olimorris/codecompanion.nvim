@@ -2,6 +2,7 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.utils.tool_transformers")
 
+
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
   name = "anthropic",
@@ -15,7 +16,7 @@ return {
     text = true,
   },
   opts = {
-    context_management = true,
+    -- context_management = true,
     stream = true,
     tools = true,
     vision = true,
@@ -39,8 +40,7 @@ return {
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
       ---@param meta { tools: table }
       callback = function(self, meta)
-        local beta = self.headers["anthropic-beta"]
-        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "code-execution-2025-08-25"
+        adapter_utils.add_header(self.headers, "anthropic-beta", "code-execution-2025-08-25")
 
         table.insert(meta.tools, {
           type = "code_execution_20250825",
@@ -53,8 +53,7 @@ return {
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
       ---@param meta { tools: table }
       callback = function(self, meta)
-        local beta = self.headers["anthropic-beta"]
-        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "context-management-2025-06-27"
+        adapter_utils.add_header(self.headers, "anthropic-beta", "context-management-2025-06-27")
 
         table.insert(meta.tools, {
           type = "memory_20250818",
@@ -71,8 +70,7 @@ return {
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
       ---@param meta { tools: table }
       callback = function(self, meta)
-        local beta = self.headers["anthropic-beta"]
-        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "web-fetch-2025-09-10"
+        adapter_utils.add_header(self.headers, "anthropic-beta", "web-fetch-2025-09-10")
 
         table.insert(meta.tools, {
           type = "web_fetch_20250910",
@@ -114,21 +112,18 @@ return {
 
       -- Add the extended output header if enabled
       if self.temp.extended_output then
-        local beta = self.headers["anthropic-beta"]
-        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "output-128k-2025-02-19"
+        adapter_utils.add_header(self.headers, "anthropic-beta", "output-128k-2025-02-19")
       end
 
       -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/token-efficient-tool-use
       if self.opts.has_token_efficient_tools then
-        local beta = self.headers["anthropic-beta"]
-        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "token-efficient-tools-2025-02-19"
+        adapter_utils.add_header(self.headers, "anthropic-beta", "token-efficient-tools-2025-02-19")
       end
 
       -- Ref: https://platform.claude.com/docs/en/build-with-claude/context-editing#tool-result-clearing-usage
-      if self.opts.context_management then
-        local beta = self.headers["anthropic-beta"]
-        self.headers["anthropic-beta"] = (beta and (beta .. ",") or "") .. "context-management-2025-06-27"
-      end
+      -- if self.opts.context_management then
+      --   adapter_utils.add_header(self.headers, "anthropic-beta", "context-management-2025-06-27")
+      -- end
 
       return true
     end,
@@ -322,31 +317,38 @@ return {
         end
       end
 
-      local context_management = nil
-      if self.opts.context_management then
-        context_management = {
-          ["edits"] = {
-            {
-              type = "clear_thinking_20251015",
-              keep = {
-                type = "thinking_turns",
-                value = 3,
-              },
-            },
-            {
-              type = "clear_tool_uses_20250919",
-              keep = {
-                type = "tool_uses",
-                value = 5,
-              },
-              trigger = {
-                type = "input_tokens",
-                value = 50000,
-              },
-            },
-          },
-        }
-      end
+      -- local context_management = nil
+      -- if self.opts.context_management then
+      --   context_management = {
+      --     ["edits"] = {
+      --       {
+      --         type = "clear_thinking_20251015",
+      --         keep = {
+      --           type = "thinking_turns",
+      --           value = 3,
+      --         },
+      --       },
+      --       {
+      --         type = "clear_tool_uses_20250919",
+      --         keep = {
+      --           type = "tool_uses",
+      --           value = 5,
+      --         },
+      --         trigger = {
+      --           type = "input_tokens",
+      --           value = 50000,
+      --         },
+      --       },
+      --       -- {
+      --       --   type = "compact_20260112",
+      --       --   trigger = {
+      --       --     type = "input_tokens",
+      --       --     value = 100000,
+      --       --   },
+      --       -- },
+      --     },
+      --   }
+      -- end
 
       -- 11. Enable automatic prompt caching
       -- Ref: https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching
@@ -354,7 +356,7 @@ return {
         cache_control = { type = "ephemeral" },
         system = system,
         messages = messages,
-        context_management = context_management,
+        -- context_management = context_management,
       }
     end,
 
