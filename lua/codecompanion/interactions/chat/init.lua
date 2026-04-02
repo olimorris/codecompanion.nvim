@@ -1147,7 +1147,18 @@ function Chat:submit(opts)
 
     self.buffer_diffs:check_for_changes(self)
 
-    -- Allow users to send a blank message to the LLM
+    -- NOTE: There are instances when submit is called with no user message.
+    -- Such as when tools auto-submitting responses. So, we need to ensure
+    -- that we only manage context if the last message was from the user.
+    if message_to_submit then
+      message_to_submit = self.context:remove(message_to_submit)
+      self:replace_user_inputs(message_to_submit)
+      self:check_images(message_to_submit)
+      self:check_context()
+      sync_all_buffer_content(self)
+    end
+
+    -- Add the user message after any context so the LLM sees context first
     if not opts.regenerate then
       local chat_opts = config.interactions.chat.opts
       if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
@@ -1158,17 +1169,6 @@ function Chat:submit(opts)
         role = config.constants.USER_ROLE,
         content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
       })
-    end
-
-    -- NOTE: There are instances when submit is called with no user message.
-    -- Such as when tools auto-submitting responses. So, we need to ensure
-    -- that we only manage context if the last message was from the user.
-    if message_to_submit then
-      message_to_submit = self.context:remove(self.messages[#self.messages])
-      self:replace_user_inputs(message_to_submit)
-      self:check_images(message_to_submit)
-      self:check_context()
-      sync_all_buffer_content(self)
     end
 
     -- Check if the user has manually overridden the adapter
