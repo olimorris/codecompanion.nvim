@@ -2,7 +2,6 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.utils.tool_transformers")
 
-
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
   name = "anthropic",
