@@ -176,7 +176,7 @@ T["Chat"]["CodeCompanion images are replaced in text and base64 encoded"] = func
       })
       _G.chat:submit()
       local messages = _G.chat.messages
-      return messages[#messages - 1].content
+      return messages[#messages].content
   ]],
     prompt
   ))
@@ -185,7 +185,7 @@ T["Chat"]["CodeCompanion images are replaced in text and base64 encoded"] = func
 
   message = child.lua([[
     local messages = _G.chat.messages
-    return messages[#messages]
+    return messages[#messages - 1]
   ]])
 
   h.eq({
@@ -220,7 +220,7 @@ T["Chat"]["markdown images are replaced in text and base64 encoded"] = function(
       })
       _G.chat:submit()
       local messages = _G.chat.messages
-      return messages[#messages - 1].content
+      return messages[#messages].content
   ]],
     prompt
   ))
@@ -229,7 +229,7 @@ T["Chat"]["markdown images are replaced in text and base64 encoded"] = function(
 
   message = child.lua([[
     local messages = _G.chat.messages
-    return messages[#messages]
+    return messages[#messages - 1]
   ]])
 
   h.eq({

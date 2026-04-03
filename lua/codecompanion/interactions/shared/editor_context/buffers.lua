@@ -3,6 +3,11 @@ local chat_helpers = require("codecompanion.interactions.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
+local reserved_params = {
+  "all",
+  "diff",
+}
+
 ---@class CodeCompanion.EditorContext.Buffers: CodeCompanion.EditorContext
 local EditorContext = {}
 
@@ -49,6 +54,12 @@ end
 ---Add all open buffers to the chat
 ---@return nil
 function EditorContext:chat_render()
+  local params = self.params
+
+  if params and not vim.tbl_contains(reserved_params, params) then
+    return log:warn("Invalid parameter for buffers editor context: %s", params)
+  end
+
   local buffers = buf_utils.get_open()
   local count = 0
 
@@ -75,8 +86,10 @@ function EditorContext:chat_render()
           bufnr = buf_info.bufnr,
           id = id,
           path = buf_info.path,
+          params = params,
           opts = {
-            sync_all = true,
+            sync_all = (params and params == "all"),
+            sync_diff = (params and params == "diff"),
           },
           source = "codecompanion.interactions.shared.editor_context.buffer",
         })
@@ -110,8 +123,21 @@ function EditorContext:cli_render()
   end
 
   return {
-    inline = "the open buffers: " .. table.concat(paths, ", "),
+    inline = "the files I've shared: " .. table.concat(paths, ", "),
   }
+end
+
+---Replace the editor context tag in the message
+---@param prefix string
+---@param message string
+---@return string
+function EditorContext.replace(prefix, message)
+  local replacement = "the files I've shared"
+
+  message = message:gsub(prefix .. "{buffers}{[^}]*}", replacement)
+  message = message:gsub(prefix .. "{buffers}", replacement)
+
+  return message
 end
 
 return EditorContext

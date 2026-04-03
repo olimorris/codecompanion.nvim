@@ -825,6 +825,8 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Share all open buffers with the LLM",
           opts = {
             contains_code = true,
+            default_params = "diff", -- all|diff
+            has_params = true,
           },
         },
         ["diagnostics"] = {
