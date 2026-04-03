@@ -52,6 +52,7 @@ local uv = vim.uv
 ---@field _on_session_update function|nil
 ---@field _modes {currentModeId: string, availableModes: table[]}|nil
 ---@field _models {currentModelId: string, availableModels: table[]}|nil
+---@field _model_config_id string|nil The configOptions ID for the model selector
 ---@field methods table
 local Connection = {}
 
@@ -367,9 +368,9 @@ function Connection:_establish_session()
       self._modes = session_data.modes
       log:debug("[acp::_establish_session] %s modes: %s", source, session_data.modes)
     end
-    if session_data.models then
-      self._models = session_data.models
-      log:debug("[acp::_establish_session] %s models: %s", source, session_data.models)
+    if session_data.configOptions then
+      self:_apply_config_options(session_data.configOptions)
+      log:debug("[acp::_establish_session] %s config options applied", source)
     end
   end
 
@@ -700,6 +701,8 @@ local DISPATCH = {
       self:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
     elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
       self:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
+    elseif m.params.update and m.params.update.sessionUpdate == "config_option_update" then
+      self:handle_config_option_update(m.params.sessionId, m.params.update.configOptions)
     elseif m.params.update and m.params.update.sessionUpdate == "session_info_update" then
       self:handle_session_info_update(m.params.sessionId, m.params.update)
     elseif self._loading_session and self._on_session_update then
@@ -854,6 +857,47 @@ function Connection:handle_available_commands_update(session_id, commands)
   acp_commands.register_commands(session_id, commands)
 end
 
+---Extract model information from ACP configOptions
+---Ref: https://agentclientprotocol.com/protocol/schema#setsessionconfigoptionrequest
+---@param config_options table[] Array of SessionConfigOption
+function Connection:_apply_config_options(config_options)
+  for _, opt in ipairs(config_options) do
+    if opt.category == "model" and opt.type == "select" then
+      self._model_config_id = opt.id
+
+      local available = {}
+      for _, item in ipairs(opt.options or {}) do
+        if item.group then
+          for _, model in ipairs(item.options or {}) do
+            table.insert(available, { modelId = model.value, name = model.name })
+          end
+        else
+          table.insert(available, { modelId = item.value, name = item.name })
+        end
+      end
+
+      self._models = {
+        availableModels = available,
+        currentModelId = opt.currentValue,
+      }
+      break
+    end
+  end
+end
+
+---Handle config_option_update notification
+---@param session_id string
+---@param config_options table[]|nil
+---@return nil
+function Connection:handle_config_option_update(session_id, config_options)
+  if not session_id or session_id ~= self.session_id then
+    return
+  end
+  if type(config_options) == "table" then
+    self:_apply_config_options(config_options)
+  end
+end
+
 ---Handle current_mode_update notification
 ---@param session_id string
 ---@param mode_id string
@@ -960,20 +1004,56 @@ function Connection:get_models()
   return self._models
 end
 
----Set a model
+---Set a model via session/set_config_option
 ---@param model_id string The ID of the model to switch to
 ---@return boolean success
 function Connection:set_model(model_id)
-  return self:_set_session_property({
+  if not self.session_id then
+    log:error("[acp::set_model] Connection not established")
+    return false
+  end
+
+  if not self._models or not self._model_config_id then
+    log:error("[acp::set_model] Agent does not support changing models")
+    return false
+  end
+
+  local valid = false
+  for _, item in ipairs(self._models.availableModels or {}) do
+    if item.modelId == model_id then
+      valid = true
+      break
+    end
+  end
+
+  if not valid then
+    log:error("[acp::set_model] Invalid model ID: %s", model_id)
+    return false
+  end
+
+  if model_id == self._models.currentModelId then
+    return true
+  end
+
+  local result = self:send_rpc_request(METHODS.SESSION_SET_CONFIG_OPTION, {
+    sessionId = self.session_id,
+    configId = self._model_config_id,
     value = model_id,
-    collection = self._models,
-    items_key = "availableModels",
-    current_key = "currentModelId",
-    id_key = "modelId",
-    rpc_method = METHODS.SESSION_SET_MODEL,
-    rpc_param_key = "modelId",
-    label = "model",
   })
+
+  if not result then
+    log:error("[acp::set_model] Failed to set model to %s", model_id)
+    return false
+  end
+
+  if result.configOptions then
+    self:_apply_config_options(result.configOptions)
+  else
+    self._models.currentModelId = model_id
+  end
+
+  log:debug("[acp::set_model] Changed model to %s", model_id)
+  return true
 end
 
 ---Shared helper to validate and set a session property (mode or model)
