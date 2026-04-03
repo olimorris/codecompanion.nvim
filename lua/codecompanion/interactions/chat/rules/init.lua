@@ -9,7 +9,7 @@ local parsers = require("codecompanion.interactions.chat.rules.parsers")
 ---@field filename string The filename of the rules file
 ---@field meta? {included_files: string[]} Additional metadata about the rules file
 ---@field parser string|nil The parser to use for the rules file
----@field path string The full, normalized file path of the rules file
+---@field path string The file path relative to the current working directory
 ---@field system_prompt? string The extracted system prompt from the rules file
 
 ---@class CodeCompanion.Chat.Rules
@@ -175,7 +175,7 @@ function Rules:read_files(paths)
         table.insert(files, {
           name = original_path or path,
           content = content,
-          path = path,
+          path = vim.fn.fnamemodify(path, ":p:."),
           filename = vim.fn.fnamemodify(path, ":t"),
           parser = file_parser,
         })

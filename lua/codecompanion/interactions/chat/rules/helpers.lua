@@ -141,7 +141,7 @@ end
 ---@return nil
 function M.add_context(files, chat)
   for _, file in ipairs(files) do
-    local id = "<rules>" .. file.name .. "</rules>"
+    local id = "<rules>" .. file.path .. "</rules>"
     local context_exists = chat_helpers.has_context(id, chat.messages)
     if not context_exists then
       if file.system_prompt and file.system_prompt ~= "" then
@@ -179,7 +179,7 @@ function M.add_files_or_buffers(included_files, chat)
 
     -- Use <rules> ID format to match add_context() and prevent duplicates
     -- when a file is both directly listed and referenced via @include
-    local id = "<rules>" .. path .. "</rules>"
+    local id = "<rules>" .. vim.fn.fnamemodify(path, ":.") .. "</rules>"
     local context_exists = chat_helpers.has_context(id, chat.messages)
     if context_exists then
       return
