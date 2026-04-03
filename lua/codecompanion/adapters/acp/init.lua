@@ -109,14 +109,12 @@ function Adapter.resolve(adapter, opts)
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter)
 
     if opts.model then
-      adapter = vim.tbl_deep_extend("force", adapter, {
-        defaults = { model = opts.model },
-      })
+      adapter.defaults = adapter.defaults or {}
+      adapter.defaults.model = opts.model
     end
     if opts.mode then
-      adapter = vim.tbl_deep_extend("force", adapter, {
-        defaults = { mode = opts.mode },
-      })
+      adapter.defaults = adapter.defaults or {}
+      adapter.defaults.mode = opts.mode
     end
   elseif type(adapter) == "function" then
     adapter = adapter()
