@@ -1,5 +1,19 @@
 # Changelog
 
+## [19.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.8.0...v19.9.0) (2026-04-04)
+
+
+### Features
+
+* **acp:** make connection async ([#2978](https://github.com/olimorris/codecompanion.nvim/issues/2978)) ([7684102](https://github.com/olimorris/codecompanion.nvim/commit/7684102be54d56997c5090e9931bd043929af173))
+* **chat:** `buffers` editor context can be configured ([#2970](https://github.com/olimorris/codecompanion.nvim/issues/2970)) ([65328ef](https://github.com/olimorris/codecompanion.nvim/commit/65328efc76966f1cb76d39dfba23d540a011a370))
+
+
+### Bug Fixes
+
+* **acp:** support session/set_config_option for models ([#2977](https://github.com/olimorris/codecompanion.nvim/issues/2977)) ([7ee8557](https://github.com/olimorris/codecompanion.nvim/commit/7ee85571c21cfced765126d5f5001796dcad1cf0)), closes [#2969](https://github.com/olimorris/codecompanion.nvim/issues/2969)
+* **chat:** duplicate rules ([#2976](https://github.com/olimorris/codecompanion.nvim/issues/2976)) ([eadd050](https://github.com/olimorris/codecompanion.nvim/commit/eadd05011e6941bcd8a614e7702748b358d07722))
+
 ## [19.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.7.0...v19.8.0) (2026-03-30)
 
 
