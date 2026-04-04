@@ -136,8 +136,8 @@ local function create_state(out, base_state)
 end
 
 ---Add message using centralized state
----@param data table
----@param opts table
+---@param data { content?: string, role?: string, reasoning?: { content: string } }
+---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string, fold_info?: table, state?: table }
 ---@return number,number|nil
 function Builder:add_message(data, opts)
   opts = opts or {}
@@ -197,7 +197,9 @@ function Builder:add_message(data, opts)
 
   local insert_line, icon_id
   if not vim.tbl_isempty(lines) then
-    insert_line, icon_id = self:_write_to_buffer(lines, opts, fold_info, state)
+    opts.fold_info = fold_info
+    opts.state = state
+    insert_line, icon_id = self:_write_to_buffer(lines, opts)
   end
 
   if current_type then
@@ -225,7 +227,7 @@ function Builder:add_message(data, opts)
 end
 
 ---Determine if we should start a new block under the header
----@param opts table
+---@param opts { type?: string }
 ---@param state table
 ---@return boolean
 function Builder:_should_start_new_block(opts, state)
@@ -233,8 +235,8 @@ function Builder:_should_start_new_block(opts, state)
 end
 
 ---Check if we need to add a header to the chat buffer
----@param data table
----@param opts table
+---@param data { role?: string }
+---@param opts { force_role?: boolean }
 ---@param state table
 ---@return boolean
 function Builder:_should_add_header(data, opts, state)
@@ -242,7 +244,7 @@ function Builder:_should_add_header(data, opts, state)
 end
 
 ---Add appropriate spacing before header
----@param lines table
+---@param lines string[]
 ---@return nil
 function Builder:_add_header_spacing(lines)
   table.insert(lines, "")
@@ -263,12 +265,13 @@ function Builder:_get_formatter(data, opts)
 end
 
 ---Write lines to buffer with all the buffer management
----@param lines table
----@param opts table
----@param fold_info table|nil
----@param state table
----@return number The line number where the content was written and the extmark id of any icon applied
-function Builder:_write_to_buffer(lines, opts, fold_info, state)
+---@param lines string[]
+---@param opts { insert_at?: number, _icon_info?: table, virt_text_pos?: string, fold_info?: table, state?: table }
+---@return number, number|nil
+function Builder:_write_to_buffer(lines, opts)
+  local state = opts.state
+  local fold_info = opts.fold_info
+
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
 
@@ -345,7 +348,7 @@ end
 ---Update a specific line in the chat buffer
 ---@param line_number number The line number to update (1-based)
 ---@param content string The new content for the line
----@param opts? table Optional parameters
+---@param opts? { status?: string, icon_id?: number, priority?: number, virt_text_pos?: string }
 ---@return boolean success Whether the update was successful
 ---@return number|nil icon_id The new icon extmark ID, if an icon was placed
 function Builder:update_line(line_number, content, opts)

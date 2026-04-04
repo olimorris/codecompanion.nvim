@@ -12,7 +12,7 @@ local CONSTANTS = {
 ---@param bufnr number
 ---@param line number 0-based line number
 ---@param status string The tool status (in_progress, completed, failed)
----@param opts table|nil Additional options
+---@param opts? { priority?: number, virt_text_pos?: string }
 ---@return number|nil The extmark id or nil if status is invalid
 function Icons.apply(bufnr, line, status, opts)
   opts = vim.tbl_deep_extend("force", {
