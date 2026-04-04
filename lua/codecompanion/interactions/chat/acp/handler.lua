@@ -221,6 +221,8 @@ end
 function ACPHandler:process_tool_call(tool_call)
   local id = tool_call.toolCallId
 
+  log:trace("[ACP::Handler] Processing tool call %s", tool_call)
+
   local merged = merge_tool_call(self.tools[id], tool_call)
   tool_call = merged
 
