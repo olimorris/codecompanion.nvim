@@ -491,6 +491,59 @@ T["Chat"]["on_before_submit allows submission when not returning false"] = funct
   h.eq(true, result.message_count_after > result.message_count_before)
 end
 
+T["Chat"]["has_orphaned_tool_calls returns false with no tool calls"] = function()
+  local result = child.lua([[return _G.chat:has_orphaned_tool_calls()]])
+  h.eq(false, result)
+end
+
+T["Chat"]["has_orphaned_tool_calls returns true when a call has no result"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+          { id = "call_2", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+    -- Only provide a result for call_1
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "file contents",
+      tools = { call_id = "call_1", type = "tool_result" },
+    })
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+  h.eq(true, result)
+end
+
+T["Chat"]["has_orphaned_tool_calls returns false when all calls have results"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+          { id = "call_2", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "result 1",
+      tools = { call_id = "call_1", type = "tool_result" },
+    })
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "result 2",
+      tools = { call_id = "call_2", type = "tool_result" },
+    })
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+  h.eq(false, result)
+end
+
 T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = function()
   local result = child.lua([[
     local chat = _G.chat

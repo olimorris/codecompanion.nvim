@@ -82,10 +82,10 @@ local defaults = {
             },
             enabled = true,
           },
-          ["at_token_limit"] = {
-            actions = {
-              "interactions.background.builtin.chat_make_title",
-            },
+          ["on_checkpoint"] = {
+            -- actions = {
+            --   "interactions.background.builtin.compact",
+            -- },
             enabled = true,
           },
         },
