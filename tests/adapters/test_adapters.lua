@@ -271,7 +271,7 @@ T["HTTP Adapter"]["can update a model on the adapter"] = function()
     return adapter.resolve(adapter).model
   ]])
 
-  h.eq({ name = "gpt-4-0125-preview" }, result)
+  h.eq({ name = "gpt-4-0125-preview", vendor = "TestAdapter" }, result)
 
   result = child.lua([[
     local adapter = require("codecompanion.adapters").extend("openai", {
@@ -291,11 +291,13 @@ T["HTTP Adapter"]["can update a model on the adapter"] = function()
   ]])
 
   h.eq({
+    formatted_name = "o4 Mini",
     name = "o4-mini-2025-04-16",
     opts = {
       can_reason = true,
       has_vision = true,
     },
+    vendor = "openai",
   }, result)
 end
 
@@ -576,6 +578,40 @@ T["Adapter"]["utils"]["can smartly merge tables together"] = function()
       role = "assistant",
     },
   }, child.lua_get([[utils.merge_messages(messages)]]))
+end
+
+T["Adapter"]["utils"]["add_header sets header when absent"] = function()
+  local result = child.lua([[
+    local headers = {}
+    utils.add_header(headers, "x-custom", "value-a")
+    return headers
+  ]])
+
+  h.eq({ ["x-custom"] = "value-a" }, result)
+end
+
+T["Adapter"]["utils"]["add_header appends without duplicating"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "token-efficient-tools-2025-02-19" }
+    utils.add_header(headers, "anthropic-beta", "output-128k-2025-02-19")
+    utils.add_header(headers, "anthropic-beta", "token-efficient-tools-2025-02-19")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq("token-efficient-tools-2025-02-19,output-128k-2025-02-19", result)
+end
+
+T["Adapter"]["utils"]["add_header handles multiple values"] = function()
+  local result = child.lua([[
+    local headers = {}
+    utils.add_header(headers, "anthropic-beta", "a")
+    utils.add_header(headers, "anthropic-beta", "b")
+    utils.add_header(headers, "anthropic-beta", "c")
+    utils.add_header(headers, "anthropic-beta", "b")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq("a,b,c", result)
 end
 
 T["Adapter"]["utils"]["can consolidate system messages"] = function()

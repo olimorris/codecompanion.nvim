@@ -357,6 +357,26 @@ function M.set_env_vars(adapter, object)
   end
 end
 
+---Add a value to a comma-separated header without duplicating existing values
+---@param headers table The headers table to modify
+---@param key string The header name
+---@param value string The value to add
+function M.add_header(headers, key, value)
+  local existing = headers[key]
+  if not existing then
+    headers[key] = value
+    return
+  end
+
+  for entry in existing:gmatch("[^,]+") do
+    if vim.trim(entry) == value then
+      return
+    end
+  end
+
+  headers[key] = existing .. "," .. value
+end
+
 ---Replace roles in the messages with the adapter's defined roles
 ---@param roles table The roles mapping, e.g. { user = "human", assistant = "ai" }
 ---@param messages table

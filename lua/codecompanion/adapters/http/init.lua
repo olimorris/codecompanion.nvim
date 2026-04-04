@@ -111,6 +111,7 @@ end
 
 ---@class CodeCompanion.HTTPAdapter
 ---@field name string The name of the adapter
+---@field vendor? string The vendor of the adapter, e.g. "openai" or "azure"
 ---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
 ---@field available_tools? table The tools that are available for the adapter
@@ -119,28 +120,34 @@ end
 ---@field url string The URL of the generative AI service to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
+---
+---@field body table Additional body parameters to pass to the request
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
----@field body table Additional body parameters to pass to the request
----@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
----@field opts? table Additional options for the adapter
----@field model? {name: string, formatted_name?: string, vendor?: string, opts: table, info?: table } The model to use for the request
+---
 ---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
----@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field meta? { context_window: number } Data about the selected model
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
+---@field model? { name: string, formatted_name?: string, info?: table, meta?: table, opts: table, vendor?: string } The model to use for the request
+---@field opts? table Additional options for the adapter
+---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field temp? table A table to store temporary values which are not passed to the request
 
 ---@class CodeCompanion.HTTPAdapter.Safe
 ---@field name string The name of the adapter
----@field model string The current model name
+---@field vendor? string The vendor of the adapter, e.g. "openai" or "azure"
+---@field type string|"http" The type of the adapter, e.g. "http" or "acp"
+---@field model table The current model name
 ---@field available_tools? table The tools that are available for the adapter
 ---@field formatted_name string The formatted name of the adapter
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
----@field opts? table Additional options for the adapter
 ---@field handlers CodeCompanion.HTTPAdapter.Handlers Functions which link the output from the request to CodeCompanion
+---@field opts? table Additional options for the adapter
+---@field meta? table Data about the selected model
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
 ---@class CodeCompanion.HTTPAdapter
@@ -278,11 +285,16 @@ function Adapter.set_model(args)
     local model = adapter.schema.model.default
     local choices = adapter.schema.model.choices
 
+    adapter.model.vendor = adapter.vendor or adapter.name
+
     if type(model) == "string" then
       adapter.model.name = model
     end
     if type(choices) == "table" then
       adapter.model.opts = (choices[model] and choices[model].opts) and choices[model].opts
+      adapter.model.meta = (choices[model] and choices[model].meta) and choices[model].meta
+      adapter.model.formatted_name = (choices[model] and choices[model].formatted_name)
+        and choices[model].formatted_name
     end
   end
 
@@ -356,6 +368,7 @@ end
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
+    vendor = adapter.vendor,
     type = adapter.type,
     model = adapter.model,
     available_tools = adapter.available_tools,
@@ -364,8 +377,9 @@ function Adapter.make_safe(adapter)
     url = adapter.url,
     headers = adapter.headers,
     parameters = adapter.parameters,
-    opts = adapter.opts,
     handlers = adapter.handlers,
+    opts = adapter.opts,
+    meta = adapter.meta,
     schema = vim
       .iter(adapter.schema)
       :filter(function(n, _)

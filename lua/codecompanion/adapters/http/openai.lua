@@ -389,22 +389,44 @@ return {
       ---@type string|fun(): string
       default = "gpt-4.1",
       choices = {
-        -- gpt-5 and gpt-5-mini (but not gpt-5-nano) require organizational
-        -- verification with biometric data when streaming is enabled:
-        -- https://news.ycombinator.com/item?id=44837367
-        -- (see also #2017)
+        -- Frontier models
+        ["gpt-5.4"] = {
+          formatted_name = "GPT 5.4",
+          meta = { context_window = 1050000 },
+          opts = { has_vision = true, can_reason = true },
+        },
+        ["gpt-5.4-mini"] = {
+          formatted_name = "GPT 5.4 Mini",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true },
+        },
+        ["gpt-5.4-nano"] = {
+          formatted_name = "GPT 5.4 Nano",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true },
+        },
         ["gpt-5"] = {
           formatted_name = "GPT 5",
+          meta = { context_window = 400000 },
           opts = { has_vision = true, can_reason = true },
         },
         ["gpt-5-mini"] = {
           formatted_name = "GPT 5 Mini",
+          meta = { context_window = 400000 },
           opts = { has_vision = true, can_reason = true },
         },
         ["gpt-5-nano"] = {
           formatted_name = "GPT 5 Nano",
+          meta = { context_window = 400000 },
           opts = { has_vision = true, can_reason = true },
         },
+        ["gpt-4.1"] = {
+          formatted_name = "GPT 4.1",
+          meta = { context_window = 1047576 },
+          opts = { has_vision = true },
+        },
+
+        -- Older models
         ["o4-mini-2025-04-16"] = {
           formatted_name = "o4 Mini",
           opts = { has_vision = true, can_reason = true },
@@ -420,10 +442,6 @@ return {
         ["o1-2024-12-17"] = {
           formatted_name = "o1",
           opts = { has_vision = true, can_reason = true },
-        },
-        ["gpt-4.1"] = {
-          formatted_name = "GPT 4.1",
-          opts = { has_vision = true },
         },
         ["gpt-4o"] = {
           formatted_name = "GPT-4o",

@@ -49,6 +49,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
 
+In addition to these events, the chat buffer has its own **callback system** for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and `on_tool_output`. These callbacks receive the chat instance and can inspect or mutate chat state. See the [callbacks](/configuration/chat-buffer#callbacks) section for details.
+
 There are also events that can be utilized to trigger commands from within the plugin:
 
 - `CodeCompanionChatRefreshCache` - Used to refresh conditional elements in the chat buffer

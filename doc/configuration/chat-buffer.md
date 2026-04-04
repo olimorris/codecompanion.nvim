@@ -73,6 +73,7 @@ Callbacks allow you to hook into the chat buffer's lifecycle and react to specif
 | `on_created` | Chat buffer has been created | - |
 | `on_before_submit` | Before the message is sent to the LLM. Return `false` to prevent submission | `{ adapter }` |
 | `on_submitted` | After the message has been sent to the LLM | `{ payload }` |
+| `on_checkpoint` | Fires at safe points during the chat lifecycle. Messages are mutable | `{ adapter, estimated_tokens, messages, reported_tokens }` |
 | `on_tool_output` | Before tool output is added to the chat. Mutate `args.for_llm`/`args.for_user` to modify | `{ tool, for_llm, for_user }` |
 | `on_ready` | Chat is ready for the next turn (after LLM response) | - |
 | `on_completed` | LLM response has been fully processed | `{ status }` |
@@ -197,6 +198,47 @@ vim.api.nvim_create_autocmd("User", {
           string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
           vim.log.levels.WARN
         )
+      end
+    end)
+  end,
+})
+```
+
+### Checkpoints
+
+The `on_checkpoint` callback fires at various safe points during the chat lifecycle, giving you the ability to inspect and mutate the message stack before the chat continues. It fires:
+
+- **Before submit** — Before a request is sent to an LLM
+- **After tool output** — Once tools in the current batch have finished, ensuring no orphaned tool calls
+- **After a response with no tools** — When the LLM responds, minus any tool calls
+
+The `data` table contains:
+
+- `adapter` — a safe copy of the current adapter (includes `meta.context_window` for HTTP adapters)
+- `estimated_tokens` — client-side token estimate across all messages
+- `messages` — a **mutable reference** to the chat's message stack. Changes made here persist back to the chat
+- `reported_tokens` — server-reported token count (if available from the adapter)
+
+This is useful for monitoring context window usage and compacting the message stack:
+
+```lua
+vim.api.nvim_create_autocmd("User", {
+  pattern = "CodeCompanionChatCreated",
+  callback = function(args)
+    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+    chat:add_callback("on_checkpoint", function(c, data)
+      local context_window = data.adapter.meta and data.adapter.meta.context_window
+      if not context_window then
+        return
+      end
+
+      local usage = data.estimated_tokens / context_window
+      if usage > 0.8 then
+        vim.notify(
+          string.format("Context window %.0f%% full", usage * 100),
+          vim.log.levels.WARN
+        )
+        -- Compact data.messages in-place here
       end
     end)
   end,

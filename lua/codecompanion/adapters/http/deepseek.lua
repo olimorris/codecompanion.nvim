@@ -134,9 +134,14 @@ return {
       choices = {
         ["deepseek-reasoner"] = {
           formatted_name = "DeepSeek Reasoner",
+          meta = { context_window = 128000 },
           opts = { can_reason = true, can_use_tools = false },
         },
-        ["deepseek-chat"] = { formatted_name = "DeepSeek Chat", opts = { can_use_tools = true } },
+        ["deepseek-chat"] = {
+          formatted_name = "DeepSeek Chat",
+          meta = { context_window = 128000 },
+          opts = { can_use_tools = true },
+        },
       },
     },
     ---@type CodeCompanion.Schema

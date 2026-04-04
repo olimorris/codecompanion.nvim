@@ -24,6 +24,7 @@ end
 ---@class CodeCompanion.HTTPAdapter.OpenAIResponses: CodeCompanion.HTTPAdapter
 return {
   name = "openai_responses",
+  vendor = "openai",
   formatted_name = "OpenAI_Responses",
   roles = {
     llm = "assistant",
@@ -545,43 +546,73 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5-2025-08-07",
+      default = "gpt-5",
       choices = {
-        ["gpt-5-2025-08-07"] = {
-          formatted_name = "GPT-5",
+        ["gpt-5.4-pro"] = {
+          formatted_name = "GPT 5.4 Pro",
+          meta = { context_window = 1050000 },
           opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
-        ["codex-mini-latest"] = {
-          formatted_name = "Codex-mini",
+
+        -- Frontier models
+        ["gpt-5.4"] = {
+          formatted_name = "GPT 5.4",
+          meta = { context_window = 1050000 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5.4-mini"] = {
+          formatted_name = "GPT 5.4 Mini",
+          meta = { context_window = 400000 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5.4-nano"] = {
+          formatted_name = "GPT 5.4 Nano",
+          meta = { context_window = 400000 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5"] = {
+          formatted_name = "GPT-5",
+          meta = { context_window = 400000 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-4.1"] = {
+          formatted_name = "GPT-4.1",
+          meta = { context_window = 1047576 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+
+        -- Codex models
+        ["gpt-5.3-codex"] = {
+          formatted_name = "GPT-5.3 Codex",
+
+          meta = { context_window = 400000 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5.2-codex"] = {
+          formatted_name = "GPT-5.2 Codex",
+          meta = { context_window = 400000 },
+
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5.1-codex-max"] = {
+          formatted_name = "GPT-5.1 Codex Max",
+          meta = { context_window = 400000 },
+          opts = { has_function_calling = true, has_vision = true, can_reason = true },
+        },
+        ["gpt-5.1-codex"] = {
+          formatted_name = "GPT-5.1 Codex",
+          meta = { context_window = 400000 },
           opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
         ["gpt-5-codex"] = {
           formatted_name = "GPT-5 Codex",
+          meta = { context_window = 400000 },
           opts = { has_function_calling = true, has_vision = true, can_reason = true },
         },
+        -- ChatGPT models
         ["gpt-5-chat-latest"] = {
           formatted_name = "GPT-5 Chat",
           opts = { has_function_calling = true, has_vision = true },
-        },
-        ["gpt-5-pro-2025-10-06"] = {
-          formatted_name = "GPT-5 Pro",
-          opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
-        },
-        ["o4-mini-deep-research-2025-06-26"] = {
-          formatted_name = "o4-mini-deep-research",
-          opts = { has_function_calling = false, has_vision = true, can_reason = true },
-        },
-        ["o3-deep-research-2025-06-26"] = {
-          formatted_name = "o3-deep-research",
-          opts = { has_function_calling = false, has_vision = true, can_reason = true },
-        },
-        ["o3-pro-2025-06-10"] = {
-          formatted_name = "o3-pro",
-          opts = { has_function_calling = false, has_vision = true, can_reason = true, stream = false },
-        },
-        ["o1-pro-2025-03-19"] = {
-          formatted_name = "o1-pro",
-          opts = { has_function_calling = true, has_vision = true, can_reason = true, stream = false },
         },
       },
     },

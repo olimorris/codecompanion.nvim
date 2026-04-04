@@ -49,7 +49,11 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
           name = "Model One",
           vendor = "copilot",
           model_picker_enabled = true,
-          capabilities = { type = "chat", supports = { streaming = true, tool_calls = true, vision = true } },
+          capabilities = {
+            type = "chat",
+            supports = { streaming = true, tool_calls = true, vision = true },
+            limits = { max_context_window_tokens = 200000, max_output_tokens = 64000 },
+          },
         },
         {
           id = "model2",
@@ -91,20 +95,21 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
     model1 = {
       billing = {},
       description = "Model One",
-      limits = {},
-      vendor = "copilot",
       endpoint = "completions",
       formatted_name = "Model One",
+      limits = { context_window = 200000, max_output_tokens = 64000 },
+      meta = { context_window = 200000 },
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
+      vendor = "copilot",
     },
     model2 = {
       billing = {},
       description = "Model Two",
-      limits = {},
-      vendor = "copilot",
       endpoint = "completions",
       formatted_name = "Model Two",
+      limits = {},
       opts = {},
+      vendor = "copilot",
     },
   }
 
@@ -139,7 +144,11 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
           name = "Model One",
           vendor = "copilot",
           model_picker_enabled = true,
-          capabilities = { type = "chat", supports = { streaming = true, tool_calls = true, vision = true } },
+          capabilities = {
+            type = "chat",
+            supports = { streaming = true, tool_calls = true, vision = true },
+            limits = { max_context_window_tokens = 200000, max_output_tokens = 64000 },
+          },
         },
         {
           id = "model2",
@@ -178,20 +187,21 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
     model1 = {
       billing = {},
       description = "Model One",
-      limits = {},
-      vendor = "copilot",
       endpoint = "completions",
       formatted_name = "Model One",
+      limits = { context_window = 200000, max_output_tokens = 64000 },
+      meta = { context_window = 200000 },
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
+      vendor = "copilot",
     },
     model2 = {
       billing = {},
       description = "Model Two",
-      limits = {},
-      vendor = "copilot",
       endpoint = "completions",
       formatted_name = "Model Two",
+      limits = {},
       opts = {},
+      vendor = "copilot",
     },
   }
 

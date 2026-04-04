@@ -191,24 +191,39 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-3.1-pro-preview",
       choices = {
+        -- Gemini 3
         ["gemini-3.1-pro-preview"] = {
           formatted_name = "Gemini 3.1 Pro",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, has_vision = true },
+        },
+        ["gemini-3.1-flash-lite-preview"] = {
+          formatted_name = "Gemini 3.1 Flash Lite",
+          meta = { context_window = 1048576 },
           opts = { can_reason = true, has_vision = true },
         },
         ["gemini-3-flash-preview"] = {
           formatted_name = "Gemini 3 Flash",
+          meta = { context_window = 1048576 },
           opts = { can_reason = true, has_vision = true },
         },
-        ["gemini-2.5-pro"] = { formatted_name = "Gemini 2.5 Pro", opts = { can_reason = true, has_vision = true } },
-        ["gemini-2.5-flash"] = { formatted_name = "Gemini 2.5 Flash", opts = { can_reason = true, has_vision = true } },
-        ["gemini-2.5-flash-preview-05-20"] = {
-          formatted_name = "Gemini 2.5 Flash Preview",
+
+        -- Gemini 2.5
+        ["gemini-2.5-pro"] = {
+          formatted_name = "Gemini 2.5 Pro",
+          meta = { context_window = 1048576 },
           opts = { can_reason = true, has_vision = true },
         },
-        ["gemini-2.0-flash"] = { formatted_name = "Gemini 2.0 Flash", opts = { has_vision = true } },
-        ["gemini-2.0-flash-lite"] = { formatted_name = "Gemini 2.0 Flash Lite", opts = { has_vision = true } },
-        ["gemini-1.5-pro"] = { formatted_name = "Gemini 1.5 Pro", opts = { has_vision = true } },
-        ["gemini-1.5-flash"] = { formatted_name = "Gemini 1.5 Flash", opts = { has_vision = true } },
+        ["gemini-2.5-flash"] = {
+          formatted_name = "Gemini 2.5 Flash",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, has_vision = true },
+        },
+        ["gemini-2.5-flash-lite"] = {
+          formatted_name = "Gemini 2.5 Flash Lite",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, has_vision = true },
+        },
       },
     },
     ---@type CodeCompanion.Schema

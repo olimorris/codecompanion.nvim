@@ -9,7 +9,7 @@
 ---@field buffer_context table The context of the buffer that the chat was initiated from
 ---@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
----@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
+---@field builder CodeCompanion.Chat.UI.Builder The UI builder for the chat buffer
 ---@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
 ---@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
@@ -45,11 +45,11 @@
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
----@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
+---@field callbacks? table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field hidden? boolean Whether the chat should be hidden (no window opened)
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
----@field last_role string The last role that was rendered in the chat buffer-
+---@field last_role? string The last role that was rendered in the chat buffer
 ---@field mcp_servers? table<string> List of MCP server names to start and load into the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
@@ -974,6 +974,38 @@ function Chat:add_message(data, opts)
   return self
 end
 
+---Check if any tool calls in messages are missing their results
+---@return boolean
+function Chat:has_orphaned_tool_calls()
+  local pending = {}
+
+  for _, msg in ipairs(self.messages) do
+    if msg.tools and msg.tools.calls then
+      for _, call in ipairs(msg.tools.calls) do
+        if call.id then
+          pending[call.id] = true
+        end
+      end
+    end
+    if msg.tools and msg.tools.call_id then
+      pending[msg.tools.call_id] = nil
+    end
+  end
+
+  return next(pending) ~= nil
+end
+
+---Run checkpoint callbacks, passing mutable chat state
+---@return nil
+function Chat:checkpoint()
+  self:dispatch("on_checkpoint", {
+    adapter = adapters.make_safe(self.adapter),
+    estimated_tokens = tokens.get_tokens(self.messages),
+    messages = self.messages,
+    reported_tokens = self.ui.tokens,
+  })
+end
+
 ---Add an image to the chat buffer
 ---@param image CodeCompanion.Image The image object containing the path and other metadata
 ---@param opts? {role?: "user"|string, source?: string, bufnr?: number} Options for adding the image
@@ -1188,6 +1220,8 @@ function Chat:submit(opts)
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
   end
 
+  self:checkpoint()
+
   -- Shallow-copy each message so map_roles can mutate role without affecting self.messages
   local shallow_messages = {}
   for i, msg in ipairs(self.messages) do
@@ -1279,8 +1313,9 @@ function Chat:done(output, reasoning, tools, meta, opts)
       content = content,
       reasoning = reasoning_content,
     }
+    local token_meta = { cumulative_tokens = self.ui.tokens }
     self:add_message(message, {
-      _meta = has_meta and meta or nil,
+      _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
     })
     reasoning_content = nil
   end
@@ -1295,19 +1330,21 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if has_tools then
     tools = adapters.call_handler(self.adapter, "format_calls", tools)
     if tools then
+      local token_meta = { cumulative_tokens = self.ui.tokens }
       local message = {
         role = config.constants.LLM_ROLE,
         reasoning = reasoning_content,
         tool_calls = tools,
-        _meta = has_meta and meta or nil,
       }
       self:add_message(message, {
         visible = false,
+        _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
       })
       return self.tools:execute(self, tools)
     end
   end
 
+  self:checkpoint()
   self:ready_for_input()
 
   self:dispatch("on_completed", { status = self.status })
@@ -1618,16 +1655,18 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   end
 
   -- Allow tools to pass in an empty string to not write any output to the buffer
-  if for_user == "" then
-    return
+  if for_user ~= "" then
+    self:add_buf_message({
+      role = config.constants.LLM_ROLE,
+      content = (for_user or for_llm),
+    }, {
+      type = self.MESSAGE_TYPES.TOOL_MESSAGE,
+    })
   end
 
-  self:add_buf_message({
-    role = config.constants.LLM_ROLE,
-    content = (for_user or for_llm),
-  }, {
-    type = self.MESSAGE_TYPES.TOOL_MESSAGE,
-  })
+  if not self:has_orphaned_tool_calls() then
+    self:checkpoint()
+  end
 end
 
 ---Ready the chat buffer for the next round of conversation

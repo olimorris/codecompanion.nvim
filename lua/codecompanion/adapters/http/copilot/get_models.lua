@@ -14,7 +14,7 @@ local M = {}
 ---@class CopilotModels
 ---@field formatted_name string
 ---@field vendor string
----@field opts {can_stream: boolean, can_use_tools: boolean, has_vision: boolean}
+---@field opts { can_stream: boolean, can_use_tools: boolean, has_vision: boolean }
 
 -- Cache / state
 local _cached_models
@@ -142,7 +142,7 @@ local function fetch_async(adapter, opts)
               if model.capabilities.limits then
                 limits.max_output_tokens = model.capabilities.limits.max_output_tokens
                 limits.max_prompt_tokens = model.capabilities.limits.max_prompt_tokens
-                limits.max_context_window_tokens = model.capabilities.limits.max_context_window_tokens
+                limits.context_window = model.capabilities.limits.max_context_window_tokens
               end
             end
 
@@ -159,6 +159,7 @@ local function fetch_async(adapter, opts)
               endpoint = internal_endpoint,
               formatted_name = model.name,
               limits = limits,
+              meta = limits.context_window and { context_window = limits.context_window } or nil,
               opts = choice_opts,
               vendor = model.vendor,
             }
