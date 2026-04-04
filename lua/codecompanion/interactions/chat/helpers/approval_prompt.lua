@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local labels = require("codecompanion.interactions.chat.tools.labels")
 local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -83,6 +84,14 @@ function M.request(chat, opts)
     end
     resolved = true
     cleanup_keymaps(bufnr, opts.choices)
+    local is_rejection = labels.is_rejection(choice_label)
+    local icons = config.display.chat.icons
+    local icon = is_rejection and icons.tool_failure or icons.tool_success
+    local status = is_rejection and "failed" or "completed"
+    chat:add_buf_message(
+      { content = fmt("%s%s\n\n", icon, choice_label) },
+      { _icon_info = { has_icon = true, status = status } }
+    )
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
   end
 
