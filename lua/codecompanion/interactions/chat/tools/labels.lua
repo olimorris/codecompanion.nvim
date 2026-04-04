@@ -7,6 +7,13 @@ M.reject = "Reject"
 M.reject_always = "Reject always"
 M.cancel = "Cancel"
 
+---Check if a label represents a rejection
+---@param label string
+---@return boolean
+function M.is_rejection(label)
+  return label == M.reject or label == M.reject_always or label == M.cancel
+end
+
 ---Get the resolved keymap keys from shared config
 ---@return table<string, string>
 function M.keymaps()
