@@ -1752,6 +1752,15 @@ function Chat:update_metadata()
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
+
+  if self.adapter.type == "acp" then
+    if model and model ~= "default" then
+      utils.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = model })
+    end
+    if mode_info then
+      utils.fire("ChatACPModeChanged", { bufnr = self.bufnr, id = self.id, mode = mode_info })
+    end
+  end
 end
 
 ---Set the title of the chat buffer

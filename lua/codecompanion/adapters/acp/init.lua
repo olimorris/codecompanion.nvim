@@ -106,7 +106,16 @@ function Adapter.resolve(adapter, opts)
     if not config.adapters.acp or not config.adapters.acp[adapter] then
       return log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
     end
-    adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)
+    adapter = Adapter.extend(config.adapters.acp[adapter] or adapter)
+
+    if opts.model then
+      adapter.defaults = adapter.defaults or {}
+      adapter.defaults.model = opts.model
+    end
+    if opts.mode then
+      adapter.defaults = adapter.defaults or {}
+      adapter.defaults.mode = opts.mode
+    end
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

@@ -21,6 +21,7 @@
 local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
 local adapter_utils = require("codecompanion.utils.adapters")
+local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
@@ -52,6 +53,8 @@ local uv = vim.uv
 ---@field _on_session_update function|nil
 ---@field _modes {currentModeId: string, availableModes: table[]}|nil
 ---@field _models {currentModelId: string, availableModels: table[]}|nil
+---@field _model_config_id string|nil The configOptions ID for the model selector
+---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field methods table
 local Connection = {}
 
@@ -85,12 +88,13 @@ function Connection.new(args)
   local self = setmetatable({
     adapter = args.adapter,
     adapter_modified = {},
+    methods = methods,
     pending_responses = {},
     session_id = args.session_id,
-    methods = methods,
-    _initialized = false,
     _authenticated = false,
+    _initialized = false,
     _modes = nil,
+    _pending_callbacks = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -181,6 +185,10 @@ function Connection:connect_and_initialize()
   self:apply_default_model()
   self:apply_default_mode()
 
+  utils.fire("ACPSessionPost", {
+    session_id = self.session_id,
+  })
+
   return self
 end
 
@@ -254,6 +262,10 @@ function Connection:ensure_session()
 
   self:apply_default_model()
   self:apply_default_mode()
+
+  utils.fire("ACPSessionPost", {
+    session_id = self.session_id,
+  })
 
   return true
 end
@@ -367,9 +379,9 @@ function Connection:_establish_session()
       self._modes = session_data.modes
       log:debug("[acp::_establish_session] %s modes: %s", source, session_data.modes)
     end
-    if session_data.models then
-      self._models = session_data.models
-      log:debug("[acp::_establish_session] %s models: %s", source, session_data.models)
+    if session_data.configOptions then
+      self:_apply_config_options(session_data.configOptions)
+      log:debug("[acp::_establish_session] %s config options applied", source)
     end
   end
 
@@ -543,7 +555,7 @@ function Connection:start_agent_process()
   return true
 end
 
----Send a synchronous request and wait for response
+---If called inside an async coroutine, yields until the response arrives, or fallsback to sync
 ---@param method string
 ---@param params table
 ---@return table|nil
@@ -559,6 +571,14 @@ function Connection:send_rpc_request(method, params)
     return nil
   end
 
+  -- Async path: yield and let store_rpc_response resume us
+  if coroutine.running() then
+    return async.wait(function(callback)
+      self._pending_callbacks[id] = callback
+    end)
+  end
+
+  -- Sync fallback
   return self:wait_for_rpc_response(id)
 end
 
@@ -663,24 +683,36 @@ function Connection:handle_rpc_message(line)
   end
 end
 
----Handle response to our request
+---Handles the response to the request
 ---@param response table
 function Connection:store_rpc_response(response)
+  local function forward_error_to_prompt()
+    if not response.error or not self._active_prompt or not self._active_prompt.handle_error then
+      return
+    end
+    self.methods.schedule(function()
+      local error_msg = response.error.message or "Unknown error"
+      if response.error.data and response.error.data.error then
+        error_msg = response.error.data.error
+      end
+      self._active_prompt:handle_error(error_msg)
+    end)
+  end
+
+  -- Async path: resume the waiting coroutine via its callback
+  local cb = self._pending_callbacks[response.id]
+  if cb then
+    self._pending_callbacks[response.id] = nil
+    self.methods.schedule(function()
+      cb((not response.error) and response.result or nil)
+    end)
+    return forward_error_to_prompt()
+  end
+
+  -- Sync path: store for polling
   if response.error then
     self.pending_responses[response.id] = { nil, response.error }
-
-    -- Sometimes errors are passed as part of the response so we need to handle them
-    if self._active_prompt and self._active_prompt.handle_error then
-      self.methods.schedule(function()
-        local error_msg = response.error.message or "Unknown error"
-        if response.error.data and response.error.data.error then
-          error_msg = response.error.data.error
-        end
-
-        self._active_prompt:handle_error(error_msg)
-      end)
-    end
-    return
+    return forward_error_to_prompt()
   end
   self.pending_responses[response.id] = { response.result, nil }
 end
@@ -700,6 +732,8 @@ local DISPATCH = {
       self:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
     elseif m.params.update and m.params.update.sessionUpdate == "current_mode_update" then
       self:handle_current_mode_update(m.params.sessionId, m.params.update.modeId)
+    elseif m.params.update and m.params.update.sessionUpdate == "config_option_update" then
+      self:handle_config_option_update(m.params.sessionId, m.params.update.configOptions)
     elseif m.params.update and m.params.update.sessionUpdate == "session_info_update" then
       self:handle_session_info_update(m.params.sessionId, m.params.update)
     elseif self._loading_session and self._on_session_update then
@@ -854,6 +888,47 @@ function Connection:handle_available_commands_update(session_id, commands)
   acp_commands.register_commands(session_id, commands)
 end
 
+---Extract model information from ACP configOptions
+---Ref: https://agentclientprotocol.com/protocol/schema#setsessionconfigoptionrequest
+---@param config_options table[] Array of SessionConfigOption
+function Connection:_apply_config_options(config_options)
+  for _, opt in ipairs(config_options) do
+    if opt.category == "model" and opt.type == "select" then
+      self._model_config_id = opt.id
+
+      local available = {}
+      for _, item in ipairs(opt.options or {}) do
+        if item.group then
+          for _, model in ipairs(item.options or {}) do
+            table.insert(available, { modelId = model.value, name = model.name })
+          end
+        else
+          table.insert(available, { modelId = item.value, name = item.name })
+        end
+      end
+
+      self._models = {
+        availableModels = available,
+        currentModelId = opt.currentValue,
+      }
+      break
+    end
+  end
+end
+
+---Handle config_option_update notification
+---@param session_id string
+---@param config_options table[]|nil
+---@return nil
+function Connection:handle_config_option_update(session_id, config_options)
+  if not session_id or session_id ~= self.session_id then
+    return
+  end
+  if type(config_options) == "table" then
+    self:_apply_config_options(config_options)
+  end
+end
+
 ---Handle current_mode_update notification
 ---@param session_id string
 ---@param mode_id string
@@ -907,12 +982,19 @@ function Connection:handle_process_exit(code, signal)
     self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
   end
 
+  -- Fire any pending async callbacks so coroutines don't hang
+  for id, cb in pairs(self._pending_callbacks) do
+    self._pending_callbacks[id] = nil
+    pcall(cb, nil)
+  end
+
   -- Always clean up state
   self.adapter_modified = nil
-  self._initialized = false
   self._authenticated = false
-  self.session_id = nil
+  self._initialized = false
+  self._pending_callbacks = {}
   self.pending_responses = {}
+  self.session_id = nil
 
   if self._active_prompt and self._active_prompt.handle_done then
     pcall(function()
@@ -960,20 +1042,56 @@ function Connection:get_models()
   return self._models
 end
 
----Set a model
+---Set a model via session/set_config_option
 ---@param model_id string The ID of the model to switch to
 ---@return boolean success
 function Connection:set_model(model_id)
-  return self:_set_session_property({
+  if not self.session_id then
+    log:error("[acp::set_model] Connection not established")
+    return false
+  end
+
+  if not self._models or not self._model_config_id then
+    log:error("[acp::set_model] Agent does not support changing models")
+    return false
+  end
+
+  local valid = false
+  for _, item in ipairs(self._models.availableModels or {}) do
+    if item.modelId == model_id then
+      valid = true
+      break
+    end
+  end
+
+  if not valid then
+    log:error("[acp::set_model] Invalid model ID: %s", model_id)
+    return false
+  end
+
+  if model_id == self._models.currentModelId then
+    return true
+  end
+
+  local result = self:send_rpc_request(METHODS.SESSION_SET_CONFIG_OPTION, {
+    sessionId = self.session_id,
+    configId = self._model_config_id,
     value = model_id,
-    collection = self._models,
-    items_key = "availableModels",
-    current_key = "currentModelId",
-    id_key = "modelId",
-    rpc_method = METHODS.SESSION_SET_MODEL,
-    rpc_param_key = "modelId",
-    label = "model",
   })
+
+  if not result then
+    log:error("[acp::set_model] Failed to set model to %s", model_id)
+    return false
+  end
+
+  if result.configOptions then
+    self:_apply_config_options(result.configOptions)
+  else
+    self._models.currentModelId = model_id
+  end
+
+  log:debug("[acp::set_model] Changed model to %s", model_id)
+  return true
 end
 
 ---Shared helper to validate and set a session property (mode or model)

@@ -9,18 +9,23 @@ local M = {}
 local api = vim.api
 local fmt = string.format
 
----Establishes the connection, authenticates, creates a session and links the buffer
+---Establishes the connection, authenticates, creates a session and links the buffer.
+---Runs asynchronously so the UI is not blocked during ACP initialization.
 ---@param chat CodeCompanion.Chat The chat instance
----@return boolean
+---@return nil
 function M.create_acp_connection(chat)
-  local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
-  local handler = ACPHandler.new(chat)
+  local async_utils = require("codecompanion.utils.async")
 
-  if not handler:ensure_connection() then
-    return false
-  end
+  async_utils.sync(function()
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
 
-  return handler:ensure_session()
+    if not handler:ensure_connection() then
+      return
+    end
+
+    handler:ensure_session()
+  end)()
 end
 
 ---Format the given role without any separator

@@ -199,7 +199,16 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
       elseif method == "session/load" then
         return {
           modes = { { id = "code", name = "Code" }, { id = "ask", name = "Ask" } },
-          models = { { id = "claude-sonnet", name = "Claude Sonnet" } },
+          configOptions = {
+            {
+              type = "select",
+              id = "model",
+              name = "Model",
+              category = "model",
+              currentValue = "claude-sonnet",
+              options = { { value = "claude-sonnet", name = "Claude Sonnet" } },
+            },
+          },
         }
       end
     end
@@ -215,8 +224,8 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
   h.eq(result.ok, true)
   h.eq(#result.modes, 2)
   h.eq(result.modes[1].id, "code")
-  h.eq(#result.models, 1)
-  h.eq(result.models[1].id, "claude-sonnet")
+  h.eq(#result.models.availableModels, 1)
+  h.eq(result.models.availableModels[1].modelId, "claude-sonnet")
 end
 
 T["ACP Connection"]["session/new stores modes and models metadata"] = function()
@@ -229,7 +238,16 @@ T["ACP Connection"]["session/new stores modes and models metadata"] = function()
         return {
           sessionId = "new-session",
           modes = { { id = "agent", name = "Agent" } },
-          models = { { id = "claude-opus", name = "Claude Opus" } },
+          configOptions = {
+            {
+              type = "select",
+              id = "model",
+              name = "Model",
+              category = "model",
+              currentValue = "claude-opus",
+              options = { { value = "claude-opus", name = "Claude Opus" } },
+            },
+          },
         }
       end
     end
@@ -245,8 +263,8 @@ T["ACP Connection"]["session/new stores modes and models metadata"] = function()
   h.eq(result.ok, true)
   h.eq(#result.modes, 1)
   h.eq(result.modes[1].id, "agent")
-  h.eq(#result.models, 1)
-  h.eq(result.models[1].id, "claude-opus")
+  h.eq(#result.models.availableModels, 1)
+  h.eq(result.models.availableModels[1].modelId, "claude-opus")
 end
 
 T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
