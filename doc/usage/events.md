@@ -10,7 +10,9 @@ In order to enable a tighter integration between CodeCompanion and your Neovim c
 
 The events that are fired from within the plugin are:
 
+- `CodeCompanionACPConnected` - Fired after the ACP connection is authenticated and ready to use
 - `CodeCompanionACPSessionPre` - Fired after ACP authentication completes but before a new session is established; allows subscribers to modify the connection (e.g. inject MCP servers) synchronously
+- `CodeCompanionACPSessionPost` - Fired after a new ACP session has been established
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionACPChatRestored` - Fired after an ACP session has been restored
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time

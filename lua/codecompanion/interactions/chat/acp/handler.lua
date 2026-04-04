@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
 ---@class CodeCompanion.Chat.ACPHandler
@@ -79,6 +80,8 @@ function ACPHandler:ensure_connection()
   self.chat:update_metadata()
 
   watch.enable()
+
+  utils.fire("ACPConnected", { bufnr = self.chat.bufnr })
 
   return true
 end

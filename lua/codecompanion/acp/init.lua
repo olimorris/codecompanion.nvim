@@ -185,6 +185,10 @@ function Connection:connect_and_initialize()
   self:apply_default_model()
   self:apply_default_mode()
 
+  utils.fire("ACPSessionPost", {
+    session_id = self.session_id,
+  })
+
   return self
 end
 
@@ -258,6 +262,10 @@ function Connection:ensure_session()
 
   self:apply_default_model()
   self:apply_default_mode()
+
+  utils.fire("ACPSessionPost", {
+    session_id = self.session_id,
+  })
 
   return true
 end
