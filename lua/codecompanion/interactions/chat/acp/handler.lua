@@ -57,23 +57,29 @@ function ACPHandler:submit(payload)
 end
 
 ---Ensure the ACP connection is authenticated
----@return boolean success
+---@return boolean
 function ACPHandler:ensure_connection()
+  -- If the async init already created the connection, check if it's ready
+  if self.chat.acp_connection and self.chat.acp_connection:is_ready() then
+    return true
+  end
+
   if not self.chat.acp_connection then
     self.chat.acp_connection = require("codecompanion.acp").new({
       adapter = self.chat.adapter, ---@type CodeCompanion.ACPAdapter
     })
-
-    local connected = self.chat.acp_connection:connect_and_authenticate()
-
-    if not connected then
-      return false
-    end
-
-    self.chat:update_metadata()
-
-    watch.enable()
   end
+
+  local connected = self.chat.acp_connection:connect_and_authenticate()
+
+  if not connected then
+    return false
+  end
+
+  self.chat:update_metadata()
+
+  watch.enable()
+
   return true
 end
 

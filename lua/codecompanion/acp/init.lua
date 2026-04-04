@@ -21,6 +21,7 @@
 local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
 local adapter_utils = require("codecompanion.utils.adapters")
+local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
@@ -53,6 +54,7 @@ local uv = vim.uv
 ---@field _modes {currentModeId: string, availableModes: table[]}|nil
 ---@field _models {currentModelId: string, availableModels: table[]}|nil
 ---@field _model_config_id string|nil The configOptions ID for the model selector
+---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field methods table
 local Connection = {}
 
@@ -86,12 +88,13 @@ function Connection.new(args)
   local self = setmetatable({
     adapter = args.adapter,
     adapter_modified = {},
+    methods = methods,
     pending_responses = {},
     session_id = args.session_id,
-    methods = methods,
-    _initialized = false,
     _authenticated = false,
+    _initialized = false,
     _modes = nil,
+    _pending_callbacks = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -544,7 +547,7 @@ function Connection:start_agent_process()
   return true
 end
 
----Send a synchronous request and wait for response
+---If called inside an async coroutine, yields until the response arrives, or fallsback to sync
 ---@param method string
 ---@param params table
 ---@return table|nil
@@ -560,6 +563,14 @@ function Connection:send_rpc_request(method, params)
     return nil
   end
 
+  -- Async path: yield and let store_rpc_response resume us
+  if coroutine.running() then
+    return async.wait(function(callback)
+      self._pending_callbacks[id] = callback
+    end)
+  end
+
+  -- Sync fallback
   return self:wait_for_rpc_response(id)
 end
 
@@ -664,24 +675,36 @@ function Connection:handle_rpc_message(line)
   end
 end
 
----Handle response to our request
+---Handles the response to the request
 ---@param response table
 function Connection:store_rpc_response(response)
+  local function forward_error_to_prompt()
+    if not response.error or not self._active_prompt or not self._active_prompt.handle_error then
+      return
+    end
+    self.methods.schedule(function()
+      local error_msg = response.error.message or "Unknown error"
+      if response.error.data and response.error.data.error then
+        error_msg = response.error.data.error
+      end
+      self._active_prompt:handle_error(error_msg)
+    end)
+  end
+
+  -- Async path: resume the waiting coroutine via its callback
+  local cb = self._pending_callbacks[response.id]
+  if cb then
+    self._pending_callbacks[response.id] = nil
+    self.methods.schedule(function()
+      cb((not response.error) and response.result or nil)
+    end)
+    return forward_error_to_prompt()
+  end
+
+  -- Sync path: store for polling
   if response.error then
     self.pending_responses[response.id] = { nil, response.error }
-
-    -- Sometimes errors are passed as part of the response so we need to handle them
-    if self._active_prompt and self._active_prompt.handle_error then
-      self.methods.schedule(function()
-        local error_msg = response.error.message or "Unknown error"
-        if response.error.data and response.error.data.error then
-          error_msg = response.error.data.error
-        end
-
-        self._active_prompt:handle_error(error_msg)
-      end)
-    end
-    return
+    return forward_error_to_prompt()
   end
   self.pending_responses[response.id] = { response.result, nil }
 end
@@ -951,12 +974,19 @@ function Connection:handle_process_exit(code, signal)
     self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
   end
 
+  -- Fire any pending async callbacks so coroutines don't hang
+  for id, cb in pairs(self._pending_callbacks) do
+    self._pending_callbacks[id] = nil
+    pcall(cb, nil)
+  end
+
   -- Always clean up state
   self.adapter_modified = nil
-  self._initialized = false
   self._authenticated = false
-  self.session_id = nil
+  self._initialized = false
+  self._pending_callbacks = {}
   self.pending_responses = {}
+  self.session_id = nil
 
   if self._active_prompt and self._active_prompt.handle_done then
     pcall(function()
