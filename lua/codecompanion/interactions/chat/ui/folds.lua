@@ -123,9 +123,6 @@ function Folds:_delete(bufnr, line)
       end
     end)
   end)
-  if not ok then
-    log:trace("[Folds] Failed to delete exact fold at line %d: %s", line, err)
-  end
 end
 
 ---Create a new fold
