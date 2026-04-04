@@ -78,9 +78,7 @@ function ACPHandler:ensure_connection()
   end
 
   self.chat:update_metadata()
-
   watch.enable()
-
   utils.fire("ACPConnected", { bufnr = self.chat.bufnr })
 
   return true
@@ -105,6 +103,8 @@ function ACPHandler:ensure_session()
   -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
   local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   acp_commands.link_buffer_to_session(self.chat.bufnr, conn.session_id)
+
+  self.chat:update_metadata()
 
   return true
 end
