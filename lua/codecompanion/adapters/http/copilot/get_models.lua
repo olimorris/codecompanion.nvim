@@ -159,6 +159,7 @@ local function fetch_async(adapter, opts)
               endpoint = internal_endpoint,
               formatted_name = model.name,
               limits = limits,
+              meta = limits.context_window and { context_window = limits.context_window } or nil,
               opts = choice_opts,
               vendor = model.vendor,
             }

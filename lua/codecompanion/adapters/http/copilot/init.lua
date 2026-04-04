@@ -161,15 +161,6 @@ return {
         self.opts.vision = false
       end
 
-      if not self.meta then
-        self.meta = {}
-      end
-      self.meta["context_window"] = 128000
-
-      if model_opts and model_opts.limits and model_opts.limits.context_window then
-        self.meta["context_window"] = model_opts.limits.context_window
-      end
-
       return token.init(self)
     end,
 
