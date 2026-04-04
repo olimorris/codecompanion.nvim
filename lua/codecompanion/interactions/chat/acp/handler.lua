@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
 ---@class CodeCompanion.Chat.ACPHandler
@@ -57,23 +58,29 @@ function ACPHandler:submit(payload)
 end
 
 ---Ensure the ACP connection is authenticated
----@return boolean success
+---@return boolean
 function ACPHandler:ensure_connection()
+  -- If the async init already created the connection, check if it's ready
+  if self.chat.acp_connection and self.chat.acp_connection:is_ready() then
+    return true
+  end
+
   if not self.chat.acp_connection then
     self.chat.acp_connection = require("codecompanion.acp").new({
       adapter = self.chat.adapter, ---@type CodeCompanion.ACPAdapter
     })
-
-    local connected = self.chat.acp_connection:connect_and_authenticate()
-
-    if not connected then
-      return false
-    end
-
-    self.chat:update_metadata()
-
-    watch.enable()
   end
+
+  local connected = self.chat.acp_connection:connect_and_authenticate()
+
+  if not connected then
+    return false
+  end
+
+  self.chat:update_metadata()
+  watch.enable()
+  utils.fire("ACPConnected", { bufnr = self.chat.bufnr })
+
   return true
 end
 
@@ -96,6 +103,8 @@ function ACPHandler:ensure_session()
   -- Map bufnr -> session_id so completion providers can look up ACP commands for this buffer
   local acp_commands = require("codecompanion.interactions.chat.acp.commands")
   acp_commands.link_buffer_to_session(self.chat.bufnr, conn.session_id)
+
+  self.chat:update_metadata()
 
   return true
 end
