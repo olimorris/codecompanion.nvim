@@ -24,15 +24,15 @@ end
 
 ---Check if this formatter can handle the given data/opts
 ---@param message table
----@param opts table
----@param tags table
+---@param opts { type?: string, status?: string }
+---@param tags table<string, string>
 ---@return boolean
 function BaseFormatter:can_handle(message, opts, tags)
   error("Must implement can_handle method")
 end
 
 ---Get the message type for this formatter
----@param opts table
+---@param opts { type?: string }
 ---@return string
 function BaseFormatter:get_type(opts)
   error("Must implement get_type method")
@@ -40,9 +40,9 @@ end
 
 ---Format the content into lines
 ---@param message table
----@param opts table
+---@param opts { type?: string, status?: string, _icon_info?: table }
 ---@param state table
----@return table lines, table? fold_info
+---@return string[] lines, table? fold_info
 function BaseFormatter:format(message, opts, state)
   error("Must implement format method")
 end
