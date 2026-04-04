@@ -244,7 +244,7 @@ function Client:send_sync(payload, opts)
     adapter = {
       name = adapter.name,
       formatted_name = adapter.formatted_name,
-      model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default()
+      model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default(adapter)
         or adapter.schema.model.default
         or "",
     },
@@ -449,7 +449,7 @@ function Client:request(payload, actions, opts)
   opts.adapter = {
     name = adapter.name,
     formatted_name = adapter.formatted_name,
-    model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default()
+    model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default(adapter)
       or adapter.schema.model.default
       or "",
   }
