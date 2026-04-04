@@ -1844,9 +1844,9 @@ the first argument.
 
 AVAILABLE EVENTS
 
-  ----------------------------------------------------------------------------------
+  ---------------------------------------------------------------------------------------------------------------
   Event                   Description                  Extra Args
-  ----------------------- ---------------------------- -----------------------------
+  ----------------------- ---------------------------- ----------------------------------------------------------
   on_created              Chat buffer has been created -
 
   on_before_submit        Before the message is sent   { adapter }
@@ -1855,6 +1855,10 @@ AVAILABLE EVENTS
 
   on_submitted            After the message has been   { payload }
                           sent to the LLM              
+
+  on_checkpoint           Fires at safe points during  { adapter, estimated_tokens, messages, reported_tokens }
+                          the chat lifecycle. Messages 
+                          are mutable                  
 
   on_tool_output          Before tool output is added  { tool, for_llm, for_user }
                           to the chat. Mutate          
@@ -1871,7 +1875,7 @@ AVAILABLE EVENTS
                           stopped/cancelled            
 
   on_closed               Chat buffer has been closed  -
-  ----------------------------------------------------------------------------------
+  ---------------------------------------------------------------------------------------------------------------
 
 REGISTERING CALLBACKS
 
@@ -1975,6 +1979,51 @@ sent to the LLM) and `for_user` (what’s shown in the buffer). Mutate
               string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
               vim.log.levels.WARN
             )
+          end
+        end)
+      end,
+    })
+<
+
+
+CHECKPOINTS
+
+The `on_checkpoint` callback fires at various safe points during the chat
+lifecycle, giving you the ability to inspect and mutate the message stack
+before the chat continues. It fires:
+
+- **Before submit** — Before a request is sent to an LLM
+- **After tool output** — Once tools in the current batch have finished, ensuring no orphaned tool calls
+- **After a response with no tools** — When the LLM responds, minus any tool calls
+
+The `data` table contains:
+
+- `adapter` — a safe copy of the current adapter (includes `meta.context_window` for HTTP adapters)
+- `estimated_tokens` — client-side token estimate across all messages
+- `messages` — a **mutable reference** to the chat’s message stack. Changes made here persist back to the chat
+- `reported_tokens` — server-reported token count (if available from the adapter)
+
+This is useful for monitoring context window usage and compacting the message
+stack:
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionChatCreated",
+      callback = function(args)
+        local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+        chat:add_callback("on_checkpoint", function(c, data)
+          local context_window = data.adapter.meta and data.adapter.meta.context_window
+          if not context_window then
+            return
+          end
+    
+          local usage = data.estimated_tokens / context_window
+          if usage > 0.8 then
+            vim.notify(
+              string.format("Context window %.0f%% full", usage * 100),
+              vim.log.levels.WARN
+            )
+            -- Compact data.messages in-place here
           end
         end)
       end,
@@ -5415,6 +5464,12 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
+
+In addition to these events, the chat buffer has its own **callback system**
+for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and
+`on_tool_output`. These callbacks receive the chat instance and can inspect or
+mutate chat state. See the |codecompanion-configuration-chat-buffer-callbacks|
+section for details.
 
 There are also events that can be utilized to trigger commands from within the
 plugin:
