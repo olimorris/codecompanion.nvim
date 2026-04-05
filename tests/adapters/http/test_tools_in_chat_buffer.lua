@@ -28,7 +28,7 @@ T["Test tools in chat buffer"] = new_set({
     -- OpenAI type adapters first
     { "openai", "openai_tools" },
     { "copilot", "openai_tools", "copilot_tools" },
-    { "gemini", "openai_tools" },
+    { "gemini", "gemini_tools" },
 
     -- Others
     { "anthropic", "anthropic_tools" },
@@ -38,7 +38,7 @@ T["Test tools in chat buffer"] = new_set({
     -- Tools called with NO parameters
     { "openai", "openai_tools_no_params" },
     { "copilot", "openai_tools_no_params", "copilot_tools_no_params" },
-    { "gemini", "openai_tools_no_params" },
+    { "gemini", "gemini_tools_no_params" },
 
     { "anthropic", "anthropic_tools_no_params" },
     { "deepseek", "deepseek_tools_no_params" },
