@@ -165,7 +165,7 @@ function M.select_model(chat)
     local acp_models = M.list_acp_models(chat.acp_connection)
     models_list = acp_models and acp_models.availableModels or nil
     if not acp_models or not models_list then
-      return log:debug("No models to select for the HTTP adapter")
+      return log:debug("No models to select for the ACP adapter")
     end
     current_model = acp_models.currentModelId
   end
@@ -233,18 +233,22 @@ function M.callback(chat)
       return
     end
 
+    local function on_adapter_ready()
+      -- Only force a system prompt update if the user isn't ignoring it. This
+      -- occurs when a user has initiated a chat from the prompt library
+      if not chat.opts.ignore_system_prompt then
+        M.update_system_prompt(chat)
+      end
+
+      return M.select_model(chat)
+    end
+
     if current_adapter ~= selected_adapter then
       chat.acp_connection = nil -- Ensure we reset this
-      chat:change_adapter(selected_adapter)
+      chat:change_adapter(selected_adapter, on_adapter_ready)
+    else
+      return on_adapter_ready()
     end
-
-    -- Only force a system prompt update if the user isn't ignoring it. This
-    -- occurs when a user has initiated a chat from the prompt library
-    if not chat.opts.ignore_system_prompt then
-      M.update_system_prompt(chat)
-    end
-
-    return M.select_model(chat)
   end)
 end
 

@@ -10,21 +10,29 @@ local api = vim.api
 local fmt = string.format
 
 ---Establishes the connection, authenticates, creates a session and links the buffer.
----Runs asynchronously so the UI is not blocked during ACP initialization.
----@param chat CodeCompanion.Chat The chat instance
+---@param chat CodeCompanion.Chat
+---@param cb? function
 ---@return nil
-function M.create_acp_connection(chat)
+function M.create_acp_connection(chat, cb)
+  ---Run async so as not to block the UI
   local async_utils = require("codecompanion.utils.async")
+
+  local function call_cb()
+    if cb then
+      vim.schedule(cb)
+    end
+  end
 
   async_utils.sync(function()
     local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
     if not handler:ensure_connection() then
-      return
+      return call_cb()
     end
 
     handler:ensure_session()
+    call_cb()
   end)()
 end
 
