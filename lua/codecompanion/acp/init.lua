@@ -379,9 +379,15 @@ function Connection:_establish_session()
       self._modes = session_data.modes
       log:debug("[acp::_establish_session] %s modes: %s", source, session_data.modes)
     end
+
     if session_data.configOptions then
       self:_apply_config_options(session_data.configOptions)
       log:debug("[acp::_establish_session] %s config options applied", source)
+    else
+      if session_data.models then
+        self._models = session_data.models
+        log:debug("[acp::_establish_session] %s models: %s", source, session_data.models)
+      end
     end
   end
 
