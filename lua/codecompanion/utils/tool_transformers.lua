@@ -122,4 +122,42 @@ M.transform_schema_if_needed = function(schema, opts)
   return schema
 end
 
+---Recursively strip fields not supported by Gemini's functionDeclaration schema
+---@param obj table
+local function strip_unsupported_gemini_fields(obj)
+  if type(obj) ~= "table" then
+    return
+  end
+
+  obj.additionalProperties = nil
+  obj.strict = nil
+
+  if obj.properties then
+    for _, prop in pairs(obj.properties) do
+      strip_unsupported_gemini_fields(prop)
+    end
+  end
+
+  if obj.items then
+    strip_unsupported_gemini_fields(obj.items)
+  end
+end
+
+---Convert the OpenAI schema to Gemini's functionDeclaration schema
+---REF: https://ai.google.dev/gemini-api/docs/function-calling
+---@param schema table
+---@return table
+M.to_gemini = function(schema)
+  local function_def = schema["function"]
+
+  local parameters = vim.deepcopy(function_def.parameters)
+  strip_unsupported_gemini_fields(parameters)
+
+  return {
+    description = function_def.description,
+    name = function_def.name,
+    parameters = parameters,
+  }
+end
+
 return M
