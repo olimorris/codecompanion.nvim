@@ -907,6 +907,8 @@ function Connection:_apply_config_options(config_options)
         end
       end
 
+      log:debug("[acp::_apply_config_options] Available Models:\n%s", available)
+
       self._models = {
         availableModels = available,
         currentModelId = opt.currentValue,

@@ -699,7 +699,8 @@ end
 
 ---Change the adapter in the chat buffer
 ---@param adapter string
-function Chat:change_adapter(adapter)
+---@param cb? function
+function Chat:change_adapter(adapter, cb)
   local function fire()
     return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
@@ -708,8 +709,12 @@ function Chat:change_adapter(adapter)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    helpers.create_acp_connection(self)
+    helpers.create_acp_connection(self, cb)
     helpers.remove_mcp_tools(self)
+  else
+    if cb then
+      vim.schedule(cb)
+    end
   end
 
   self:set_system_prompt()
