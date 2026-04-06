@@ -44,9 +44,9 @@ function Rules.new(args)
   return self
 end
 
----Collect all file paths based on the rules configuration
+---Resolve all file paths based on the rules configuration
 ---@return string[] paths List of absolute file paths
-function Rules:collect_files()
+function Rules:resolve_paths()
   local collected_paths = {}
   local seen = {} -- Track duplicates
 
@@ -226,7 +226,7 @@ end
 ---@param args { chat: CodeCompanion.Chat }
 ---@return nil
 function Rules:make(args)
-  local paths = self:collect_files()
+  local paths = self:resolve_paths()
   local files = self:read_files(paths)
   self.processed = self:parse_files(files)
   self:add_to_chat(args.chat)

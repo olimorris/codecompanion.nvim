@@ -497,10 +497,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           },
         },
         ["rules"] = {
-          path = "interactions.chat.slash_commands.builtin.rules",
-          description = "Insert rules into the chat buffer",
+          path = "interactions.shared.slash_commands.rules",
+          description = "Insert rules",
           opts = {
             contains_code = true,
+            interactions = { "chat", "cli" },
           },
         },
         ["symbols"] = {
@@ -994,6 +995,12 @@ The user is working on a %s machine. Please respond with system specific command
             ".codecompanion/acp/claude_code_acp.md",
           },
         },
+        ["rules"] = {
+          description = "Rules in the plugin",
+          files = {
+            ".codecompanion/rules.md",
+          },
+        },
         ["tests"] = {
           description = "Testing in the plugin",
           files = {
@@ -1017,6 +1024,7 @@ The user is working on a %s machine. Please respond with system specific command
     },
     parsers = {
       claude = "claude", -- Parser for CLAUDE.md files
+      cli = "cli", -- Parser for CLI interactions (file paths only, no content)
       codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
       none = "none", -- No parsing, just raw text
     },
