@@ -1,6 +1,6 @@
 --[[
 ===============================================================================
-    File:       codecompanion.interactions/chat/rules/parsers/claude.lua
+    File:       codecompanion.interactions.shared.rules/parsers/claude.lua
     Author:     Oli Morris
 -------------------------------------------------------------------------------
     Description:

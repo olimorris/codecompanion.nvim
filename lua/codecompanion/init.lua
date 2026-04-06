@@ -162,7 +162,7 @@ CodeCompanion.chat = function(args)
   end
 
   -- Add rules to the chat buffer
-  local rules_cb = require("codecompanion.interactions.chat.rules.helpers").add_callbacks(args)
+  local rules_cb = require("codecompanion.interactions.shared.rules.helpers").add_callbacks(args)
   if rules_cb then
     args.callbacks = rules_cb
   end

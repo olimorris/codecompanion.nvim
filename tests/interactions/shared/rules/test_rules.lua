@@ -20,7 +20,7 @@ T["Rules:make()"]["with string file (no parser)"] = function()
   child.fn.writefile({ content }, tmp)
 
   child.lua([[
-    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+    package.loaded['codecompanion.interactions.shared.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.test_processed = processed
         _G.test_chat = chat
@@ -31,7 +31,7 @@ T["Rules:make()"]["with string file (no parser)"] = function()
 
   child.lua(string.format(
     [[
-    local Rules = require("codecompanion.interactions.chat.rules.init")
+    local Rules = require("codecompanion.interactions.shared.rules.init")
     Rules.new({ name = "literal_file_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
     tmp
@@ -63,7 +63,7 @@ T["Rules:make()"]["applies parser when provided at file level"] = function()
         }
       }
     }
-    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+    package.loaded['codecompanion.interactions.shared.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.test_processed = processed
         _G.test_chat = chat
@@ -73,7 +73,7 @@ T["Rules:make()"]["applies parser when provided at file level"] = function()
 
   child.lua(string.format(
     [[
-    local Rules = require("codecompanion.interactions.chat.rules.init")
+    local Rules = require("codecompanion.interactions.shared.rules.init")
     Rules.new({
       name = "parser_test",
       files = { { path = %q, parser = "prefix" } },
@@ -100,7 +100,7 @@ T["Rules:make()"]["with directory file (no parser)"] = function()
   child.fn.writefile({ "second file" }, f2)
 
   child.lua([[
-    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+    package.loaded['codecompanion.interactions.shared.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.test_processed = processed
         _G.test_chat = chat
@@ -111,7 +111,7 @@ T["Rules:make()"]["with directory file (no parser)"] = function()
 
   child.lua(string.format(
     [[
-    local Rules = require("codecompanion.interactions.chat.rules.init")
+    local Rules = require("codecompanion.interactions.shared.rules.init")
     Rules.new({ name = "directory_scan_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
     tmpdir
@@ -142,7 +142,7 @@ T["Rules:make()"]["with glob pattern"] = function()
   child.fn.writefile({ "beta" }, f2)
 
   child.lua([[
-    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+    package.loaded['codecompanion.interactions.shared.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.test_processed = processed
         _G.test_chat = chat
@@ -153,7 +153,7 @@ T["Rules:make()"]["with glob pattern"] = function()
 
   child.lua(string.format(
     [[
-    local Rules = require("codecompanion.interactions.chat.rules.init")
+    local Rules = require("codecompanion.interactions.shared.rules.init")
     Rules.new({ name = "glob_pattern_test", files = { %q } }):make({ chat = { id = "test_chat" } })
   ]],
     tmpdir .. "/*"
@@ -188,7 +188,7 @@ T["Rules:make()"]["with directory and file patterns"] = function()
   child.fn.writefile({ "test" }, f4)
 
   child.lua([[
-    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+    package.loaded['codecompanion.interactions.shared.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.test_processed = processed
         _G.test_chat = chat
@@ -199,7 +199,7 @@ T["Rules:make()"]["with directory and file patterns"] = function()
 
   child.lua(string.format(
     [[
-    local Rules = require("codecompanion.interactions.chat.rules.init")
+    local Rules = require("codecompanion.interactions.shared.rules.init")
     Rules.new({
       name = "pattern_filter_test",
       files = {
@@ -233,7 +233,7 @@ T["Rules:make()"]["with directory and files patterns deduplicates"] = function()
   child.fn.writefile({ "claude rules" }, f1)
 
   child.lua([[
-    package.loaded['codecompanion.interactions.chat.rules.helpers'] = {
+    package.loaded['codecompanion.interactions.shared.rules.helpers'] = {
       add_context = function(processed, chat)
         _G.test_processed = processed
         _G.test_chat = chat
@@ -244,7 +244,7 @@ T["Rules:make()"]["with directory and files patterns deduplicates"] = function()
 
   child.lua(string.format(
     [[
-    local Rules = require("codecompanion.interactions.chat.rules.init")
+    local Rules = require("codecompanion.interactions.shared.rules.init")
     Rules.new({
       name = "deduplication_test",
       files = {
@@ -362,7 +362,7 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
     h.setup_plugin()
 
     local chat_helpers = require("codecompanion.interactions.chat.helpers")
-    local rules_helpers = require("codecompanion.interactions.chat.rules.helpers")
+    local rules_helpers = require("codecompanion.interactions.shared.rules.helpers")
 
     local chat = {
       messages = {},
@@ -414,7 +414,7 @@ T["add_context() prevents duplicate rules context from being added"] = function(
     local h = require("tests.helpers")
     h.setup_plugin()
 
-    local rules_helpers = require("codecompanion.interactions.chat.rules.helpers")
+    local rules_helpers = require("codecompanion.interactions.shared.rules.helpers")
     local chat_helpers = require("codecompanion.interactions.chat.helpers")
 
     local has_context_call_count = 0

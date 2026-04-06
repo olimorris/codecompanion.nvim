@@ -1,5 +1,5 @@
-local helpers = require("codecompanion.interactions.chat.rules.helpers")
-local rules = require("codecompanion.interactions.chat.rules")
+local helpers = require("codecompanion.interactions.shared.rules.helpers")
+local rules = require("codecompanion.interactions.shared.rules")
 
 ---A picker for rules
 ---@param chat? CodeCompanion.Chat

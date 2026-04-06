@@ -2,7 +2,7 @@ local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
-local rules_helpers = require("codecompanion.interactions.chat.rules.helpers")
+local rules_helpers = require("codecompanion.interactions.shared.rules.helpers")
 
 ---A user may specify an adapter for the prompt
 ---@param interaction CodeCompanion.Interactions

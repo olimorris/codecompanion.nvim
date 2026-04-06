@@ -38,7 +38,7 @@ function M.resolve(parser)
 
   if type(parser) == "string" then
     -- The parser might be a CodeCompanion default one ...
-    ok, resolved = pcall(require, "codecompanion.interactions.chat.rules.parsers." .. parser)
+    ok, resolved = pcall(require, "codecompanion.interactions.shared.rules.parsers." .. parser)
     if ok then
       return resolved
     end
