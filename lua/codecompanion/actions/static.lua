@@ -1,8 +1,8 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local registry = require("codecompanion.interactions.shared.registry")
-local rules = require("codecompanion.interactions.chat.rules")
-local rules_list = require("codecompanion.interactions.chat.rules.helpers").list()
+local rules = require("codecompanion.interactions.shared.rules")
+local rules_list = require("codecompanion.interactions.shared.rules.helpers").list()
 
 return {
   -- Chat

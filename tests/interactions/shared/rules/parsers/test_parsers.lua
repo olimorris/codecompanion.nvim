@@ -28,7 +28,7 @@ T["parsers.resolve()"]["handles function parsers"] = function()
   ]])
 
   local f_res = child.lua([[
-    local parsers = require("codecompanion.interactions.chat.rules.parsers")
+    local parsers = require("codecompanion.interactions.shared.rules.parsers")
     local p = parsers.resolve("fn_par")
     return p.content({ content = "b\n" })
   ]])
@@ -38,7 +38,7 @@ end
 T["parsers.resolve()"]["supports builtin module name and file-based parser"] = function()
   -- Mock the built-in parser module
   child.lua([[
-    package.loaded["codecompanion.interactions.chat.rules.parsers.builtinmod"] = {
+    package.loaded["codecompanion.interactions.shared.rules.parsers.builtinmod"] = {
       content = function(p) return "BUILTIN:" .. (p.content or "") end
     }
     package.loaded['codecompanion.config'] = {
@@ -47,7 +47,7 @@ T["parsers.resolve()"]["supports builtin module name and file-based parser"] = f
   ]])
 
   local built = child.lua([[
-    local parsers = require("codecompanion.interactions.chat.rules.parsers")
+    local parsers = require("codecompanion.interactions.shared.rules.parsers")
     local p = parsers.resolve("builtin_parser")
     return p.content({ content = "I am a builtin parser\n" })
   ]])
@@ -66,10 +66,10 @@ T["parsers.resolve()"]["supports builtin module name and file-based parser"] = f
     tmp
   ))
 
-  child.lua([[ package.loaded['codecompanion.interactions.chat.rules.parsers'] = nil ]])
+  child.lua([[ package.loaded['codecompanion.interactions.shared.rules.parsers'] = nil ]])
 
   local file_res = child.lua([[
-    local parsers = require("codecompanion.interactions.chat.rules.parsers")
+    local parsers = require("codecompanion.interactions.shared.rules.parsers")
     local p = parsers.resolve("file_parser")
     return p.content({ content = "I am a file-based parser\n" })
   ]])
@@ -92,19 +92,19 @@ T["parsers.parser()"]["uses file-level parser before group-level, otherwise retu
   ]])
 
   local file_first = child.lua([[
-    local parsers = require("codecompanion.interactions.chat.rules.parsers")
+    local parsers = require("codecompanion.interactions.shared.rules.parsers")
     return parsers.parse({ parser = "file_parser", content = "1\n" }, "group_parser")
   ]])
   h.eq(file_first.content, "1\n")
 
   local group_used = child.lua([[
-    local parsers = require("codecompanion.interactions.chat.rules.parsers")
+    local parsers = require("codecompanion.interactions.shared.rules.parsers")
     return parsers.parse({ content = "2\n" }, "group_parser")
   ]])
   h.eq(group_used.content, "2\n")
 
   local raw = child.lua([[
-    local parsers = require("codecompanion.interactions.chat.rules.parsers")
+    local parsers = require("codecompanion.interactions.shared.rules.parsers")
     return parsers.parse({ content = "RAW\n" }, nil)
   ]])
   h.eq(raw.content, "RAW\n")

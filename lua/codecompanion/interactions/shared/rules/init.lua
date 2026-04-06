@@ -1,7 +1,7 @@
 local file = require("codecompanion.utils.files")
-local helpers = require("codecompanion.interactions.chat.rules.helpers")
+local helpers = require("codecompanion.interactions.shared.rules.helpers")
 local log = require("codecompanion.utils.log")
-local parsers = require("codecompanion.interactions.chat.rules.parsers")
+local parsers = require("codecompanion.interactions.shared.rules.parsers")
 
 ---@class CodeCompanion.Chat.Rules.ProcessedFile
 ---@field name string The name of the rules file

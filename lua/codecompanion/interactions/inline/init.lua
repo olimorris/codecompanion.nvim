@@ -762,7 +762,7 @@ function Inline:to_chat()
   }
 
   -- Add rules to the chat buffer
-  local rules_cb = require("codecompanion.interactions.chat.rules.helpers").add_callbacks(chat_opts)
+  local rules_cb = require("codecompanion.interactions.shared.rules.helpers").add_callbacks(chat_opts)
   if rules_cb then
     chat_opts.callbacks = rules_cb
   end
