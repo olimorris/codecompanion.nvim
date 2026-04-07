@@ -36,7 +36,8 @@ function M.show_diff(args)
   end
 
   if args.ft then
-    vim.api.nvim_set_option_value("filetype", args.ft, { buf = bufnr })
+    local safe_ft = require("codecompanion.utils").safe_filetype(args.ft)
+    vim.api.nvim_set_option_value("filetype", safe_ft, { buf = bufnr })
   end
 
   local diff = require("codecompanion.diff").create({
