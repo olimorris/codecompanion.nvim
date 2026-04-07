@@ -463,4 +463,29 @@ T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   h.expect_starts_with("Elegant, dynamic.", adapter.handlers.inline_output(adapter, json).output)
 end
 
+T["Gemini adapter"]["form_parameters sets thinkingConfig as object for reasoning models"] = function()
+  local levels = {
+    { level = "none", budget = 0 },
+    { level = "low", budget = 1024 },
+    { level = "medium", budget = 8192 },
+    { level = "high", budget = 24576 },
+  }
+
+  for _, tc in ipairs(levels) do
+    adapter.temp = { thinkingLevel = tc.level }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+    h.eq(
+      { thinkingBudget = tc.budget },
+      params.generationConfig.thinkingConfig,
+      string.format("thinkingLevel '%s' should set thinkingBudget = %d", tc.level, tc.budget)
+    )
+  end
+end
+
+T["Gemini adapter"]["form_parameters does not set thinkingConfig when thinkingLevel is absent"] = function()
+  adapter.temp = {}
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+  h.eq(nil, params.generationConfig)
+end
+
 return T
