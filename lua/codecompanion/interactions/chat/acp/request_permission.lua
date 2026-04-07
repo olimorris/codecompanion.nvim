@@ -248,6 +248,64 @@ local function approve_in_chat(permission, choices, prompt_opts)
   })
 end
 
+---Format the title and prompt body for a non-diff tool call approval
+---@param tool_call table|nil
+---@return string title
+---@return string|nil prompt
+local function format_tool_call_prompt(tool_call)
+  local kind = tool_call and tool_call.kind or "permission"
+  local title = tool_call and tool_call.title
+  local label = utils.capitalize(string.lower(kind))
+
+  if not title or vim.tbl_contains({ "execute", "search", "think", "fetch" }, string.lower(kind)) then
+    title = label
+  else
+    title = fmt("%s: %s", label, title)
+  end
+
+  local args = tool_call and tool_call.rawInput
+  if not args or not next(args) then
+    return title, nil
+  end
+
+  local lines = {}
+  local details = vim.deepcopy(args)
+
+  if details.description then
+    vim.list_extend(lines, { details.description, "" })
+    details.description = nil
+  end
+
+  if details.plan then
+    vim.list_extend(lines, { "### Plan", "", details.plan, "" })
+    details.plan = nil
+  end
+
+  if details.command then
+    vim.list_extend(lines, { "### Command", "", "````bash", details.command, "````", "" })
+    details.command = nil
+  end
+
+  local path = details.path or details.file_path
+  if path then
+    vim.list_extend(lines, { fmt("**Path:** `%s`", path), "" })
+    details.path = nil
+    details.file_path = nil
+  end
+
+  if next(details) then
+    vim.list_extend(lines, { "### Arguments", "", "````json" })
+    vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
+    vim.list_extend(lines, { "````", "" })
+  end
+
+  if #lines == 0 then
+    return title, nil
+  end
+
+  return title, table.concat(lines, "\n")
+end
+
 ---Show the permission request to the user and handle their response
 ---@param chat CodeCompanion.Chat
 ---@param request table
@@ -260,12 +318,9 @@ function M.confirm(chat, request)
   local choices = build_choices(permission, has_diff)
 
   if not has_diff then
-    local prompt = fmt(
-      "%s: %s",
-      utils.capitalize(tool_call and tool_call.kind or "Permission"),
-      tool_call and tool_call.title or "Agent requested permission"
-    )
-    return approve_in_chat(permission, choices, { prompt = prompt })
+    local title, prompt = format_tool_call_prompt(tool_call)
+
+    return approve_in_chat(permission, choices, { title = title, prompt = prompt })
   end
 
   local d = get_diff(tool_call)

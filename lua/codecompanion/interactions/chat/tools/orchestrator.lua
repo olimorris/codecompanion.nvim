@@ -252,6 +252,65 @@ function Orchestrator:_finalize_tools()
   })
 end
 
+---Format the current tool's args into a rich markdown prompt body
+---@return string|nil
+function Orchestrator:format_args_prompt()
+  local args = self.tool and self.tool.args
+  if not args or not next(args) then
+    return nil
+  end
+
+  local lines = {}
+  local details = vim.deepcopy(args)
+
+  -- Skip fields that are handled by their own UI (e.g. edits have the diff viewer)
+  details.edits = nil
+
+  if details.explanation then
+    vim.list_extend(lines, { details.explanation, "" })
+    details.explanation = nil
+  end
+
+  local filepath = details.filepath or details.path
+  if filepath then
+    vim.list_extend(lines, { fmt("**Path:** `%s`", filepath), "" })
+    details.filepath = nil
+    details.path = nil
+  end
+
+  if details.url then
+    vim.list_extend(lines, { fmt("**URL:** `%s`", details.url), "" })
+    details.url = nil
+  end
+
+  if details.cmd then
+    vim.list_extend(lines, { "### Command", "", "````bash", details.cmd, "````", "" })
+    details.cmd = nil
+  end
+
+  if details.query then
+    vim.list_extend(lines, { fmt("**Query:** `%s`", details.query), "" })
+    details.query = nil
+  end
+
+  if details.content then
+    vim.list_extend(lines, { "### Content", "", "````", details.content, "````", "" })
+    details.content = nil
+  end
+
+  if next(details) then
+    vim.list_extend(lines, { "### Arguments", "", "````json" })
+    vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
+    vim.list_extend(lines, { "````", "" })
+  end
+
+  if #lines == 0 then
+    return nil
+  end
+
+  return table.concat(lines, "\n")
+end
+
 ---Setup the tool to be executed
 ---@param input? any
 ---@return nil
@@ -291,16 +350,19 @@ function Orchestrator:setup_next_tool(input)
     if require_approval_before then
       log:debug("[Orchestrator::setup_next_tool] Asking for approval")
 
-      local prompt = self.output.prompt()
-      if prompt == nil or prompt == "" then
-        prompt = ("Run the %q tool?"):format(self.tool.name)
+      local title = self.output.prompt()
+      if title == nil or title == "" then
+        title = ("Run the %q tool?"):format(self.tool.name)
       end
+
+      local prompt = self:format_args_prompt()
 
       local labels = require("codecompanion.interactions.chat.tools.labels")
       local keys = labels.keymaps()
       require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
         id = self.id,
         name = self.tool.name,
+        title = title,
         prompt = prompt,
         choices = {
           {
