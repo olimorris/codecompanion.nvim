@@ -17,7 +17,7 @@ end
 ---Prompt the user for a rejection reason
 ---@param callback function
 local function get_rejection_reason(callback)
-  ui_utils.input({ prompt = "Rejection reason" }, function(input)
+  ui_utils.input({ prompt = "Rejection reason: " }, function(input)
     callback(input or "")
   end)
 end
