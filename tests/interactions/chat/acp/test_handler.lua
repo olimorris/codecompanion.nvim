@@ -14,6 +14,7 @@ T = new_set({
       child.lua([[
         -- Mock ACP connection for chat integration tests
         _G.mock_acp_connection = {
+          _config_options = {},
           connected = false,
           session_id = nil,
 
@@ -84,6 +85,10 @@ T = new_set({
           disconnect = function(self)
             self.connected = false
             self.session_id = nil
+          end,
+
+          get_config_options = function(self)
+            return self._config_options or {}
           end
         }
       ]])
@@ -663,61 +668,26 @@ T["ACPHandler"]["handles no connection"] = function()
   h.eq("\\cost", result.content)
 end
 
-T["ACPHandler"]["Session Modes"] = new_set()
+T["ACPHandler"]["Config Options"] = new_set()
 
-T["ACPHandler"]["Session Modes"]["caches modes from session creation"] = function()
-  local result = child.lua([[
-    -- Mock ACP connection with modes
-    local mock_connection = vim.deepcopy(_G.mock_acp_connection)
-    mock_connection.get_modes = function(self)
-      return self._modes
-    end
-    mock_connection._modes = {
-      currentModeId = "default",
-      availableModes = {
-        { id = "default", name = "Always Ask", description = "Prompts for permission" },
-        { id = "plan", name = "Plan Mode", description = "Analyze but not modify" },
-      }
-    }
-
-    local chat = h.setup_chat_buffer({}, {
-      name = "test_acp",
-      config = {
-        name = "test_acp",
-        type = "acp",
-        handlers = { form_messages = function(a, m) return m end }
-      }
-    })
-
-    chat.acp_connection = mock_connection
-
-    local modes = chat.acp_connection:get_modes()
-
-    return {
-      has_modes = modes ~= nil,
-      current_mode = modes and modes.currentModeId,
-      mode_count = modes and #modes.availableModes or 0,
-      first_mode_name = modes and modes.availableModes[1] and modes.availableModes[1].name,
-    }
-  ]])
-
-  h.is_true(result.has_modes)
-  h.eq("default", result.current_mode)
-  h.eq(2, result.mode_count)
-  h.eq("Always Ask", result.first_mode_name)
-end
-
-T["ACPHandler"]["Session Modes"]["updates metadata with current mode"] = function()
+T["ACPHandler"]["Config Options"]["updates metadata with config options"] = function()
   local result = child.lua([[
     local mock_connection = vim.deepcopy(_G.mock_acp_connection)
-    mock_connection.get_modes = function(self)
-      return {
-        currentModeId = "plan",
-        availableModes = {
-          { id = "default", name = "Always Ask" },
-          { id = "plan", name = "Plan Mode" },
-        }
-      }
+    mock_connection._config_options = {
+      {
+        type = "select",
+        id = "mode",
+        name = "Mode",
+        category = "mode",
+        currentValue = "plan",
+        options = {
+          { value = "default", name = "Always Ask" },
+          { value = "plan", name = "Plan Mode" },
+        },
+      },
+    }
+    mock_connection.get_config_options = function(self)
+      return self._config_options
     end
 
     local chat = h.setup_chat_buffer({}, {
@@ -735,22 +705,23 @@ T["ACPHandler"]["Session Modes"]["updates metadata with current mode"] = functio
     local metadata = _G.codecompanion_chat_metadata[chat.bufnr]
 
     return {
-      has_mode = metadata.mode ~= nil,
-      current_mode_id = metadata.mode and metadata.mode.current,
-      current_mode_name = metadata.mode and metadata.mode.name,
+      has_config_options = metadata.config_options ~= nil,
+      mode_current = metadata.config_options and metadata.config_options.mode and metadata.config_options.mode.current,
+      mode_name = metadata.config_options and metadata.config_options.mode and metadata.config_options.mode.name,
     }
   ]])
 
-  h.is_true(result.has_mode)
-  h.eq("plan", result.current_mode_id)
-  h.eq("Plan Mode", result.current_mode_name)
+  h.is_true(result.has_config_options)
+  h.eq("plan", result.mode_current)
+  h.eq("Plan Mode", result.mode_name)
 end
 
-T["ACPHandler"]["Session Modes"]["handles no modes gracefully"] = function()
+T["ACPHandler"]["Config Options"]["handles no config options gracefully"] = function()
   local result = child.lua([[
     local mock_connection = vim.deepcopy(_G.mock_acp_connection)
-    mock_connection.get_modes = function(self)
-      return nil
+    mock_connection._config_options = {}
+    mock_connection.get_config_options = function(self)
+      return self._config_options
     end
 
     local chat = h.setup_chat_buffer({}, {
@@ -769,29 +740,35 @@ T["ACPHandler"]["Session Modes"]["handles no modes gracefully"] = function()
 
     return {
       metadata_exists = metadata ~= nil,
-      has_mode = metadata.mode ~= nil,
+      has_config_options = metadata.config_options ~= nil,
     }
   ]])
 
   h.is_true(result.metadata_exists)
-  h.is_false(result.has_mode)
+  h.is_false(result.has_config_options)
 end
 
-T["ACPHandler"]["Session Modes"]["reflects mode changes in metadata"] = function()
+T["ACPHandler"]["Config Options"]["reflects config option changes in metadata"] = function()
   local result = child.lua([[
     local mock_connection = vim.deepcopy(_G.mock_acp_connection)
     mock_connection.session_id = "test-session-123"
 
-    -- Use a table to hold the current mode so we can modify it
-    local mode_state = { current = "default" }
-    mock_connection.get_modes = function(self)
-      return {
-        currentModeId = mode_state.current,
-        availableModes = {
-          { id = "default", name = "Always Ask" },
-          { id = "plan", name = "Plan Mode" },
-        }
-      }
+    local config_opts = {
+      {
+        type = "select",
+        id = "mode",
+        name = "Mode",
+        category = "mode",
+        currentValue = "default",
+        options = {
+          { value = "default", name = "Always Ask" },
+          { value = "plan", name = "Plan Mode" },
+        },
+      },
+    }
+    mock_connection._config_options = config_opts
+    mock_connection.get_config_options = function(self)
+      return self._config_options
     end
 
     local chat = h.setup_chat_buffer({}, {
@@ -808,18 +785,17 @@ T["ACPHandler"]["Session Modes"]["reflects mode changes in metadata"] = function
 
     local metadata_before = vim.deepcopy(_G.codecompanion_chat_metadata[chat.bufnr])
 
-    -- Simulate mode change in the connection
-    mode_state.current = "plan"
+    -- Simulate config option change
+    config_opts[1].currentValue = "plan"
 
-    -- Update metadata to reflect the change
     chat:update_metadata()
 
     local metadata_after = _G.codecompanion_chat_metadata[chat.bufnr]
 
     return {
-      mode_before = metadata_before.mode and metadata_before.mode.current,
-      mode_after = metadata_after.mode and metadata_after.mode.current,
-      name_after = metadata_after.mode and metadata_after.mode.name,
+      mode_before = metadata_before.config_options and metadata_before.config_options.mode and metadata_before.config_options.mode.current,
+      mode_after = metadata_after.config_options and metadata_after.config_options.mode and metadata_after.config_options.mode.current,
+      name_after = metadata_after.config_options and metadata_after.config_options.mode and metadata_after.config_options.mode.name,
     }
   ]])
 

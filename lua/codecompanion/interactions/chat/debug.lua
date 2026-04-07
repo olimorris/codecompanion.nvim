@@ -113,40 +113,40 @@ function Debug:render()
     table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
 
     if self.chat.acp_connection then
-      -- Show current model if available
-      local acp_models = self.chat.acp_connection:get_models()
-      if acp_models and acp_models.currentModelId then
-        local model = acp_models.currentModelId
-        for _, m in ipairs(acp_models or {}) do
-          if m.modelId == acp_models.currentModelId then
-            model = m.name .. " (" .. m.modelId .. ")"
-            break
+      for _, opt in ipairs(self.chat.acp_connection:get_config_options()) do
+        if opt.type == "select" and opt.currentValue then
+          -- Build the list of available values (flatten grouped options)
+          local available = {}
+          for _, item in ipairs(opt.options or {}) do
+            if item.group then
+              for _, val in ipairs(item.options or {}) do
+                table.insert(available, val.name or val.value)
+              end
+            else
+              table.insert(available, item.name or item.value)
+            end
           end
-        end
-        local models_list = vim
-          .iter(acp_models.availableModels)
-          :map(function(m)
-            return m.modelId
-          end)
-          :totable()
-        table.sort(models_list)
-        table.insert(
-          lines,
-          '-- Using Model: "' .. model .. '" (Available models: ' .. table.concat(models_list, ", ") .. ")"
-        )
-      end
+          table.sort(available)
 
-      -- Show current mode if available
-      local modes = self.chat.acp_connection:get_modes()
-      if modes and modes.currentModeId then
-        local mode_name = modes.currentModeId
-        for _, mode in ipairs(modes.availableModes or {}) do
-          if mode.id == modes.currentModeId then
-            mode_name = mode.name .. " (" .. mode.id .. ")"
-            break
+          -- Find the display name for the current value
+          local current_name = opt.currentValue
+          for _, item in ipairs(opt.options or {}) do
+            if item.group then
+              for _, val in ipairs(item.options or {}) do
+                if val.value == opt.currentValue then
+                  current_name = val.name
+                end
+              end
+            elseif item.value == opt.currentValue then
+              current_name = item.name
+            end
           end
+
+          table.insert(
+            lines,
+            "-- " .. opt.name .. ': "' .. current_name .. '" (Available: ' .. table.concat(available, ", ") .. ")"
+          )
         end
-        table.insert(lines, '-- Mode: "' .. mode_name .. '"')
       end
     end
   end

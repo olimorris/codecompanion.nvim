@@ -189,7 +189,7 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
   h.eq(result.session_id, "prev-session")
 end
 
-T["ACP Connection"]["session/load restores modes and models metadata"] = function()
+T["ACP Connection"]["session/load restores config options metadata"] = function()
   local result = child.lua([[
     local connection = create_init_connection()
     connection.session_id = "prev-session"
@@ -198,7 +198,6 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
       elseif method == "session/load" then
         return {
-          modes = { { id = "code", name = "Code" }, { id = "ask", name = "Ask" } },
           configOptions = {
             {
               type = "select",
@@ -208,6 +207,14 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
               currentValue = "claude-sonnet",
               options = { { value = "claude-sonnet", name = "Claude Sonnet" } },
             },
+            {
+              type = "select",
+              id = "mode",
+              name = "Mode",
+              category = "mode",
+              currentValue = "code",
+              options = { { value = "code", name = "Code" }, { value = "ask", name = "Ask" } },
+            },
           },
         }
       end
@@ -216,19 +223,18 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
     local ok = connection:connect_and_initialize()
     return {
       ok = ok ~= nil,
-      modes = connection._modes,
+      config_options_count = #connection._config_options,
       models = connection._models,
     }
   ]])
 
   h.eq(result.ok, true)
-  h.eq(#result.modes, 2)
-  h.eq(result.modes[1].id, "code")
+  h.eq(result.config_options_count, 2)
   h.eq(#result.models.availableModels, 1)
   h.eq(result.models.availableModels[1].modelId, "claude-sonnet")
 end
 
-T["ACP Connection"]["session/new stores modes and models metadata"] = function()
+T["ACP Connection"]["session/new stores config options metadata"] = function()
   local result = child.lua([[
     local connection = create_init_connection()
     function connection:send_rpc_request(method, params)
@@ -237,7 +243,6 @@ T["ACP Connection"]["session/new stores modes and models metadata"] = function()
       elseif method == "session/new" then
         return {
           sessionId = "new-session",
-          modes = { { id = "agent", name = "Agent" } },
           configOptions = {
             {
               type = "select",
@@ -255,14 +260,13 @@ T["ACP Connection"]["session/new stores modes and models metadata"] = function()
     local ok = connection:connect_and_initialize()
     return {
       ok = ok ~= nil,
-      modes = connection._modes,
+      config_options_count = #connection._config_options,
       models = connection._models,
     }
   ]])
 
   h.eq(result.ok, true)
-  h.eq(#result.modes, 1)
-  h.eq(result.modes[1].id, "agent")
+  h.eq(result.config_options_count, 1)
   h.eq(#result.models.availableModels, 1)
   h.eq(result.models.availableModels[1].modelId, "claude-opus")
 end

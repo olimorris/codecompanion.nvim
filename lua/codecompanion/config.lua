@@ -367,6 +367,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       slash_commands = {
+        ["acp_session_options"] = {
+          path = "interactions.chat.slash_commands.builtin.acp_session_options",
+          description = "Change ACP session configuration options",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["buffer"] = {
           path = "interactions.shared.slash_commands.buffer",
           description = "Insert open buffers",
@@ -456,21 +471,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           opts = {
             contains_code = false,
             provider = "default", -- snacks|default
-          },
-        },
-        ["mode"] = {
-          path = "interactions.chat.slash_commands.builtin.mode",
-          description = "Change the ACP session mode",
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
-          ---@return boolean
-          enabled = function(opts)
-            if opts.adapter and opts.adapter.type == "acp" then
-              return true
-            end
-            return false
-          end,
-          opts = {
-            contains_code = false,
           },
         },
         ["now"] = {
