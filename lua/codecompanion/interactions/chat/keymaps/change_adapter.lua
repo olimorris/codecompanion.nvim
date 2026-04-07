@@ -126,7 +126,7 @@ end
 ---@return table|nil
 function M.list_acp_models(connection)
   local models = connection:get_models()
-  if not models or vim.tbl_count(models) < 2 then
+  if not models or vim.tbl_count(models.availableModels) < 2 then
     return nil
   end
 
