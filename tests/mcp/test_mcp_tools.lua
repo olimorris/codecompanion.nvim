@@ -344,7 +344,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
     local confirmations = {}
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
     ap.request = function(_, opts)
-      table.insert(confirmations, opts.prompt)
+      table.insert(confirmations, opts.title)
       -- Auto-select "Approve" (g2)
       for _, choice in ipairs(opts.choices) do
         if choice.keymap == "g2" then
