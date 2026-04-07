@@ -123,6 +123,14 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      if self.temp.thinkingLevel then
+        local budgets = { none = 0, low = 1024, medium = 8192, high = 24576 }
+        local budget = budgets[self.temp.thinkingLevel]
+        if budget ~= nil then
+          params.generationConfig = params.generationConfig or {}
+          params.generationConfig.thinkingConfig = { thinkingBudget = budget }
+        end
+      end
       return params
     end,
 
@@ -531,7 +539,7 @@ return {
     },
     thinkingLevel = {
       order = 6,
-      mapping = "body.generationConfig.thinkingConfig",
+      mapping = "temp",
       type = "string",
       optional = true,
       ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
