@@ -322,7 +322,7 @@ function Orchestrator:setup_next_tool(input)
             keymap = keys.reject,
             label = labels.reject,
             callback = function()
-              ui_utils.input({ prompt = fmt("Reason for rejecting `%s`", self.tool.name) }, function(i)
+              ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
                 self.output.rejected(cmd, { reason = i })
                 self:setup_next_tool()
               end)
