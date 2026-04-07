@@ -118,18 +118,45 @@ return {
       return true
     end,
 
+    ---Translate the plugin's generic `thinkingLevel` into a model-appropriate
+    ---`thinkingConfig`. Gemini 2.5 uses `thinkingBudget` (and Pro cannot be
+    ---disabled); Gemini 3.x uses `thinkingLevel` ("low" or "high") and cannot
+    ---be disabled at all. See https://ai.google.dev/gemini-api/docs/thinking.
     ---@param self CodeCompanion.HTTPAdapter
     ---@param params table
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
-      if self.temp.thinkingLevel then
-        local budgets = { none = 0, low = 1024, medium = 8192, high = 24576 }
-        local budget = budgets[self.temp.thinkingLevel]
-        if budget ~= nil then
-          params.generationConfig = params.generationConfig or {}
-          params.generationConfig.thinkingConfig = { thinkingBudget = budget }
+      local level = self.temp and self.temp.thinkingLevel
+      if not level then
+        return params
+      end
+
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+
+      local thinking_config
+      if type(model) == "string" and model:match("^gemini%-3") then
+        -- Gemini 3.x: thinkingLevel is "low" or "high"; thinking cannot be disabled.
+        local level_map = { high = "high", medium = "high", low = "low" }
+        local mapped = level_map[level]
+        if mapped then
+          thinking_config = { thinkingLevel = mapped }
         end
+      elseif type(model) == "string" and model:match("^gemini%-2%.5") then
+        -- Gemini 2.5: thinkingBudget in tokens. 2.5 Pro cannot disable thinking.
+        local budgets = { none = 0, low = 1024, medium = 8192, high = 24576 }
+        local budget = budgets[level]
+        if budget ~= nil and not (budget == 0 and model:match("pro")) then
+          thinking_config = { thinkingBudget = budget }
+        end
+      end
+
+      if thinking_config then
+        params.generationConfig = params.generationConfig or {}
+        params.generationConfig.thinkingConfig = thinking_config
       end
       return params
     end,

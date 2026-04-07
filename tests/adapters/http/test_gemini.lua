@@ -463,15 +463,16 @@ T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   h.expect_starts_with("Elegant, dynamic.", adapter.handlers.inline_output(adapter, json).output)
 end
 
-T["Gemini adapter"]["form_parameters sets thinkingConfig as object for reasoning models"] = function()
-  local levels = {
+T["Gemini adapter"]["form_parameters maps thinkingLevel to thinkingBudget for Gemini 2.5 Flash"] = function()
+  adapter.schema.model.default = "gemini-2.5-flash"
+  local cases = {
     { level = "none", budget = 0 },
     { level = "low", budget = 1024 },
     { level = "medium", budget = 8192 },
     { level = "high", budget = 24576 },
   }
 
-  for _, tc in ipairs(levels) do
+  for _, tc in ipairs(cases) do
     adapter.temp = { thinkingLevel = tc.level }
     local params = adapter.handlers.form_parameters(adapter, {}, {})
     h.eq(
@@ -480,6 +481,45 @@ T["Gemini adapter"]["form_parameters sets thinkingConfig as object for reasoning
       string.format("thinkingLevel '%s' should set thinkingBudget = %d", tc.level, tc.budget)
     )
   end
+end
+
+T["Gemini adapter"]["form_parameters refuses to disable thinking on Gemini 2.5 Pro"] = function()
+  adapter.schema.model.default = "gemini-2.5-pro"
+  adapter.temp = { thinkingLevel = "none" }
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+  -- 2.5 Pro cannot disable thinking; the field must be omitted entirely.
+  h.eq(nil, params.generationConfig)
+
+  adapter.temp = { thinkingLevel = "high" }
+  params = adapter.handlers.form_parameters(adapter, {}, {})
+  h.eq({ thinkingBudget = 24576 }, params.generationConfig.thinkingConfig)
+end
+
+T["Gemini adapter"]["form_parameters maps thinkingLevel for Gemini 3.x reasoning models"] = function()
+  adapter.schema.model.default = "gemini-3.1-pro-preview"
+  local cases = {
+    { level = "high", expected = "high" },
+    { level = "medium", expected = "high" },
+    { level = "low", expected = "low" },
+  }
+
+  for _, tc in ipairs(cases) do
+    adapter.temp = { thinkingLevel = tc.level }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+    h.eq(
+      { thinkingLevel = tc.expected },
+      params.generationConfig.thinkingConfig,
+      string.format("thinkingLevel '%s' should map to '%s'", tc.level, tc.expected)
+    )
+  end
+end
+
+T["Gemini adapter"]["form_parameters omits thinkingConfig when disabling on Gemini 3.x"] = function()
+  adapter.schema.model.default = "gemini-3.1-pro-preview"
+  adapter.temp = { thinkingLevel = "none" }
+  -- Gemini 3.x does not support disabling thinking; the field is omitted.
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+  h.eq(nil, params.generationConfig)
 end
 
 T["Gemini adapter"]["form_parameters does not set thinkingConfig when thinkingLevel is absent"] = function()
