@@ -89,6 +89,10 @@ T = new_set({
 
           get_config_options = function(self)
             return self._config_options or {}
+          end,
+
+          get_models = function(self)
+            return nil
           end
         }
       ]])
