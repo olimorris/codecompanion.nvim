@@ -178,13 +178,13 @@ T["Keymaps"]["change_adapter"]["list_acp_models returns correct structure"] = fu
   h.eq(result.first_model_id, "default")
 end
 
-T["Keymaps"]["change_adapter"]["list_acp_models returns nil when < 2 keys in models"] = function()
+T["Keymaps"]["change_adapter"]["list_acp_models returns nil when < 2 models"] = function()
   local result = child.lua([[
     h.setup_plugin()
 
     local acp_connection = {
       get_models = function(self)
-        return { currentModelId = "default" }
+        return { availableModels = { "default" } }
       end
     }
 
