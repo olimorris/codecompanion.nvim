@@ -56,7 +56,7 @@ The ACP specification has recently added support for [session config options](ht
 
 ### Models
 
-There are numerous was you can set a model in your config and it differs signifcantly from other session config options because of how CodeCompanion integrates adapters and models into the chat interaction.
+There are numerous was you can set a model in your config and it differs significantly from other session config options because of how CodeCompanion integrates adapters and models into the chat interaction.
 
 ::: code-group
 

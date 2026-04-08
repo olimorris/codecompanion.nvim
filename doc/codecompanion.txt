@@ -1076,7 +1076,7 @@ start of a session such as models, reasoning levels, and more.
 MODELS
 
 There are numerous was you can set a model in your config and it differs
-signifcantly from other session config options because of how CodeCompanion
+significantly from other session config options because of how CodeCompanion
 integrates adapters and models into the chat interaction.
 
 
