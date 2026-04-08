@@ -3,6 +3,7 @@ import { defineConfig } from "vitepress";
 import { execSync } from "node:child_process";
 import { withMermaid } from "vitepress-plugin-mermaid";
 import llmstxt from "vitepress-plugin-llms";
+import { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
 const inProd = process.env.NODE_ENV === "production";
 
@@ -77,6 +78,11 @@ export default withMermaid(
   defineConfig({
     vite: {
       plugins: [llmstxt()],
+    },
+    markdown: {
+      config(md) {
+        md.use(copyOrDownloadAsMarkdownButtons);
+      },
     },
     mermaid: {
       securityLevel: "loose", // Allows more flexibility
