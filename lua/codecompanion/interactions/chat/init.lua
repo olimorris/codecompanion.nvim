@@ -1759,7 +1759,8 @@ function Chat:update_metadata()
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
   elseif self.adapter.type == "acp" and self.acp_connection then
-    model = self.acp_connection._models and self.acp_connection._models.currentModelId or "default"
+    local acp_models = self.acp_connection:get_models()
+    model = acp_models and acp_models.currentModelId or "default"
 
     -- Build a map of category -> { current, name } from all config options
     config_options = {}
