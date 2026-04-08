@@ -102,6 +102,15 @@ function Debug:render()
 
   local lines = {}
 
+  table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
+  if buf_info then
+    table.insert(
+      lines,
+      string.format([[-- Following Buffer: "%s" (%s)]], buf_info.relative_path, _G.codecompanion_current_context)
+    )
+  end
+
+  table.insert(lines, "")
   table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
   if adapter.type == "acp" then
     local command
@@ -110,7 +119,7 @@ function Debug:render()
     else
       command = adapter.commands.default
     end
-    table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
+    table.insert(lines, '--   With Command: "' .. table.concat(command, " ") .. '"')
 
     if self.chat.acp_connection then
       for _, opt in ipairs(self.chat.acp_connection:get_config_options()) do
@@ -142,20 +151,18 @@ function Debug:render()
             end
           end
 
+          local label = opt.name
+          if opt.category then
+            label = label .. " [" .. opt.category .. "]"
+          end
+
           table.insert(
             lines,
-            "-- " .. opt.name .. ': "' .. current_name .. '" (Available: ' .. table.concat(available, ", ") .. ")"
+            "--   " .. label .. ': "' .. current_name .. '" (Available: ' .. table.concat(available, ", ") .. ")"
           )
         end
       end
     end
-  end
-  table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
-  if buf_info then
-    table.insert(
-      lines,
-      string.format([[-- Following Buffer: "%s" (%s)]], buf_info.relative_path, _G.codecompanion_current_context)
-    )
   end
 
   -- Add MCP status
