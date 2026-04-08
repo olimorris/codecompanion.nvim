@@ -369,7 +369,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       slash_commands = {
         ["acp_session_options"] = {
           path = "interactions.chat.slash_commands.builtin.acp_session_options",
-          description = "Change ACP session configuration options",
+          description = "Change ACP session config options like mode and reasoning level",
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
           enabled = function(opts)

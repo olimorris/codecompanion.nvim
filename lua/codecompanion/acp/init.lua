@@ -448,20 +448,13 @@ function Connection:apply_default_config_options()
       goto continue
     end
 
-    -- Flatten grouped/ungrouped values and find a match
     local match_value
-    for _, item in ipairs(opt.options or {}) do
-      local candidates = item.group and item.options or { item }
-      for _, val in ipairs(candidates) do
-        if val.value == default_value then
-          match_value = val.value
-          break
-        elseif val.name and val.name:lower():find(default_value:lower(), 1, true) then
-          match_value = val.value
-          break
-        end
-      end
-      if match_value then
+    for _, val in ipairs(Connection.flatten_config_options(opt.options or {})) do
+      if val.value == default_value then
+        match_value = val.value
+        break
+      elseif val.name and val.name:lower():find(default_value:lower(), 1, true) then
+        match_value = val.value
         break
       end
     end
@@ -964,16 +957,9 @@ function Connection:get_models()
     return nil
   end
 
-  local available = {}
-  for _, item in ipairs(opt.options or {}) do
-    if item.group then
-      for _, model in ipairs(item.options or {}) do
-        table.insert(available, { modelId = model.value, name = model.name })
-      end
-    else
-      table.insert(available, { modelId = item.value, name = item.name })
-    end
-  end
+  local available = vim.tbl_map(function(val)
+    return { modelId = val.value, name = val.name }
+  end, Connection.flatten_config_options(opt.options or {}))
 
   return {
     availableModels = available,
@@ -1041,6 +1027,26 @@ function Connection:set_config_option(config_id, value)
 
   log:debug("[acp::set_config_option] Changed %s to %s", config_id, value)
   return true
+end
+
+---Flatten session config options
+---@param opts table[]
+---@return table[]
+function Connection.flatten_config_options(opts)
+  return vim
+    .iter(opts)
+    :map(function(item)
+      -- The ACP specification allows options to be grouped
+      -- Ref: https://agentclientprotocol.com/protocol/schema#sessionconfigselectgroup
+      if item.group then
+        return vim.tbl_map(function(val)
+          return vim.tbl_extend("force", val, { group = item.name })
+        end, item.options or {})
+      end
+      return { item }
+    end)
+    :flatten()
+    :totable()
 end
 
 return Connection

@@ -1,3 +1,4 @@
+local ACP = require("codecompanion.acp")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.SlashCommand.ACP: CodeCompanion.SlashCommand
@@ -14,23 +15,6 @@ function SlashCommand.new(args)
   return self
 end
 
----Flatten grouped and ungrouped select options into a single list
----@param raw_options table[]
----@return table[]
-local function flatten_select_values(raw_options)
-  local values = {}
-  for _, item in ipairs(raw_options) do
-    if item.group then
-      for _, val in ipairs(item.options or {}) do
-        table.insert(values, { description = val.description, group = item.name, name = val.name, value = val.value })
-      end
-    else
-      table.insert(values, { description = item.description, name = item.name, value = item.value })
-    end
-  end
-  return values
-end
-
 ---Show the value picker for a single config option
 ---@param config_option table
 function SlashCommand:show_values(config_option)
@@ -38,7 +22,7 @@ function SlashCommand:show_values(config_option)
     return utils.notify("Unsupported config option type: " .. (config_option.type or "unknown"), vim.log.levels.WARN)
   end
 
-  local values = flatten_select_values(config_option.options or {})
+  local values = ACP.flatten_config_options(config_option.options or {})
   if #values == 0 then
     return utils.notify("No values available for " .. config_option.name, vim.log.levels.WARN)
   end

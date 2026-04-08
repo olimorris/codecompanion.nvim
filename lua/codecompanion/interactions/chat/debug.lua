@@ -1,3 +1,4 @@
+local ACP = require("codecompanion.acp")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
@@ -124,30 +125,18 @@ function Debug:render()
     if self.chat.acp_connection then
       for _, opt in ipairs(self.chat.acp_connection:get_config_options()) do
         if opt.type == "select" and opt.currentValue then
-          -- Build the list of available values (flatten grouped options)
-          local available = {}
-          for _, item in ipairs(opt.options or {}) do
-            if item.group then
-              for _, val in ipairs(item.options or {}) do
-                table.insert(available, val.name or val.value)
-              end
-            else
-              table.insert(available, item.name or item.value)
-            end
-          end
+          local flattened = ACP.flatten_config_options(opt.options or {})
+
+          local available = vim.tbl_map(function(val)
+            return val.name or val.value
+          end, flattened)
           table.sort(available)
 
-          -- Find the display name for the current value
           local current_name = opt.currentValue
-          for _, item in ipairs(opt.options or {}) do
-            if item.group then
-              for _, val in ipairs(item.options or {}) do
-                if val.value == opt.currentValue then
-                  current_name = val.name
-                end
-              end
-            elseif item.value == opt.currentValue then
-              current_name = item.name
+          for _, val in ipairs(flattened) do
+            if val.value == opt.currentValue then
+              current_name = val.name
+              break
             end
           end
 
