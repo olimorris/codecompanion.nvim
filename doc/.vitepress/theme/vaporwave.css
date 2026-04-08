@@ -7,7 +7,8 @@
   --vw-blue: #118dc3;
   --vw-yellow: #eea825;
 
-  .VPMenu {
+  .VPMenu,
+  .dropdown-menu {
     background-color: var(--vp-c-bg) !important;
   }
 
