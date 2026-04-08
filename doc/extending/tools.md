@@ -305,7 +305,7 @@ In the plugin, LLMs are given knowledge about a tool and how it can be used via 
 
 For our calculator tool, we're going to use a `system_prompt` just to demonstrate the functionality:
 
-````lua
+```lua
 system_prompt = [[## Calculator Tool (`calculator`)
 
 ## CONTEXT
@@ -318,8 +318,7 @@ system_prompt = [[## Calculator Tool (`calculator`)
 ### RESPONSE
 - Always use the structure above for consistency.
 ]],
-````
-
+```
 
 ### `handlers`
 
@@ -397,7 +396,7 @@ The `for_llm` parameter is the string message that will be shared with the LLM a
 
 If we put this all together in our config:
 
-````lua
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -529,7 +528,7 @@ require("codecompanion").setup({
     }
   }
 })
-````
+```
 
 and with the prompt:
 

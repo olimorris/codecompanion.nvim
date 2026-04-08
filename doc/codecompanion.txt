@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 07
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -493,7 +493,7 @@ use a rich prompt input field complete with |codecompanion--editor-context|.
 Save with `:w` to send the prompt to the agent, or `:w!` to send and
 auto-submit it.
 
-Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will
+Adding `!` to the command (e.g.� `:CodeCompanionCLI! <prompt>`) will
 auto-submit the prompt and keep your cursor in the current buffer. You can also
 specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
 
@@ -1017,43 +1017,6 @@ This section contains configuration which is specific to Agent Client Protocol
 recommended you read the two pages together.
 
 
-DEFAULT ADAPTER ~
-
-You can select an ACP adapter to be the default for all chat interactions:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          adapter = "gemini_cli",
-        },
-      },
-    }),
-<
-
-
-DEFAULT MODEL ~
-
-You can change the default model used by an ACP adapter. For example, to change
-the default model for the Claude Code adapter:
-
-
-Using a `function` is useful for working around the limitations
-<https://github.com/zed-industries/claude-code-acp/issues/225> in the Claude
-Code SDK (which enables ACP support).
-
-
-DEFAULT MODE ~
-
-You can configure an ACP adapter to start in a specific agent mode (e.g., plan
-mode) by setting the `defaults.mode` option. This is useful if you want to
-always start sessions in plan mode or another specific mode.
-
-
-The mode is applied automatically after the session is established. Available
-mode IDs can be viewed using the `/mode` slash command in the chat buffer.
-
-
 ADAPTER SETTINGS ~
 
 To change any of the default settings for an ACP adapter, you can extend it in
@@ -1085,6 +1048,52 @@ method for the Gemini CLI adapter, you can do the following:
       },
     })
 <
+
+
+SETTING A DEFAULT ADAPTER ~
+
+You can select an ACP adapter to be the default for all chat interactions:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = "gemini_cli",
+        },
+      },
+    }),
+<
+
+
+SETTING DEFAULT SESSION CONFIG OPTIONS ~
+
+The ACP specification has recently added support for session config options
+<https://agentclientprotocol.com/protocol/session-config-options>. These are
+lists of configuration options that agents can share with CodeCompanion at the
+start of a session such as models, reasoning levels, and more.
+
+
+MODELS
+
+There are numerous was you can set a model in your config and it differs
+signifcantly from other session config options because of how CodeCompanion
+integrates adapters and models into the chat interaction.
+
+
+
+OTHERS
+
+To set any other session config option, you can pass them in the
+`defaults.session_config_options` table:
+
+`lua {6-11} require("codecompanion").setup({ adapters = { acp = { codex =
+function() return require("codecompanion.adapters").extend("codex", { defaults
+= { session_config_options = { mode = "Full Access", thought_level = "Xhigh",
+}, }, }) end, } }, }),`
+
+To find out what the available session config options are for a specific
+adapter you can open the |codecompanion-usage-chat-buffer--debug-window| in the
+chat buffer.
 
 
 MCP SERVERS ~
@@ -1427,10 +1436,9 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents
-(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
-the two adapters, it is recommend that you read this page alongside the ACP
-one.
+`commands` to allow users to customize their interaction with agents (e.g.�
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
 CHANGING THE DEFAULT ADAPTER ~
@@ -1484,7 +1492,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -3046,357 +3054,6 @@ At their core, prompts define a series of messages sent to an LLM. Let’s
 start with a simple example:
 
 
-Markdown prompts consist of two main parts:
-
-1. **Frontmatter** - YAML metadata between `---` delimiters that defines the prompt’s configuration
-2. **Prompt sections** - Markdown headings (`## system`, `## user`) that define the role and content of each message
-
-**Required frontmatter fields:** - `name` - The display name in the Action
-Palette - `description` - Description shown in the Action Palette -
-`interaction` - The interaction to use (`chat`, `inline`, `workflow`)
-
-**Optional frontmatter fields:** - `opts` - Additional options (see
-|codecompanion--options| section) - `context` - Pre-loaded context (see
-|codecompanion--context-placeholders| section)
-
-**Prompt sections:** - `## system` - System messages that set the LLM’s
-behaviour - `## user` - User messages containing your requests
-
-In the markdown prompt, above,
-|codecompanion-configuration-prompt-library-with-placeholders| are used to
-inject dynamic content from a visual selection.
-
-
-OPTIONS
-
-Both markdown and Lua prompts support a wide range of options to customise
-behaviour:
-
-
-**Common options:**
-
-- `adapter` - Specify a different adapter/model:
-
-
-- `alias` `(string)` - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
-- `auto_submit` `(boolean)` - Automatically submit the prompt to the LLM
-- `enabled` `(boolean)` - Enable/disable the prompt without removing it from the library
-- `ignore_system_prompt` `(boolean)` - Don’t send the default system prompt with the request
-- `intro_message` `(string)` - Custom intro message for the chat buffer UI
-- `is_slash_cmd` `(boolean)` - Make the prompt available as a slash command in chat
-- `is_workflow` `(boolean)` - Treat successive prompts as a workflow
-- `modes` `(array)` - Only show in specific modes (`{ "v" }` for visual mode)
-- `placement` `(string)` - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
-- `pre_hook` `(function)` - Function to run before the prompt is executed (Lua only)
-- `stop_context_insertion` `(boolean)` - Prevent automatic context insertion
-- `user_prompt` `(string)` - Get user input before actioning the response
-
-
-WITH PLACEHOLDERS
-
-Placeholders allow you to inject dynamic content into your prompts. In markdown
-prompts, use `${placeholder.name}` syntax:
-
-
-CONTEXT PLACEHOLDERS
-
-The `context` object contains information about the current buffer:
-
-
-**Available context fields:**
-
->lua
-    {
-      bufnr = 7,
-      buftype = "",
-      code = [[local function hello(text)
-        return "hello " .. text
-      end]],
-      cursor_pos = { 10, 3 },
-      end_col = 3,
-      end_line = 10,
-      filetype = "lua",
-      is_normal = false,
-      is_visual = true,
-      lines = { "local function hello(text)", '  return "hello " .. text', "end" },
-      mode = "V",
-      start_col = 1,
-      start_line = 8,
-      winnr = 1000
-    }
-<
-
-
-EXTERNAL LUA FILES
-
-For markdown prompts, you can reference functions and values from external Lua
-files placed in the same directory as your prompt. This is useful for complex
-logic or reusable components:
-
-**Example directory structure:**
-
->
-    .prompts/
-    ├── commit.md
-    ├── commit.lua
-    └── utils.lua
-<
-
-**commit.lua:**
-
->lua
-    return {
-      diff = function(args)
-        return vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait().stdout
-      end,
-    }
-<
-
-**commit.md:**
-
->markdown
-    ---
-    name: Commit message
-    interaction: chat
-    description: Generate a commit message
-    opts:
-      alias: commit
-    ---
-    
-    ## user
-    
-    You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
-    
-    ```diff
-    ${commit.diff}
-    ```
-<
-
-In this example, `${commit.diff}` references the `diff` function from
-`commit.lua`. The plugin automatically:
-
-1. Detects the dot notation (`commit.`)
-2. Loads `commit.lua` from the same directory
-3. Calls the `diff` function
-4. Replaces `${commit.diff}` with the result
-
-**Multiple files example:**
-
->markdown
-    ---
-    name: Code Review
-    interaction: chat
-    description: Review code changes
-    ---
-    
-    ## user
-    
-    Please review this code:
-    
-    ```${context.filetype}
-    ${context.code}
-    ```
-    
-    Here's the git diff:
-    
-    ```diff
-    ${utils.git_diff}
-    ```
-<
-
-This prompt can reference functions from both `shared.lua` and `utils.lua` in
-the same directory.
-
-**Function signature:**
-
-External Lua functions receive an `args` table:
-
->lua
-    return {
-      my_function = function(args)
-        -- args.context - Buffer context
-        -- args.item - The full prompt item
-        return "some value"
-      end,
-      static_value = "I'm just a string",
-    }
-<
-
-
-BUILT-IN HELPERS
-
-You can also reference built-in values using dot notation:
-
-- `${context.bufnr}` - Current buffer number
-- `${context.filetype}` - Current filetype
-- `${context.start_line}` - Visual selection start
-- `${context.end_line}` - Visual selection end
-
-And many more from the context object.
-
-
-ADVANCED CONFIGURATION
-
-
-CONDITIONALS
-
-You can conditionally control when prompts appear in the Action Palette or
-conditionally include specific prompt messages using `condition` functions:
-
-**Lua only:**
-
-
-
-CONTEXT
-
-Pre-load a chat buffer with context from files, symbols, or URLs:
-
-
-Context items appear at the top of the chat buffer. URLs are automatically
-cached for you.
-
-
-MCP SERVERS
-
-You can also specify |codecompanion-configuration-mcp| to be loaded with your
-prompt:
-
-
-::: tip Disabling all MCP servers Setting `mcp_servers` to `none` will prevent
-any MCP servers from being loaded in the chat, including those with
-`add_to_chat = true`:
-
-
-
-PICKERS
-
-Pickers allow you to create dynamic prompt menus based on runtime data.
-
-**Lua only:**
-
->lua
-    ["My picker menu ..."] = {
-      name = "A list of items",
-      interaction = " ",
-      description = "My current items",
-      picker = {
-        prompt = "Select an item",
-        columns = { "name", "description" },
-        items = {
-          {
-            name = "Item 1",
-            description = "This is item 1",
-            callback = function()
-              print("You selected item 1")
-            end,
-          },
-          {
-            name = "Item 2",
-            description = "This is item 2",
-            callback = function()
-              print("You selected item 2")
-            end,
-          },
-        },
-      },
-    },
-<
-
-
-PRE-HOOKS
-
-Pre-hooks allow you to run custom logic before a prompt is executed. This is
-particularly useful for creating new buffers or setting up the environment:
-
-**Lua only:**
-
->lua
-    ["Boilerplate HTML"] = {
-      interaction = "inline",
-      description = "Generate some boilerplate HTML",
-      opts = {
-        ---@return number
-        pre_hook = function()
-          local bufnr = vim.api.nvim_create_buf(true, false)
-          vim.api.nvim_set_current_buf(bufnr)
-          vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr })
-          return bufnr
-        end,
-      },
-      prompts = {
-        {
-          role = "system",
-          content = "You are an expert HTML programmer",
-        },
-        {
-          role = "user",
-          content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
-        },
-      },
-    }
-<
-
-For the inline interaction, the plugin will detect a number being returned from
-the `pre_hook` and assume that is the buffer number you wish any code to be
-streamed into.
-
-
-RULES
-
-You can also specify rules to be loaded with your prompt:
-
-
-
-TOOLS
-
-You can also specify tools to be loaded with your prompt. These can be
-individual tools as well as tool groups:
-
-
-::: tip Disabling all tools Setting `tools` to `none` will prevent any tools
-from being loaded in the chat, including any
-|codecompanion-configuration-chat-buffer-default-tools|:
-
-
-
-WORKFLOWS
-
-Workflows allow you to chain multiple prompts together in a sequence. That is,
-the first prompt is sent to the LLM, the LLM responds, then the next prompt in
-the workflow is sent, etc. This can be useful for implementing multi-step
-processes such as chain-of-thought reasoning or iterative code refinement.
-
-**Note:** Markdown prompts do not support
-|codecompanion-extending-agentic-workflows|.
-
-
-You can also modify the options for the entire workflow at an individual prompt
-level. This can be useful if you wish to automatically submit certain prompts
-or change the adapter/model mid-workflow. Simply use a yaml code block with
-`opts` as a meta field:
-
-
-
-OTHERS ~
-
-
-HIDING BUILT-IN PROMPTS
-
-You can hide the built-in prompts from the Action Palette by setting the
-following configuration option:
-
->lua
-    require("codecompanion").setup({
-      display = {
-        action_palette = {
-          opts = {
-            show_prompt_library_builtins = false,
-          }
-        },
-      },
-    })
-<
-
 
 SYSTEM PROMPTS                    *codecompanion-configuration-system-prompts*
 
@@ -3782,7 +3439,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -3968,6 +3625,15 @@ sending of previous messages that make up the conversation. So even though
 you’ve shared context once, many messages ago, the LLM will always be able to
 refer to it, unless you actively alter the history of the conversation via
 `gd`.
+
+
+DEBUG WINDOW ~
+
+Sometimes it’s necessary to peek under the hood of the chat buffer to
+understand what hyperparameters are being sent to the LLM, or what the message
+history looks like. By pressing `gd`, you can open up a debug window which
+contains all of the relevant information about the chat buffer, including the
+message history, adapter settings and context items.
 
 
 GENERATING TITLES ~
@@ -4662,7 +4328,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g. new diagnostics, a different quickfix list), simply use the
+  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -4936,6 +4602,16 @@ Slash Commands enable you to quickly add context to the chat buffer. They are
 comprised of values present in the `interactions.chat.slash_commands` table
 alongside the `prompt_library` table where individual prompts have
 `opts.is_slash_cmd = true`.
+
+
+/ACP_SESSION_OPTIONS ~
+
+
+  [!NOTE] This command is only relevant for users of ACP adapters
+The ACP specification
+<https://agentclientprotocol.com/protocol/session-config-options> allows users
+to change config options for an agent session and the `acp_session_options`
+slash command provides the interface to do this.
 
 
 /BUFFER ~
@@ -5928,7 +5604,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -7836,7 +7512,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e. a
+they’re an adapter tool that requires a client-side component (i.e.� a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has

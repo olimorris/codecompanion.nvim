@@ -10,6 +10,13 @@ description: Learn how Slash Commands improve your productivity in CodeCompanion
 
 Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `interactions.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
 
+## /acp_session_options
+
+> [!NOTE]
+> This command is only relevant for users of ACP adapters
+
+The [ACP specification](https://agentclientprotocol.com/protocol/session-config-options) allows users to change config options for an agent session and the _acp_session_options_ slash command provides the interface to do this.
+
 ## /buffer
 
 <p>
