@@ -74,6 +74,10 @@ If a context item is added by mistake, it can be removed from the chat buffer by
 
 Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
 
+## Debug Window
+
+Sometimes it's necessary to peek under the hood of the chat buffer to understand what hyperparameters are being sent to the LLM, or what the message history looks like. By pressing `gd`, you can open up a debug window which contains all of the relevant information about the chat buffer, including the message history, adapter settings and context items.
+
 ## Generating Titles
 
 CodeCompanion can automatically generate titles for your chat buffers based on their content. This is accomplished via a background interaction. To enable this:

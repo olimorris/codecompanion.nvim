@@ -1,3 +1,4 @@
+local ACP = require("codecompanion.acp")
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
@@ -102,6 +103,15 @@ function Debug:render()
 
   local lines = {}
 
+  table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
+  if buf_info then
+    table.insert(
+      lines,
+      string.format([[-- Following Buffer: "%s" (%s)]], buf_info.relative_path, _G.codecompanion_current_context)
+    )
+  end
+
+  table.insert(lines, "")
   table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
   if adapter.type == "acp" then
     local command
@@ -110,52 +120,38 @@ function Debug:render()
     else
       command = adapter.commands.default
     end
-    table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
+    table.insert(lines, '--   With Command: "' .. table.concat(command, " ") .. '"')
 
     if self.chat.acp_connection then
-      -- Show current model if available
-      local acp_models = self.chat.acp_connection:get_models()
-      if acp_models and acp_models.currentModelId then
-        local model = acp_models.currentModelId
-        for _, m in ipairs(acp_models or {}) do
-          if m.modelId == acp_models.currentModelId then
-            model = m.name .. " (" .. m.modelId .. ")"
-            break
-          end
-        end
-        local models_list = vim
-          .iter(acp_models.availableModels)
-          :map(function(m)
-            return m.modelId
-          end)
-          :totable()
-        table.sort(models_list)
-        table.insert(
-          lines,
-          '-- Using Model: "' .. model .. '" (Available models: ' .. table.concat(models_list, ", ") .. ")"
-        )
-      end
+      for _, opt in ipairs(self.chat.acp_connection:get_config_options()) do
+        if opt.type == "select" and opt.currentValue then
+          local flattened = ACP.flatten_config_options(opt.options or {})
 
-      -- Show current mode if available
-      local modes = self.chat.acp_connection:get_modes()
-      if modes and modes.currentModeId then
-        local mode_name = modes.currentModeId
-        for _, mode in ipairs(modes.availableModes or {}) do
-          if mode.id == modes.currentModeId then
-            mode_name = mode.name .. " (" .. mode.id .. ")"
-            break
+          local available = vim.tbl_map(function(val)
+            return val.name or val.value
+          end, flattened)
+          table.sort(available)
+
+          local current_name = opt.currentValue
+          for _, val in ipairs(flattened) do
+            if val.value == opt.currentValue then
+              current_name = val.name
+              break
+            end
           end
+
+          local label = opt.name
+          if opt.category then
+            label = label .. " [" .. opt.category .. "]"
+          end
+
+          table.insert(
+            lines,
+            "--   " .. label .. ': "' .. current_name .. '" (Available: ' .. table.concat(available, ", ") .. ")"
+          )
         end
-        table.insert(lines, '-- Mode: "' .. mode_name .. '"')
       end
     end
-  end
-  table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
-  if buf_info then
-    table.insert(
-      lines,
-      string.format([[-- Following Buffer: "%s" (%s)]], buf_info.relative_path, _G.codecompanion_current_context)
-    )
   end
 
   -- Add MCP status

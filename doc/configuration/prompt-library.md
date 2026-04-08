@@ -103,7 +103,7 @@ ${context.code}
 ```
 ````
 
-````lua [Lua]
+```lua [Lua]
 require("codecompanion").setup({
   prompt_library = {
     ["Explain Code"] = {
@@ -125,7 +125,7 @@ require("codecompanion").setup({
     },
   },
 })
-````
+```
 
 :::
 
@@ -155,7 +155,7 @@ Both markdown and Lua prompts support a wide range of options to customise behav
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Generate Tests
 interaction: inline
@@ -177,9 +177,9 @@ Generate comprehensive unit tests for the provided code.
 
 The code to generate tests for is #{buffer}
 
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Generate Tests"] = {
   interaction = "inline",
   description = "Generate unit tests",
@@ -201,7 +201,7 @@ The code to generate tests for is #{buffer}
     },
   },
 },
-````
+```
 
 :::
 
@@ -211,7 +211,7 @@ The code to generate tests for is #{buffer}
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: My Prompt
 interaction: chat
@@ -221,16 +221,16 @@ opts:
     name: ollama
     model: deepseek-coder:6.7b
 ---
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 opts = {
   adapter = {
     name = "ollama",
     model = "deepseek-coder:6.7b",
   },
 }
-````
+```
 
 :::
 
@@ -257,7 +257,7 @@ The `context` object contains information about the current buffer:
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Buffer Info
 interaction: chat
@@ -267,9 +267,9 @@ description: Show buffer information
 ## user
 
 I'm working in buffer ${context.bufnr} which is a ${context.filetype} file.
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Buffer Info"] = {
   interaction = "chat",
   description = "Show buffer information",
@@ -282,13 +282,13 @@ I'm working in buffer ${context.bufnr} which is a ${context.filetype} file.
     },
   },
 }
-````
+```
 
 :::
 
 **Available context fields:**
 
-````lua
+```lua
 {
   bufnr = 7,
   buftype = "",
@@ -307,28 +307,28 @@ I'm working in buffer ${context.bufnr} which is a ${context.filetype} file.
   start_line = 8,
   winnr = 1000
 }
-````
+```
 
 #### External Lua Files
 
 For markdown prompts, you can reference functions and values from external Lua files placed in the same directory as your prompt. This is useful for complex logic or reusable components:
 
 **Example directory structure:**
-````
+```
 .prompts/
 ├── commit.md
 ├── commit.lua
 └── utils.lua
-````
+```
 
 **commit.lua:**
-````lua
+```lua
 return {
   diff = function(args)
     return vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait().stdout
   end,
 }
-````
+```
 
 **commit.md:**
 ````markdown
@@ -386,7 +386,7 @@ This prompt can reference functions from both `shared.lua` and `utils.lua` in th
 
 External Lua functions receive an `args` table:
 
-````lua
+```lua
 return {
   my_function = function(args)
     -- args.context - Buffer context
@@ -395,7 +395,7 @@ return {
   end,
   static_value = "I'm just a string",
 }
-````
+```
 
 #### Built-in Helpers
 
@@ -412,14 +412,13 @@ And many more from the context object.
 
 #### Conditionals
 
-
 You can conditionally control when prompts appear in the Action Palette or conditionally include specific prompt messages using `condition` functions:
 
 **Lua only:**
 
 ::: code-group
 
-````lua [Item-level]
+```lua [Item-level]
 ["Visual Only"] = {
   interaction = "chat",
   description = "Only appears in visual mode",
@@ -433,9 +432,9 @@ You can conditionally control when prompts appear in the Action Palette or condi
     },
   },
 },
-````
+```
 
-````lua [Prompt-level]
+```lua [Prompt-level]
 ["Visual Only"] = {
   interaction = "chat",
   description = "Only appears in visual mode",
@@ -449,7 +448,7 @@ You can conditionally control when prompts appear in the Action Palette or condi
     },
   },
 }
-````
+```
 
 :::
 
@@ -459,7 +458,7 @@ Pre-load a chat buffer with context from files, symbols, or URLs:
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Test Context
 interaction: chat
@@ -478,9 +477,9 @@ context:
 ## user
 
 I'll think of something clever to put here...
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Test Context"] = {
   interaction = "chat",
   description = "Add some context",
@@ -511,7 +510,7 @@ I'll think of something clever to put here...
     },
   },
 },
-````
+```
 
 :::
 
@@ -523,7 +522,7 @@ You can also specify [MCP servers](/configuration/mcp) to be loaded with your pr
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Prompt with MCP servers
 interaction: chat
@@ -532,9 +531,9 @@ mcp_servers:
   - tavily-mcp
   - filesystem
 ---
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Prompt with MCP servers"] = {
   interaction = "chat",
   description = "A prompt that starts MCP servers",
@@ -543,7 +542,7 @@ mcp_servers:
     "filesystem",
   },
 },
-````
+```
 
 :::
 
@@ -552,22 +551,22 @@ Setting `mcp_servers` to `none` will prevent any MCP servers from being loaded i
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: No MCP prompt
 interaction: chat
 description: A prompt with no MCP servers
 mcp_servers: none
 ---
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["No MCP prompt"] = {
   interaction = "chat",
   description = "A prompt with no MCP servers",
   mcp_servers = "none",
 },
-````
+```
 
 :::
 
@@ -611,7 +610,7 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
 
 **Lua only:**
 
-````lua
+```lua
 ["Boilerplate HTML"] = {
   interaction = "inline",
   description = "Generate some boilerplate HTML",
@@ -635,7 +634,7 @@ Pre-hooks allow you to run custom logic before a prompt is executed. This is par
     },
   },
 }
-````
+```
 
 For the inline interaction, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
 
@@ -645,7 +644,7 @@ You can also specify rules to be loaded with your prompt:
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Prompt with rules
 interaction: chat
@@ -654,9 +653,9 @@ rules:
   - default
   - my_other_rule
 ---
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Prompt with rules"] = {
   interaction = "chat",
   description = "A prompt that loads rules",
@@ -665,7 +664,7 @@ rules:
     "my_other_rules",
   },
 },
-````
+```
 
 :::
 
@@ -675,7 +674,7 @@ You can also specify tools to be loaded with your prompt. These can be individua
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Prompt with tools
 interaction: chat
@@ -684,9 +683,9 @@ tools:
   - run_command
   - insert_edit_into_file
 ---
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Prompt with tools"] = {
   interaction = "chat",
   description = "A prompt that loads tools",
@@ -695,7 +694,7 @@ tools:
     "insert_edit_into_file",
   },
 },
-````
+```
 
 :::
 
@@ -704,22 +703,22 @@ Setting `tools` to `none` will prevent any tools from being loaded in the chat, 
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: No tools prompt
 interaction: chat
 description: A prompt with no tools
 tools: none
 ---
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["No tools prompt"] = {
   interaction = "chat",
   description = "A prompt with no tools",
   tools = "none",
 },
-````
+```
 
 :::
 
@@ -731,7 +730,7 @@ Workflows allow you to chain multiple prompts together in a sequence. That is, t
 
 ::: code-group
 
-````markdown [Markdown]
+```markdown [Markdown]
 ---
 name: Oli's test workflow
 interaction: chat
@@ -760,9 +759,9 @@ Create a TypeScript interface for a complex e-commerce shopping cart system
 
 Write a recursive algorithm to balance a binary search tree in Java
 
-````
+```
 
-````lua [Lua]
+```lua [Lua]
 ["Oli's test workflow"] = {
   interaction = "chat",
   description = "Use a workflow to test the plugin",
@@ -801,7 +800,7 @@ Write a recursive algorithm to balance a binary search tree in Java
     },
   },
 },
-````
+```
 
 :::
 

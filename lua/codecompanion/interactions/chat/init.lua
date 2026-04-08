@@ -1754,27 +1754,36 @@ end
 ---@return nil
 function Chat:update_metadata()
   local model
-  local mode_info
+  local config_options
 
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
   elseif self.adapter.type == "acp" and self.acp_connection then
-    model = self.acp_connection._models and self.acp_connection._models.currentModelId or "default"
+    local acp_models = self.acp_connection:get_models()
+    model = acp_models and acp_models.currentModelId or "default"
 
-    if self.acp_connection.get_modes then
-      local modes = self.acp_connection:get_modes()
-      if modes and modes.currentModeId then
-        mode_info = {
-          current = modes.currentModeId,
-        }
-        -- Get the mode name for display
-        for _, mode in ipairs(modes.availableModes or {}) do
-          if mode.id == modes.currentModeId then
-            mode_info.name = mode.name
-            break
+    -- Build a map of category -> { current, name } from all config options
+    config_options = {}
+    for _, opt in ipairs(self.acp_connection:get_config_options()) do
+      if opt.type == "select" and opt.currentValue then
+        local entry = { current = opt.currentValue }
+        -- Find the display name for the current value
+        for _, item in ipairs(opt.options or {}) do
+          if item.group then
+            for _, val in ipairs(item.options or {}) do
+              if val.value == opt.currentValue then
+                entry.name = val.name
+              end
+            end
+          elseif item.value == opt.currentValue then
+            entry.name = item.name
           end
         end
+        config_options[opt.category or opt.id] = entry
       end
+    end
+    if vim.tbl_isempty(config_options) then
+      config_options = nil
     end
   end
 
@@ -1784,10 +1793,10 @@ function Chat:update_metadata()
       model = model,
       model_info = (self.adapter.model and self.adapter.model.info) and self.adapter.model.info,
     },
+    config_options = config_options,
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
-    mode = mode_info,
     tokens = self.ui.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
@@ -1796,8 +1805,12 @@ function Chat:update_metadata()
     if model and model ~= "default" then
       utils.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = model })
     end
-    if mode_info then
-      utils.fire("ChatACPModeChanged", { bufnr = self.bufnr, id = self.id, mode = mode_info })
+    if config_options then
+      utils.fire("ChatACPConfigChanged", {
+        bufnr = self.bufnr,
+        config_options = config_options,
+        id = self.id,
+      })
     end
   end
 end

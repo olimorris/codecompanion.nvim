@@ -24,7 +24,6 @@ return {
   defaults = {
     mcpServers = {},
     timeout = 20000, -- 20 seconds
-    -- mode = "plan", -- Optional: Set default agent mode (e.g., "plan")
   },
   env = {
     CLAUDE_CODE_OAUTH_TOKEN = "CLAUDE_CODE_OAUTH_TOKEN",

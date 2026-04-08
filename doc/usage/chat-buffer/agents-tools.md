@@ -40,7 +40,7 @@ Groups become agents when they provide their own `system_prompt`. Combined with 
 
 When `system_prompt` is a function, it receives the group config as the first argument and a [context object](/configuration/system-prompt) as the second, giving access to `language`, `date`, `nvim_version`, `os` and more:
 
-````lua
+```lua
 groups = {
   ["my_agent"] = {
     description = "My custom agent",
@@ -59,7 +59,7 @@ groups = {
     },
   },
 },
-````
+```
 
 ### agent
 

@@ -189,7 +189,7 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
   h.eq(result.session_id, "prev-session")
 end
 
-T["ACP Connection"]["session/load restores modes and models metadata"] = function()
+T["ACP Connection"]["session/load restores config options metadata"] = function()
   local result = child.lua([[
     local connection = create_init_connection()
     connection.session_id = "prev-session"
@@ -198,7 +198,6 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
       elseif method == "session/load" then
         return {
-          modes = { { id = "code", name = "Code" }, { id = "ask", name = "Ask" } },
           configOptions = {
             {
               type = "select",
@@ -208,6 +207,14 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
               currentValue = "claude-sonnet",
               options = { { value = "claude-sonnet", name = "Claude Sonnet" } },
             },
+            {
+              type = "select",
+              id = "mode",
+              name = "Mode",
+              category = "mode",
+              currentValue = "code",
+              options = { { value = "code", name = "Code" }, { value = "ask", name = "Ask" } },
+            },
           },
         }
       end
@@ -216,19 +223,18 @@ T["ACP Connection"]["session/load restores modes and models metadata"] = functio
     local ok = connection:connect_and_initialize()
     return {
       ok = ok ~= nil,
-      modes = connection._modes,
-      models = connection._models,
+      config_options_count = #connection._config_options,
+      models = connection:get_models(),
     }
   ]])
 
   h.eq(result.ok, true)
-  h.eq(#result.modes, 2)
-  h.eq(result.modes[1].id, "code")
+  h.eq(result.config_options_count, 2)
   h.eq(#result.models.availableModels, 1)
   h.eq(result.models.availableModels[1].modelId, "claude-sonnet")
 end
 
-T["ACP Connection"]["session/new stores modes and models metadata"] = function()
+T["ACP Connection"]["session/new stores config options metadata"] = function()
   local result = child.lua([[
     local connection = create_init_connection()
     function connection:send_rpc_request(method, params)
@@ -237,7 +243,6 @@ T["ACP Connection"]["session/new stores modes and models metadata"] = function()
       elseif method == "session/new" then
         return {
           sessionId = "new-session",
-          modes = { { id = "agent", name = "Agent" } },
           configOptions = {
             {
               type = "select",
@@ -255,14 +260,13 @@ T["ACP Connection"]["session/new stores modes and models metadata"] = function()
     local ok = connection:connect_and_initialize()
     return {
       ok = ok ~= nil,
-      modes = connection._modes,
-      models = connection._models,
+      config_options_count = #connection._config_options,
+      models = connection:get_models(),
     }
   ]])
 
   h.eq(result.ok, true)
-  h.eq(#result.modes, 1)
-  h.eq(result.modes[1].id, "agent")
+  h.eq(result.config_options_count, 1)
   h.eq(#result.models.availableModels, 1)
   h.eq(result.models.availableModels[1].modelId, "claude-opus")
 end
@@ -739,6 +743,91 @@ T["ACP Responses"]["ignores notifications for other sessions"] = function()
 
   h.eq(result.count, 1)
   h.eq(result.last, "seen")
+end
+
+T["ACP Connection"]["apply_default_config_options"] = new_set()
+
+T["ACP Connection"]["apply_default_config_options"]["sets session config options from adapter defaults"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "s1"
+    connection.adapter_modified = vim.tbl_extend("force", test_adapter, {
+      defaults = { session_config_options = { mode = "Plan" } },
+    })
+
+    connection._config_options = {
+      {
+        type = "select", id = "mode-opt", name = "Mode", category = "mode",
+        currentValue = "ask",
+        options = {
+          { value = "ask", name = "Ask" },
+          { value = "plan", name = "Plan Mode" },
+        },
+      },
+    }
+
+    local calls = {}
+    function connection:set_config_option(config_id, value)
+      table.insert(calls, { config_id = config_id, value = value })
+      return true
+    end
+
+    connection:apply_default_config_options()
+    return calls
+  ]])
+
+  h.eq(#result, 1)
+  h.eq(result[1].config_id, "mode-opt")
+  -- "Plan" fuzzy-matched to "Plan Mode" which has value "plan"
+  h.eq(result[1].value, "plan")
+end
+
+T["ACP Connection"]["apply_default_config_options"]["skips options that already match the current value"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "s1"
+    connection.adapter_modified = vim.tbl_extend("force", test_adapter, {
+      defaults = { session_config_options = { mode = "ask" } },
+    })
+
+    connection._config_options = {
+      {
+        type = "select", id = "mode-opt", name = "Mode", category = "mode",
+        currentValue = "ask",
+        options = { { value = "ask", name = "Ask" } },
+      },
+    }
+
+    local calls = {}
+    function connection:set_config_option(config_id, value)
+      table.insert(calls, 1)
+      return true
+    end
+
+    connection:apply_default_config_options()
+    return #calls
+  ]])
+
+  h.eq(result, 0)
+end
+
+T["ACP Connection"]["apply_default_config_options"]["does nothing without session_config_options"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "s1"
+    connection.adapter_modified = vim.tbl_extend("force", test_adapter, { defaults = {} })
+
+    local calls = {}
+    function connection:set_config_option(config_id, value)
+      table.insert(calls, 1)
+      return true
+    end
+
+    connection:apply_default_config_options()
+    return #calls
+  ]])
+
+  h.eq(result, 0)
 end
 
 T["ACP Responses"]["error response notifies active prompt"] = function()
