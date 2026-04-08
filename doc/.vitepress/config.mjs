@@ -91,7 +91,7 @@ export default withMermaid(
     // optionally set additional config for plugin itself with MermaidPluginConfig
     title: "CodeCompanion.nvim",
     description:
-      "AI coding in Neovim, leveraging LLMs from OpenAI and Anthropic. Support for agents and tools.",
+      "AI coding, Vim style. CodeCompanion is a Neovim plugin which enables you to code with AI, using LLMs and agents, in Neovim.",
     lang: "en",
     cleanUrls: true,
     head: headers,
