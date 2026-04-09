@@ -623,6 +623,13 @@ function UI:move_cursor(cursor_has_moved)
   end
 end
 
+---Reset cursor tracking state so auto-scroll resumes on next response
+---@return nil
+function UI:reset_cursor_state()
+  self.cursor.has_moved = false
+  self.cursor.pos = nil
+end
+
 ---Lock the chat buffer from editing
 ---@return nil
 function UI:lock_buf()

@@ -201,6 +201,7 @@ function PromptBuilder:handle_permission_request(id, params)
   if not id or not params then
     return
   end
+
   local tool_call = params.toolCall
   local options = params.options or {}
 
@@ -248,7 +249,9 @@ function PromptBuilder:handle_error(error)
     utils.fire("RequestFinished", self.options)
   end
 
-  self.connection._active_prompt = nil
+  if self.connection._active_prompt == self then
+    self.connection._active_prompt = nil
+  end
 end
 
 ---Handle done event from the server
@@ -281,7 +284,9 @@ function PromptBuilder:handle_done(stop_reason)
     self.options.status = status
     utils.fire("RequestFinished", self.options)
   end
-  self.connection._active_prompt = nil
+  if self.connection._active_prompt == self then
+    self.connection._active_prompt = nil
+  end
 end
 
 ---Cancel the prompt
@@ -297,7 +302,15 @@ function PromptBuilder:cancel()
       utils.fire("RequestFinished", self.options)
     end
   end
-  self.connection._active_prompt = nil
+
+  -- Keep _active_prompt alive so the agent's completion response can drain
+  -- through handle_done. Set a timeout to clean up if the agent never responds.
+  vim.defer_fn(function()
+    if self.connection._active_prompt == self then
+      log:debug("[acp::prompt_builder] Cancel timeout: cleaning up active prompt")
+      self.connection._active_prompt = nil
+    end
+  end, 5000)
 end
 
 PromptBuilder.new = PromptBuilder.new

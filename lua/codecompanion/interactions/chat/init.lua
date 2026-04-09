@@ -1127,7 +1127,7 @@ function Chat:_submit_http(payload)
     end,
     on_error = function(err)
       if self.status == CONSTANTS.STATUS_CANCELLING then
-        return
+        return self:done(output, nil, nil, nil, { status = "stopped" })
       end
       self.status = CONSTANTS.STATUS_ERROR
       log:error("[chat::_submit_http] Error: %s", (err and (err.stderr or err.message)) or "unknown")
@@ -1145,6 +1145,7 @@ end
 ---@return nil
 function Chat:_submit_acp(payload)
   local acp_handler = require("codecompanion.interactions.chat.acp.handler").new(self)
+  self._acp_handler = acp_handler
   self.current_request = acp_handler:submit(payload)
 end
 
@@ -1222,6 +1223,7 @@ function Chat:submit(opts)
       vim.cmd("stopinsert")
     end
     self.ui:lock_buf()
+    self.ui:reset_cursor_state()
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
   end
 
@@ -1286,6 +1288,7 @@ end
 ---@return nil
 function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
+  log:warn("[chat::done] status=%s, has_output=%s, opts=%s\n%s", self.status, output and #output or "nil", vim.inspect(opts), debug.traceback("", 2))
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
@@ -1542,22 +1545,14 @@ function Chat:stop()
   end)
 
   if self.current_request then
-    local handle = self.current_request
-    self.current_request = nil
-
     pcall(function()
-      if handle and type(handle.cancel) == "function" then
-        handle.cancel()
+      if self.current_request and type(self.current_request.cancel) == "function" then
+        self.current_request.cancel()
       end
     end)
 
     adapters.call_handler(self.adapter, "on_exit")
   end
-
-  vim.schedule(function()
-    log:debug("Chat request cancelled")
-    self:done(nil, nil, nil, nil, { status = "stopped" })
-  end)
 end
 
 ---Close the current chat buffer and clean up any resources
