@@ -344,6 +344,7 @@ local Chat = {}
 
 Chat.MESSAGE_TYPES = {
   LLM_MESSAGE = "llm_message",
+  PLAN_MESSAGE = "plan_message",
   REASONING_MESSAGE = "reasoning_message",
   SYSTEM_MESSAGE = "system_message",
   TOOL_MESSAGE = "tool_message",

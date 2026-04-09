@@ -1,61 +1,42 @@
 local api = vim.api
-local config = require("codecompanion.config")
 
 ---@class CodeCompanion.Chat.UI.Icons
 local Icons = {}
 
 local CONSTANTS = {
-  NS_TOOL_ICONS = api.nvim_create_namespace("CodeCompanion-tool_icons"),
+  NS_ICONS = api.nvim_create_namespace("CodeCompanion-icons"),
 }
 
----Apply colored icon overlay at column 0
+---@class CodeCompanion.Chat.UI.IconOpts
+---@field icon? string The icon text to display
+---@field icon_hl_group? string Highlight group for the icon
+---@field line_hl_group? string Highlight group for the entire line
+---@field priority? number Extmark priority (floor of 200)
+---@field virt_text_pos? string Virtual text position
+
+---Apply an icon extmark with optional line text highlighting
 ---@param bufnr number
 ---@param line number 0-based line number
----@param status string The tool status (in_progress, completed, failed)
----@param opts? { priority?: number, virt_text_pos?: string }
----@return number|nil The extmark id or nil if status is invalid
-function Icons.apply(bufnr, line, status, opts)
+---@param opts? CodeCompanion.Chat.UI.IconOpts
+---@return number|nil The extmark id
+function Icons.apply(bufnr, line, opts)
   opts = vim.tbl_deep_extend("force", {
+    icon = "",
+    icon_hl_group = "Comment",
     priority = 100,
     virt_text_pos = "overlay",
   }, opts or {})
 
-  local icon_configs = {
-    pending = {
-      icon = config.display.chat.icons.tool_pending or "⚡",
-      hl_group = "CodeCompanionChatToolPending",
-    },
-    in_progress = {
-      icon = config.display.chat.icons.tool_in_progress or "⚡",
-      hl_group = "CodeCompanionChatToolInProgress",
-    },
-    completed = {
-      icon = config.display.chat.icons.tool_success or "✅",
-      hl_group = "CodeCompanionChatToolSuccessIcon",
-    },
-    failed = {
-      icon = config.display.chat.icons.tool_failure or "❌",
-      hl_group = "CodeCompanionChatToolFailureIcon",
-    },
-  }
+  -- Clear any existing icons on this line to prevent duplicates
+  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_ICONS, line, line + 1)
 
-  local config_entry = icon_configs[status]
-  if not config_entry then
-    return
-  end
-
-  -- Clear any existing tool icons on this line to prevent duplicates
-  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, line, line + 1)
-
-  -- Apply a text highlight to override treesitter markdown rendering on tool lines
-  -- (prevents glob patterns like **/* rendering as bold, backtick remnants as code, etc.)
   local line_text = api.nvim_buf_get_lines(bufnr, line, line + 1, false)[1] or ""
 
-  return api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_TOOL_ICONS, line, 0, {
-    virt_text = { { config_entry.icon, config_entry.hl_group } },
+  return api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_ICONS, line, 0, {
+    virt_text = { { opts.icon, opts.icon_hl_group } },
     virt_text_pos = opts.virt_text_pos,
     priority = math.max(opts.priority, 200),
-    hl_group = "CodeCompanionChatToolText",
+    hl_group = opts.line_hl_group,
     end_col = #line_text,
   })
 end
@@ -68,26 +49,26 @@ function Icons.clear_icon(bufnr, extmark_id)
   if not extmark_id then
     return
   end
-  api.nvim_buf_del_extmark(bufnr, CONSTANTS.NS_TOOL_ICONS, extmark_id)
+  api.nvim_buf_del_extmark(bufnr, CONSTANTS.NS_ICONS, extmark_id)
 end
 
 ---Clear tool icons on a specific line
 ---@param bufnr number
 ---@param line number 0-based line number
 function Icons.clear_line(bufnr, line)
-  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, line, line + 1)
+  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_ICONS, line, line + 1)
 end
 
 ---Clear all tool icons from buffer
 ---@param bufnr number
 function Icons.clear_icons(bufnr)
-  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, 0, -1)
+  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_ICONS, 0, -1)
 end
 
 ---Return the tool icons namespace ID
 ---@return number
 function Icons.ns()
-  return CONSTANTS.NS_TOOL_ICONS
+  return CONSTANTS.NS_ICONS
 end
 
 return Icons

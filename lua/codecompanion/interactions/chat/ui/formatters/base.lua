@@ -40,7 +40,7 @@ end
 
 ---Format the content into lines
 ---@param message table
----@param opts { type?: string, status?: string, _icon_info?: table }
+---@param opts { type?: string, status?: string, _tool_icon?: table }
 ---@param state table
 ---@return string[] lines, table? fold_info
 function BaseFormatter:format(message, opts, state)

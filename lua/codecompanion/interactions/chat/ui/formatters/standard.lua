@@ -25,6 +25,11 @@ function Standard:format(message, opts, state)
     table.insert(lines, "### Response")
   end
 
+  -- Handle transition from plan to response
+  if state.has_plan_output then
+    state:mark_plan_complete()
+  end
+
   if state.is_new_block and state.block_index > 0 then
     table.insert(lines, "")
   end
