@@ -62,6 +62,34 @@ local function decode_args(args)
   return {}
 end
 
+---Gemini 2.5 models use `generationConfig.thinkingConfig = { thinkingBudget = N }`
+---rather than a raw thinking level. Models opt into this budget-based shape via
+---`opts.thinking_budget`, which selects a row from `THINKING_LEVEL_BUDGETS`.
+---Other reasoning models continue to use the `{ thinkingLevel = "<level>" }` shape.
+---
+---Gemini 2.5 Pro cannot fully disable thinking: the API rejects thinkingBudget = 0,
+---so `none` maps to 128 — the minimum valid budget — rather than a true off state.
+local THINKING_LEVEL_BUDGETS = {
+  pro = { none = 128, low = 1024, medium = 8192, high = 24576 },
+  flash = { none = 0, low = 1024, medium = 8192, high = 24576 },
+  flash_lite = { none = 0, low = 512, medium = 8192, high = 24576 },
+}
+
+local function resolve_thinking_config(opts, level)
+  local tier = type(opts.thinking_budget) == "string" and opts.thinking_budget
+  if not tier then
+    return { thinkingLevel = level }
+  end
+
+  local budgets = THINKING_LEVEL_BUDGETS[tier]
+  local budget = budgets and budgets[level]
+  if budget == nil then
+    return nil
+  end
+
+  return { thinkingBudget = budget }
+end
+
 ---@class CodeCompanion.HTTPAdapter.Gemini: CodeCompanion.HTTPAdapter
 return {
   name = "gemini",
@@ -123,6 +151,28 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      local level = self.temp and self.temp.thinkingLevel
+      if not level then
+        return params
+      end
+
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+      local choice = self.schema.model.choices[model]
+      local opts = type(choice) == "table" and type(choice.opts) == "table" and choice.opts or {}
+      if not opts.can_reason then
+        return params
+      end
+
+      local thinking_config = resolve_thinking_config(opts, level)
+      if thinking_config == nil then
+        return params
+      end
+
+      params.generationConfig = params.generationConfig or {}
+      params.generationConfig.thinkingConfig = thinking_config
       return params
     end,
 
@@ -466,17 +516,17 @@ return {
         ["gemini-2.5-pro"] = {
           formatted_name = "Gemini 2.5 Pro",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, thinking_budget = "pro" },
         },
         ["gemini-2.5-flash"] = {
           formatted_name = "Gemini 2.5 Flash",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, thinking_budget = "flash" },
         },
         ["gemini-2.5-flash-lite"] = {
           formatted_name = "Gemini 2.5 Flash Lite",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = true, has_vision = true, thinking_budget = "flash_lite" },
         },
 
         -- Older models
@@ -531,7 +581,7 @@ return {
     },
     thinkingLevel = {
       order = 6,
-      mapping = "body.generationConfig.thinkingConfig",
+      mapping = "temp",
       type = "string",
       optional = true,
       ---@type fun(self: CodeCompanion.HTTPAdapter): boolean

@@ -463,4 +463,111 @@ T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   h.expect_starts_with("Elegant, dynamic.", adapter.handlers.inline_output(adapter, json).output)
 end
 
+T["Gemini adapter"]["form_parameters maps thinkingLevel to thinkingBudget on Gemini 2.5 Flash"] = function()
+  adapter.schema.model.default = "gemini-2.5-flash"
+  local cases = {
+    { level = "none", budget = 0 },
+    { level = "low", budget = 1024 },
+    { level = "medium", budget = 8192 },
+    { level = "high", budget = 24576 },
+  }
+
+  for _, case in ipairs(cases) do
+    adapter.temp = { thinkingLevel = case.level }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+    h.eq(
+      { thinkingBudget = case.budget },
+      params.generationConfig.thinkingConfig,
+      string.format("thinkingLevel '%s' should set thinkingBudget = %d", case.level, case.budget)
+    )
+  end
+end
+
+T["Gemini adapter"]["form_parameters maps thinkingLevel to thinkingBudget on Gemini 2.5 Flash-Lite"] = function()
+  adapter.schema.model.default = "gemini-2.5-flash-lite"
+  local cases = {
+    { level = "none", budget = 0 },
+    { level = "low", budget = 512 },
+    { level = "medium", budget = 8192 },
+    { level = "high", budget = 24576 },
+  }
+
+  for _, case in ipairs(cases) do
+    adapter.temp = { thinkingLevel = case.level }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+    h.eq(
+      { thinkingBudget = case.budget },
+      params.generationConfig.thinkingConfig,
+      string.format("thinkingLevel '%s' should set thinkingBudget = %d", case.level, case.budget)
+    )
+  end
+end
+
+T["Gemini adapter"]["form_parameters maps thinkingLevel to thinkingBudget on Gemini 2.5 Pro"] = function()
+  adapter.schema.model.default = "gemini-2.5-pro"
+  -- 'none' maps to 128 (not 0) because the API rejects thinkingBudget = 0 on 2.5 Pro.
+  local cases = {
+    { level = "none", budget = 128 },
+    { level = "low", budget = 1024 },
+    { level = "medium", budget = 8192 },
+    { level = "high", budget = 24576 },
+  }
+
+  for _, case in ipairs(cases) do
+    adapter.temp = { thinkingLevel = case.level }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+    h.eq(
+      { thinkingBudget = case.budget },
+      params.generationConfig.thinkingConfig,
+      string.format("thinkingLevel '%s' should set thinkingBudget = %d", case.level, case.budget)
+    )
+  end
+end
+
+T["Gemini adapter"]["form_parameters uses thinkingLevel object shape on Gemini 3.x"] = function()
+  for _, model in ipairs({ "gemini-3.1-pro-preview", "gemini-3.1-flash-lite-preview", "gemini-3-flash-preview" }) do
+    adapter.schema.model.default = model
+    adapter.temp = { thinkingLevel = "high" }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+
+    h.eq(
+      { thinkingLevel = "high" },
+      params.generationConfig.thinkingConfig,
+      string.format("%s should serialize thinkingConfig using thinkingLevel", model)
+    )
+    h.eq(nil, params.generationConfig.thinkingConfig.thinkingBudget)
+  end
+end
+
+T["Gemini adapter"]["form_parameters skips thinkingConfig on non-reasoning models"] = function()
+  for _, model in ipairs({ "gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash" }) do
+    adapter.schema.model.default = model
+    adapter.temp = { thinkingLevel = "high" }
+    local params = adapter.handlers.form_parameters(adapter, {}, {})
+    h.eq(nil, params.generationConfig, model .. " should not set thinkingConfig")
+  end
+end
+
+T["Gemini adapter"]["form_parameters preserves existing generationConfig keys when adding thinkingConfig"] = function()
+  adapter.schema.model.default = "gemini-2.5-flash"
+  adapter.temp = { thinkingLevel = "medium" }
+  local params = {
+    generationConfig = {
+      temperature = 0.7,
+      maxOutputTokens = 1024,
+    },
+  }
+  local out = adapter.handlers.form_parameters(adapter, params, {})
+  h.eq(0.7, out.generationConfig.temperature)
+  h.eq(1024, out.generationConfig.maxOutputTokens)
+  h.eq({ thinkingBudget = 8192 }, out.generationConfig.thinkingConfig)
+end
+
+T["Gemini adapter"]["form_parameters does not set thinkingConfig when thinkingLevel is absent"] = function()
+  adapter.schema.model.default = "gemini-2.5-flash"
+  adapter.temp = {}
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+  h.eq(nil, params.generationConfig)
+end
+
 return T
