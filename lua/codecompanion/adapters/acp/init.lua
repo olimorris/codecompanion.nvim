@@ -1,6 +1,9 @@
 local config = require("codecompanion.config")
+local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 local shared = require("codecompanion.adapters.shared")
+
+local fmt = string.format
 
 ---@class CodeCompanion.ACPAdapter
 ---@field name string The name of the adapter
@@ -20,6 +23,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@field handlers.auth? fun(self: CodeCompanion.ACPAdapter): boolean Manually handle authentication
 ---@field handlers.on_exit? fun(self: CodeCompanion.ACPAdapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.ACPAdapter): any
+---@field handlers.format_approval_prompt? fun(self: CodeCompanion.ACPAdapter, tool_call: table): CodeCompanion.Chat.ApprovalPrompt
 ---@field protocol? table Implement the ACP protocol in the adapter
 ---@field protocol.authenticate? fun(self: CodeCompanion.ACPAdapter): nil Authenticate with the adapter via ACP
 ---@field protocol.new_session? fun(self: CodeCompanion.ACPAdapter): nil Start a new ACP session with the adapter
@@ -37,6 +41,79 @@ function Adapter.new(args)
 end
 
 Adapter.map_roles = shared.map_roles
+
+---Default formatting for ACP tool approval prompts
+---Adapters can override this by defining their own format_approval_prompt method
+---@param tool_call table The ACP tool_call object
+---@return CodeCompanion.Chat.ApprovalPrompt
+function Adapter:format_approval_prompt(tool_call)
+  if self.handlers and self.handlers.format_approval_prompt then
+    return self.handlers.format_approval_prompt(self, tool_call)
+  end
+
+  local kind = tool_call and tool_call.kind or "permission"
+  local title = tool_call and tool_call.title or "Agent requested permission"
+  local title = fmt("%s: %s", formatter.fmt_kind(kind), title)
+
+  local lines = {}
+
+  local location_labels = {
+    read = "Reading",
+    edit = "Editing",
+    write = "Writing",
+    delete = "Deleting",
+    move = "Moving",
+    execute = "Running in",
+    search = "Searching",
+    fetch = "Fetching",
+  }
+  local label = location_labels[kind] or "Path"
+
+  if tool_call and tool_call.locations and #tool_call.locations > 0 then
+    for _, location in ipairs(tool_call.locations) do
+      if location.path then
+        local path = vim.fn.fnamemodify(location.path, ":.")
+        if location.line then
+          table.insert(lines, fmt("**%s:** `%s:%d`", label, path, location.line))
+        else
+          table.insert(lines, fmt("**%s:** `%s`", label, path))
+        end
+      end
+    end
+  end
+
+  local args = tool_call and tool_call.rawInput or {}
+  local details = vim.deepcopy(args)
+
+  if type(details) == "table" and next(details) then
+    if details.description then
+      vim.list_extend(lines, { "", details.description })
+      details.description = nil
+    end
+
+    if details.plan then
+      vim.list_extend(lines, { "", "**Plan**:", "", details.plan })
+      details.plan = nil
+    end
+
+    if details.command then
+      title = formatter.fmt_kind(kind)
+      vim.list_extend(lines, { "", "**Command**:", "", "````bash", details.command, "````" })
+      details.command = nil
+    end
+
+    if next(details) then
+      vim.list_extend(lines, { "", "### Arguments", "````json" })
+      vim.list_extend(lines, vim.split(vim.json.encode(details, { indent = "  " }), "\n"))
+      vim.list_extend(lines, { "````" })
+    end
+  end
+
+  return {
+    title = title,
+    body = #lines > 0 and table.concat(lines, "\n") or nil,
+  }
+end
 
 ---Extend an existing adapter
 ---@param adapter table|string|function

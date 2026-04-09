@@ -309,12 +309,16 @@ return {
 
     ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param meta {tools: CodeCompanion.Tools}
-    ---@return nil|string
+    ---@return nil|CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
       local args = self.args
       local display_path = vim.fn.fnamemodify(args.filepath, ":.")
       local edit_count = args.edits and #args.edits or 0
-      return fmt("Apply %d edit(s) to `%s`?", edit_count, display_path)
+
+      return {
+        title = fmt("Apply %d edit(s) to `%s`?", edit_count, display_path),
+        body = fmt("**Path:** `%s`", args.filepath),
+      }
     end,
 
     ---@param self CodeCompanion.Tool.InsertEditIntoFile

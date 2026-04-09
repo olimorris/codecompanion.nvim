@@ -260,12 +260,20 @@ function M.confirm(chat, request)
   local choices = build_choices(permission, has_diff)
 
   if not has_diff then
-    local prompt = fmt(
-      "%s: %s",
-      utils.capitalize(tool_call and tool_call.kind or "Permission"),
-      tool_call and tool_call.title or "Agent requested permission"
-    )
-    return approve_in_chat(permission, choices, { prompt = prompt })
+    local adapter = chat.adapter
+    local result = adapter and adapter.format_approval_prompt and adapter:format_approval_prompt(tool_call)
+      or {
+        title = fmt(
+          "%s: %s",
+          utils.capitalize(tool_call and tool_call.kind or "Permission"),
+          tool_call and tool_call.title or "Agent requested permission"
+        ),
+      }
+
+    return approve_in_chat(permission, choices, {
+      title = result.title,
+      prompt = result.body,
+    })
   end
 
   local d = get_diff(tool_call)

@@ -54,9 +54,12 @@ return cmd_tool({
 
     ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta {tools: CodeCompanion.Tools}
-    ---@return string
+    ---@return CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return fmt("Run the command `%s`?", self.args.cmd)
+      return {
+        title = fmt("Run the command `%s`?", self.args.cmd),
+        body = table.concat({ "### Command", "", "````bash", self.args.cmd, "````" }, "\n"),
+      }
     end,
 
     ---Rejection message back to the LLM

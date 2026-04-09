@@ -104,7 +104,7 @@ end
 ---Make the kind element of a tool call, pretty
 ---@param kind string|nil
 ---@return string
-local function fmt_kind(kind)
+function M.fmt_kind(kind)
   if not kind or kind == "" then
     return "Tool"
   end
@@ -161,7 +161,7 @@ end
 ---@param tool_call table
 ---@return string
 function M.short_title(tool_call)
-  local kind = fmt_kind(tool_call.kind or "tool")
+  local kind = M.fmt_kind(tool_call.kind or "tool")
   local p = diff_path(tool_call)
   if p then
     return ("%s: %s"):format(kind, relpath(p))
@@ -326,7 +326,7 @@ end
 ---@param tool_call table
 ---@return string
 function M.enhanced_title(tool_call)
-  local kind = fmt_kind(tool_call.kind or "tool")
+  local kind = M.fmt_kind(tool_call.kind or "tool")
 
   -- Check for diff path first
   local p = diff_path(tool_call)

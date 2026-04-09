@@ -207,9 +207,19 @@ return {
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
     ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
+    ---@return nil|CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return fmt("Grep search for `%s`?", self.args.query)
+      local lines = { fmt("**Query:** `%s`", self.args.query) }
+
+      if self.args.include_pattern then
+        table.insert(lines, "")
+        table.insert(lines, fmt("**Pattern:** `%s`", self.args.include_pattern))
+      end
+
+      return {
+        title = fmt("Grep search for `%s`?", self.args.query),
+        body = table.concat(lines, "\n"),
+      }
     end,
 
     ---@param self CodeCompanion.Tool.GrepSearch

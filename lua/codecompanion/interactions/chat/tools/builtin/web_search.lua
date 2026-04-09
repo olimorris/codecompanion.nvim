@@ -87,6 +87,16 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tool.WebSearch
+    ---@param meta { tools: CodeCompanion.Tools }
+    ---@return CodeCompanion.Chat.ApprovalPrompt
+    prompt = function(self, meta)
+      return {
+        title = fmt("Search the web for `%s`?", self.args.query),
+        body = fmt("**Query:** `%s`", self.args.query),
+      }
+    end,
+
+    ---@param self CodeCompanion.Tool.WebSearch
     ---@param stdout table The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)

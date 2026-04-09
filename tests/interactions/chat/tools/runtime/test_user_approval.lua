@@ -38,7 +38,7 @@ T["Tools"]["user approval"]["prompts a user when tool requires approval"] = func
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
     ap.request = function(_, opts)
       _G.ui_called = true
-      _G.ui_prompt = opts.prompt
+      _G.ui_prompt = opts.title
       -- Auto-select "Approve" (g2)
       for _, choice in ipairs(opts.choices) do
         if choice.keymap == "g2" then

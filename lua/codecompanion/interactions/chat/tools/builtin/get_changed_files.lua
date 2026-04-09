@@ -134,8 +134,9 @@ return {
   output = {
     ---@param self CodeCompanion.Tool.GetChangedFiles
     ---@param meta { tools: CodeCompanion.Tools }
+    ---@return CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return "Get changed files in the git repository?"
+      return { title = "Get changed files in the git repository?" }
     end,
 
     ---@param self CodeCompanion.Tool.GetChangedFiles

@@ -48,6 +48,10 @@ local function clear_processing_msg(bufnr)
   ui_utils.clear_notification(bufnr, { namespace = TOOLS_NS .. "_" .. tostring(bufnr) })
 end
 
+---@class CodeCompanion.Chat.ApprovalPrompt
+---@field title string The confirmation title shown to the user
+---@field body? string Optional rich markdown body with tool details
+
 ---@class CodeCompanion.Chat.ApprovalChoice
 ---@field keymap string The keymap to trigger this choice
 ---@field label string Display label (e.g. "Always accept")

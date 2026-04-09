@@ -185,9 +185,12 @@ return {
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tool.GetDiagnostics
     ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
+    ---@return nil|CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return fmt("Get diagnostics for `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
+      return {
+        title = fmt("Get diagnostics for `%s`?", vim.fn.fnamemodify(self.args.filepath, ":.")),
+        body = fmt("**Path:** `%s`", self.args.filepath),
+      }
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics

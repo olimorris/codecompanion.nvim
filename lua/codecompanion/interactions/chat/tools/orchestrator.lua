@@ -199,7 +199,14 @@ function Orchestrator:_setup_handlers()
         return
       end
       if self.tool.output and self.tool.output.prompt then
-        return self.tool.output.prompt(self.tool, { tools = self.tools })
+        local result = self.tool.output.prompt(self.tool, { tools = self.tools })
+        if type(result) == "table" then
+          return result
+        end
+
+        return {
+          title = result,
+        }
       end
     end,
 
@@ -291,9 +298,10 @@ function Orchestrator:setup_next_tool(input)
     if require_approval_before then
       log:debug("[Orchestrator::setup_next_tool] Asking for approval")
 
-      local prompt = self.output.prompt()
-      if prompt == nil or prompt == "" then
-        prompt = ("Run the %q tool?"):format(self.tool.name)
+      local prompt_result = self.output.prompt() or {}
+      local title = prompt_result.title
+      if not title or title == "" then
+        title = ("Run the %q tool?"):format(self.tool.name)
       end
 
       local labels = require("codecompanion.interactions.chat.tools.labels")
@@ -301,7 +309,8 @@ function Orchestrator:setup_next_tool(input)
       require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
         id = self.id,
         name = self.tool.name,
-        prompt = prompt,
+        title = title,
+        prompt = prompt_result.body,
         choices = {
           {
             keymap = keys.always_accept,

@@ -72,9 +72,14 @@ local function cmd_tool(spec)
     ---Prompt the user to approve the execution of the command
     ---@param self CodeCompanion.Tools.Tool
     ---@param meta { tools: CodeCompanion.Tools }
-    ---@return string
+    ---@return CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return fmt("Run the command `%s`?", spec.build_cmd(self.args))
+      local cmd = spec.build_cmd(self.args)
+
+      return {
+        title = fmt("Run the command `%s`?", cmd),
+        body = table.concat({ "### Command", "", "````bash", cmd, "````" }, "\n"),
+      }
     end,
 
     ---Rejection message back to the LLM

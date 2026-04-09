@@ -84,6 +84,16 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tool.FetchWebpage
+    ---@param meta { tools: CodeCompanion.Tools }
+    ---@return CodeCompanion.Chat.ApprovalPrompt
+    prompt = function(self, meta)
+      return {
+        title = fmt("Fetch webpage `%s`?", self.args.url),
+        body = fmt("**URL:** `%s`", self.args.url),
+      }
+    end,
+
+    ---@param self CodeCompanion.Tool.FetchWebpage
     ---@param stdout table The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)

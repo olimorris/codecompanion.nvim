@@ -116,9 +116,12 @@ return {
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
     ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
+    ---@return nil|CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return fmt("Search the cwd for `%s`?", self.args.query)
+      return {
+        title = fmt("Search the cwd for `%s`?", self.args.query),
+        body = fmt("**Query:** `%s`", self.args.query),
+      }
     end,
 
     ---@param self CodeCompanion.Tool.FileSearch

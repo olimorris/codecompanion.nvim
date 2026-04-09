@@ -143,9 +143,19 @@ return {
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Tools.Tool
     ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
+    ---@return nil|CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
-      return fmt("Create a file at `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
+      local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
+      local lines = { fmt("**Path:** `%s`", self.args.filepath) }
+      if self.args.content then
+        local file_ext = vim.fn.fnamemodify(self.args.filepath, ":e")
+        vim.list_extend(lines, { "", "### Content", "", fmt("````%s", file_ext), self.args.content, "````" })
+      end
+
+      return {
+        title = fmt("Create a file at `%s`?", display_path),
+        body = table.concat(lines, "\n"),
+      }
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile

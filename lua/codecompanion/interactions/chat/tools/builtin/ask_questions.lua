@@ -208,10 +208,19 @@ return {
   output = {
     ---@param self CodeCompanion.Tool.AskQuestions
     ---@param meta { tools: CodeCompanion.Tools }
-    ---@return string
+    ---@return CodeCompanion.Chat.ApprovalPrompt
     prompt = function(self, meta)
       local count = self.args and self.args.questions and #self.args.questions or 0
-      return fmt("Ask you %d question%s?", count, count == 1 and "" or "s")
+      local title = fmt("Ask you %d question%s?", count, count == 1 and "" or "s")
+      if count > 0 then
+        local lines = {}
+        for i, q in ipairs(self.args.questions) do
+          table.insert(lines, fmt("%d. %s", i, q))
+        end
+        return { title = title, body = table.concat(lines, "\n") }
+      end
+
+      return { title = title }
     end,
 
     ---@param self CodeCompanion.Tool.AskQuestions
