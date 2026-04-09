@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 08
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 09
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -70,8 +70,8 @@ Table of Contents                            *codecompanion-table-of-contents*
 
 
   AI Coding, Vim Style
-CodeCompanion is a Neovim plugin which enables you to code with AI, using LLMs
-and agents, in Neovim.
+CodeCompanion is a plugin which enables you to code with AI, using LLMs and
+agents, in Neovim.
 
 
 FEATURES                                      *codecompanion-welcome-features*
