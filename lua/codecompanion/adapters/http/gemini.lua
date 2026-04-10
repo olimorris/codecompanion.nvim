@@ -62,20 +62,17 @@ local function decode_args(args)
   return {}
 end
 
----Gemini 2.5 models use `generationConfig.thinkingConfig = { thinkingBudget = N }`
----rather than a raw thinking level. Models opt into this budget-based shape via
----`opts.thinking_budget`, which selects a row from `THINKING_LEVEL_BUDGETS`.
----Other reasoning models continue to use the `{ thinkingLevel = "<level>" }` shape.
----
----Gemini 2.5 Pro cannot fully disable thinking: the API rejects thinkingBudget = 0,
----so `none` maps to 128 — the minimum valid budget — rather than a true off state.
+---Budget mappings for Gemini 2.5 thinking config: https://ai.google.dev/gemini-api/docs/thinking
 local THINKING_LEVEL_BUDGETS = {
   pro = { none = 128, low = 1024, medium = 8192, high = 24576 },
   flash = { none = 0, low = 1024, medium = 8192, high = 24576 },
   flash_lite = { none = 0, low = 512, medium = 8192, high = 24576 },
 }
 
-local function resolve_thinking_config(opts, level)
+---@param level string The thinking level (e.g. "none", "low", "medium", "high")
+---@param opts table Adapter opts containing an optional `thinking_budget` tier key
+---@return table|nil
+local function resolve_thinking_config(level, opts)
   local tier = type(opts.thinking_budget) == "string" and opts.thinking_budget
   if not tier then
     return { thinkingLevel = level }
@@ -166,7 +163,7 @@ return {
         return params
       end
 
-      local thinking_config = resolve_thinking_config(opts, level)
+      local thinking_config = resolve_thinking_config(level, opts)
       if thinking_config == nil then
         return params
       end
