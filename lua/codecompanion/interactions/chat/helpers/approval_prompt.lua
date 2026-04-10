@@ -22,12 +22,13 @@ local function build_message(opts)
     table.insert(lines, "")
   end
 
+  table.insert(lines, "Please select an option:")
   for _, choice in ipairs(opts.choices) do
     table.insert(lines, fmt("- `%s` - %s", choice.keymap, choice.label))
   end
 
-  -- table.insert(lines, "")
-  table.insert(lines, "---")
+  table.insert(lines, "")
+  -- table.insert(lines, "---")
   table.insert(lines, "")
 
   return table.concat(lines, "\n")
@@ -89,7 +90,7 @@ function M.request(chat, opts)
     local icon = is_rejection and icons.tool_failure or icons.tool_success
     local status = is_rejection and "failed" or "completed"
     chat:add_buf_message(
-      { content = fmt("%s%s\n\n", icon, choice_label) },
+      { content = fmt("%sYou chose: %s\n\n---\n", icon, choice_label) },
       { _icon_info = { has_icon = true, status = status } }
     )
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
