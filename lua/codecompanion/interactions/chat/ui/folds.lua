@@ -9,15 +9,16 @@ local Folds = {}
 local CONSTANTS = {
   NS_FOLD_TOOLS = api.nvim_create_namespace("CodeCompanion-tool_fold_marks"),
   NS_FOLD_CONTEXT = api.nvim_create_namespace("CodeCompanion-context_fold_marks"),
+  NS_FOLD_PLAN = api.nvim_create_namespace("CodeCompanion-plan_fold_marks"),
   NS_FOLD_REASONING = api.nvim_create_namespace("CodeCompanion-reasoning_fold_marks"),
 }
 
 -- Unified fold summaries storage
----@type table<number, table<number, { content: string, type: "tool"|"context"|"reasoning" }>>
+---@type table<number, table<number, { content: string, type: "tool"|"context"|"plan"|"reasoning" }>>
 Folds.fold_summaries = {}
 
 ---@class CodeCompanion.Chat.UI.FoldConfig
----@field type "tool"|"context"|"reasoning"
+---@field type "tool"|"context"|"plan"|"reasoning"
 ---@field content string
 ---@field success_keywords? string[]
 ---@field failure_keywords? string[]
@@ -57,7 +58,7 @@ end
 
 ---Format fold text based on type
 ---@param content string
----@param fold_type "tool"|"context"|"reasoning"
+---@param fold_type "tool"|"context"|"reasoning"|"plan"
 ---@param opts? table
 ---@return table[]
 function Folds._format_fold_text(content, fold_type, opts)
@@ -88,7 +89,7 @@ function Folds._format_fold_text(content, fold_type, opts)
     if not opts.show_icon_only then
       table.insert(chunks, { content, "CodeCompanionChatContext" })
     end
-  elseif fold_type == "reasoning" then
+  elseif fold_type == "reasoning" or fold_type == "plan" then
     table.insert(chunks, { content, "CodeCompanionChatFold" })
   end
 
@@ -184,6 +185,8 @@ function Folds:recreate(bufnr, start_row, end_row, fold_config)
     ns = CONSTANTS.NS_FOLD_TOOLS
   elseif fold_config.type == "context" then
     ns = CONSTANTS.NS_FOLD_CONTEXT
+  elseif fold_config.type == "plan" then
+    ns = CONSTANTS.NS_FOLD_PLAN
   elseif fold_config.type == "reasoning" then
     ns = CONSTANTS.NS_FOLD_REASONING
   end
@@ -307,6 +310,74 @@ function Folds:create_reasoning_fold(chat, start_row, end_row)
 
   self:recreate(bufnr, fold_start, fold_end, {
     type = "reasoning",
+    content = summary_text,
+  })
+end
+
+---Fold the most recent plan section in the chat buffer
+---@param chat CodeCompanion.Chat
+---@param start_row number (0-based)
+---@param end_row number (0-based)
+---@return nil
+function Folds:create_plan_fold(chat, start_row, end_row)
+  if not config.display.chat.fold_reasoning then
+    return
+  end
+
+  local summary_text = "  " .. config.display.chat.icons.chat_fold .. " ..."
+
+  local bufnr = chat.bufnr
+  local parser = chat.chat_parser
+  if not (bufnr and parser) then
+    return
+  end
+
+  local ok, query = pcall(
+    vim.treesitter.query.parse,
+    "markdown",
+    [[
+    (section
+      (atx_heading
+        (atx_h3_marker)
+        heading_content: (_) @block_name
+      )
+      (#eq? @block_name "Plan")
+    ) @plan
+  ]]
+  )
+  if not ok or not query then
+    return
+  end
+
+  local tree = parser:parse({ start_row, end_row })[1]
+  if not tree then
+    return
+  end
+  local root = tree:root()
+
+  local latest_node, latest_range = nil, -1
+  for id, node in query:iter_captures(root, bufnr, start_row, end_row) do
+    if query.captures[id] == "plan" then
+      local range = node:range()
+      if range >= latest_range then
+        latest_node, latest_range = node, range
+      end
+    end
+  end
+  if not latest_node then
+    return
+  end
+
+  local range, _, er = latest_node:range()
+  local fold_start = range + 1
+  local fold_end = math.max(fold_start, er - 1)
+
+  if fold_start >= fold_end then
+    return
+  end
+
+  self:recreate(bufnr, fold_start, fold_end, {
+    type = "plan",
     content = summary_text,
   })
 end

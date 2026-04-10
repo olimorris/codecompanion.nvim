@@ -174,6 +174,9 @@ function ACPHandler:create_and_send_prompt(payload)
     :on_thought_chunk(function(content)
       self:handle_thought_chunk(content)
     end)
+    :on_plan(function(entries)
+      self:handle_plan(entries)
+    end)
     :on_tool_call(function(tool_call)
       self:process_tool_call(tool_call)
     end)
@@ -213,6 +216,20 @@ function ACPHandler:handle_thought_chunk(content)
       { type = self.chat.MESSAGE_TYPES.REASONING_MESSAGE }
     )
   end
+end
+
+---Handle plan updates from the agent
+---@param entries table[] Array of plan entries with content, status, priority
+function ACPHandler:handle_plan(entries)
+  local lines = {}
+  for _, entry in ipairs(entries) do
+    table.insert(lines, entry.content or "Untitled")
+  end
+  local content = table.concat(lines, "\n")
+  self.chat:add_buf_message(
+    { role = config.constants.LLM_ROLE, content = content },
+    { type = self.chat.MESSAGE_TYPES.PLAN_MESSAGE, _plan_entries = entries }
+  )
 end
 
 ---Output tool call to the chat

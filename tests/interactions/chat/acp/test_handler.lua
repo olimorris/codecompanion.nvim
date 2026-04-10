@@ -44,6 +44,11 @@ T = new_set({
                 return self
               end,
 
+              on_plan = function(self, handler)
+                self.handlers.plan = handler
+                return self
+              end,
+
               on_tool_call = function(self, handler)
                 self.handlers.tool_call = handler
                 return self
