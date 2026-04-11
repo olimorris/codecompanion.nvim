@@ -405,6 +405,7 @@ T["ACP Responses"]["_handle_done when stopReason present"] = function()
     local connection = create_test_connection()
     local seen
     connection._active_prompt = {
+      _request_id = 1,
       handle_done = function(_, sr) seen = sr end
     }
     connection:handle_rpc_message('{"jsonrpc":"2.0","id":1,"result":{"stopReason":"end_turn"}}')

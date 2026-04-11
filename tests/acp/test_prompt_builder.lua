@@ -306,7 +306,7 @@ T["Prompt Builder"]["Auto-cancels when no handler is registered"] = function()
   ]])
 
   h.eq(13, result.id)
-  h.eq("canceled", result.outcome)
+  h.eq("cancelled", result.outcome)
   h.eq(false, result.has_optionId)
 end
 

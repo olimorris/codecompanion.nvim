@@ -70,6 +70,10 @@ function PromptBuilder:on_error(fn)
   self.handlers.error = fn
   return self
 end
+function PromptBuilder:on_cancel(fn)
+  self.handlers.cancel = fn
+  return self
+end
 function PromptBuilder:with_options(opts)
   self.options = vim.tbl_extend("force", self.options, opts or {})
   return self
@@ -105,6 +109,7 @@ function PromptBuilder:send()
   -- Send the prompt
   local jsonrpc = require("codecompanion.utils.jsonrpc")
   local id = self.connection._state.id_gen:next()
+  self._request_id = id
   local req = jsonrpc.request(id, self.connection.METHODS.SESSION_PROMPT, {
     sessionId = self.connection.session_id,
     prompt = self.messages,
@@ -213,9 +218,9 @@ function PromptBuilder:handle_permission_request(id, params)
     session_id = params.sessionId,
     tool_call = tool_call,
     options = options,
-    respond = function(option_id, canceled)
-      if canceled or not option_id then
-        respond({ outcome = "canceled" })
+    respond = function(option_id, cancelled)
+      if cancelled or not option_id then
+        respond({ outcome = "cancelled" })
       else
         respond({ outcome = "selected", optionId = option_id })
       end
@@ -297,6 +302,13 @@ function PromptBuilder:cancel()
       utils.fire("RequestFinished", self.options)
     end
   end
+
+  -- Handler MUST respond to all requests with "cancelled"
+  -- Ref: https://agentclientprotocol.com/protocol/prompt-turn#cancellation
+  if self.handlers.cancel then
+    pcall(self.handlers.cancel)
+  end
+
   self.connection._active_prompt = nil
 end
 
