@@ -22,3 +22,5 @@ Where `docs` is the `alias` of the prompt.
 
 If your prompt library entries have an `alias` defined then you can invoke them using a slash command. In the cmd line `:CodeCompanion /<alias>` or `/<alias>` if you're in the chat buffer.
 
+When invoked this way, any tools declared on the prompt are added to the current chat buffer before the prompt content is inserted.
+

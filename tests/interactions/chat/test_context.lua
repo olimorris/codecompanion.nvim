@@ -63,6 +63,43 @@ T["Context"]["Cannot be added twice with the same id"] = function()
   h.eq(1, child.lua_get([[#_G.chat.context_items]]), "Should only have 1 context item")
 end
 
+T["Context"]["Prompt-library slash commands add a single tool"] = function()
+  child.lua([[
+    local SlashCommands = require("codecompanion.interactions.chat.slash_commands")
+
+    SlashCommands.run({
+      from_prompt_library = true,
+      config = {
+        tools = { "weather" },
+        prompts = {},
+      },
+      context = {},
+    }, _G.chat)
+  ]])
+
+  local in_use = child.lua_get([[_G.chat.tool_registry.in_use]])
+  h.expect_tbl_contains("weather", in_use)
+end
+
+T["Context"]["Prompt-library slash commands add a tool group"] = function()
+  child.lua([[
+    local SlashCommands = require("codecompanion.interactions.chat.slash_commands")
+
+    SlashCommands.run({
+      from_prompt_library = true,
+      config = {
+        tools = { "senior_dev" },
+        prompts = {},
+      },
+      context = {},
+    }, _G.chat)
+  ]])
+
+  local in_use = child.lua_get([[_G.chat.tool_registry.in_use]])
+  h.expect_tbl_contains("func", in_use)
+  h.expect_tbl_contains("cmd", in_use)
+end
+
 T["Context"]["Can be deleted"] = function()
   child.lua([[
     -- Add context_items

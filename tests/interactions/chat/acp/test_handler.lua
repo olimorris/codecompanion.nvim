@@ -303,7 +303,7 @@ T["ACPHandler"]["coordinates completion flow"] = function()
     handler:handle_message_chunk("Response part 1")
     handler:handle_message_chunk(" and part 2")
     handler:handle_thought_chunk("My reasoning")
-    handler:handle_completion("end_turn")
+    handler:handle_complete("end_turn")
 
     return {
       status = chat.status,
@@ -670,6 +670,241 @@ T["ACPHandler"]["handles no connection"] = function()
   ]])
 
   h.eq("\\cost", result.content)
+end
+
+T["ACPHandler"]["Permission Queue"] = new_set()
+
+T["ACPHandler"]["Permission Queue"]["queues concurrent requests and presents one at a time"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    -- Track which requests reach the permission UI
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(chat_arg, request)
+        table.insert(confirmed, request)
+      end
+    }
+
+    -- Send three permission requests concurrently
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_1", kind = "edit", title = "Edit file A" },
+      options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
+      respond = function() end,
+    })
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_2", kind = "edit", title = "Edit file B" },
+      options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
+      respond = function() end,
+    })
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_3", kind = "edit", title = "Edit file C" },
+      options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
+      respond = function() end,
+    })
+
+    return {
+      confirmed_count = #confirmed,
+      first_id = confirmed[1] and confirmed[1].tool_call.toolCallId,
+      queue_count = handler._permission.queue:count(),
+      active = handler._permission.active,
+    }
+  ]])
+
+  h.eq(1, result.confirmed_count)
+  h.eq("tool_1", result.first_id)
+  h.eq(2, result.queue_count)
+  h.is_true(result.active)
+end
+
+T["ACPHandler"]["Permission Queue"]["presents next request after user responds"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(chat_arg, request)
+        table.insert(confirmed, request)
+      end
+    }
+
+    local responses = {}
+    local make_respond = function(id)
+      return function(option_id, canceled)
+        table.insert(responses, { id = id, option_id = option_id, canceled = canceled })
+      end
+    end
+
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_1" },
+      options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
+      respond = make_respond("tool_1"),
+    })
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_2" },
+      options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
+      respond = make_respond("tool_2"),
+    })
+
+    -- Simulate user accepting the first request
+    confirmed[1].respond("allow", false)
+
+    return {
+      confirmed_count = #confirmed,
+      second_id = confirmed[2] and confirmed[2].tool_call.toolCallId,
+      responses = responses,
+      queue_empty = handler._permission.queue:is_empty(),
+      active = handler._permission.active,
+    }
+  ]])
+
+  h.eq(2, result.confirmed_count)
+  h.eq("tool_2", result.second_id)
+  h.eq("tool_1", result.responses[1].id)
+  h.eq("allow", result.responses[1].option_id)
+  h.is_true(result.queue_empty)
+  h.is_true(result.active)
+end
+
+T["ACPHandler"]["Permission Queue"]["clears queue on completion"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(chat_arg, request)
+        table.insert(confirmed, request)
+      end
+    }
+
+    local rejected = {}
+    local make_respond = function(id)
+      return function(option_id, canceled)
+        if canceled then
+          table.insert(rejected, id)
+        end
+      end
+    end
+
+    -- Queue up three requests
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_1" },
+      options = {},
+      respond = make_respond("tool_1"),
+    })
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_2" },
+      options = {},
+      respond = make_respond("tool_2"),
+    })
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_3" },
+      options = {},
+      respond = make_respond("tool_3"),
+    })
+
+    -- Simulate completion while requests are still queued
+    chat.done = function() end
+    handler:handle_complete()
+
+    return {
+      queue_empty = handler._permission.queue:is_empty(),
+      active = handler._permission.active,
+      rejected = rejected,
+    }
+  ]])
+
+  h.is_true(result.queue_empty)
+  h.is_false(result.active)
+  h.eq({ "tool_2", "tool_3" }, result.rejected)
+end
+
+T["ACPHandler"]["Permission Queue"]["clears queue on error"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(chat_arg, request)
+        table.insert(confirmed, request)
+      end
+    }
+
+    local rejected = {}
+    local make_respond = function(id)
+      return function(option_id, canceled)
+        if canceled then
+          table.insert(rejected, id)
+        end
+      end
+    end
+
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_1" },
+      options = {},
+      respond = make_respond("tool_1"),
+    })
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_2" },
+      options = {},
+      respond = make_respond("tool_2"),
+    })
+
+    -- Stub add_buf_message and done
+    chat.add_buf_message = function() end
+    chat.done = function() end
+    handler:handle_error("Something went wrong")
+
+    return {
+      queue_empty = handler._permission.queue:is_empty(),
+      active = handler._permission.active,
+      rejected = rejected,
+    }
+  ]])
+
+  h.is_true(result.queue_empty)
+  h.is_false(result.active)
+  h.eq({ "tool_2" }, result.rejected)
 end
 
 T["ACPHandler"]["Config Options"] = new_set()

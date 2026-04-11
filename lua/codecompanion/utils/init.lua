@@ -270,4 +270,27 @@ function M.pluralize(count, word)
   return count == 1 and word or word .. "s"
 end
 
+---Deep copy a table, truncating any string values
+---@param tbl table
+---@param max_len? number
+---@return table
+function M.truncate(tbl, max_len)
+  if not max_len then
+    max_len = 255
+  end
+
+  local output = {}
+  for k, v in pairs(tbl) do
+    if type(v) == "table" then
+      output[k] = M.truncate(v, max_len)
+    elseif type(v) == "string" and #v > max_len then
+      output[k] = v:sub(1, max_len) .. "...[truncated]"
+    else
+      output[k] = v
+    end
+  end
+
+  return output
+end
+
 return M

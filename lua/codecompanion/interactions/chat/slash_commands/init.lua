@@ -5,6 +5,22 @@ local log = require("codecompanion.utils.log")
 
 local api = vim.api
 
+---Add prompt-declared tools to the current chat
+---@param chat CodeCompanion.Chat
+---@param prompt_config table
+local function add_prompt_tools(chat, prompt_config)
+  local prompt_tools = prompt_config.tools or {}
+  local tools_config = chat.tools.tools_config
+
+  vim.iter(prompt_tools):each(function(tool_name)
+    if tools_config.groups and tools_config.groups[tool_name] then
+      chat.tool_registry:add_group(tool_name, { config = tools_config })
+    elseif tools_config[tool_name] then
+      chat.tool_registry:add_single_tool(tool_name, { config = tools_config[tool_name] })
+    end
+  end)
+end
+
 ---Resolve a path to the correct module
 ---@param path string The module or file path
 ---@return table|nil
@@ -176,6 +192,8 @@ end
 ---@return nil
 function SlashCommands.run(selected, chat)
   if selected.from_prompt_library then
+    add_prompt_tools(chat, selected.config)
+
     local context = selected.config.context
     if context then
       interactions.add_context(selected.config, chat)

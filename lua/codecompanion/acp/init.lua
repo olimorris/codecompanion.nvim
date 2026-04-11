@@ -142,6 +142,7 @@ function Connection:connect_and_authenticate()
     end
 
     self._initialized = true
+    log:debug("[acp] Initialized (protocol_version=%s)", initialized.protocolVersion or "unknown")
 
     api.nvim_create_autocmd("VimLeavePre", {
       group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = false }),
@@ -234,6 +235,7 @@ function Connection:_authenticate()
     self._authenticated = true
   end
 
+  log:debug("[acp] Authenticated")
   return true
 end
 
@@ -398,6 +400,7 @@ function Connection:_establish_session()
     apply_session_metadata(new_session, "New session")
   end
 
+  log:debug("[acp] Session established: %s", self.session_id)
   return true
 end
 
@@ -518,6 +521,7 @@ function Connection:start_agent_process()
   end
 
   self._state.handle = sysobj
+  log:debug("[acp] Process started: %s", table.concat(self.adapter_modified.command, " "))
   return true
 end
 
@@ -913,6 +917,8 @@ end
 ---@param code number
 ---@param signal number
 function Connection:handle_process_exit(code, signal)
+  log:debug("[acp] Process exited (code=%s, signal=%s)", code, signal)
+
   if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
     self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
   end
