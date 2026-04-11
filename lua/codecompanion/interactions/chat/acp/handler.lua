@@ -221,7 +221,7 @@ end
 function ACPHandler:process_tool_call(tool_call)
   local id = tool_call.toolCallId
 
-  log:trace("[ACP::Handler] Processing tool call %s", tool_call)
+  log:debug("[ACP::Handler] Processing tool call %s", utils.truncate(tool_call))
 
   local merged = merge_tool_call(self.tools[id], tool_call)
   tool_call = merged
@@ -298,7 +298,15 @@ function ACPHandler:handle_permission_request(request)
     end
   end
 
-  log:debug("[ACPHandler::handle_permission_request] Asking for approval")
+  log:debug(
+    "[ACP::Handler] Permission Request\n  id: %s\n  kind: %s\n  %s\n  options: %s",
+    tool_call and tool_call.toolCallId or "unknown",
+    tool_call and tool_call.kind or "unknown",
+    tool_call and tool_call.title or "No title",
+    vim.inspect(vim.tbl_map(function(o)
+      return o.kind
+    end, request.options or {}))
+  )
 
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end
