@@ -639,7 +639,7 @@ function Connection:handle_rpc_message(line)
   if message.id and not message.method then
     self:store_rpc_response(message)
     if message.result and message.result ~= vim.NIL and message.result.stopReason then
-      if self._active_prompt and self._active_prompt.handle_done then
+      if self._active_prompt and self._active_prompt._request_id == message.id and self._active_prompt.handle_done then
         self._active_prompt:handle_done(message.result.stopReason)
       end
     end

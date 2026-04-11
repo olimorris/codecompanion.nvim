@@ -12,7 +12,7 @@ local watch = require("codecompanion.interactions.shared.watch")
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
 ---@field ui_state table<string, table> Cache of tool call UI states (line_number, icon_id) by tool call ID
----@field _permission { queue: CodeCompanion.Queue, active: boolean } Internal state for managing permission requests
+---@field _permission { queue: CodeCompanion.Queue, active: boolean, respond: function|nil } Internal state for managing permission requests
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -27,6 +27,7 @@ function ACPHandler.new(chat)
     _permission = {
       active = false,
       queue = Queue.new(),
+      respond = nil,
     },
   }, { __index = ACPHandler })
 
@@ -196,6 +197,9 @@ function ACPHandler:create_and_send_prompt(payload)
     :on_error(function(error)
       self:handle_error(error)
     end)
+    :on_cancel(function()
+      self:_clear_permission_queue()
+    end)
     :with_options({ bufnr = self.chat.bufnr, interaction = "chat" })
     :send()
 end
@@ -330,11 +334,18 @@ function ACPHandler:_process_next_permission()
     end, request.options or {}))
   )
 
+  -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec
+  self._permission.respond = request.respond
+
   -- Ensure that the next item in the queue is processed after the user's response
   local send_response = request.respond
-  request.respond = function(option_id, canceled)
-    send_response(option_id, canceled)
+  request.respond = function(option_id, cancelled)
+    if not self._permission.respond then
+      return
+    end
+    send_response(option_id, cancelled)
     self._permission.active = false
+    self._permission.respond = nil
     self:_process_next_permission()
   end
 
@@ -344,11 +355,24 @@ end
 ---Clear any requests in the queue
 ---@return nil
 function ACPHandler:_clear_permission_queue()
+  local had_pending = self._permission.respond ~= nil or not self._permission.queue:is_empty()
+
+  -- Cancel the currently active permission request (if any)
+  if self._permission.respond then
+    pcall(self._permission.respond, nil, true)
+    self._permission.respond = nil
+  end
+
+  -- Cancel all queued permission requests
   while not self._permission.queue:is_empty() do
     local request = self._permission.queue:pop()
     pcall(request.respond, nil, true)
   end
   self._permission.active = false
+
+  if had_pending then
+    utils.fire("ToolApprovalFinished", { bufnr = self.chat.bufnr, choice = "cancelled" })
+  end
 end
 
 ---Handle the prompt response when it's complete

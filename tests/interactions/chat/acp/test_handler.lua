@@ -69,6 +69,11 @@ T = new_set({
                 return self
               end,
 
+              on_cancel = function(self, handler)
+                self.handlers.cancel = handler
+                return self
+              end,
+
               with_options = function(self, opts)
                 self.options = opts
                 return self
@@ -846,7 +851,7 @@ T["ACPHandler"]["Permission Queue"]["clears queue on completion"] = function()
 
   h.is_true(result.queue_empty)
   h.is_false(result.active)
-  h.eq({ "tool_2", "tool_3" }, result.rejected)
+  h.eq({ "tool_1", "tool_2", "tool_3" }, result.rejected)
 end
 
 T["ACPHandler"]["Permission Queue"]["clears queue on error"] = function()
@@ -904,7 +909,7 @@ T["ACPHandler"]["Permission Queue"]["clears queue on error"] = function()
 
   h.is_true(result.queue_empty)
   h.is_false(result.active)
-  h.eq({ "tool_2" }, result.rejected)
+  h.eq({ "tool_1", "tool_2" }, result.rejected)
 end
 
 T["ACPHandler"]["Config Options"] = new_set()
