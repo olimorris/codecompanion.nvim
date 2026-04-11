@@ -1,5 +1,20 @@
 # Changelog
 
+## [19.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.10.0...v19.11.0) (2026-04-11)
+
+
+### Features
+
+* **ui:** tweak approval prompts ([#3022](https://github.com/olimorris/codecompanion.nvim/issues/3022)) ([31e6c45](https://github.com/olimorris/codecompanion.nvim/commit/31e6c45db268c415d2c6a9356c44c6ba3aa75a75))
+
+
+### Bug Fixes
+
+* **acp:** cancel prompt and tools ([#3024](https://github.com/olimorris/codecompanion.nvim/issues/3024)) ([cdd623d](https://github.com/olimorris/codecompanion.nvim/commit/cdd623df1e0df646a5b2ab5fbf45abb496a3503f)), closes [#3011](https://github.com/olimorris/codecompanion.nvim/issues/3011)
+* **acp:** parallel tool calls that require approval ([#3021](https://github.com/olimorris/codecompanion.nvim/issues/3021)) ([b62de9d](https://github.com/olimorris/codecompanion.nvim/commit/b62de9d98e4cab415867bf4b972b5aa58033554b)), closes [#3014](https://github.com/olimorris/codecompanion.nvim/issues/3014)
+* **background:** title generation prompt ([#3004](https://github.com/olimorris/codecompanion.nvim/issues/3004)) ([fe792b3](https://github.com/olimorris/codecompanion.nvim/commit/fe792b30974893d8809b06c5e31c5c876c14bbc7))
+* **chat:** add tools from prompt library slash commands ([#3012](https://github.com/olimorris/codecompanion.nvim/issues/3012)) ([9724e13](https://github.com/olimorris/codecompanion.nvim/commit/9724e1386c41d3f986fd11cd127998c55dc26ea0))
+
 ## [19.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.9.0...v19.10.0) (2026-04-08)
 
 
