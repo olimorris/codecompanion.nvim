@@ -90,7 +90,7 @@ function M.request(chat, opts)
     local icon = is_rejection and icons.tool_failure or icons.tool_success
     local status = is_rejection and "failed" or "completed"
     chat:add_buf_message(
-      { content = fmt("%sYou chose: %s\n\n---\n", icon, choice_label) },
+      { content = fmt("%sYou selected: %s\n\n---\n", icon, choice_label) },
       { _icon_info = { has_icon = true, status = status } }
     )
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
