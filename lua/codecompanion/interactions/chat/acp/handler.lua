@@ -1,4 +1,5 @@
 local Queue = require("codecompanion.utils.queue")
+
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
@@ -11,7 +12,7 @@ local watch = require("codecompanion.interactions.shared.watch")
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
 ---@field ui_state table<string, table> Cache of tool call UI states (line_number, icon_id) by tool call ID
----@field _permission {queue: CodeCompanion.Queue, active: boolean} Internal state for managing permission requests
+---@field _permission { queue: CodeCompanion.Queue, active: boolean } Internal state for managing permission requests
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -190,7 +191,7 @@ function ACPHandler:create_and_send_prompt(payload)
       self:handle_permission_request(request)
     end)
     :on_complete(function()
-      self:handle_completion()
+      self:handle_complete()
     end)
     :on_error(function(error)
       self:handle_error(error)
@@ -201,6 +202,7 @@ end
 
 ---Handle incoming message chunks
 ---@param content string
+---@return nil
 function ACPHandler:handle_message_chunk(content)
   table.insert(self.output, content)
   self.chat:add_buf_message(
@@ -211,6 +213,7 @@ end
 
 ---Handle incoming thought chunks
 ---@param content string
+---@return nil
 function ACPHandler:handle_thought_chunk(content)
   table.insert(self.reasoning, content)
   if config.display.chat.show_reasoning then
@@ -286,12 +289,7 @@ function ACPHandler:process_tool_call(tool_call)
   self.ui_state[id] = { line_number = line_number, icon_id = icon_id }
 end
 
----Queue a permission request and present it when ready.
----Agents may send multiple permission requests concurrently. Because the
----approval UI uses buffer-local keymaps, presenting more than one at a time
----would cause the second set of keymaps to overwrite the first, leaving
----the earlier request unresolvable and the agent hanging. We queue them
----and present one at a time.
+---Queue a permission request and process when ready
 ---@param request table
 ---@return nil
 function ACPHandler:handle_permission_request(request)
@@ -332,10 +330,10 @@ function ACPHandler:_process_next_permission()
     end, request.options or {}))
   )
 
-  -- Wrap respond so we present the next queued permission after the user decides
-  local original_respond = request.respond
+  -- Ensure that the next item in the queue is processed after the user's response
+  local send_response = request.respond
   request.respond = function(option_id, canceled)
-    original_respond(option_id, canceled)
+    send_response(option_id, canceled)
     self._permission.active = false
     self:_process_next_permission()
   end
@@ -343,7 +341,7 @@ function ACPHandler:_process_next_permission()
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end
 
----Reject all queued permission requests (e.g. on error or completion with pending items)
+---Clear any requests in the queue
 ---@return nil
 function ACPHandler:_clear_permission_queue()
   while not self._permission.queue:is_empty() do
@@ -353,8 +351,9 @@ function ACPHandler:_clear_permission_queue()
   self._permission.active = false
 end
 
----Handle completion
-function ACPHandler:handle_completion()
+---Handle the prompt response when it's complete
+---@return nil
+function ACPHandler:handle_complete()
   self:_clear_permission_queue()
 
   if not self.chat.status or self.chat.status == "" then
@@ -366,6 +365,7 @@ end
 
 ---Handle errors
 ---@param error string
+---@return nil
 function ACPHandler:handle_error(error)
   self:_clear_permission_queue()
 

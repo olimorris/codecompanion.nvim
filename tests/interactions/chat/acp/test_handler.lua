@@ -303,7 +303,7 @@ T["ACPHandler"]["coordinates completion flow"] = function()
     handler:handle_message_chunk("Response part 1")
     handler:handle_message_chunk(" and part 2")
     handler:handle_thought_chunk("My reasoning")
-    handler:handle_completion("end_turn")
+    handler:handle_complete("end_turn")
 
     return {
       status = chat.status,
@@ -835,7 +835,7 @@ T["ACPHandler"]["Permission Queue"]["clears queue on completion"] = function()
 
     -- Simulate completion while requests are still queued
     chat.done = function() end
-    handler:handle_completion()
+    handler:handle_complete()
 
     return {
       queue_empty = handler._permission.queue:is_empty(),
