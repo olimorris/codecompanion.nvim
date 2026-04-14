@@ -372,6 +372,19 @@ require("codecompanion").setup({
 
 To use [Goose](https://block.github.io/goose/) in CodeCompanion, ensure you've followed their [documentation](https://block.github.io/goose/docs/getting-started/installation/) to setup and install Goose CLI. Then ensure that in your chat buffer you select the `goose` adapter.
 
+## Setup: Kilo Code
+
+To use [Kilo Code](https://kilo.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://kilo.ai/docs/getting-started/installing#cli) and [configure](https://kilo.ai/docs/getting-started/setup-authentication#cli) it. Then ensure that in your chat buffer you select the `kilocode` adapter.
+
+You can specify a custom model in your `~/.config/kilo/kilo.json` file:
+
+```json
+{
+    "$schema": "https://kilo.ai/config.json",
+    "model": "kilo/kilo-auto/free",
+}
+```
+
 ## Setup: Kimi CLI
 
 Install [Kimi CLI](https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation) as per their instructions. Then in the CLI, run `kimi` followed by `/login` to configure your API key. Then ensure that in your chat buffer you select the `kimi_cli` adapter.
@@ -394,22 +407,5 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
 {
     "$schema": "https://opencode.ai/config.json",
     "model": "github-copilot/claude-sonnet-4.5",
-}
-```
-
-## Setup: Kilo Code
-
-To use [Kilo Code](https://kilo.ai) in CodeCompanion, ensure you've followed
-their documentation to
-[install](https://kilo.ai/docs/getting-started/installing#cli) and
-[configure](https://kilo.ai/docs/getting-started/setup-authentication#cli) it. Then ensure that in your
-chat buffer you select the `kilocode` adapter.
-
-You can specify a custom model in your `~/.config/kilo/kilo.json` file:
-
-```json
-{
-    "$schema": "https://kilo.ai/config.json",
-    "model": "kilo/kilo-auto/free",
 }
 ```
