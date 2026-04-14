@@ -397,3 +397,19 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
 }
 ```
 
+## Setup: Kilo Code
+
+To use [Kilo Code](https://kilo.ai) in CodeCompanion, ensure you've followed
+their documentation to
+[install](https://kilo.ai/docs/getting-started/installing#cli) and
+[configure](https://kilo.ai/docs/getting-started/setup-authentication#cli) it. Then ensure that in your
+chat buffer you select the `kilocode` adapter.
+
+You can specify a custom model in your `~/.config/kilo/kilo.json` file:
+
+```json
+{
+    "$schema": "https://kilo.ai/config.json",
+    "model": "kilo/kilo-auto/free",
+}
+```
