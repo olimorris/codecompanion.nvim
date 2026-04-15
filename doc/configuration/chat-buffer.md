@@ -245,6 +245,81 @@ vim.api.nvim_create_autocmd("User", {
 })
 ```
 
+## Context Management
+
+CodeCompanion can manage context in the chat buffer to try and prevent breaching the LLM's context window. It can be enabled with:
+
+::: code-group
+
+```lua [Boolean]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        context_management = {
+          enabled = true,
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [Function]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        context_management = {
+          enabled = function(adapter)
+            if adapter.type ~= "http" then
+              return false
+            end
+            return true
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+CodeCompanion makes use of a trigger, a threshold at which the context management begins. You can specify a `trigger` as either a decimal (representing a percentage of the context window) or an integer (representing a token count). When the chat buffer reaches the defined trigger, preventative action is taken by CodeCompanion. You can read more in the [how-to](/how-to#manage-context) section.
+
+::: code-group
+
+```lua [Decimal]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        context_management = {
+          trigger = 0.75, -- Percent of the context window (e.g., 0.75 for 75%)
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [Integer]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        context_management = {
+          trigger = 50000, -- tokens
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
 ## Diff
 
 <img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
