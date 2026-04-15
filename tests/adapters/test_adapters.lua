@@ -614,6 +614,46 @@ T["Adapter"]["utils"]["add_header handles multiple values"] = function()
   h.eq("a,b,c", result)
 end
 
+T["Adapter"]["utils"]["remove_header removes a value from a comma-separated header"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "token-efficient-tools-2025-02-19,compact-2026-01-12" }
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq("token-efficient-tools-2025-02-19", result)
+end
+
+T["Adapter"]["utils"]["remove_header removes key when last value is removed"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "compact-2026-01-12" }
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
+T["Adapter"]["utils"]["remove_header is a no-op when key is absent"] = function()
+  local result = child.lua([[
+    local headers = {}
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
+T["Adapter"]["utils"]["remove_header is a no-op when value is not present"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "token-efficient-tools-2025-02-19" }
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq("token-efficient-tools-2025-02-19", result)
+end
+
 T["Adapter"]["utils"]["can consolidate system messages"] = function()
   child.lua([[
     messages = {
