@@ -279,7 +279,7 @@ function Adapter.set_model(args)
   -- Set the model dictionary as a convenience for the user. This can be string
   -- or function values. If they're functions, these are likely to make http
   -- requests to obtain a list of available models. This is expensive, so
-  -- we dont't execute them here. Instead, let the user decide when to.
+  -- we don't execute them here. Instead, let the user decide when to.
   if adapter.schema and adapter.schema.model then
     adapter.model = {}
     local model = adapter.schema.model.default
