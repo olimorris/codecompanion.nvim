@@ -881,7 +881,7 @@ require("codecompanion").setup({
   display = {
     action_palette = {
       opts = {
-        show_prompt_library_builtins = false,
+        show_preset_prompts = false,
       }
     },
   },
