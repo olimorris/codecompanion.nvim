@@ -27,12 +27,12 @@ The plugin can be installed with the plugin manager of your choice. It is recomm
 ::: code-group
 
 ```lua [vim.pack]
-vim.pack.add("https://www.github.com/nvim-lua/plenary.nvim")
-vim.pack.add("https://github.com/nvim-treesitter/nvim-treesitter")
-vim.pack.add({
+vim.pack.add({ "https://www.github.com/nvim-lua/plenary.nvim" })
+vim.pack.add({ "https://github.com/nvim-treesitter/nvim-treesitter" })
+vim.pack.add({ {
   src = "https://www.github.com/olimorris/codecompanion.nvim",
   version = vim.version.range("^19.0.0")
-})
+} })
 
 -- Somewhere in your config
 require("codecompanion").setup()
