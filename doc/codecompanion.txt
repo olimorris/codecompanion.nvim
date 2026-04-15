@@ -80,7 +80,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline.html|, code creation and refactoring
@@ -118,12 +118,13 @@ agents. Out of the box, the plugin supports:
 - Cline CLI (`cline_cli`)
 - Codex (`codex`) - Requires an API key
 - Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
+- DeepSeek (`deepseek`) - Requires an API key
+- Gemini (`gemini`) - Requires an API key
 - Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
 - GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
 - Goose (`goose`) - Requires an API key
-- DeepSeek (`deepseek`) - Requires an API key
-- Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
+- Kilo Code (`kilocode`) - Requires an API key
 - Kimi CLI (`kimi_cli`) - Requires an API key
 - Mistral AI (`mistral`) - Requires an API key or a Le Chat Pro subscription
 - Novita (`novita`) - Requires an API key
@@ -1372,6 +1373,24 @@ followed their documentation
 <https://block.github.io/goose/docs/getting-started/installation/> to setup and
 install Goose CLI. Then ensure that in your chat buffer you select the `goose`
 adapter.
+
+
+SETUP: KILO CODE ~
+
+To use Kilo Code <https://kilo.ai> in CodeCompanion, ensure you’ve followed
+their documentation to install
+<https://kilo.ai/docs/getting-started/installing#cli> and configure
+<https://kilo.ai/docs/getting-started/setup-authentication#cli> it. Then ensure
+that in your chat buffer you select the `kilocode` adapter.
+
+You can specify a custom model in your `~/.config/kilo/kilo.json` file:
+
+>json
+    {
+        "$schema": "https://kilo.ai/config.json",
+        "model": "kilo/kilo-auto/free",
+    }
+<
 
 
 SETUP: KIMI CLI ~
@@ -3440,7 +3459,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -5608,7 +5627,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
