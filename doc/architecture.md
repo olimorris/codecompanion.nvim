@@ -19,7 +19,7 @@ When a user breaches the context window, the conversation **ends** and it **cann
 > [!NOTE]
 > CodeCompanion enables context management by default
 
-Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
+Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/index), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
 
 When triggered, CodeCompanion follows the process outlined below:
 

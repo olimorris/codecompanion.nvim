@@ -286,7 +286,7 @@ require("codecompanion").setup({
 
 :::
 
-CodeCompanion makes use of a trigger, a threshold at which the context management begins. You can specify a `trigger` as either a decimal (representing a percentage of the context window) or an integer (representing a token count). When the chat buffer reaches the defined trigger, preventative action is taken by CodeCompanion. You can read more in the [how-to](/how-to#manage-context) section.
+CodeCompanion makes use of a trigger, a threshold at which the context management begins. You can specify a `trigger` as either a decimal (representing a percentage of the context window) or an integer (representing a token count). When the chat buffer reaches the defined trigger, preventative action is taken by CodeCompanion. You can read more in the [architecture](/architecture#manage-context) section.
 
 ::: code-group
 
