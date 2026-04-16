@@ -218,6 +218,20 @@ local function write_file(path, content)
   f:close()
 end
 
+---Load prompt from markdown file
+---@return string The prompt content
+local function load_prompt()
+  local source_path = debug.getinfo(1, "S").source:sub(2)
+  local dir = vim.fn.fnamemodify(source_path, ":h")
+  local prompt_path = dir .. "/apply_patch.md"
+  if vim.fn.filereadable(prompt_path) == 0 then
+    error("Prompt file not found: " .. prompt_path)
+  end
+  return table.concat(vim.fn.readfile(prompt_path), "\n")
+end
+
+local PROMPT = load_prompt()
+
 local tool = {
   name = "apply_patch",
   cmds = {
@@ -357,41 +371,7 @@ local tool = {
       },
     },
   },
-  system_prompt = function()
-    return [[Use the `apply_patch` tool to edit files. Your patch language is a stripped‑down, file‑oriented diff format designed to be easy to parse and safe to apply. You can think of it as a high‑level envelope:
-
-*** Begin Patch
-[ one or more file sections ]
-*** End Patch
-
-Within that envelope, you get a sequence of file operations.
-You MUST include a header to specify the action you are taking.
-Each operation starts with one of three headers:
-
-*** Add File: <path> - create a new file. Every following line is a + line (the initial contents).
-*** Delete File: <path> - remove an existing file. Nothing follows.
-*** Update File: <path> - patch an existing file in place (optionally with a rename).
-
-Example patch:
-
-```
-*** Begin Patch
-*** Add File: hello.txt
-+Hello world
-*** Update File: src/app.py
-*** Move to: src/main.py
-@@ def greet():
--print("Hi")
-+print("Hello, world!")
-*** Delete File: obsolete.txt
-*** End Patch
-```
-
-It is important to remember:
-
-- You must include a header with your intended action (Add/Delete/Update)
-- You must prefix new lines with `+` even when creating a new file]]
-  end,
+  system_prompt = PROMPT,
   output = {
     cmd_string = function(self, opts)
       return "apply_patch"
