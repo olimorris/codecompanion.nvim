@@ -668,7 +668,7 @@ return {
         -- Legacy models
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
-          meta = { context_window = 1000000 },
+          meta = { context_window = 1000000, max_tokens = 128000 },
           opts = { can_reason = true, has_vision = true },
         },
         ["claude-opus-4-5"] = {
