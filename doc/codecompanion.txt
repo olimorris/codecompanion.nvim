@@ -1,4 +1,5 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 09
+*codecompanion.txt*
+                                  For NVIM v0.11    Last change: 2026 April 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -79,7 +80,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
 -  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
--  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline.html|, code creation and refactoring
@@ -117,12 +118,13 @@ agents. Out of the box, the plugin supports:
 - Cline CLI (`cline_cli`)
 - Codex (`codex`) - Requires an API key
 - Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
+- DeepSeek (`deepseek`) - Requires an API key
+- Gemini (`gemini`) - Requires an API key
 - Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
 - GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
 - Goose (`goose`) - Requires an API key
-- DeepSeek (`deepseek`) - Requires an API key
-- Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
+- Kilo Code (`kilocode`) - Requires an API key
 - Kimi CLI (`kimi_cli`) - Requires an API key
 - Mistral AI (`mistral`) - Requires an API key or a Le Chat Pro subscription
 - Novita (`novita`) - Requires an API key
@@ -493,9 +495,9 @@ use a rich prompt input field complete with |codecompanion--editor-context|.
 Save with `:w` to send the prompt to the agent, or `:w!` to send and
 auto-submit it.
 
-Adding `!` to the command (e.g.� `:CodeCompanionCLI! <prompt>`) will
-auto-submit the prompt and keep your cursor in the current buffer. You can also
-specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
+Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit
+the prompt and keep your cursor in the current buffer. You can also specify
+which agent to use with `:CodeCompanionCLI agent=<agent name>`.
 
 
 INLINE ~
@@ -887,7 +889,7 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn’t advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
-    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+<https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they’re not currently rendered in the chat buffer
     UI.
 - **Audio Content**: Audio can’t be sent or received
@@ -1373,6 +1375,24 @@ install Goose CLI. Then ensure that in your chat buffer you select the `goose`
 adapter.
 
 
+SETUP: KILO CODE ~
+
+To use Kilo Code <https://kilo.ai> in CodeCompanion, ensure you’ve followed
+their documentation to install
+<https://kilo.ai/docs/getting-started/installing#cli> and configure
+<https://kilo.ai/docs/getting-started/setup-authentication#cli> it. Then ensure
+that in your chat buffer you select the `kilocode` adapter.
+
+You can specify a custom model in your `~/.config/kilo/kilo.json` file:
+
+>json
+    {
+        "$schema": "https://kilo.ai/config.json",
+        "model": "kilo/kilo-auto/free",
+    }
+<
+
+
 SETUP: KIMI CLI ~
 
 Install Kimi CLI
@@ -1436,7 +1456,7 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents (e.g.�
+`commands` to allow users to customize their interaction with agents (e.g.
 enabling `yolo` mode). As there is a lot of shared functionality between the
 two adapters, it is recommend that you read this page alongside the ACP one.
 
@@ -1492,7 +1512,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -3439,7 +3459,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
@@ -4328,7 +4348,7 @@ message to the LLM.
 
   [!IMPORTANT] With the exception of `#{buffer}` and `#{buffers}`, editor context
   captures a point-in-time snapshot when your message is sent. If the underlying
-  data changes (e.g.� new diagnostics, a different quickfix list), simply use the
+  data changes (e.g. new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
 
 #BUFFER ~
@@ -5104,7 +5124,7 @@ LIST OF EVENTS ~
 The events that are fired from within the plugin are:
 
 - `CodeCompanionACPConnected` - Fired after the ACP connection is authenticated and ready to use
-- `CodeCompanionACPSessionPre` - Fired after ACP authentication completes but before a new session is established; allows subscribers to modify the connection (e.g. inject MCP servers) synchronously
+- `CodeCompanionACPSessionPre` - Fired after ACP authentication completes but before a new session is established; allows subscribers to modify the connection (e.g. inject MCP servers) synchronously
 - `CodeCompanionACPSessionPost` - Fired after a new ACP session has been established
 - `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
 - `CodeCompanionACPChatRestored` - Fired after an ACP session has been restored
@@ -5116,7 +5136,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatDone` - Fired after a chat has received the response
 - `CodeCompanionChatStopped` - Fired after a chat has been stopped
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
-- `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
+- `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionCLICreated` - Fired after a CLI buffer has been created for the first time
@@ -5312,6 +5332,9 @@ SLASH COMMANDS ~
 If your prompt library entries have an `alias` defined then you can invoke them
 using a slash command. In the cmd line `:CodeCompanion /<alias>` or `/<alias>`
 if you’re in the chat buffer.
+
+When invoked this way, any tools declared on the prompt are added to the
+current chat buffer before the prompt content is inserted.
 
 
 USER INTERFACE                            *codecompanion-usage-user-interface*
@@ -5604,7 +5627,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -7512,7 +7535,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e.� a
+they’re an adapter tool that requires a client-side component (i.e. a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
 allow for this, ensure that the tool definition in `available_tools` has
