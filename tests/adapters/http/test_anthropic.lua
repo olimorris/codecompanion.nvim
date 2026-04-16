@@ -612,7 +612,7 @@ T["Anthropic adapter"]["Reasoning models have more tokens"] = function()
     },
   })
   local output = require("codecompanion.adapters").resolve(reasoning)
-  h.eq(17000, output.schema.max_tokens.default(reasoning))
+  h.eq(128000, output.schema.max_tokens.default(reasoning))
 end
 
 T["Anthropic adapter"]["Streaming"] = new_set()
