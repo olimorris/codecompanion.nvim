@@ -1,3 +1,7 @@
+local file_utils = require("codecompanion.utils.files")
+local fmt = string.format
+local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
+
 ---@class UpdateFileChunk
 ---@field old_lines string[]
 ---@field new_lines string[]
@@ -11,7 +15,13 @@
 ---@field move_path string|nil
 ---@field chunks UpdateFileChunk[]|nil
 
-local M = {}
+---@class CodeCompanion.Tool.ApplyPatch
+---@field name string
+---@field cmds table
+---@field schema table
+---@field system_prompt string
+---@field output table
+---@field opts table
 
 local function strip_heredoc(input)
   local heredoc_pattern = "^(?:cat%s+)?<<['\"]?(%w+)['\"]?%s*\n([%s%S]*?)\n%1%s*$"
@@ -203,10 +213,6 @@ local function parse_patch(patch_text)
   return { hunks = hunks }
 end
 
-local file_utils = require("codecompanion.utils.files")
-local log = require("codecompanion.utils.log")
-local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
-
 local function write_file(path, content)
   local dir = vim.fn.fnamemodify(path, ":h")
   vim.fn.mkdir(dir, "p")
@@ -260,91 +266,102 @@ local tool = {
       for _, hunk in ipairs(hunks) do
         local path = file_utils.validate_and_normalize_path(hunk.path)
 
-        if hunk.type == "add" then
-          write_file(path, hunk.contents or "")
-          table.insert(summary, "A " .. path)
-        elseif hunk.type == "delete" then
-          if vim.fn.getfsize(path) == -1 then
-            return { status = "error", data = "File to delete does not exist: " .. path }
-          end
-          vim.fn.delete(path, "rf")
-          table.insert(summary, "D " .. path)
-        elseif hunk.type == "update" then
-          if vim.fn.getfsize(path) == -1 then
-            return { status = "error", data = "File to update does not exist: " .. path }
-          end
-
-          local lines = {}
-          local f = io.open(path, "r")
-          if f then
-            for line in f:lines() do
-              table.insert(lines, line)
+        if not path then
+          table.insert(summary, "Skipped (invalid path): " .. tostring(hunk.path))
+        else
+          if hunk.type == "add" then
+            write_file(path, hunk.contents or "")
+            table.insert(summary, "A " .. path)
+          elseif hunk.type == "delete" then
+            if vim.fn.getfsize(path) == -1 then
+              return { status = "error", data = "File to delete does not exist: " .. path }
             end
-            f:close()
-          end
-
-          local current_idx = 1
-          for _, chunk in ipairs(hunk.chunks) do
-            local search_start = current_idx
-
-            if chunk.change_context then
-              local ctx_match = seek_sequence(lines, { chunk.change_context }, search_start, chunk.is_end_of_file)
-              if ctx_match == -1 then
-                return { status = "error", data = fmt("Could not find context '%s' in %s", chunk.change_context, path) }
-              end
-              search_start = ctx_match + 1
-            end
-
-            local match_idx = seek_sequence(lines, chunk.old_lines, search_start, chunk.is_end_of_file)
-
-            if match_idx == -1 and #chunk.old_lines == 0 then
-              match_idx = search_start
-            end
-
-            if match_idx == -1 then
-              return { status = "error", data = "Could not find match for hunk in " .. path }
-            end
-
-            local before = {}
-            for i = 1, match_idx - 1 do
-              table.insert(before, lines[i])
-            end
-
-            local after = {}
-            for i = match_idx + #chunk.old_lines, #lines do
-              table.insert(after, lines[i])
-            end
-
-            local new_lines = {}
-            for i = 1, #before do
-              table.insert(new_lines, before[i])
-            end
-            for i = 1, #chunk.new_lines do
-              table.insert(new_lines, chunk.new_lines[i])
-            end
-            for i = 1, #after do
-              table.insert(new_lines, after[i])
-            end
-
-            lines = new_lines
-            current_idx = match_idx + #chunk.new_lines
-          end
-
-          local final_content = table.concat(lines, "\n")
-          if #lines > 0 and lines[#lines] ~= "" then
-            final_content = final_content .. "\n"
-          end
-
-          local target_path = path
-          if hunk.move_path then
-            target_path = file_utils.validate_and_normalize_path(hunk.move_path)
-          end
-
-          write_file(target_path, final_content)
-          if hunk.move_path then
             vim.fn.delete(path, "rf")
+            table.insert(summary, "D " .. path)
+          elseif hunk.type == "update" then
+            if vim.fn.getfsize(path) == -1 then
+              return { status = "error", data = "File to update does not exist: " .. path }
+            end
+
+            local lines = {}
+            local f = io.open(path, "r")
+            if f then
+              for line in f:lines() do
+                table.insert(lines, line)
+              end
+              f:close()
+            end
+
+            local current_idx = 1
+            for _, chunk in ipairs(hunk.chunks) do
+              local search_start = current_idx
+
+              if chunk.change_context then
+                local ctx_match = seek_sequence(lines, { chunk.change_context }, search_start, chunk.is_end_of_file)
+                if ctx_match == -1 then
+                  return {
+                    status = "error",
+                    data = fmt("Could not find context '%s' in %s", chunk.change_context, path),
+                  }
+                end
+                search_start = ctx_match + 1
+              end
+
+              local match_idx = seek_sequence(lines, chunk.old_lines, search_start, chunk.is_end_of_file)
+
+              if match_idx == -1 and #chunk.old_lines == 0 then
+                match_idx = search_start
+              end
+
+              if match_idx == -1 then
+                return { status = "error", data = "Could not find match for hunk in " .. path }
+              end
+
+              local before = {}
+              for i = 1, match_idx - 1 do
+                table.insert(before, lines[i])
+              end
+
+              local after = {}
+              for i = match_idx + #chunk.old_lines, #lines do
+                table.insert(after, lines[i])
+              end
+
+              local new_lines = {}
+              for i = 1, #before do
+                table.insert(new_lines, before[i])
+              end
+              for i = 1, #chunk.new_lines do
+                table.insert(new_lines, chunk.new_lines[i])
+              end
+              for i = 1, #after do
+                table.insert(new_lines, after[i])
+              end
+
+              lines = new_lines
+              current_idx = match_idx + #chunk.new_lines
+            end
+
+            local final_content = table.concat(lines, "\n")
+            if #lines > 0 and lines[#lines] ~= "" then
+              final_content = final_content .. "\n"
+            end
+
+            local target_path = path
+            if hunk.move_path then
+              local normalized_move_path = file_utils.validate_and_normalize_path(hunk.move_path)
+              if not normalized_move_path then
+                return { status = "error", data = "Invalid move path: " .. hunk.move_path }
+              end
+              target_path = normalized_move_path
+            end
+
+            write_file(target_path, final_content)
+            if hunk.move_path then
+              vim.fn.delete(path, "rf")
+            end
+            table.insert(summary, "M " .. target_path)
           end
-          table.insert(summary, "M " .. target_path)
         end
       end
 
