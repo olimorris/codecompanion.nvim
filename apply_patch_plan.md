@@ -109,3 +109,32 @@ Implement the core logic within a function in the `cmds` table. This function wi
 | `Effect.fail` | `return { status = "error", data = "..." }` |
 | `LSP.Diagnostic.report` | (Simplified) Summary of A/M/D files |
 
+
+### 4. Advanced UX Extensions (Buffer Awareness & Visual Diff)
+
+To align `apply_patch` with the user experience of `insert_edit_into_file`, the tool will be extended to support buffer-based editing and a visual review cycle.
+
+#### A. Buffer-Aware Content Sourcing
+- Implement a source abstraction similar to `insert_edit_into_file`:
+    - `make_file_source`: Reads content from disk.
+    - `make_buffer_source`: Reads content from an active Neovim buffer.
+- When processing a patch hunk, check if the target path corresponds to an open buffer. If so, use the buffer as the source to ensure changes are applied to the current editor state.
+
+#### B. Diff & Review Integration
+- **Deferred Application**: Instead of applying changes immediately to disk/buffer, the tool will calculate the "Proposed State" for all affected files.
+- **Visual Diff**: Integrate with `codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.diff` to:
+    - Present a `minidiff` floating view showing the before/after state of the entire patch.
+    - Use the `review` flow to allow the user to Accept, Reject, or View the changes.
+- **Atomic Execution**: Only apply the actual writes (to buffer or disk) after the user approves the patch.
+
+#### C. Refined Application Flow
+1. **Parsing**: Parse `patchText` into hunks.
+2. **Staging**: For each hunk:
+    - Determine source (Buffer vs Disk).
+    - Calculate new content based on seeking logic.
+    - Store the `from_lines` and `to_lines`.
+3. **Review**: Call `diff.review` with the aggregated changes.
+4. **Commit**: On approval, execute the writes using the source's `write` method (updating buffers via `nvim_buf_set_lines` and files via `io.write`).
+
+
+

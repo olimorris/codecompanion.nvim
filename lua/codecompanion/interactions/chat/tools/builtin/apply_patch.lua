@@ -119,6 +119,23 @@ local function seek_sequence(lines, pattern, start_index, eof)
   return normalized
 end
 
+local function count_sequences(lines, pattern, start_index, eof)
+  local count = 0
+  local current_start = start_index
+  while true do
+    local match = seek_sequence(lines, pattern, current_start, eof)
+    if match == -1 then
+      break
+    end
+    count = count + 1
+    current_start = match + #pattern + 1
+    if eof and match == #lines - #pattern + 1 then
+      break
+    end
+  end
+  return count
+end
+
 local function parse_patch(patch_text)
   local cleaned = strip_heredoc(patch_text:gsub("^%s*(.-)%s*$", "%1"))
   local lines = {}
@@ -286,6 +303,20 @@ local function handle_update(path, hunk)
 
     if match_idx == -1 then
       return { status = "error", data = "Could not find match for hunk in " .. path }
+    end
+
+    -- Check for multiple matches to ensure uniqueness
+    if #chunk.old_lines > 0 then
+      local matches = count_sequences(lines, chunk.old_lines, search_start, chunk.is_end_of_file)
+      if matches > 1 then
+        return {
+          status = "error",
+          data = fmt(
+            "Found multiple matches for oldString in %s. Provide more surrounding context to make the match unique.",
+            path
+          ),
+        }
+      end
     end
 
     local before = {}

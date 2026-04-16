@@ -67,6 +67,31 @@ T["Apply Patch"]["can parse update patch text"] = function()
 end
 
 
+T["Apply Patch"]["fails if multiple matches found for old lines"] = function()
+  child.lua([=[
+    local apply_patch = require('codecompanion.interactions.chat.tools.builtin.apply_patch')
+    -- Setup: create file with duplicate lines
+    vim.fn.mkdir('test_patch_dir', 'p')
+    local f = io.open('test_patch_dir/duplicate.txt', 'w')
+    f:write("context\nline 1\nline 2\nline 1\nline 3\n")
+    f:close()
+    
+    local patch_text = [[
+*** Begin Patch
+*** Update File: test_patch_dir/duplicate.txt
+@@ context
+-line 1
++updated line 1
+*** End Patch
+    ]]
+    local result = apply_patch.cmds[1](apply_patch, { patchText = patch_text }, nil)
+    _G.result = result
+  ]=])
+  
+  h.eq("error", child.lua_get("_G.result.status"))
+  h.expect_starts_with("Found multiple matches for oldString", child.lua_get("_G.result.data"))
+end
+
 T["Apply Patch"]["can add a file"] = function()
   child.lua([=[
     local apply_patch = require('codecompanion.interactions.chat.tools.builtin.apply_patch')
