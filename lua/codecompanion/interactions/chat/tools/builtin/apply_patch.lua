@@ -236,6 +236,149 @@ local function load_prompt()
   return table.concat(vim.fn.readfile(prompt_path), "\n")
 end
 
+local function handle_add(path, hunk)
+  write_file(path, hunk.contents or "")
+  return "A " .. path
+end
+
+local function handle_delete(path, hunk)
+  if vim.fn.getfsize(path) == -1 then
+    return { status = "error", data = "File to delete does not exist: " .. path }
+  end
+  vim.fn.delete(path, "rf")
+  return "D " .. path
+end
+
+local function handle_update(path, hunk)
+  if vim.fn.getfsize(path) == -1 then
+    return { status = "error", data = "File to update does not exist: " .. path }
+  end
+
+  local lines = {}
+  local f = io.open(path, "r")
+  if f then
+    for line in f:lines() do
+      table.insert(lines, line)
+    end
+    f:close()
+  end
+
+  local current_idx = 1
+  for _, chunk in ipairs(hunk.chunks) do
+    local search_start = current_idx
+
+    if chunk.change_context then
+      local ctx_match = seek_sequence(lines, { chunk.change_context }, search_start, chunk.is_end_of_file)
+      if ctx_match == -1 then
+        return {
+          status = "error",
+          data = fmt("Could not find context '%s' in %s", chunk.change_context, path),
+        }
+      end
+      search_start = ctx_match + 1
+    end
+
+    local match_idx = seek_sequence(lines, chunk.old_lines, search_start, chunk.is_end_of_file)
+
+    if match_idx == -1 and #chunk.old_lines == 0 then
+      match_idx = search_start
+    end
+
+    if match_idx == -1 then
+      return { status = "error", data = "Could not find match for hunk in " .. path }
+    end
+
+    local before = {}
+    for i = 1, match_idx - 1 do
+      table.insert(before, lines[i])
+    end
+
+    local after = {}
+    for i = match_idx + #chunk.old_lines, #lines do
+      table.insert(after, lines[i])
+    end
+
+    local new_lines = {}
+    for i = 1, #before do
+      table.insert(new_lines, before[i])
+    end
+    for i = 1, #chunk.new_lines do
+      table.insert(new_lines, chunk.new_lines[i])
+    end
+    for i = 1, #after do
+      table.insert(new_lines, after[i])
+    end
+
+    lines = new_lines
+    current_idx = match_idx + #chunk.new_lines
+  end
+
+  local final_content = table.concat(lines, "\n")
+  if #lines > 0 and lines[#lines] ~= "" then
+    final_content = final_content .. "\n"
+  end
+
+  local target_path = path
+  if hunk.move_path then
+    local normalized_move_path = file_utils.validate_and_normalize_path(hunk.move_path)
+    if not normalized_move_path then
+      return { status = "error", data = "Invalid move path: " .. hunk.move_path }
+    end
+    target_path = normalized_move_path
+  end
+
+  write_file(target_path, final_content)
+  if hunk.move_path then
+    vim.fn.delete(path, "rf")
+  end
+  return "M " .. target_path
+end
+
+local function execute_apply_patch(self, args, input)
+  if not args.patchText then
+    return { status = "error", data = "patchText is required" }
+  end
+
+  local success, result = pcall(parse_patch, args.patchText)
+  if not success then
+    return { status = "error", data = "Patch parsing failed: " .. result }
+  end
+
+  local hunks = result.hunks
+  if #hunks == 0 then
+    return { status = "error", data = "No hunks found in patch" }
+  end
+
+  local summary = {}
+
+  for _, hunk in ipairs(hunks) do
+    local path = file_utils.validate_and_normalize_path(hunk.path)
+
+    if not path then
+      table.insert(summary, "Skipped (invalid path): " .. tostring(hunk.path))
+    else
+      local result
+      if hunk.type == "add" then
+        result = handle_add(path, hunk)
+      elseif hunk.type == "delete" then
+        result = handle_delete(path, hunk)
+      elseif hunk.type == "update" then
+        result = handle_update(path, hunk)
+      end
+
+      if type(result) == "table" and result.status == "error" then
+        return result
+      end
+      table.insert(summary, result)
+    end
+  end
+
+  return {
+    status = "success",
+    data = "Success. Updated the following files:\n" .. table.concat(summary, "\n"),
+  }
+end
+
 local PROMPT = load_prompt()
 
 local tool = {
@@ -246,130 +389,7 @@ local tool = {
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
-    function(self, args, input)
-      if not args.patchText then
-        return { status = "error", data = "patchText is required" }
-      end
-
-      local success, result = pcall(parse_patch, args.patchText)
-      if not success then
-        return { status = "error", data = "Patch parsing failed: " .. result }
-      end
-
-      local hunks = result.hunks
-      if #hunks == 0 then
-        return { status = "error", data = "No hunks found in patch" }
-      end
-
-      local summary = {}
-
-      for _, hunk in ipairs(hunks) do
-        local path = file_utils.validate_and_normalize_path(hunk.path)
-
-        if not path then
-          table.insert(summary, "Skipped (invalid path): " .. tostring(hunk.path))
-        else
-          if hunk.type == "add" then
-            write_file(path, hunk.contents or "")
-            table.insert(summary, "A " .. path)
-          elseif hunk.type == "delete" then
-            if vim.fn.getfsize(path) == -1 then
-              return { status = "error", data = "File to delete does not exist: " .. path }
-            end
-            vim.fn.delete(path, "rf")
-            table.insert(summary, "D " .. path)
-          elseif hunk.type == "update" then
-            if vim.fn.getfsize(path) == -1 then
-              return { status = "error", data = "File to update does not exist: " .. path }
-            end
-
-            local lines = {}
-            local f = io.open(path, "r")
-            if f then
-              for line in f:lines() do
-                table.insert(lines, line)
-              end
-              f:close()
-            end
-
-            local current_idx = 1
-            for _, chunk in ipairs(hunk.chunks) do
-              local search_start = current_idx
-
-              if chunk.change_context then
-                local ctx_match = seek_sequence(lines, { chunk.change_context }, search_start, chunk.is_end_of_file)
-                if ctx_match == -1 then
-                  return {
-                    status = "error",
-                    data = fmt("Could not find context '%s' in %s", chunk.change_context, path),
-                  }
-                end
-                search_start = ctx_match + 1
-              end
-
-              local match_idx = seek_sequence(lines, chunk.old_lines, search_start, chunk.is_end_of_file)
-
-              if match_idx == -1 and #chunk.old_lines == 0 then
-                match_idx = search_start
-              end
-
-              if match_idx == -1 then
-                return { status = "error", data = "Could not find match for hunk in " .. path }
-              end
-
-              local before = {}
-              for i = 1, match_idx - 1 do
-                table.insert(before, lines[i])
-              end
-
-              local after = {}
-              for i = match_idx + #chunk.old_lines, #lines do
-                table.insert(after, lines[i])
-              end
-
-              local new_lines = {}
-              for i = 1, #before do
-                table.insert(new_lines, before[i])
-              end
-              for i = 1, #chunk.new_lines do
-                table.insert(new_lines, chunk.new_lines[i])
-              end
-              for i = 1, #after do
-                table.insert(new_lines, after[i])
-              end
-
-              lines = new_lines
-              current_idx = match_idx + #chunk.new_lines
-            end
-
-            local final_content = table.concat(lines, "\n")
-            if #lines > 0 and lines[#lines] ~= "" then
-              final_content = final_content .. "\n"
-            end
-
-            local target_path = path
-            if hunk.move_path then
-              local normalized_move_path = file_utils.validate_and_normalize_path(hunk.move_path)
-              if not normalized_move_path then
-                return { status = "error", data = "Invalid move path: " .. hunk.move_path }
-              end
-              target_path = normalized_move_path
-            end
-
-            write_file(target_path, final_content)
-            if hunk.move_path then
-              vim.fn.delete(path, "rf")
-            end
-            table.insert(summary, "M " .. target_path)
-          end
-        end
-      end
-
-      return {
-        status = "success",
-        data = "Success. Updated the following files:\n" .. table.concat(summary, "\n"),
-      }
-    end,
+    execute_apply_patch,
   },
   schema = {
     type = "function",

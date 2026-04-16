@@ -45,24 +45,27 @@ T["Apply Patch"]["can parse update patch text"] = function()
     local apply_patch = require('codecompanion.interactions.chat.tools.builtin.apply_patch')
     local patch_text = [[
 *** Begin Patch
-*** Update File: test_update.txt
-@@ context
--old line
-+new line
+*** Update File: test_patch_dir/update_me.txt
+@@ line 1
+-line 2
++updated line 2
 *** End Patch
     ]]
+
+    
     local result = apply_patch.parse_patch(patch_text)
     _G.result = result
   ]=])
-
+  
   h.eq(1, child.lua_get("#_G.result.hunks"))
   h.eq("update", child.lua_get("_G.result.hunks[1].type"))
-  h.eq("test_update.txt", child.lua_get("_G.result.hunks[1].path"))
+  h.eq("test_patch_dir/update_me.txt", child.lua_get("_G.result.hunks[1].path"))
   h.eq(1, child.lua_get("#_G.result.hunks[1].chunks"))
-  h.eq("context", child.lua_get("_G.result.hunks[1].chunks[1].change_context"))
-  h.eq("old line", child.lua_get("_G.result.hunks[1].chunks[1].old_lines[1]"))
-  h.eq("new line", child.lua_get("_G.result.hunks[1].chunks[1].new_lines[1]"))
+  h.eq("line 1", child.lua_get("_G.result.hunks[1].chunks[1].change_context"))
+  h.eq("line 2", child.lua_get("_G.result.hunks[1].chunks[1].old_lines[1]"))
+  h.eq("updated line 2", child.lua_get("_G.result.hunks[1].chunks[1].new_lines[1]"))
 end
+
 
 T["Apply Patch"]["can add a file"] = function()
   child.lua([=[
@@ -118,11 +121,11 @@ T["Apply Patch"]["can update a file"] = function()
     local f = io.open('test_patch_dir/update_me.txt', 'w')
     f:write("line 1\nline 2\nline 3\n")
     f:close()
-
+    
     local patch_text = [[
 *** Begin Patch
 *** Update File: test_patch_dir/update_me.txt
-@@ context
+@@ line 1
 -line 2
 +updated line 2
 *** End Patch
@@ -134,10 +137,11 @@ T["Apply Patch"]["can update a file"] = function()
     _G.file_content = f:read('*a')
     f:close()
   ]=])
-
+  
   h.eq("success", child.lua_get("_G.result.status"))
   h.eq("line 1\nupdated line 2\nline 3\n", child.lua_get("_G.file_content"))
 end
+
 
 T["Apply Patch"]["can update and move a file"] = function()
   child.lua([=[
@@ -145,14 +149,14 @@ T["Apply Patch"]["can update and move a file"] = function()
     -- Setup: create file to update and move
     vim.fn.mkdir('test_patch_dir', 'p')
     local f = io.open('test_patch_dir/old_name.txt', 'w')
-    f:write("old content\n")
+    f:write("context line\nold content\n")
     f:close()
-
+    
     local patch_text = [[
 *** Begin Patch
 *** Update File: test_patch_dir/old_name.txt
 *** Move to: test_patch_dir/new_name.txt
-@@ context
+@@ context line
 -old content
 +new content
 *** End Patch
@@ -166,12 +170,13 @@ T["Apply Patch"]["can update and move a file"] = function()
     _G.new_content = f:read('*a')
     f:close()
   ]=])
-
+    
   h.eq("success", child.lua_get("_G.result.status"))
   h.eq(false, child.lua_get("_G.old_exists"))
   h.eq(true, child.lua_get("_G.new_exists"))
-  h.eq("new content\n", child.lua_get("_G.new_content"))
+  h.eq("context line\nnew content\n", child.lua_get("_G.new_content"))
 end
+
 
 T["Apply Patch"]["fails if file to update does not exist"] = function()
   child.lua([=[
@@ -223,11 +228,11 @@ T["Apply Patch"]["can update a file"] = function()
     local f = io.open('test_patch_dir/update_me.txt', 'w')
     f:write("line 1\nline 2\nline 3\n")
     f:close()
-
+    
     local patch_text = [[
 *** Begin Patch
 *** Update File: test_patch_dir/update_me.txt
-@@ context
+@@ line 1
 -line 2
 +updated line 2
 *** End Patch
@@ -239,10 +244,11 @@ T["Apply Patch"]["can update a file"] = function()
     _G.file_content = f:read('*a')
     f:close()
   ]=])
-
+  
   h.eq("success", child.lua_get("_G.result.status"))
   h.eq("line 1\nupdated line 2\nline 3\n", child.lua_get("_G.file_content"))
 end
+
 
 T["Apply Patch"]["can update and move a file"] = function()
   child.lua([=[
@@ -250,14 +256,14 @@ T["Apply Patch"]["can update and move a file"] = function()
     -- Setup: create file to update and move
     vim.fn.mkdir('test_patch_dir', 'p')
     local f = io.open('test_patch_dir/old_name.txt', 'w')
-    f:write("old content\n")
+    f:write("context line\nold content\n")
     f:close()
-
+    
     local patch_text = [[
 *** Begin Patch
 *** Update File: test_patch_dir/old_name.txt
 *** Move to: test_patch_dir/new_name.txt
-@@ context
+@@ context line
 -old content
 +new content
 *** End Patch
@@ -271,12 +277,13 @@ T["Apply Patch"]["can update and move a file"] = function()
     _G.new_content = f:read('*a')
     f:close()
   ]=])
-
+    
   h.eq("success", child.lua_get("_G.result.status"))
   h.eq(false, child.lua_get("_G.old_exists"))
   h.eq(true, child.lua_get("_G.new_exists"))
-  h.eq("new content\n", child.lua_get("_G.new_content"))
+  h.eq("context line\nnew content\n", child.lua_get("_G.new_content"))
 end
+
 
 T["Apply Patch"]["fails if file to update does not exist"] = function()
   child.lua([=[
