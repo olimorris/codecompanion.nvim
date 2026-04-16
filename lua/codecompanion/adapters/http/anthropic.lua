@@ -621,10 +621,10 @@ return {
       default = "claude-sonnet-4-6",
       choices = {
         -- Current models
-        ["claude-opus-4-6"] = {
-          formatted_name = "Claude Opus 4.6",
+        ["claude-opus-4-7"] = {
+          formatted_name = "Claude Opus 4.7",
           meta = { context_window = 1000000 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { has_vision = true },
         },
         ["claude-sonnet-4-6"] = {
           formatted_name = "Claude Sonnet 4.6",
@@ -638,6 +638,11 @@ return {
         },
 
         -- Legacy models
+        ["claude-opus-4-6"] = {
+          formatted_name = "Claude Opus 4.6",
+          meta = { context_window = 1000000 },
+          opts = { can_reason = true, has_vision = true },
+        },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
           meta = { context_window = 200000 },
@@ -759,6 +764,13 @@ return {
       optional = true,
       default = 0,
       desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
+      enabled = function(self)
+        local model = self.schema.model.default
+        if model == "claude-opus-4-7" then
+          return false
+        end
+        return true
+      end,
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1.0"
       end,
