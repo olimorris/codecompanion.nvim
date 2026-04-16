@@ -164,6 +164,7 @@ The user is working on a %s machine. Please respond with system specific command
               "insert_edit_into_file",
               "read_file",
               "run_command",
+              "apply_patch",
             },
             opts = {
               collapse_tools = true,
@@ -182,6 +183,7 @@ The user is working on a %s machine. Please respond with system specific command
               "grep_search",
               "insert_edit_into_file",
               "read_file",
+              "apply_patch",
             },
             opts = {
               collapse_tools = true,
@@ -265,6 +267,13 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             require_approval_before = true,
             whitelist = {}, -- e.g. { { path = "/absolute/path", as = "/alias" } }
+          },
+        },
+        ["apply_patch"] = {
+          path = "interactions.chat.tools.builtin.apply_patch",
+          description = "Apply a structured patch to the codebase to add, delete, or update files.",
+          opts = {
+            require_approval_before = true,
           },
         },
         ["read_file"] = {
