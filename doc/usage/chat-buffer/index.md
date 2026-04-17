@@ -118,7 +118,7 @@ Many LLMs have the ability to receive images as input (sometimes referred to as 
 
 If your adapter and model doesn't support images, then CodeCompanion will endeavour to ensure that the image is not included in the messages payload that's sent to the LLM.
 
-## KEYMAPS
+## Keymaps
 
 The plugin has a host of keymaps available in the chat buffer. The keymaps available to the user in normal mode are:
 
@@ -126,7 +126,7 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `send`: `<CR>|<C-s>` to send a message to the LLM
 - `close`: `<C-c>` to close the chat buffer
 - `stop`: `q` to stop the current request
-- `change_adapter`: `ga` to change the adapter for the currentchat
+- `change_adapter`: `ga` to change the adapter for the current chat
 - `buffer_sync_all`: `gba` to sync the entire buffer on every turn
 - `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
 - `codeblock`: `gc` to insert a codeblock in the chat buffer
@@ -134,9 +134,7 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `fold_code`: `gf` to fold any codeblocks in the chat buffer
 - `rules`: `gM` to clear all rules from the chat buffer
 - `regenerate`: `gr` to regenerate the last response
-- `goto_file_under_cursor`: `gR` to go to the file under cursor. If the file
-    is already opened, it’ll jump to the existing window. Otherwise, it’ll be
-    opened in a new tab.
+- `goto_file_under_cursor`: `gR` to go to the file under cursor. If the file is already opened, it’ll jump to the existing window. Otherwise, it’ll be opened in a new tab.
 - `system_prompt`: `gs` to toggle the system prompt on/off
 - `copilot_stats`: `gS` to show copilot usage stats
 - `clear`: `gx` to clear the chat buffer’s contents
@@ -145,21 +143,6 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `next_header`: `]]` to move to the next header
 - `previous_chat`: `{` to move to the previous chat
 - `next_chat`: `}` to move to the next chat
-
-To disable a keymap, you can set it to `false` in your configuration:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      keymaps = {
-        clear = false,
-      }
-    }
-  }
-})
-```
-
 
 ## Messages
 

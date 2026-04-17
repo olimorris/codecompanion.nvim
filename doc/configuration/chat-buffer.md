@@ -387,6 +387,21 @@ require("codecompanion").setup({
 
 For the chat interaction, the keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
+To disable a keymap, you can set it to `false` in your configuration:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      keymaps = {
+        clear = false,
+      }
+    }
+  }
+})
+```
+
+
 ## Prompt Decorator
 
 It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:

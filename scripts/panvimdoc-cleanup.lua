@@ -102,6 +102,11 @@ function M.Cite(el)
 end
 
 function M.Str(el)
+  el.text = el.text:gsub("\194\160", " ")
+  el.text = el.text:gsub("\226\128\152", "'")
+  el.text = el.text:gsub("\226\128\153", "'")
+  el.text = el.text:gsub("\226\128\156", '"')
+  el.text = el.text:gsub("\226\128\157", '"')
   if el.text:find(":[%a_]+:") then
     el.text = ""
   end
