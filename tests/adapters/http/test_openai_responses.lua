@@ -536,16 +536,12 @@ T["Responses"]["No Streaming"]["can process reasoning output"] = function()
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.expect_contains(
-    "**Choosing descriptive terms**",
-    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.content
-  )
+  local output = adapter.handlers.response.parse_chat(adapter, json).output
 
-  h.eq(
-    "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
-    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.id
-  )
-  h.eq("gAAAAABo6", adapter.handlers.response.parse_chat(adapter, json).output.reasoning.encrypted_content)
+  h.expect_contains("**Choosing descriptive terms**", output.reasoning.content)
+  h.eq("rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c", output.reasoning.id)
+  h.eq("gAAAAABo6", output.reasoning.encrypted_content)
+  h.eq("Dynamic expressive", output.content)
 end
 
 T["Responses"]["Streaming"] = new_set()
