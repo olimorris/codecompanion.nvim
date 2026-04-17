@@ -410,4 +410,18 @@ function M.map_roles(roles, messages)
   return messages
 end
 
+---Helper function to return the default model
+---@param adapter CodeCompanion.HTTPAdapter
+---@return string
+function M.model(adapter)
+  return adapter.schema.model.default
+end
+
+---Helper function to return the model from the choices
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table
+function M.model_choice(adapter)
+  return adapter.schema.model.choices[M.model(adapter)]
+end
+
 return M

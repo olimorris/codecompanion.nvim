@@ -2,20 +2,6 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.utils.tool_transformers")
 
----Helper function to return the default model
----@param self CodeCompanion.HTTPAdapter
----@return string
-local function model(self)
-  return self.schema.model.default
-end
-
----Helper function to return the model from the choices
----@param self CodeCompanion.HTTPAdapter
----@return table
-local function model_choice(self)
-  return self.schema.model.choices[model(self)]
-end
-
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
   name = "anthropic",
@@ -113,7 +99,7 @@ return {
       end
 
       -- Make sure the individual model options are set
-      local model_opts = model_choice(self)
+      local model_opts = adapter_utils.model_choice(self)
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
@@ -139,7 +125,7 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
-      local models = model_choice(self)
+      local models = adapter_utils.model_choice(self)
       if self.temp.extended_thinking and (models and models.opts and models.opts.can_reason) then
         -- Anthropic plan on deprecating this in future model releases so I'm
         -- labelling it as "legacy_reasoning" for now. Will remove later
@@ -708,7 +694,7 @@ return {
       desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
       ---@param self CodeCompanion.HTTPAdapter
       enabled = function(self)
-        local models = model_choice(self)
+        local models = adapter_utils.model_choice(self)
         if models and models.opts and models.opts.can_reasn then
           return true
         end
@@ -723,7 +709,7 @@ return {
       optional = true,
       desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
       default = function(self)
-        local models = model_choice(self)
+        local models = adapter_utils.model_choice(self)
         if models and models.opts and models.opts.can_reason == true then
           return true
         end
@@ -731,7 +717,7 @@ return {
       end,
       ---@param self CodeCompanion.HTTPAdapter
       enabled = function(self)
-        local models = model_choice(self)
+        local models = adapter_utils.model_choice(self)
         if models and models.opts and models.opts.can_reason == true then
           return true
         end
@@ -751,7 +737,7 @@ return {
       end,
       ---@param self CodeCompanion.HTTPAdapter
       enabled = function(self)
-        local models = model_choice(self)
+        local models = adapter_utils.model_choice(self)
         if models and models.opts then
           if models.opts.legacy_reasoning then
             return true
@@ -767,7 +753,7 @@ return {
       type = "number",
       optional = true,
       default = function(self)
-        local models = model_choice(self)
+        local models = adapter_utils.model_choice(self)
         if models and models.meta and models.meta.max_tokens then
           return models.meta.max_tokens
         end
@@ -787,7 +773,7 @@ return {
       default = 0,
       desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
       enabled = function(self)
-        local model = self.schema.model.default
+        local model = adapter_utils.model(self)
         if model == "claude-opus-4-7" then
           return false
         end
