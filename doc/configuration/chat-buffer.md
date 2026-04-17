@@ -326,10 +326,6 @@ require("codecompanion").setup({
           modes = { n = "<C-c>", i = "<C-c>" },
           opts = {},
         },
-        -- Change further custom keymaps here
-        -- ...
-        -- Set a keymap to be false to disable it
-        some_other_keymap = false,
       },
     },
   },
@@ -394,7 +390,8 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       keymaps = {
-        clear = false,
+        send = false,
+        close = false
       }
     }
   }

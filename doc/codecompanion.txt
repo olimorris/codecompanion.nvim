@@ -575,7 +575,7 @@ For an optimum plugin workflow, the author recommends the following:
     vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
     vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
-
+    
     -- Expand 'cc' into 'CodeCompanion' in the command line
     vim.cmd([[cab cc CodeCompanion]])
 <
@@ -927,35 +927,35 @@ IMPLEMENTATION                              *codecompanion-mcp-implementation*
   ----------------------------------------------------------------------------
   Feature Category          Supported   Details
   ------------------------- ----------- --------------------------------------
-  Transport: Stdio          ✅
+  Transport: Stdio          ✅          
 
-  Transport: Streamable     ❌
-  HTTP
+  Transport: Streamable     ❌          
+  HTTP                                  
 
   Basic: Cancellation       ✅          Timeout and user can cancel manually
 
-  Basic: Progress           ❌
+  Basic: Progress           ❌          
 
-  Basic: Task               ❌
+  Basic: Task               ❌          
 
   Client: Roots             ✅          Disabled by default
 
-  Client: Sampling          ❌
+  Client: Sampling          ❌          
 
-  Client: Elicitation       ❌
+  Client: Elicitation       ❌          
 
-  Server: Completion        ❌
+  Server: Completion        ❌          
 
-  Server: Pagination        ✅
+  Server: Pagination        ✅          
 
-  Server: Prompts           ❌
+  Server: Prompts           ❌          
 
-  Server: Resources         ❌
+  Server: Resources         ❌          
 
   Server: Tools             ✅          Currently only supports Text Content
 
-  Server: Tool list changed ❌
-  notification
+  Server: Tool list changed ❌          
+  notification                          
   ----------------------------------------------------------------------------
 
 PROTOCOL VERSION                          *codecompanion-mcp-protocol-version*
@@ -1877,29 +1877,29 @@ AVAILABLE EVENTS
   on_created              Chat buffer has been created -
 
   on_before_submit        Before the message is sent   { adapter }
-                          to the LLM. Return false to
-                          prevent submission
+                          to the LLM. Return false to  
+                          prevent submission           
 
   on_submitted            After the message has been   { payload }
-                          sent to the LLM
+                          sent to the LLM              
 
   on_checkpoint           Fires at safe points during  { adapter, estimated_tokens, messages, reported_tokens }
-                          the chat lifecycle. Messages
-                          are mutable
+                          the chat lifecycle. Messages 
+                          are mutable                  
 
   on_tool_output          Before tool output is added  { tool, for_llm, for_user }
-                          to the chat. Mutate
-                          args.for_llm/args.for_user
-                          to modify
+                          to the chat. Mutate          
+                          args.for_llm/args.for_user   
+                          to modify                    
 
   on_ready                Chat is ready for the next   -
-                          turn (after LLM response)
+                          turn (after LLM response)    
 
   on_completed            LLM response has been fully  { status }
-                          processed
+                          processed                    
 
   on_cancelled            Request has been             -
-                          stopped/cancelled
+                          stopped/cancelled            
 
   on_closed               Chat buffer has been closed  -
   ---------------------------------------------------------------------------------------------------------------
@@ -1963,7 +1963,7 @@ This is useful for implementing safeguards such as token/context limit checks:
         chat:add_callback("on_before_submit", function(c, data)
           local token_count = my_tokenizer.count(c.messages)
           local context_limit = 128000
-
+    
           if token_count > context_limit then
             vim.notify(
               string.format("Token count (%d) exceeds context limit (%d)", token_count, context_limit),
@@ -1996,7 +1996,7 @@ sent to the LLM) and `for_user` (what's shown in the buffer). Mutate
         chat:add_callback("on_tool_output", function(c, data)
           local tokens = require("codecompanion.utils.tokens")
           local max_tokens = 10000
-
+    
           if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
             -- Trim to roughly max_tokens worth of characters
             local max_chars = max_tokens * 6
@@ -2043,7 +2043,7 @@ stack:
           if not context_window then
             return
           end
-
+    
           local usage = data.estimated_tokens / context_window
           if usage > 0.8 then
             vim.notify(
@@ -2099,7 +2099,8 @@ To disable a keymap, you can set it to `false` in your configuration:
       interactions = {
         chat = {
           keymaps = {
-            clear = false,
+            send = false,
+            close = false
           }
         }
       }
@@ -2375,7 +2376,7 @@ customized in the configuration:
             llm = function(adapter)
               return "CodeCompanion (" .. adapter.formatted_name .. ")"
             end,
-
+    
             ---The header name for your messages
             ---@type string
             user = "Me",
@@ -3099,7 +3100,7 @@ The plugin comes with the following system prompt:
 
 >txt
     You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
-
+    
     You can answer general programming questions and perform the following tasks:
     * Answer general programming questions.
     * Explain how the code in a Neovim buffer works.
@@ -3110,7 +3111,7 @@ The plugin comes with the following system prompt:
     * Find relevant code to the user's query.
     * Propose fixes for test failures.
     * Answer questions about Neovim.
-
+    
     Follow the user's requirements carefully and to the letter.
     Use the context and attachments the user provides.
     Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
@@ -3137,12 +3138,12 @@ The plugin comes with the following system prompt:
     Avoid wrapping the whole response in triple backticks.
     Do not include diff formatting unless explicitly asked.
     Do not include line numbers in code blocks.
-
+    
     When given a task:
     1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
     2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
     3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
-
+    
     Additional context:
     All non-code text responses must be written in the ${language} language.
     The current date is ${date}.
@@ -3244,7 +3245,7 @@ to build the system prompt:
     --- - `.svn`
     --- - `.hg`
     ---@field project_root? string the closest parent directory that contains a `.git` subdirectory.
-
+    
     require("codecompanion").setup({
       interactions = {
         chat = {
@@ -3286,7 +3287,7 @@ There are additional options available when working with tool system prompts:
               system_prompt = {
                 enabled = true, -- Enable the tools system prompt?
                 replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
-
+    
                 ---The tool system prompt
                 ---@param args { ctx: CodeCompanion.SystemPrompt.Context, tools: string[]} The tools available
                 ---@return string
@@ -4309,7 +4310,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   Novita                                      Dependent on the model
 
   Ollama         Tested with                  Dependent on the model
-                 Qwen3
+                 Qwen3                        
 
   OpenAI                                      Dependent on the model
 
@@ -4545,21 +4546,21 @@ EXAMPLE 1: RULE THAT CAN BE PROCESSED WITH THE CODECOMPANION PARSER
 
 >markdown
     # Example Rules File
-
+    
     ## System Prompt
-
+    
     What ever goes in this section is used as a system prompt in the chat buffer.
-
+    
     So you can specify instructions:
     - Here
     - And here
-
+    
     ...and anywhere here
-
+    
     ## My other header
-
+    
     @./lua/codecompanion/interactions/chat/tools/init.lua
-
+    
     Anything in this section is added as context to the chat buffer. The file above is also shared
 <
 
@@ -4568,13 +4569,13 @@ EXAMPLE 2: RULE THAT CAN BE PROCESSED WITH THE CLAUDE PARSER
 
 >markdown
     # Example Claude Rules File
-
+    
     @./lua/codecompanion/interactions/chat/tools/init.lua
-
+    
     This is a rules file that can be parsed with the Claude parser.
-
+    
     Anything in this file is added as context to the chat buffer.
-
+    
     Including the file above.
 <
 
@@ -4958,7 +4959,7 @@ and with a visual selection, will resolve to be:
 
 >log
     ❯ What does the selected code in @your_file_path do?
-
+    
       - Selected code from @your_file_path (lines 3-4):
       ````lua
       local new_set = MiniTest.new_set
@@ -5050,13 +5051,13 @@ interacting with CLI agents. It has a polymorphic signature:
 >lua
     -- No args: create a new CLI instance and open it
     require("codecompanion").cli()
-
+    
     -- Opts table: create a new instance with options
     require("codecompanion").cli({ agent = "claude_code" })
-
+    
     -- String prompt: send to the last instance (or create one)
     require("codecompanion").cli("Can you explain this code?")
-
+    
     -- String prompt with opts
     require("codecompanion").cli("Fix #{diagnostics}", { submit = true, focus = false })
 <
@@ -5203,7 +5204,7 @@ Events can be hooked into as follows:
 
 >lua
     local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-
+    
     vim.api.nvim_create_autocmd({ "User" }, {
       pattern = "CodeCompanionInline*",
       group = group,
@@ -5455,7 +5456,7 @@ clear separation of concerns:
         on_exit = function(self, data) end,  -- Called after request completes
         teardown = function(self) end,   -- Called last, after on_exit
       },
-
+    
       -- Request builders (pure transformations)
       request = {
         build_parameters = function(self, params, messages) end,  -- Build request parameters
@@ -5464,14 +5465,14 @@ clear separation of concerns:
         build_reasoning = function(self, messages) end,           -- Build reasoning parameters
         build_body = function(self, data) end,                    -- Set additional body parameters
       },
-
+    
       -- Response parsers (pure transformations)
       response = {
         parse_chat = function(self, data, tools) end,       -- Parse chat response
         parse_inline = function(self, data, context) end,   -- Parse inline response
         parse_tokens = function(self, data) end,            -- Extract token count
       },
-
+    
       -- Tool handlers (grouped functionality)
       tools = {
         format_calls = function(self, tools) end,                          -- Format tool calls for request
@@ -5649,7 +5650,7 @@ The chat buffer, which is structured like:
 
 >markdown
     ## Me
-
+    
     Explain Ruby in two words
 <
 
@@ -5716,7 +5717,7 @@ comes with some handy utility functions to work with this:
 >lua
     -- Put this at the top of your adapter
     local utils = require("codecompanion.utils.adapters")
-
+    
     handlers = {
       response = {
         parse_chat = function(self, data)
@@ -5768,7 +5769,7 @@ chat buffer, with:
           local output = {}
           ---
           local delta = json.choices[1].delta
-
+    
           if delta.content then
             output.content = delta.content
             output.role = delta.role or nil
@@ -5802,17 +5803,17 @@ we have data in our response:
       response = {
         parse_chat = function(self, data)
           local output = {}
-
+    
           if data and data ~= "" then
             data = utils.clean_streamed_data(data)
             local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
+    
             local delta = json.choices[1].delta
-
+    
             if delta.content then
               output.content = delta.content
               output.role = delta.role or nil
-
+    
               return {
                 status = "success",
                 output = output,
@@ -5995,7 +5996,7 @@ Example:
           -- Perform initialization
           return true  -- Must return boolean
         end,
-
+    
         teardown = function(self)
           -- Clean up resources
         end,
@@ -6149,13 +6150,13 @@ Example:
           return { tools = transformed_tools }
         end,
       },
-
+    
       tools = {
         format_calls = function(self, tools)
           -- Format tool calls for the request
           return formatted_calls
         end,
-
+    
         format_response = function(self, tool_call, output)
           -- Format tool response for LLM
           return {
@@ -6286,19 +6287,19 @@ required.
                   -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
                   local approvals = require("codecompanion.interactions.chat.tools.approvals")
                   approvals:toggle_yolo_mode()
-
+    
                   return [[### Instructions
-
+    
     Your instructions here
-
+    
     ### Steps to Follow
-
+    
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
-
+    
     1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
     2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
-
+    
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
                 end,
               },
@@ -6341,20 +6342,20 @@ Let's breakdown the prompts in that workflow:
             -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
             local approvals = require("codecompanion.interactions.chat.tools.approvals")
             approvals:toggle_yolo_mode()
-
+    
             -- Some clear instructions for the LLM to follow
             return [[### Instructions
-
+    
     Your instructions here
-
+    
     ### Steps to Follow
-
+    
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
-
+    
     1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
     2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
-
+    
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
           end,
         },
@@ -6436,7 +6437,7 @@ Extensions are configured in your CodeCompanion setup:
         "ravitemer/codecompanion-history.nvim" -- history extension
       }
     }
-
+    
     -- Configure in your setup
     require("codecompanion").setup({
       extensions = {
@@ -6474,19 +6475,19 @@ exports:
     ---@field setup fun(opts: table) Function called when extension is loaded
     ---@field exports? table Functions exposed via codecompanion.extensions.your_extension
     local Extension = {}
-
+    
     ---Setup the extension
     ---@param opts table Configuration options
     function Extension.setup(opts)
       -- Initialize extension
       -- Add actions, keymaps etc.
     end
-
+    
     -- Optional: Functions exposed via codecompanion.extensions.your_extension
     Extension.exports = {
       clear_history = function() end
     }
-
+    
     return Extension
 <
 
@@ -6502,7 +6503,7 @@ codecompanion.config object inside setup function.
     function Extension.setup(opts)
       -- Add action to chat keymaps
       local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
-
+    
       chat_keymaps.open_saved_chats = {
         modes = {
           n = opts.keymap or "gh",
@@ -6551,12 +6552,12 @@ cases:
                   vim.notify("Editor opened for chat " .. chat.id)
                 end,
               }
-
+    
               -- Add the action to chat keymaps config
               local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
               chat_keymaps.open_editor = open_editor
             end,
-
+    
             -- Optional: Expose functions
             exports = {
               is_editor_open = function()
@@ -6631,7 +6632,7 @@ parameter:
     ---@class CodeCompanion.Chat.Rules.Parser
     ---@field content string The content of the rules file
     ---@field meta? { included_files: string[] } The filename of the rules file
-
+    
     ---@param file CodeCompanion.Chat.Rules.ProcessedFile
     ---@return CodeCompanion.Chat.Rules.Parser
     return function(file)
@@ -6695,41 +6696,41 @@ please see the diagram below:
         participant TS as Tool System
         participant O as Orchestrator
         participant T as Tool
-
+    
         C->>L: Prompt with tool schemas
         L->>C: Response with tool call(s)
-
+    
         C->>TS: Parse LLM response
-
+    
         loop For each tool call detected
             TS->>TS: Tool.resolve(tool_config)
             TS->>TS: Add tool to queue
         end
-
+    
         TS->>O: Create Orchestrator with queue
         TS->>C: Fire "ToolsStarted" autocmd
-
+    
         loop While queue not empty
             O->>O: Pop tool from queue
             O->>O: Setup handlers and output functions
             O->>T: handlers.setup()
-
+    
             Note over O,C: If approval required, prompt user
             O->>C: User approval (if needed)
-
+    
             Note over O,T: If rejected/cancelled, call output handlers and continue
             Note over O,T: If approved or no approval needed, execute tool
-
+    
             loop For each cmd in tool.cmds
                 O->>T: Execute function(self, args, opts)
                 Note over T,O: Returns {status, data} (sync) or calls opts.output_cb (async)
                 O->>T: output.success() OR output.error()
                 T->>C: add_tool_output()
             end
-
+    
             O->>T: handlers.on_exit()
         end
-
+    
         TS->>TS: reset()
         TS->>C: Fire "ToolsFinished" autocmd
         TS->>C: tools_done()
@@ -6843,7 +6844,7 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
       local temp_dir = temp_input:match("(.*/)")
       local lang = self.args.lang
       local code = self.args.code
-
+    
       return {
         code = code,
         lang = lang,
@@ -6878,20 +6879,20 @@ of our calculator example:
         local num1 = tonumber(args.num1)
         local num2 = tonumber(args.num2)
         local operation = args.operation
-
+    
         -- Validate input
         if not num1 then
           return { status = "error", data = "First number is missing or invalid" }
         end
-
+    
         if not num2 then
           return { status = "error", data = "Second number is missing or invalid" }
         end
-
+    
         if not operation then
           return { status = "error", data = "Operation is missing" }
         end
-
+    
         -- Perform the calculation
         local result
         if operation == "add" then
@@ -6908,7 +6909,7 @@ of our calculator example:
         else
           return { status = "error", data = "Invalid operation: must be add, subtract, multiply, or divide" }
         end
-
+    
         return { status = "success", data = result }
       end,
     },
@@ -7025,14 +7026,14 @@ demonstrate the functionality:
 
 >lua
     system_prompt = [[## Calculator Tool (`calculator`)
-
+    
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
     - You can use it to add, subtract, multiply or divide two numbers.
-
+    
     ### OBJECTIVE
     - Do a mathematical operation on two numbers when the user asks
-
+    
     ### RESPONSE
     - Always use the structure above for consistency.
     ]],
@@ -7143,20 +7144,20 @@ If we put this all together in our config:
                   local num1 = tonumber(args.num1)
                   local num2 = tonumber(args.num2)
                   local operation = args.operation
-
+    
                   -- Validate input
                   if not num1 then
                     return { status = "error", data = "First number is missing or invalid" }
                   end
-
+    
                   if not num2 then
                     return { status = "error", data = "Second number is missing or invalid" }
                   end
-
+    
                   if not operation then
                     return { status = "error", data = "Operation is missing" }
                   end
-
+    
                   -- Perform the calculation
                   local result
                   if operation == "add" then
@@ -7176,23 +7177,23 @@ If we put this all together in our config:
                       data = "Invalid operation: must be add, subtract, multiply, or divide",
                     }
                   end
-
+    
                   return { status = "success", data = result }
                 end,
               },
               system_prompt = [[## Calculator Tool (`calculator`)
-
+    
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
     - You can use it to add, subtract, multiply or divide two numbers.
-
+    
     ### OBJECTIVE
     - Do a mathematical operation on two numbers when the user asks
-
+    
     ### RESPONSE
     - Always use the structure above for consistency.
     ]],
-
+    
               schema = {
                 type = "function",
                 ["function"] = {
@@ -7307,7 +7308,7 @@ To account for the user being prompted for an approval, we can add a
 >lua
     output = {
       -- success and error functions remain the same ...
-
+    
       ---The message which is shared with the user when asking for their approval
       ---@param self CodeCompanion.Tool.Calculator
       ---@param meta { tools: CodeCompanion.Tools }
@@ -7331,7 +7332,7 @@ tool execution:
 >lua
     output = {
       -- success, error and prompt functions remain the same ...
-
+    
       ---Rejection message back to the LLM
       ---@param self CodeCompanion.Tool.Calculator
       ---@param meta { tools: CodeCompanion.Tools, cmd: table, opts: table }
@@ -7339,7 +7340,7 @@ tool execution:
       rejected = function(self, meta)
         meta.tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
       end,
-
+    
       ---Cancellation message back to the LLM
       ---@param self CodeCompanion.Tool.Calculator
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
@@ -7376,14 +7377,14 @@ tool, that does just that:
               opts = { require_approval_before = true },
               name = "beads",
               system_prompt = [[Beads is a local, hash-based task tracking system. Tasks have short IDs like `bd-a1b2`. Key commands:
-
+    
     - `bd ready` — list tasks with no open blockers (i.e. ready to work on)
     - `bd show <id>` — show full details for a task
     - `bd create "<title>" -p <priority>` — create a new task (priority 0 = highest)
     - `bd update <id> --claim` — assign a task to yourself
     - `bd update <id> --status done` — mark a task as done
     - `bd dep add <child> <parent>` — make child depend on parent
-
+    
     Output is JSON. Always use `bd ready` first to see what's available before taking action.]],
               schema = {
                 properties = {
@@ -7597,10 +7598,10 @@ statusline when a request is being sent to an LLM:
 
 >lua
     local M = require("lualine.component"):extend()
-
+    
     M.processing = false
     M.spinner_index = 1
-
+    
     local spinner_symbols = {
       "⠋",
       "⠙",
@@ -7614,13 +7615,13 @@ statusline when a request is being sent to an LLM:
       "⠏",
     }
     local spinner_symbols_len = 10
-
+    
     -- Initializer
     function M:init(options)
       M.super.init(self, options)
-
+    
       local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-
+    
       vim.api.nvim_create_autocmd({ "User" }, {
         pattern = "CodeCompanionRequest*",
         group = group,
@@ -7633,7 +7634,7 @@ statusline when a request is being sent to an LLM:
         end,
       })
     end
-
+    
     -- Function that runs every time statusline is updated
     function M:update_status()
       if self.processing then
@@ -7643,7 +7644,7 @@ statusline when a request is being sent to an LLM:
         return nil
       end
     end
-
+    
     return M
 <
 
@@ -7683,11 +7684,11 @@ the heirline.nvim integration below:
         hl = { fg = "yellow" },
       },
     }
-
+    
     local IsCodeCompanion = function()
       return package.loaded.codecompanion and vim.bo.filetype == "codecompanion"
     end
-
+    
     local CodeCompanionCurrentContext = {
       static = {
         enabled = true,
@@ -7713,7 +7714,7 @@ the heirline.nvim integration below:
         end),
       },
     }
-
+    
     local CodeCompanionStats = {
       condition = function(self)
         return IsCodeCompanion()
