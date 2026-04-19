@@ -1,5 +1,18 @@
 # Changelog
 
+## [19.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.11.0...v19.12.0) (2026-04-19)
+
+
+### Features
+
+* **adapters:** add KiloCode ACP ([#3034](https://github.com/olimorris/codecompanion.nvim/issues/3034)) ([48c6ae0](https://github.com/olimorris/codecompanion.nvim/commit/48c6ae010ca01b0bae01dd5a0f68f692ac3114a4))
+* **adapters:** add support for Opus 4.7 ([#3042](https://github.com/olimorris/codecompanion.nvim/issues/3042)) ([cdc6926](https://github.com/olimorris/codecompanion.nvim/commit/cdc69269cf4878983604d5c8093e2963753d1cfe))
+
+
+### Bug Fixes
+
+* **chat:** nil tool name in `on_tool_output` ([#3046](https://github.com/olimorris/codecompanion.nvim/issues/3046)) ([e003fac](https://github.com/olimorris/codecompanion.nvim/commit/e003fac48f8af4fc2d4ece3ee2f6f1897f71b912))
+
 ## [19.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.10.0...v19.11.0) (2026-04-11)
 
 
