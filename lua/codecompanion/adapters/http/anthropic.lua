@@ -186,8 +186,11 @@ return {
         end)
         :totable()
 
-      -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
+      -- 3–9. Clean up, role‐convert, and handle tool calls in one pass
       messages = vim.tbl_map(function(m)
+        -- Capture compaction data before filtering removes _meta
+        local compaction = m._meta and m._meta.compaction
+
         -- 3. Account for any images
         if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
           if self.opts and self.opts.vision then
@@ -287,13 +290,20 @@ return {
           })
         end
 
+        -- 9. Include any compaction block from a previous response
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/compaction
+        if compaction and m.role == self.roles.llm and type(m.content) == "table" then
+          local insert_pos = (m.content[1] and m.content[1].type == "thinking") and 2 or 1
+          table.insert(m.content, insert_pos, compaction)
+        end
+
         return m
       end, messages)
 
-      -- 9. Merge consecutive messages with the same role
+      -- 10. Merge consecutive messages with the same role
       messages = adapter_utils.merge_messages(messages)
 
-      -- 10. Ensure that any consecutive tool results are merged and text messages are included
+      -- 11. Ensure that any consecutive tool results are merged and text messages are included
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content and m.content ~= "" then
@@ -367,7 +377,7 @@ return {
         system = system,
         messages = messages,
 
-        -- 11. Enable automatic prompt caching
+        -- 12. Enable automatic prompt caching
         -- Ref: https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching
         cache_control = { type = "ephemeral" },
       }
@@ -484,6 +494,9 @@ return {
               output.reasoning = output.reasoning or {}
               output.reasoning.content = ""
             end
+            if json.content_block.type == "compaction" then
+              output.meta = { compaction = { type = "compaction", content = "" } }
+            end
             if json.content_block.type == "tool_use" and tools then
               -- Source: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#single-tool-example
               table.insert(tools, {
@@ -500,6 +513,8 @@ return {
             elseif json.delta.type == "signature_delta" then
               output.reasoning = output.reasoning or {}
               output.reasoning.signature = json.delta.signature
+            elseif json.delta.type == "compaction_delta" then
+              output.meta = { compaction = { type = "compaction", content = json.delta.content } }
             else
               output.content = json.delta.text
               if json.delta.partial_json and tools then
@@ -520,6 +535,9 @@ return {
               elseif content.type == "thinking" then
                 output.reasoning = output.reasoning and output.reasoning or {}
                 output.reasoning.content = content.text
+              elseif content.type == "compaction" then
+                output.meta = output.meta or {}
+                output.meta.compaction = { type = "compaction", content = content.content }
               elseif content.type == "tool_use" and tools then
                 table.insert(tools, {
                   _index = i,
@@ -655,7 +673,7 @@ return {
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
           meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_manage_context = true, can_reason = true, has_vision = true },
         },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
