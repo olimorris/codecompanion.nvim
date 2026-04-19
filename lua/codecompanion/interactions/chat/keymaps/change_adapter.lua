@@ -125,6 +125,15 @@ end
 ---@param connection CodeCompanion.ACP.Connection
 ---@return table|nil
 function M.list_acp_models(connection)
+  local show_choices = config.adapters
+    and config.adapters.acp
+    and config.adapters.acp.opts
+    and config.adapters.acp.opts.show_model_choices
+
+  if not show_choices then
+    return nil
+  end
+
   local models = connection:get_models()
   if not models or vim.tbl_count(models.availableModels) < 2 then
     return nil
