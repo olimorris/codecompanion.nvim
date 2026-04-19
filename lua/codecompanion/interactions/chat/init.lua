@@ -1101,13 +1101,19 @@ function Chat:_submit_http(payload)
           end
         end
         if result.output.meta then
+          if result.output.meta.compaction then
+            log:info("[chat] Context compacted by adapter")
+            utils.fire("ChatCompacted", { bufnr = self.bufnr, id = self.id })
+          end
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
         end
-        table.insert(output, result.output.content)
-        self:add_buf_message({
-          role = config.constants.LLM_ROLE,
-          content = result.output.content,
-        }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+        if result.output.content then
+          table.insert(output, result.output.content)
+          self:add_buf_message({
+            role = config.constants.LLM_ROLE,
+            content = result.output.content,
+          }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+        end
       elseif self.status == CONSTANTS.STATUS_ERROR then
         log:error("[chat::_submit_http] Error: %s", result.output)
         self:done(output)
@@ -1321,6 +1327,16 @@ function Chat:done(output, reasoning, tools, meta, opts)
     local token_meta = { cumulative_tokens = self.ui.tokens }
     self:add_message(message, {
       _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
+    })
+    reasoning_content = nil
+  elseif has_meta then
+    self:add_message({
+      role = config.constants.LLM_ROLE,
+      content = "",
+      reasoning = reasoning_content,
+    }, {
+      visible = false,
+      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.ui.tokens }),
     })
     reasoning_content = nil
   end
