@@ -231,8 +231,7 @@ return {
           context_management = {
             {
               type = "compaction",
-              -- compact_threshold = math.max(50000, helpers.trigger_context_management(self)),
-              compact_threshold = 30000,
+              compact_threshold = math.max(50000, helpers.trigger_context_management(self)),
             },
           }
         end
