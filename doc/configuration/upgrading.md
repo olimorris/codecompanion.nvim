@@ -6,7 +6,7 @@ description: Guide to upgrading CodeCompanion between versions such as v17.33.0 
 
 This document provides a guide for upgrading from one version of CodeCompanion to another.
 
-CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](installation) provides more information on how to do this.
+CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](/installation) provides more information on how to do this.
 
 ## v18.7.0 to v19.0.0
 
@@ -46,7 +46,7 @@ rules:
 
 - The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you'll need to change it to `codecompanion.interactions` ([#2485](https://github.com/olimorris/codecompanion.nvim/pull/2485))
 - Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you'll need to update the paths accordingly ([#2482](https://github.com/olimorris/codecompanion.nvim/pull/2482))
-- Workspaces have now been removed from the plugin. Please use [Rules](configuration/rules) instead.
+- Workspaces have now been removed from the plugin. Please use [Rules](/configuration/rules) instead.
 
 ### Adapters
 

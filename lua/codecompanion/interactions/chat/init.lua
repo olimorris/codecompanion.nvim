@@ -389,6 +389,7 @@ function Chat.new(args)
       return bufnr
     end,
     _last_role = args.last_role or config.constants.USER_ROLE,
+    _status = {},
   }, { __index = Chat })
   ---@cast self CodeCompanion.Chat
 
@@ -1101,13 +1102,20 @@ function Chat:_submit_http(payload)
           end
         end
         if result.output.meta then
+          if result.output.meta.compaction then
+            log:info("[chat] Context compacted by adapter")
+            self:_set_status("compacting", "Compacting")
+            utils.fire("ChatCompacting", { bufnr = self.bufnr, id = self.id })
+          end
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
         end
-        table.insert(output, result.output.content)
-        self:add_buf_message({
-          role = config.constants.LLM_ROLE,
-          content = result.output.content,
-        }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+        if result.output.content then
+          table.insert(output, result.output.content)
+          self:add_buf_message({
+            role = config.constants.LLM_ROLE,
+            content = result.output.content,
+          }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+        end
       elseif self.status == CONSTANTS.STATUS_ERROR then
         log:error("[chat::_submit_http] Error: %s", result.output)
         self:done(output)
@@ -1288,6 +1296,8 @@ function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
   self.current_request = nil
 
+  self:_clear_status()
+
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
     return self:reset()
@@ -1321,6 +1331,16 @@ function Chat:done(output, reasoning, tools, meta, opts)
     local token_meta = { cumulative_tokens = self.ui.tokens }
     self:add_message(message, {
       _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
+    })
+    reasoning_content = nil
+  elseif has_meta then
+    self:add_message({
+      role = config.constants.LLM_ROLE,
+      content = "",
+      reasoning = reasoning_content,
+    }, {
+      visible = false,
+      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.ui.tokens }),
     })
     reasoning_content = nil
   end
@@ -1597,6 +1617,24 @@ function Chat:close()
   self = nil
 end
 
+---Set a status message as virtual text in the chat buffer
+---@param key string The status key (e.g. "compacting")
+---@param message string The message to display
+---@return nil
+function Chat:_set_status(key, message)
+  self:_clear_status()
+  self._status = { extmark = self.ui:set_virtual_text(message), [key] = true }
+end
+
+---Clear any active status virtual text
+---@return nil
+function Chat:_clear_status()
+  if self._status.extmark then
+    self.ui:clear_virtual_text(self._status.extmark)
+  end
+  self._status = {}
+end
+
 ---Add a message directly to the chat buffer that will be visible to the user
 ---This will NOT form part of the message stack that is sent to the LLM
 ---@param data table
@@ -1605,6 +1643,8 @@ end
 function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
   opts = opts or {}
+
+  self:_clear_status()
 
   return self.builder:add_message(data, opts)
 end

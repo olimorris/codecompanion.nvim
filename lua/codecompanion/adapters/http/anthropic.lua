@@ -15,7 +15,6 @@ return {
     text = true,
   },
   opts = {
-    -- context_management = true,
     stream = true,
     tools = true,
     vision = true,
@@ -100,29 +99,22 @@ return {
       end
 
       -- Make sure the individual model options are set
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
+      local model_opts = adapter_utils.model_choice(self)
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
           self.opts.vision = false
         end
-      end
 
-      -- Add the extended output header if enabled
-      if self.temp.extended_output then
-        adapter_utils.add_header(self.headers, "anthropic-beta", "output-128k-2025-02-19")
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/compaction
+        if model_opts.opts.can_manage_context then
+          self.opts.can_manage_context = true
+          adapter_utils.add_header(self.headers, "anthropic-beta", "compact-2026-01-12")
+        else
+          self.opts.can_manage_context = false
+          adapter_utils.remove_header(self.headers, "anthropic-beta", "compact-2026-01-12")
+        end
       end
-
-      -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/token-efficient-tool-use
-      if self.opts.has_token_efficient_tools then
-        adapter_utils.add_header(self.headers, "anthropic-beta", "token-efficient-tools-2025-02-19")
-      end
-
-      -- Ref: https://platform.claude.com/docs/en/build-with-claude/context-editing#tool-result-clearing-usage
-      -- if self.opts.context_management then
-      --   adapter_utils.add_header(self.headers, "anthropic-beta", "context-management-2025-06-27")
-      -- end
 
       return true
     end,
@@ -133,14 +125,31 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
-      if self.temp.extended_thinking and self.temp.thinking_budget then
-        params.thinking = {
-          type = "enabled",
-          budget_tokens = self.temp.thinking_budget,
-        }
-      end
-      if self.temp.extended_thinking then
-        params.temperature = 1
+      local models = adapter_utils.model_choice(self)
+      if self.temp.extended_thinking and (models and models.opts and models.opts.can_reason) then
+        -- Anthropic plan on deprecating this in future model releases so I'm
+        -- labelling it as "legacy_reasoning" for now. Will remove later
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        if models.opts.legacy_reasoning then
+          params.thinking = {
+            type = "enabled",
+            budget_tokens = self.temp.thinking_budget,
+          }
+        else
+          params.thinking = {
+            type = "adaptive",
+          }
+        end
+        -- Thinking isn't compatible with temperature or top_k
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/extended-thinking#feature-compatibility
+        params.temperature = nil
+        params.top_k = nil
+
+        -- top_p must be between 1 and 0.95
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/extended-thinking#feature-compatibility
+        if params.top_p and (params.top_p > 1 or params.top_p < 0.95) then
+          params.top_p = 1
+        end
       end
 
       return params
@@ -177,8 +186,11 @@ return {
         end)
         :totable()
 
-      -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
+      -- 3–9. Clean up, role‐convert, and handle tool calls in one pass
       messages = vim.tbl_map(function(m)
+        -- Capture compaction data before filtering removes _meta
+        local compaction = m._meta and m._meta.compaction
+
         -- 3. Account for any images
         if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
           if self.opts and self.opts.vision then
@@ -278,13 +290,20 @@ return {
           })
         end
 
+        -- 9. Include any compaction block from a previous response
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/compaction
+        if compaction and m.role == self.roles.llm and type(m.content) == "table" then
+          local insert_pos = (m.content[1] and m.content[1].type == "thinking") and 2 or 1
+          table.insert(m.content, insert_pos, compaction)
+        end
+
         return m
       end, messages)
 
-      -- 9. Merge consecutive messages with the same role
+      -- 10. Merge consecutive messages with the same role
       messages = adapter_utils.merge_messages(messages)
 
-      -- 10. Ensure that any consecutive tool results are merged and text messages are included
+      -- 11. Ensure that any consecutive tool results are merged and text messages are included
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content and m.content ~= "" then
@@ -316,46 +335,51 @@ return {
         end
       end
 
-      -- local context_management = nil
-      -- if self.opts.context_management then
-      --   context_management = {
-      --     ["edits"] = {
-      --       {
-      --         type = "clear_thinking_20251015",
-      --         keep = {
-      --           type = "thinking_turns",
-      --           value = 3,
-      --         },
-      --       },
-      --       {
-      --         type = "clear_tool_uses_20250919",
-      --         keep = {
-      --           type = "tool_uses",
-      --           value = 5,
-      --         },
-      --         trigger = {
-      --           type = "input_tokens",
-      --           value = 50000,
-      --         },
-      --       },
-      --       -- {
-      --       --   type = "compact_20260112",
-      --       --   trigger = {
-      --       --     type = "input_tokens",
-      --       --     value = 100000,
-      --       --   },
-      --       -- },
-      --     },
-      --   }
-      -- end
+      local context_management = nil
+      if self.opts.can_manage_context then
+        local helpers = require("codecompanion.interactions.chat.helpers")
 
-      -- 11. Enable automatic prompt caching
-      -- Ref: https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching
+        context_management = {
+          ["edits"] = {
+            -- {
+            --   type = "clear_thinking_20251015",
+            --   keep = {
+            --     type = "thinking_turns",
+            --     value = 3,
+            --   },
+            -- },
+            -- {
+            --   type = "clear_tool_uses_20250919",
+            --   keep = {
+            --     type = "tool_uses",
+            --     value = 5,
+            --   },
+            --   trigger = {
+            --     type = "input_tokens",
+            --     value = 50000,
+            --   },
+            -- },
+            {
+              type = "compact_20260112",
+              trigger = {
+                type = "input_tokens",
+                -- Must be at LEAST 50,000 tokens to trigger compaction
+                -- Ref: https://platform.claude.com/docs/en/build-with-claude/compaction#parameters
+                value = math.max(50000, helpers.trigger_context_management(self)),
+              },
+            },
+          },
+        }
+      end
+
       return {
-        cache_control = { type = "ephemeral" },
+        context_management = context_management,
         system = system,
         messages = messages,
-        -- context_management = context_management,
+
+        -- 12. Enable automatic prompt caching
+        -- Ref: https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching
+        cache_control = { type = "ephemeral" },
       }
     end,
 
@@ -470,6 +494,9 @@ return {
               output.reasoning = output.reasoning or {}
               output.reasoning.content = ""
             end
+            if json.content_block.type == "compaction" then
+              output.meta = { compaction = { type = "compaction", content = "" } }
+            end
             if json.content_block.type == "tool_use" and tools then
               -- Source: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#single-tool-example
               table.insert(tools, {
@@ -486,6 +513,8 @@ return {
             elseif json.delta.type == "signature_delta" then
               output.reasoning = output.reasoning or {}
               output.reasoning.signature = json.delta.signature
+            elseif json.delta.type == "compaction_delta" then
+              output.meta = { compaction = { type = "compaction", content = json.delta.content } }
             else
               output.content = json.delta.text
               if json.delta.partial_json and tools then
@@ -506,6 +535,9 @@ return {
               elseif content.type == "thinking" then
                 output.reasoning = output.reasoning and output.reasoning or {}
                 output.reasoning.content = content.text
+              elseif content.type == "compaction" then
+                output.meta = output.meta or {}
+                output.meta.compaction = { type = "compaction", content = content.content }
               elseif content.type == "tool_use" and tools then
                 table.insert(tools, {
                   _index = i,
@@ -623,50 +655,50 @@ return {
         -- Current models
         ["claude-opus-4-7"] = {
           formatted_name = "Claude Opus 4.7",
-          meta = { context_window = 1000000 },
-          opts = { has_vision = true },
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_manage_context = true, has_vision = true },
         },
         ["claude-sonnet-4-6"] = {
           formatted_name = "Claude Sonnet 4.6",
-          meta = { context_window = 1000000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_reason = true, can_manage_context = true, has_vision = true },
         },
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
-          meta = { context_window = 200000 },
+          meta = { context_window = 200000, max_tokens = 64000 },
           opts = { can_reason = true, has_vision = true },
         },
 
         -- Legacy models
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
-          meta = { context_window = 1000000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_manage_context = true, can_reason = true, has_vision = true },
         },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
-          meta = { context_window = 200000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 200000, max_tokens = 64000 },
+          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
-          meta = { context_window = 200000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 100000, max_tokens = 64000 },
+          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
-          meta = { context_window = 200000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 200000, max_tokens = 32000 },
+          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
         ["claude-opus-4-0"] = {
           formatted_name = "Claude Opus 4",
-          meta = { context_window = 200000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 200000, max_tokens = 32000 },
+          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
         ["claude-sonnet-4-0"] = {
           formatted_name = "Claude Sonnet 4",
-          meta = { context_window = 200000 },
-          opts = { can_reason = true, has_vision = true },
+          meta = { context_window = 1000000, max_tokens = 64000 },
+          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
       },
     },
@@ -680,9 +712,9 @@ return {
       desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
       ---@param self CodeCompanion.HTTPAdapter
       enabled = function(self)
-        local model = self.schema.model.default
-        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
-          return self.schema.model.choices[model].opts.can_reason
+        local models = adapter_utils.model_choice(self)
+        if models and models.opts and models.opts.can_reasn then
+          return true
         end
         return false
       end,
@@ -695,21 +727,17 @@ return {
       optional = true,
       desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
       default = function(self)
-        local model = self.schema.model
-        if
-          model.choices[model.default]
-          and model.choices[model.default].opts
-          and model.choices[model.default].opts.can_reason == true
-        then
+        local models = adapter_utils.model_choice(self)
+        if models and models.opts and models.opts.can_reason == true then
           return true
         end
         return false
       end,
       ---@param self CodeCompanion.HTTPAdapter
       enabled = function(self)
-        local model = self.schema.model.default
-        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
-          return self.schema.model.choices[model].opts.can_reason
+        local models = adapter_utils.model_choice(self)
+        if models and models.opts and models.opts.can_reason == true then
+          return true
         end
         return false
       end,
@@ -727,9 +755,11 @@ return {
       end,
       ---@param self CodeCompanion.HTTPAdapter
       enabled = function(self)
-        local model = self.schema.model.default
-        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
-          return self.schema.model.choices[model].opts.can_reason
+        local models = adapter_utils.model_choice(self)
+        if models and models.opts then
+          if models.opts.legacy_reasoning then
+            return true
+          end
         end
         return false
       end,
@@ -741,13 +771,9 @@ return {
       type = "number",
       optional = true,
       default = function(self)
-        local model = self.schema.model.default
-        if
-          self.schema.model.choices[model]
-          and self.schema.model.choices[model].opts
-          and self.schema.model.choices[model].opts.can_reason
-        then
-          return self.schema.thinking_budget.default + 1000
+        local models = adapter_utils.model_choice(self)
+        if models and models.meta and models.meta.max_tokens then
+          return models.meta.max_tokens
         end
         return 4096
       end,
@@ -765,7 +791,7 @@ return {
       default = 0,
       desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
       enabled = function(self)
-        local model = self.schema.model.default
+        local model = adapter_utils.model(self)
         if model == "claude-opus-4-7" then
           return false
         end

@@ -56,6 +56,7 @@ Manages the overlaying of icons in the chat buffer for tools, based on their sta
 
 ### Tests
 
-@./tests/interactions/chat/test_builder.lua
+@./tests/interactions/chat/ui/test_builder_state.lua
+@./tests/interactions/chat/ui/test_fold_reasoning_output.lua
 
 Comprehensive tests for the builder pattern covering state management, section detection, reasoning transitions, and header logic. Tests verify that the builder correctly manages formatting state across multiple message additions and properly detects when new sections or headers are needed.

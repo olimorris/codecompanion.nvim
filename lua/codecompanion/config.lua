@@ -671,7 +671,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       opts = {
-        compaction = {
+        context_management = {
           trigger = 0.75, -- Compaction starts at 75% of the context window limit
           enabled = function(adapter)
             if adapter.type ~= "http" then
