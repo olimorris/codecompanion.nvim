@@ -1,4 +1,5 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 17
+*codecompanion.txt*
+                                  For NVIM v0.11    Last change: 2026 April 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -888,7 +889,7 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
-    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+<https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they're not currently rendered in the chat buffer UI.
 - **Audio Content**: Audio can't be sent or received
 
