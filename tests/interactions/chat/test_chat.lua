@@ -566,4 +566,44 @@ T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = functi
   h.eq(true, result.modifiable)
 end
 
+T["Chat"]["on_tool_output callback receives correct args"] = function()
+  local result = child.lua([[
+    local chat = _G.chat
+    local callback_args = {}
+
+    chat:add_callback("on_tool_output", function(c, args)
+      callback_args = {
+        tool = args.tool,
+        for_llm = args.for_llm,
+        for_user = args.for_user,
+      }
+      args.for_llm = "Modified: " .. args.for_llm
+    end)
+
+    local tool = {
+      name = "weather",
+      function_call = {
+        _index = 0,
+        ["function"] = {
+          arguments = '{"location": "London", "units": "celsius"}',
+          name = "weather",
+        },
+        id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        type = "function",
+      },
+    }
+    chat:add_tool_output(tool, "LLM output", "User output")
+
+    return {
+      callback_args = callback_args,
+      message_content = chat.messages[#chat.messages].content,
+    }
+  ]])
+
+  h.eq(result.callback_args.tool, "weather")
+  h.eq(result.callback_args.for_llm, "LLM output")
+  h.eq(result.callback_args.for_user, "User output")
+  h.eq(result.message_content, "Modified: LLM output")
+end
+
 return T
