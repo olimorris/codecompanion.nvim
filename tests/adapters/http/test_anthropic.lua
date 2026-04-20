@@ -543,6 +543,84 @@ T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
   h.eq({ cache_control = { type = "ephemeral" }, messages = expected }, result)
 end
 
+T["Anthropic adapter"]["form_messages"]["includes compaction block from previous response"] = function()
+  local messages = {
+    {
+      content = "What's 2 + 2?",
+      role = "user",
+    },
+    {
+      content = "The answer is 4.",
+      role = "assistant",
+      _meta = {
+        compaction = {
+          content = "## Session Summary\n\nThe user explored the codebase.",
+          type = "compaction",
+        },
+      },
+    },
+    {
+      content = "Thanks!",
+      role = "user",
+    },
+  }
+
+  h.eq({
+    cache_control = { type = "ephemeral" },
+    messages = {
+      {
+        content = {
+          { type = "text", text = "What's 2 + 2?" },
+        },
+        role = "user",
+      },
+      {
+        content = {
+          { type = "compaction", content = "## Session Summary\n\nThe user explored the codebase." },
+          { type = "text", text = "The answer is 4." },
+        },
+        role = "assistant",
+      },
+      {
+        content = {
+          { type = "text", text = "Thanks!" },
+        },
+        role = "user",
+      },
+    },
+  }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["Anthropic adapter"]["form_messages"]["compaction block placed after thinking block"] = function()
+  local messages = {
+    {
+      content = "What's 2 + 2?",
+      role = "user",
+    },
+    {
+      content = "The answer is 4.",
+      reasoning = {
+        content = "Simple arithmetic.",
+        _data = { signature = "mock_sig" },
+      },
+      role = "assistant",
+      _meta = {
+        compaction = {
+          content = "Summary of prior conversation.",
+          type = "compaction",
+        },
+      },
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  local assistant_msg = result.messages[2]
+  h.eq("thinking", assistant_msg.content[1].type)
+  h.eq("compaction", assistant_msg.content[2].type)
+  h.eq("text", assistant_msg.content[3].type)
+end
+
 T["Anthropic adapter"]["form_reasoning"] = function()
   local reasoning = {
     {
@@ -663,6 +741,27 @@ T["Anthropic adapter"]["Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["Anthropic adapter"]["Streaming"]["can process compaction output"] = function()
+  local compaction = nil
+  local content = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/anthropic_compaction_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      if chat_output.output.meta and chat_output.output.meta.compaction then
+        compaction = chat_output.output.meta.compaction
+      end
+      if chat_output.output.content then
+        content = content .. chat_output.output.content
+      end
+    end
+  end
+
+  h.eq("compaction", compaction.type)
+  h.expect_starts_with("## Session Summary", compaction.content)
+  h.expect_starts_with("What would you like to", content)
+end
+
 T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
   local output = {
     content = "",
@@ -717,6 +816,18 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
   local json = { body = data }
 
   h.expect_starts_with("Dynamic elegance", adapter.handlers.inline_output(adapter, json).output)
+end
+
+T["Anthropic adapter"]["No Streaming"]["can process compaction output"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_compaction_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local json = { body = data }
+  local result = adapter.handlers.chat_output(adapter, json)
+
+  h.eq("compaction", result.output.meta.compaction.type)
+  h.expect_starts_with("## Session Summary", result.output.meta.compaction.content)
+  h.eq("What would you like to explore next?", result.output.content)
 end
 
 T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
