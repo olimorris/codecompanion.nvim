@@ -45,7 +45,7 @@ opts:
 
   local result = child.lua(
     [[
-      require("tests.log")
+      -- require("tests.log")
       return markdown.parse_frontmatter(...)
     ]],
     { frontmatter }
@@ -73,7 +73,7 @@ T["Markdown"]["parse_frontmatter normalizes and extracts yaml from dos fileforma
 
   local result = child.lua(
     [[
-      require("tests.log")
+      -- require("tests.log")
       return markdown.parse_frontmatter(...)
     ]],
     { frontmatter }
