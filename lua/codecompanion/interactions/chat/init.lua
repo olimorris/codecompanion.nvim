@@ -1104,7 +1104,7 @@ function Chat:_submit_http(payload)
         if result.output.meta then
           if result.output.meta.compaction then
             log:info("[chat] Context compacted by adapter")
-            self:_set_status("compacting", "Compacting")
+            self:_set_status("compacting", "Compacting the chat...")
             utils.fire("ChatCompacting", { bufnr = self.bufnr, id = self.id })
           end
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
