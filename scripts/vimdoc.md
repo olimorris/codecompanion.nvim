@@ -2,13 +2,14 @@
 doc/index.md
 doc/installation.md
 doc/getting-started.md
-doc/upgrading.md
+doc/architecture.md
 doc/agent-client-protocol.md
 doc/model-context-protocol.md
 ```
 
 # Configuration
 ```{.include shift-heading-level-by=1}
+doc/configuration/upgrading.md
 doc/configuration/action-palette.md
 doc/configuration/adapters-acp.md
 doc/configuration/adapters-http.md

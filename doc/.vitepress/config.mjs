@@ -128,7 +128,7 @@ export default withMermaid(
         { text: "Introduction", link: "/" },
         { text: "Installation", link: "/installation" },
         { text: "Getting Started", link: "/getting-started" },
-        { text: "Upgrading", link: "/upgrading" },
+        { text: "Architecture", link: "/architecture" },
         {
           text: "Agent Client Protocol (ACP)",
           link: "agent-client-protocol",
@@ -141,6 +141,8 @@ export default withMermaid(
           text: "Configuration",
           collapsed: true,
           items: [
+            { text: "Upgrading", link: "/configuration/upgrading" },
+
             { text: "Action Palette", link: "/configuration/action-palette" },
             { text: "Adapters - ACP", link: "/configuration/adapters-acp" },
             { text: "Adapters - HTTP", link: "/configuration/adapters-http" },

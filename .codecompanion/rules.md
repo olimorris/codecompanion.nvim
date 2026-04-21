@@ -6,28 +6,28 @@ Rules files are markdown files that contain context about a specific feature or 
 
 ## Init
 
-@./lua/codecompanion/interactions/chat/rules/init.lua
+@./lua/codecompanion/interactions/shared/rules/init.lua
 
 This picks up the rules from a users config and contains methods which allows them to be added to the chat buffer's context.
 
 ## Helpers
 
-@./lua/codecompanion/interactions/chat/rules/helpers.lua
+@./lua/codecompanion/interactions/shared/rules/helpers.lua
 
 This contains some helper functions that allow rules files to add context to the chat buffer.
 
 ## Parsers
 
-@./lua/codecompanion/interactions/chat/rules/parsers/init.lua
-@./lua/codecompanion/interactions/chat/rules/parsers/claude.lua
-@./lua/codecompanion/interactions/chat/rules/parsers/codecompanion.lua
-@./lua/codecompanion/interactions/chat/rules/parsers/none.lua
+@./lua/codecompanion/interactions/shared/rules/parsers/init.lua
+@./lua/codecompanion/interactions/shared/rules/parsers/claude.lua
+@./lua/codecompanion/interactions/shared/rules/parsers/codecompanion.lua
+@./lua/codecompanion/interactions/shared/rules/parsers/none.lua
 
 These are the files that allow CodeCompanion to read a user's markdown rule file and extract its content according to the parser, ready for sharing in the chat buffer. For example, with the Claude parser, file paths are extracted and those files are then shared as buffer or file context with the LLM, alongside any text.
 
 ## Slash Command
 
-@./lua/codecompanion/interactions/chat/slash_commands/builtin/rules.lua
+@./lua/codecompanion/interactions/shared/slash_commands/rules.lua
 
 This slash command allows users to select a given rule and load it into the chat buffer
 
