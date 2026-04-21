@@ -19,14 +19,8 @@ When a user breaches the context window, the conversation **ends** and it **cann
 > [!NOTE]
 > CodeCompanion enables context management by default
 
+If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see their respective documentation [here](https://developers.openai.com/api/docs/guides/compaction) and [here](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information.
+
+To be updated...
+
 Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/index), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
-
-When triggered, CodeCompanion follows the process outlined below:
-
-```mermaid
-flowchart TD
-    A[Start] --> B{Is the number of tokens in the chat buffer greater than the trigger threshold?}
-    B -- No --> A
-    B -- Yes --> C[CodeCompanion takes preventative action to avoid breaching the context window]
-    C --> A
-```

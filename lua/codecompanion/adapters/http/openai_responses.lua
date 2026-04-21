@@ -16,14 +16,15 @@ return {
     user = "user",
     tool = "tool",
   },
-  opts = {
-    stream = true,
-    tools = true,
-    vision = true,
-  },
   features = {
     text = true,
     tokens = true,
+  },
+  opts = {
+    compaction = true,
+    stream = true,
+    tools = true,
+    vision = true,
   },
   url = "https://api.openai.com/v1/responses",
   env = {
@@ -66,6 +67,9 @@ return {
           end
           if not model_opts.opts.has_function_calling then
             self.opts.tools = false
+          end
+          if self.opts.compaction == false then
+            self.opts.can_manage_context = false
           end
         end
 

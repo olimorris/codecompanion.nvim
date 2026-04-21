@@ -11,10 +11,11 @@ return {
     user = "user",
   },
   features = {
-    tokens = true,
     text = true,
+    tokens = true,
   },
   opts = {
+    compaction = true,
     stream = true,
     tools = true,
     vision = true,
@@ -107,7 +108,7 @@ return {
         end
 
         -- Ref: https://platform.claude.com/docs/en/build-with-claude/compaction
-        if model_opts.opts.can_manage_context then
+        if self.opts.compaction ~= false and model_opts.opts.can_manage_context then
           self.opts.can_manage_context = true
           adapter_utils.add_header(self.headers, "anthropic-beta", "compact-2026-01-12")
         else
