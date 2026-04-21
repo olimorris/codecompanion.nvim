@@ -43,6 +43,7 @@ local defaults = {
       codex = "codex",
       cursor_cli = "cursor_cli",
       copilot_acp = "copilot_acp",
+      deepagents = "deepagents",
       gemini_cli = "gemini_cli",
       goose = "goose",
       kimi_cli = "kimi_cli",

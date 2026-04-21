@@ -339,6 +339,11 @@ To use [Cursor](https://www.cursor.com/) within CodeCompanion, you'll need to ta
 2. Authenticate by running `agent login` in your terminal
 3. Select the `cursor_cli` adapter in your chat buffer
 
+## Setup: Deep Agents
+
+To use [Deep Agents](https://docs.langchain.com/deepagents) in CodeCompanion, ensure you've followed their [documentation](https://docs.langchain.com/oss/python/deepagents/acp) to setup Deep Agents with ACP support. Then ensure that in your chat buffer you select the `deepagents` adapter.
+
+
 ## Setup: Gemini CLI
 
 1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
