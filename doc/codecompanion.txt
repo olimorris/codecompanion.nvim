@@ -800,20 +800,10 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
-<<<<<<< HEAD
-<https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
-    received and logged, but they're not currently rendered in the chat buffer UI.
-- **Audio Content**: Audio can't be sent or received
-||||||| e003fac4
-    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
-    received and logged, but they're not currently rendered in the chat buffer UI.
-- **Audio Content**: Audio can't be sent or received
-=======
     <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they’re not currently rendered in the chat buffer
     UI.
 - **Audio Content**: Audio can’t be sent or received
->>>>>>> upstream/main
 
 
 SEE ALSO                                          *codecompanion-acp-see-also*
