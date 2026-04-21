@@ -277,7 +277,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
   })
 
   local result = child.lua([[
-    require("tests.log")
+    -- require("tests.log")
     local chat = create_chat({
       servers = {
         other_mcp = {
