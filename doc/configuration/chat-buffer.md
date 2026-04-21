@@ -401,10 +401,6 @@ require("codecompanion").setup({
           modes = { n = "<C-c>", i = "<C-c>" },
           opts = {},
         },
-        -- Change further custom keymaps here
-        -- ...
-        -- Set a keymap to be false to disable it
-        some_other_keymap = false,
       },
     },
   },
@@ -461,6 +457,22 @@ require("codecompanion").setup({
 :::
 
 For the chat interaction, the keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
+
+To disable a keymap, you can set it to `false` in your configuration:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      keymaps = {
+        send = false,
+        close = false
+      }
+    }
+  }
+})
+```
+
 
 ## Prompt Decorator
 

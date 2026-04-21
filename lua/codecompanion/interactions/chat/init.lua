@@ -1671,7 +1671,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local args = { tool = tool_call.name, for_llm = for_llm, for_user = for_user }
+  local args = { tool = tool.name, for_llm = for_llm, for_user = for_user }
   self:dispatch("on_tool_output", args)
   for_llm = args.for_llm
   for_user = args.for_user

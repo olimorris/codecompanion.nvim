@@ -211,7 +211,7 @@ more easily add |codecompanion-usage-chat-buffer-editor-context|,
 |codecompanion-usage-chat-buffer-agents-tools|. Out of the box, the plugin
 supports completion with both nvim-cmp <https://github.com/hrsh7th/nvim-cmp>
 and blink.cmp <https://github.com/Saghen/blink.cmp>. For the latter, on version
-<= 0.10.0, ensure that you’ve added `codecompanion` as a source:
+<= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 >lua
     sources = {
@@ -243,7 +243,7 @@ troubleshoot, running it with `nvim --clean -u minimal.lua`.
   to work out of the box.
 This guide is intended to help you get up and running with CodeCompanion and
 begin your journey of coding with AI in Neovim. It assumes that you have
-already installed the plugin. If you haven’t done so, please refer to the
+already installed the plugin. If you haven't done so, please refer to the
 |codecompanion-installation| first.
 
 
@@ -253,9 +253,9 @@ Throughout the documentation you will see examples that are wrapped in a
 `require("codecompanion").setup({ })` block. This is purposefully done so that
 users can apply them to their own Neovim configuration.
 
-If you’re using lazy.nvim <https://github.com/folke/lazy.nvim>, you can
-simply apply the examples that you see in this documentation in the `opts`
-table. For example, the following code snippet from these docs:
+If you're using lazy.nvim <https://github.com/folke/lazy.nvim>, you can simply
+apply the examples that you see in this documentation in the `opts` table. For
+example, the following code snippet from these docs:
 
 >lua
     require("codecompanion").setup({
@@ -327,10 +327,10 @@ enables an LLM to write code directly into a Neovim buffer.
 The |codecompanion-usage-chat-buffer-| and |codecompanion-usage-inline|
 interactions need an adapter to function. In CodeCompanion terminology, an
 adapter is the connection between Neovim and an LLM or agent. CodeCompanion has
-two `types` of adapters; HTTP adapters which connect you to an LLM via it’s
-API and ACP adapters which connect you to an agent via the Agent Client
-Protocol <https://agentclientprotocol.com>. CodeCompanion has a number of
-built-in adapters
+two `types` of adapters; HTTP adapters which connect you to an LLM via it's API
+and ACP adapters which connect you to an agent via the Agent Client Protocol
+<https://agentclientprotocol.com>. CodeCompanion has a number of built-in
+adapters
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
 that you can leverage and you can find more details in the respective
 |codecompanion-configuration-adapters-http| and
@@ -365,17 +365,17 @@ To set an adapter:
     })
 <
 
-In the example above, we’re using the Copilot adapter for the chat
-interaction and the Anthropic one for the inline. We’re also using something
-cheap for the background adapter (although these interactions are opt-in). You
-can mix and match adapters as you see fit for your workflow.
+In the example above, we're using the Copilot adapter for the chat interaction
+and the Anthropic one for the inline. We're also using something cheap for the
+background adapter (although these interactions are opt-in). You can mix and
+match adapters as you see fit for your workflow.
 
 **Setting an API Key**
 
-Because most LLMs require an API key, you’ll need to share that with the
+Because most LLMs require an API key, you'll need to share that with the
 adapter. By default, the built-in adapters will look in your environment for a
 `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or
-`OPENAI`. Refer to the documentation of the LLM or agent you’re using to find
+`OPENAI`. Refer to the documentation of the LLM or agent you're using to find
 out what the environment variable is called.
 
 You can set/change the API key by using the `extend` function:
@@ -405,7 +405,7 @@ CLI ~
 
 The CLI interaction allows you to interact with agents that operate in the
 command-line like Claude Code and Opencode. To use CodeCompanion with a CLI
-agent, you’ll need to configure an agent first:
+agent, you'll need to configure an agent first:
 
 >lua
     require("codecompanion").setup({
@@ -425,8 +425,8 @@ agent, you’ll need to configure an agent first:
     })
 <
 
-In the example above, we’re setting up Claude Code in the `agents` table,
-specifying the command to run it. Then we’re setting it as the default CLI
+In the example above, we're setting up Claude Code in the `agents` table,
+specifying the command to run it. Then we're setting it as the default CLI
 interaction with `agent = "claude_code"`.
 
 
@@ -529,7 +529,7 @@ following presets:
 ACTION PALETTE ~
 
 Run `:CodeCompanionActions` to open the action palette, which gives you access
-to the plugin’s features, including your prompts from the
+to the plugin's features, including your prompts from the
 |codecompanion-configuration-prompt-library|.
 
 By default the plugin uses `vim.ui.select`, however, you can change the
@@ -538,7 +538,7 @@ provider by altering the `display.action_palette.provider` config value to be
 with `:Telescope codecompanion`.
 
 
-  [!NOTE] Some actions and prompts will only be visible if you’re in `Visual
+  [!NOTE] Some actions and prompts will only be visible if you're in `Visual
   mode`.
 
 LIST OF COMMANDS ~
@@ -644,8 +644,8 @@ between clients (like CodeCompanion) and AI agents, providing capabilities such
 as session management, file system operations, tool execution, and permission
 handling.
 
-This page provides a technical reference for what’s supported in
-CodeCompanion and how it’s been implemented.
+This page provides a technical reference for what's supported in CodeCompanion
+and how it's been implemented.
 
 
 IMPLEMENTATION                              *codecompanion-acp-implementation*
@@ -699,7 +699,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
                                                            status updates
 
   Agent Plans                    ❌                        Visual display
-                                                           of an agent’s
+                                                           of an agent's
                                                            execution plan
 
   Terminal Operations            ❌                        Agent has
@@ -749,7 +749,7 @@ FILE CONTEXT HANDLING ~
 
 When sending files as embedded resources to agents, CodeCompanion re-reads the
 file content rather than using the chat buffer representation. This avoids
-HTTP-style `<attachment>` tags that are used for LLM adapters but don’t make
+HTTP-style `<attachment>` tags that are used for LLM adapters but don't make
 sense for ACP agents.
 
 
@@ -765,7 +765,7 @@ SESSION RESUME ~
 If an agent supports the `session/list` capability, you can resume a previous
 session using the `/resume` slash command in a fresh chat buffer. This calls
 `session/list` to discover previous sessions, then `session/load` to restore
-the selected session’s conversation history into the chat buffer. See
+the selected session's conversation history into the chat buffer. See
 |codecompanion-usage-chat-buffer-slash-commands-resume| for usage details.
 
 
@@ -781,7 +781,7 @@ is subject to change in future versions.
 CLEANUP AND LIFECYCLE ~
 
 CodeCompanion ensures clean disconnection from ACP agents by hooking into
-Neovim’s `VimLeavePre` autocmd. This guarantees that agent processes are
+Neovim's `VimLeavePre` autocmd. This guarantees that agent processes are
 properly terminated even if Neovim exits unexpectedly.
 
 
@@ -791,14 +791,14 @@ CodeCompanion currently implements **ACP Protocol Version 1**.
 
 The protocol version is negotiated during initialization. If an agent selects a
 different version, CodeCompanion will log a warning but continue to operate,
-following the agent’s selected version.
+following the agent's selected version.
 
 
 CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
 
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
-    doesn’t advertise terminal capabilities to agents.
+    doesn't advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
     <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they’re not currently rendered in the chat buffer
@@ -1063,7 +1063,7 @@ ACP ADAPTERS                        *codecompanion-configuration-acp-adapters*
 
 This section contains configuration which is specific to Agent Client Protocol
 (ACP) adapters only. There is a lot of shared functionality between ACP and
-|codecompanion-configuration-adapters-http| adapters. Therefore it’s
+|codecompanion-configuration-adapters-http| adapters. Therefore it's
 recommended you read the two pages together.
 
 
@@ -1150,11 +1150,11 @@ MCP SERVERS ~
 
 Some ACP adapters support
 <https://agentclientprotocol.com/protocol/session-setup#mcp-servers> connecting
-to Model Client Protocol (MCP) servers. If you’ve defined
+to Model Client Protocol (MCP) servers. If you've defined
 |codecompanion-configuration-mcp|, then CodeCompanion can automatically connect
 to those servers when initializing the adapter.
 
-To enable this, set `inherit_from_config` in the ACP adapter’s
+To enable this, set `inherit_from_config` in the ACP adapter's
 `defaults.mcpServers` field:
 
 >lua
@@ -1174,10 +1174,10 @@ To enable this, set `inherit_from_config` in the ACP adapter’s
 <
 
 
-  [!NOTE] CodeCompanion does not display the MCP servers in the chat buffer’s
+  [!NOTE] CodeCompanion does not display the MCP servers in the chat buffer's
   context when used with an ACP adapter.
 Alternatively, you can configure MCP servers manually. In the below example,
-we’re configuring Claude Code to connect to the sequential-thinking
+we're configuring Claude Code to connect to the sequential-thinking
 <https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking>
 server via stdio:
 
@@ -1236,11 +1236,11 @@ CodeCompanion, you simply need to follow their Getting Started
 
 SETUP: CAGENT ~
 
-To use Docker’s Cagent <https://github.com/docker/cagent> within
-CodeCompanion, you need to follow these steps:
+To use Docker's Cagent <https://github.com/docker/cagent> within CodeCompanion,
+you need to follow these steps:
 
 1. Install <https://github.com/docker/cagent?tab=readme-ov-file#installation> Cagent as per their instructions
-2. Create an agent <https://github.com/docker/cagent?tab=readme-ov-file#run-agents> in the repository you’re working from
+2. Create an agent <https://github.com/docker/cagent?tab=readme-ov-file#run-agents> in the repository you're working from
 3. Test the agent by running `cagent run your_agent.yaml` in the CLI
 4. In your CodeCompanion config, extend the `cagent` adapter to include the agent:
 
@@ -1271,7 +1271,7 @@ create multiple commands for each agent.
 SETUP: CLAUDE CODE ~
 
 To use Claude Code <https://www.anthropic.com/claude-code> within
-CodeCompanion, you’ll need to take the following steps:
+CodeCompanion, you'll need to take the following steps:
 
 1. Install <https://docs.anthropic.com/en/docs/claude-code/quickstart#step-1%3A-install-claude-code> Claude Code
 2. Install <https://github.com/zed-industries/claude-agent-acp> the Zed ACP adapter for Claude Code
@@ -1279,7 +1279,7 @@ CodeCompanion, you’ll need to take the following steps:
 
 CLAUDE PRO SUBSCRIPTION
 
-1. In your CLI, run `claude setup-token`. You’ll be redirected to the Claude.ai website for authorization:
+1. In your CLI, run `claude setup-token`. You'll be redirected to the Claude.ai website for authorization:
 
 2. Back in your CLI, copy the OAuth token (in yellow):
 
@@ -1326,7 +1326,7 @@ AN API KEY
 
 SETUP: CLINE CLI ~
 
-To use Cline CLI <https://cline.bot/cli> within CodeCompanion, you’ll need to
+To use Cline CLI <https://cline.bot/cli> within CodeCompanion, you'll need to
 take the following steps:
 
 1. Install <https://docs.cline.bot/getting-started/installing-cline#cli> Cline CLI.
@@ -1336,7 +1336,7 @@ take the following steps:
 
 SETUP: CODEX ~
 
-To use OpenAI’s Codex <https://openai.com/codex/>, install an ACP-compatible
+To use OpenAI's Codex <https://openai.com/codex/>, install an ACP-compatible
 adapter like this <https://github.com/zed-industries/codex-acp> one from Zed
 <https://zed.dev>.
 
@@ -1369,12 +1369,12 @@ SETUP: COPILOT CLI ~
 Install Copilot CLI
 <https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli>
 as per the instructions and then in the terminal run `copilot` and ensure that
-you’re authenticated.
+you're authenticated.
 
 
 SETUP: CURSOR CLI ~
 
-To use Cursor <https://www.cursor.com/> within CodeCompanion, you’ll need to
+To use Cursor <https://www.cursor.com/> within CodeCompanion, you'll need to
 take the following steps:
 
 1. Install `agent` as per the Cursor CLI documentation <https://cursor.com/docs/cli/overview>
@@ -1385,7 +1385,7 @@ take the following steps:
 SETUP: GEMINI CLI ~
 
 1. Install Gemini CLI <https://github.com/google-gemini/gemini-cli>
-2. Update your CodeCompanion config and select which authentication methods you’d like to use. Currently there are:- `oauth-personal` which uses your Google login
+2. Update your CodeCompanion config and select which authentication methods you'd like to use. Currently there are:- `oauth-personal` which uses your Google login
 - `gemini-api-key`
 - `vertex-ai`)
 
@@ -1416,7 +1416,7 @@ The example below uses the `gemini-api-key` method, pulling the API key from
 
 SETUP: GOOSE CLI ~
 
-To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you’ve
+To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you've
 followed their documentation
 <https://block.github.io/goose/docs/getting-started/installation/> to setup and
 install Goose CLI. Then ensure that in your chat buffer you select the `goose`
@@ -1425,7 +1425,7 @@ adapter.
 
 SETUP: KILO CODE ~
 
-To use Kilo Code <https://kilo.ai> in CodeCompanion, ensure you’ve followed
+To use Kilo Code <https://kilo.ai> in CodeCompanion, ensure you've followed
 their documentation to install
 <https://kilo.ai/docs/getting-started/installing#cli> and configure
 <https://kilo.ai/docs/getting-started/setup-authentication#cli> it. Then ensure
@@ -1453,7 +1453,7 @@ configure your API key. Then ensure that in your chat buffer you select the
 SETUP: KIRO CLI ~
 
 Install Kiro cli <https://kiro.dev/docs/cli/> as per their instructions. Then
-open it and login (if installation doesn’t already prompt you to login). the
+open it and login (if installation doesn't already prompt you to login). the
 codecompanion adapter will execute `kiro-cli acp`, make sure to have it
 available on your PATH.
 
@@ -1461,7 +1461,7 @@ available on your PATH.
 SETUP: MISTRAL VIBE ~
 
 To use Mistral Vibe <https://github.com/mistralai/mistral-vibe> in
-CodeCompanion, ensure you’ve followed their documentation to install
+CodeCompanion, ensure you've followed their documentation to install
 <https://github.com/mistralai/mistral-vibe>. Then run `vibe --setup` in your
 CLI in order to setup your API key. Then ensure that in your chat buffer you
 select the `mistral_vibe` adapter.
@@ -1469,8 +1469,8 @@ select the `mistral_vibe` adapter.
 
 SETUP: OPENCODE ~
 
-To use OpenCode <https://opencode.ai> in CodeCompanion, ensure you’ve
-followed their documentation to install <https://opencode.ai/docs/#install> and
+To use OpenCode <https://opencode.ai> in CodeCompanion, ensure you've followed
+their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
 
@@ -1487,11 +1487,11 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
 HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
 
 
-  [!TIP] Want to connect to an LLM that isn’t supported out of the box? Check
-  out |codecompanion--community-adapters| user contributed adapters,
+  [!TIP] Want to connect to an LLM that isn't supported out of the box? Check out
+  |codecompanion--community-adapters| user contributed adapters,
   |codecompanion-extending-adapters.html| your own or post in the discussions
   <https://github.com/olimorris/codecompanion.nvim/discussions>
-An adapter is what connects Neovim to an LLM provider and model. It’s the
+An adapter is what connects Neovim to an LLM provider and model. It's the
 interface that allows data to be sent, received and processed. There are a
 multitude of ways to customize them.
 
@@ -1540,7 +1540,7 @@ between adapters and LLMs. Below are two examples of how this can be achieved.
 CHANGING ADAPTER PARAMETERS (SCHEMA) ~
 
 
-  [!NOTE] When extending an adapter with `extend`, use it’s key from the
+  [!NOTE] When extending an adapter with `extend`, use it's key from the
   `adapters` dictionary
 LLMs have many settings such as model, temperature and max_tokens. In an
 adapter, these sit within a schema table and can be configured during setup:
@@ -1596,12 +1596,12 @@ ENVIRONMENT VARIABLES ~
 
 Setting environment variables within adapters is a key part of configuration.
 The adapter `env` table lets you define values that will be interpolated into
-the adapter’s URL, headers, parameters and other fields at runtime.
+the adapter's URL, headers, parameters and other fields at runtime.
 
 
 
-  [!NOTE] In this `command` example, we’re using the 1Password CLI to extract
-  the Gemini API Key. You could also use gpg as outlined here
+  [!NOTE] In this `command` example, we're using the 1Password CLI to extract the
+  Gemini API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
@@ -1797,7 +1797,7 @@ need authentication, set an API key and pass it via an "Authorization" header:
 
 OPENAI RESPONSES API
 
-CodeCompanion supports OpenAI’s Responses API
+CodeCompanion supports OpenAI's Responses API
 <https://platform.openai.com/docs/api-reference/responses> out of the box, via
 a separate adapter:
 
@@ -1832,7 +1832,7 @@ and it can be configured as with any other adapter:
     },
 <
 
-By default, CodeCompanion sets `store = false` to ensure that state isn’t
+By default, CodeCompanion sets `store = false` to ensure that state isn't
 stored
 <https://platform.openai.com/docs/api-reference/responses/create#responses-create-store>
 via the API. This is standard behaviour across all http adapters within the
@@ -1937,7 +1937,7 @@ You can also customize the prefixes that trigger completions for
 
 CALLBACKS ~
 
-Callbacks allow you to hook into the chat buffer’s lifecycle and react to
+Callbacks allow you to hook into the chat buffer's lifecycle and react to
 specific events. They are registered per-chat and receive the chat instance as
 the first argument.
 
@@ -1989,7 +1989,7 @@ Callbacks can also be registered in the config via
 `interactions.background.chat.callbacks`. These run asynchronously using a
 separate background LLM instance and are suited for fire-and-forget tasks like
 generating chat titles. Unlike the callbacks above, they cannot return values
-to influence the chat’s behavior:
+to influence the chat's behavior:
 
 >lua
     require("codecompanion").setup({
@@ -2023,8 +2023,8 @@ PREVENTING SUBMISSION
 The `on_before_submit` callback can return `false` to prevent a message from
 being sent to the LLM. When cancelled, `chat:restore()` is called
 automatically, which resets the buffer to an editable state and fires a
-`CodeCompanionChatRestored` event. The user’s message remains in the buffer
-so it can be edited and resubmitted.
+`CodeCompanionChatRestored` event. The user's message remains in the buffer so
+it can be edited and resubmitted.
 
 This is useful for implementing safeguards such as token/context limit checks:
 
@@ -2056,9 +2056,9 @@ The `info` table passed to `on_before_submit` contains:
 
 TRUNCATING TOOL OUTPUT
 
-The `on_tool_output` callback fires before a tool’s output is added to the
+The `on_tool_output` callback fires before a tool's output is added to the
 chat. The `args` table contains `tool` (the tool name), `for_llm` (the content
-sent to the LLM) and `for_user` (what’s shown in the buffer). Mutate
+sent to the LLM) and `for_user` (what's shown in the buffer). Mutate
 `args.for_llm` and/or `args.for_user` to modify the output:
 
 >lua
@@ -2100,7 +2100,7 @@ The `data` table contains:
 
 - `adapter` — a safe copy of the current adapter (includes `meta.context_window` for HTTP adapters)
 - `estimated_tokens` — client-side token estimate across all messages
-- `messages` — a **mutable reference** to the chat’s message stack. Changes made here persist back to the chat
+- `messages` — a **mutable reference** to the chat's message stack. Changes made here persist back to the chat
 - `reported_tokens` — server-reported token count (if available from the adapter)
 
 This is useful for monitoring context window usage and compacting the message
@@ -2150,7 +2150,7 @@ DIFF ~
 
 
 
-CodeCompanion has a built-in diff engine that’s leveraged throughout the
+CodeCompanion has a built-in diff engine that's leveraged throughout the
 plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter,
 then the plugin will update files and buffers, displaying the changes in a
 floating window.
@@ -2180,14 +2180,28 @@ message and `<C-c>` for closing in both normal and insert modes. To set other
 `:map-arguments`, you can use the optional `opts` table which will be fed to
 `vim.keymap.set`.
 
+To disable a keymap, you can set it to `false` in your configuration:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          keymaps = {
+            send = false,
+            close = false
+          }
+        }
+      }
+    })
+<
+
 
 PROMPT DECORATOR ~
 
 It can be useful to decorate your prompt with additional information, prior to
 sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a
-user’s prompt between `<prompt></prompt>` tags, presumably to differentiate
-the user’s ask from additional context. This can also be achieved in
-CodeCompanion:
+user's prompt between `<prompt></prompt>` tags, presumably to differentiate the
+user's ask from additional context. This can also be achieved in CodeCompanion:
 
 >lua
     require("codecompanion").setup({
@@ -2284,7 +2298,7 @@ referenced with `@` (by default), when in the chat buffer:
 When users introduce the group, `my_group`, in the chat buffer, it can call the
 tools you listed (such as `run_command`) to perform tasks on your code. The
 `system_prompt` field allows you to give the LLM specific instructions for how
-to use the group’s tools and can be a string or a function that receives the
+to use the group's tools and can be a string or a function that receives the
 group config table and a |codecompanion-configuration-system-prompt| (with
 `language`, `date`, `nvim_version`, `os`, etc.).
 
@@ -2297,10 +2311,10 @@ function or a string that points to a luafile that return the table.
 ENABLING TOOLS
 
 Tools can be conditionally enabled using the `enabled` option. This works for
-built-in tools as well as an adapter’s own tools. This is useful to ensure
-that a particular dependency is installed on the machine. You can use the
-`:CodeCompanionChat RefreshCache` command if you’ve installed a new
-dependency and want to refresh the tool availability in the chat buffer.
+built-in tools as well as an adapter's own tools. This is useful to ensure that
+a particular dependency is installed on the machine. You can use the
+`:CodeCompanionChat RefreshCache` command if you've installed a new dependency
+and want to refresh the tool availability in the chat buffer.
 
 
 
@@ -2386,10 +2400,10 @@ native completion solution (`default`), and coc.nvim
 
 CONTEXT
 
-It’s not uncommon for users to share many items, as context, with an LLM.
-This can impact the chat buffer’s UI significantly, leaving a large space
-between the LLM’s last response and the user’s input. To minimize this
-impact, the context can be folded:
+It's not uncommon for users to share many items, as context, with an LLM. This
+can impact the chat buffer's UI significantly, leaving a large space between
+the LLM's last response and the user's input. To minimize this impact, the
+context can be folded:
 
 >lua
     require("codecompanion").setup({
@@ -2416,7 +2430,7 @@ can change the appearance of the chat buffer by changing the
 
 REASONING
 
-An adapter’s reasoning is streamed into the chat buffer by default, under a
+An adapter's reasoning is streamed into the chat buffer by default, under a
 `h3` heading. By default, this output will be folded once streaming has been
 completed. You can turn off folding and hide reasoning output altogether:
 
@@ -2460,7 +2474,7 @@ customized in the configuration:
     })
 <
 
-By default, the LLM’s responses will be placed under a header such as
+By default, the LLM's responses will be placed under a header such as
 `CodeCompanion (DeepSeek)`, leveraging the current adapter in the chat buffer.
 This option can be in the form of a string or a function that returns a string.
 If you opt for a function, the first parameter will always be the adapter from
@@ -2497,8 +2511,8 @@ Editor context
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
 can be a inserted into the chat buffer using `#` (by default). It provides
 contextual code or information about the current Neovim state. For instance,
-the built-in `#{buffer}` editor context sends the current buffer’s contents
-to the LLM.
+the built-in `#{buffer}` editor context sends the current buffer's contents to
+the LLM.
 
 You can even define your own context:
 
@@ -2530,8 +2544,8 @@ SYNCING
 Neovim buffers can be
 |codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
 buffer. That is, on each turn their content can be shared with the LLM. This is
-useful if you’re modifying a buffer and want the LLM to always have the
-latest changes.
+useful if you're modifying a buffer and want the LLM to always have the latest
+changes.
 
 To enable this by default for the built-in `#buffer` editor context, you can
 set the `default_params` option to either `diff` or `all`:
@@ -2594,7 +2608,7 @@ AGENT OPTIONS
 
   Option        Type     Description
   ------------- -------- ------------------------------------------------
-  cmd           string   The command to run (e.g. "claude", "codex")
+  cmd           string   The command to run (e.g. "claude", "codex")
   args          table    Arguments to pass to the command
   description   string   Description shown in the action palette
   provider      string   Which provider to use (defaults to "terminal")
@@ -2676,7 +2690,7 @@ You can create custom providers and reference them by module path or file path:
     })
 <
 
-If an agent’s `provider` field doesn’t match any entry in the `providers`
+If an agent's `provider` field doesn't match any entry in the `providers`
 table, the `terminal` provider is used as a fallback.
 
 
@@ -2923,9 +2937,9 @@ to connect to an MCP server.
 BASIC CONFIGURATION
 
 
-In the environment variables example above, we’re using 1Password CLI
+In the environment variables example above, we're using 1Password CLI
 <https://developer.1password.com/docs/cli/> tool to fetch the API key. However,
-you can leverage CodeCompanion’s built-in
+you can leverage CodeCompanion's built-in
 |codecompanion-configuration-adapters-http-environment-variables| capabilities
 to fetch the value from any source you like.
 
@@ -3028,10 +3042,10 @@ Within CodeCompanion, rules fulfil two main purposes within a chat buffer:
 1. To provide system-level instructions to your LLM
 2. To provide persistent context via files in your project
 
-Similar to Cursor’s Rules <https://cursor.com/docs/context/rules>, they
-provide a way to guide the behavior of your LLM within a chat. Why? LLMs
-don’t retain memory between sessions so preferences and context need to be
-re-applied each time a new chat is started.
+Similar to Cursor's Rules <https://cursor.com/docs/context/rules>, they provide
+a way to guide the behavior of your LLM within a chat. Why? LLMs don't retain
+memory between sessions so preferences and context need to be re-applied each
+time a new chat is started.
 
 
 ENABLING RULES ~
@@ -3057,8 +3071,8 @@ with a specific project.
 Nested groups allow you to apply the same conditional to multiple groups
 alongside keeping your config clean. Infact, the plugin uses this itself. There
 is a `CodeCompanion` group with sub-groups for different parts of the plugin,
-allowing contributors to easily share context with an LLM when they’re
-working on specific parts of the codebase.
+allowing contributors to easily share context with an LLM when they're working
+on specific parts of the codebase.
 
 When using the `Action Palette` or the slash command, the plugin will extract
 these nested groups and display them in the `Chat with rules ...` menu.
@@ -3156,8 +3170,8 @@ are significantly easier to maintain than Lua tables.
 
 BASIC STRUCTURE
 
-At their core, prompts define a series of messages sent to an LLM. Let’s
-start with a simple example:
+At their core, prompts define a series of messages sent to an LLM. Let's start
+with a simple example:
 
 
 
@@ -3541,7 +3555,7 @@ the plugin.
 
 COPYING CODE FROM A CHAT BUFFER ~
 
-The fastest way to copy an LLM’s code output is with `gy`. This will yank the
+The fastest way to copy an LLM's code output is with `gy`. This will yank the
 nearest codeblock.
 
 
@@ -3551,8 +3565,8 @@ The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
 or |codecompanion-usage-chat-buffer-slash-commands.html-buffer| slash command,
 enables an LLM to modify code in a Neovim buffer. This is especially useful if
-you do not wish to manually apply an LLM’s suggestions yourself. Simply tag
-it in the chat buffer with `@files` or `@insert_edit_into_file`.
+you do not wish to manually apply an LLM's suggestions yourself. Simply tag it
+in the chat buffer with `@files` or `@insert_edit_into_file`.
 
 
 RUN TESTS FROM THE CHAT BUFFER ~
@@ -3571,7 +3585,7 @@ You can quickly move between responses in the chat buffer using `[[` or `]]`.
 QUICKLY ACCESSING A CHAT BUFFER ~
 
 The `:CodeCompanionChat Toggle` command will automatically create a chat buffer
-if one doesn’t exist, open the last chat buffer or hide the current chat
+if one doesn't exist, open the last chat buffer or hide the current chat
 buffer.
 
 When in a chat buffer, you can cycle between other chat buffers with `{` or
@@ -3622,7 +3636,7 @@ You can open a chat buffer with the `:CodeCompanionChat` command or with
 `require("codecompanion").chat()` and you can toggle the visibility of the chat
 buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
 
-You can even customize the chat buffer’s window options:
+You can even customize the chat buffer's window options:
 
 >lua
     require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 }})
@@ -3631,12 +3645,12 @@ You can even customize the chat buffer’s window options:
 <
 
 The chat buffer uses markdown as its syntax and `H2` headers separate the user
-and LLM’s responses. The plugin is turn-based, meaning that the user sends a
-response which is then followed by the LLM’s. The user’s responses are
-parsed by treesitter and sent via an adapter to an LLM for a response which is
-then streamed back into the buffer. A response is sent to the LLM by pressing
-`<CR>` or `<C-s>`. This can of course be changed as per the
-|codecompanion--keymaps| section.
+and LLM's responses. The plugin is turn-based, meaning that the user sends a
+response which is then followed by the LLM's. The user's responses are parsed
+by treesitter and sent via an adapter to an LLM for a response which is then
+streamed back into the buffer. A response is sent to the LLM by pressing `<CR>`
+or `<C-s>`. This can of course be changed as per the |codecompanion--keymaps|
+section.
 
 
 CHANGING ADAPTER AND MODEL ~
@@ -3647,7 +3661,7 @@ One of the joys of working with CodeCompanion is being able to switch between
 conversing with an LLM and an agent, all from within the chat buffer.
 
 To do this, simply press `ga` to open up the `Select Adapter` select window. If
-your chosen adapter has more than one model then you’ll be prompted to make
+your chosen adapter has more than one model then you'll be prompted to make
 another selection. This works for both `HTTP` and `ACP` adapters.
 
 
@@ -3669,8 +3683,8 @@ COMPLETION ~
 
 
 You can invoke the completion plugins by typing `#` or `@` followed by the
-variable or tool name, which will trigger the completion menu. If you don’t
-use a completion plugin, you can use native completions with no setup, invoking
+variable or tool name, which will trigger the completion menu. If you don't use
+a completion plugin, you can use native completions with no setup, invoking
 them with `<C-_>` from within the chat buffer.
 
 When using an ACP adapter (such as claude-code), you can also type `\`
@@ -3683,15 +3697,15 @@ dynamically discovered from the agent itself.
   commands to become available. The agent needs to initialize and scan for both
   built-in and custom commands. If you define a new custom command mid-session,
   the same delay applies before it appears in the completion list.
-The backslash trigger is used to avoid conflicts with CodeCompanion’s
-built-in |codecompanion-usage-chat-buffer-slash-commands|. When you send a
-message, `\command` is automatically transformed to `/command` for the agent.
-The trigger character can be customized via
+The backslash trigger is used to avoid conflicts with CodeCompanion's built-in
+|codecompanion-usage-chat-buffer-slash-commands|. When you send a message,
+`\command` is automatically transformed to `/command` for the agent. The
+trigger character can be customized via
 `interactions.chat.slash_commands.opts.acp.trigger` in your config.
 
-It’s worth noting that not all commands available in ACP CLI tools are
-exposed via the SDK. Only a subset of built-in commands are supported, though
-this is constantly evolving as the underlying SDKs mature.
+It's worth noting that not all commands available in ACP CLI tools are exposed
+via the SDK. Only a subset of built-in commands are supported, though this is
+constantly evolving as the underlying SDKs mature.
 
 
 CONTEXT ~
@@ -3701,7 +3715,7 @@ CONTEXT ~
 Sharing context with an LLM is crucial in order to generate useful responses.
 In the plugin, context is defined as output that is shared with a chat buffer
 via a `Variable`, `Slash Command` or `Tool`. They appear in a blockquote
-entitled `Context`. In essence, this is context that you’re sharing with an
+entitled `Context`. In essence, this is context that you're sharing with an
 LLM.
 
 
@@ -3712,10 +3726,10 @@ to a chat buffer. On every turn, you can determine what is sent to the LLM. For
 buffers, you can choose to send `all` of the content or just the `diff`. For
 files, you only have the choice of sending `all` of the content.
 
-The advantage of sending `all` of a file or buffer’s content is that the LLM
+The advantage of sending `all` of a file or buffer's content is that the LLM
 will always receive a fresh copy of the source data regardless of any changes.
-This can be useful if you’re working with tools. However, please note that
-this can consume a lot of tokens.
+This can be useful if you're working with tools. However, please note that this
+can consume a lot of tokens.
 
 Syncing and sending only a `diff`, is a more token-conscious way of keeping the
 LLM up to date on the contents of a buffer. Buffer diffs track changes (adds,
@@ -3726,16 +3740,16 @@ If a context item is added by mistake, it can be removed from the chat buffer
 by simply deleting it from the `Context` blockquote. On the next turn, all data
 related to that context item will be removed from the message history.
 
-Finally, it’s important to note that all http adapter endpoints require the
+Finally, it's important to note that all http adapter endpoints require the
 sending of previous messages that make up the conversation. So even though
-you’ve shared context once, many messages ago, the LLM will always be able to
+you've shared context once, many messages ago, the LLM will always be able to
 refer to it, unless you actively alter the history of the conversation via
 `gd`.
 
 
 DEBUG WINDOW ~
 
-Sometimes it’s necessary to peek under the hood of the chat buffer to
+Sometimes it's necessary to peek under the hood of the chat buffer to
 understand what hyperparameters are being sent to the LLM, or what the message
 history looks like. By pressing `gd`, you can open up a debug window which
 contains all of the relevant information about the chat buffer, including the
@@ -3767,54 +3781,37 @@ through the system clipboard with |codecompanion-installation-img-clip-nvim|.
 CodeCompanion can work with images in your file system and also with remote
 URLs, encoding both into a base64 representation.
 
-If your adapter and model doesn’t support images, then CodeCompanion will
+If your adapter and model doesn't support images, then CodeCompanion will
 endeavour to ensure that the image is not included in the messages payload
-that’s sent to the LLM.
+that's sent to the LLM.
 
 
 KEYMAPS ~
 
-The plugin has a host of keymaps available in the chat buffer. Pressing `?` in
-the chat buffer will conveniently display all of them to you.
+The plugin has a host of keymaps available in the chat buffer. The keymaps
+available to the user in normal mode are:
 
-The keymaps available to the user in normal mode are:
-
-- `<CR>|<C-s>` to send a message to the LLM
-- `<C-c>` to close the chat buffer
-- `q` to stop the current request
-- `ga` to change the adapter for the currentchat
-- `gba` to sync the entire buffer on every turn
-- `gbd` to sync only a buffers diff on every turn
-- `gc` to insert a codeblock in the chat buffer
-- `gd` to view/debug the chat buffer’s contents
-- `gf` to fold any codeblocks in the chat buffer
-- `gM` to clear all rules from the chat buffer
-- `gr` to regenerate the last response
-- `gR` to go to the file under cursor. If the file is already opened, it’ll jump
-    to the existing window. Otherwise, it’ll be opened in a new tab.
-- `gs` to toggle the system prompt on/off
-- `gS` to show copilot usage stats
-- `gta` to toggle auto tool mode
-- `gx` to clear the chat buffer’s contents
-- `gy` to yank the last codeblock in the chat buffer
-- `[[` to move to the previous header
-- `]]` to move to the next header
-- `{` to move to the previous chat
-- `}` to move to the next chat
-
-To disable a keymap, you can set it to `false` in your configuration:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          keymaps = {
-            clear = false,
-          }
-        }
-      }
-    })
-<
+- `options`: `?` to display all available keymaps
+- `send`: `<CR>|<C-s>` to send a message to the LLM
+- `close`: `<C-c>` to close the chat buffer
+- `stop`: `q` to stop the current request
+- `change_adapter`: `ga` to change the adapter for the current chat
+- `buffer_sync_all`: `gba` to sync the entire buffer on every turn
+- `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
+- `codeblock`: `gc` to insert a codeblock in the chat buffer
+- `debug`: `gd` to view/debug the chat buffer's contents
+- `fold_code`: `gf` to fold any codeblocks in the chat buffer
+- `rules`: `gM` to clear all rules from the chat buffer
+- `regenerate`: `gr` to regenerate the last response
+- `goto_file_under_cursor`: `gR` to go to the file under cursor. If the file is already opened, it'll jump to the existing window. Otherwise, it'll be opened in a new tab.
+- `system_prompt`: `gs` to toggle the system prompt on/off
+- `copilot_stats`: `gS` to show copilot usage stats
+- `clear`: `gx` to clear the chat buffer's contents
+- `yank_code`: `gy` to yank the last codeblock in the chat buffer
+- `previous_header`: `[[` to move to the previous header
+- `next_header`: `]]` to move to the next header
+- `previous_chat`: `{` to move to the previous chat
+- `next_chat`: `}` to move to the next chat
 
 
 MESSAGES ~
@@ -3822,7 +3819,7 @@ MESSAGES ~
 
   [!TIP] The message history and adapter settings can be modified via the debug
   window (`gd`) in the chat buffer
-It’s important to note that some messages, such as system prompts or context
+It's important to note that some messages, such as system prompts or context
 provided via |codecompanion-usage-chat-buffer-slash-commands|, will be hidden.
 This is to keep the chat buffer uncluttered from a UI perspective. Using the
 `gd` keymap opens up the debug window, which allows the user to see the full
@@ -3842,7 +3839,7 @@ When conversing with an LLM, it can be useful to tweak model settings in
 between responses in order to generate the perfect output. If settings are
 enabled (`display.chat.show_settings = true`), then a yaml block will be
 present at the top of the chat buffer which can be modified in between
-responses. The yaml block is simply a representation of an adapter’s schema
+responses. The yaml block is simply a representation of an adapter's schema
 table.
 
 
@@ -3869,16 +3866,16 @@ participant to the chat buffer by using the `@` key, by default.
 
 HOW THEY WORK ~
 
-Tools make use of an LLM’s function calling
+Tools make use of an LLM's function calling
 <https://platform.openai.com/docs/guides/function-calling> ability. All tools
-in CodeCompanion follow OpenAI’s function calling specification, here
+in CodeCompanion follow OpenAI's function calling specification, here
 <https://platform.openai.com/docs/guides/function-calling#defining-functions>.
 
 When a tool is added to the chat buffer, the LLM is instructured by the plugin
 to return a structured JSON schema which has been defined for each tool. The
 chat buffer parses the LLMs response and detects the tool use before triggering
 the `tools/init.lua` file. The tool system triggers off a series of events,
-which sees tool’s added to a queue and sequentially worked with their output
+which sees tool's added to a queue and sequentially worked with their output
 being shared back to the LLM via the chat buffer. Depending on the tool, flags
 may be inserted on the chat buffer for later processing.
 
@@ -3938,7 +3935,7 @@ giving access to `language`, `date`, `nvim_version`, `os` and more:
 
 AGENT
 
-The `@{agent}` group is CodeCompanion’s agent mode. It combines a curated set
+The `@{agent}` group is CodeCompanion's agent mode. It combines a curated set
 of tools with its own system prompt, replacing the default chat and tool system
 prompts. This gives the LLM clear instructions on how to act as an autonomous
 coding agent.
@@ -3989,7 +3986,7 @@ CodeCompanion comes with a number of built-in tools which you can leverage, as
 long as your adapter and model are |codecompanion--compatibility|.
 
 When calling a tool, CodeCompanion replaces the tool call in any prompt you
-send to the LLM with the value of a tool’s `opts.tool_replacement_message`
+send to the LLM with the value of a tool's `opts.tool_replacement_message`
 string. This is to ensure that you can call a tool efficiently whilst making
 the prompt readable to the LLM.
 
@@ -4012,7 +4009,7 @@ ASK_QUESTIONS
   [!NOTE] By default, this tool is hidden and is only accessible via the
   `@{agent}` tool group
 This tool enables an LLM to ask clarifying questions before proceeding with a
-task. It’s useful when the LLM encounters ambiguous requirements, needs to
+task. It's useful when the LLM encounters ambiguous requirements, needs to
 choose between implementation approaches, or wants to validate assumptions.
 Questions can have predefined options (presented via `vim.ui.select`) or accept
 free text input (via `vim.ui.input`):
@@ -4057,15 +4054,15 @@ file? (Default: true)
 FETCH_WEBPAGE
 
 This tools enables an LLM to fetch the content from a specific webpage. It will
-return the text in a text format, depending on which adapter you’ve
-configured for the tool.
+return the text in a text format, depending on which adapter you've configured
+for the tool.
 
 >md
     Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 <
 
 **Options:** - `adapter` The adapter used to fetch, process and format the
-webpage’s content (Default: `jina`)
+webpage's content (Default: `jina`)
 
 
 FILE_SEARCH
@@ -4163,8 +4160,8 @@ MEMORY
 The memory tool enables LLMs to store and retrieve information across
 conversations through a memory file directory (`/memories`).
 
-If you’re using the `Anthropic` adapter, then this tool will act as its
-client implementation. Please refer to their documentation
+If you're using the `Anthropic` adapter, then this tool will act as its client
+implementation. Please refer to their documentation
 <https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool> for
 more information.
 
@@ -4230,7 +4227,7 @@ READ_FILE
 
 This tool can read the contents of a specific file in the current working
 directory. This can be useful for an LLM to gain wider context of files that
-haven’t been shared with it.
+haven't been shared with it.
 
 
 RUN_COMMAND
@@ -4248,10 +4245,10 @@ subject to your authorization. For example:
 
 Some commands do not write any data to stdout
 <https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)> which
-means the plugin can’t pass the output of the execution to the LLM. When this
+means the plugin can't pass the output of the execution to the LLM. When this
 occurs, the tool will instead share the exit code.
 
-The LLM is specifically instructed to detect if you’re running a test suite,
+The LLM is specifically instructed to detect if you're running a test suite,
 and if so, to insert a flag in its request. This is then detected and the
 outcome of the test is stored in the corresponding flag on the chat buffer.
 This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
@@ -4274,7 +4271,7 @@ receive up to date information:
     Use @{web_search} to search neovim.io and explain how I can configure a new language server
 <
 
-Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
+Currently, the tool uses tavily <https://www.tavily.com> and you'll need to
 ensure that an API key has been set accordingly, as per the adapter
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
 
@@ -4319,7 +4316,7 @@ In the `openai_responses` adapter, the following tools are available:
 
 MCP ~
 
-The MCP servers you’ve |codecompanion-configuration-mcp| in CodeCompanion
+The MCP servers you've |codecompanion-configuration-mcp| in CodeCompanion
 expose their own set of tools that you can use in the chat buffer. Once a
 server has been started, the tools will be available to you and appear in the
 completion menu, by typing `@`. They are prefixed with `mcp:`.
@@ -4339,15 +4336,15 @@ from
 APPROVALS
 
 
-  [!NOTE] This applies to CodeCompanion’s built-in tools only. ACP agents have
+  [!NOTE] This applies to CodeCompanion's built-in tools only. ACP agents have
   their own tools and approval systems.
 In order to give developers the confidence to use tools, CodeCompanion has
-implemented a comprehensive approval system for it’s built-in tools.
+implemented a comprehensive approval system for it's built-in tools.
 
 CodeCompanion segregates tool approvals by chat buffer and by tool. This means
 that if you approve a tool in one chat buffer, it is `not` approved for use
-anywhere else. Similarly, if you approve a tool once, you’ll be prompted to
-approve it again next time it’s executed.
+anywhere else. Similarly, if you approve a tool once, you'll be prompted to
+approve it again next time it's executed.
 
 When prompted, the user has four options available to them:
 
@@ -4360,7 +4357,7 @@ Certain tools with potentially destructive capabilities have an additional
 layer of protection. Instead of being approved at a tool level, these are
 approved at a command level (`require_cmd_approval = true`). Taking the
 `run_command` tool as an example. If you approve an agent to always run `make
-format`, if it tries to run `make test`, you’ll be prompted to approve that
+format`, if it tries to run `make test`, you'll be prompted to approve that
 command specifically.
 
 Approvals can be reset for the given chat buffer by using the `gtx` keymap.
@@ -4416,7 +4413,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 EDITOR CONTEXT                            *codecompanion-usage-editor-context*
 
 Editor context allows you to dynamically insert Neovim context into your chat
-messages using the `#{context}` syntax. They’re processed when you send your
+messages using the `#{context}` syntax. They're processed when you send your
 message to the LLM, automatically including relevant content like buffer
 contents, LSP diagnostics, or your current viewport. Type `#` in the chat
 buffer to see available context through code completion, or type them manually.
@@ -4525,7 +4522,7 @@ messages, or asking for feedback on your recent changes.
 
 #MESSAGES ~
 
-The `messages` context shares Neovim’s message history (`:messages`) with the
+The `messages` context shares Neovim's message history (`:messages`) with the
 LLM. This is useful when an error has been written to the message history and
 you want to share it with the LLM for troubleshooting.
 
@@ -4620,13 +4617,13 @@ common files to the chat buffer:
 CREATING RULES ~
 
 The plugin does not require rules to be in a specific filetype or even format
-(unless you’re using the `claude` parser). This allows you to leverage mdc
+(unless you're using the `claude` parser). This allows you to leverage mdc
 <https://docs.cursor.com/en/context/rules#rule-anatomy> files, markdown files
 or good old plain text files.
 
 The location of the rules is also unimportant. The rules files could be local
-to the project you’re working in. Or, they could reside in a separate
-location on your disk. Just ensure the path is correct when you’re
+to the project you're working in. Or, they could reside in a separate location
+on your disk. Just ensure the path is correct when you're
 |codecompanion-configuration-rules-rule-groups| the rules group.
 
 You can even set the system prompt for the chat buffer in the rules file
@@ -4676,7 +4673,7 @@ ADDING RULES TO A CHAT BUFFER ~
 
 WHEN OPENING THE CHAT BUFFER
 
-Rules can automatically be added to a chat buffer when it’s created. Just
+Rules can automatically be added to a chat buffer when it's created. Just
 specify the default rules to include:
 
 
@@ -4699,7 +4696,7 @@ config that can be added to a new chat buffer.
 CLEARING RULES
 
 Rules can also be cleared from a chat buffer via the `gR` keymap. Although
-note, this will remove `ALL` context that’s been designated as `rules`.
+note, this will remove `ALL` context that's been designated as `rules`.
 
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
@@ -4748,9 +4745,9 @@ of a conversation with an agent.
 
 /COMPACT ~
 
-The `compact` slash command, based on Claude Code’s
+The `compact` slash command, based on Claude Code's
 <https://code.claude.com/docs/en/slash-commands#built-in-slash-commands>
-corresponding feature, clears the chat buffer’s message history whilst
+corresponding feature, clears the chat buffer's message history whilst
 preserving a summary, in context.
 
 System prompts, rules and file/buffer shares will be preserved but all user,
@@ -4765,7 +4762,7 @@ prompting the same LLM to summarize the chat history into a concise format.
   via the `fetch` command alongside a prompt
 The `fetch` slash command allows you to add the contents of a URL to the chat
 buffer. By default, the plugin uses the awesome and powerful jina.ai
-<https://jina.ai> to parse the page’s content and convert it into plain text.
+<https://jina.ai> to parse the page's content and convert it into plain text.
 For convenience, the slash command will cache the output to disk and prompt the
 user if they wish to restore from the cache, should they look to fetch the same
 URL.
@@ -4850,7 +4847,7 @@ The conversation history is rendered so you can continue where you left off.
 /SYMBOLS ~
 
 
-  [!NOTE] If a filetype isn’t supported please consider making a PR to add the
+  [!NOTE] If a filetype isn't supported please consider making a PR to add the
   corresponding Tree-sitter queries from aerial.nvim
   <https://github.com/stevearc/aerial.nvim>
 The `symbols` slash command uses Tree-sitter to create a symbolic outline of a
@@ -4874,15 +4871,15 @@ Codex <https://github.com/openai/codex>.
 
 `Why?` Sharing context with an agent in the CLI can be cumbersome. You have to
 navigate to the CLI, press `@` search for the file or trigger a slash command.
-If you want to share a code snippet then that’s a good ol’ copy and paste
-job. With CodeCompanion, you can share context from Neovim in keystrokes,
-without leaving the buffer or the editor.
+If you want to share a code snippet then that's a good ol' copy and paste job.
+With CodeCompanion, you can share context from Neovim in keystrokes, without
+leaving the buffer or the editor.
 
 
 INITIATING A CLI INTERACTION ~
 
 You can use `:CodeCompanionCLI` to start a new CLI interaction and
-CodeCompanion will leverage the agent you’ve configured in your config at
+CodeCompanion will leverage the agent you've configured in your config at
 `interactions.cli.agent`. If you want to specify an agent on the fly, you can
 use `:CodeCompanionCLI agent=<agent_name>`.
 
@@ -4916,8 +4913,8 @@ context.
 
 ADDING CONTEXT
 
-You’re working in a buffer and think `“I should share this with the
-agent”` or `“This code is relevant to the conversation…”`:
+You're working in a buffer and think `“I should share this with the agent”`
+or `“This code is relevant to the conversation…”`:
 
 >lua
     -- [C]odeCompanion [A]dd
@@ -4929,8 +4926,8 @@ agent”` or `“This code is relevant to the conversation…”`:
 This keymap allows you to quickly share the current buffer or visual selection
 with the agent, without needing to specify a prompt, utilising `#{this}`. This
 is useful for quickly sharing context before following up with a more specific
-prompt. You’ll also note the inclusion of `focus = false` to ensure that the
-cursor doesn’t move into the CLI buffer.
+prompt. You'll also note the inclusion of `focus = false` to ensure that the
+cursor doesn't move into the CLI buffer.
 
 This can be useful as you carefully move between buffers and code, determining
 what context is relevant to share with the agent, without losing your current
@@ -4955,7 +4952,7 @@ automatically submitting the prompt.
 
 FIXING FAILING TESTS
 
-You’ve run your test suite in the terminal and observe some failures. Share
+You've run your test suite in the terminal and observe some failures. Share
 them with the agent:
 
 >lua
@@ -5341,15 +5338,15 @@ can you refactor this?`. This approach can also be combined with variables.
 
 CLASSIFICATION ~
 
-One of the challenges with inline editing is determining how the LLM’s
-response should be handled in the buffer. If you’ve prompted the LLM to
-`“create a table of 5 common text editors”` then you may wish for the
-response to be placed at the cursor’s position in the current buffer.
-However, if you asked the LLM to `“refactor this function”` then you’d
-expect the response to `replace` a visual selection. The plugin uses the inline
-LLM you’ve specified in your config to determine if the response should:
+One of the challenges with inline editing is determining how the LLM's response
+should be handled in the buffer. If you've prompted the LLM to `“create a
+table of 5 common text editors”` then you may wish for the response to be
+placed at the cursor's position in the current buffer. However, if you asked
+the LLM to `“refactor this function”` then you'd expect the response to
+`replace` a visual selection. The plugin uses the inline LLM you've specified
+in your config to determine if the response should:
 
-- `replace` - replace a visual selection you’ve made
+- `replace` - replace a visual selection you've made
 - `add` - be added in the current buffer at the cursor position
 - `before` - to be added in the current buffer before the cursor position
 - `new` - be placed in a new buffer
@@ -5361,7 +5358,7 @@ DIFF MODE ~
 By default, an inline interaction prompt will trigger the diff feature, showing
 differences between the original buffer and the changes made by the LLM. This
 can be turned off in your config via the `display.diff.provider` table. You can
-also choose to accept or reject the LLM’s suggestions with the following
+also choose to accept or reject the LLM's suggestions with the following
 keymaps:
 
 - `gda` - Accept an inline edit
@@ -5374,14 +5371,14 @@ These keymaps can also be changed in your config via the
 EDITOR CONTEXT ~
 
 
-  [!TIP] To ensure the LLM has enough context to complete a complex ask, it’s
+  [!TIP] To ensure the LLM has enough context to complete a complex ask, it's
   recommended to use the `buffer` editor context
 The inline interaction allows you to send context alongside your prompt via the
 notion of editor context. That is, context that relates to your current Neovim
 session:
 
 - `buffer` - shares the contents of the current buffer
-- `chat` - shares the LLM’s messages from the last chat buffer
+- `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
 Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
@@ -5418,7 +5415,7 @@ SLASH COMMANDS ~
 
 If your prompt library entries have an `alias` defined then you can invoke them
 using a slash command. In the cmd line `:CodeCompanion /<alias>` or `/<alias>`
-if you’re in the chat buffer.
+if you're in the chat buffer.
 
 When invoked this way, any tools declared on the prompt are added to the
 current chat buffer before the prompt content is inserted.
@@ -5426,19 +5423,19 @@ current chat buffer before the prompt content is inserted.
 
 USER INTERFACE                            *codecompanion-usage-user-interface*
 
-CodeCompanion aims to keep any changes to the user’s UI to a minimum.
-Aesthetics, especially in Neovim, are highly subjective. So whilst it won’t
-set much by default, it does endeavour to allow users to hook into the plugin
-and customize the UI to their liking via |codecompanion-usage-events|.
+CodeCompanion aims to keep any changes to the user's UI to a minimum.
+Aesthetics, especially in Neovim, are highly subjective. So whilst it won't set
+much by default, it does endeavour to allow users to hook into the plugin and
+customize the UI to their liking via |codecompanion-usage-events|.
 
 
 METADATA
 
 CodeCompanion exposes a global dictionary, `_G.codecompanion_chat_metadata`
 which users can leverage throughout their configuration. Using the chat
-buffer’s buffer number as the key, the dictionary contains:
+buffer's buffer number as the key, the dictionary contains:
 
-- `adapter` - The `name` and `model` of the chat buffer’s current adapter
+- `adapter` - The `name` and `model` of the chat buffer's current adapter
 - `context_items` - The number of context items current in the chat buffer
 - `cycles` - The number of cycles (User->LLM->User) that have taken place in the chat buffer
 - `id` - The ID of the chat buffer
@@ -5496,21 +5493,20 @@ EXTENDING WITH ADAPTERS      *codecompanion-extending-extending-with-adapters*
   <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua>
   adapter
 In CodeCompanion, adapters are interfaces that act as a bridge between the
-plugin’s functionality and an LLM. All adapters must follow the interface,
+plugin's functionality and an LLM. All adapters must follow the interface,
 below.
 
 This guide is intended to serve as a reference for anyone who wishes to
 contribute an adapter to the plugin or understand the inner workings of
 existing adapters.
 
-The plugin’s in-built adapters can be found here
+The plugin's in-built adapters can be found here
 <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
 
 
 THE INTERFACE ~
 
-Let’s take a look at the interface of an adapter as per the `adapter.lua`
-file:
+Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 
 >lua
     ---@class CodeCompanion.HTTPAdapter
@@ -5529,8 +5525,8 @@ file:
     ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
 <
 
-Everything up to the handlers should be self-explanatory. We’re simply
-providing details of the LLM’s API to the curl library and executing the
+Everything up to the handlers should be self-explanatory. We're simply
+providing details of the LLM's API to the curl library and executing the
 request. The real intelligence of the adapter comes from the handlers table
 which is a set of functions which bridge the functionality of the plugin to the
 LLM.
@@ -5582,8 +5578,8 @@ clear separation of concerns:
 
 ENVIRONMENT VARIABLES ~
 
-When building an adapter, you’ll need to inject variables into different
-parts of the adapter class. If we take the Google Gemini
+When building an adapter, you'll need to inject variables into different parts
+of the adapter class. If we take the Google Gemini
 <https://github.com/google-gemini/cookbook/blob/main/quickstarts/rest/Streaming_REST.ipynb>
 endpoint as an example, we need to inject the model and API key variables into
 the URL of
@@ -5592,8 +5588,8 @@ Whereas with OpenAI
 <https://platform.openai.com/docs/api-reference/authentication>, we need an
 `Authorization` http header to contain our API key.
 
-Let’s take a look at the `env` table from the Google Gemini adapter that
-comes with the plugin:
+Let's take a look at the `env` table from the Google Gemini adapter that comes
+with the plugin:
 
 >lua
     url = "https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${api_key}",
@@ -5606,10 +5602,10 @@ comes with the plugin:
 The key `api_key` represents the name of the variable which can be injected in
 the adapter via the `${}` notation, and the value can represent one of:
 
-- A command to execute on the user’s system
-- An environment variable from the user’s system
+- A command to execute on the user's system
+- An environment variable from the user's system
 - A function to be executed at runtime
-- A path to an item in the adapter’s schema table
+- A path to an item in the adapter's schema table
 - A plain text value
 
 
@@ -5617,7 +5613,7 @@ the adapter via the `${}` notation, and the value can represent one of:
   `parameters` fields of the adapter class at runtime
 **Commands**
 
-An environment variable can be obtained from running a command on a user’s
+An environment variable can be obtained from running a command on a user's
 system. This can be accomplished by prefixing the value with `cmd:` such as:
 
 >lua
@@ -5626,12 +5622,12 @@ system. This can be accomplished by prefixing the value with `cmd:` such as:
     },
 <
 
-In this example, we’re running the `op read` command to get a credential from
+In this example, we're running the `op read` command to get a credential from
 1Password.
 
 **Environment Variable**
 
-An environment variable can also be obtained by using lua’s `os.getenv`
+An environment variable can also be obtained by using lua's `os.getenv`
 function. Simply enter the name of the variable as a string such as:
 
 >lua
@@ -5663,7 +5659,7 @@ a table on the adapter class. For example:
     },
 <
 
-In this example, we’re getting the value of a user’s chosen model from the
+In this example, we're getting the value of a user's chosen model from the
 schema table on the adapter.
 
 
@@ -5711,7 +5707,7 @@ These handlers manage tool/function calling:
 
 
   [!TIP] All of the adapters in the plugin come with their own tests. These serve
-  as a great reference to understand how they’re working with the output of the
+  as a great reference to understand how they're working with the output of the
   API
 
 OPENAI�S API OUTPUT
@@ -5761,7 +5757,7 @@ results in the following output:
 
 REQUEST.BUILD_MESSAGES
 
-The chat buffer’s output is passed to this handler in the form of the
+The chat buffer's output is passed to this handler in the form of the
 `messages` parameter. So we can just output this as part of a messages table:
 
 >lua
@@ -5777,7 +5773,7 @@ The chat buffer’s output is passed to this handler in the form of the
 
 RESPONSE.PARSE_CHAT
 
-Now let’s look at how we format the output from OpenAI. Running that request
+Now let's look at how we format the output from OpenAI. Running that request
 results in:
 
 >txt
@@ -5799,11 +5795,11 @@ results in:
 
   [!IMPORTANT] Note that the `parse_chat` handler requires a table containing
   `status` and `output` to be returned.
-Remember that we’re streaming from the API so the request comes through in
+Remember that we're streaming from the API so the request comes through in
 batches. Thankfully the `http.lua` file handles this and we just have to handle
 formatting the output into the chat buffer.
 
-The first thing to note with streaming endpoints is that they don’t return
+The first thing to note with streaming endpoints is that they don't return
 valid JSON. In this case, the output is prefixed with `data:`. CodeCompanion
 comes with some handy utility functions to work with this:
 
@@ -5839,7 +5835,7 @@ We can then decode the JSON using native vim functions:
 We want to include any nil values so we pass in `luanil = { object = true }`.
 
 Examining the output of the API, we see that the streamed data is stored in a
-`choices[1].delta` table. That’s easy to pickup:
+`choices[1].delta` table. That's easy to pickup:
 
 >lua
     handlers = {
@@ -5961,8 +5957,8 @@ appropriate output fields:
 
 Notes:
 
-1. You don’t always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
-2. It’s expected that the processed `data` table is returned at the end.
+1. You don't always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
+2. It's expected that the processed `data` table is returned at the end.
 3. For adapters that are using the legacy flat handler formats, this handler should be named `handlers.parse_message_meta`. The function signature stays the same.
 
 
@@ -5988,7 +5984,7 @@ From a design perspective, the inline interaction is very similar to the chat
 interaction. With the `parse_inline` handler we simply return the content we
 wish to be streamed into the buffer.
 
-In the case of OpenAI, once we’ve checked the data we have back from the LLM
+In the case of OpenAI, once we've checked the data we have back from the LLM
 and parsed it as JSON, we simply need to:
 
 >lua
@@ -6017,10 +6013,10 @@ the request.
 
 LIFECYCLE.ON_EXIT
 
-Handling errors from a streaming endpoint can be challenging. It’s
-recommended that any errors are managed in the `on_exit` handler which is
-initiated when the response has completed. In the case of OpenAI, if there is
-an error, we’ll see a response back from the API like:
+Handling errors from a streaming endpoint can be challenging. It's recommended
+that any errors are managed in the `on_exit` handler which is initiated when
+the response has completed. In the case of OpenAI, if there is an error, we'll
+see a response back from the API like:
 
 >sh
     data: {
@@ -6045,7 +6041,7 @@ handler which receives the final payload, resembling:
     }
 <
 
-and that’s much easier to work with:
+and that's much easier to work with:
 
 >lua
     ---Function to run when the request has completed. Useful to catch errors
@@ -6064,17 +6060,17 @@ and that’s much easier to work with:
 <
 
 The `log:error` call ensures that any errors are logged to the logfile as well
-as displayed to the user in Neovim. It’s also important to reference that the
+as displayed to the user in Neovim. It's also important to reference that the
 `parse_chat` and `parse_inline` handlers need to be able to ignore any errors
 from the API and let `on_exit` handle them.
 
 
 LIFECYCLE.SETUP AND LIFECYCLE.TEARDOWN
 
-The `setup` handler will execute before the request is sent to the LLM’s
+The `setup` handler will execute before the request is sent to the LLM's
 endpoint and before the environment variables have been set. This is leveraged
-in the Copilot adapter to obtain the token before it’s resolved as part of
-the environment variables table. The `setup` handler **must** return a boolean
+in the Copilot adapter to obtain the token before it's resolved as part of the
+environment variables table. The `setup` handler **must** return a boolean
 value so the `http.lua` file can determine whether to proceed with the request.
 
 The `teardown` handler will execute once the request has completed and after
@@ -6119,7 +6115,7 @@ The schema table describes the settings/parameters for the LLM. If the user has
 `display.chat.show_settings = true` then this table will be exposed at the top
 of the chat buffer.
 
-We’ll explore some of the options in the Copilot adapter’s schema table:
+We'll explore some of the options in the Copilot adapter's schema table:
 
 >lua
     schema = {
@@ -6145,18 +6141,18 @@ We’ll explore some of the options in the Copilot adapter’s schema table:
 <
 
 The model key sets out the specific model which is to be used to interact with
-the Copilot endpoint. We’ve listed the default, in this example, as
+the Copilot endpoint. We've listed the default, in this example, as
 `gpt-4o-2024-08-06` but we allow the user to choose from a possible five
-options, via the `choices` key. We’ve given this an order value of `1` so
-that it’s always displayed at the top of the chat buffer. We’ve also given
-it a useful description as this is used in the virtual text when a user hovers
-over it. Finally, we’ve specified that it has a mapping property of
-`parameters`. This tells the adapter that we wish to map this model key to the
-parameters part of the HTTP request. You’ll also notice that some of the
-models have a table attached to them. This can be useful if you need to do
-conditional logic in any of the handler methods at runtime.
+options, via the `choices` key. We've given this an order value of `1` so that
+it's always displayed at the top of the chat buffer. We've also given it a
+useful description as this is used in the virtual text when a user hovers over
+it. Finally, we've specified that it has a mapping property of `parameters`.
+This tells the adapter that we wish to map this model key to the parameters
+part of the HTTP request. You'll also notice that some of the models have a
+table attached to them. This can be useful if you need to do conditional logic
+in any of the handler methods at runtime.
 
-Let’s take a look at one more schema value:
+Let's take a look at one more schema value:
 
 >lua
     temperature = {
@@ -6180,13 +6176,13 @@ Let’s take a look at one more schema value:
     },
 <
 
-You’ll see we’ve specified a function call for the `enabled` key. We’re
-simply checking that the model name doesn’t start with `o1` as these models
-don’t accept temperature as a parameter. You’ll also see we’ve specified
-a function call for the `validate` key. We’re simply checking that the value
-of the temperature is between 0 and 2.
+You'll see we've specified a function call for the `enabled` key. We're simply
+checking that the model name doesn't start with `o1` as these models don't
+accept temperature as a parameter. You'll also see we've specified a function
+call for the `validate` key. We're simply checking that the value of the
+temperature is between 0 and 2.
 
-For some endpoints, like OpenAI’s Responses API
+For some endpoints, like OpenAI's Responses API
 <https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses>,
 schema values may need to be nested in the parameters:
 
@@ -6222,7 +6218,7 @@ need to setup some additional handlers:
 
 - `request.build_tools` - which transforms the tools provided by CodeCompanion into a schema supported by the adapter
 - `tools.format_calls` - which formats <https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls> the adapters tool calls and puts them into the http request
-- `tools.format_response` - which formats and outputs the adapter’s tool call so it can be included in the chat buffer’s messages stack
+- `tools.format_response` - which formats and outputs the adapter's tool call so it can be included in the chat buffer's messages stack
 
 You will also need to ensure that `opts.tools = true` and the `parse_chat`
 handler has tools included as an optional final parameter like `parse_chat =
@@ -6334,13 +6330,13 @@ via the use of reflection and planning prompts.
 
 HOW THEY WORK ~
 
-Before showcasing some examples, it’s important to understand how workflows
+Before showcasing some examples, it's important to understand how workflows
 have been implemented in the plugin.
 
 When initiated from the |codecompanion-usage-action-palette|, workflows attach
 themselves to a |codecompanion-usage-chat-buffer-index| via the notion of a
 `subscription`. That is, the workflow has subscribed to the conversation and
-dataflow that’s taking place in the chat buffer. After the LLM sends a
+dataflow that's taking place in the chat buffer. After the LLM sends a
 response, the chat buffer will trigger an event on the subscription class. This
 will execute a callback which has been defined in the workflow itself (often
 times this is simply a text prompt), and the event will duly be deleted from
@@ -6422,7 +6418,7 @@ required.
 
 :::
 
-Let’s breakdown the prompts in that workflow:
+Let's breakdown the prompts in that workflow:
 
 >lua
     prompts = {
@@ -6458,17 +6454,17 @@ Let’s breakdown the prompts in that workflow:
 <
 
 The first prompt in a workflow should set the ask of the LLM and provide clear
-instructions. In this case, we’re giving the LLM access to the
+instructions. In this case, we're giving the LLM access to the
 |codecompanion-usage-chat-buffer-agents-tools-files| and
 |codecompanion-usage-chat-buffer-agents-tools-run-command| tools to edit a
 buffer and run tests, respectively.
 
-We’re giving the LLM knowledge of the buffer with the `#buffer` editor
-context and also telling CodeCompanion to watch it for any changes with the
-`{watch}` parameter. Prior to sending a response to the LLM, the plugin will
-share any changes to that buffer, keeping the LLM updated.
+We're giving the LLM knowledge of the buffer with the `#buffer` editor context
+and also telling CodeCompanion to watch it for any changes with the `{watch}`
+parameter. Prior to sending a response to the LLM, the plugin will share any
+changes to that buffer, keeping the LLM updated.
 
-Now let’s look at how we trigger the automated reflection prompts:
+Now let's look at how we trigger the automated reflection prompts:
 
 >lua
     {
@@ -6494,20 +6490,20 @@ Now let’s look at how we trigger the automated reflection prompts:
     },
 <
 
-Now there’s a little bit more to unpack in this prompt. Firstly, we’re
+Now there's a little bit more to unpack in this prompt. Firstly, we're
 automatically submitting the prompt to the LLM to save the user some time and
-keypresses. Next, we’re scoping the prompt to only be sent to the chat buffer
+keypresses. Next, we're scoping the prompt to only be sent to the chat buffer
 if the currently active tool is the
 |codecompanion-usage-chat-buffer-agents-tools-run-command|.
 
-We’re also leveraging a function called `repeat_until`. This ensures that the
+We're also leveraging a function called `repeat_until`. This ensures that the
 prompt is always attached to the chat buffer until a condition is met. In this
 case, until the tests pass. In the
 |codecompanion-usage-chat-buffer-agents-tools-run-command| tool, we ask the LLM
 to pass a flag if it detects a test suite is being run. The plugin picks up on
 that flag and puts the test outcome into the chat buffer class as a flag.
 
-Finally, we’re letting the LLM know that the tests failed, and asking it to
+Finally, we're letting the LLM know that the tests failed, and asking it to
 fix.
 
 
@@ -6693,7 +6689,7 @@ BEST PRACTICES ~
 - Document all options
 
 
-3. **Integration**:- Follow CodeCompanion’s patterns for actions and tools
+3. **Integration**:- Follow CodeCompanion's patterns for actions and tools
 - Use existing utilities like keymaps.set_keymap
 - Handle errors appropriately
 
@@ -6772,7 +6768,7 @@ functions, alongside a system prompt and an OpenAI compatible schema
 
 When you add a tool to the chat buffer, this gives the LLM the knowledge to be
 able to call the tool, when required. Once called, the plugin will parse the
-LLM’s response and execute the tool accordingly, before sharing the output in
+LLM's response and execute the tool accordingly, before sharing the output in
 the chat buffer.
 
 
@@ -6832,7 +6828,7 @@ please see the diagram below:
 
 BUILDING YOUR FIRST TOOL ~
 
-Before we begin, it’s important to familiarise yourself with the directory
+Before we begin, it's important to familiarise yourself with the directory
 structure of the tools implementation:
 
 >
@@ -6856,10 +6852,10 @@ response from the LLM, identifying the tool and duly executing it.
 
 There are two types of tools that CodeCompanion can leverage:
 
-1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They’re non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
+1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
 2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
-For the purposes of this section of the guide, we’ll be building a simple
+For the purposes of this section of the guide, we'll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
 
 
@@ -6909,10 +6905,10 @@ one after another, asynchronously, using `vim.system`.
 In this example, the plugin will execute `make test` followed by `echo hello`.
 After each command executes, the plugin will automatically send the output to a
 corresponding table on the tool system file. If the command ran with success
-the output will be written to `stdout`, otherwise it will go to `stderr`.
-We’ll be covering how you access that data in the output section below.
+the output will be written to `stdout`, otherwise it will go to `stderr`. We'll
+be covering how you access that data in the output section below.
 
-It’s also possible to pass in environment variables (from the `env` function)
+It's also possible to pass in environment variables (from the `env` function)
 by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
 >lua
@@ -6948,7 +6944,7 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 <
 
 
-  [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
+  [!IMPORTANT] Using the `handlers.setup()` function, it's also possible to
   create commands dynamically like in the run_command
   <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua>
   tool.
@@ -7030,7 +7026,7 @@ Note that:
 
 1. The `opts.output_cb` callback will be called only once. Subsequent calls will be discarded;
 2. A tool function should EITHER return the result table (synchronous), OR call `opts.output_cb` with the result table as the only argument (asynchronous), but not both.
-If a function tries to both return the result and call `opts.output_cb`, the result will be undefined because there’s no guarantee which output will be handled first.
+If a function tries to both return the result and call `opts.output_cb`, the result will be undefined because there's no guarantee which output will be handled first.
 
 Similarly with command-based tools, the output is written to the `stdout` or
 `stderr` tables on the tool system file. However, with function-based tools,
@@ -7055,10 +7051,10 @@ execution to continue.
 SCHEMA
 
 The function call that the LLM has sent, is parsed and sent to the `args`
-parameter of any function you’ve created in
+parameter of any function you've created in
 |codecompanion-extending-tools.html-cmds|, as a JSON object which is then
 converted to Lua via `vim.json.decode`. If the LLM has done its job correctly,
-the Lua table should be the representation of what you’ve described in the
+the Lua table should be the representation of what you've described in the
 schema. In summary, the schema represents the structure of the response that
 the LLM must follow in order to call the tool.
 
@@ -7111,10 +7107,10 @@ include a system prompt. This is something that CodeCompanion does for the
 `insert_edit_into_file` tool.
 
 
-  [!TIP] From experience, a system prompt should be used sparingly. It’s often
-  an indication that your tool is too complicated and should be split out into
+  [!TIP] From experience, a system prompt should be used sparingly. It's often an
+  indication that your tool is too complicated and should be split out into
   multiple tools.
-For our calculator tool, we’re going to use a `system_prompt` just to
+For our calculator tool, we're going to use a `system_prompt` just to
 demonstrate the functionality:
 
 >lua
@@ -7140,10 +7136,10 @@ a tool completes:
 
 1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
-3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they’d like to apply an approval to `buffer` or `file` edits.
+3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
 
-For the purposes of our calculator, let’s just return some notifications so
-you can see the tool system and tool flow:
+For the purposes of our calculator, let's just return some notifications so you
+can see the tool system and tool flow:
 
 >lua
     handlers = {
@@ -7174,7 +7170,7 @@ of the |codecompanion-extending-tools.html-cmds|. It contains four functions:
 3. `prompt` - Is called when user approval to execute the |codecompanion-extending-tools.html-cmds| is required. It forms the message prompt which the user is asked to confirm or reject.
 4. `rejected` - Is called when a user rejects the approval to run the |codecompanion-extending-tools.html-cmds|. This method is used to inform the LLM of the rejection.
 
-Let’s consider how me might implement this for our calculator tool:
+Let's consider how me might implement this for our calculator tool:
 
 >lua
     output = {
@@ -7367,12 +7363,12 @@ ADDING IN USER APPROVALS
 
 
 A big concern for users when they create and deploy their own tools is `“what
-if an LLM does something I’m not aware of or I don’t approve?”`. To that
-end, CodeCompanion tries to make it easy for a user to be the "human in the
-loop" and approve tool use before execution.
+if an LLM does something I'm not aware of or I don't approve?”`. To that end,
+CodeCompanion tries to make it easy for a user to be the "human in the loop"
+and approve tool use before execution.
 
 To enable this for any tool, simply add the `require_approval_before = true` in
-a tool’s `opts` table:
+a tool's `opts` table:
 
 >lua
     require("codecompanion").setup({
@@ -7559,7 +7555,7 @@ In this example, the `schema` defines structured properties (`action`,
 `task_id`, `args`) that constrain what the LLM can pass to `build_cmd`. The
 output of `build_cmd` is what the `run_command` tool ultimately executes.
 Finally, the `system_prompt` teaches the LLM what each beads command does, so
-it can choose the right action for the user’s request.
+it can choose the right action for the user's request.
 
 
 SUPPORTING AN ADAPTER TOOL ~
@@ -7599,7 +7595,7 @@ Within the `callback` function, which will be executed in step 2, it can be
 useful to carry out modifications to the adapter which may be required for the
 tool to function. In the case of Anthropic, we insert additional headers.
 
-1. Within `build_tools` or `form_tools` (depending on your adapter), ensure that when looping through a tool’s schema, you detect if the tool is an adapter tool and execute the `callback` from step 1:
+1. Within `build_tools` or `form_tools` (depending on your adapter), ensure that when looping through a tool's schema, you detect if the tool is an adapter tool and execute the `callback` from step 1:
 
 >lua
     -- build_tools = function(self, tools)
@@ -7644,10 +7640,10 @@ OTHER TIPS ~
 
 USE_HANDLERS_ONCE
 
-If an LLM calls multiple tools in the same response, it’s possible that the
-same tool may be called in succession. If you’d like to ensure that the
-handler functions (`setup` and `on_exit`) are only called once, you can set
-this in the `opts` table in the tool itself:
+If an LLM calls multiple tools in the same response, it's possible that the
+same tool may be called in succession. If you'd like to ensure that the handler
+functions (`setup` and `on_exit`) are only called once, you can set this in the
+`opts` table in the tool itself:
 
 >lua
     return {
