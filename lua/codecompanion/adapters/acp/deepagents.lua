@@ -15,7 +15,7 @@ return {
   commands = {
     default = {
       "deepagents",
-      "acp",
+      "--acp",
     },
   },
   defaults = {
