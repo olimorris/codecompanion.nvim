@@ -6,6 +6,8 @@ local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
+local fmt = string.format
+
 local M = {}
 
 ---Recursively expand rules groups (supports groups of groups)
@@ -150,7 +152,9 @@ function M.add_context(files, chat)
           { visible = false, context = { id = id }, _meta = { tag = "rules" } }
         )
       end
-      chat:add_context({ content = file.content }, "rules", id, {
+
+      local content = fmt("Sharing `%s`:\n\n---\n%s\n---", file.path, file.content)
+      chat:add_context({ content = content }, "rules", id, {
         path = file.path,
       })
     end
