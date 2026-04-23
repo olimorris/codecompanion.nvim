@@ -1,5 +1,21 @@
 # Changelog
 
+## [19.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.11.0...v19.12.0) (2026-04-23)
+
+
+### Features
+
+* **adapters:** add KiloCode ACP ([#3034](https://github.com/olimorris/codecompanion.nvim/issues/3034)) ([48c6ae0](https://github.com/olimorris/codecompanion.nvim/commit/48c6ae010ca01b0bae01dd5a0f68f692ac3114a4))
+* **adapters:** add support for Opus 4.7 ([#3042](https://github.com/olimorris/codecompanion.nvim/issues/3042)) ([cdc6926](https://github.com/olimorris/codecompanion.nvim/commit/cdc69269cf4878983604d5c8093e2963753d1cfe))
+* **adapters:** context mgmt in `anthropic` and `openai_responses` ([#3049](https://github.com/olimorris/codecompanion.nvim/issues/3049)) ([cafa9e1](https://github.com/olimorris/codecompanion.nvim/commit/cafa9e140977b86e2d792c882f082073560e85f7))
+* **chat:** allow users to send a `btw` message ([#3060](https://github.com/olimorris/codecompanion.nvim/issues/3060)) ([d188af9](https://github.com/olimorris/codecompanion.nvim/commit/d188af9faa1e001a8062b69a4c43f6cf22d59fb4))
+
+
+### Bug Fixes
+
+* **chat:** nil tool name in `on_tool_output` ([#3046](https://github.com/olimorris/codecompanion.nvim/issues/3046)) ([e003fac](https://github.com/olimorris/codecompanion.nvim/commit/e003fac48f8af4fc2d4ece3ee2f6f1897f71b912))
+* **chat:** scope folds to buffer ([#3058](https://github.com/olimorris/codecompanion.nvim/issues/3058)) ([0ed124a](https://github.com/olimorris/codecompanion.nvim/commit/0ed124a503e8f7a90b9b67db352001cc6498865d)), closes [#3056](https://github.com/olimorris/codecompanion.nvim/issues/3056)
+
 ## [19.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.10.0...v19.11.0) (2026-04-11)
 
 
