@@ -285,6 +285,10 @@ M.completion = {
 
 M.send = {
   callback = function(chat)
+    -- The chat buffer can be submitted in insert mode, but we want to ensure that
+    -- we revert to normal mode so the user can scroll the chat buffer without
+    -- unintentionally hitting the "modifiable is off" error
+    vim.cmd("stopinsert")
     chat:submit()
   end,
 }
@@ -614,6 +618,44 @@ M.goto_file_under_cursor = {
       error(string.format("%s is not a valid jump action!", vim.inspect(user_action)))
     end
     action(file_name)
+  end,
+}
+
+M.btw = {
+  callback = function(chat)
+    vim.ui.input({ prompt = "btw ..." }, function(input)
+      if input and input ~= "" then
+        chat:btw(input)
+      end
+    end)
+  end,
+
+  ---@param chat CodeCompanion.Chat
+  set = function(chat)
+    local btw_keymap = config.interactions.chat.keymaps._btw
+    if not btw_keymap then
+      return
+    end
+
+    local key = btw_keymap.modes.n
+    if key then
+      vim.keymap.set("n", key, function()
+        M.btw.callback(chat)
+      end, { buffer = chat.bufnr, desc = btw_keymap.description, nowait = true })
+    end
+  end,
+
+  ---@param chat CodeCompanion.Chat
+  remove = function(chat)
+    local btw_keymap = config.interactions.chat.keymaps._btw
+    if not btw_keymap then
+      return
+    end
+
+    local key = btw_keymap.modes.n
+    if key then
+      pcall(vim.keymap.del, "n", key, { buffer = chat.bufnr })
+    end
   end,
 }
 

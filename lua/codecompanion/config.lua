@@ -669,6 +669,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.copilot_stats",
           description = "[Adapter] Copilot statistics",
         },
+        -- Note: This is only available during streaming
+        _btw = {
+          modes = { n = "gm" },
+          callback = "keymaps.btw",
+          description = "[Request] Send a message to the LLM",
+        },
       },
       opts = {
         context_management = {

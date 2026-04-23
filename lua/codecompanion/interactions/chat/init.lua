@@ -1054,6 +1054,37 @@ function Chat:replace_user_inputs(message)
   end
 end
 
+---Send a "btw" message to the LLM during the agentic loop
+---@param content string
+---@return nil
+function Chat:btw(content)
+  if not content or content == "" then
+    return
+  end
+
+  self._btw = content
+  log:debug("BTW message queued: %s", content)
+end
+
+---Inject a btw message into the message stack
+---@return nil
+function Chat:_inject_btw()
+  if not self._btw then
+    return
+  end
+
+  self:add_buf_message({
+    role = config.constants.USER_ROLE,
+    content = self._btw,
+  }, { type = self.MESSAGE_TYPES.USER_MESSAGE })
+  self:add_message({
+    role = config.constants.USER_ROLE,
+    content = self._btw,
+  })
+  log:debug("BTW message injected into message stack")
+  self._btw = nil
+end
+
 ---Make a request to the LLM using the HTTP client
 ---@param payload table The payload to send to the LLM
 ---@return nil
@@ -1164,11 +1195,6 @@ function Chat:submit(opts)
     return log:debug("Chat request already in progress")
   end
 
-  -- The chat buffer can be submitted in insert mode, but we want to ensure that
-  -- we revert to normal mode so the user can scroll the chat buffer without
-  -- unintentionally hitting the "modifiable is off" error
-  vim.cmd("stopinsert")
-
   opts = opts or {}
 
   if opts.callback then
@@ -1181,6 +1207,7 @@ function Chat:submit(opts)
   end
 
   if opts.auto_submit then
+    self:_inject_btw()
     self.buffer_diffs:check_for_changes(self)
   else
     local message_to_submit = parser.messages(self, self.header_line)
@@ -1231,6 +1258,9 @@ function Chat:submit(opts)
     end
     self.ui:lock_buf()
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
+
+    -- Allow users to send a btw message during an active request
+    require("codecompanion.interactions.chat.keymaps").btw.set(self)
   end
 
   self:checkpoint()
@@ -1367,6 +1397,12 @@ function Chat:done(output, reasoning, tools, meta, opts)
       })
       return self.tools:execute(self, tools)
     end
+  end
+
+  -- If a message was queued during the request, submit it now so the LLM sees it
+  if self._btw then
+    self:checkpoint()
+    return self:submit({ auto_submit = true })
   end
 
   self:checkpoint()
@@ -1738,6 +1774,8 @@ function Chat:ready_for_input(opts)
   if opts.auto_submit then
     self.ui:add_line_break()
     self.ui:add_line_break()
+  else
+    require("codecompanion.interactions.chat.keymaps").btw.remove(self)
   end
 
   log:info("Chat request finished")
@@ -1754,6 +1792,7 @@ end
 ---Restore the chat buffer to an editable state (used when a submission is prevented)
 ---@return nil
 function Chat:restore()
+  require("codecompanion.interactions.chat.keymaps").btw.remove(self)
   self:reset()
   utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
 end
