@@ -23,7 +23,9 @@ require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 }}
 require("codecompanion").toggle({ window_opts = { layout = "float", width = 0.6 }})
 ```
 
-The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
+The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>` in normal mode or `<C-CR>` in insert mode. This can of course be changed as per the [keymaps](#keymaps) section.
+
+New in `v19.12.0`, you can send a message to the LLM whilst it's executing tool calls with the `btw` keymap which is triggered with `gm`. When safe to do so, CodeCompanion will send the message to the LLM.
 
 ## Changing Adapter and Model
 
@@ -126,23 +128,25 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `send`: `<CR>|<C-s>` to send a message to the LLM
 - `close`: `<C-c>` to close the chat buffer
 - `stop`: `q` to stop the current request
+
 - `change_adapter`: `ga` to change the adapter for the current chat
+- `clear`: `gx` to clear the chat buffer’s contents
+- `copilot_stats`: `gS` to show copilot usage stats
+- `btw`: `gm` type a message to the LLM whilst it's streaming
 - `buffer_sync_all`: `gba` to sync the entire buffer on every turn
 - `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
 - `codeblock`: `gc` to insert a codeblock in the chat buffer
 - `debug`: `gd` to view/debug the chat buffer’s contents
 - `fold_code`: `gf` to fold any codeblocks in the chat buffer
-- `rules`: `gM` to clear all rules from the chat buffer
-- `regenerate`: `gr` to regenerate the last response
-- `goto_file_under_cursor`: `gR` to go to the file under cursor. If the file is already opened, it’ll jump to the existing window. Otherwise, it’ll be opened in a new tab.
-- `system_prompt`: `gs` to toggle the system prompt on/off
-- `copilot_stats`: `gS` to show copilot usage stats
-- `clear`: `gx` to clear the chat buffer’s contents
-- `yank_code`: `gy` to yank the last codeblock in the chat buffer
-- `previous_header`: `[[` to move to the previous header
+- `goto_file_under_cursor`: `gR` to go to the file under cursor
+- `next_chat`: `}` to move to the next chat
 - `next_header`: `]]` to move to the next header
 - `previous_chat`: `{` to move to the previous chat
-- `next_chat`: `}` to move to the next chat
+- `previous_header`: `[[` to move to the previous header
+- `regenerate`: `gr` to regenerate the last response
+- `rules`: `gM` to clear all rules from the chat buffer
+- `system_prompt`: `gs` to toggle the system prompt on/off
+- `yank_code`: `gy` to yank the last codeblock in the chat buffer
 
 ## Messages
 
