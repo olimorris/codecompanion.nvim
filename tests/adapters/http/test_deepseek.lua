@@ -13,18 +13,18 @@ T["DeepSeek adapter"] = new_set({
   },
 })
 
-T["DeepSeek adapter"]["form_messages"] = new_set()
+T["DeepSeek adapter"]["build_messages"] = new_set()
 
-T["DeepSeek adapter"]["form_messages"]["it can form messages to be sent to the API"] = function()
+T["DeepSeek adapter"]["build_messages"]["it can form messages to be sent to the API"] = function()
   local messages = { {
     content = "Explain Ruby in two words",
     role = "user",
   } }
 
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ messages = messages }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
-T["DeepSeek adapter"]["form_messages"]["merges consecutive messages with the same role"] = function()
+T["DeepSeek adapter"]["build_messages"]["merges consecutive messages with the same role"] = function()
   local input = {
     { role = "user", content = "A" },
     { role = "user", content = "B" },
@@ -41,10 +41,10 @@ T["DeepSeek adapter"]["form_messages"]["merges consecutive messages with the sam
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["form_messages"]["merges system messages together at the start of the message chain"] = function()
+T["DeepSeek adapter"]["build_messages"]["merges system messages together at the start of the message chain"] = function()
   local input = {
     { role = "system", content = "System Prompt 1" },
     { role = "user", content = "User1" },
@@ -65,10 +65,10 @@ T["DeepSeek adapter"]["form_messages"]["merges system messages together at the s
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["form_messages"]["ensures message content is a string and not a list"] = function()
+T["DeepSeek adapter"]["build_messages"]["ensures message content is a string and not a list"] = function()
   -- Ref: https://github.com/BerriAI/litellm/issues/6642
   local input = {
     { role = "user", content = "Describe Ruby in two words" },
@@ -88,10 +88,10 @@ T["DeepSeek adapter"]["form_messages"]["ensures message content is a string and 
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["form_messages"]["it can form messages with tools"] = function()
+T["DeepSeek adapter"]["build_messages"]["it can form messages with tools"] = function()
   local input = {
     { role = "system", content = "System Prompt 1" },
     { role = "user", content = "User1" },
@@ -157,10 +157,10 @@ T["DeepSeek adapter"]["form_messages"]["it can form messages with tools"] = func
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["form_messages"]["it can form tools to be sent to the API"] = function()
+T["DeepSeek adapter"]["build_messages"]["it can form tools to be sent to the API"] = function()
   adapter = require("codecompanion.adapters").extend("deepseek", {
     schema = {
       model = {
@@ -172,7 +172,21 @@ T["DeepSeek adapter"]["form_messages"]["it can form tools to be sent to the API"
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
+  h.eq({ tools = { weather } }, adapter.handlers.request.build_tools(adapter, tools))
+end
+
+T["DeepSeek adapter"]["build_messages"]["includes reasoning_content in messages"] = function()
+  local input = {
+    { role = "user", content = "What is Ruby?" },
+    { role = "assistant", content = "", reasoning = { content = "Let me think about Ruby..." } },
+    { role = "user", content = "In two words" },
+  }
+
+  local result = adapter.handlers.request.build_messages(adapter, input)
+
+  -- Check that reasoning_content is included in the assistant message
+  -- reasoning is a table { content = "..." }, so reasoning_content will be the same table
+  h.eq({ content = "Let me think about Ruby..." }, result.messages[2].reasoning_content)
 end
 
 T["DeepSeek adapter"]["Streaming"] = new_set()
@@ -181,12 +195,12 @@ T["DeepSeek adapter"]["Streaming"]["can output streamed data into a format for t
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   local output = ""
   for _, line in ipairs(lines) do
-    output = output .. (adapter.handlers.chat_output(adapter, line).output.content or "")
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    if chat_output then
+      output = output .. (chat_output.output.content or "")
+    end
   end
-  h.eq(
-    "Dynamic. Expressive.\n\nNext, you might ask about Ruby's key features or how it compares to other languages.",
-    output
-  )
+  h.eq("Elegant simplicity", output)
 end
 
 T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"] = function()
@@ -196,12 +210,11 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
       content = "",
     },
   }
-
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
-    if adapter.handlers.parse_message_meta and chat_output.extra then
-      chat_output = adapter.handlers.parse_message_meta(adapter, chat_output)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    if chat_output and adapter.handlers.response.parse_meta and chat_output.extra then
+      chat_output = adapter.handlers.response.parse_meta(adapter, chat_output)
     end
     if chat_output then
       if chat_output.output.reasoning and chat_output.output.reasoning.content then
@@ -212,34 +225,86 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
       end
     end
   end
+  h.expect_starts_with("We need to explain Ruby in two words.", output.reasoning.content)
+end
 
-  h.expect_starts_with("Okay, the user wants me to explain Ruby in two words. ", output.reasoning.content)
+T["DeepSeek adapter"]["Streaming"]["can output streamed data without reasoning"] = function()
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming_reasoning_disabled.txt")
+  local output = ""
+  local reasoning = ""
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    if chat_output then
+      if chat_output.extra and adapter.handlers.response.parse_meta then
+        chat_output = adapter.handlers.response.parse_meta(adapter, chat_output)
+      end
+      if chat_output.output.content then
+        output = output .. chat_output.output.content
+      end
+      if chat_output.output.reasoning and chat_output.output.reasoning.content then
+        reasoning = reasoning .. chat_output.output.reasoning.content
+      end
+    end
+  end
+  h.eq("Elegant syntax.", output)
+  h.eq("", reasoning) -- No reasoning content when thinking is disabled
 end
 
 T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_tools_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.chat_output(adapter, line, tools)
+    adapter.handlers.response.parse_chat(adapter, line, tools)
   end
 
   local tool_output = {
     {
       _index = 0,
       ["function"] = {
-        arguments = '{"location": "London", "units": "celsius"}',
+        arguments = '{"location": "London, UK", "units": "celsius"}',
         name = "weather",
       },
-      id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+      id = "call_00_xzVVyar4M7TXmqAvwt5lz3v2",
       type = "function",
     },
     {
       _index = 1,
       ["function"] = {
-        arguments = '{"location": "Paris", "units": "celsius"}',
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
         name = "weather",
       },
-      id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+      id = "call_01_FiLq2fgCjbR43jdNrxI4OYGD",
+      type = "function",
+    },
+  }
+
+  h.eq(tool_output, tools)
+end
+
+T["DeepSeek adapter"]["Streaming"]["can process tools without params"] = function()
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_tools_no_params_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.response.parse_chat(adapter, line, tools)
+  end
+
+  local tool_output = {
+    {
+      _index = 0,
+      ["function"] = {
+        arguments = "{}",
+        name = "weather_with_default",
+      },
+      id = "call_00_YOblREljHrrLmGtaHE72LNh3",
+      type = "function",
+    },
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
+        name = "weather_with_default",
+      },
+      id = "call_01_bKIQfFOpGabMlK7midnRZaBQ",
       type = "function",
     },
   }
@@ -265,7 +330,7 @@ T["DeepSeek adapter"]["No Streaming"]["can output for the chat buffer"] = functi
   local data = vim.fn.readfile("tests/adapters/http/stubs/deepseek_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, data).output.content)
+  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_chat(adapter, data).output.content)
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
@@ -276,7 +341,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
 
   -- Match the format of the actual request
   local json = { body = data }
-  adapter.handlers.chat_output(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, json, tools)
 
   local tool_output = {
     {
@@ -309,7 +374,7 @@ T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = f
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
+  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_inline(adapter, json).output)
 end
 
 return T

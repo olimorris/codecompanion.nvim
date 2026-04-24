@@ -6,9 +6,9 @@
 05|                                        │~                                      
 06|## assistant                            │~                                      
 07|                                        │~                                      
-08|                                        │~                                      
-09|The weather in London is 15° celsius    │~                                      
-10|The weather in Paris is 15° celsius     │~                                      
+08|The weather in London, UK is 15° celsius│~                                      
+09|The weather in Paris, France is 15°     │~                                      
+10|celsius                                 │~                                      
 11|                                        │~                                      
 12|## foo                                  │~                                      
 13|                                        │~                                      

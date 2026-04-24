@@ -81,12 +81,13 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       })
 
       -- Create a mocked submit method which we use to get the chat output and the tools
+      local adapters = require("codecompanion.adapters")
       _G.chat.mock_submit = function(self)
         local tools = {}
         local output = {}
         for _, line in ipairs(vim.fn.readfile("%s")) do
           -- This is a direct copy from chat/init.lua
-          local result = self.adapter.handlers.chat_output(self.adapter, line, tools)
+          local result = adapters.call_handler(self.adapter, "parse_chat", line, tools)
           if result and result.status then
             if result.output.role then
               result.output.role = config.constants.LLM_ROLE
@@ -126,8 +127,9 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
 
   local messages = child.lua([[
     -- Make sure we replace the roles with the adapter ones. This breaks the Anthropic test otherwise
+    local adapters = require("codecompanion.adapters")
     local messages = _G.chat.adapter:map_roles(vim.deepcopy(_G.chat.messages))
-    return _G.chat.adapter.handlers.form_messages(_G.chat.adapter, messages)
+    return adapters.call_handler(_G.chat.adapter, "build_messages", messages)
   ]])
 
   --NOTE: Remember, we're comparing what the messages payload should look like
