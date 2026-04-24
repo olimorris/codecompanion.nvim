@@ -67,7 +67,7 @@ end
 ---@param args table?
 ---@return nil
 CodeCompanion.prompt = function(alias, args)
-  local actions = require("codecompanion.actions")
+  local actions = require("codecompanion.action_palette")
 
   local context = get_context(api.nvim_get_current_buf(), args)
   local prompt = actions.resolve_from_alias(alias, context)
@@ -397,7 +397,7 @@ end
 ---@return nil
 CodeCompanion.actions = function(args)
   local context = get_context(api.nvim_get_current_buf(), args)
-  return require("codecompanion.actions").launch(context, args)
+  return require("codecompanion.action_palette").launch(context, args)
 end
 
 ---Check if a feature is available in the plugin's current version

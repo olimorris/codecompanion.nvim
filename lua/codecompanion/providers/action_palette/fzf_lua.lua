@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local fzf = require("fzf-lua")
 
----@class CodeCompanion.Actions.Provider.FZF: CodeCompanion.SlashCommand.Provider
+---@class CodeCompanion.ActionPalette.Provider.FZF: CodeCompanion.SlashCommand.Provider
 ---@field context table
 ---@field resolve function
 local FZF = {}
@@ -37,7 +37,7 @@ function FZF:picker(items, opts)
       ["default"] = function(selected)
         if selected or vim.tbl_count(selected) ~= 0 then
           for _, selection in ipairs(selected) do
-            return require("codecompanion.providers.actions.shared").select(self, name_to_item[selection])
+            return require("codecompanion.providers.action_palette.shared").select(self, name_to_item[selection])
           end
         end
       end,

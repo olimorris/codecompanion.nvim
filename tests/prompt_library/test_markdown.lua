@@ -10,7 +10,7 @@ T = new_set({
       child.lua([[
         h = require('tests.helpers')
         codecompanion = h.setup_plugin()
-        markdown = require('codecompanion.actions.markdown')
+        markdown = require('codecompanion.prompt_library.markdown')
         context = {
           filetype = "markdown",
           bufnr = vim.api.nvim_create_buf(false, true),
@@ -453,7 +453,7 @@ end
 
 T["Markdown"]["load_from_dir loads all markdown files in a directory"] = function()
   local result = child.lua([[
-    return markdown.load_from_dir("tests/actions/stubs/", context)
+    return markdown.load_from_dir("tests/prompt_library/stubs/", context)
   ]])
 
   local expected = {
@@ -468,7 +468,7 @@ T["Markdown"]["load_from_dir loads all markdown files in a directory"] = functio
         stop_context_insertion = true,
         user_prompt = false,
       },
-      path = "tests/actions/stubs/test_prompt.md",
+      path = "tests/prompt_library/stubs/test_prompt.md",
       prompts = {
         {
           content = "You are a helpful assistant.",

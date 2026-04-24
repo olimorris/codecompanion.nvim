@@ -62,12 +62,12 @@ local function preview_command(entry, bufnr, width)
   end)
 end
 
----@class CodeCompanion.Actions.Provider.Telescope: CodeCompanion.SlashCommand.Provider
+---@class CodeCompanion.ActionPalette.Provider.Telescope: CodeCompanion.SlashCommand.Provider
 local Provider = {}
 
----@params CodeCompanion.Actions.ProvidersArgs
+---@params CodeCompanion.ActionPalette.ProvidersArgs
 function Provider.new(args)
-  log:trace("Telescope actions provider triggered")
+  log:trace("Telescope action palette provider triggered")
   return setmetatable(args, { __index = Provider })
 end
 
@@ -135,7 +135,7 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
-  return require("codecompanion.providers.actions.shared").select(self, item)
+  return require("codecompanion.providers.action_palette.shared").select(self, item)
 end
 
 return Provider

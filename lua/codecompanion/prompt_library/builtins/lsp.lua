@@ -1,6 +1,6 @@
 return {
   diagnostics = function(args)
-    local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
+    local diagnostics = require("codecompanion.helpers.code").get_diagnostics(
       args.context.start_line,
       args.context.end_line,
       args.context.bufnr
