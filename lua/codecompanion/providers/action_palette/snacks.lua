@@ -2,17 +2,16 @@ local Snacks = require("snacks")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Actions.Provider.Snacks: CodeCompanion.SlashCommand.Provider
+---@class CodeCompanion.ActionPalette.Provider.Snacks: CodeCompanion.SlashCommand.Provider
 ---@field context table
 ---@field resolve function
 local Provider = {}
 
----@params CodeCompanion.Actions.ProvidersArgs
+---@params CodeCompanion.ActionPalette.ProvidersArgs
 function Provider.new(args)
-  log:trace("Snacks actions provider triggered")
-  -- Ensure we have the resolve function
+  log:trace("Snacks action palette provider triggered")
   if not args.resolve then
-    args.resolve = require("codecompanion.actions").resolve
+    args.resolve = require("codecompanion.action_palette").resolve
   end
 
   return setmetatable(args, { __index = Provider })
@@ -76,7 +75,7 @@ function Provider:select(item)
   if self.resolve and (item.picker == nil) then
     return self.resolve(item, self.context)
   end
-  return require("codecompanion.providers.actions.shared").select(self, item)
+  return require("codecompanion.providers.action_palette.shared").select(self, item)
 end
 
 return Provider

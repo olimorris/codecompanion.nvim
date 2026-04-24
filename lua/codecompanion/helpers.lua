@@ -6,7 +6,7 @@ local M = {}
 ---@return table
 function M.get_prompts()
   local context = context_utils.get(vim.api.nvim_get_current_buf())
-  return require("codecompanion.actions").get_cached_items(context)
+  return require("codecompanion.action_palette").get_cached_items(context)
 end
 
 ---Get short names of prompts from the prompt library

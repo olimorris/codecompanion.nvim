@@ -2,13 +2,13 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
 
----@class CodeCompanion.Actions.Provider.Default: CodeCompanion.SlashCommand.Provider
+---@class CodeCompanion.ActionPalette.Provider.Default: CodeCompanion.SlashCommand.Provider
 ---@field context table
 local Provider = {}
 
----@params CodeCompanion.Actions.ProvidersArgs
+---@params CodeCompanion.ActionPalette.ProvidersArgs
 function Provider.new(args)
-  log:trace("Default actions provider triggered")
+  log:trace("Default action palette provider triggered")
 
   return setmetatable(args, { __index = Provider })
 end
@@ -49,7 +49,7 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
-  return require("codecompanion.providers.actions.shared").select(self, item)
+  return require("codecompanion.providers.action_palette.shared").select(self, item)
 end
 
 return Provider

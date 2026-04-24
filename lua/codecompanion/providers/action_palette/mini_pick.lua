@@ -2,17 +2,16 @@ local MiniPick = require("mini.pick")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Actions.Provider.MiniPick: CodeCompanion.SlashCommand.Provider
+---@class CodeCompanion.ActionPalette.Provider.MiniPick: CodeCompanion.SlashCommand.Provider
 ---@field context table
 ---@field resolve function
 local Provider = {}
 
----@params CodeCompanion.Actions.ProvidersArgs
+---@params CodeCompanion.ActionPalette.ProvidersArgs
 function Provider.new(args)
-  log:trace("MiniPick actions provider triggered")
-  -- Ensure we have the resolve function
+  log:trace("MiniPick action palette provider triggered")
   if not args.resolve then
-    args.resolve = require("codecompanion.actions").resolve
+    args.resolve = require("codecompanion.action_palette").resolve
   end
 
   return setmetatable(args, { __index = Provider })
@@ -134,7 +133,7 @@ function Provider:select(item)
   if self.resolve then
     return self.resolve(item, self.context)
   end
-  return require("codecompanion.providers.actions.shared").select(self, item)
+  return require("codecompanion.providers.action_palette.shared").select(self, item)
 end
 
 return Provider

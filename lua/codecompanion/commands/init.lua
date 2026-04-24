@@ -359,7 +359,7 @@ return {
     callback = function(opts)
       if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then
         local context = require("codecompanion.utils.context").get(vim.api.nvim_get_current_buf())
-        require("codecompanion.actions").refresh_cache(context)
+        require("codecompanion.action_palette").refresh_cache(context)
       end
       codecompanion.actions(opts)
     end,
