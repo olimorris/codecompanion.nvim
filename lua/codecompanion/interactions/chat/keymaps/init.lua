@@ -623,7 +623,7 @@ M.goto_file_under_cursor = {
 
 M.btw = {
   callback = function(chat)
-    vim.ui.input({ prompt = "btw ..." }, function(input)
+    vim.ui.input({ prompt = "BTW... " }, function(input)
       if input and input ~= "" then
         chat:btw(input)
       end
