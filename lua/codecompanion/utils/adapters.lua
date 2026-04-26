@@ -414,14 +414,25 @@ end
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return string
 function M.model(adapter)
-  return adapter.schema.model.default
+  local model = adapter.schema.model.default
+  if type(model) == "function" then
+    model = model(adapter)
+  end
+
+  return model
 end
 
 ---Helper function to return the model from the choices
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table
-function M.model_choice(adapter)
-  return adapter.schema.model.choices[M.model(adapter)]
+---@param opts? table
+---@return table|nil
+function M.model_choice(adapter, opts)
+  local choices = adapter.schema.model.choices
+  if type(choices) == "function" then
+    choices = choices(adapter, opts)
+  end
+
+  return choices and choices[M.model(adapter)]
 end
 
 return M

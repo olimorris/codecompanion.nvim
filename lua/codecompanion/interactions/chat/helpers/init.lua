@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local adapter_utils = require("codecompanion.utils.adapters")
 
 local Path = require("plenary.path")
 local buf_utils = require("codecompanion.utils.buffers")
@@ -353,17 +354,21 @@ function M.trigger_context_management(adapter)
     return 0
   end
 
-  local ok
   local trigger_tokens = config.interactions.chat.opts.context_management.trigger
   if trigger_tokens < 1 then
-    ok, trigger_tokens = pcall(function()
-      return math.floor(trigger_tokens * adapter.schema.model.choices[adapter.schema.model.default].meta.context_window)
-    end)
+    local model = adapter_utils.model(adapter)
+    local model_opts = adapter_utils.model_choice(adapter)
 
-    if not ok then
-      log:error("Could not get evaluate the trigger for context management in the `%s` adapter", adapter.name)
+    if not model_opts or not model_opts.meta or not model_opts.meta.context_window then
+      log:error(
+        "Could not evaluate the trigger for context management in the `%s` adapter using model `%s`",
+        adapter.name,
+        model or "unknown"
+      )
       return 0
     end
+
+    trigger_tokens = math.floor(trigger_tokens * model_opts.meta.context_window)
   end
 
   return trigger_tokens

@@ -62,4 +62,40 @@ T["format_viewport_for_llm works"] = function()
   h.expect_match(result, "lines 1 to 2")
 end
 
+T["trigger_context_management works with dynamic model choices"] = function()
+  local result = child.lua([[
+    local config = require("codecompanion.config")
+    local original_trigger = config.interactions.chat.opts.context_management.trigger
+    config.interactions.chat.opts.context_management.trigger = 0.5
+
+    local adapter = {
+      type = "http",
+      name = "test",
+      schema = {
+        model = {
+          default = function(self)
+            return "test-model"
+          end,
+          choices = function(self, opts)
+            return {
+              ["test-model"] = {
+                meta = {
+                  context_window = 100000,
+                },
+              },
+            }
+          end,
+        },
+      },
+    }
+
+    local ok, trigger = pcall(_G.helpers.trigger_context_management, adapter)
+    config.interactions.chat.opts.context_management.trigger = original_trigger
+    assert(ok, trigger)
+    return trigger
+  ]])
+
+  h.eq(50000, result)
+end
+
 return T

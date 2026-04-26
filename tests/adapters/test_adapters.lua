@@ -217,6 +217,44 @@ T["HTTP Adapter"]["can form environment variables"] = function()
   h.eq(os.getenv("HOME"), result.env_replaced.home)
 end
 
+T["HTTP Adapter"]["can resolve dynamic model defaults and choices"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.utils.adapters")
+    local adapter = {
+      schema = {
+        model = {
+          default = function(self)
+            return "gpt-5-codex"
+          end,
+          choices = function(self, opts)
+            return {
+              ["gpt-5-codex"] = {
+                opts = {
+                  can_manage_context = true,
+                },
+              },
+            }
+          end,
+        },
+      },
+    }
+
+    return {
+      model = utils.model(adapter),
+      model_choice = utils.model_choice(adapter),
+    }
+  ]])
+
+  h.eq({
+    model = "gpt-5-codex",
+    model_choice = {
+      opts = {
+        can_manage_context = true,
+      },
+    },
+  }, result)
+end
+
 T["HTTP Adapter"]["can set environment variables in the adapter"] = function()
   local result = child.lua([[
     local utils = require("codecompanion.utils.adapters")
