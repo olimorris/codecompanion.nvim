@@ -104,7 +104,6 @@ return {
                 .iter(msg.tools.calls)
                 :map(function(call)
                   return {
-                    _index = call._index,
                     id = call.id,
                     type = call.type,
                     ["function"] = call["function"],

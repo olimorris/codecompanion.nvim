@@ -178,15 +178,14 @@ end
 T["DeepSeek adapter"]["build_messages"]["includes reasoning_content in messages"] = function()
   local input = {
     { role = "user", content = "What is Ruby?" },
-    { role = "assistant", content = "", reasoning = { content = "Let me think about Ruby..." } },
+    { role = "assistant", content = "", reasoning = "Let me think about Ruby..." },
     { role = "user", content = "In two words" },
   }
 
   local result = adapter.handlers.request.build_messages(adapter, input)
 
-  -- Check that reasoning_content is included in the assistant message
-  -- reasoning is a table { content = "..." }, so reasoning_content will be the same table
-  h.eq({ content = "Let me think about Ruby..." }, result.messages[2].reasoning_content)
+  -- reasoning is normalized to a string by build_reasoning before message storage
+  h.eq("Let me think about Ruby...", result.messages[2].reasoning_content)
 end
 
 T["DeepSeek adapter"]["Streaming"] = new_set()

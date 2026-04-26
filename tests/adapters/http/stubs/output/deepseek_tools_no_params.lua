@@ -13,7 +13,6 @@ return {
       role = "assistant",
       tool_calls = {
         {
-          _index = 0,
           ["function"] = {
             arguments = "{}",
             name = "weather_with_default",
@@ -22,7 +21,6 @@ return {
           type = "function",
         },
         {
-          _index = 1,
           ["function"] = {
             arguments = '{"location": "Paris, France", "units": "celsius"}',
             name = "weather_with_default",
