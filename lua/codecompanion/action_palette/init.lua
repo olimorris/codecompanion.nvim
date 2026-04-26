@@ -132,6 +132,28 @@ function ActionPalette.resolve(item, context)
     :start(item.interaction)
 end
 
+---Launch a picker with arbitrary items
+---@param items table The items to display
+---@param opts { context: CodeCompanion.BufferContext, provider?: string, provider_opts?: table, title?: string, validate?: function, resolve?: function }
+---@return nil
+function ActionPalette.launch_picker(items, opts)
+  local provider = opts.provider or config.display.action_palette.provider
+  local noop = function(...)
+    return ...
+  end
+
+  return require("codecompanion.providers.action_palette." .. provider)
+    .new({
+      context = opts.context,
+      resolve = opts.resolve or noop,
+      validate = opts.validate or noop,
+    })
+    :picker(items, {
+      columns = opts.columns,
+      prompt = opts.title,
+    })
+end
+
 ---Launch the action palette
 ---@param context CodeCompanion.BufferContext
 ---@param args? { provider: {name: string, opts: table } } The provider to use
