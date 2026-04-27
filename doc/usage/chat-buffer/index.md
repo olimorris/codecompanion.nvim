@@ -27,6 +27,10 @@ The chat buffer uses markdown as its syntax and `H2` headers separate the user a
 
 New in `v19.12.0`, you can send a message to the LLM whilst it's executing tool calls with the `btw` keymap which is triggered with `gm`. When safe to do so, CodeCompanion will send the message to the LLM.
 
+## Action Palette
+
+The chat buffer has its own _Action Palette_ which can be accessed with `:CodeCompanionActions` when in the chat buffer. This displays available keymaps and slash commands and can be used to trigger them.
+
 ## Changing Adapter and Model
 
 <img src="https://github.com/user-attachments/assets/e19ade4f-1daa-4634-b071-4ecd400371eb" />
