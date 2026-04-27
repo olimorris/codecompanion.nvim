@@ -969,6 +969,47 @@ T["Adapter"]["call_handler"]["handles multiple arguments correctly"] = function(
   }, result)
 end
 
+T["Adapter"]["model_choice"] = new_set()
+
+T["Adapter"]["model_choice"]["returns nil when choices is a function"] = function()
+  local result = child.lua([[
+    local adapter = {
+      schema = {
+        model = {
+          default = "gpt-5.4-mini",
+          choices = function(self, opts)
+            return {}
+          end,
+        },
+      },
+    }
+
+    return utils.model_choice(adapter)
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
+T["Adapter"]["model_choice"]["returns model opts when choices is a table"] = function()
+  local result = child.lua([[
+    local adapter = {
+      schema = {
+        model = {
+          default = "gpt-4o",
+          choices = {
+            ["gpt-4o"] = { opts = { can_reason = false } },
+            ["o1"] = { opts = { can_reason = true } },
+          },
+        },
+      },
+    }
+
+    return utils.model_choice(adapter)
+  ]])
+
+  h.eq({ opts = { can_reason = false } }, result)
+end
+
 T["Adapter"]["call_handler"]["works without arguments"] = function()
   local result = child.lua([[
     local adapters = require("codecompanion.adapters")
