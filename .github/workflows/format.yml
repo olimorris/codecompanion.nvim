@@ -10,9 +10,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Format 🖌️
-        uses: JohnnyMorganz/stylua-action@v5
+        uses: JohnnyMorganz/stylua-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: 2.4.1
           args: --check .
 
