@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 24
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3654,6 +3654,13 @@ changed as per the |codecompanion--keymaps| section.
 New in `v19.12.0`, you can send a message to the LLM whilst it's executing tool
 calls with the `btw` keymap which is triggered with `gm`. When safe to do so,
 CodeCompanion will send the message to the LLM.
+
+
+ACTION PALETTE ~
+
+The chat buffer has its own `Action Palette` which can be accessed with
+`:CodeCompanionActions` when in the chat buffer. This displays available
+keymaps and slash commands and can be used to trigger them.
 
 
 CHANGING ADAPTER AND MODEL ~
