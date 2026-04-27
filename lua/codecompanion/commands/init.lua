@@ -367,7 +367,7 @@ return {
       if vim.bo[bufnr].filetype == "codecompanion" then
         local chat = require("codecompanion.interactions.chat").buf_get_chat(bufnr)
         if chat then
-          return require("codecompanion.interactions.chat.command_palette").launch(chat)
+          return require("codecompanion.interactions.chat.action_palette").launch(chat)
         end
       end
 

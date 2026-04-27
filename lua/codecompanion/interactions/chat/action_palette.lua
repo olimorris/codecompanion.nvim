@@ -5,6 +5,24 @@ local slash_command_filter = require("codecompanion.interactions.chat.slash_comm
 ---@class CodeCompanion.Chat.CommandPalette
 local CommandPalette = {}
 
+---Format a keymap's modes into a single display string
+---@param modes table<string, string|string[]>
+---@return string
+local function format_keys(modes)
+  local order = { "n", "i" }
+  local segments = {}
+
+  for _, mode in ipairs(order) do
+    local key = modes[mode]
+    if key then
+      local keys = type(key) == "table" and key or { key }
+      table.insert(segments, mode .. ": " .. table.concat(keys, ", "))
+    end
+  end
+
+  return table.concat(segments, "  ")
+end
+
 ---Build items from the chat's keymaps
 ---@param chat CodeCompanion.Chat
 ---@return table
@@ -21,16 +39,8 @@ local function keymap_items(chat)
       goto continue
     end
 
-    -- Format the key bindings for display
-    local keys = {}
-    for mode, key in pairs(map.modes or {}) do
-      if type(key) == "table" then
-        for _, k in ipairs(key) do
-          table.insert(keys, k .. " (" .. mode .. ")")
-        end
-      else
-        table.insert(keys, key .. " (" .. mode .. ")")
-      end
+    if map.opts and map.opts.chat and map.opts.chat.show_in_action_palette == false then
+      goto continue
     end
 
     table.insert(items, {
@@ -46,9 +56,9 @@ local function keymap_items(chat)
           end
         end
       end,
-      description = table.concat(keys, ", "),
+      description = format_keys(map.modes or {}),
       index = map.index or 99,
-      name = map.description and map.description:gsub("^%[.-%] ", "") or name,
+      name = map.description or name,
       type = "keymap",
     })
 
@@ -124,7 +134,7 @@ function CommandPalette.launch(chat)
   return require("codecompanion.action_palette").launch_picker(items, {
     columns = { "name", "description" },
     context = context,
-    title = "Chat commands",
+    title = "Chat actions",
   })
 end
 
