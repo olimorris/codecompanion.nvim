@@ -419,9 +419,13 @@ end
 
 ---Helper function to return the model from the choices
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table
+---@return table?
 function M.model_choice(adapter)
-  return adapter.schema.model.choices[M.model(adapter)]
+  local choices = adapter.schema.model.choices
+  if type(choices) ~= "table" then
+    return nil
+  end
+  return choices[M.model(adapter)]
 end
 
 return M
