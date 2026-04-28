@@ -507,14 +507,17 @@ T["Chat"]["has_orphaned_tool_calls returns true when a call has no result"] = fu
         },
       },
     })
+
     -- Only provide a result for call_1
     table.insert(_G.chat.messages, {
       role = "tool",
       content = "file contents",
       tools = { call_id = "call_1", type = "tool_result" },
     })
+
     return _G.chat:has_orphaned_tool_calls()
   ]])
+
   h.eq(true, result)
 end
 
