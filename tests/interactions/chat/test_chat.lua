@@ -544,6 +544,61 @@ T["Chat"]["has_orphaned_tool_calls returns false when all calls have results"] =
   h.eq(false, result)
 end
 
+T["Chat"]["_complete_orphaned_tool_calls synthesizes cancelled results"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+          { id = "call_2", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+    -- Provide a result only for call_1
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "result 1",
+      tools = { call_id = "call_1", type = "tool_result" },
+    })
+
+    _G.chat:_complete_orphaned_tool_calls()
+
+    local synthesized
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.tools and msg.tools.call_id == "call_2" then
+        synthesized = msg
+      end
+    end
+
+    return {
+      has_orphans = _G.chat:has_orphaned_tool_calls(),
+      synthesized_content = synthesized and synthesized.content,
+      synthesized_visible = synthesized and synthesized.opts and synthesized.opts.visible,
+    }
+  ]])
+  h.eq(false, result.has_orphans)
+  h.eq("Cancelled by user", result.synthesized_content)
+  h.eq(false, result.synthesized_visible)
+end
+
+T["Chat"]["done with stopped status completes orphaned tool calls"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+    _G.chat.status = "cancelling"
+    _G.chat:done(nil, nil, nil, nil, { status = "stopped" })
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+  h.eq(false, result)
+end
+
 T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = function()
   local result = child.lua([[
     local chat = _G.chat

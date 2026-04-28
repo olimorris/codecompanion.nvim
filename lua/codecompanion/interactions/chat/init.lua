@@ -980,16 +980,16 @@ function Chat:add_message(data, opts)
   return self
 end
 
----Check if any tool calls in messages are missing their results
----@return boolean
-function Chat:has_orphaned_tool_calls()
+---Find tool calls in messages that are missing matching results
+---@return table<string, table> Map of call_id to the call object
+function Chat:_orphaned_tool_calls()
   local pending = {}
 
   for _, msg in ipairs(self.messages) do
     if msg.tools and msg.tools.calls then
       for _, call in ipairs(msg.tools.calls) do
         if call.id then
-          pending[call.id] = true
+          pending[call.id] = call
         end
       end
     end
@@ -998,7 +998,35 @@ function Chat:has_orphaned_tool_calls()
     end
   end
 
-  return next(pending) ~= nil
+  return pending
+end
+
+---Check if any tool calls in messages are missing their results
+---@return boolean
+function Chat:has_orphaned_tool_calls()
+  return next(self:_orphaned_tool_calls()) ~= nil
+end
+
+---Prevent any orphaned tool calls by "completing" them with a cancelled message
+---@return nil
+function Chat:_complete_orphaned_tool_calls()
+  local pending = self:_orphaned_tool_calls()
+  if next(pending) == nil then
+    return
+  end
+
+  for id, call in pairs(pending) do
+    local output = adapters.call_handler(self.adapter, "format_response", call, "Cancelled by user")
+    if output then
+      output.opts = vim.tbl_extend("force", output.opts or {}, { visible = false })
+      output._meta = {
+        cycle = self.cycle,
+        id = make_id({ call_id = id, content = output.content, role = output.role }),
+      }
+      table.insert(self.messages, output)
+      log:debug("[chat::_complete_orphaned_tool_calls] Completed tool call result for tool call %s", id)
+    end
+  end
 end
 
 ---Run checkpoint callbacks, passing mutable chat state
@@ -1327,6 +1355,10 @@ function Chat:done(output, reasoning, tools, meta, opts)
   self.current_request = nil
 
   self:_clear_status()
+
+  if opts.status == "stopped" then
+    self:_complete_orphaned_tool_calls()
+  end
 
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
