@@ -194,4 +194,27 @@ T["Keymaps"]["change_adapter"]["list_acp_models returns nil when < 2 models"] = 
   h.expect_truthy(result)
 end
 
+T["Keymaps"]["change_adapter"]["list_acp_models returns nil when model choices are hidden"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    config.adapters.acp.opts.show_model_choices = false
+
+    local acp_connection = {
+      get_models = function(self)
+        return {
+          availableModels = {
+            { modelId = "default", name = "Default" },
+            { modelId = "opus", name = "Opus" },
+          },
+          currentModelId = "default",
+        }
+      end
+    }
+
+    return change_adapter.list_acp_models(acp_connection) == nil
+  ]])
+
+  h.expect_truthy(result)
+end
+
 return T

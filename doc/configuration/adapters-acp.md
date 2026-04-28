@@ -208,6 +208,24 @@ require("codecompanion").setup({
 })
 ```
 
+## Controlling Model Choices
+
+When switching between ACP adapters, the plugin typically displays all available model choices for the selected adapter. If you want to keep the current/default ACP model automatically chosen and skip the model selection UI, you can set `show_model_choices` to `false`:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      opts = {
+        show_model_choices = false,
+      },
+    },
+  },
+})
+```
+
+With `show_model_choices = false`, CodeCompanion will keep using the ACP session's current/default model when changing adapters instead of prompting for a model.
+
 ## Setup: Auggie CLI from Augment Code
 
 To use [Auggie CLI](https://docs.augmentcode.com/cli/overview) within CodeCompanion, you simply need to follow their [Getting Started](https://docs.augmentcode.com/cli/overview#getting-started) guide.

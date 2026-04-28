@@ -126,6 +126,17 @@ end
 ---@return table|nil
 function M.list_acp_models(connection)
   local models = connection:get_models()
+  local show_choices = not (
+    config.adapters
+    and config.adapters.acp
+    and config.adapters.acp.opts
+    and config.adapters.acp.opts.show_model_choices == false
+  )
+
+  if not show_choices then
+    return nil
+  end
+
   if not models or vim.tbl_count(models.availableModels) < 2 then
     return nil
   end

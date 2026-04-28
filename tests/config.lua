@@ -68,6 +68,9 @@ return {
         command = { "node", "test-agent.js" },
         roles = { user = "user", assistant = "assistant" },
       },
+      opts = {
+        show_model_choices = true,
+      },
     },
     opts = {
       cmd_timeout = 10e3,

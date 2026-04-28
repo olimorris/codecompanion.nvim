@@ -51,6 +51,7 @@ local defaults = {
       opencode = "opencode",
       opts = {
         show_presets = true,
+        show_model_choices = true, -- Show model choices when changing adapter
       },
     },
     opts = {
