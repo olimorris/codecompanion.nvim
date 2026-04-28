@@ -47,6 +47,21 @@ T["ToolRegistry"][":add"]["adds a group to the registry"] = function()
   h.expect_tbl_contains("cmd", registry)
 end
 
+T["ToolRegistry"][":add"]["renders collapsed tool group without member tools"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add("senior_dev")
+    _G.chat.context:render()
+    _G.buf_lines = h.get_buf_lines(_G.chat.bufnr)
+  ]])
+
+  local lines = child.lua_get([[_G.buf_lines]])
+  local content = table.concat(lines, "\n")
+
+  h.expect_contains("senior_dev", content)
+  h.eq(nil, content:find("<tool>func</tool>", 1, true))
+  h.eq(nil, content:find("<tool>cmd</tool>", 1, true))
+end
+
 T["ToolRegistry"][":add"]["renders tool in the chat buffer"] = function()
   child.lua([[
     _G.chat.tool_registry:add("func")
@@ -58,6 +73,82 @@ T["ToolRegistry"][":add"]["renders tool in the chat buffer"] = function()
   local content = table.concat(lines, "\n")
 
   h.expect_contains("func", content)
+end
+
+T["ToolRegistry"][":add"]["hides tool context for ACP chats"] = function()
+  child.lua([[
+    _G.chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        roles = { user = "user", assistant = "assistant" },
+        handlers = {
+          form_messages = function()
+            return {}
+          end,
+        },
+      },
+    })
+    _G.chat.tool_registry:add("func")
+    _G.chat.context:render()
+    _G.buf_lines = h.get_buf_lines(_G.chat.bufnr)
+  ]])
+
+  local lines = child.lua_get([[_G.buf_lines]])
+  local content = table.concat(lines, "\n")
+
+  h.expect_tbl_contains("func", child.lua_get([[_G.chat.tool_registry.in_use]]))
+  h.eq(nil, content:find("func", 1, true))
+end
+
+T["ToolRegistry"][":add"]["hides tool group context for ACP chats"] = function()
+  child.lua([[
+    _G.chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        roles = { user = "user", assistant = "assistant" },
+        handlers = {
+          form_messages = function()
+            return {}
+          end,
+        },
+      },
+    })
+    _G.chat.tool_registry:add("senior_dev")
+    _G.chat.context:render()
+    _G.buf_lines = h.get_buf_lines(_G.chat.bufnr)
+  ]])
+
+  local lines = child.lua_get([[_G.buf_lines]])
+  local content = table.concat(lines, "\n")
+
+  h.expect_tbl_contains("func", child.lua_get([[_G.chat.tool_registry.in_use]]))
+  h.expect_tbl_contains("cmd", child.lua_get([[_G.chat.tool_registry.in_use]]))
+  h.eq(nil, content:find("senior_dev", 1, true))
+  h.eq(nil, content:find("func", 1, true))
+  h.eq(nil, content:find("cmd", 1, true))
+end
+
+T["ToolRegistry"][":add"]["updates tool context visibility when switching to ACP"] = function()
+  child.lua([[
+    _G.chat.tool_registry:add("senior_dev")
+    _G.http_visible = _G.chat.context_items[1].opts.visible
+
+    _G.chat.adapter = { name = "test_acp", type = "acp" }
+    _G.chat.tool_registry:update_context_visibility()
+    _G.acp_visible = _G.chat.context_items[1].opts.visible
+
+    _G.chat.adapter = { name = "test_adapter", type = "http" }
+    _G.chat.tool_registry:update_context_visibility()
+    _G.http_again_visible = _G.chat.context_items[1].opts.visible
+  ]])
+
+  h.eq(true, child.lua_get([[_G.http_visible]]))
+  h.eq(false, child.lua_get([[_G.acp_visible]]))
+  h.eq(true, child.lua_get([[_G.http_again_visible]]))
 end
 
 T["ToolRegistry"][":add"]["returns nil for unknown name"] = function()

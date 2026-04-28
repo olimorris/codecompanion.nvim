@@ -32,6 +32,13 @@ local function group_id(name)
   return fmt("<group>%s</group>", name)
 end
 
+---Determine if tool context should be visible for a chat adapter
+---@param chat CodeCompanion.Chat The chat buffer
+---@return boolean
+local function tool_context_visible(chat)
+  return not (chat.adapter and chat.adapter.type == "acp")
+end
+
 ---@class CodeCompanion.Chat.ToolsArgs
 ---@field chat CodeCompanion.Chat
 ---@field ctx CodeCompanion.SystemPrompt.Context
@@ -56,6 +63,12 @@ end
 ---@param opts? table Optional parameters for the context_item
 ---@return nil
 local function add_context(chat, id, opts)
+  opts = opts or {}
+  if opts.visible == nil then
+    opts.visible = tool_context_visible(chat)
+    opts._tool_context_auto_visibility = true
+  end
+
   chat.context:add({
     source = "tool",
     name = "tool",
@@ -121,7 +134,8 @@ end
 function ToolRegistry:add_single_tool(tool, opts)
   opts = opts or {}
   if opts.visible == nil then
-    opts.visible = true
+    opts.visible = tool_context_visible(self.chat)
+    opts._tool_context_auto_visibility = true
   end
 
   local tool_config = opts.config or config.interactions.chat.tools[tool]
@@ -162,6 +176,25 @@ function ToolRegistry:add_single_tool(tool, opts)
   end
 
   utils.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
+
+  return self
+end
+
+---Update automatically managed tool context visibility for the current adapter
+---@return CodeCompanion.Chat.ToolRegistry
+function ToolRegistry:update_context_visibility()
+  local visible = tool_context_visible(self.chat)
+
+  for _, context in ipairs(self.chat.context_items or {}) do
+    if context.source == "tool" and context.opts and context.opts._tool_context_auto_visibility then
+      context.opts.visible = visible
+    end
+  end
+
+  if self.chat.bufnr and vim.api.nvim_buf_is_valid(self.chat.bufnr) then
+    self.chat.context:clear_rendered()
+    self.chat.context:render()
+  end
 
   return self
 end
@@ -216,7 +249,11 @@ function ToolRegistry:add_group(group, opts)
   for _, tool in ipairs(group_config.tools) do
     local tool_cfg = tools_config[tool]
     if tool_cfg then
-      if self:add_single_tool(tool, { config = tool_cfg, visible = not collapse_tools }) then
+      local tool_opts = { config = tool_cfg }
+      if collapse_tools then
+        tool_opts.visible = false
+      end
+      if self:add_single_tool(tool, tool_opts) then
         table.insert(added_tools, tool)
       end
     end

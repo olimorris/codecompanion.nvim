@@ -719,6 +719,7 @@ function Chat:change_adapter(adapter, cb)
   end
 
   self:set_system_prompt()
+  self.tool_registry:update_context_visibility()
   self:update_metadata()
   self:apply_settings()
   fire()
