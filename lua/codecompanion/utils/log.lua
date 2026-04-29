@@ -11,12 +11,10 @@ for k, v in pairs(vim.log.levels) do
 end
 
 function LogHandler.new(opts)
-  vim.validate({
-    type = { opts.type, "string" },
-    handle = { opts.handle, "function" },
-    formatter = { opts.formatter, "function" },
-    level = { opts.level, "number", true },
-  })
+  vim.validate("type", opts.type, "string")
+  vim.validate("handle", opts.handle, "function")
+  vim.validate("formatter", opts.formatter, "function")
+  vim.validate("level", opts.level, "number", true)
   return setmetatable({
     type = opts.type,
     handle = opts.handle,
@@ -55,9 +53,7 @@ end
 ---@return CodeCompanion.LogHandler
 local function create_file_handler(opts)
   local a = require("plenary.async")
-  vim.validate({
-    filename = { opts.filename, "string" },
-  })
+  vim.validate("filename", opts.filename, "string")
   local ok, stdpath = pcall(vim.fn.stdpath, "log")
   if not ok then
     stdpath = vim.fn.stdpath("cache")
@@ -152,9 +148,7 @@ end
 ---@param opts table
 ---@return CodeCompanion.LogHandler
 local function create_handler(opts)
-  vim.validate({
-    type = { opts.type, "string" },
-  })
+  vim.validate("type", opts.type, "string")
   if not opts.formatter then
     opts.formatter = default_formatter
   end
@@ -180,10 +174,8 @@ local Logger = {}
 
 ---@param opts CodeCompanion.LoggerArgs
 function Logger.new(opts)
-  vim.validate({
-    handlers = { opts.handlers, "table" },
-    level = { opts.level, "number", true },
-  })
+  vim.validate("handlers", opts.handlers, "table")
+  vim.validate("level", opts.level, "number", true)
   local handlers = {}
   for _, defn in ipairs(opts.handlers) do
     table.insert(handlers, create_handler(defn))
