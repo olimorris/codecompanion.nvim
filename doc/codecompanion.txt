@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 27
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -4794,6 +4794,15 @@ instead of file contents.
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
+
+
+/FORK ~
+
+The `fork` slash command, specific to `http` adapters, allows you to duplicate
+the current chat buffer, copying the message history and preserving tools and
+context in the process. This enables you to branch the conversation and
+experiment with different prompts, models or even adapters without losing the
+original conversation.
 
 
 /HELP ~

@@ -429,6 +429,19 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["fork"] = {
+          path = "interactions.chat.slash_commands.builtin.fork",
+          description = "Fork the current chat into a new chat buffer",
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["file"] = {
           path = "interactions.shared.slash_commands.file",
           description = "Insert a file",
