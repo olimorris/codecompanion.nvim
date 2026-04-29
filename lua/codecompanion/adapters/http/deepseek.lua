@@ -9,6 +9,7 @@ return {
   roles = {
     llm = "assistant",
     user = "user",
+    tool = "tool",
   },
   opts = {
     stream = true,
@@ -28,99 +29,185 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    --- Use the OpenAI adapter for the bulk of the work
-    setup = function(self)
-      return openai.handlers.setup(self)
-    end,
-    tokens = function(self, data)
-      return openai.handlers.tokens(self, data)
-    end,
-    form_parameters = function(self, params, messages)
-      return openai.handlers.form_parameters(self, params, messages)
-    end,
-    form_tools = function(self, tools)
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
-
-      if model_opts.opts and model_opts.opts.can_use_tools == false then
-        if tools and vim.tbl_count(tools) > 0 then
-          log:warn("Tools are not supported for this model")
+    lifecycle = {
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return boolean
+      setup = function(self)
+        -- Safely get model and choices (handle function types)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model(self)
         end
-        return
-      end
-      return openai.handlers.form_tools(self, tools)
-    end,
-
-    ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
-    ---@return table
-    form_messages = function(self, messages)
-      messages = adapter_utils.merge_messages(messages)
-      messages = adapter_utils.merge_system_messages(messages)
-
-      messages = vim
-        .iter(messages)
-        :map(function(msg)
-          -- Ensure that all messages have a content field
-          local content = msg.content
-          if content and type(content) == "table" then
-            msg.content = table.concat(content, "\n")
-          elseif not content then
-            msg.content = ""
-          end
-
-          -- Process tools
-          if msg.tools then
-            if msg.tools.calls then
-              msg.tool_calls = msg.tools.calls
-            end
-            if msg.tools.call_id then
-              msg.tool_call_id = msg.tools.call_id
-            end
-            msg.tools = nil
-          end
-
-          return msg
-        end)
-        :totable()
-
-      return { messages = messages }
-    end,
-
-    ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param tools table The table to write any tool output to
-    ---@return { status: string, output: { role: string, content: string?, reasoning: {content: string}? } } | nil
-    chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
-    end,
-    parse_message_meta = function(self, data)
-      local extra = data.extra
-      if extra.reasoning_content then
-        data.output.reasoning = { content = extra.reasoning_content }
-        if data.output.content == "" then
-          data.output.content = nil
+        local choices = self.schema.model.choices
+        if type(choices) == "function" then
+          choices = choices(self)
         end
-      end
-      return data
-    end,
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
-    end,
+        local model_opts = choices and choices[model]
+
+        -- Merge model opts
+        if model_opts and model_opts.opts then
+          self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+        end
+
+        -- Set stream
+        if self.opts and self.opts.stream then
+          self.parameters.stream = true
+          self.parameters.stream_options = { include_usage = true }
+        end
+
+        -- When thinking is disabled, don't pass reasoning_effort to the API
+        if vim.tbl_get(self.parameters, "thinking", "type") == "disabled" then
+          self.parameters.reasoning_effort = nil
+        end
+
+        return true
+      end,
+
+      on_exit = function(self, data)
+        return openai.handlers.on_exit(self, data)
+      end,
+    },
+
+    request = {
+      ---Set the parameters
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param params table
+      ---@param messages table
+      ---@return table
+      build_parameters = function(self, params, messages)
+        return params
+      end,
+
+      ---Set the format of the role and content for the messages from the chat buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+      ---@return table
+      build_messages = function(self, messages)
+        messages = adapter_utils.merge_messages(messages, { "tools", "reasoning" })
+        messages = adapter_utils.merge_system_messages(messages)
+
+        messages = vim
+          .iter(messages)
+          :map(function(msg)
+            -- Ensure that all messages have a content field
+            local content = msg.content
+            if vim.islist(content) then
+              content = table.concat(content, "\n")
+            elseif not content then
+              content = ""
+            end
+
+            -- Process tool_calls
+            local tool_calls = msg.tools
+              and msg.tools.calls
+              and vim
+                .iter(msg.tools.calls)
+                :map(function(call)
+                  return {
+                    id = call.id,
+                    type = call.type,
+                    ["function"] = call["function"],
+                  }
+                end)
+                :totable()
+
+            return {
+              role = msg.role,
+              content = content,
+              reasoning_content = msg.role == self.roles.llm and msg.reasoning or nil,
+              tool_calls = tool_calls,
+              tool_call_id = msg.tools and msg.tools.call_id,
+            }
+          end)
+          :totable()
+
+        return { messages = messages }
+      end,
+
+      ---Provides the schemas of the tools that are available to the LLM to call
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param tools table<string, table>
+      ---@return table|nil
+      build_tools = function(self, tools)
+        return openai.handlers.form_tools(self, tools)
+      end,
+
+      ---Aggregate reasoning parts into a string
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param parts table
+      ---@return string
+      build_reasoning = function(self, parts)
+        return vim
+          .iter(parts)
+          :map(function(part)
+            return part.content
+          end)
+          :join("")
+      end,
+    },
+
+    response = {
+      ---Output the data from the API ready for insertion into the chat buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+      ---@param tools? table The table to write any tool output to
+      ---@return table|nil
+      parse_chat = function(self, data, tools)
+        return openai.handlers.chat_output(self, data, tools)
+      end,
+
+      ---Extract reasoning_content from the response
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table
+      ---@return table
+      parse_meta = function(self, data)
+        local reasoning_content = data.extra and data.extra.reasoning_content
+        if reasoning_content then
+          data.output.reasoning = { content = reasoning_content }
+          -- So that codecompanion doesn't mistake this as a normal response with empty string as the content
+          if data.output.content == "" then
+            data.output.content = nil
+          end
+        end
+        return data
+      end,
+
+      ---Output the data from the API for the inline assistant
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table
+      ---@param context table?
+      ---@return table|nil
+      parse_inline = function(self, data, context)
+        return openai.handlers.inline_output(self, data, context)
+      end,
+
+      ---Returns the number of tokens generated from the LLM
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table
+      ---@return number|nil
+      parse_tokens = function(self, data)
+        return openai.handlers.tokens(self, data)
+      end,
+    },
+
     tools = {
-      -- Ref: https://api-docs.deepseek.com/guides/function_calling
-      format_tool_calls = function(self, tools)
+      ---Format the tool calls for the LLM
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param tools table
+      ---@return table
+      format_calls = function(self, tools)
         return openai.handlers.tools.format_tool_calls(self, tools)
       end,
-      output_response = function(self, tool_call, output)
+
+      ---Format the tool response for the LLM
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param tool_call table
+      ---@param output string
+      ---@return table
+      format_response = function(self, tool_call, output)
         return openai.handlers.tools.output_response(self, tool_call, output)
       end,
     },
-    on_exit = function(self, data)
-      return openai.handlers.on_exit(self, data)
-    end,
   },
   schema = {
     ---@type CodeCompanion.Schema
@@ -130,47 +217,77 @@ return {
       type = "enum",
       desc = "ID of the model to use.",
       ---@type string|fun(): string
-      default = "deepseek-reasoner",
+      default = "deepseek-v4-flash",
       choices = {
-        ["deepseek-reasoner"] = {
-          formatted_name = "DeepSeek Reasoner",
-          meta = { context_window = 128000 },
-          opts = { can_reason = true, can_use_tools = false },
+        ["deepseek-v4-flash"] = {
+          formatted_name = "DeepSeek V4 Flash",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, can_use_tools = true },
+        },
+        ["deepseek-v4-pro"] = {
+          formatted_name = "DeepSeek V4 Pro",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, can_use_tools = true },
         },
         ["deepseek-chat"] = {
-          formatted_name = "DeepSeek Chat",
-          meta = { context_window = 128000 },
+          formatted_name = "DeepSeek Chat (Deprecated)",
+          meta = { context_window = 1048576 },
           opts = { can_use_tools = true },
+        },
+        ["deepseek-reasoner"] = {
+          formatted_name = "DeepSeek Reasoner (Deprecated)",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, can_use_tools = true },
         },
       },
     },
     ---@type CodeCompanion.Schema
-    temperature = {
+    ["thinking.type"] = {
       order = 2,
+      mapping = "parameters",
+      type = "enum",
+      optional = true,
+      default = "enabled",
+      desc = "Whether to enable thinking mode. 'enabled' turns on reasoning, 'disabled' turns it off.",
+      choices = { "enabled", "disabled" },
+    },
+    ---@type CodeCompanion.Schema
+    reasoning_effort = {
+      order = 3,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = "max",
+      desc = "Constrains effort on reasoning for reasoning models. Only 'high' and 'max' are supported by DeepSeek V4.",
+      choices = { "high", "max" },
+    },
+    ---@type CodeCompanion.Schema
+    temperature = {
+      order = 4,
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 0.6,
-      desc = "What sampling temperature to use, between 0 and 2. 0.5-0.7 is recommended by DeepSeek for coding tasks.",
+      default = 1,
+      desc = "What sampling temperature to use, between 0 and 2. Not effective when thinking mode is enabled.",
       validate = function(n)
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
     ---@type CodeCompanion.Schema
     top_p = {
-      order = 3,
+      order = 5,
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 0.95,
-      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both. Not used for R1.",
+      default = 1,
+      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. Not effective when thinking mode is enabled.",
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
     ---@type CodeCompanion.Schema
     stop = {
-      order = 4,
+      order = 6,
       mapping = "parameters",
       type = "list",
       optional = true,
@@ -185,7 +302,7 @@ return {
     },
     ---@type CodeCompanion.Schema
     max_tokens = {
-      order = 5,
+      order = 7,
       mapping = "parameters",
       type = "integer",
       optional = true,
@@ -197,31 +314,31 @@ return {
     },
     ---@type CodeCompanion.Schema
     presence_penalty = {
-      order = 6,
+      order = 8,
       mapping = "parameters",
       type = "number",
       optional = true,
       default = 0,
-      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics. Not used for R1",
+      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics. Not effective when thinking mode is enabled.",
       validate = function(n)
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
     ---@type CodeCompanion.Schema
     frequency_penalty = {
-      order = 7,
+      order = 9,
       mapping = "parameters",
       type = "number",
       optional = true,
       default = 0,
-      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim. Not used for R1, but may be specified.",
+      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim. Not effective when thinking mode is enabled.",
       validate = function(n)
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
     ---@type CodeCompanion.Schema
     logprobs = {
-      order = 8,
+      order = 10,
       mapping = "parameters",
       type = "boolean",
       optional = true,
@@ -230,18 +347,6 @@ return {
       subtype_key = {
         type = "integer",
       },
-    },
-    ---@type CodeCompanion.Schema
-    user = {
-      order = 9,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      default = nil,
-      desc = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.",
-      validate = function(u)
-        return u:len() < 100, "Cannot be longer than 100 characters"
-      end,
     },
   },
 }

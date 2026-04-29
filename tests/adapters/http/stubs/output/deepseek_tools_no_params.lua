@@ -9,25 +9,23 @@ return {
       role = "user",
     },
     {
-      content = "",
+      content = "Let me check the weather for both locations.",
       role = "assistant",
       tool_calls = {
         {
-          _index = 0,
           ["function"] = {
-            arguments = "",
+            arguments = "{}",
             name = "weather_with_default",
           },
-          id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+          id = "call_00_YOblREljHrrLmGtaHE72LNh3",
           type = "function",
         },
         {
-          _index = 1,
           ["function"] = {
-            arguments = '{"location": "Paris", "units": "celsius"}',
+            arguments = '{"location": "Paris, France", "units": "celsius"}',
             name = "weather_with_default",
           },
-          id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+          id = "call_01_bKIQfFOpGabMlK7midnRZaBQ",
           type = "function",
         },
       },
@@ -35,12 +33,12 @@ return {
     {
       content = "Ran the weather tool The weather in London, UK is 15° celsius",
       role = "tool",
-      tool_call_id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+      tool_call_id = "call_00_YOblREljHrrLmGtaHE72LNh3",
     },
     {
-      content = "Ran the weather tool The weather in Paris is 15° celsius",
+      content = "Ran the weather tool The weather in Paris, France is 15° celsius",
       role = "tool",
-      tool_call_id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+      tool_call_id = "call_01_bKIQfFOpGabMlK7midnRZaBQ",
     },
   },
 }

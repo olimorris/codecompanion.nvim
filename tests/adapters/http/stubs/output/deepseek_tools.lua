@@ -13,34 +13,32 @@ return {
       role = "assistant",
       tool_calls = {
         {
-          _index = 0,
           ["function"] = {
-            arguments = '{"location": "London", "units": "celsius"}',
+            arguments = '{"location": "London, UK", "units": "celsius"}',
             name = "weather",
           },
-          id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+          id = "call_00_xzVVyar4M7TXmqAvwt5lz3v2",
           type = "function",
         },
         {
-          _index = 1,
           ["function"] = {
-            arguments = '{"location": "Paris", "units": "celsius"}',
+            arguments = '{"location": "Paris, France", "units": "celsius"}',
             name = "weather",
           },
-          id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+          id = "call_01_FiLq2fgCjbR43jdNrxI4OYGD",
           type = "function",
         },
       },
     },
     {
-      content = "Ran the weather tool The weather in London is 15° celsius",
+      content = "Ran the weather tool The weather in London, UK is 15° celsius",
       role = "tool",
-      tool_call_id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+      tool_call_id = "call_00_xzVVyar4M7TXmqAvwt5lz3v2",
     },
     {
-      content = "Ran the weather tool The weather in Paris is 15° celsius",
+      content = "Ran the weather tool The weather in Paris, France is 15° celsius",
       role = "tool",
-      tool_call_id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+      tool_call_id = "call_01_FiLq2fgCjbR43jdNrxI4OYGD",
     },
   },
 }
