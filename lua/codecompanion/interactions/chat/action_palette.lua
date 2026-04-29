@@ -23,6 +23,21 @@ local function format_keys(modes)
   return table.concat(segments, "  ")
 end
 
+---Build the static items shown in every chat command palette
+---@return table
+local function static_items()
+  return {
+    {
+      callback = function()
+        require("codecompanion").actions()
+      end,
+      description = "Open the action palette",
+      name = "CodeCompanion actions",
+      type = "static",
+    },
+  }
+end
+
 ---Build items from the chat's keymaps
 ---@param chat CodeCompanion.Chat
 ---@return table
@@ -122,6 +137,7 @@ end
 function CommandPalette.launch(chat)
   local items = {}
 
+  vim.list_extend(items, static_items())
   vim.list_extend(items, keymap_items(chat))
   vim.list_extend(items, slash_command_items(chat))
 
