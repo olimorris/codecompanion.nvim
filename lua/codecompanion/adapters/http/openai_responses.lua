@@ -573,8 +573,9 @@ return {
         return {
           role = self.roles.tool or "tool",
           tools = {
-            id = tool_call.id,
             call_id = tool_call.call_id,
+            id = tool_call.id,
+            name = tool_call["function"].name,
           },
           content = output,
           opts = { visible = false },

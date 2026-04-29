@@ -108,6 +108,25 @@ This structure provides clear separation of concerns:
 - **response**: Pure transformations for parsing responses (chat, inline, tokens)
 - **tools**: Tool-specific operations (formatting calls and responses)
 
+### Canonical Tool-Result Shape
+
+Tool result messages produced by `format_response` are stored in `chat.messages` and re-read by every adapter's `build_messages`/`form_messages`. To keep messages portable across adapters, every adapter must write to the same canonical shape:
+
+```lua
+{
+  role    = "tool",
+  content = output,
+  tools = {
+    call_id = tool_call.id,                  -- required: matches the LLM's tool call
+    name    = tool_call["function"].name,    -- required: function name (Gemini uses this)
+    is_error = false,                        -- optional: Anthropic uses this
+  },
+  opts = { visible = false },
+}
+```
+
+Adapter-specific extras (e.g. OpenAI Responses' `id`) are allowed but ignored by other adapters. When reading these messages back, an adapter should treat any message with `role == "tool"` as a tool result — never gate on adapter-specific fields.
+
 ### Calling Handlers
 
 Throughout CodeCompanion, handlers are called using the `adapters.call_handler()` function, which provides backwards compatibility:
