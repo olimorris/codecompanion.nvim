@@ -305,7 +305,9 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
   h.eq(#messages, 2)
   h.eq(last_message._meta.tag, "rules")
   h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
-  h.eq(last_message.content, content .. "\n")
+
+  local relative_path = vim.fn.fnamemodify(vim.fs.normalize(tmp), ":p:.")
+  h.eq(last_message.content, string.format("Sharing `%s`:\n\n---\n%s\n\n---", relative_path, content))
 end
 
 T["Rules:make()"]["integration: rules is added when chat is toggled"] = function()
@@ -347,7 +349,9 @@ T["Rules:make()"]["integration: rules is added when chat is toggled"] = function
   h.eq(#messages, 2)
   h.eq(last_message._meta.tag, "rules")
   h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
-  h.eq(last_message.content, content .. "\n")
+
+  local relative_path = vim.fn.fnamemodify(vim.fs.normalize(tmp), ":p:.")
+  h.eq(last_message.content, string.format("Sharing `%s`:\n\n---\n%s\n\n---", relative_path, content))
 end
 
 T["add_files_or_buffers() prevents duplicate files from being added"] = function()

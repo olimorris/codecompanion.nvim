@@ -49,6 +49,8 @@ doc/tags*
 doc/node_modules
 
 .codecompanion.lua
+.n8n
+.claude
 .direnv/
 .testenv/
 .repro/

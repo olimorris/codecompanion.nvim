@@ -40,16 +40,18 @@ function Folds:setup(winnr)
 end
 
 ---Global method which Neovim calls to display folded text
----@return table
+---@return table|string
 function Folds.fold_text()
   local bufnr = api.nvim_get_current_buf()
-  local start = vim.v.foldstart - 1
-  local folds = Folds.fold_summaries[bufnr] or {}
-  local fold_data = folds[start]
 
+  if vim.bo[bufnr].filetype ~= "codecompanion" then
+    return vim.fn.foldtext()
+  end
+
+  local folds = Folds.fold_summaries[bufnr]
+  local fold_data = folds and folds[vim.v.foldstart - 1]
   if not fold_data then
-    -- Fallback for legacy data
-    return Folds._format_fold_text("Unknown", "context")
+    return vim.fn.foldtext()
   end
 
   return Folds._format_fold_text(fold_data.content, fold_data.type)

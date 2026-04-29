@@ -86,6 +86,10 @@ function Keymaps:set(opts)
 
     local default_opts = { desc = map.description or action_opts.desc, buffer = self.bufnr, nowait = true }
     local key_opts = vim.tbl_deep_extend("force", default_opts, map.opts or {})
+    if key_opts.chat then
+      -- These are reserved for chat specific items and should not be set as keymaps
+      key_opts.chat = nil
+    end
 
     if type(rhs) == "function" then
       callback = function()

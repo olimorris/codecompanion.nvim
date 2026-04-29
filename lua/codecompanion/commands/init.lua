@@ -359,8 +359,18 @@ return {
     callback = function(opts)
       if opts.fargs[1] and opts.fargs[1]:lower() == "refresh" then
         local context = require("codecompanion.utils.context").get(vim.api.nvim_get_current_buf())
-        require("codecompanion.actions").refresh_cache(context)
+        require("codecompanion.action_palette").refresh_cache(context)
       end
+
+      -- If we're in a chat buffer, open the chat command palette instead
+      local bufnr = vim.api.nvim_get_current_buf()
+      if vim.bo[bufnr].filetype == "codecompanion" then
+        local chat = require("codecompanion.interactions.chat").buf_get_chat(bufnr)
+        if chat then
+          return require("codecompanion.interactions.chat.action_palette").launch(chat)
+        end
+      end
+
       codecompanion.actions(opts)
     end,
     opts = {

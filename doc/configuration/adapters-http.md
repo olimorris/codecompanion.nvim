@@ -73,7 +73,7 @@ require("codecompanion").setup({
 
 :::
 
-## Changing Adapter Schema
+## Changing Adapter Parameters (Schema)
 
 > [!NOTE]
 > When extending an adapter with `extend`, use it's key from the `adapters` dictionary
@@ -126,6 +126,44 @@ require("codecompanion").setup({
 ```
 
 :::
+
+## Adding a Custom Adapter
+
+> [!NOTE]
+> See the [Creating Adapters](/extending/adapters) section to learn how to create custom adapters
+
+Custom adapters can be added to the plugin as follows:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      my_custom_adapter = function()
+        return {} -- My adapter logic
+      end,
+    },
+  },
+})
+```
+
+## Controlling Model Choices
+
+When switching between adapters, the plugin typically displays all available model choices for the selected adapter. If you want to simplify the interface and have the default model automatically chosen (without showing any model selection UI), you can set the `show_model_choices` option to `false`:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      -- Define your custom adapters here
+      opts = {
+        show_model_choices = false,
+      },
+    },
+  },
+})
+```
+
+With `show_model_choices = false`, the default model (as defined in the adapter's schema) will be automatically selected when changing adapters, and no model selection will be shown to the user.
 
 ## Environment Variables
 
@@ -210,20 +248,37 @@ Supported `env` value types:
 - **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
 - **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
 
-## Adding a Custom Adapter
+## Disabling Compaction
 
-> [!NOTE]
-> See the [Creating Adapters](/extending/adapters) section to learn how to create custom adapters
-
-Custom adapters can be added to the plugin as follows:
+If you use the `anthropic` or `openai_responses` adapters, then the plugin will look to use their server-side compaction capabilities to manage context. If you want to disable this:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
     http = {
-      my_custom_adapter = function()
-        return {} -- My adapter logic
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          opts = {
+            compaction = false,
+          },
+        })
       end,
+    },
+  },
+})
+```
+
+## Hiding Preset Adapters
+
+By default, the plugin shows all available adapters, including the presets. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      opts = {
+        show_presets = false,
+      },
     },
   },
 })
@@ -246,41 +301,6 @@ require("codecompanion").setup({
 }),
 ```
 
-
-## Hiding Preset Adapters
-
-By default, the plugin shows all available adapters, including the presets. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      opts = {
-        show_presets = false,
-      },
-    },
-  },
-})
-```
-
-## Controlling Model Choices
-
-When switching between adapters, the plugin typically displays all available model choices for the selected adapter. If you want to simplify the interface and have the default model automatically chosen (without showing any model selection UI), you can set the `show_model_choices` option to `false`:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      -- Define your custom adapters here
-      opts = {
-        show_model_choices = false,
-      },
-    },
-  },
-})
-```
-
-With `show_model_choices = false`, the default model (as defined in the adapter's schema) will be automatically selected when changing adapters, and no model selection will be shown to the user.
 
 ## Setup Examples
 

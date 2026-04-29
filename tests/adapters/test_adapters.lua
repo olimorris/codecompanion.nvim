@@ -614,6 +614,46 @@ T["Adapter"]["utils"]["add_header handles multiple values"] = function()
   h.eq("a,b,c", result)
 end
 
+T["Adapter"]["utils"]["remove_header removes a value from a comma-separated header"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "token-efficient-tools-2025-02-19,compact-2026-01-12" }
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq("token-efficient-tools-2025-02-19", result)
+end
+
+T["Adapter"]["utils"]["remove_header removes key when last value is removed"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "compact-2026-01-12" }
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
+T["Adapter"]["utils"]["remove_header is a no-op when key is absent"] = function()
+  local result = child.lua([[
+    local headers = {}
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
+T["Adapter"]["utils"]["remove_header is a no-op when value is not present"] = function()
+  local result = child.lua([[
+    local headers = { ["anthropic-beta"] = "token-efficient-tools-2025-02-19" }
+    utils.remove_header(headers, "anthropic-beta", "compact-2026-01-12")
+    return headers["anthropic-beta"]
+  ]])
+
+  h.eq("token-efficient-tools-2025-02-19", result)
+end
+
 T["Adapter"]["utils"]["can consolidate system messages"] = function()
   child.lua([[
     messages = {
@@ -927,6 +967,47 @@ T["Adapter"]["call_handler"]["handles multiple arguments correctly"] = function(
     params_count = 3,
     messages_count = 2,
   }, result)
+end
+
+T["Adapter"]["model_choice"] = new_set()
+
+T["Adapter"]["model_choice"]["returns nil when choices is a function"] = function()
+  local result = child.lua([[
+    local adapter = {
+      schema = {
+        model = {
+          default = "gpt-5.4-mini",
+          choices = function(self, opts)
+            return {}
+          end,
+        },
+      },
+    }
+
+    return utils.model_choice(adapter)
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
+T["Adapter"]["model_choice"]["returns model opts when choices is a table"] = function()
+  local result = child.lua([[
+    local adapter = {
+      schema = {
+        model = {
+          default = "gpt-4o",
+          choices = {
+            ["gpt-4o"] = { opts = { can_reason = false } },
+            ["o1"] = { opts = { can_reason = true } },
+          },
+        },
+      },
+    }
+
+    return utils.model_choice(adapter)
+  ]])
+
+  h.eq({ opts = { can_reason = false } }, result)
 end
 
 T["Adapter"]["call_handler"]["works without arguments"] = function()

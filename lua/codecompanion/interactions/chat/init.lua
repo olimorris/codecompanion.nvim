@@ -389,6 +389,7 @@ function Chat.new(args)
       return bufnr
     end,
     _last_role = args.last_role or config.constants.USER_ROLE,
+    _status = {},
   }, { __index = Chat })
   ---@cast self CodeCompanion.Chat
 
@@ -979,16 +980,16 @@ function Chat:add_message(data, opts)
   return self
 end
 
----Check if any tool calls in messages are missing their results
----@return boolean
-function Chat:has_orphaned_tool_calls()
+---Find tool calls in messages that are missing matching results
+---@return table<string, table> Map of call_id to the call object
+function Chat:_orphaned_tool_calls()
   local pending = {}
 
   for _, msg in ipairs(self.messages) do
     if msg.tools and msg.tools.calls then
       for _, call in ipairs(msg.tools.calls) do
         if call.id then
-          pending[call.id] = true
+          pending[call.id] = call
         end
       end
     end
@@ -997,7 +998,35 @@ function Chat:has_orphaned_tool_calls()
     end
   end
 
-  return next(pending) ~= nil
+  return pending
+end
+
+---Check if any tool calls in messages are missing their results
+---@return boolean
+function Chat:has_orphaned_tool_calls()
+  return next(self:_orphaned_tool_calls()) ~= nil
+end
+
+---Prevent any orphaned tool calls by "completing" them with a cancelled message
+---@return nil
+function Chat:_complete_orphaned_tool_calls()
+  local pending = self:_orphaned_tool_calls()
+  if next(pending) == nil then
+    return
+  end
+
+  for id, call in pairs(pending) do
+    local output = adapters.call_handler(self.adapter, "format_response", call, "Cancelled by user")
+    if output then
+      output.opts = vim.tbl_extend("force", output.opts or {}, { visible = false })
+      output._meta = {
+        cycle = self.cycle,
+        id = make_id({ call_id = id, content = output.content, role = output.role }),
+      }
+      table.insert(self.messages, output)
+      log:debug("[chat::_complete_orphaned_tool_calls] Completed tool call result for tool call %s", id)
+    end
+  end
 end
 
 ---Run checkpoint callbacks, passing mutable chat state
@@ -1053,6 +1082,37 @@ function Chat:replace_user_inputs(message)
   end
 end
 
+---Send a "btw" message to the LLM during the agentic loop
+---@param content string
+---@return nil
+function Chat:btw(content)
+  if not content or content == "" then
+    return
+  end
+
+  self._btw = content
+  log:debug("BTW message queued: %s", content)
+end
+
+---Inject a btw message into the message stack
+---@return nil
+function Chat:_inject_btw()
+  if not self._btw then
+    return
+  end
+
+  self:add_buf_message({
+    role = config.constants.USER_ROLE,
+    content = self._btw,
+  }, { type = self.MESSAGE_TYPES.USER_MESSAGE })
+  self:add_message({
+    role = config.constants.USER_ROLE,
+    content = self._btw,
+  })
+  log:debug("BTW message injected into message stack")
+  self._btw = nil
+end
+
 ---Make a request to the LLM using the HTTP client
 ---@param payload table The payload to send to the LLM
 ---@return nil
@@ -1101,13 +1161,20 @@ function Chat:_submit_http(payload)
           end
         end
         if result.output.meta then
+          if result.output.meta.compaction then
+            log:info("[chat] Context compacted by adapter")
+            self:_set_status("compacting", "Compacting the chat...")
+            utils.fire("ChatCompacting", { bufnr = self.bufnr, id = self.id })
+          end
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
         end
-        table.insert(output, result.output.content)
-        self:add_buf_message({
-          role = config.constants.LLM_ROLE,
-          content = result.output.content,
-        }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+        if result.output.content then
+          table.insert(output, result.output.content)
+          self:add_buf_message({
+            role = config.constants.LLM_ROLE,
+            content = result.output.content,
+          }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+        end
       elseif self.status == CONSTANTS.STATUS_ERROR then
         log:error("[chat::_submit_http] Error: %s", result.output)
         self:done(output)
@@ -1156,11 +1223,6 @@ function Chat:submit(opts)
     return log:debug("Chat request already in progress")
   end
 
-  -- The chat buffer can be submitted in insert mode, but we want to ensure that
-  -- we revert to normal mode so the user can scroll the chat buffer without
-  -- unintentionally hitting the "modifiable is off" error
-  vim.cmd("stopinsert")
-
   opts = opts or {}
 
   if opts.callback then
@@ -1173,6 +1235,7 @@ function Chat:submit(opts)
   end
 
   if opts.auto_submit then
+    self:_inject_btw()
     self.buffer_diffs:check_for_changes(self)
   else
     local message_to_submit = parser.messages(self, self.header_line)
@@ -1223,6 +1286,9 @@ function Chat:submit(opts)
     end
     self.ui:lock_buf()
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
+
+    -- Allow users to send a btw message during an active request
+    require("codecompanion.interactions.chat.keymaps").btw.set(self)
   end
 
   self:checkpoint()
@@ -1288,6 +1354,12 @@ function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
   self.current_request = nil
 
+  self:_clear_status()
+
+  if opts.status == "stopped" then
+    self:_complete_orphaned_tool_calls()
+  end
+
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
     return self:reset()
@@ -1323,6 +1395,16 @@ function Chat:done(output, reasoning, tools, meta, opts)
       _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
     })
     reasoning_content = nil
+  elseif has_meta then
+    self:add_message({
+      role = config.constants.LLM_ROLE,
+      content = "",
+      reasoning = reasoning_content,
+    }, {
+      visible = false,
+      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.ui.tokens }),
+    })
+    reasoning_content = nil
   end
 
   -- If a user stops the request, we should be prepared to send the last message
@@ -1347,6 +1429,12 @@ function Chat:done(output, reasoning, tools, meta, opts)
       })
       return self.tools:execute(self, tools)
     end
+  end
+
+  -- If a message was queued during the request, submit it now so the LLM sees it
+  if self._btw then
+    self:checkpoint()
+    return self:submit({ auto_submit = true })
   end
 
   self:checkpoint()
@@ -1597,6 +1685,24 @@ function Chat:close()
   self = nil
 end
 
+---Set a status message as virtual text in the chat buffer
+---@param key string The status key (e.g. "compacting")
+---@param message string The message to display
+---@return nil
+function Chat:_set_status(key, message)
+  self:_clear_status()
+  self._status = { extmark = self.ui:set_virtual_text(message), [key] = true }
+end
+
+---Clear any active status virtual text
+---@return nil
+function Chat:_clear_status()
+  if self._status.extmark then
+    self.ui:clear_virtual_text(self._status.extmark)
+  end
+  self._status = {}
+end
+
 ---Add a message directly to the chat buffer that will be visible to the user
 ---This will NOT form part of the message stack that is sent to the LLM
 ---@param data table
@@ -1605,6 +1711,8 @@ end
 function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
   opts = opts or {}
+
+  self:_clear_status()
 
   return self.builder:add_message(data, opts)
 end
@@ -1631,7 +1739,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local args = { tool = tool_call.name, for_llm = for_llm, for_user = for_user }
+  local args = { tool = tool.name, for_llm = for_llm, for_user = for_user }
   self:dispatch("on_tool_output", args)
   for_llm = args.for_llm
   for_user = args.for_user
@@ -1698,6 +1806,8 @@ function Chat:ready_for_input(opts)
   if opts.auto_submit then
     self.ui:add_line_break()
     self.ui:add_line_break()
+  else
+    require("codecompanion.interactions.chat.keymaps").btw.remove(self)
   end
 
   log:info("Chat request finished")
@@ -1714,6 +1824,7 @@ end
 ---Restore the chat buffer to an editable state (used when a submission is prevented)
 ---@return nil
 function Chat:restore()
+  require("codecompanion.interactions.chat.keymaps").btw.remove(self)
   self:reset()
   utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
 end

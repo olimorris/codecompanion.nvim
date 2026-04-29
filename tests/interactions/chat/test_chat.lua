@@ -507,14 +507,17 @@ T["Chat"]["has_orphaned_tool_calls returns true when a call has no result"] = fu
         },
       },
     })
+
     -- Only provide a result for call_1
     table.insert(_G.chat.messages, {
       role = "tool",
       content = "file contents",
       tools = { call_id = "call_1", type = "tool_result" },
     })
+
     return _G.chat:has_orphaned_tool_calls()
   ]])
+
   h.eq(true, result)
 end
 
@@ -544,6 +547,61 @@ T["Chat"]["has_orphaned_tool_calls returns false when all calls have results"] =
   h.eq(false, result)
 end
 
+T["Chat"]["_complete_orphaned_tool_calls synthesizes cancelled results"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+          { id = "call_2", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+    -- Provide a result only for call_1
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "result 1",
+      tools = { call_id = "call_1", type = "tool_result" },
+    })
+
+    _G.chat:_complete_orphaned_tool_calls()
+
+    local synthesized
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.tools and msg.tools.call_id == "call_2" then
+        synthesized = msg
+      end
+    end
+
+    return {
+      has_orphans = _G.chat:has_orphaned_tool_calls(),
+      synthesized_content = synthesized and synthesized.content,
+      synthesized_visible = synthesized and synthesized.opts and synthesized.opts.visible,
+    }
+  ]])
+  h.eq(false, result.has_orphans)
+  h.eq("Cancelled by user", result.synthesized_content)
+  h.eq(false, result.synthesized_visible)
+end
+
+T["Chat"]["done with stopped status completes orphaned tool calls"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+    _G.chat.status = "cancelling"
+    _G.chat:done(nil, nil, nil, nil, { status = "stopped" })
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+  h.eq(false, result)
+end
+
 T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = function()
   local result = child.lua([[
     local chat = _G.chat
@@ -564,6 +622,148 @@ T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = functi
   ]])
 
   h.eq(true, result.modifiable)
+end
+
+T["Chat"]["on_tool_output callback receives correct args"] = function()
+  local result = child.lua([[
+    local chat = _G.chat
+    local callback_args = {}
+
+    chat:add_callback("on_tool_output", function(c, args)
+      callback_args = {
+        tool = args.tool,
+        for_llm = args.for_llm,
+        for_user = args.for_user,
+      }
+      args.for_llm = "Modified: " .. args.for_llm
+    end)
+
+    local tool = {
+      name = "weather",
+      function_call = {
+        _index = 0,
+        ["function"] = {
+          arguments = '{"location": "London", "units": "celsius"}',
+          name = "weather",
+        },
+        id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        type = "function",
+      },
+    }
+    chat:add_tool_output(tool, "LLM output", "User output")
+
+    return {
+      callback_args = callback_args,
+      message_content = chat.messages[#chat.messages].content,
+    }
+  ]])
+
+  h.eq(result.callback_args.tool, "weather")
+  h.eq(result.callback_args.for_llm, "LLM output")
+  h.eq(result.callback_args.for_user, "User output")
+  h.eq(result.message_content, "Modified: LLM output")
+end
+
+T["Chat"]["btw"] = new_set()
+
+T["Chat"]["btw"]["stores the message on the chat object"] = function()
+  child.lua([[
+    chat:btw("look in src/utils instead")
+  ]])
+
+  local queued = child.lua_get([[chat._btw]])
+  h.eq("look in src/utils instead", queued)
+end
+
+T["Chat"]["btw"]["ignores empty input"] = function()
+  child.lua([[
+    chat:btw("")
+    chat:btw(nil)
+  ]])
+
+  local queued = child.lua_get([[chat._btw]])
+  h.eq(vim.NIL, queued)
+end
+
+T["Chat"]["btw"]["last message wins when queued multiple times"] = function()
+  child.lua([[
+    chat:btw("first")
+    chat:btw("second")
+  ]])
+
+  local queued = child.lua_get([[chat._btw]])
+  h.eq("second", queued)
+end
+
+T["Chat"]["inject"] = new_set()
+
+T["Chat"]["inject"]["injects the queued message into the message stack on auto-submit"] = function()
+  child.lua([[
+    chat:btw("check the tests directory")
+
+    -- Simulate the auto-submit path which calls _inject_btw
+    chat:_inject_btw()
+  ]])
+
+  -- The queued message should now be in the message stack
+  local result = child.lua([[
+    local last = chat.messages[#chat.messages]
+    return { role = last.role, content = last.content, queued = chat._btw }
+  ]])
+
+  h.eq("user", result.role)
+  h.eq("check the tests directory", result.content)
+  -- And cleared from the queue
+  h.eq(true, result.queued == vim.NIL or result.queued == nil)
+end
+
+T["Chat"]["inject"]["does nothing when the queue is empty"] = function()
+  local count_before = child.lua_get([[#chat.messages]])
+
+  child.lua([[chat:_inject_btw()]])
+
+  local count_after = child.lua_get([[#chat.messages]])
+  h.eq(count_before, count_after)
+end
+
+T["Chat"]["inject"]["is injected after tool results in auto-submit flow"] = function()
+  child.lua([[
+    -- Simulate the state after tools have run: tool call + tool result in messages
+    chat:add_message({
+      role = "llm",
+      content = "",
+    }, {
+      visible = false,
+    })
+
+    -- Simulate a tool result
+    chat:add_message({
+      role = "user",
+      content = "Tool result: file contents here",
+    }, { visible = false })
+
+    -- Now queue a user message
+    chat:btw("focus on the error handling")
+
+    -- Trigger inject (as auto-submit path would)
+    chat:_inject_btw()
+  ]])
+
+  local result = child.lua([[
+    local msgs = chat.messages
+    local last = msgs[#msgs]
+    local second_last = msgs[#msgs - 1]
+    return {
+      last_role = last.role,
+      last_content = last.content,
+      second_last_content = second_last.content,
+    }
+  ]])
+
+  -- The queued message should come after the tool result
+  h.eq("user", result.last_role)
+  h.eq("focus on the error handling", result.last_content)
+  h.eq("Tool result: file contents here", result.second_last_content)
 end
 
 return T

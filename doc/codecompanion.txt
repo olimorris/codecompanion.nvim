@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 19
+*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -20,17 +20,19 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Setup                                |codecompanion-getting-started-setup|
   - Usage                                |codecompanion-getting-started-usage|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
-4. ACP                                                     |codecompanion-acp|
+4. Architecture                                   |codecompanion-architecture|
+  - How Context Is Managed |codecompanion-architecture-how-context-is-managed|
+5. ACP                                                     |codecompanion-acp|
   - Implementation                          |codecompanion-acp-implementation|
   - Protocol Version                      |codecompanion-acp-protocol-version|
   - Current Limitations                |codecompanion-acp-current-limitations|
   - See Also                                      |codecompanion-acp-see-also|
-5. MCP                                                     |codecompanion-mcp|
+6. MCP                                                     |codecompanion-mcp|
   - Usage                                            |codecompanion-mcp-usage|
   - Implementation                          |codecompanion-mcp-implementation|
   - Protocol Version                      |codecompanion-mcp-protocol-version|
   - See Also                                      |codecompanion-mcp-see-also|
-6. Configuration                                 |codecompanion-configuration|
+7. Configuration                                 |codecompanion-configuration|
   - Action Palette                |codecompanion-configuration-action-palette|
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
@@ -43,7 +45,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
   - Other Options                  |codecompanion-configuration-other-options|
-7. Usage                                                 |codecompanion-usage|
+8. Usage                                                 |codecompanion-usage|
   -                                                     |codecompanion-usage-|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
@@ -57,7 +59,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Prompt Library                        |codecompanion-usage-prompt-library|
   - User Interface                        |codecompanion-usage-user-interface|
   - Workflows                                  |codecompanion-usage-workflows|
-8. Extending                                         |codecompanion-extending|
+9. Extending                                         |codecompanion-extending|
   - Extending with Adapters  |codecompanion-extending-extending-with-adapters|
   - Extending with Agentic Workflows|codecompanion-extending-extending-with-agentic-workflows|
   - Extending with Extensions|codecompanion-extending-extending-with-extensions|
@@ -584,146 +586,56 @@ For an optimum plugin workflow, the author recommends the following:
   [!NOTE] You can also assign prompts from the library to specific mappings. See
   the |codecompanion-configuration-prompt-library-assigning-prompts-to-a-keymap|
   section for more information.
-This document provides a guide for upgrading from one version of CodeCompanion
-to another.
 
-CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
-breaking changes, it is recommended to pin the plugin to a specific version in
-your Neovim configuration. The |codecompanion-installation| provides more
-information on how to do this.
+==============================================================================
+4. Architecture                                   *codecompanion-architecture*
 
-- The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
-- CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
-- The `full_stack_dev` group has been renamed to |codecompanion-usage-chat-buffer-agents-tools-agent| (#2786 <https://github.com/olimorris/codecompanion.nvim/pull/2786>)
-- The `next_edit_suggestion` and `list_code_usages` tools have been removed
+This section of the documentation covers architectural concepts and design
+principles that underpin CodeCompanion's functionality.
+
+This is not mandatory reading for users of CodeCompanion. It may be of interest
+to those who are looking to understand some of the technical details of how
+CodeCompanion works, or those who are looking to contribute to the project.
 
 
-ADAPTERS ~
+HOW CONTEXT IS MANAGED     *codecompanion-architecture-how-context-is-managed*
 
-- For the Claude Code adapter to work, you'll need to ensure you have Zed's claude-agent-acp <https://github.com/zed-industries/claude-agent-acp> adapter installed. This has been renamed from `claude-code-acp` in recent weeks (#2779 <https://github.com/olimorris/codecompanion.nvim/pull/2779>)
+One of the limitations of working with LLMs is that of context, as they have a
+finite window with which they can respond to a user's ask. That is, there's
+only a certain amount of data that LLMs can reference in order to generate a
+response. To equate this to human terms, it can be thought of as working memory
+<https://en.wikipedia.org/wiki/Working_memory> and it varies greatly depending
+on what model you're using. The context window is measured in tokens
+<https://platform.claude.com/docs/en/about-claude/glossary#tokens>.
 
-
-CONFIG ~
-
-- Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
-- All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
-- `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` (#2719 <https://github.com/olimorris/codecompanion.nvim/pull/2719>)
-- Across `editor context`, `slash commands` and `tools`, `callback` has been replaced by `path` for string values (module paths and file paths). `callback` is still used for function values, however
-
-
-PROMPT LIBRARY ~
-
-- The location of rules within a prompt library item has changed from `opts.rules` to `rules`:
-
->markdown
-    ---
-    name: Oli's test workflow
-    strategy: chat
-    description: Workflow test prompt
-    rules:
-      - test_rule
-    ---
-<
+When a user breaches the context window, the conversation **ends** and it
+**cannot** continue. This can be hugely inconvenient in the middle of a coding
+session and potentially time consuming to recover from. CodeCompanion has
+context awareness which means it can prevent this from happening by taking
+**preventative** action.
 
 
-CONFIG ~
-
-- The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you'll need to change it to `codecompanion.interactions` (#2485 <https://github.com/olimorris/codecompanion.nvim/pull/2485>)
-- Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you'll need to update the paths accordingly (#2482 <https://github.com/olimorris/codecompanion.nvim/pull/2482>)
-- Workspaces have now been removed from the plugin. Please use |codecompanion-configuration-rules| instead.
+IN THE CHAT BUFFER ~
 
 
-ADAPTERS ~
+  [!NOTE] CodeCompanion enables context management by default
+If you're using the `openai_responses` or `anthropic` adapters, then
+CodeCompanion will use their native server-side compaction capabilities. Please
+see their respective documentation here
+<https://developers.openai.com/api/docs/guides/compaction> and here
+<https://platform.claude.com/docs/en/build-with-claude/compaction> for more
+information.
 
-- If you have a custom adapter, you'll need to rename `condition` to be `enabled` on any schema items (#2439 <https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569>):
+To be updated…
 
->lua
-    return {
-      schema = {
-        ["reasoning.effort"] = {
-          ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
-          condition = function(self) -- [!code --]
-          enabled = function(self) -- [!code ++]
-            --
-          end,
-        },
-      }
-    }
-<
-
-- The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively (#2494 <https://github.com/olimorris/codecompanion.nvim/pull/2494>)
-- If you wish to hide the adapters that come with CodeCompanion, `adapters.[acp|http].opts.show_defaults` has been renamed to `adapters.[acp|http].opts.show_presets` for both HTTP and ACP adapters (#2497 <https://github.com/olimorris/codecompanion.nvim/pull/2497>)
-
-
-CHAT ~
-
-- Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the |codecompanion-configuration-rules| documentation for more information (#2440 <https://github.com/olimorris/codecompanion.nvim/pull/2440>)
-
-- The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
-- The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
-    entire buffer is sent to the LLM with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
-    —
-- Passing an adapter as an argument to `:CodeCompanionChat` is now done with `:CodeCompanionChat adapter=<adapter_name>` (#2437 <https://github.com/olimorris/codecompanion.nvim/pull/2437>)
-- If your chat buffer system prompt is still stored at `opts.system_prompt` you'll need to change it to `interactions.chat.opts.system_prompt` (#2484 <https://github.com/olimorris/codecompanion.nvim/pull/2484>)
-
-
-PROMPT LIBRARY ~
-
-If you have any prompts defined in your config, you'll need to:
-
-- Rename `opts.short_name` to `opts.alias` for each item in order to allow you to call them with `require("codecompanion").prompt("my_prompt")` or as slash commands in the chat buffer (#2471 <https://github.com/olimorris/codecompanion.nvim/pull/2471>).
-
->lua
-    ["my custom prompt"] = {
-      strategy = "chat",
-      description = "My custom prompt",
-      opts = {
-        short_name = "my_prompt", -- [!code --]
-        alias = "my_prompt", -- [!code ++]
-      },
-      prompts = {
-        -- ...
-      },
-    },
-<
-
-- Change all workflow prompts, replacing `strategy = "workflow"` with `interaction = "chat"` and specifying `opts.is_workflow = true` (#2487 <https://github.com/olimorris/codecompanion.nvim/pull/2487>).
-
->lua
-    ["my_workflow"] = {
-      strategy = "workflow", -- [!code --]
-      interaction = "chat", -- [!code ++]
-      description = "My custom workflow",
-      opts = {
-        is_workflow = true, -- [!code ++]
-      },
-      prompts = {
-        -- ...
-      },
-    },
-<
-
-- If you don't wish to display any of the built-in prompt library items, you'll need to change `display.action_palette.show_default_prompt_library` to `display.action_palette.show_preset_prompts` (#2499 <https://github.com/olimorris/codecompanion.nvim/pull/2499>)
-
-
-TOOLS ~
-
-If you have any tools in your config, you'll need to rename:
-
-- `requires_approval` to `require_approval_before` (#2439 <https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569>)
-- `user_confirmation` to `require_confirmation_after` (#2450 <https://github.com/olimorris/codecompanion.nvim/pull/2450>)
-
-These now better reflect the timing of each action.
-
-
-UI ~
-
-- The `display.chat.child_window` has been renamed `display.chat.floating_window` to better describe what it is (#2452 <https://github.com/olimorris/codecompanion.nvim/pull/2452>)
-- The `display.action_palette.opts.show_default_actions` has been renamed to be `display.action_palette.opts.show_preset_actions` (#2499 <https://github.com/olimorris/codecompanion.nvim/pull/2499>)
+Firstly, CodeCompanion manages context by paying close attention to the number
+of tokens in the |codecompanion-usage-chat-buffer-index|, matching them against
+a defined trigger threshold in your config, which can be
+|codecompanion-configuration-chat-buffer-context-management|.
 
 
 ==============================================================================
-4. ACP                                                     *codecompanion-acp*
+5. ACP                                                     *codecompanion-acp*
 
 CodeCompanion implements the Agent Client Protocol (ACP)
 <https://agentclientprotocol.com/> to enable you to work with coding agents
@@ -901,7 +813,7 @@ SEE ALSO                                          *codecompanion-acp-see-also*
 
 
 ==============================================================================
-5. MCP                                                     *codecompanion-mcp*
+6. MCP                                                     *codecompanion-mcp*
 
 CodeCompanion implements the Model Context Protocol (MCP)
 <https://modelcontextprotocol.io> to enable you to connect the plugin to
@@ -969,7 +881,144 @@ SEE ALSO                                          *codecompanion-mcp-see-also*
 
 
 ==============================================================================
-6. Configuration                                 *codecompanion-configuration*
+7. Configuration                                 *codecompanion-configuration*
+
+This document provides a guide for upgrading from one version of CodeCompanion
+to another.
+
+CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
+breaking changes, it is recommended to pin the plugin to a specific version in
+your Neovim configuration. The |codecompanion-installation| provides more
+information on how to do this.
+
+- The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
+- The `full_stack_dev` group has been renamed to |codecompanion-usage-chat-buffer-agents-tools-agent| (#2786 <https://github.com/olimorris/codecompanion.nvim/pull/2786>)
+- The `next_edit_suggestion` and `list_code_usages` tools have been removed
+
+
+ADAPTERS
+
+- For the Claude Code adapter to work, you'll need to ensure you have Zed's claude-agent-acp <https://github.com/zed-industries/claude-agent-acp> adapter installed. This has been renamed from `claude-code-acp` in recent weeks (#2779 <https://github.com/olimorris/codecompanion.nvim/pull/2779>)
+
+
+CONFIG
+
+- Diff keymaps have moved from `interactions.inline.keymaps` to `interactions.shared.keymaps` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- All diff config has moved to `display.diff` (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
+- `variables` have been renamed to `editor_context` and the config paths are now `interactions.chat.editor_context` and `interactions.inline.editor_context` (#2719 <https://github.com/olimorris/codecompanion.nvim/pull/2719>)
+- Across `editor context`, `slash commands` and `tools`, `callback` has been replaced by `path` for string values (module paths and file paths). `callback` is still used for function values, however
+
+
+PROMPT LIBRARY
+
+- The location of rules within a prompt library item has changed from `opts.rules` to `rules`:
+
+>markdown
+    ---
+    name: Oli's test workflow
+    strategy: chat
+    description: Workflow test prompt
+    rules:
+      - test_rule
+    ---
+<
+
+
+CONFIG
+
+- The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you'll need to change it to `codecompanion.interactions` (#2485 <https://github.com/olimorris/codecompanion.nvim/pull/2485>)
+- Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you'll need to update the paths accordingly (#2482 <https://github.com/olimorris/codecompanion.nvim/pull/2482>)
+- Workspaces have now been removed from the plugin. Please use |codecompanion-configuration-rules| instead.
+
+
+ADAPTERS
+
+- If you have a custom adapter, you'll need to rename `condition` to be `enabled` on any schema items (#2439 <https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569>):
+
+>lua
+    return {
+      schema = {
+        ["reasoning.effort"] = {
+          ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+          condition = function(self) -- [!code --]
+          enabled = function(self) -- [!code ++]
+            --
+          end,
+        },
+      }
+    }
+<
+
+- The default adapters on the **Anthropic** and **Gemini** adapters have changed to `claude-sonnet-4-5-20250929` and `gemini-3-pro-preview`, respectively (#2494 <https://github.com/olimorris/codecompanion.nvim/pull/2494>)
+- If you wish to hide the adapters that come with CodeCompanion, `adapters.[acp|http].opts.show_defaults` has been renamed to `adapters.[acp|http].opts.show_presets` for both HTTP and ACP adapters (#2497 <https://github.com/olimorris/codecompanion.nvim/pull/2497>)
+
+
+CHAT
+
+- Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the |codecompanion-configuration-rules| documentation for more information (#2440 <https://github.com/olimorris/codecompanion.nvim/pull/2440>)
+
+- The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
+- The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
+    entire buffer is sent to the LLM with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
+    —
+- Passing an adapter as an argument to `:CodeCompanionChat` is now done with `:CodeCompanionChat adapter=<adapter_name>` (#2437 <https://github.com/olimorris/codecompanion.nvim/pull/2437>)
+- If your chat buffer system prompt is still stored at `opts.system_prompt` you'll need to change it to `interactions.chat.opts.system_prompt` (#2484 <https://github.com/olimorris/codecompanion.nvim/pull/2484>)
+
+
+PROMPT LIBRARY
+
+If you have any prompts defined in your config, you'll need to:
+
+- Rename `opts.short_name` to `opts.alias` for each item in order to allow you to call them with `require("codecompanion").prompt("my_prompt")` or as slash commands in the chat buffer (#2471 <https://github.com/olimorris/codecompanion.nvim/pull/2471>).
+
+>lua
+    ["my custom prompt"] = {
+      strategy = "chat",
+      description = "My custom prompt",
+      opts = {
+        short_name = "my_prompt", -- [!code --]
+        alias = "my_prompt", -- [!code ++]
+      },
+      prompts = {
+        -- ...
+      },
+    },
+<
+
+- Change all workflow prompts, replacing `strategy = "workflow"` with `interaction = "chat"` and specifying `opts.is_workflow = true` (#2487 <https://github.com/olimorris/codecompanion.nvim/pull/2487>).
+
+>lua
+    ["my_workflow"] = {
+      strategy = "workflow", -- [!code --]
+      interaction = "chat", -- [!code ++]
+      description = "My custom workflow",
+      opts = {
+        is_workflow = true, -- [!code ++]
+      },
+      prompts = {
+        -- ...
+      },
+    },
+<
+
+- If you don't wish to display any of the built-in prompt library items, you'll need to change `display.action_palette.show_default_prompt_library` to `display.action_palette.show_preset_prompts` (#2499 <https://github.com/olimorris/codecompanion.nvim/pull/2499>)
+
+
+TOOLS
+
+If you have any tools in your config, you'll need to rename:
+
+- `requires_approval` to `require_approval_before` (#2439 <https://github.com/olimorris/codecompanion.nvim/pull/2439/commits/cb14c7bac869346e2d12b775c4bf258606add569>)
+- `user_confirmation` to `require_confirmation_after` (#2450 <https://github.com/olimorris/codecompanion.nvim/pull/2450>)
+
+These now better reflect the timing of each action.
+
+
+UI
+
+- The `display.chat.child_window` has been renamed `display.chat.floating_window` to better describe what it is (#2452 <https://github.com/olimorris/codecompanion.nvim/pull/2452>)
+- The `display.action_palette.opts.show_default_actions` has been renamed to be `display.action_palette.opts.show_preset_actions` (#2499 <https://github.com/olimorris/codecompanion.nvim/pull/2499>)
 
 
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
@@ -1487,7 +1536,7 @@ between adapters and LLMs. Below are two examples of how this can be achieved.
 
 
 
-CHANGING ADAPTER SCHEMA ~
+CHANGING ADAPTER PARAMETERS (SCHEMA) ~
 
 
   [!NOTE] When extending an adapter with `extend`, use it's key from the
@@ -1495,28 +1544,6 @@ CHANGING ADAPTER SCHEMA ~
 LLMs have many settings such as model, temperature and max_tokens. In an
 adapter, these sit within a schema table and can be configured during setup:
 
-
-
-ENVIRONMENT VARIABLES ~
-
-Setting environment variables within adapters is a key part of configuration.
-The adapter `env` table lets you define values that will be interpolated into
-the adapter's URL, headers, parameters and other fields at runtime.
-
-
-
-  [!NOTE] In this `command` example, we're using the 1Password CLI to extract the
-  Gemini API Key. You could also use gpg as outlined here
-  <https://github.com/olimorris/codecompanion.nvim/discussions/601>
-Supported `env` value types: - **Plain environment variable name (string)**: if
-the value is the name of an environment variable that has already been set
-(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
-**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
-be executed via the shell. Example: `"cmd:op read
-op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
-a Lua function which returns a string and will be called with the adapter as
-its sole argument. - **Schema reference (dot notation)**: you can reference
-values from the adapter table (for example `"schema.model.default"`).
 
 
 ADDING A CUSTOM ADAPTER ~
@@ -1533,43 +1560,6 @@ Custom adapters can be added to the plugin as follows:
           my_custom_adapter = function()
             return {} -- My adapter logic
           end,
-        },
-      },
-    })
-<
-
-
-SETTING A PROXY ~
-
-A proxy can be configured by utilising the `adapters.opts` table in the config:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        http = {
-          opts = {
-            allow_insecure = true,
-            proxy = "socks5://127.0.0.1:9999",
-          },
-        },
-      },
-    }),
-<
-
-
-HIDING PRESET ADAPTERS ~
-
-By default, the plugin shows all available adapters, including the presets. If
-you prefer to only display the adapters defined in your user configuration, you
-can set the `show_presets` option to `false`:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        http = {
-          opts = {
-            show_presets = false,
-          },
         },
       },
     })
@@ -1599,6 +1589,88 @@ selection UI), you can set the `show_model_choices` option to `false`:
 With `show_model_choices = false`, the default model (as defined in the
 adapter's schema) will be automatically selected when changing adapters, and no
 model selection will be shown to the user.
+
+
+ENVIRONMENT VARIABLES ~
+
+Setting environment variables within adapters is a key part of configuration.
+The adapter `env` table lets you define values that will be interpolated into
+the adapter's URL, headers, parameters and other fields at runtime.
+
+
+
+  [!NOTE] In this `command` example, we're using the 1Password CLI to extract the
+  Gemini API Key. You could also use gpg as outlined here
+  <https://github.com/olimorris/codecompanion.nvim/discussions/601>
+Supported `env` value types: - **Plain environment variable name (string)**: if
+the value is the name of an environment variable that has already been set
+(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+**Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
+be executed via the shell. Example: `"cmd:op read
+op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
+a Lua function which returns a string and will be called with the adapter as
+its sole argument. - **Schema reference (dot notation)**: you can reference
+values from the adapter table (for example `"schema.model.default"`).
+
+
+DISABLING COMPACTION ~
+
+If you use the `anthropic` or `openai_responses` adapters, then the plugin will
+look to use their server-side compaction capabilities to manage context. If you
+want to disable this:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          anthropic = function()
+            return require("codecompanion.adapters").extend("anthropic", {
+              opts = {
+                compaction = false,
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+HIDING PRESET ADAPTERS ~
+
+By default, the plugin shows all available adapters, including the presets. If
+you prefer to only display the adapters defined in your user configuration, you
+can set the `show_presets` option to `false`:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          opts = {
+            show_presets = false,
+          },
+        },
+      },
+    })
+<
+
+
+SETTING A PROXY ~
+
+A proxy can be configured by utilising the `adapters.opts` table in the config:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          opts = {
+            allow_insecure = true,
+            proxy = "socks5://127.0.0.1:9999",
+          },
+        },
+      },
+    }),
+<
 
 
 SETUP EXAMPLES ~
@@ -2056,6 +2128,21 @@ stack:
       end,
     })
 <
+
+
+CONTEXT MANAGEMENT ~
+
+CodeCompanion can manage context in the chat buffer to try and prevent
+breaching the LLM's context window. It can be enabled with:
+
+
+CodeCompanion makes use of a trigger, a threshold at which the context
+management begins. You can specify a `trigger` as either a decimal
+(representing a percentage of the context window) or an integer (representing a
+token count). When the chat buffer reaches the defined trigger, preventative
+action is taken by CodeCompanion. You can read more in the
+|codecompanion-architecture-manage-context| section.
+
 
 
 DIFF ~
@@ -3455,7 +3542,7 @@ You can prevent any code from being sent to the LLM with:
 
 
 ==============================================================================
-7. Usage                                                 *codecompanion-usage*
+8. Usage                                                 *codecompanion-usage*
 
 
                                                         *codecompanion-usage-*
@@ -3561,8 +3648,19 @@ and LLM's responses. The plugin is turn-based, meaning that the user sends a
 response which is then followed by the LLM's. The user's responses are parsed
 by treesitter and sent via an adapter to an LLM for a response which is then
 streamed back into the buffer. A response is sent to the LLM by pressing `<CR>`
-or `<C-s>`. This can of course be changed as per the |codecompanion--keymaps|
-section.
+or `<C-s>` in normal mode or `<C-CR>` in insert mode. This can of course be
+changed as per the |codecompanion--keymaps| section.
+
+New in `v19.12.0`, you can send a message to the LLM whilst it's executing tool
+calls with the `btw` keymap which is triggered with `gm`. When safe to do so,
+CodeCompanion will send the message to the LLM.
+
+
+ACTION PALETTE ~
+
+The chat buffer has its own `Action Palette` which can be accessed with
+`:CodeCompanionActions` when in the chat buffer. This displays available
+keymaps and slash commands and can be used to trigger them.
 
 
 CHANGING ADAPTER AND MODEL ~
@@ -3708,22 +3806,23 @@ available to the user in normal mode are:
 - `close`: `<C-c>` to close the chat buffer
 - `stop`: `q` to stop the current request
 - `change_adapter`: `ga` to change the adapter for the current chat
+- `clear`: `gx` to clear the chat buffer's contents
+- `copilot_stats`: `gS` to show copilot usage stats
+- `btw`: `gm` type a message to the LLM whilst it's streaming
 - `buffer_sync_all`: `gba` to sync the entire buffer on every turn
 - `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
 - `codeblock`: `gc` to insert a codeblock in the chat buffer
 - `debug`: `gd` to view/debug the chat buffer's contents
 - `fold_code`: `gf` to fold any codeblocks in the chat buffer
-- `rules`: `gM` to clear all rules from the chat buffer
-- `regenerate`: `gr` to regenerate the last response
-- `goto_file_under_cursor`: `gR` to go to the file under cursor. If the file is already opened, it'll jump to the existing window. Otherwise, it'll be opened in a new tab.
-- `system_prompt`: `gs` to toggle the system prompt on/off
-- `copilot_stats`: `gS` to show copilot usage stats
-- `clear`: `gx` to clear the chat buffer's contents
-- `yank_code`: `gy` to yank the last codeblock in the chat buffer
-- `previous_header`: `[[` to move to the previous header
+- `goto_file_under_cursor`: `gR` to go to the file under cursor
+- `next_chat`: `}` to move to the next chat
 - `next_header`: `]]` to move to the next header
 - `previous_chat`: `{` to move to the previous chat
-- `next_chat`: `}` to move to the next chat
+- `previous_header`: `[[` to move to the previous header
+- `regenerate`: `gr` to regenerate the last response
+- `rules`: `gM` to clear all rules from the chat buffer
+- `system_prompt`: `gs` to toggle the system prompt on/off
+- `yank_code`: `gy` to yank the last codeblock in the chat buffer
 
 
 MESSAGES ~
@@ -5129,6 +5228,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatSubmitted` - Fired after a chat has been submitted
 - `CodeCompanionChatDone` - Fired after a chat has received the response
+- `CodeCompanionChatCompacting` - Fired after the chat begins compacting messages to reduce token usage
 - `CodeCompanionChatStopped` - Fired after a chat has been stopped
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
 - `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
@@ -5392,7 +5492,7 @@ the |codecompanion-extending-agentic-workflows| guide.
 
 
 ==============================================================================
-8. Extending                                         *codecompanion-extending*
+9. Extending                                         *codecompanion-extending*
 
 
 EXTENDING WITH ADAPTERS      *codecompanion-extending-extending-with-adapters*

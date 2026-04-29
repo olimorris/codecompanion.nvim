@@ -2,6 +2,14 @@ local M = {}
 
 local _prompts = {}
 
+---Load the builtin markdown prompts shipped with the plugin
+---@param context CodeCompanion.BufferContext
+---@return table
+function M.load_builtins(context)
+  local builtins_dir = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h") .. "/builtins"
+  return require("codecompanion.prompt_library.markdown").load_from_dir(builtins_dir, context)
+end
+
 ---Resolve the prompts in the prompt library with a view to displaying them in the action palette.
 ---@param context table
 ---@param config table

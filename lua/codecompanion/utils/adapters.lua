@@ -357,6 +357,26 @@ function M.set_env_vars(adapter, object)
   end
 end
 
+---Remove a value from a comma-separated header, removing the key entirely if empty
+---@param headers table The headers table to modify
+---@param key string The header name
+---@param value string The value to remove
+function M.remove_header(headers, key, value)
+  local existing = headers[key]
+  if not existing then
+    return
+  end
+
+  local kept = {}
+  for entry in existing:gmatch("[^,]+") do
+    if vim.trim(entry) ~= value then
+      table.insert(kept, vim.trim(entry))
+    end
+  end
+
+  headers[key] = #kept > 0 and table.concat(kept, ",") or nil
+end
+
 ---Add a value to a comma-separated header without duplicating existing values
 ---@param headers table The headers table to modify
 ---@param key string The header name
@@ -388,6 +408,24 @@ function M.map_roles(roles, messages)
     end
   end
   return messages
+end
+
+---Helper function to return the default model
+---@param adapter CodeCompanion.HTTPAdapter
+---@return string
+function M.model(adapter)
+  return adapter.schema.model.default
+end
+
+---Helper function to return the model from the choices
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table?
+function M.model_choice(adapter)
+  local choices = adapter.schema.model.choices
+  if type(choices) ~= "table" then
+    return nil
+  end
+  return choices[M.model(adapter)]
 end
 
 return M
