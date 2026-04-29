@@ -156,6 +156,7 @@ T["OpenAI adapter"]["can output tool call"] = function()
     role = "tool",
     tools = {
       call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      name = "weather",
     },
   }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end

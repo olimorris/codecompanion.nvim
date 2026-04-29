@@ -701,12 +701,33 @@ end
 ---Change the adapter in the chat buffer
 ---@param adapter string
 ---@param cb? function
+---@return boolean swapped Whether the adapter was actually swapped
 function Chat:change_adapter(adapter, cb)
   local function fire()
     return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
-  self.adapter = require("codecompanion.adapters").resolve(adapter)
+  local new_adapter = require("codecompanion.adapters").resolve(adapter)
+
+  -- Block adapter swaps once tool calls or reasoning have happened. Adapter-
+  -- specific state (tool-call signatures, encrypted reasoning blobs) cannot
+  -- be carried into a different vendor's API. Model swaps within the same
+  -- adapter are unaffected.
+  if self.adapter.name ~= new_adapter.name then
+    local has_state = vim.iter(self.messages or {}):any(function(m)
+      return m.reasoning ~= nil or (m.tools and m.tools.calls ~= nil)
+    end)
+    if has_state then
+      utils.notify(
+        fmt("Adapter cannot be changed after tool executions. Start a new chat to use `%s`", new_adapter.name),
+        vim.log.levels.WARN
+      )
+      return false
+    end
+  end
+
+  self.acp_connection = nil
+  self.adapter = new_adapter
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
@@ -722,6 +743,7 @@ function Chat:change_adapter(adapter, cb)
   self:update_metadata()
   self:apply_settings()
   fire()
+  return true
 end
 
 ---Set a model in the chat buffer

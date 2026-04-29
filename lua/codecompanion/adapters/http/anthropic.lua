@@ -245,14 +245,13 @@ return {
         -- 6. Treat 'tool' role as user and convert tool results to Anthropic format
         if m.role == "tool" then
           m.role = self.roles.user
-          -- Convert tool result from CodeCompanion format to Anthropic format
-          if m.tools and m.tools.type == "tool_result" then
+          if m.tools then
             -- Handle content that might already be in Anthropic's format
             if type(m.content) == "table" and m.content.type == "tool_result" then
               -- Already in Anthropic format, keep it as-is but ensure it's in an array
               m.content = { m.content }
             else
-              -- Convert from CodeCompanion format to Anthropic format
+              -- Convert from the canonical tool-result shape to Anthropic's format
               m.content = {
                 {
                   type = "tool_result",
@@ -624,9 +623,9 @@ return {
           role = "tool",
           content = output,
           tools = {
-            type = "tool_result",
             call_id = tool_call.id,
             is_error = false,
+            name = tool_call["function"].name,
           },
           -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
           opts = { visible = false },
@@ -667,7 +666,7 @@ return {
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
           meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_reason = false, has_vision = true },
         },
 
         -- Legacy models

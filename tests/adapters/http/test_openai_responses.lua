@@ -57,8 +57,9 @@ T["Responses"]["can output tool calls"] = function()
     },
     role = "tool",
     tools = {
-      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
       call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      name = "weather",
     },
   }, adapter.handlers.tools.format_response(adapter, tool_call, output))
 end

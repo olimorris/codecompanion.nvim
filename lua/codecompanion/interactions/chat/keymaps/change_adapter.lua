@@ -244,7 +244,6 @@ function M.callback(chat)
     end
 
     if current_adapter ~= selected_adapter then
-      chat.acp_connection = nil -- Ensure we reset this
       chat:change_adapter(selected_adapter, on_adapter_ready)
     else
       return on_adapter_ready()
