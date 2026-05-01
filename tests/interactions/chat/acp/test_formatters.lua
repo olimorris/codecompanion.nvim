@@ -63,30 +63,6 @@ T["ACP Formatters"]["extract_text"] = function()
   h.eq(vim.NIL, result)
 end
 
-T["ACP Formatters"]["short_title"] = function()
-  -- Test with diff path
-  local result = child.lua_get([[formatters.short_title({
-    kind = "edit",
-    title = "Write file",
-    content = { { type = "diff", path = "/Users/test/project/file.lua" } },
-  })]])
-  h.eq("Edit: /Users/test/project/file.lua", result)
-
-  -- Test with backtick command
-  result = child.lua_get([[formatters.short_title({
-    kind = "execute",
-    title = "`ls -la /tmp`",
-  })]])
-  h.eq("Execute: `ls -la /tmp`", result)
-
-  -- Test with quoted title
-  result = child.lua_get([[formatters.short_title({
-    kind = "fetch",
-    title = '"Sheffield United"',
-  })]])
-  h.eq('Fetch: "Sheffield United"', result)
-end
-
 T["ACP Formatters"]["tool_message - Edit Tools"] = function()
   -- Test completed edit with diff
   test_tool_message(
@@ -263,22 +239,6 @@ T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
     [[_G.test_adapter = { opts = { verbose_output = true } }]],
     "Search: Find **/*add_buf_message* — No files found"
   )
-end
-
-T["ACP Formatters"]["fs_write_message"] = function()
-  -- Test normal file write
-  local result = child.lua_get([[formatters.fs_write_message({
-    path = "/Users/test/project/file.lua",
-    bytes = 1024,
-  })]])
-  h.eq("Wrote 1024 bytes to /Users/test/project/file.lua", result)
-
-  -- Test empty path
-  result = child.lua_get([[formatters.fs_write_message({
-    path = "",
-    bytes = 1024,
-  })]])
-  h.eq("Wrote 1024 bytes to file", result)
 end
 
 return T

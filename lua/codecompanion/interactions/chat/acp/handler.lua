@@ -278,7 +278,6 @@ function ACPHandler:process_tool_call(tool_call)
     log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", id)
   end
 
-  table.insert(self.output, content)
   local line_number, icon_id = self.chat:add_buf_message({
     role = config.constants.LLM_ROLE,
     content = content,
