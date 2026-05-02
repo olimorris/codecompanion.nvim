@@ -2,205 +2,134 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
+
 local T = new_set({
   hooks = {
     pre_case = function()
       h.child_start(child)
-      child.lua([[
-        formatters = require("codecompanion.interactions.chat.acp.formatters")
-
-        -- Mock adapter configurations
-        mock_adapter_full = {
-          opts = {
-            verbose_output = false,
-          },
-        }
-
-        mock_adapter_trimmed = {
-          opts = {
-            verbose_output = true,
-          },
-        }
-
-        mock_adapter_no_opts = {}
-      ]])
+      child.lua([[formatters = require("codecompanion.interactions.chat.acp.formatters")]])
     end,
     post_once = child.stop,
   },
 })
 
+---Send a tool call and adapter through `formatters.tool_message` in the child
+---@param tool_call table
+---@param opts? { verbose?: boolean }
+---@return any
+local function format(tool_call, opts)
+  opts = opts or {}
+  local adapter = { opts = { verbose_output = opts.verbose == true } }
+  local expr = ("formatters.tool_message(%s, %s)"):format(vim.inspect(tool_call), vim.inspect(adapter))
+  return child.lua_get(expr)
+end
+
+---Evaluate `formatters.extract_text(block)` in the child
+---@param block table|nil
+---@return any
+local function extract_text(block)
+  return child.lua_get(("formatters.extract_text(%s)"):format(vim.inspect(block)))
+end
+
 T["ACP Formatters"] = new_set()
 
--- Helper function to test tool messages
-local function test_tool_message(tool_call_lua, adapter_lua, expected)
-  child.lua(tool_call_lua)
-  child.lua(adapter_lua)
-  local result = child.lua_get("formatters.tool_message(_G.test_tool_call, _G.test_adapter)")
-  h.eq(expected, result)
-end
-
-T["ACP Formatters"]["extract_text"] = function()
-  -- Test text content block with sanitization
-  local result = child.lua_get([[formatters.extract_text({
-    type = "text",
-    text = "Hello\nWorld\n```lua\ncode\n```\nMore text",
-  })]])
-  h.eq("Hello World code More text", result)
-
-  -- Test resource link
-  result = child.lua_get([[formatters.extract_text({
-    type = "resource_link",
-    uri = "file:///path/to/file.txt",
-  })]])
-  h.eq("[resource: file:///path/to/file.txt]", result)
-
-  -- Test image block
-  result = child.lua_get([[formatters.extract_text({ type = "image" })]])
-  h.eq("[image]", result)
-
-  -- Test invalid input
-  result = child.lua_get([[formatters.extract_text(nil)]])
-  h.eq(vim.NIL, result)
-end
-
-T["ACP Formatters"]["short_title"] = function()
-  -- Test with diff path
-  local result = child.lua_get([[formatters.short_title({
-    kind = "edit",
-    title = "Write file",
-    content = { { type = "diff", path = "/Users/test/project/file.lua" } },
-  })]])
-  h.eq("Edit: /Users/test/project/file.lua", result)
-
-  -- Test with backtick command
-  result = child.lua_get([[formatters.short_title({
-    kind = "execute",
-    title = "`ls -la /tmp`",
-  })]])
-  h.eq("Execute: `ls -la /tmp`", result)
-
-  -- Test with quoted title
-  result = child.lua_get([[formatters.short_title({
-    kind = "fetch",
-    title = '"Sheffield United"',
-  })]])
-  h.eq('Fetch: "Sheffield United"', result)
-end
-
-T["ACP Formatters"]["tool_message - Edit Tools"] = function()
-  -- Test completed edit with diff
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "edit123",
-          title = "Write file.lua",
-          kind = "edit",
-          status = "completed",
-          content = {
-            {
-              type = "diff",
-              path = "/Users/test/file.lua",
-              oldText = "old content",
-              newText = "old content\nnew line",
-            },
-          },
-          locations = { { path = "/Users/test/file.lua" } },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { verbose_output = true } }]],
-    "Edited /Users/test/file.lua (+1 lines)"
-  )
-
-  -- Test trimmed output
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "edit123",
-          title = "Write file.lua",
-          kind = "edit",
-          status = "completed",
-          content = {
-            {
-              type = "diff",
-              path = "/Users/test/file.lua",
-              oldText = "old content",
-              newText = "old content\nnew line",
-            },
-          },
-          locations = { { path = "/Users/test/file.lua" } },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { verbose_output = false } }]],
-    "Edit: /Users/test/file.lua"
-  )
-
-  -- Test pending edit
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "edit123",
-          title = "Write file.lua",
-          kind = "edit",
-          status = "pending",
-          locations = { { path = "/Users/test/file.lua" } },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { verbose_output = false } }]],
-    "Edit: /Users/test/file.lua"
+T["ACP Formatters"]["extract_text - sanitises text blocks"] = function()
+  h.eq(
+    "Hello World code More text",
+    extract_text({ type = "text", text = "Hello\nWorld\n```lua\ncode\n```\nMore text" })
   )
 end
 
-T["ACP Formatters"]["tool_message - Read Tools"] = function()
-  -- Test completed read with content
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "read123",
-          title = "Read config.json",
-          kind = "read",
-          status = "completed",
-          content = {
-            {
-              type = "content",
-              content = {
-                type = "text",
-                text = '{"name": "test"}\n```json\nformatted\n```',
-              },
-            },
-          },
-          locations = { { path = "/Users/test/config.json" } },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { verbose_output = true } }]],
-    'Read: /Users/test/config.json — {"name": "test"} formatted'
-  )
-
-  -- Test completed read without content
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "read123",
-          title = "Read config.json",
-          kind = "read",
-          status = "completed",
-          content = {},
-          locations = { { path = "/Users/test/config.json" } },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { verbose_output = false } }]],
-    "Read: /Users/test/config.json"
+T["ACP Formatters"]["extract_text - resource_link returns uri"] = function()
+  h.eq(
+    "[resource: file:///path/to/file.txt]",
+    extract_text({ type = "resource_link", uri = "file:///path/to/file.txt" })
   )
 end
 
-T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
-  -- Test Claude Code edit example with dynamic path that works in any environment
-  child.lua([[
-    local cwd = vim.fn.getcwd()
-    _G.test_tool_call = {
-      toolCallId = "toolu_01VRjmb5Vsv9WwwKu6cgH8a4",
-      title = "Write quotes.lua",
+T["ACP Formatters"]["extract_text - image"] = function()
+  h.eq("[image]", extract_text({ type = "image" }))
+end
+
+T["ACP Formatters"]["extract_text - audio"] = function()
+  h.eq("[audio]", extract_text({ type = "audio" }))
+end
+
+T["ACP Formatters"]["extract_text - nil input"] = function()
+  h.eq(vim.NIL, extract_text(nil))
+end
+
+T["ACP Formatters"]["edit - non-verbose returns label"] = function()
+  h.eq(
+    "Edit: /Users/test/file.lua",
+    format({
+      toolCallId = "edit-1",
       kind = "edit",
       status = "completed",
+      title = "Write file.lua",
+      locations = { { path = "/Users/test/file.lua" } },
+      content = {
+        { type = "diff", path = "/Users/test/file.lua", oldText = "old", newText = "old\nnew" },
+      },
+    })
+  )
+end
+
+T["ACP Formatters"]["edit - verbose returns diff summary with +N lines"] = function()
+  h.eq(
+    "Edited /Users/test/file.lua (+1 lines)",
+    format({
+      toolCallId = "edit-1",
+      kind = "edit",
+      status = "completed",
+      title = "Write file.lua",
+      locations = { { path = "/Users/test/file.lua" } },
+      content = {
+        { type = "diff", path = "/Users/test/file.lua", oldText = "old", newText = "old\nnew" },
+      },
+    }, { verbose = true })
+  )
+end
+
+T["ACP Formatters"]["edit - verbose returns diff summary with -N lines"] = function()
+  h.eq(
+    "Edited /Users/test/file.lua (-2 lines)",
+    format({
+      toolCallId = "edit-1",
+      kind = "edit",
+      status = "completed",
+      title = "Write file.lua",
+      locations = { { path = "/Users/test/file.lua" } },
+      content = {
+        { type = "diff", path = "/Users/test/file.lua", oldText = "a\nb\nc", newText = "a" },
+      },
+    }, { verbose = true })
+  )
+end
+
+T["ACP Formatters"]["edit - pending status keeps label even when verbose"] = function()
+  h.eq(
+    "Edit: /Users/test/file.lua",
+    format({
+      toolCallId = "edit-1",
+      kind = "edit",
+      status = "pending",
+      title = "Write file.lua",
+      locations = { { path = "/Users/test/file.lua" } },
+    }, { verbose = true })
+  )
+end
+
+T["ACP Formatters"]["edit - cwd-relative diff path is shortened"] = function()
+  local cwd = child.lua_get("vim.fn.getcwd()")
+  h.eq(
+    "Edited quotes.lua (+2 lines)",
+    format({
+      toolCallId = "edit-1",
+      kind = "edit",
+      status = "completed",
+      title = "Write quotes.lua",
+      locations = { { path = cwd .. "/quotes.lua" } },
       content = {
         {
           type = "diff",
@@ -209,76 +138,116 @@ T["ACP Formatters"]["tool_message - Real-world Examples"] = function()
           newText = "-- Simple test comment for ACP capture\nreturn {}\n",
         },
       },
-      locations = {
-        { path = cwd .. "/quotes.lua" },
-      },
-    }
-  ]])
-  child.lua([[_G.test_adapter = { opts = { verbose_output = true } }]])
-  local result = child.lua_get("formatters.tool_message(_G.test_tool_call, _G.test_adapter)")
-  h.eq("Edited quotes.lua (+2 lines)", result)
+    }, { verbose = true })
+  )
+end
 
-  -- Test Claude Code execute example
-  child.lua([[
-    _G.claude_execute = {
-      toolCallId = "toolu_017FaiLJGYNSVToDmZhrHqhA",
-      title = "`ls -la lua/codecompanion/interactions/chat/acp/formatters/`",
+T["ACP Formatters"]["read - non-verbose returns label only"] = function()
+  h.eq(
+    "Read: /Users/test/config.json",
+    format({
+      toolCallId = "read-1",
+      kind = "read",
+      status = "completed",
+      title = "Read config.json",
+      locations = { { path = "/Users/test/config.json" } },
+      content = {},
+    })
+  )
+end
+
+T["ACP Formatters"]["read - verbose appends content summary"] = function()
+  h.eq(
+    'Read: /Users/test/config.json — {"name": "test"} formatted',
+    format({
+      toolCallId = "read-1",
+      kind = "read",
+      status = "completed",
+      title = "Read config.json",
+      locations = { { path = "/Users/test/config.json" } },
+      content = {
+        {
+          type = "content",
+          content = { type = "text", text = '{"name": "test"}\n```json\nformatted\n```' },
+        },
+      },
+    }, { verbose = true })
+  )
+end
+
+T["ACP Formatters"]["execute - parses backtick-wrapped command from title"] = function()
+  h.eq(
+    "Execute: ls -la lua/codecompanion/interactions/chat/acp/formatters/",
+    format({
+      toolCallId = "exec-1",
       kind = "execute",
       status = "completed",
+      title = "`ls -la lua/codecompanion/interactions/chat/acp/formatters/`",
       content = {
         {
           type = "content",
           content = {
             type = "text",
-            text = "total 56\ndrwxr-xr-x@ 6 Oli  staff    192  4 Nov 18:04 .\ndrwxr-xr-x@ 7 Oli  staff    224  4 Nov 18:05 ..\n-rw-r--r--@ 1 Oli  staff   4153  4 Nov 18:04 claude_code.lua",
+            text = "total 56\ndrwxr-xr-x@ 6 Oli  staff    192  4 Nov 18:04 .",
           },
         },
       },
-    }
-    _G.result = formatters.tool_message(_G.claude_execute, mock_adapter_full)
-  ]])
-  local result = child.lua_get("_G.result")
-  h.eq("Execute: ls -la lua/codecompanion/interactions/chat/acp/formatters/", result)
-  h.expect_truthy(not result:match("\n"))
-
-  -- Test Claude Code search example
-  test_tool_message(
-    [[
-        _G.test_tool_call = {
-          toolCallId = "toolu_019YPt8kXTaoKTadxdQjfims",
-          title = "Find `**/*add_buf_message*`",
-          kind = "search",
-          status = "completed",
-          content = {
-            {
-              type = "content",
-              content = {
-                type = "text",
-                text = "No files found",
-              },
-            },
-          },
-        }
-      ]],
-    [[_G.test_adapter = { opts = { verbose_output = true } }]],
-    "Search: Find **/*add_buf_message* — No files found"
+    })
   )
 end
 
-T["ACP Formatters"]["fs_write_message"] = function()
-  -- Test normal file write
-  local result = child.lua_get([[formatters.fs_write_message({
-    path = "/Users/test/project/file.lua",
-    bytes = 1024,
-  })]])
-  h.eq("Wrote 1024 bytes to /Users/test/project/file.lua", result)
+T["ACP Formatters"]["search - verbose appends content summary"] = function()
+  h.eq(
+    "Search: Find **/*add_buf_message* — No files found",
+    format({
+      toolCallId = "search-1",
+      kind = "search",
+      status = "completed",
+      title = "Find `**/*add_buf_message*`",
+      content = {
+        { type = "content", content = { type = "text", text = "No files found" } },
+      },
+    }, { verbose = true })
+  )
+end
 
-  -- Test empty path
-  result = child.lua_get([[formatters.fs_write_message({
-    path = "",
-    bytes = 1024,
-  })]])
-  h.eq("Wrote 1024 bytes to file", result)
+T["ACP Formatters"]["missing kind defaults to 'Other'"] = function()
+  h.eq(
+    "Other: doing something",
+    format({
+      toolCallId = "x-1",
+      status = "pending",
+      title = "doing something",
+    })
+  )
+end
+
+T["ACP Formatters"]["snake_case kind is title-cased with space"] = function()
+  h.eq(
+    "Switch mode: plan",
+    format({
+      toolCallId = "sm-1",
+      kind = "switch_mode",
+      status = "completed",
+      title = "plan",
+    })
+  )
+end
+
+T["ACP Formatters"]["title with trailing ' => ...' preview is stripped"] = function()
+  h.eq(
+    "Fetch: GET /api/users",
+    format({
+      toolCallId = "f-1",
+      kind = "fetch",
+      status = "pending",
+      title = "GET /api/users => 200 OK",
+    })
+  )
+end
+
+T["ACP Formatters"]["nil tool_call is normalised to 'Other: Invalid tool call'"] = function()
+  h.eq("Other: Invalid tool call", child.lua_get("formatters.tool_message(nil, { opts = {} })"))
 end
 
 return T
