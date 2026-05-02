@@ -694,16 +694,23 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       opts = {
         context_management = {
-          enabled = true, -- boolean, or function(adapter) -> boolean
+          ---@type boolean|fun(adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter): boolean
+          enabled = true,
+
           editing = {
             trigger = 0.65, -- 65% of the context window
-            keep = 5, -- last N tool results stay intact
-            exclude_tools = { "memory" }, -- tool names whose results never age out
+            exclude_tools = { "memory" }, -- tools whose result are never edited
+            keep_cycles = 3, -- preserve tool results from the last N cycles
           },
+
           compaction = {
             trigger = 0.85, -- 85% of the context window
-            adapter = nil, -- nil | string | { name = string, model = string }
-            fallback_to_chat_adapter = false, -- on summary failure, retry with the chat adapter
+
+            ---The adapter to use for compaction. Defaults to the current chat adapter
+            ---@type nil|string|{ name: string, model:string }
+            adapter = nil,
+
+            fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
           },
         },
 
