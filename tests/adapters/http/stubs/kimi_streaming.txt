@@ -1,0 +1,10 @@
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"role":"assistant","content":null,"reasoning_content":""},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":null,"reasoning_content":"Two"},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":null,"reasoning_content":" words"},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":null,"reasoning_content":" capturing"},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":null,"reasoning_content":" Ruby"},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":null,"reasoning_content":"."},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":"Elegant","reasoning_content":null},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":" simplicity","reasoning_content":null},"finish_reason":null}],"usage":null}
+data: {"id":"chatcmpl-kimi-001","object":"chat.completion.chunk","created":1777802400,"model":"kimi-k2-thinking","choices":[{"index":0,"delta":{"content":".","reasoning_content":null},"finish_reason":"stop"}],"usage":{"prompt_tokens":9,"completion_tokens":7,"total_tokens":16}}
+data: [DONE]

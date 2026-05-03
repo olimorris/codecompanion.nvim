@@ -1,0 +1,21 @@
+{
+    "id": "chatcmpl-kimi-002",
+    "object": "chat.completion",
+    "created": 1777802500,
+    "model": "kimi-k2.6",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "Elegant simplicity."
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 9,
+        "completion_tokens": 3,
+        "total_tokens": 12
+    }
+}
