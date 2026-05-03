@@ -57,6 +57,7 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Goose (`goose`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
 - Kilo Code (`kilocode`) - Requires an API key
+- Kimi (`kimi`) - Moonshot's Kimi K2 family; requires an API key
 - Kimi CLI (`kimi_cli`) - Requires an API key
 - Mistral AI (`mistral`) - Requires an API key or a Le Chat Pro subscription
 - Novita (`novita`) - Requires an API key

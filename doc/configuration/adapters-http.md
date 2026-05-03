@@ -380,6 +380,51 @@ require("codecompanion").setup({
 })
 ```
 
+### Kimi (Moonshot)
+
+CodeCompanion ships a built-in `kimi` adapter for Moonshot's [Kimi K2 family](https://platform.kimi.ai/docs/models). Unlike the generic `openai_compatible` adapter, it captures and round-trips Kimi's `reasoning_content` so the K2-thinking variants (`kimi-k2-thinking`, `kimi-k2-thinking-turbo`, and the `can_reason` K2 generals such as `kimi-k2.6`) work correctly with tool calling — without it, the second turn of a tool-using chat fails with `"thinking is enabled but reasoning_content is missing in assistant tool call message"`.
+
+For the default setup, simply set `MOONSHOT_API_KEY` and pick the adapter:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = { adapter = "kimi" },
+    inline = { adapter = "kimi" },
+  },
+})
+```
+
+To override the API-key source, swap models, or disable thinking mode:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      kimi = function()
+        return require("codecompanion.adapters").extend("kimi", {
+          env = {
+            -- Use the 1Password CLI instead of an environment variable:
+            api_key = "cmd:op read op://API/Kimi/credential --no-newline",
+            -- Region override (Moonshot has separate endpoints, e.g. for China):
+            -- url = "https://api.moonshot.cn",
+          },
+          schema = {
+            model = { default = "kimi-k2.6" },
+            -- Set to false to disable thinking mode (e.g. for the K2-general
+            -- non-reasoning preview models, where `think` is a no-op):
+            think = { default = true },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+> [!IMPORTANT]
+> The K2-thinking models pin `temperature` to `1` and `top_p` to `0.95`; the adapter's defaults match. Overriding either with another value will yield a 400 from the API. Other K2 models accept the full ranges.
+
 ### Ollama (remotely)
 
 The simplest way to connect to a remote Ollama instance is to set the `OLLAMA_HOST` environment variable (the same variable used by the Ollama CLI):
