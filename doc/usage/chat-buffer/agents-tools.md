@@ -20,11 +20,11 @@ In the plugin, tools are simply context and actions that are shared with an LLM.
 
 ## How They Work
 
-Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow OpenAI's function calling specification, [here](https://platform.openai.com/docs/guides/function-calling#defining-functions).
+Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow [OpenAI's function calling specification for defining functions](https://platform.openai.com/docs/guides/function-calling#defining-functions).
 
 When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _tools/init.lua_ file. The tool system triggers off a series of events, which sees tool's added to a queue and sequentially worked with their output being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
 
-An outline of the architecture can be seen [here](/extending/tools#architecture).
+An outline of the [tool system architecture](/extending/tools#architecture) is available in the extending section.
 
 ## Agents / Tool Groups
 
@@ -227,7 +227,7 @@ Use @{grep_search} to find all occurrences of `buf_add_message`?
 > By default, when editing files, this tool requires user approval before it can be executed
 
 <p>
-  <video controls muted src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
+  <video controls muted title="insert_edit_into_file tool demo" src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
 </p>
 
 This tool can edit buffers and files for code changes from an LLM:

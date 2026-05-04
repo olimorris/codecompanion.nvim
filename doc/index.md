@@ -13,7 +13,7 @@ next:
 CodeCompanion is a plugin which enables you to code with AI, using LLMs and agents, in Neovim.
 
 <p>
-<video controls muted src="https://github.com/user-attachments/assets/3cc83544-2690-49b5-8be6-51e671db52ef"></video>
+<video controls muted title="CodeCompanion overview demo" src="https://github.com/user-attachments/assets/3cc83544-2690-49b5-8be6-51e671db52ef"></video>
 </p>
 
 ## Features

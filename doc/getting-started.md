@@ -67,9 +67,9 @@ The plugin uses the notion of _interactions_ to describe the many different ways
 ### Chat and Inline
 
 > [!NOTE]
-> The adapters that the plugin supports out of the box can be found
-> [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user
-> contributed adapters [here](configuration/adapters-http#community-adapters).
+> The adapters that the plugin supports out of the box can be found in the
+> [built-in adapters directory](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the
+> [community-contributed adapters](configuration/adapters-http#community-adapters).
 >
 > [ACP adapters](/configuration/adapters-acp) are only supported for the chat interaction.
 
@@ -172,7 +172,7 @@ You can add context from your code base by using _Editor Context_ and _Slash Com
 
 **Editor Context**
 
-_Editor Context_, accessed via `#` (by default), contain data about the present state of Neovim. You can find a list of available editor context, [here](/usage/chat-buffer/editor-context). The buffer editor context will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
+_Editor Context_, accessed via `#` (by default), contain data about the present state of Neovim. You can find a [list of available editor context](/usage/chat-buffer/editor-context). The buffer editor context will automatically link a buffer to the chat buffer, by default, updating the LLM when the buffer changes.
 
 You can use them in your prompts like:
 
@@ -185,11 +185,11 @@ What does the code in #{buffer} do?`
 > [!IMPORTANT]
 > These have been designed to work with native Neovim completions alongside nvim-cmp and blink.cmp. To open the native completion menu use `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should also work with coc.nvim.
 
-_Slash commands_, accessed via `/` (by default), run commands to insert additional context into the chat buffer. You can find a list of available commands as well as how to use them, [here](/usage/chat-buffer/slash-commands).
+_Slash commands_, accessed via `/` (by default), run commands to insert additional context into the chat buffer. You can find a [list of available slash commands and how to use them](/usage/chat-buffer/slash-commands).
 
 **Tools**
 
-_Tools_, accessed via `@` (by default), allow the LLM to function as an agent and leverage external tools. You can find a list of available tools as well as how to use them, [here](usage/chat-buffer/agents-tools#available-tools).
+_Tools_, accessed via `@` (by default), allow the LLM to function as an agent and leverage external tools. You can find a [list of available tools and how to use them](usage/chat-buffer/agents-tools#available-tools).
 
 You can use them in your prompts like:
 
@@ -200,7 +200,7 @@ Can you use @{grep_search} to find occurrences of "hello world"
 ### CLI
 
 <p align="center">
-  <video controls src="https://github.com/user-attachments/assets/9b4e202d-a939-4daa-8344-74af91f9f366"></video>
+  <video controls title="CLI interaction demo" src="https://github.com/user-attachments/assets/9b4e202d-a939-4daa-8344-74af91f9f366"></video>
 </p>
 
 Running `:CodeCompanionCLI` will open a new CLI interaction. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](#editor-context). Save with `:w` to send the prompt to the agent, or `:w!` to send and auto-submit it.
@@ -210,7 +210,7 @@ Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit 
 ### Inline
 
 <p align="center">
-  <video controls muted src="https://github.com/user-attachments/assets/11a42705-d9de-4eb5-a9ab-c8a2772fb4d4"></video>
+  <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/11a42705-d9de-4eb5-a9ab-c8a2772fb4d4"></video>
 </p>
 
 > [!NOTE]

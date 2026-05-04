@@ -19,7 +19,7 @@ When a user breaches the context window, the conversation **ends** and it **cann
 > [!NOTE]
 > CodeCompanion enables context management by default
 
-If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see their respective documentation [here](https://developers.openai.com/api/docs/guides/compaction) and [here](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information.
+If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see the [OpenAI compaction documentation](https://developers.openai.com/api/docs/guides/compaction) and [Anthropic compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information.
 
 To be updated...
 
