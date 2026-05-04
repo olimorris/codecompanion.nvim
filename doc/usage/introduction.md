@@ -1,5 +1,5 @@
 ---
-description: Some useful tips on how to get the most out of  CodeCompanion
+description: "Tips and tricks for getting the most out of CodeCompanion in Neovim — keyboard shortcuts, context management, output handling, and productivity patterns."
 ---
 
 # Using CodeCompanion

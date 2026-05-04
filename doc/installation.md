@@ -1,5 +1,5 @@
 ---
-description: How to install CodeCompanion and it's dependencies
+description: "Install CodeCompanion.nvim with lazy.nvim or packer. Covers dependencies, Neovim 0.11+ requirements, optional integrations like nvim-cmp, and API key setup."
 ---
 
 # Installation

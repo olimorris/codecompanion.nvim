@@ -1,5 +1,5 @@
 ---
-description: Some useful UI tips and tricks you can leverage
+description: "Examples and community recipes for extending CodeCompanion's UI in Neovim — including progress spinners with Fidget.nvim and custom status line integrations."
 ---
 
 # Extending the UI
@@ -9,7 +9,7 @@ Below are some examples of how you can extend CodeCompanion and modify the user 
 ## Progress updates with Fidget.nvim by [@jessevdp](https://github.com/jessevdp)
 
 <p align="center">
-<video controls muted src="https://github.com/user-attachments/assets/f1419889-7b62-46f2-ba73-98327a1b378b"></video>
+<video controls muted title="Progress updates with Fidget.nvim" src="https://github.com/user-attachments/assets/f1419889-7b62-46f2-ba73-98327a1b378b"></video>
 </p>
 
 As per the discussion over at [#813](https://github.com/olimorris/codecompanion.nvim/discussions/813).

@@ -1,5 +1,5 @@
 ---
-description: How CodeCompanion implements the Agent Client Protocol (ACP)
+description: "CodeCompanion's Agent Client Protocol (ACP) support — covers session management, tool execution, permissions, and which capabilities are currently implemented."
 ---
 
 # Agent Client Protocol (ACP) Support

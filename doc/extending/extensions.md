@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your own extensions in CodeCompanion
+description: "Create a CodeCompanion extension to add custom functionality to the plugin — distributable as a Neovim plugin or defined locally in your configuration."
 ---
 
 # Extending with Extensions

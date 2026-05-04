@@ -1,11 +1,11 @@
 ---
-description: Learn how to use the Inline interaction type in CodeCompanion
+description: "Write and refactor code directly in Neovim buffers using CodeCompanion's inline interaction — supports visual selection, prompt library aliases, and diff review."
 ---
 
 # Using the Inline Interaction
 
 <p align="center">
-  <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
+  <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
 </p>
 
 As per the [Getting Started](/getting-started.md#inline) guide, the inline interaction enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.

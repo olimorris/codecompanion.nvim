@@ -1,5 +1,5 @@
 ---
-description: Configure the default system prompt in CodeCompanion
+description: "Customize CodeCompanion's system prompt for chat and inline interactions — replace the default, add dynamic context, or tune language and tone for your LLM."
 ---
 
 # Configuring System Prompts

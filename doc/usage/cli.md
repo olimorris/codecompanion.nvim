@@ -1,11 +1,11 @@
 ---
-description: Learn how to use the Command-Line Interface (CLI) interaction to interact with CLI agents from within CodeCompanion.
+description: "Interact with CLI agents like Claude Code and Codex from Neovim using CodeCompanion — share context, send prompts, and manage terminals without leaving Neovim."
 ---
 
 # Using the Command-Line Interface (CLI)
 
 <p align="center">
-  <video controls src="https://github.com/user-attachments/assets/9b4e202d-a939-4daa-8344-74af91f9f366"></video>
+  <video controls title="CLI interaction demo" src="https://github.com/user-attachments/assets/9b4e202d-a939-4daa-8344-74af91f9f366"></video>
 </p>
 
 The CLI interaction allows you to interact with agents that have a command-line interface such as [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) and [Codex](https://github.com/openai/codex).

@@ -1,5 +1,5 @@
 ---
-description: How to use the chat buffer in CodeCompanion.nvim
+description: "Everything about CodeCompanion's chat buffer — opening, toggling, keymaps, multi-turn conversations with LLMs, and adding images in Neovim."
 prev:
   text: 'Action Palette'
   link: '/usage/action-palette'
@@ -117,7 +117,7 @@ Finally, ensure that you have an adapter configured for any background interacti
 ## Images / Vision
 
 <p>
-<video controls muted src="https://github.com/user-attachments/assets/8897d58e-f2c4-4da9-a170-22f31a75c358"></video>
+<video controls muted title="Adding images to the chat buffer" src="https://github.com/user-attachments/assets/8897d58e-f2c4-4da9-a170-22f31a75c358"></video>
 </p>
 
 Many LLMs have the ability to receive images as input (sometimes referred to as vision). CodeCompanion supports the adding of images into the chat buffer via the [/image](/usage/chat-buffer/slash-commands#image) slash command and through the system clipboard with [img-clip.nvim](/installation#img-clip-nvim). CodeCompanion can work with images in your file system and also with remote URLs, encoding both into a base64 representation.

@@ -1,5 +1,5 @@
 ---
-description: How to use the action palette in CodeCompanion
+description: "Use CodeCompanion's Action Palette to launch chat buffers, switch between open chats, access the prompt library, and discover plugin features from a single menu."
 ---
 
 # Using the Action Palette

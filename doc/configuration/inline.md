@@ -1,5 +1,5 @@
 ---
-description: Configure the Inline Interaction in CodeCompanion
+description: "Configure CodeCompanion's inline interaction for writing and refactoring code directly into Neovim buffers via LLM prompts, without opening a chat buffer."
 ---
 
 # Configuring the Inline Interaction

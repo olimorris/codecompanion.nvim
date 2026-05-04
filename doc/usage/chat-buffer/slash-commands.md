@@ -1,5 +1,5 @@
 ---
-description: Learn how Slash Commands improve your productivity in CodeCompanion
+description: "Reference for all CodeCompanion slash commands — fetch URLs, add files and buffers, compact message history, insert symbols, and run ACP session options."
 ---
 
 # Using Slash Commands
@@ -50,7 +50,7 @@ The _fetch_ slash command allows you to add the contents of a URL to the chat bu
 ## /file
 
 <p>
-  <video controls muted src="https://github.com/user-attachments/assets/3359c752-e5e0-41bf-8952-557edf11efdf"></video>
+  <video controls muted title="File slash command demo" src="https://github.com/user-attachments/assets/3359c752-e5e0-41bf-8952-557edf11efdf"></video>
 </p>
 
 The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
@@ -103,7 +103,7 @@ The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) ada
 > If a filetype isn't supported please consider making a PR to add the corresponding Tree-sitter queries from
 > [aerial.nvim](https://github.com/stevearc/aerial.nvim)
 
-The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as the basis. The list of filetypes that the plugin currently supports can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
+The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as the basis. The list of filetypes that the plugin currently supports can be found in the [Tree-sitter queries directory](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
 
 The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple symbols can be selected and added to the chat buffer.
 

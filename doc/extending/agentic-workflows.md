@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your own agentic workflows with CodeCompanion
+description: "Build agentic workflows in CodeCompanion — chain LLM prompts with tool calls to automate multi-step tasks like editing files and running your test suite."
 ---
 
 # Extending with Agentic Workflows

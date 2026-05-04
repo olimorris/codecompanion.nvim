@@ -1,5 +1,5 @@
 ---
-description: How to use the prompts you've defined in your prompt library, in CodeCompanion.
+description: "Use CodeCompanion's prompt library via keymaps, Action Palette, or chat slash commands — includes built-in prompts for explaining, fixing, and testing code."
 ---
 
 # Using the Prompt Library

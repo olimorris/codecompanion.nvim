@@ -1,5 +1,5 @@
 ---
-description: Learn how to add context related to buffers and data in your editor, to the chat buffer
+description: "Share Neovim state with your LLM using CodeCompanion editor context — reference buffers, selections, diagnostics, and more with the #{context} syntax in chat."
 ---
 
 # Using Editor Context

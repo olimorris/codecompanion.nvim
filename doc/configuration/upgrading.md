@@ -1,5 +1,5 @@
 ---
-description: Guide to upgrading CodeCompanion between versions such as v17.33.0 to v18.0.0
+description: "Step-by-step guide for upgrading CodeCompanion between major versions, covering breaking changes, configuration migration, and version pinning in Neovim."
 ---
 
 # Upgrading CodeCompanion

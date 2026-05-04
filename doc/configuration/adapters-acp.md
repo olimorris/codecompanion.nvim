@@ -1,5 +1,5 @@
 ---
-description: Learn how to configure ACP adapters like Claude Code, Gemini CLI and Codex
+description: "Configure Agent Client Protocol (ACP) adapters in CodeCompanion to connect with CLI agents like Claude Code, Codex, Gemini CLI, and OpenCode from Neovim."
 ---
 
 # Configuring ACP Adapters

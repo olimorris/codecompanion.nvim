@@ -1,5 +1,5 @@
 ---
-description: Learn how to consume events within Neovim in CodeCompanion
+description: "Reference for all CodeCompanion events and hooks — integrate with Neovim's autocmd system to react to chat, inline, CLI, and tool lifecycle events."
 ---
 
 # Events / Hooks
