@@ -1,5 +1,5 @@
 ---
-description: Learn how to use agentic workflows in CodeCompanion
+description: "Run agentic workflows in CodeCompanion — chain multi-step LLM interactions to automate complex coding tasks, launched from the Action Palette."
 ---
 
 # Using Workflows

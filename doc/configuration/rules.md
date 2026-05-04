@@ -1,5 +1,5 @@
 ---
-description: Configure ruiles (such as CLAUDE.md. AGENTS.md or Cursor rules) in CodeCompanion
+description: "Configure rules files in CodeCompanion — including CLAUDE.md, AGENTS.md, and Cursor rules — to provide persistent LLM instructions and project context in Neovim."
 ---
 
 # Configuring Rules

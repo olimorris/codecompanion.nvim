@@ -1,5 +1,5 @@
 ---
-description: Learn how Slash Commands improve your productivity in CodeCompanion
+description: "Reference for all CodeCompanion slash commands — fetch URLs, add files and buffers, compact message history, insert symbols, and run ACP session options."
 ---
 
 # Using Slash Commands

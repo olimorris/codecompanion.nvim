@@ -1,5 +1,5 @@
 ---
-description: Learn how to configure adapters like OpenAI, Anthropic, Claude Code in CodeCompanion
+description: "Configure CodeCompanion's HTTP adapters to connect Neovim to OpenAI, Anthropic, Copilot, Gemini, and Ollama. Covers API keys, model selection, and proxy settings."
 ---
 
 # Configuring HTTP Adapters

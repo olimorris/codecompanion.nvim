@@ -1,5 +1,5 @@
 ---
-description: Some useful UI tips and tricks you can leverage
+description: "Examples and community recipes for extending CodeCompanion's UI in Neovim — including progress spinners with Fidget.nvim and custom status line integrations."
 ---
 
 # Extending the UI

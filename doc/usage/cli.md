@@ -1,5 +1,5 @@
 ---
-description: Learn how to use the Command-Line Interface (CLI) interaction to interact with CLI agents from within CodeCompanion.
+description: "Interact with CLI agents like Claude Code and Codex from Neovim using CodeCompanion — share context, send prompts, and manage terminals without leaving Neovim."
 ---
 
 # Using the Command-Line Interface (CLI)

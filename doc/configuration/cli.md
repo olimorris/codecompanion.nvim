@@ -1,5 +1,5 @@
 ---
-description: Learn how to configure agents via the Command-Line Interface (CLI) in CodeCompanion.nvim
+description: "Configure CLI agents in CodeCompanion — define agents like Claude Code or Codex, set custom commands, configure the terminal provider, and manage input settings."
 ---
 
 # Configuring the Command-Line Interface (CLI)

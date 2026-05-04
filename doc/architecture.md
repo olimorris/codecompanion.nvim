@@ -1,5 +1,5 @@
 ---
-description: Architectural concepts and design principles behind CodeCompanion.
+description: "How CodeCompanion manages LLM context windows, handles token limits, and is architected internally — reference for contributors and advanced users."
 ---
 
 # Architecture

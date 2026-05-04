@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your own tools that can be leveraged by LLMs in CodeCompanion
+description: "Build custom CodeCompanion tools to let LLMs execute functions in Neovim — covers tool structure, OpenAI-compatible schemas, handlers, and agent group integration."
 ---
 
 # Extending with Tools

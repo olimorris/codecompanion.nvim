@@ -1,5 +1,5 @@
 ---
-description: How to customize the user interface (UI) of CodeCompanion
+description: "Customize CodeCompanion's Neovim UI — configure chat buffer appearance, status line metadata, and use plugin events to build your own interface extensions."
 ---
 
 # User Interface

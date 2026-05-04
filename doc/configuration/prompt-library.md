@@ -1,5 +1,5 @@
 ---
-description: The prompt library enables you to use pre-built prompts, in markdown, in CodeCompanion. Learn how to configure it here
+description: "Configure CodeCompanion's prompt library with custom Lua or Markdown prompts, reusable workflows, and slash commands for your AI coding workflow in Neovim."
 ---
 
 # Configuring the Prompt Library

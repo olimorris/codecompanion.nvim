@@ -1,5 +1,5 @@
 ---
-description: Learn how to get the most out of rules in CodeCompanion
+description: "Add rules files like CLAUDE.md, AGENTS.md, or Cursor rules to the CodeCompanion chat buffer to provide persistent LLM instructions and project context."
 ---
 
 # Using Rules

@@ -1,5 +1,5 @@
 ---
-description: Learn how to leverage other configuration options such as language, log level, per-project configuration and disabling the sending of code to LLMs.
+description: "Configure miscellaneous CodeCompanion options: response language, log level, per-project config files, and restricting code from being sent to LLMs."
 ---
 
 # Other Configuration Options

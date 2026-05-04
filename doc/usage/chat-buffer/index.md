@@ -1,5 +1,5 @@
 ---
-description: How to use the chat buffer in CodeCompanion.nvim
+description: "Everything about CodeCompanion's chat buffer — opening, toggling, keymaps, multi-turn conversations with LLMs, and adding images in Neovim."
 prev:
   text: 'Action Palette'
   link: '/usage/action-palette'

@@ -1,5 +1,5 @@
 ---
-description: Configure CodeCompanion's native chat buffer, to enable Vim like coding with AI
+description: "Configure CodeCompanion's chat buffer — keymaps, display options, context management, system prompt, and tool settings for AI-assisted coding in Neovim."
 ---
 
 # Configuring the Chat Buffer

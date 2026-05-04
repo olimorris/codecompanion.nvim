@@ -1,5 +1,5 @@
 ---
-description: Getting started with CodeCompanion
+description: "Get up and running with CodeCompanion in Neovim — configure your first LLM adapter, open a chat buffer, use the inline interaction, and learn the core commands."
 ---
 
 # Getting Started

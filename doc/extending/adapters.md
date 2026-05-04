@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your own adapters in CodeCompanion
+description: "Build a custom CodeCompanion HTTP adapter to connect Neovim to any LLM. Covers the adapter interface, request handlers, environment variables, and schema."
 ---
 
 # Extending with Adapters

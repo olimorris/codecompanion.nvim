@@ -1,5 +1,5 @@
 ---
-description: Learn how to use the Inline interaction type in CodeCompanion
+description: "Write and refactor code directly in Neovim buffers using CodeCompanion's inline interaction — supports visual selection, prompt library aliases, and diff review."
 ---
 
 # Using the Inline Interaction

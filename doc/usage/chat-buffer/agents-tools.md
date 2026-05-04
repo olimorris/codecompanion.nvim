@@ -1,5 +1,5 @@
 ---
-description: Learn how to use agents and tools in CodeCompanion so you can leverage the full potential of your LLM and ACP adapters.
+description: "Use CodeCompanion agent tools to let LLMs edit files, run commands, and search the web in Neovim. Covers tool groups, approval system, and model compatibility."
 ---
 
 # Using Agents and Tools

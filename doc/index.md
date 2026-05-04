@@ -1,5 +1,5 @@
 ---
-description: CodeCompanion is a plugin which enables you to code with AI, using LLMs and agents, in Neovim
+description: "CodeCompanion.nvim is an AI coding plugin for Neovim. Chat with Claude, GPT-5, and Gemini, run CLI agents like Claude Code and Codex, and edit code inline."
 prev: false
 next:
   text: 'Installation'
