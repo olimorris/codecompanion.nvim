@@ -5,7 +5,7 @@ description: Learn how Slash Commands improve your productivity in CodeCompanion
 # Using Slash Commands
 
 <p>
-  <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
+  <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" alt="Using slash commands" />
 </p>
 
 Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `interactions.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
@@ -20,7 +20,7 @@ The [ACP specification](https://agentclientprotocol.com/protocol/session-config-
 ## /buffer
 
 <p>
-<img src="https://github.com/user-attachments/assets/1be7593b-f77f-44f9-a418-1d04b3f46785" />
+<img src="https://github.com/user-attachments/assets/1be7593b-f77f-44f9-a418-1d04b3f46785" alt="buffer slash command" />
 </p>
 
 > [!NOTE]

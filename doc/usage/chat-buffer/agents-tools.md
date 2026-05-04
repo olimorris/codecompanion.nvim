@@ -8,7 +8,7 @@ description: Learn how to use agents and tools in CodeCompanion so you can lever
 > The built-in tools are for HTTP adapters only and not all LLMs support tool use. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/f2c17a2b-780a-4914-a983-5b0610d96427" />
+<img src="https://github.com/user-attachments/assets/f2c17a2b-780a-4914-a983-5b0610d96427" alt="Using an agent in the chat buffer" />
 </p>
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
@@ -341,7 +341,7 @@ Use @{web_search} to search neovim.io and explain how I can configure a new lang
 ```
 
 
-Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua).
 
 ## Adapter Tools
 

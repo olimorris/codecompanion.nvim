@@ -1,3 +1,7 @@
+---
+description: Learn how to leverage other configuration options such as language, log level, per-project configuration and disabling the sending of code to LLMs.
+---
+
 # Other Configuration Options
 
 ## Language

@@ -1,3 +1,7 @@
+---
+description: Learn how to use agentic workflows in CodeCompanion
+---
+
 # Using Workflows
 
 <p>

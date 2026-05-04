@@ -23,4 +23,4 @@ If you're using the `openai_responses` or `anthropic` adapters, then CodeCompani
 
 To be updated...
 
-Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/index), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
+Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).

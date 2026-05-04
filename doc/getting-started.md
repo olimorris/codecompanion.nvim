@@ -185,7 +185,7 @@ What does the code in #{buffer} do?`
 > [!IMPORTANT]
 > These have been designed to work with native Neovim completions alongside nvim-cmp and blink.cmp. To open the native completion menu use `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should also work with coc.nvim.
 
-_Slash commands_, accessed via `/` (by default), run commands to insert additional context into the chat buffer. You can find a list of available commands as well as how to use them, [here](/usage/chat-buffer/slash-commands.html).
+_Slash commands_, accessed via `/` (by default), run commands to insert additional context into the chat buffer. You can find a list of available commands as well as how to use them, [here](/usage/chat-buffer/slash-commands).
 
 **Tools**
 

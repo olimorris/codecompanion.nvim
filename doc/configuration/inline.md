@@ -79,7 +79,7 @@ require("codecompanion").setup({
 
 ## Editor Context
 
-The plugin comes with a number of [editor context](/usage/inline.html#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
+The plugin comes with a number of [editor context](/usage/inline#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
 
 ```lua
 require("codecompanion").setup({

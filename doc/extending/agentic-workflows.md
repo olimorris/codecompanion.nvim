@@ -12,7 +12,7 @@ I fully recommend reading [Issue 242 of The Batch](https://www.deeplearning.ai/t
 
 Before showcasing some examples, it's important to understand how workflows have been implemented in the plugin.
 
-When initiated from the [Action Palette](/usage/action-palette), workflows attach themselves to a [chat buffer](/usage/chat-buffer/index) via the notion of a _subscription_. That is, the workflow has subscribed to the conversation and dataflow that's taking place in the chat buffer. After the LLM sends a response, the chat buffer will trigger an event on the subscription class. This will execute a callback which has been defined in the workflow itself (often times this is simply a text prompt), and the event will duly be deleted from the subscription to prevent it from being executed again.
+When initiated from the [Action Palette](/usage/action-palette), workflows attach themselves to a [chat buffer](/usage/chat-buffer/) via the notion of a _subscription_. That is, the workflow has subscribed to the conversation and dataflow that's taking place in the chat buffer. After the LLM sends a response, the chat buffer will trigger an event on the subscription class. This will execute a callback which has been defined in the workflow itself (often times this is simply a text prompt), and the event will duly be deleted from the subscription to prevent it from being executed again.
 
 ## Creating Agentic Workflows
 

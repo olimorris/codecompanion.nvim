@@ -124,7 +124,7 @@ To add rules to an existing chat buffer, use the `/rules` slash command. This wi
 
 ### Action Palette
 
-<img src="https://github.com/user-attachments/assets/09ecd976-ac8b-446f-bed3-a8122617eb79">
+<img src="https://github.com/user-attachments/assets/09ecd976-ac8b-446f-bed3-a8122617eb79" alt="Chat buffer action palette" />
 
 There is also a _Chat with rules_ action in the [Action Palette](/usage/action-palette). This lists all of the rule groups in the config that can be added to a new chat buffer.
 

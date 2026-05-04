@@ -4,8 +4,8 @@ prev:
   text: 'Action Palette'
   link: '/usage/action-palette'
 next:
-  text: 'Tools'
-  link: '/usage/chat-buffer/tools'
+  text: 'Agents/Tools'
+  link: '/usage/chat-buffer/agents-tools'
 ---
 
 # Using the Chat Buffer
@@ -33,7 +33,7 @@ The chat buffer has its own _Action Palette_ which can be accessed with `:CodeCo
 
 ## Changing Adapter and Model
 
-<img src="https://github.com/user-attachments/assets/e19ade4f-1daa-4634-b071-4ecd400371eb" />
+<img src="https://github.com/user-attachments/assets/e19ade4f-1daa-4634-b071-4ecd400371eb" alt="Change adapter and model" />
 
 One of the joys of working with CodeCompanion is being able to switch between conversing with an LLM and an agent, all from within the chat buffer.
 
@@ -48,7 +48,7 @@ ACP adapters are initiated via a command in the configuration. By default, this 
 > [!IMPORTANT]
 > As of `v17.5.0`, variables and tools are wrapped in curly braces automatically, such as `#{buffer}` or `@{files}`
 
-<img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
+<img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" alt="Completion" />
 
 You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
@@ -63,7 +63,7 @@ It's worth noting that not all commands available in ACP CLI tools are exposed v
 
 ## Context
 
-<img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" />
+<img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" alt="context" />
 
 Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, context is defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
 
@@ -163,7 +163,7 @@ The message history cannot be altered directly in the chat buffer. However, it c
 
 ## Settings
 
-<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
+<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" alt="Settings" />
 
 When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
 

@@ -104,7 +104,7 @@ require("codecompanion").cli("Can you explain this code?")
 
 ### Editor Context
 
-Similarly to the [chat buffer](/usage/chat-buffer/index), you can use [editor context](/usage/chat-buffer/editor-context) references in your prompts to share information about your current Neovim session. This makes it trivial to share the current buffer (`#{buffer}`), all currently open buffers (`#{buffers}`), or LSP diagnostics (`#{diagnostics}`) to name but a few.
+Similarly to the [chat buffer](/usage/chat-buffer/), you can use [editor context](/usage/chat-buffer/editor-context) references in your prompts to share information about your current Neovim session. This makes it trivial to share the current buffer (`#{buffer}`), all currently open buffers (`#{buffers}`), or LSP diagnostics (`#{diagnostics}`) to name but a few.
 
 You can use the `:CodeCompanionCLI` command:
 
