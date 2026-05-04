@@ -1,6 +1,7 @@
 local Editing = require("codecompanion.interactions.chat.context_management.editing")
 local h = require("tests.helpers")
 
+local child = MiniTest.new_child_neovim()
 local T = MiniTest.new_set()
 
 local function user_msg(cycle, content)
@@ -51,7 +52,7 @@ end
 
 T["Editing"] = MiniTest.new_set()
 
-T["Editing"]["empty input is a no-op"] = function()
+T["Editing"]["returns empty input unchanged"] = function()
   local messages, cleared = Editing.apply({}, { current_cycle = 1, keep_cycles = 3 })
   h.eq({}, messages)
   h.eq(0, cleared)
@@ -175,6 +176,465 @@ T["Editing"]["updates estimated_tokens when content is replaced"] = function()
   messages[2]._meta.estimated_tokens = 9999
   Editing.apply(messages, { current_cycle = 8, keep_cycles = 3 })
   h.not_eq(9999, messages[2]._meta.estimated_tokens)
+end
+
+T["Editing.integration"] = MiniTest.new_set({
+  hooks = {
+    pre_case = function()
+      h.child_start(child)
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["Editing.integration"]["multi-cycle chat history"] = function()
+  child.lua([==[
+    local Editing = require("codecompanion.interactions.chat.context_management.editing")
+    local tokens = require("codecompanion.utils.tokens")
+    local placeholder = Editing.PLACEHOLDERS.tool_result
+    local placeholder_tokens = tokens.calculate(placeholder)
+    local long_file = string.rep("file contents line\n", 100)
+
+    _G.messages = {
+    -- [1] cycle 1: user prompt
+    {
+      _meta = { cycle = 1, id = 101 },
+      content = "Can you find lua files and do a grep search for `function`",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [2] cycle 1: llm text
+    {
+      _meta = { cycle = 1, id = 102 },
+      content = "I'll search for those.",
+      opts = { visible = true },
+      role = "llm",
+    },
+    -- [3] cycle 1: llm fires two tool calls at once
+    {
+      _meta = { cycle = 1, id = 103 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c1a",
+            type = "function",
+            ["function"] = { arguments = '{"pattern":"*.lua"}', name = "file_search" },
+          },
+          {
+            id = "c1b",
+            type = "function",
+            ["function"] = { arguments = '{"pattern":"function"}', name = "grep_search" },
+          },
+        },
+      },
+    },
+    -- [4] cycle 1: tool result for c1a (will be edited)
+    {
+      _meta = { cycle = 1, id = 104 },
+      content = "init.lua\nutils.lua\nconfig.lua",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c1a", is_error = false, type = "tool_result" },
+    },
+    -- [5] cycle 1: tool result for c1b (will be edited)
+    {
+      _meta = { cycle = 1, id = 105 },
+      content = "init.lua:1 function setup",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c1b", is_error = false, type = "tool_result" },
+    },
+
+    -- [6] cycle 2: user prompt
+    {
+      _meta = { cycle = 2, id = 201 },
+      content = "Read init.lua",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [7] cycle 2: llm text
+    {
+      _meta = { cycle = 2, id = 202 },
+      content = "Reading init.lua now.",
+      opts = { visible = true },
+      role = "llm",
+    },
+    -- [8] cycle 2: llm tool call
+    {
+      _meta = { cycle = 2, id = 203 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c2",
+            type = "function",
+            ["function"] = { arguments = '{"path":"init.lua"}', name = "read_file" },
+          },
+        },
+      },
+    },
+    -- [9] cycle 2: tool result (will be edited)
+    {
+      _meta = { cycle = 2, id = 204 },
+      content = long_file,
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c2", is_error = false, type = "tool_result" },
+    },
+
+    -- [10] cycle 3: user prompt
+    {
+      _meta = { cycle = 3, id = 301 },
+      content = "Remember that init.lua is the entry point",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [11] cycle 3: llm tool call to the memory tool
+    {
+      _meta = { cycle = 3, id = 302 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c3",
+            type = "function",
+            ["function"] = { arguments = '{"note":"init is entry"}', name = "memory" },
+          },
+        },
+      },
+    },
+    -- [12] cycle 3: tool result for memory (excluded, will survive)
+    {
+      _meta = { cycle = 3, id = 303 },
+      content = "Saved: init is entry",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c3", is_error = false, type = "tool_result" },
+    },
+
+    -- [13] cycle 4: user prompt
+    {
+      _meta = { cycle = 4, id = 401 },
+      content = "Grep for `require`",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [14] cycle 4: llm tool call
+    {
+      _meta = { cycle = 4, id = 402 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c4",
+            type = "function",
+            ["function"] = { arguments = '{"pattern":"require"}', name = "grep_search" },
+          },
+        },
+      },
+    },
+    -- [15] cycle 4: tool result (kept by keep_cycles)
+    {
+      _meta = { cycle = 4, id = 403 },
+      content = "matches in 12 files",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c4", is_error = false, type = "tool_result" },
+    },
+
+    -- [16] cycle 5: user prompt
+    {
+      _meta = { cycle = 5, id = 501 },
+      content = "What does that file do?",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [17] cycle 5: llm text only
+    {
+      _meta = { cycle = 5, id = 502 },
+      content = "It bootstraps the plugin.",
+      opts = { visible = true },
+      role = "llm",
+    },
+
+    -- [18] cycle 6: user prompt
+    {
+      _meta = { cycle = 6, id = 601 },
+      content = "Read it once more",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [19] cycle 6: llm tool call
+    {
+      _meta = { cycle = 6, id = 602 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c6",
+            type = "function",
+            ["function"] = { arguments = '{"path":"init.lua"}', name = "read_file" },
+          },
+        },
+      },
+    },
+    -- [20] cycle 6: tool result (kept by keep_cycles)
+    {
+      _meta = { cycle = 6, id = 603 },
+      content = "fresh contents",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c6", is_error = false, type = "tool_result" },
+    },
+  }
+
+    _G.first_cleared = select(2, Editing.apply(_G.messages, {
+      current_cycle = 6,
+      exclude_tools = { "memory" },
+      keep_cycles = 3,
+    }))
+
+    _G.expected = {
+    -- [1] unchanged
+    {
+      _meta = { cycle = 1, id = 101 },
+      content = "Can you find lua files and do a grep search for `function`",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [2] unchanged
+    {
+      _meta = { cycle = 1, id = 102 },
+      content = "I'll search for those.",
+      opts = { visible = true },
+      role = "llm",
+    },
+    -- [3] tool calls survive intact
+    {
+      _meta = { cycle = 1, id = 103 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c1a",
+            type = "function",
+            ["function"] = { arguments = '{"pattern":"*.lua"}', name = "file_search" },
+          },
+          {
+            id = "c1b",
+            type = "function",
+            ["function"] = { arguments = '{"pattern":"function"}', name = "grep_search" },
+          },
+        },
+      },
+    },
+    -- [4] EDITED
+    {
+      _meta = {
+        context_management = { edited = true },
+        cycle = 1,
+        estimated_tokens = placeholder_tokens,
+        id = 104,
+      },
+      content = placeholder,
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c1a", is_error = false, type = "tool_result" },
+    },
+    -- [5] EDITED
+    {
+      _meta = {
+        context_management = { edited = true },
+        cycle = 1,
+        estimated_tokens = placeholder_tokens,
+        id = 105,
+      },
+      content = placeholder,
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c1b", is_error = false, type = "tool_result" },
+    },
+
+    -- [6] unchanged
+    {
+      _meta = { cycle = 2, id = 201 },
+      content = "Read init.lua",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [7] unchanged
+    {
+      _meta = { cycle = 2, id = 202 },
+      content = "Reading init.lua now.",
+      opts = { visible = true },
+      role = "llm",
+    },
+    -- [8] tool calls survive intact
+    {
+      _meta = { cycle = 2, id = 203 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c2",
+            type = "function",
+            ["function"] = { arguments = '{"path":"init.lua"}', name = "read_file" },
+          },
+        },
+      },
+    },
+    -- [9] EDITED
+    {
+      _meta = {
+        context_management = { edited = true },
+        cycle = 2,
+        estimated_tokens = placeholder_tokens,
+        id = 204,
+      },
+      content = placeholder,
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c2", is_error = false, type = "tool_result" },
+    },
+
+    -- [10] unchanged
+    {
+      _meta = { cycle = 3, id = 301 },
+      content = "Remember that init.lua is the entry point",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [11] tool calls survive intact
+    {
+      _meta = { cycle = 3, id = 302 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c3",
+            type = "function",
+            ["function"] = { arguments = '{"note":"init is entry"}', name = "memory" },
+          },
+        },
+      },
+    },
+    -- [12] memory tool is excluded — preserved despite cycle 3 being aged out
+    {
+      _meta = { cycle = 3, id = 303 },
+      content = "Saved: init is entry",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c3", is_error = false, type = "tool_result" },
+    },
+
+    -- [13] unchanged (cycle 4 kept by keep_cycles)
+    {
+      _meta = { cycle = 4, id = 401 },
+      content = "Grep for `require`",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [14] tool calls survive intact
+    {
+      _meta = { cycle = 4, id = 402 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c4",
+            type = "function",
+            ["function"] = { arguments = '{"pattern":"require"}', name = "grep_search" },
+          },
+        },
+      },
+    },
+    -- [15] kept by keep_cycles
+    {
+      _meta = { cycle = 4, id = 403 },
+      content = "matches in 12 files",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c4", is_error = false, type = "tool_result" },
+    },
+
+    -- [16] unchanged
+    {
+      _meta = { cycle = 5, id = 501 },
+      content = "What does that file do?",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [17] unchanged
+    {
+      _meta = { cycle = 5, id = 502 },
+      content = "It bootstraps the plugin.",
+      opts = { visible = true },
+      role = "llm",
+    },
+
+    -- [18] unchanged (most recent)
+    {
+      _meta = { cycle = 6, id = 601 },
+      content = "Read it once more",
+      opts = { visible = true },
+      role = "user",
+    },
+    -- [19] tool calls survive intact
+    {
+      _meta = { cycle = 6, id = 602 },
+      content = "",
+      opts = { visible = false },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "c6",
+            type = "function",
+            ["function"] = { arguments = '{"path":"init.lua"}', name = "read_file" },
+          },
+        },
+      },
+    },
+    -- [20] kept by keep_cycles
+    {
+      _meta = { cycle = 6, id = 603 },
+      content = "fresh contents",
+      opts = { visible = true },
+      role = "tool",
+      tools = { call_id = "c6", is_error = false, type = "tool_result" },
+    },
+  }
+
+    -- Re-running on the same chat clears nothing — already-edited results are skipped
+    _G.second_cleared = select(2, Editing.apply(_G.messages, {
+      current_cycle = 6,
+      exclude_tools = { "memory" },
+      keep_cycles = 3,
+    }))
+  ]==])
+
+  h.eq(3, child.lua_get("_G.first_cleared"))
+  h.eq(0, child.lua_get("_G.second_cleared"))
+  h.eq(child.lua_get("_G.expected"), child.lua_get("_G.messages"))
 end
 
 return T
