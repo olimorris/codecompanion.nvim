@@ -76,7 +76,8 @@ function SlashCommand:execute()
     return utils.notify("No ACP connection available", vim.log.levels.WARN)
   end
 
-  local options = Chat.acp_connection:get_config_options({ exclude_categories = { "model" } })
+  -- local options = Chat.acp_connection:get_config_options({ exclude_categories = { "model" } })
+  local options = Chat.acp_connection:get_config_options()
   if #options == 0 then
     return utils.notify("No configuration options available", vim.log.levels.WARN)
   end
