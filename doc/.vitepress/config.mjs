@@ -61,6 +61,18 @@ const baseHeaders = [
       href: siteUrl + "/sitemap.xml",
     },
   ],
+  ["link", { rel: "icon", type: "image/png", href: "/favicon.png" }],
+  // Ensure Google displays the site as CodeCompanion.nvim in search results
+  [
+    "script",
+    { type: "application/ld+json" },
+    JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "CodeCompanion.nvim",
+      url: "https://codecompanion.olimorris.dev",
+    }),
+  ],
 ];
 
 const umamiScript = [
