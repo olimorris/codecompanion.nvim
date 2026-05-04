@@ -1,5 +1,22 @@
 # Changelog
 
+## [19.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.12.0...v19.13.0) (2026-05-04)
+
+
+### Features
+
+* **adapters:** update DeepSeek to support thinking mode and v4 models ([#3062](https://github.com/olimorris/codecompanion.nvim/issues/3062)) ([4939f94](https://github.com/olimorris/codecompanion.nvim/commit/4939f94e78d0420ecb6ea530973436c10e71b7da))
+* **chat:** action palette has static items ([#3079](https://github.com/olimorris/codecompanion.nvim/issues/3079)) ([dcc2bcb](https://github.com/olimorris/codecompanion.nvim/commit/dcc2bcb563fed0cbd88f2ee1a88e76da9cc2f0e4))
+* **chat:** add `/fork` slash command ([#3078](https://github.com/olimorris/codecompanion.nvim/issues/3078)) ([bce2b8a](https://github.com/olimorris/codecompanion.nvim/commit/bce2b8af5b88c6696076d3242a9e98350c4cad08))
+* **chat:** add action palette for chat ([#3066](https://github.com/olimorris/codecompanion.nvim/issues/3066)) ([cf03a08](https://github.com/olimorris/codecompanion.nvim/commit/cf03a0855bfe98daba2ffff8ffbfbb36b41e739e))
+
+
+### Bug Fixes
+
+* **adapters:** conform to standard tool structure ([#3077](https://github.com/olimorris/codecompanion.nvim/issues/3077)) ([57a1239](https://github.com/olimorris/codecompanion.nvim/commit/57a12397f7586ba751cce83869000bc20a0ac8bc))
+* **chat:** cancelling avoids orphan tool calls ([#3073](https://github.com/olimorris/codecompanion.nvim/issues/3073)) ([d972496](https://github.com/olimorris/codecompanion.nvim/commit/d972496805f1a7c932d64b91a6f2edb8bbe7f671))
+* **chat:** resolve model choices ([#3072](https://github.com/olimorris/codecompanion.nvim/issues/3072)) ([38a9f9e](https://github.com/olimorris/codecompanion.nvim/commit/38a9f9e03c9ab7ccd6353788347c2e2fdf89a366)), closes [#3067](https://github.com/olimorris/codecompanion.nvim/issues/3067)
+
 ## [19.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.11.0...v19.12.0) (2026-04-23)
 
 
