@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11         Last change: 2026 April 29
+*codecompanion.txt*           For NVIM v0.11          Last change: 2026 May 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -84,10 +84,10 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
--  |codecompanion-usage-inline.html|, code creation and refactoring
+-  |codecompanion-usage-inline|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents-tools| and |codecompanion-usage-workflows| to improve LLM output
 -  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
--  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
+-  Built-in |codecompanion-usage-action-palette| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
 -  Support for |codecompanion-usage-chat-buffer--images-vision| as input
@@ -205,8 +205,8 @@ copy images from your system clipboard into a chat buffer via `:PasteImage`:
 
 COMPLETION                             *codecompanion-installation-completion*
 
-When in the |codecompanion-usage-chat-buffer-index|, completion can be used to
-more easily add |codecompanion-usage-chat-buffer-editor-context|,
+When in the |codecompanion-usage-chat-buffer-|, completion can be used to more
+easily add |codecompanion-usage-chat-buffer-editor-context|,
 |codecompanion-usage-chat-buffer-slash-commands| and
 |codecompanion-usage-chat-buffer-agents-tools|. Out of the box, the plugin
 supports completion with both nvim-cmp <https://github.com/hrsh7th/nvim-cmp>
@@ -221,7 +221,7 @@ and blink.cmp <https://github.com/Saghen/blink.cmp>. For the latter, on version
     },
 <
 
-The plugin also supports |codecompanion-usage-chat-buffer-index-completion| and
+The plugin also supports |codecompanion-usage-chat-buffer-completion| and
 coc.nvim <https://github.com/neoclide/coc.nvim>.
 
 
@@ -471,7 +471,7 @@ You can use them in your prompts like:
 `Slash commands`, accessed via `/` (by default), run commands to insert
 additional context into the chat buffer. You can find a list of available
 commands as well as how to use them,
-|codecompanion-usage-chat-buffer-slash-commands.html|.
+|codecompanion-usage-chat-buffer-slash-commands|.
 
 **Tools**
 
@@ -629,8 +629,8 @@ information.
 To be updated…
 
 Firstly, CodeCompanion manages context by paying close attention to the number
-of tokens in the |codecompanion-usage-chat-buffer-index|, matching them against
-a defined trigger threshold in your config, which can be
+of tokens in the |codecompanion-usage-chat-buffer-|, matching them against a
+defined trigger threshold in your config, which can be
 |codecompanion-configuration-chat-buffer-context-management|.
 
 
@@ -1488,7 +1488,7 @@ HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
 
   [!TIP] Want to connect to an LLM that isn't supported out of the box? Check out
   |codecompanion--community-adapters| user contributed adapters,
-  |codecompanion-extending-adapters.html| your own or post in the discussions
+  |codecompanion-extending-adapters| your own or post in the discussions
   <https://github.com/olimorris/codecompanion.nvim/discussions>
 An adapter is what connects Neovim to an LLM provider and model. It's the
 interface that allows data to be sent, received and processed. There are a
@@ -2246,8 +2246,8 @@ The plugin supports providers like telescope
 <https://github.com/folke/snacks.nvim>. By default, the plugin will
 automatically detect if you have any of those plugins installed and duly set
 them as the default provider. Failing that, the in-built `default` provider
-will be used. Please see the |codecompanion-usage-chat-buffer-index| usage
-section for information on how to use Slash Commands.
+will be used. Please see the |codecompanion-usage-chat-buffer-| usage section
+for information on how to use Slash Commands.
 
 
 Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
@@ -2867,10 +2867,9 @@ You can also cancel an inline request with:
 
 EDITOR CONTEXT ~
 
-The plugin comes with a number of
-|codecompanion-usage-inline.html-editor-context| items that can be used
-alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`).
-You can also add your own:
+The plugin comes with a number of |codecompanion-usage-inline-editor-context|
+items that can be used alongside your prompt using the `#{}` syntax (e.g.,
+`#{my_new_context_item}`). You can also add your own:
 
 >lua
     require("codecompanion").setup({
@@ -2923,7 +2922,7 @@ applications to external systems.
 
 You can find out which parts of the protocol CodeCompanion has implemented on
 the |codecompanion-model-context-protocol| page. Currently, you can leverage
-MCP servers with |codecompanion-usage-chat-buffer-index|.
+MCP servers with |codecompanion-usage-chat-buffer-|.
 
 
 MCP SERVERS ~
@@ -3561,11 +3560,11 @@ nearest codeblock.
 APPLYING AN LLM'S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
-the |codecompanion-usage-chat-buffer-editor-context.html-buffer| editor context
-or |codecompanion-usage-chat-buffer-slash-commands.html-buffer| slash command,
-enables an LLM to modify code in a Neovim buffer. This is especially useful if
-you do not wish to manually apply an LLM's suggestions yourself. Simply tag it
-in the chat buffer with `@files` or `@insert_edit_into_file`.
+the |codecompanion-usage-chat-buffer-editor-context-buffer| editor context or
+|codecompanion-usage-chat-buffer-slash-commands-buffer| slash command, enables
+an LLM to modify code in a Neovim buffer. This is especially useful if you do
+not wish to manually apply an LLM's suggestions yourself. Simply tag it in the
+chat buffer with `@files` or `@insert_edit_into_file`.
 
 
 RUN TESTS FROM THE CHAT BUFFER ~
@@ -5022,7 +5021,7 @@ Alternatively, you could hard code the prompt:
 
 EDITOR CONTEXT
 
-Similarly to the |codecompanion-usage-chat-buffer-index|, you can use
+Similarly to the |codecompanion-usage-chat-buffer-|, you can use
 |codecompanion-usage-chat-buffer-editor-context| references in your prompts to
 share information about your current Neovim session. This makes it trivial to
 share the current buffer (`#{buffer}`), all currently open buffers
@@ -6354,7 +6353,7 @@ Before showcasing some examples, it's important to understand how workflows
 have been implemented in the plugin.
 
 When initiated from the |codecompanion-usage-action-palette|, workflows attach
-themselves to a |codecompanion-usage-chat-buffer-index| via the notion of a
+themselves to a |codecompanion-usage-chat-buffer-| via the notion of a
 `subscription`. That is, the workflow has subscribed to the conversation and
 dataflow that's taking place in the chat buffer. After the LLM sends a
 response, the chat buffer will trigger an event on the subscription class. This
@@ -7072,11 +7071,11 @@ SCHEMA
 
 The function call that the LLM has sent, is parsed and sent to the `args`
 parameter of any function you've created in
-|codecompanion-extending-tools.html-cmds|, as a JSON object which is then
-converted to Lua via `vim.json.decode`. If the LLM has done its job correctly,
-the Lua table should be the representation of what you've described in the
-schema. In summary, the schema represents the structure of the response that
-the LLM must follow in order to call the tool.
+|codecompanion-extending-tools-cmds|, as a JSON object which is then converted
+to Lua via `vim.json.decode`. If the LLM has done its job correctly, the Lua
+table should be the representation of what you've described in the schema. In
+summary, the schema represents the structure of the response that the LLM must
+follow in order to call the tool.
 
 For a tool to function correctly, your tool requires an OpenAI compatible
 <https://platform.openai.com/docs/guides/function-calling?api-mode=chat>
@@ -7154,9 +7153,9 @@ HANDLERS
 The `handlers` table contains two functions that are executed before and after
 a tool completes:
 
-1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
-2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
-3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
+1. `setup` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
+2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table.
+3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
 
 For the purposes of our calculator, let's just return some notifications so you
 can see the tool system and tool flow:
@@ -7183,12 +7182,12 @@ can see the tool system and tool flow:
 OUTPUT
 
 The `output` table enables you to manage and format output from the execution
-of the |codecompanion-extending-tools.html-cmds|. It contains four functions:
+of the |codecompanion-extending-tools-cmds|. It contains four functions:
 
 1. `success` - Is called after `every` successful execution of a command/function. This can be a useful way of notifying the LLM of the success.
-2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the |codecompanion-extending-tools.html-cmds| is halted. This can be a useful way of notifying the LLM of the failure.
-3. `prompt` - Is called when user approval to execute the |codecompanion-extending-tools.html-cmds| is required. It forms the message prompt which the user is asked to confirm or reject.
-4. `rejected` - Is called when a user rejects the approval to run the |codecompanion-extending-tools.html-cmds|. This method is used to inform the LLM of the rejection.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the |codecompanion-extending-tools-cmds| is halted. This can be a useful way of notifying the LLM of the failure.
+3. `prompt` - Is called when user approval to execute the |codecompanion-extending-tools-cmds| is required. It forms the message prompt which the user is asked to confirm or reject.
+4. `rejected` - Is called when a user rejects the approval to run the |codecompanion-extending-tools-cmds|. This method is used to inform the LLM of the rejection.
 
 Let's consider how me might implement this for our calculator tool:
 

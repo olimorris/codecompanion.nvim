@@ -1,11 +1,11 @@
 ---
-description: How to customize the user interface (UI) of CodeCompanion
+description: "Customize CodeCompanion's Neovim UI — configure chat buffer appearance, status line metadata, and use plugin events to build your own interface extensions."
 ---
 
 # User Interface
 
 <p>
-  <video muted controls loop src="https://github.com/user-attachments/assets/a37180a0-0f1b-4ffb-8fae-44669e9d3df7"></video>
+  <video muted controls loop title="CodeCompanion UI customization demo" src="https://github.com/user-attachments/assets/a37180a0-0f1b-4ffb-8fae-44669e9d3df7"></video>
 </p>
 
 CodeCompanion aims to keep any changes to the user's UI to a minimum. Aesthetics, especially in Neovim, are highly subjective. So whilst it won't set much by default, it does endeavour to allow users to hook into the plugin and customize the UI to their liking via [Events](/usage/events).

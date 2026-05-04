@@ -1,3 +1,7 @@
+---
+description: "Configure miscellaneous CodeCompanion options: response language, log level, per-project config files, and restricting code from being sent to LLMs."
+---
+
 # Other Configuration Options
 
 ## Language

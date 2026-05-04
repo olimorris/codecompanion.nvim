@@ -1,5 +1,5 @@
 ---
-description: Learn how to use agents and tools in CodeCompanion so you can leverage the full potential of your LLM and ACP adapters.
+description: "Use CodeCompanion agent tools to let LLMs edit files, run commands, and search the web in Neovim. Covers tool groups, approval system, and model compatibility."
 ---
 
 # Using Agents and Tools
@@ -8,7 +8,7 @@ description: Learn how to use agents and tools in CodeCompanion so you can lever
 > The built-in tools are for HTTP adapters only and not all LLMs support tool use. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/f2c17a2b-780a-4914-a983-5b0610d96427" />
+<img src="https://github.com/user-attachments/assets/f2c17a2b-780a-4914-a983-5b0610d96427" alt="Using an agent in the chat buffer" />
 </p>
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
@@ -20,11 +20,11 @@ In the plugin, tools are simply context and actions that are shared with an LLM.
 
 ## How They Work
 
-Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow OpenAI's function calling specification, [here](https://platform.openai.com/docs/guides/function-calling#defining-functions).
+Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow [OpenAI's function calling specification for defining functions](https://platform.openai.com/docs/guides/function-calling#defining-functions).
 
 When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _tools/init.lua_ file. The tool system triggers off a series of events, which sees tool's added to a queue and sequentially worked with their output being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
 
-An outline of the architecture can be seen [here](/extending/tools#architecture).
+An outline of the [tool system architecture](/extending/tools#architecture) is available in the extending section.
 
 ## Agents / Tool Groups
 
@@ -227,7 +227,7 @@ Use @{grep_search} to find all occurrences of `buf_add_message`?
 > By default, when editing files, this tool requires user approval before it can be executed
 
 <p>
-  <video controls muted src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
+  <video controls muted title="insert_edit_into_file tool demo" src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
 </p>
 
 This tool can edit buffers and files for code changes from an LLM:
@@ -341,7 +341,7 @@ Use @{web_search} to search neovim.io and explain how I can configure a new lang
 ```
 
 
-Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua).
 
 ## Adapter Tools
 

@@ -1,5 +1,5 @@
 ---
-description: How to leverage Model Context Protocol (MCP) servers within CodeCompanion.nvim
+description: "Overview of CodeCompanion's Model Context Protocol (MCP) support — which capabilities are implemented and how MCP tools appear in the chat buffer in Neovim."
 ---
 
 # Model Context Protocol (MCP) Support

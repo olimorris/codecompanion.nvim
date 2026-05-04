@@ -1,5 +1,5 @@
 ---
-description: Learn how to leverage extensions to expand CodeCompanion's functionality
+description: "Configure CodeCompanion extensions to add custom functionality — can be distributed as Neovim plugins or defined locally in your configuration."
 ---
 
 # Configuring Extensions

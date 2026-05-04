@@ -1,5 +1,5 @@
 ---
-description: Some useful UI tips and tricks you can leverage
+description: "Examples and community recipes for extending CodeCompanion's UI in Neovim — including progress spinners with Fidget.nvim and custom status line integrations."
 ---
 
 # Extending the UI
@@ -9,7 +9,7 @@ Below are some examples of how you can extend CodeCompanion and modify the user 
 ## Progress updates with Fidget.nvim by [@jessevdp](https://github.com/jessevdp)
 
 <p align="center">
-<video controls muted src="https://github.com/user-attachments/assets/f1419889-7b62-46f2-ba73-98327a1b378b"></video>
+<video controls muted title="Progress updates with Fidget.nvim" src="https://github.com/user-attachments/assets/f1419889-7b62-46f2-ba73-98327a1b378b"></video>
 </p>
 
 As per the discussion over at [#813](https://github.com/olimorris/codecompanion.nvim/discussions/813).
@@ -17,7 +17,7 @@ As per the discussion over at [#813](https://github.com/olimorris/codecompanion.
 ## Inline spinner with Fidget.nvim by [@yuhua99](https://github.com/yuhua99)
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/aafb706f-b04f-42e6-b58e-ad30366ee532" />
+<img src="https://github.com/user-attachments/assets/aafb706f-b04f-42e6-b58e-ad30366ee532" alt="Inline spinner" />
 </p>
 
 As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279).
@@ -25,7 +25,7 @@ As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/dis
 ## Status column extmarks with the inline interaction by [@lucobellic](https://github.com/lucobellic)
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1daa7409-414e-4f4c-91fe-cd9c3ed0640e" />
+  <img src="https://github.com/user-attachments/assets/1daa7409-414e-4f4c-91fe-cd9c3ed0640e" alt="Status column extmarks" />
 </p>
 
 As per the discussion over at [#1297](https://github.com/olimorris/codecompanion.nvim/discussions/1297).

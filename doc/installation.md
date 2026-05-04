@@ -1,5 +1,5 @@
 ---
-description: How to install CodeCompanion and it's dependencies
+description: "Install CodeCompanion.nvim with lazy.nvim or packer. Covers dependencies, Neovim 0.11+ requirements, optional integrations like nvim-cmp, and API key setup."
 ---
 
 # Installation
@@ -152,7 +152,7 @@ Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdo
 
 ## Completion
 
-When in the [chat buffer](usage/chat-buffer/index), completion can be used to more easily add [editor context](usage/chat-buffer/editor-context), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents-tools). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
+When in the [chat buffer](/usage/chat-buffer/), completion can be used to more easily add [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands) and [tools](/usage/chat-buffer/agents-tools). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 ```lua
 sources = {
@@ -162,7 +162,7 @@ sources = {
 },
 ```
 
-The plugin also supports [native completion](usage/chat-buffer/index#completion) and [coc.nvim](https://github.com/neoclide/coc.nvim).
+The plugin also supports [native completion](/usage/chat-buffer/#completion) and [coc.nvim](https://github.com/neoclide/coc.nvim).
 
 ## Help
 

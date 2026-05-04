@@ -1,12 +1,12 @@
 ---
-description: Learn how to configure adapters like OpenAI, Anthropic, Claude Code in CodeCompanion
+description: "Configure CodeCompanion's HTTP adapters to connect Neovim to OpenAI, Anthropic, Copilot, Gemini, and Ollama. Covers API keys, model selection, and proxy settings."
 ---
 
 # Configuring HTTP Adapters
 
 > [!TIP]
 > Want to connect to an LLM that isn't supported out of the box? Check out
-> [these](#community-adapters) user contributed adapters, [create](/extending/adapters.html) your own or post in the [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
+> [these](#community-adapters) user contributed adapters, [create](/extending/adapters) your own or post in the [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
 An adapter is what connects Neovim to an LLM provider and model. It's the interface that allows data to be sent, received and processed. There are a multitude of ways to customize them.
 
@@ -240,7 +240,7 @@ require("codecompanion").setup({
 :::
 
 > [!NOTE]
-> In this _command_ example, we're using the 1Password CLI to extract the Gemini API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
+> In this _command_ example, we're using the 1Password CLI to extract the Gemini API Key. You could also [use gpg as outlined in this community discussion](https://github.com/olimorris/codecompanion.nvim/discussions/601)
 
 Supported `env` value types:
 - **Plain environment variable name (string)**: if the value is the name of an environment variable that has already been set (e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value.
@@ -464,4 +464,4 @@ Thanks to the community for building the following adapters:
 - [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
 - [Vertex AI](https://github.com/viespejo/cc-adapter-vertex-ai.nvim)
 
-The section of the discussion forums which is dedicated to user created adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
+The section of the discussion forums dedicated to user-created adapters can be found in the [adapter discussions on GitHub](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.

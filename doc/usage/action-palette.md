@@ -1,11 +1,11 @@
 ---
-description: How to use the action palette in CodeCompanion
+description: "Use CodeCompanion's Action Palette to launch chat buffers, switch between open chats, access the prompt library, and discover plugin features from a single menu."
 ---
 
 # Using the Action Palette
 
 <p>
-  <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" />
+  <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" alt="Using the action palette" />
 </p>
 
 The _Action Palette_ has been designed to be your entry point for the many configuration options that CodeCompanion offers. It can be opened with `:CodeCompanionActions`.

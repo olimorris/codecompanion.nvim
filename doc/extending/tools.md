@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your own tools that can be leveraged by LLMs in CodeCompanion
+description: "Build custom CodeCompanion tools to let LLMs execute functions in Neovim — covers tool structure, OpenAI-compatible schemas, handlers, and agent group integration."
 ---
 
 # Extending with Tools
@@ -84,7 +84,7 @@ When a tool is detected, the chat buffer sends any output to the `tools/init.lua
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file/init.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 
@@ -257,7 +257,7 @@ Will populate the `stdout` table on the tool system file and allow for execution
 
 ### `schema`
 
-The function call that the LLM has sent, is parsed and sent to the `args` parameter of any function you've created in [cmds](/extending/tools.html#cmds), as a JSON object which is then converted to Lua via `vim.json.decode`. If the LLM has done its job correctly, the Lua table should be the representation of what you've described in the schema. In summary, the schema represents the structure of the response that the LLM must follow in order to call the tool.
+The function call that the LLM has sent, is parsed and sent to the `args` parameter of any function you've created in [cmds](/extending/tools#cmds), as a JSON object which is then converted to Lua via `vim.json.decode`. If the LLM has done its job correctly, the Lua table should be the representation of what you've described in the schema. In summary, the schema represents the structure of the response that the LLM must follow in order to call the tool.
 
 For a tool to function correctly, your tool requires an [OpenAI compatible](https://platform.openai.com/docs/guides/function-calling?api-mode=chat) schema. For our basic calculator tool, which does an operation on two numbers, the schema could look something like:
 
@@ -324,9 +324,9 @@ system_prompt = [[## Calculator Tool (`calculator`)
 
 The _handlers_ table contains two functions that are executed before and after a tool completes:
 
-1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@run_command](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua) tool.
-2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table.
-3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
+1. `setup` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@run_command](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua) tool.
+2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table.
+3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
 For the purposes of our calculator, let's just return some notifications so you can see the tool system and tool flow:
 
@@ -350,12 +350,12 @@ handlers = {
 
 ### `output`
 
-The _output_ table enables you to manage and format output from the execution of the [cmds](/extending/tools.html#cmds). It contains four functions:
+The _output_ table enables you to manage and format output from the execution of the [cmds](/extending/tools#cmds). It contains four functions:
 
 1. `success` - Is called after _every_ successful execution of a command/function. This can be a useful way of notifying the LLM of the success.
-2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the [cmds](/extending/tools.html#cmds) is halted. This can be a useful way of notifying the LLM of the failure.
-3. `prompt` - Is called when user approval to execute the [cmds](/extending/tools.html#cmds) is required. It forms the message prompt which the user is asked to confirm or reject.
-4. `rejected` - Is called when a user rejects the approval to run the [cmds](/extending/tools.html#cmds). This method is used to inform the LLM of the rejection.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the [cmds](/extending/tools#cmds) is halted. This can be a useful way of notifying the LLM of the failure.
+3. `prompt` - Is called when user approval to execute the [cmds](/extending/tools#cmds) is required. It forms the message prompt which the user is asked to confirm or reject.
+4. `rejected` - Is called when a user rejects the approval to run the [cmds](/extending/tools#cmds). This method is used to inform the LLM of the rejection.
 
 Let's consider how me might implement this for our calculator tool:
 
@@ -540,7 +540,7 @@ You should see: `5000`, in the chat buffer.
 
 ### Adding in User Approvals
 
-<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/8600ef01-c61d-4f49-92f4-9f9d3978b624" />
+<img width="1920" height="1080" alt="user approvals" src="https://github.com/user-attachments/assets/8600ef01-c61d-4f49-92f4-9f9d3978b624" />
 
 A big concern for users when they create and deploy their own tools is _"what if an LLM does something I'm not aware of or I don't approve?"_. To that end, CodeCompanion tries to make it easy for a user to be the "human in the loop" and approve tool use before execution.
 

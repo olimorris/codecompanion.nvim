@@ -1,7 +1,11 @@
+---
+description: "Run agentic workflows in CodeCompanion — chain multi-step LLM interactions to automate complex coding tasks, launched from the Action Palette."
+---
+
 # Using Workflows
 
 <p>
-  <video muted controls src="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32"></video>
+  <video muted controls title="Agentic workflows demo" src="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32"></video>
 </p>
 
 Workflows can only be initiated from the [Action Palette](/usage/action-palette). This is because they are a complex Lua table structure which needs to be processed and added to a new chat buffer. Simply open up the Action Palette and select your desired workflow.

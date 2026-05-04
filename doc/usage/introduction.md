@@ -1,5 +1,5 @@
 ---
-description: Some useful tips on how to get the most out of  CodeCompanion
+description: "Tips and tricks for getting the most out of CodeCompanion in Neovim — keyboard shortcuts, context management, output handling, and productivity patterns."
 ---
 
 # Using CodeCompanion
@@ -12,7 +12,7 @@ The fastest way to copy an LLM's code output is with `gy`. This will yank the ne
 
 ## Applying an LLM's edits to a buffer or file
 
-The [@insert_edit_into_file](/usage/chat-buffer/agents-tools#files) tool, combined with the [#buffer](/usage/chat-buffer/editor-context.html#buffer) editor context or [/buffer](/usage/chat-buffer/slash-commands.html#buffer) slash command, enables an LLM to modify code in a Neovim buffer. This is especially useful if you do not wish to manually apply an LLM's suggestions yourself. Simply tag it in the chat buffer with `@files` or `@insert_edit_into_file`.
+The [@insert_edit_into_file](/usage/chat-buffer/agents-tools#files) tool, combined with the [#buffer](/usage/chat-buffer/editor-context#buffer) editor context or [/buffer](/usage/chat-buffer/slash-commands#buffer) slash command, enables an LLM to modify code in a Neovim buffer. This is especially useful if you do not wish to manually apply an LLM's suggestions yourself. Simply tag it in the chat buffer with `@files` or `@insert_edit_into_file`.
 
 ## Run tests from the chat buffer
 

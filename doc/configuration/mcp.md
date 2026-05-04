@@ -1,12 +1,12 @@
 ---
-description: Learn how to configure MCP servers within CodeCompanion.nvim
+description: "Configure Model Context Protocol (MCP) servers in CodeCompanion to connect Neovim to external tools and data sources via an open AI integration standard."
 ---
 
 # Configuring MCP Servers
 
 In [#2549](https://github.com/olimorris/codecompanion.nvim/pull/2549), CodeCompanion added support for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), an open-source standard for connecting AI applications to external systems.
 
-You can find out which parts of the protocol CodeCompanion has implemented on the [MCP](/model-context-protocol) page. Currently, you can leverage MCP servers with [chat interactions](/usage/chat-buffer/index).
+You can find out which parts of the protocol CodeCompanion has implemented on the [MCP](/model-context-protocol) page. Currently, you can leverage MCP servers with [chat interactions](/usage/chat-buffer/).
 
 ## Configuring MCP Servers
 

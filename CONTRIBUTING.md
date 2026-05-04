@@ -58,7 +58,7 @@ When working inside the CodeCompanion repository, you have access to the built-i
 
 You can load rules into the chat via the Action Palette:
 
-<img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c">
+<img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c" alt="Loading rules" />
 
 Or, via the `/rules` slash command.
 

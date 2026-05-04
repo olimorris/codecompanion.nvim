@@ -1,5 +1,5 @@
 ---
-description: Configure the Inline Interaction in CodeCompanion
+description: "Configure CodeCompanion's inline interaction for writing and refactoring code directly into Neovim buffers via LLM prompts, without opening a chat buffer."
 ---
 
 # Configuring the Inline Interaction
@@ -79,7 +79,7 @@ require("codecompanion").setup({
 
 ## Editor Context
 
-The plugin comes with a number of [editor context](/usage/inline.html#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
+The plugin comes with a number of [editor context](/usage/inline#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
 
 ```lua
 require("codecompanion").setup({

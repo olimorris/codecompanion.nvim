@@ -1,5 +1,5 @@
 ---
-description: How to configure the action palette in CodeCompanion
+description: "Configure the CodeCompanion Action Palette — your entry point to chat buffers, prompt library prompts, and plugin features in Neovim."
 ---
 
 # Configuring the Action Palette

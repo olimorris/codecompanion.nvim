@@ -61,6 +61,41 @@ const baseHeaders = [
       href: siteUrl + "/sitemap.xml",
     },
   ],
+  ["link", { rel: "icon", type: "image/png", href: "/favicon.png" }],
+  [
+    "script",
+    { type: "application/ld+json" },
+    JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          name: "CodeCompanion.nvim",
+          url: siteUrl,
+        },
+        {
+          "@type": "SoftwareApplication",
+          name: "CodeCompanion.nvim",
+          description:
+            "AI coding, Vim style. CodeCompanion is a plugin which enables you to code with AI, using LLMs and agents, in Neovim.",
+          applicationCategory: "DeveloperApplication",
+          operatingSystem: "Linux, macOS, Windows",
+          url: siteUrl,
+          downloadUrl: "https://github.com/olimorris/codecompanion.nvim",
+          author: {
+            "@type": "Person",
+            name: "Oli Morris",
+            url: "https://github.com/olimorris",
+          },
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
+        },
+      ],
+    }),
+  ],
 ];
 
 const umamiScript = [

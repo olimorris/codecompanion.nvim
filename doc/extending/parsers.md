@@ -1,5 +1,5 @@
 ---
-description: Learn how to create your parsers for rules in CodeCompanion
+description: "Create custom rules parsers in CodeCompanion to post-process and transform rules file content before it's shared with an LLM."
 ---
 
 # Extending with Rules Parsers

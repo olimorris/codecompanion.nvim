@@ -1,5 +1,5 @@
 ---
-description: Architectural concepts and design principles behind CodeCompanion.
+description: "How CodeCompanion manages LLM context windows, handles token limits, and is architected internally — reference for contributors and advanced users."
 ---
 
 # Architecture
@@ -19,8 +19,8 @@ When a user breaches the context window, the conversation **ends** and it **cann
 > [!NOTE]
 > CodeCompanion enables context management by default
 
-If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see their respective documentation [here](https://developers.openai.com/api/docs/guides/compaction) and [here](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information.
+If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see the [OpenAI compaction documentation](https://developers.openai.com/api/docs/guides/compaction) and [Anthropic compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information.
 
 To be updated...
 
-Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/index), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
+Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
