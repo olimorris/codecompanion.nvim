@@ -1449,6 +1449,15 @@ function Chat:done(output, reasoning, tools, meta, opts)
         visible = false,
         _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
       })
+
+      -- Ref: #3093
+      -- The Copilot adapter (when paired with Anthropic) can emit a tool call
+      -- without including the role. This results in the chat buffer not
+      -- being readied for LLM input. So, we force the role to be set
+      if self._last_role ~= config.constants.LLM_ROLE then
+        self._last_role = config.constants.LLM_ROLE
+        self:add_buf_message({ role = config.constants.LLM_ROLE })
+      end
       return self.tools:execute(self, tools)
     end
   end
