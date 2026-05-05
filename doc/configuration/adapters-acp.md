@@ -409,3 +409,62 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
     "model": "github-copilot/claude-sonnet-4.5",
 }
 ```
+
+## Custom Adapters
+
+As the number of applications with ACP support grows, it becomes very difficult to keep track of all possible third-party solutions. However, it is still possible to include your own custom ACP adapter in the plugin configuration. An example below with a hypothetical `myagent` CLI tool. You can adapt it accordingly using [supported ACP adapters](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp) as models.
+
+````lua
+require("codecompanion").setup({
+	adapters = {
+		acp = {
+			my_agent = function()
+				local helpers = require("codecompanion.adapters.acp.helpers")
+				return {
+					name = "my_agent",
+					formatted_name = "MyAgent",
+					type = "acp",
+					roles = {
+						llm = "assistant",
+						user = "user",
+					},
+					commands = {
+						default = {
+							"myagent",
+							"--acp",
+						},
+					},
+					defaults = {
+						mcpServers = {},
+						timeout = 20000, -- 20 seconds
+					},
+					parameters = {
+						protocolVersion = 1,
+						clientCapabilities = {
+							fs = { readTextFile = true, writeTextFile = true },
+						},
+						clientInfo = {
+							name = "CodeCompanion.nvim",
+							version = "1.0.0",
+						},
+					},
+					handlers = {
+						setup = function(self)
+							return true
+						end,
+						auth = function(self)
+							return true
+						end,
+						form_messages = function(self, messages, capabilities)
+							return helpers.form_messages(self, messages, capabilities)
+						end,
+						on_exit = function(self, code) end,
+					},
+				}
+			end,
+		},
+	},
+})
+````
+
+The section of the discussion forums dedicated to user-created adapters can be found in the [adapter discussions on GitHub](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
