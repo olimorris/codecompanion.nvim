@@ -2015,10 +2015,18 @@ function Chat.last_chat()
 end
 
 ---Close the last chat buffer
+---
+---When `display.chat.window.pertab` is enabled, the last chat is left alone if
+---it is currently visible in a tab other than the current one. This prevents
+---opening or cycling a chat in tab A from hiding a chat that the user has
+---explicitly placed in tab B.
 ---@return nil
 function Chat.close_last_chat()
   if last_chat and not vim.tbl_isempty(last_chat) then
     if last_chat.ui:is_visible() then
+      if config.display.chat.window.pertab and last_chat.ui:is_visible_non_curtab() then
+        return
+      end
       last_chat.ui:hide()
     end
   end
@@ -2064,9 +2072,17 @@ function Chat.toggle(args)
 
   -- If the chat is visible in a different tab ...
   if chat.ui:is_visible_non_curtab() then
-    if config.display.chat.window.layout == "tab" then
-      -- ... open it (go there) if chat opens in tabs
-      chat.ui:open()
+    if config.display.chat.window.layout == "tab" or config.display.chat.window.pertab then
+      -- ... jump to it (go there) if chat opens in tabs, or if pertab is enabled
+      -- (in pertab mode we never steal a chat from another tab).
+      local target_tab = api.nvim_win_get_tabpage(chat.ui.winnr)
+      if config.display.chat.window.pertab then
+        utils.notify(
+          fmt("Chat is open in tab %d. Switching tab.", api.nvim_tabpage_get_number(target_tab)),
+          vim.log.levels.INFO
+        )
+      end
+      api.nvim_set_current_tabpage(target_tab)
       return
     else
       -- ... or close it so we can open it below

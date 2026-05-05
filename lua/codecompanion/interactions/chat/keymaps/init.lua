@@ -299,6 +299,48 @@ M.regenerate = {
   end,
 }
 
+---Whether the given buffer is "available" to the current tab \u2014 i.e. either
+---it is not currently displayed in any window, or it is displayed in a window
+---in the current tab. A buffer that is only visible in another tab is NOT
+---available to the current tab. Used in pertab mode to avoid stealing chats
+---from other tabs.
+---@param bufnr number
+---@return boolean
+local function bufnr_available_to_current_tab(bufnr)
+  local wins = vim.fn.win_findbuf(bufnr)
+  if #wins == 0 then
+    return true
+  end
+
+  local current_tab = api.nvim_get_current_tabpage()
+  for _, w in ipairs(wins) do
+    if api.nvim_win_get_tabpage(w) == current_tab then
+      return true
+    end
+  end
+
+  return false
+end
+
+---Build a registry filter for chat cycling.
+---When `display.chat.window.pertab` is enabled, only cycle through chats that
+---are either visible in the current tab or not currently visible in any tab.
+---Chats which are visible in another tab are skipped (and not stolen). Non-
+---chat entries (e.g. CLI buffers) are always allowed.
+---@return fun(entry: CodeCompanion.Registry.Entry): boolean | nil
+local function chat_cycle_filter()
+  if not config.display.chat.window.pertab then
+    return nil
+  end
+
+  return function(entry)
+    if entry.interaction ~= "chat" then
+      return true
+    end
+    return bufnr_available_to_current_tab(entry.bufnr)
+  end
+end
+
 M.close = {
   callback = function(chat)
     chat:close()
@@ -309,7 +351,21 @@ M.close = {
     end
 
     local window_opts = chat.ui.window_opts or { default = true }
-    chats[1].chat.ui:open({ window_opts = window_opts })
+
+    local target = chats[1]
+
+    -- In pertab mode, prefer a chat that isn't already visible in another tab
+    -- so closing one chat doesn't steal a sibling chat from another tab.
+    if config.display.chat.window.pertab then
+      for _, c in ipairs(chats) do
+        if bufnr_available_to_current_tab(c.chat.bufnr) then
+          target = c
+          break
+        end
+      end
+    end
+
+    target.chat.ui:open({ window_opts = window_opts })
   end,
 }
 
@@ -475,14 +531,14 @@ M.buffer_sync_diff = {
 M.next_chat = {
   desc = "Move to the next chat",
   callback = function(chat)
-    require("codecompanion.interactions.shared.registry").move(chat.bufnr, 1)
+    require("codecompanion.interactions.shared.registry").move(chat.bufnr, 1, { filter = chat_cycle_filter() })
   end,
 }
 
 M.previous_chat = {
   desc = "Move to the previous chat",
   callback = function(chat)
-    require("codecompanion.interactions.shared.registry").move(chat.bufnr, -1)
+    require("codecompanion.interactions.shared.registry").move(chat.bufnr, -1, { filter = chat_cycle_filter() })
   end,
 }
 

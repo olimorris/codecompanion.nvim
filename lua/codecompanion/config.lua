@@ -1095,7 +1095,11 @@ The user is working on a %s machine. Please respond with system specific command
       -- Window options for the chat buffer
       window = {
         buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat window follows when switching tabs
+        sticky = false, -- Chat window follows when switching tabs (ignored when `pertab` is true)
+        pertab = false, -- Treat each tab as having its own chat window? Chats opened in
+        -- another tab won't be hidden when opening/cycling chats in the current tab,
+        -- and `{`/`}` cycling is scoped to chats that are either visible in the current
+        -- tab or not currently visible in any tab. Mutually exclusive with `sticky`.
 
         layout = "vertical", -- float|vertical|horizontal|tab|buffer
         full_height = true, -- for vertical layout
