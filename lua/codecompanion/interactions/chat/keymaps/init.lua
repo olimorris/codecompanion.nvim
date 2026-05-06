@@ -299,34 +299,26 @@ M.regenerate = {
   end,
 }
 
----Whether the given buffer is "available" to the current tab \u2014 i.e. either
----it is not currently displayed in any window, or it is displayed in a window
----in the current tab. A buffer that is only visible in another tab is NOT
----available to the current tab. Used in pertab mode to avoid stealing chats
----from other tabs.
+---True when bufnr is hidden everywhere or visible in the current tab.
 ---@param bufnr number
 ---@return boolean
 local function bufnr_available_to_current_tab(bufnr)
-  local wins = vim.fn.win_findbuf(bufnr)
-  if #wins == 0 then
-    return true
-  end
-
   local current_tab = api.nvim_get_current_tabpage()
-  for _, w in ipairs(wins) do
-    if api.nvim_win_get_tabpage(w) == current_tab then
-      return true
+  local visible_anywhere = false
+
+  for _, w in ipairs(api.nvim_list_wins()) do
+    if api.nvim_win_get_buf(w) == bufnr then
+      visible_anywhere = true
+      if api.nvim_win_get_tabpage(w) == current_tab then
+        return true
+      end
     end
   end
 
-  return false
+  return not visible_anywhere
 end
 
----Build a registry filter for chat cycling.
----When `display.chat.window.pertab` is enabled, only cycle through chats that
----are either visible in the current tab or not currently visible in any tab.
----Chats which are visible in another tab are skipped (and not stolen). Non-
----chat entries (e.g. CLI buffers) are always allowed.
+---Registry filter that scopes chat cycling to the current tab when pertab is on.
 ---@return fun(entry: CodeCompanion.Registry.Entry): boolean | nil
 local function chat_cycle_filter()
   if not config.display.chat.window.pertab then

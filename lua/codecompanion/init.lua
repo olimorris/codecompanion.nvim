@@ -533,8 +533,6 @@ CodeCompanion.setup = function(opts)
     api.nvim_create_autocmd("TabEnter", {
       group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
       callback = function(args)
-        -- No-op if pertab has been enabled by a subsequent setup() call.
-        -- pertab and sticky are mutually exclusive; pertab wins.
         if config.display.chat.window.pertab then
           return
         end
