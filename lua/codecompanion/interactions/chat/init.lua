@@ -1931,6 +1931,7 @@ function Chat:update_metadata()
 
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
+      type = self.adapter.type,
       name = self.adapter.formatted_name,
       model = model,
       model_info = (self.adapter.model and self.adapter.model.info) and self.adapter.model.info,
