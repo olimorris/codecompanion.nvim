@@ -14,7 +14,7 @@ CodeCompanion aims to keep any changes to the user's UI to a minimum. Aesthetics
 
 CodeCompanion exposes a global dictionary, `_G.codecompanion_chat_metadata` which users can leverage throughout their configuration. Using the chat buffer's buffer number as the key, the dictionary contains:
 
-- `adapter` - The `name` and `model` of the chat buffer's current adapter
+- `adapter` - The `type`, `name` and `model` of the chat buffer's current adapter
 - `context_items` - The number of context items current in the chat buffer
 - `cycles` - The number of cycles (User->LLM->User) that have taken place in the chat buffer
 - `id` - The ID of the chat buffer
