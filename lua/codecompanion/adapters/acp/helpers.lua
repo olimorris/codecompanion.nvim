@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local M = {}
 
@@ -16,7 +17,7 @@ M.form_messages = function(self, messages, capabilities)
       return msg.role == self.roles.user and msg._meta and not msg._meta.sent
     end)
     :map(function(msg)
-      if msg._meta and msg._meta.tag == "image" and msg.context and msg.context.mimetype then
+      if msg._meta and msg._meta.tag == tags.IMAGE and msg.context and msg.context.mimetype then
         if not has.image then
           log:warn("The %s agent does not support receiving images", self.formatted_name)
         else
@@ -28,7 +29,7 @@ M.form_messages = function(self, messages, capabilities)
         end
       end
       if msg.content and msg.content ~= "" then
-        if msg._meta and (msg._meta.tag == "file" or msg._meta.tag == "buffer") then
+        if msg._meta and (msg._meta.tag == tags.FILE or msg._meta.tag == tags.BUFFER) then
           if msg.context and msg.context.path then
             return {
               type = "text",

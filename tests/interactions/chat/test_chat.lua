@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local expect = MiniTest.expect
 local new_set = MiniTest.new_set
@@ -61,7 +62,7 @@ T["Chat"]["buffer editor context is handled"] = function()
   -- Make assertions on the retrieved values
   h.eq("foo", last_message_content)
   h.eq(false, last_message_visible)
-  h.eq("editor_context", last_message_tag)
+  h.eq(tags.EDITOR_CONTEXT, last_message_tag)
 end
 
 T["Chat"]["system prompt can be ignored"] = function()
@@ -197,7 +198,7 @@ T["Chat"]["CodeCompanion images are replaced in text and base64 encoded"] = func
     estimated_tokens = message._meta.estimated_tokens,
     index = message._meta.index,
     id = message._meta.id,
-    tag = "image",
+    tag = tags.IMAGE,
   }, message._meta)
 
   h.eq({
@@ -241,7 +242,7 @@ T["Chat"]["markdown images are replaced in text and base64 encoded"] = function(
     estimated_tokens = message._meta.estimated_tokens,
     index = message._meta.index,
     id = message._meta.id,
-    tag = "image",
+    tag = tags.IMAGE,
   }, message._meta)
 
   h.eq({

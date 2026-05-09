@@ -7,6 +7,7 @@ local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local shared_ui = require("codecompanion.interactions.shared.ui")
+local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
@@ -351,7 +352,7 @@ function UI:render(context, messages, opts)
           self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
-        if msg._meta and msg._meta.tag == "tool_output" then
+        if msg._meta and msg._meta.tag == tags.TOOL_OUTPUT then
           table.insert(lines, "")
         end
 

@@ -313,7 +313,7 @@ T["ToolRegistry"][":add_group"]["ignore_system_prompt removes the default system
     -- Verify the default system prompt exists before adding the group
     _G.has_default_before = false
     for _, msg in ipairs(_G.chat.messages) do
-      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+      if msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").SYSTEM_PROMPT_FROM_CONFIG then
         _G.has_default_before = true
         break
       end
@@ -324,7 +324,7 @@ T["ToolRegistry"][":add_group"]["ignore_system_prompt removes the default system
     _G.has_default_after = false
     _G.has_group_prompt = false
     for _, msg in ipairs(_G.chat.messages) do
-      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+      if msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").SYSTEM_PROMPT_FROM_CONFIG then
         _G.has_default_after = true
       end
       if msg.content == "Custom agent system prompt" then
@@ -353,7 +353,7 @@ T["ToolRegistry"][":add_group"]["ignore_system_prompt is restored on remove_grou
 
     _G.has_default_after_add = false
     for _, msg in ipairs(_G.chat.messages) do
-      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+      if msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").SYSTEM_PROMPT_FROM_CONFIG then
         _G.has_default_after_add = true
         break
       end
@@ -368,7 +368,7 @@ T["ToolRegistry"][":add_group"]["ignore_system_prompt is restored on remove_grou
 
     _G.has_default_after_remove = false
     for _, msg in ipairs(_G.chat.messages) do
-      if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+      if msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").SYSTEM_PROMPT_FROM_CONFIG then
         _G.has_default_after_remove = true
         break
       end

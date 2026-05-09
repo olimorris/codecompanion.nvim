@@ -45,3 +45,32 @@ Messages in the chat buffer are lua table objects as seen. They contain the role
     content = "Yes, I am active and ready to assist you with programming tasks, code explanations, reviews, or Neovim-related questions. What would you like to do next?",
   } }
 ```
+
+## Message Tags
+
+Messages may carry a `_meta.tag` value identifying the origin or kind of the message. Tags are how downstream code (adapters, compaction, system prompt management, etc.) recognises and acts on specific message types. The full set of tags is centralised at `lua/codecompanion/interactions/shared/tags.lua` — refer to that module rather than repeating the string literals in code.
+
+| Tag | Set by | Read by |
+|---|---|---|
+| `buffer` | `shared/slash_commands/buffer.lua`, `shared/editor_context/buffer.lua`, `shared/editor_context/buffers.lua` | `adapters/acp/helpers.lua` |
+| `compact_summary` | `chat/context_management/compaction.lua` | `chat/context_management/compaction.lua` (re-run replacement) |
+| `diagnostics` | `shared/editor_context/diagnostics.lua` | — |
+| `diff` | `shared/editor_context/diff.lua` | — |
+| `editor_context` | legacy editor_context emitters | `chat/slash_commands/builtin/compact.lua` |
+| `file` | `shared/slash_commands/file.lua` | `adapters/acp/helpers.lua`, `chat/slash_commands/builtin/compact.lua` |
+| `from_custom_prompt` | `interactions/init.lua` (custom prompt library entries) | — |
+| `image` | `chat/init.lua:add_image_message` | every HTTP adapter, `adapters/acp/helpers.lua`, title generation |
+| `messages` | `shared/editor_context/messages.lua` | — |
+| `quickfix` | `shared/editor_context/quickfix.lua` | — |
+| `rules` | `shared/rules/helpers.lua` | `chat/slash_commands/builtin/compact.lua`, title generation |
+| `selection` | `shared/editor_context/selection.lua` | — |
+| `system_prompt_from_config` | `chat/init.lua:set_system_prompt` | `chat/tool_registry.lua`, title generation |
+| `terminal` | `shared/editor_context/terminal.lua` | — |
+| `tool` | `chat/tool_registry.lua` | `chat/tool_registry.lua` (group tear-down) |
+| `tool_output` | adapters (via `format_response`) | `chat/ui/init.lua` (rendering spacing) |
+| `tool_system_prompt` | `chat/tool_registry.lua:add_tool_system_prompt` | — |
+| `viewport` | `shared/editor_context/viewport.lua` | — |
+
+Inline-only tags (`system_tag`, `visual`) live entirely inside `interactions/inline/` and are not part of the shared module.
+
+String values are stable — they appear in stored chats and are read by external adapters. Adding a new tag is safe; renaming a value is a breaking change.

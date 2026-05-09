@@ -1,6 +1,7 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.EditorContext.Diagnostics: CodeCompanion.EditorContext
 local EditorContext = {}
@@ -90,7 +91,7 @@ Code:
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { _meta = { source = "editor_context", tag = "diagnostics" }, visible = false })
+  }, { _meta = { source = "editor_context", tag = tags.DIAGNOSTICS }, visible = false })
 end
 
 ---Return inline label and context block for the CLI interaction
