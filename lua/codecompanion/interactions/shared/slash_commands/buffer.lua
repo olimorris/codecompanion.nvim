@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -204,7 +205,7 @@ function SlashCommand:output(selected, opts)
     role = config.constants.USER_ROLE,
     content = content,
   }, {
-    _meta = { source = "slash_command", tag = "buffer" },
+    _meta = { source = "slash_command", tag = tags.BUFFER },
     context = { id = id, path = selected.path },
     visible = false,
   })

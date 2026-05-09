@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -116,7 +117,7 @@ T["Responses"]["build_messages"]["images"] = function()
         mimetype = "image/jpg",
       },
       _meta = {
-        tag = "image",
+        tag = tags.IMAGE,
       },
     },
     {
@@ -161,21 +162,21 @@ T["Responses"]["build_messages"]["multiple consecutive images are not merged as 
       role = "user",
       opts = { visible = false },
       context = { mimetype = "image/png" },
-      _meta = { tag = "image" },
+      _meta = { tag = tags.IMAGE },
     },
     {
       content = "img2_base64",
       role = "user",
       opts = { visible = false },
       context = { mimetype = "image/png" },
-      _meta = { tag = "image" },
+      _meta = { tag = tags.IMAGE },
     },
     {
       content = "img3_base64",
       role = "user",
       opts = { visible = false },
       context = { mimetype = "image/png" },
-      _meta = { tag = "image" },
+      _meta = { tag = tags.IMAGE },
     },
     {
       content = "How many images do you see?",

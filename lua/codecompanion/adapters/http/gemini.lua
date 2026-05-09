@@ -2,6 +2,7 @@
 
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 local transform = require("codecompanion.utils.tool_transformers")
 
 ---Extract the first complete JSON object from a potentially concatenated string
@@ -195,7 +196,7 @@ return {
 
         -- Image -> inline_data
         -- https://ai.google.dev/gemini-api/docs/image-understanding#inline-image
-        elseif msg._meta and msg._meta.tag == "image" and msg.context and msg.context.mimetype then
+        elseif msg._meta and msg._meta.tag == tags.IMAGE and msg.context and msg.context.mimetype then
           if self.opts and self.opts.vision then
             table.insert(contents, {
               role = msg.role == self.roles.llm and self.roles.llm or self.roles.user,

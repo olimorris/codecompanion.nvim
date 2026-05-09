@@ -94,7 +94,7 @@
 ---@field _meta.id? number Unique identifier for the message (generated via hash)
 ---@field _meta.cycle? number The chat turn cycle when this message was added
 ---@field _meta.index? number The index of the chat message in the messages stack
----@field _meta.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
+---@field _meta.tag? string A tag to identify special messages — see `codecompanion.interactions.shared.tags`
 ---@field _meta.cumulative_tokens? number Actual cumulative token count from the API when this message was generated
 ---@field _meta.estimated_tokens? number Estimated token count associated with this message
 ---@field context? { id?: string, path?: string, mimetype?: string, url?: string } Optional context object

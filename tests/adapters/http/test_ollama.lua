@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local adapter
 
 local child = MiniTest.new_child_neovim()
@@ -154,7 +155,7 @@ T["Ollama adapter"]["Streaming"]["can form messages with images"] = function()
         mimetype = "image/jpg",
       },
       _meta = {
-        tag = "image",
+        tag = tags.IMAGE,
       },
       opts = {
         visible = false,

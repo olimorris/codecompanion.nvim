@@ -3,6 +3,7 @@ local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -206,7 +207,7 @@ function SlashCommand:output(selected, opts)
   }, {
     visible = false,
     context = { id = id, path = selected.path },
-    _meta = { tag = "file" },
+    _meta = { tag = tags.FILE },
   })
 
   if opts.sync_all then

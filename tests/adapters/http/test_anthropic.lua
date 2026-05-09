@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local transform = require("codecompanion.utils.tool_transformers")
 local adapter
 
@@ -90,7 +91,7 @@ T["Anthropic adapter"]["form_messages"]["images"] = function()
         mimetype = "image/jpg",
       },
       _meta = {
-        tag = "image",
+        tag = tags.IMAGE,
       },
       opts = {
         visible = false,

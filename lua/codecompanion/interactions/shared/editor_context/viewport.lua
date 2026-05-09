@@ -2,6 +2,7 @@ local buf_utils = require("codecompanion.utils.buffers")
 local chat_helpers = require("codecompanion.interactions.chat.helpers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.EditorContext.ViewPort: CodeCompanion.EditorContext
 local EditorContext = {}
@@ -33,7 +34,7 @@ function EditorContext:chat_render()
         role = config.constants.USER_ROLE,
         content = content,
       }, {
-        _meta = { source = "editor_context", tag = "viewport" },
+        _meta = { source = "editor_context", tag = tags.VIEWPORT },
         visible = false,
       })
       count = count + 1

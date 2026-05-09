@@ -2,6 +2,7 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
+local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
 return {
@@ -105,7 +106,7 @@ return {
           end
 
           -- Process any images
-          if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
+          if m._meta and m._meta.tag == tags.IMAGE and m.context and m.context.mimetype then
             m.images = m.images or {}
             if self.opts and self.opts.vision then
               table.insert(m.images, m.content)

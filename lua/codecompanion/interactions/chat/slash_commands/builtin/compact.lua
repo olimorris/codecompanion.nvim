@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
@@ -117,7 +118,7 @@ function SlashCommand:compact_messages()
   --1. Keep ALL system messages even if they come from tools
   --2. Remove ALL llm messages
   --3. Keep SOME user messages - If it has a "variable", "rules" or "file" tag
-  local ok_tags = { "editor_context", "rules", "file" }
+  local ok_tags = { tags.EDITOR_CONTEXT, tags.RULES, tags.FILE }
 
   local messages = vim.iter(self.Chat.messages):filter(function(message)
     if message.role == config.constants.SYSTEM_ROLE then

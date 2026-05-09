@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.EditorContext.Messages: CodeCompanion.EditorContext
 local EditorContext = {}
@@ -28,7 +29,7 @@ function EditorContext:chat_render()
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = "Neovim message history (`:messages`):\n\n````\n" .. vim.trim(messages) .. "\n````",
-  }, { _meta = { source = "editor_context", tag = "messages" }, visible = false })
+  }, { _meta = { source = "editor_context", tag = tags.MESSAGES }, visible = false })
 end
 
 ---Return inline label and context block for the CLI interaction

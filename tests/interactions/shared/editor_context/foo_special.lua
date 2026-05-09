@@ -1,3 +1,5 @@
+local tags = require("codecompanion.interactions.shared.tags")
+
 local FooSpecial = {}
 
 ---@param args CodeCompanion.EditorContext
@@ -17,7 +19,7 @@ function FooSpecial:chat_render()
   self.Chat:add_message({
     role = "user",
     content = "foo_special",
-  }, { _meta = { tag = "editor_context" }, visible = false })
+  }, { _meta = { tag = tags.EDITOR_CONTEXT }, visible = false })
 end
 
 return FooSpecial
