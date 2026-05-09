@@ -1,5 +1,6 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 local transform = require("codecompanion.utils.tool_transformers")
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
@@ -193,7 +194,7 @@ return {
         local compaction = m._meta and m._meta.compaction
 
         -- 3. Account for any images
-        if m._meta and m._meta.tag == "image" and m.context and m.context.mimetype then
+        if m._meta and m._meta.tag == tags.IMAGE and m.context and m.context.mimetype then
           if self.opts and self.opts.vision then
             m.content = {
               {

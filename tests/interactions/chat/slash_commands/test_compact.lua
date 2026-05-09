@@ -11,12 +11,13 @@ T = new_set({
 
       child.lua([[
         h = require('tests.helpers')
+        local tags = require('codecompanion.interactions.shared.tags')
         _G.chat, _ = h.setup_chat_buffer()
 
         _G.chat.messages = {
           { role = "system", content = "You are a helpful assistant." },
-          { role = "user", content = "FILE", _meta = { tag = "file" } },
-          { role = "user", content = "BUFFER", _meta = { tag = "editor_context" } },
+          { role = "user", content = "FILE", _meta = { tag = tags.FILE } },
+          { role = "user", content = "BUFFER", _meta = { tag = tags.EDITOR_CONTEXT } },
           { role = "user", content = "Hello!" },
           { role = "assistant", content = "Hi there! How can I assist you today?" },
           { role = "user", content = "Can you help me with Lua?" },

@@ -1,5 +1,6 @@
 local chat_helpers = require("codecompanion.interactions.chat.helpers")
 local config = require("codecompanion.config")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
@@ -149,7 +150,7 @@ function M.add_context(files, chat)
       if file.system_prompt and file.system_prompt ~= "" then
         chat:add_message(
           { role = "system", content = file.system_prompt },
-          { visible = false, context = { id = id }, _meta = { tag = "rules" } }
+          { visible = false, context = { id = id }, _meta = { tag = tags.RULES } }
         )
       end
 

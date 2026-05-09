@@ -3,6 +3,7 @@ local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local symbol_helpers = require("codecompanion.interactions.chat.helpers.symbols")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
@@ -346,7 +347,7 @@ function EditorContext:chat_render()
         role = config.constants.USER_ROLE,
         content = description,
       }, {
-        _meta = { source = "editor_context", tag = "quickfix" },
+        _meta = { source = "editor_context", tag = tags.QUICKFIX },
         context = { id = id },
         visible = false,
       })

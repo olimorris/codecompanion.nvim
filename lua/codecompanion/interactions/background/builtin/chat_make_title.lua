@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
@@ -8,9 +9,9 @@ local M = {}
 ---@param messages CodeCompanion.Chat.Messages
 function M.format_messages(messages)
   local exclude_tags = {
-    ["image"] = "[Image content omitted]",
-    ["rules"] = "",
-    ["system_prompt_from_config"] = "",
+    [tags.IMAGE] = "[Image content omitted]",
+    [tags.RULES] = "",
+    [tags.SYSTEM_PROMPT_FROM_CONFIG] = "",
   }
 
   local chat_messages = {}

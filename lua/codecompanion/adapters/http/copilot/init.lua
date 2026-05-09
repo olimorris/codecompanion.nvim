@@ -2,6 +2,7 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
 local stats = require("codecompanion.adapters.http.copilot.stats")
+local tags = require("codecompanion.interactions.shared.tags")
 local token = require("codecompanion.adapters.http.copilot.token")
 local tokens = require("codecompanion.utils.tokens")
 
@@ -170,7 +171,7 @@ return {
     end,
     form_messages = function(self, messages)
       for _, m in ipairs(messages) do
-        if m._meta and m._meta.tag == "image" and (m.context and m.context.mimetype) then
+        if m._meta and m._meta.tag == tags.IMAGE and (m.context and m.context.mimetype) then
           self.headers["X-Initiator"] = "user"
           self.headers["Copilot-Vision-Request"] = "true"
           break

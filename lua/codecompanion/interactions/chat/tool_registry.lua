@@ -14,6 +14,7 @@ Methods for handling interactions between the chat buffer and tools
 local ToolRegistry = {}
 
 local config = require("codecompanion.config")
+local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -79,7 +80,7 @@ local function add_system_prompt(chat, tool, id)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, _meta = { tag = "tool" }, context = { id = id } }
+      { visible = false, _meta = { tag = tags.TOOL }, context = { id = id } }
     )
   end
 end
@@ -206,7 +207,7 @@ function ToolRegistry:add_group(group, opts)
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
-    }, { _meta = { tag = "tool" }, context = { id = gid }, visible = false })
+    }, { _meta = { tag = tags.TOOL }, context = { id = gid }, visible = false })
   end
 
   if collapse_tools then
@@ -246,10 +247,10 @@ function ToolRegistry:add_tool_system_prompt()
   local index = 2 -- Add after the main system prompt if not replacing
   if opts.replace_main_system_prompt then
     index = 1
-    self.chat:remove_tagged_message("system_prompt_from_config")
+    self.chat:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
   end
 
-  self.chat:set_system_prompt(prompt, { visible = false, _meta = { tag = "tool_system_prompt", index = index } })
+  self.chat:set_system_prompt(prompt, { visible = false, _meta = { tag = tags.TOOL_SYSTEM_PROMPT, index = index } })
 end
 
 ---Determine if the chat buffer has any tools in use
@@ -283,7 +284,7 @@ function ToolRegistry:remove_group(name)
   self.chat.messages = vim
     .iter(self.chat.messages)
     :filter(function(msg)
-      if msg._meta and msg._meta.tag == "tool" and msg.context and to_remove[msg.context.id] then
+      if msg._meta and msg._meta.tag == tags.TOOL and msg.context and to_remove[msg.context.id] then
         return false
       end
       return true

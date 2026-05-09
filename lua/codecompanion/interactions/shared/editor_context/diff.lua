@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
@@ -56,7 +57,7 @@ function EditorContext:chat_render()
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = table.concat(content, "\n\n"),
-  }, { _meta = { source = "editor_context", tag = "diff" }, visible = false })
+  }, { _meta = { source = "editor_context", tag = tags.DIFF }, visible = false })
 end
 
 ---Return inline label and context block for the CLI interaction

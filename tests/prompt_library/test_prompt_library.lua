@@ -201,8 +201,9 @@ T["Prompt Library"]["can ignore system prompt"] = function()
       })
       codecompanion.prompt("no_sys")
       local chat = codecompanion.last_chat()
+      local tags = require("codecompanion.interactions.shared.tags")
       for _, msg in ipairs(chat.messages) do
-        if msg._meta and msg._meta.tag == "system_prompt_from_config" then
+        if msg._meta and msg._meta.tag == tags.SYSTEM_PROMPT_FROM_CONFIG then
           return true
         end
       end

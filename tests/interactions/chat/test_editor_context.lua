@@ -98,7 +98,7 @@ T["Editor Context"][":parse"]["multiple buffer editor context"] = function()
     table.insert(_G.chat.messages, { role = "user", content = "Look at #{buffer:init.lua} and then #{buffer:config.lua}" })
     _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
     _G.buffer_messages = vim.tbl_filter(function(msg)
-      return msg._meta and msg._meta.tag == "buffer"
+      return msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").BUFFER
     end, _G.chat.messages)
   ]])
 
@@ -113,7 +113,7 @@ T["Editor Context"][":parse"]["buffer editor context with params"] = function()
     table.insert(_G.chat.messages, { role = "user", content = "Look at #{buffer:init.lua}{all} Isn't it marvellous?" })
     _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
     _G.buffer_messages = vim.tbl_filter(function(msg)
-      return msg._meta and msg._meta.tag == "buffer"
+      return msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").BUFFER
     end, _G.chat.messages)
   ]])
 
@@ -128,7 +128,7 @@ T["Editor Context"][":parse"]["buffers editor context adds context items"] = fun
     table.insert(_G.chat.messages, { role = "user", content = "#{buffers} What do these files do?" })
     _G.result = _G.ec:parse(_G.chat, _G.chat.messages[#_G.chat.messages])
     _G.buffer_messages = vim.tbl_filter(function(msg)
-      return msg._meta and msg._meta.tag == "buffer"
+      return msg._meta and msg._meta.tag == require("codecompanion.interactions.shared.tags").BUFFER
     end, _G.chat.messages)
     _G.items_valid = true
     for _, item in ipairs(_G.chat.context_items) do

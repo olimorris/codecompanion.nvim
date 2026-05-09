@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
@@ -47,7 +48,7 @@ function EditorContext:chat_render()
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = fmt("Latest output from terminal buffer %d:\n\n````\n%s\n````", bufnr, table.concat(content, "\n")),
-  }, { _meta = { source = "editor_context", tag = "terminal" }, visible = false })
+  }, { _meta = { source = "editor_context", tag = tags.TERMINAL }, visible = false })
 end
 
 ---Return inline label and context block for the CLI interaction

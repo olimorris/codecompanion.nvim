@@ -10,7 +10,7 @@
 <a href="https://github.com/olimorris/codecompanion.nvim/releases"><img src="https://img.shields.io/github/v/release/olimorris/codecompanion.nvim?style=for-the-badge"></a>
 </p>
 
-<p align="center">Code with LLMs and Agents via the <a href="https://codecompanion.olimorris.dev/getting-started.html">in-built</a> adapters, the <a href="https://codecompanion.olimorris.dev/configuration/adapters#community-adapters">community</a> adapters or by <a href="https://codecompanion.olimorris.dev/extending/adapters.html">building</a> your own</p>
+<p align="center">A Neovim AI coding assistant for coding with LLMs (Anthropic, OpenAI, Gemini, Copilot and <a href="https://codecompanion.olimorris.dev/getting-started.html">more</a>) and AI agents. With built-in support for <a href="https://agentclientprotocol.com">Agent Client Protocol (ACP)</a>, <a href="https://codecompanion.olimorris.dev/model-context-protocol">Model Context Protocol (MCP)</a>, and agents like <a href="https://docs.anthropic.com/en/docs/claude-code/overview">Claude Code</a> and <a href="https://openai.com/codex">Codex</a></p>
 
 <p align="center">New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a></p>
 

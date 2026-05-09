@@ -66,6 +66,7 @@ local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local hash = require("codecompanion.utils.hash")
 local images_utils = require("codecompanion.utils.images")
@@ -874,7 +875,7 @@ function Chat:set_system_prompt(prompt, opts)
   prompt = prompt or config.interactions.chat.opts.system_prompt
   opts = opts or { visible = false }
 
-  local _meta = { tag = "system_prompt_from_config" }
+  local _meta = { tag = tags.SYSTEM_PROMPT_FROM_CONFIG }
   if opts._meta then
     _meta = opts._meta
     opts._meta = nil
@@ -925,11 +926,11 @@ function Chat:toggle_system_prompt()
     vim.tbl_map(function(msg)
       return msg._meta and msg._meta.tag
     end, self.messages),
-    "system_prompt_from_config"
+    tags.SYSTEM_PROMPT_FROM_CONFIG
   )
 
   if has_system_prompt then
-    self:remove_tagged_message("system_prompt_from_config")
+    self:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
     utils.notify("Removed system prompt")
   else
     self:set_system_prompt()
@@ -1080,7 +1081,7 @@ function Chat:add_image_message(image, opts)
     content = image.base64,
   }, {
     context = { id = id, mimetype = image.mimetype, path = image.path or image.id },
-    _meta = { tag = "image" },
+    _meta = { tag = tags.IMAGE },
     visible = false,
   })
 
@@ -1449,6 +1450,15 @@ function Chat:done(output, reasoning, tools, meta, opts)
         visible = false,
         _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
       })
+
+      -- Ref: #3093
+      -- The Copilot adapter (when paired with Anthropic) can emit a tool call
+      -- without including the role. This results in the chat buffer not
+      -- being readied for LLM input. So, we force the role to be set
+      if self._last_role ~= config.constants.LLM_ROLE then
+        self._last_role = config.constants.LLM_ROLE
+        self:add_buf_message({ role = config.constants.LLM_ROLE })
+      end
       return self.tools:execute(self, tools)
     end
   end
