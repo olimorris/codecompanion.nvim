@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -39,7 +40,7 @@ T["OpenAI adapter"]["it can form messages with images"] = function()
         mimetype = "image/jpg",
       },
       _meta = {
-        tag = "image",
+        tag = tags.IMAGE,
       },
       opts = {
         visible = false,

@@ -1,5 +1,6 @@
 local new_set = MiniTest.new_set
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local child = MiniTest.new_child_neovim()
 
@@ -303,7 +304,7 @@ T["Rules:make()"]["integration: rules is added to a real chat messages stack"] =
   local last_message = messages[#messages]
 
   h.eq(#messages, 2)
-  h.eq(last_message._meta.tag, "rules")
+  h.eq(last_message._meta.tag, tags.RULES)
   h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
 
   local relative_path = vim.fn.fnamemodify(vim.fs.normalize(tmp), ":p:.")
@@ -347,7 +348,7 @@ T["Rules:make()"]["integration: rules is added when chat is toggled"] = function
   local last_message = messages[#messages]
 
   h.eq(#messages, 2)
-  h.eq(last_message._meta.tag, "rules")
+  h.eq(last_message._meta.tag, tags.RULES)
   h.eq(last_message.context.id, "<rules>" .. vim.fs.normalize(tmp) .. "</rules>")
 
   local relative_path = vim.fn.fnamemodify(vim.fs.normalize(tmp), ":p:.")
