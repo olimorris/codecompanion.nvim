@@ -299,6 +299,40 @@ M.regenerate = {
   end,
 }
 
+---True when bufnr is hidden everywhere or visible in the current tab.
+---@param bufnr number
+---@return boolean
+local function bufnr_available_to_current_tab(bufnr)
+  local current_tab = api.nvim_get_current_tabpage()
+  local visible_anywhere = false
+
+  for _, w in ipairs(api.nvim_list_wins()) do
+    if api.nvim_win_get_buf(w) == bufnr then
+      visible_anywhere = true
+      if api.nvim_win_get_tabpage(w) == current_tab then
+        return true
+      end
+    end
+  end
+
+  return not visible_anywhere
+end
+
+---Registry filter that scopes chat cycling to the current tab when pertab is on.
+---@return fun(entry: CodeCompanion.Registry.Entry): boolean | nil
+local function chat_cycle_filter()
+  if not config.display.chat.window.pertab then
+    return nil
+  end
+
+  return function(entry)
+    if entry.interaction ~= "chat" then
+      return true
+    end
+    return bufnr_available_to_current_tab(entry.bufnr)
+  end
+end
+
 M.close = {
   callback = function(chat)
     chat:close()
@@ -309,7 +343,21 @@ M.close = {
     end
 
     local window_opts = chat.ui.window_opts or { default = true }
-    chats[1].chat.ui:open({ window_opts = window_opts })
+
+    local target = chats[1]
+
+    -- In pertab mode, prefer a chat that isn't already visible in another tab
+    -- so closing one chat doesn't steal a sibling chat from another tab.
+    if config.display.chat.window.pertab then
+      for _, c in ipairs(chats) do
+        if bufnr_available_to_current_tab(c.chat.bufnr) then
+          target = c
+          break
+        end
+      end
+    end
+
+    target.chat.ui:open({ window_opts = window_opts })
   end,
 }
 
@@ -475,14 +523,14 @@ M.buffer_sync_diff = {
 M.next_chat = {
   desc = "Move to the next chat",
   callback = function(chat)
-    require("codecompanion.interactions.shared.registry").move(chat.bufnr, 1)
+    require("codecompanion.interactions.shared.registry").move(chat.bufnr, 1, { filter = chat_cycle_filter() })
   end,
 }
 
 M.previous_chat = {
   desc = "Move to the previous chat",
   callback = function(chat)
-    require("codecompanion.interactions.shared.registry").move(chat.bufnr, -1)
+    require("codecompanion.interactions.shared.registry").move(chat.bufnr, -1, { filter = chat_cycle_filter() })
   end,
 }
 

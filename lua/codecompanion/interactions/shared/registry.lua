@@ -60,16 +60,23 @@ end
 ---Navigate to the next or previous interaction
 ---@param current_bufnr number
 ---@param direction number 1 for next, -1 for previous
----@return nil
-function M.move(current_bufnr, direction)
+---@param opts? { filter?: fun(entry: CodeCompanion.Registry.Entry): boolean }
+---@return CodeCompanion.Registry.Entry|nil moved_to The entry moved to, if any
+function M.move(current_bufnr, direction, opts)
+  opts = opts or {}
+
   local sorted = M.list()
   table.sort(sorted, function(a, b)
     return a.bufnr < b.bufnr
   end)
 
+  if opts.filter then
+    sorted = vim.tbl_filter(opts.filter, sorted)
+  end
+
   local len = #sorted
   if len <= 1 then
-    return
+    return nil
   end
 
   local idx
@@ -80,7 +87,7 @@ function M.move(current_bufnr, direction)
     end
   end
   if not idx then
-    return
+    return nil
   end
 
   local next_idx = direction > 0 and (idx % len) + 1 or ((idx - 2 + len) % len) + 1
@@ -89,6 +96,8 @@ function M.move(current_bufnr, direction)
 
   current.hide()
   next_entry.open()
+
+  return next_entry
 end
 
 return M

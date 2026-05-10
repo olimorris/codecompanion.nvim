@@ -349,4 +349,132 @@ T["cmds_tab_sticky"][":CodeCompanionChat doesnt follow if sticky is set"] = func
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["cmds_pertab"] = new_set({
+  hooks = {
+    pre_case = function()
+      h.child_start(child)
+      child.lua([[
+        h = require('tests.helpers')
+        config = require('codecompanion.config')
+        config.rules.opts.chat.enabled = false
+        config.display.chat.window.layout = "vertical"
+        config.display.chat.window.pertab = true
+        config.display.chat.window.sticky = false
+        config.display.chat.intro_message = "Welcome"
+        h.setup_plugin(config)
+      ]])
+    end,
+    post_case = child.stop,
+  },
+})
+
+T["cmds_pertab"]["chat in another tab is not hidden when opening a new chat"] = function()
+  child.lua([[
+    -- Open a chat in tab 1
+    vim.cmd("CodeCompanionChat")
+    _G.tab1_chat = require('codecompanion').last_chat()
+
+    -- Move to a new tab
+    vim.cmd("tabnew")
+
+    -- Open a fresh chat in tab 2 (forces a NEW chat creation)
+    require('codecompanion').chat()
+    _G.tab2_chat = require('codecompanion').last_chat()
+  ]])
+
+  -- The chat from tab 1 should still be visible (not hidden by tab 2's open)
+  h.eq(true, child.lua_get("_G.tab1_chat ~= nil and _G.tab1_chat.ui:is_visible()"))
+  -- And it should be visible in a non-current tab
+  h.eq(true, child.lua_get("_G.tab1_chat.ui:is_visible_non_curtab()"))
+  -- The new tab 2 chat should be visible in the current tab
+  h.eq(true, child.lua_get("_G.tab2_chat.ui:is_visible()"))
+  h.eq(false, child.lua_get("_G.tab2_chat.ui:is_visible_non_curtab()"))
+  -- They should be different chat buffers
+  h.eq(true, child.lua_get("_G.tab1_chat.bufnr ~= _G.tab2_chat.bufnr"))
+end
+
+T["cmds_pertab"]["close_last_chat skips chats in another tab"] = function()
+  child.lua([[
+    -- Open a chat in tab 1, then move to tab 2
+    vim.cmd("CodeCompanionChat")
+    _G.tab1_chat = require('codecompanion').last_chat()
+    vim.cmd("tabnew")
+
+    -- Manually invoke close_last_chat from tab 2 — should NOT hide tab 1's chat
+    require('codecompanion').close_last_chat()
+  ]])
+
+  -- The tab-1 chat should still be visible
+  h.eq(true, child.lua_get("_G.tab1_chat ~= nil and _G.tab1_chat.ui:is_visible()"))
+end
+
+T["cmds_pertab"]["sticky is disabled and warned when pertab is also enabled"] = function()
+  child.lua([[
+    -- Re-run setup with both sticky and pertab on; capture log warnings
+    _G.warned = false
+    local log = require('codecompanion.utils.log')
+    local original_warn = log.warn
+    log.warn = function(self, msg, ...)
+      if type(msg) == "string" and msg:find("pertab") then
+        _G.warned = true
+      end
+      return original_warn(self, msg, ...)
+    end
+
+    require('codecompanion').setup({
+      display = {
+        chat = {
+          window = {
+            layout = "vertical",
+            sticky = true,
+            pertab = true,
+          },
+        },
+      },
+    })
+
+    log.warn = original_warn
+
+    -- Open a chat in tab 1, then switch to a new tab. With sticky alone the
+    -- chat would follow into the new tab; with pertab also on, it must not.
+    vim.cmd("CodeCompanionChat")
+    _G.tab1_chat = require('codecompanion').last_chat()
+    vim.cmd("tabnew")
+    -- Allow any scheduled sticky callbacks to run
+    vim.wait(50)
+  ]])
+
+  h.eq(true, child.lua_get("_G.warned"))
+  -- The chat must remain in tab 1, not have followed into the new tab.
+  h.eq(true, child.lua_get("_G.tab1_chat.ui:is_visible_non_curtab()"))
+end
+
+T["cmds_pertab"]["closing a tab leaves its chat in the hidden pool, available to other tabs"] = function()
+  child.lua([[
+    -- Open a chat in tab 1
+    vim.cmd("CodeCompanionChat")
+    _G.tab1_chat = require('codecompanion').last_chat()
+    _G.tab1_bufnr = _G.tab1_chat.bufnr
+
+    -- Move to a new tab and open a second chat there
+    vim.cmd("tabnew")
+    require('codecompanion').chat()
+    _G.tab2_chat = require('codecompanion').last_chat()
+    _G.tab2_bufnr = _G.tab2_chat.bufnr
+
+    -- Close tab 2 (the current tab). This destroys the window holding tab2_chat
+    -- but the buffer (and Chat object) survive.
+    vim.cmd("tabclose")
+  ]])
+
+  -- The chat from tab 2 should still exist as a buffer
+  h.eq(true, child.lua_get("vim.api.nvim_buf_is_loaded(_G.tab2_bufnr)"))
+  -- It should not be visible anywhere now
+  h.eq(false, child.lua_get("_G.tab2_chat.ui:is_visible()"))
+  -- The tab-1 chat should still be visible in tab 1
+  h.eq(true, child.lua_get("_G.tab1_chat.ui:is_visible()"))
+  -- The orphaned chat should still be in the registry (cycle-eligible)
+  h.eq(true, child.lua_get("require('codecompanion.interactions.shared.registry').get(_G.tab2_bufnr) ~= nil"))
+end
+
 return T

@@ -3653,6 +3653,14 @@ buffer.
 When in a chat buffer, you can cycle between other chat buffers with `{` or
 `}`.
 
+By default, opening or cycling to a chat hides whichever chat is currently
+visible. If you'd rather keep chats per tab — so a chat opened in tab A is
+never closed or stolen by activity in tab B — set `display.chat.window.pertab
+= true` in your config. With that enabled, `{` / `}` only cycles through chats
+that are visible in the current tab or not currently visible anywhere, and
+`:CodeCompanionChat Toggle` jumps to the existing tab when the chat lives
+there.
+
 
 ACTION PALETTE                            *codecompanion-usage-action-palette*
 
