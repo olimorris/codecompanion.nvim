@@ -410,61 +410,61 @@ You can specify a custom model in your `~/.config/opencode/config.json` file:
 }
 ```
 
-## Custom Adapters
+## Creating Custom ACP Adapters
 
-As the number of applications with ACP support grows, it becomes very difficult to keep track of all possible third-party solutions. However, it is still possible to include your own custom ACP adapter in the plugin configuration. An example below with a hypothetical `myagent` CLI tool. You can adapt it accordingly using [supported ACP adapters](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp) as models.
+Not every ACP-compatible tool will have a built-in adapter. You can define your own directly in your configuration — the example below uses a hypothetical `myagent` CLI tool. Use the [built-in ACP adapters](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp) as a reference.
 
 ````lua
 require("codecompanion").setup({
-	adapters = {
-		acp = {
-			my_agent = function()
-				local helpers = require("codecompanion.adapters.acp.helpers")
-				return {
-					name = "my_agent",
-					formatted_name = "MyAgent",
-					type = "acp",
-					roles = {
-						llm = "assistant",
-						user = "user",
-					},
-					commands = {
-						default = {
-							"myagent",
-							"--acp",
-						},
-					},
-					defaults = {
-						mcpServers = {},
-						timeout = 20000, -- 20 seconds
-					},
-					parameters = {
-						protocolVersion = 1,
-						clientCapabilities = {
-							fs = { readTextFile = true, writeTextFile = true },
-						},
-						clientInfo = {
-							name = "CodeCompanion.nvim",
-							version = "1.0.0",
-						},
-					},
-					handlers = {
-						setup = function(self)
-							return true
-						end,
-						auth = function(self)
-							return true
-						end,
-						form_messages = function(self, messages, capabilities)
-							return helpers.form_messages(self, messages, capabilities)
-						end,
-						on_exit = function(self, code) end,
-					},
-				}
-			end,
-		},
-	},
+  adapters = {
+    acp = {
+      my_agent = function()
+        local helpers = require("codecompanion.adapters.acp.helpers")
+        return {
+          name = "my_agent",
+          formatted_name = "MyAgent",
+          type = "acp",
+          roles = {
+            llm = "assistant",
+            user = "user",
+          },
+          commands = {
+            default = {
+              "myagent",
+              "--acp",
+            },
+          },
+          defaults = {
+            mcpServers = {},
+            timeout = 20000, -- 20 seconds
+          },
+          parameters = {
+            protocolVersion = 1,
+            clientCapabilities = {
+              fs = { readTextFile = true, writeTextFile = true },
+            },
+            clientInfo = {
+              name = "CodeCompanion.nvim",
+              version = "1.0.0",
+            },
+          },
+          handlers = {
+            setup = function(self)
+              return true
+            end,
+            auth = function(self)
+              return true
+            end,
+            form_messages = function(self, messages, capabilities)
+              return helpers.form_messages(self, messages, capabilities)
+            end,
+            on_exit = function(self, code) end,
+          },
+        }
+      end,
+    },
+  },
 })
 ````
 
-The section of the discussion forums dedicated to user-created adapters can be found in the [adapter discussions on GitHub](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22). Use these individual threads as a place to raise issues and ask questions about your specific adapters.
+User-created adapters are shared in the [adapter discussions on GitHub](https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22) — a good place to raise issues or ask questions about your specific adapter.
