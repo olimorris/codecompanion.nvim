@@ -18,7 +18,7 @@ M.PLACEHOLDERS = {
   tool_result = "<important>Tool result cleared to save context. Re-run the tool if you need this output</important>",
 }
 
----@class CodeCompanion.ContextManagement.Editing.Opts
+---@class CodeCompanion.Chat.ContextManagement.Editing.Opts
 ---@field current_cycle integer The cycle the chat buffer is currently on
 ---@field exclude_tools? string[] Tool names whose results are never edited
 ---@field keep_cycles integer Preserve tool results from the most recent N cycles
@@ -43,7 +43,7 @@ end
 
 ---Edit tool result messages older than the keep_cycles window
 ---@param messages CodeCompanion.Chat.Messages
----@param opts CodeCompanion.ContextManagement.Editing.Opts
+---@param opts CodeCompanion.Chat.ContextManagement.Editing.Opts
 ---@return number Number of messages cleared
 local function tool_results(messages, opts)
   local exclude = {}
@@ -80,7 +80,7 @@ end
 
 ---Replace aged messages
 ---@param messages CodeCompanion.Chat.Messages
----@param opts CodeCompanion.ContextManagement.Editing.Opts
+---@param opts CodeCompanion.Chat.ContextManagement.Editing.Opts
 ---@return CodeCompanion.Chat.Messages messages
 ---@return number Number of messages cleared
 function M.apply(messages, opts)
