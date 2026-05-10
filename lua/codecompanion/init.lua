@@ -525,10 +525,7 @@ CodeCompanion.setup = function(opts)
 
   local window_config = config.display.chat.window
   if window_config.sticky and window_config.pertab then
-    log:warn(
-      "[CodeCompanion] `display.chat.window.sticky` and `display.chat.window.pertab` are mutually exclusive. "
-        .. "Disabling `sticky` because `pertab` makes chats tab-local by design."
-    )
+    log:warn("`display.chat.window.sticky` is disabled when `pertab` is enabled")
   elseif window_config.sticky and window_config.layout ~= "buffer" and window_config.layout ~= "tab" then
     api.nvim_create_autocmd("TabEnter", {
       group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
