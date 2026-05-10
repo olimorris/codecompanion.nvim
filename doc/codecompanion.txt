@@ -1,4 +1,4 @@
-*codecompanion.txt*           For NVIM v0.11          Last change: 2026 May 04
+*codecompanion.txt*           For NVIM v0.11          Last change: 2026 May 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -221,7 +221,7 @@ and blink.cmp <https://github.com/Saghen/blink.cmp>. For the latter, on version
     },
 <
 
-The plugin also supports |codecompanion-usage-chat-buffer-completion| and
+The plugin also supports |codecompanion-usage-chat-buffer--completion| and
 coc.nvim <https://github.com/neoclide/coc.nvim>.
 
 
@@ -314,10 +314,10 @@ SETUP                                    *codecompanion-getting-started-setup*
 CHAT AND INLINE ~
 
 
-  [!NOTE] The adapters that the plugin supports out of the box can be found here
+  [!NOTE] The adapters that the plugin supports out of the box can be found in
+  the built-in adapters directory
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
-  Or, see the user contributed adapters
-  |codecompanion-configuration-adapters-http-community-adapters|.
+  Or, see the |codecompanion-configuration-adapters-http-community-adapters|.
   |codecompanion-configuration-adapters-acp| are only supported for the chat
   interaction.
 The Chat Buffer is where you can converse with an LLM from within a Neovim
@@ -450,7 +450,7 @@ Commands` in the chat buffer.
 **Editor Context**
 
 `Editor Context`, accessed via `#` (by default), contain data about the present
-state of Neovim. You can find a list of available editor context,
+state of Neovim. You can find a
 |codecompanion-usage-chat-buffer-editor-context|. The buffer editor context
 will automatically link a buffer to the chat buffer, by default, updating the
 LLM when the buffer changes.
@@ -469,15 +469,13 @@ You can use them in your prompts like:
   `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should
   also work with coc.nvim.
 `Slash commands`, accessed via `/` (by default), run commands to insert
-additional context into the chat buffer. You can find a list of available
-commands as well as how to use them,
+additional context into the chat buffer. You can find a
 |codecompanion-usage-chat-buffer-slash-commands|.
 
 **Tools**
 
 `Tools`, accessed via `@` (by default), allow the LLM to function as an agent
-and leverage external tools. You can find a list of available tools as well as
-how to use them,
+and leverage external tools. You can find a
 |codecompanion-usage-chat-buffer-agents-tools-available-tools|.
 
 You can use them in your prompts like:
@@ -621,8 +619,9 @@ IN THE CHAT BUFFER ~
   [!NOTE] CodeCompanion enables context management by default
 If you're using the `openai_responses` or `anthropic` adapters, then
 CodeCompanion will use their native server-side compaction capabilities. Please
-see their respective documentation here
-<https://developers.openai.com/api/docs/guides/compaction> and here
+see the OpenAI compaction documentation
+<https://developers.openai.com/api/docs/guides/compaction> and Anthropic
+compaction documentation
 <https://platform.claude.com/docs/en/build-with-claude/compaction> for more
 information.
 
@@ -1415,11 +1414,10 @@ The example below uses the `gemini-api-key` method, pulling the API key from
 
 SETUP: GOOSE CLI ~
 
-To use Goose <https://block.github.io/goose/> in CodeCompanion, ensure you've
-followed their documentation
-<https://block.github.io/goose/docs/getting-started/installation/> to setup and
-install Goose CLI. Then ensure that in your chat buffer you select the `goose`
-adapter.
+To use Goose <https://goose-docs.ai/> in CodeCompanion, ensure you've followed
+their documentation <https://goose-docs.ai/docs/getting-started/installation/>
+to setup and install Goose CLI. Then ensure that in your chat buffer you select
+the `goose` adapter.
 
 
 SETUP: KILO CODE ~
@@ -1600,7 +1598,7 @@ the adapter's URL, headers, parameters and other fields at runtime.
 
 
   [!NOTE] In this `command` example, we're using the 1Password CLI to extract the
-  Gemini API Key. You could also use gpg as outlined here
+  Gemini API Key. You could also use gpg as outlined in this community discussion
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
@@ -1850,8 +1848,8 @@ Thanks to the community for building the following adapters:
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
-The section of the discussion forums which is dedicated to user created
-adapters can be found here
+The section of the discussion forums dedicated to user-created adapters can be
+found in the adapter discussions on GitHub
 <https://github.com/olimorris/codecompanion.nvim/discussions?discussions_q=is%3Aopen+label%3A%22tip%3A+adapter%22>.
 Use these individual threads as a place to raise issues and ask questions about
 your specific adapters.
@@ -3589,6 +3587,14 @@ buffer.
 When in a chat buffer, you can cycle between other chat buffers with `{` or
 `}`.
 
+By default, opening or cycling to a chat hides whichever chat is currently
+visible. If you'd rather keep chats per tab — so a chat opened in tab A is
+never closed or stolen by activity in tab B — set `display.chat.window.pertab
+= true` in your config. With that enabled, `{` / `}` only cycles through chats
+that are visible in the current tab or not currently visible anywhere, and
+`:CodeCompanionChat Toggle` jumps to the existing tab when the chat lives
+there.
+
 
 ACTION PALETTE                            *codecompanion-usage-action-palette*
 
@@ -3878,7 +3884,8 @@ HOW THEY WORK ~
 
 Tools make use of an LLM's function calling
 <https://platform.openai.com/docs/guides/function-calling> ability. All tools
-in CodeCompanion follow OpenAI's function calling specification, here
+in CodeCompanion follow OpenAI's function calling specification for defining
+functions
 <https://platform.openai.com/docs/guides/function-calling#defining-functions>.
 
 When a tool is added to the chat buffer, the LLM is instructured by the plugin
@@ -3889,8 +3896,8 @@ which sees tool's added to a queue and sequentially worked with their output
 being shared back to the LLM via the chat buffer. Depending on the tool, flags
 may be inserted on the chat buffer for later processing.
 
-An outline of the architecture can be seen
-|codecompanion-extending-tools-architecture|.
+An outline of the |codecompanion-extending-tools-architecture| is available in
+the extending section.
 
 
 AGENTS / TOOL GROUPS ~
@@ -4283,7 +4290,7 @@ receive up to date information:
 
 Currently, the tool uses tavily <https://www.tavily.com> and you'll need to
 ensure that an API key has been set accordingly, as per the adapter
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua>.
 
 
 ADAPTER TOOLS ~
@@ -4874,7 +4881,8 @@ file to share with the LLM. This can be a useful way to minimize token
 consumption whilst sharing the basic outline of a file. The plugin utilizes the
 amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as
 the basis. The list of filetypes that the plugin currently supports can be
-found here <https://github.com/olimorris/codecompanion.nvim/tree/main/queries>.
+found in the Tree-sitter queries directory
+<https://github.com/olimorris/codecompanion.nvim/tree/main/queries>.
 
 The command has native, `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim`
 providers available. Also, multiple symbols can be selected and added to the
@@ -5519,7 +5527,7 @@ This guide is intended to serve as a reference for anyone who wishes to
 contribute an adapter to the plugin or understand the inner workings of
 existing adapters.
 
-The plugin's in-built adapters can be found here
+The plugin's in-built adapters can be found in the adapters source directory
 <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
 
 
@@ -6872,7 +6880,7 @@ response from the LLM, identifying the tool and duly executing it.
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file/init.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
