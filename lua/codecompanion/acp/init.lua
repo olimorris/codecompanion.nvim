@@ -52,6 +52,7 @@ local uv = vim.uv
 ---@field _loading_session boolean|nil
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
+---@field _models table|nil Legacy models from session/new response
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field methods table
 local Connection = {}
@@ -92,6 +93,7 @@ function Connection.new(args)
     _authenticated = false,
     _config_options = {},
     _initialized = false,
+    _models = nil,
     _pending_callbacks = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
@@ -376,6 +378,10 @@ function Connection:_establish_session()
       self:_apply_config_options(session_data.configOptions)
       log:debug("[acp::_establish_session] %s config options applied", source)
     end
+    if session_data.models then
+      self._models = session_data.models
+      log:debug("[acp::_establish_session] %s models: %s", source, session_data.models)
+    end
   end
 
   if self.session_id and can_load then
@@ -447,7 +453,12 @@ function Connection:apply_default_config_options()
 
     local opt = by_category[category]
     if not opt then
-      log:warn("[acp::apply_default_config_options] No config option with category `%s`", category)
+      -- Fallback: handle legacy model field via _models (e.g. kiro)
+      if category == "model" and self._models then
+        self:_apply_default_model_legacy(default_value)
+      else
+        log:warn("[acp::apply_default_config_options] No config option with category `%s`", category)
+      end
       goto continue
     end
 
@@ -472,6 +483,31 @@ function Connection:apply_default_config_options()
     end
 
     ::continue::
+  end
+end
+
+---Apply the default model using legacy _models field
+---@param default_model string
+---@return nil
+function Connection:_apply_default_model_legacy(default_model)
+  local model_id = nil
+  for _, model in ipairs(self._models.availableModels or {}) do
+    if model.modelId == default_model then
+      model_id = model.modelId
+      break
+    elseif model.modelId:lower():find(default_model:lower(), 1, true) then
+      model_id = model.modelId
+      break
+    end
+  end
+
+  if not model_id then
+    log:warn("[acp::_apply_default_model_legacy] Model `%s` not found in available models", default_model)
+    return
+  end
+
+  if model_id ~= self._models.currentModelId then
+    self:set_model(model_id)
   end
 end
 
@@ -933,6 +969,7 @@ function Connection:handle_process_exit(code, signal)
   self.adapter_modified = nil
   self._authenticated = false
   self._initialized = false
+  self._models = nil
   self._pending_callbacks = {}
   self.pending_responses = {}
   self.session_id = nil
@@ -959,31 +996,71 @@ end
 ---@return table|nil models {currentModelId: string, availableModels: table[]} or nil
 function Connection:get_models()
   local opt = self:_find_config_option("model")
-  if not opt then
-    return nil
+  if opt then
+    local available = vim.tbl_map(function(val)
+      return { modelId = val.value, name = val.name }
+    end, Connection.flatten_config_options(opt.options or {}))
+
+    return {
+      availableModels = available,
+      currentModelId = opt.currentValue,
+    }
   end
 
-  local available = vim.tbl_map(function(val)
-    return { modelId = val.value, name = val.name }
-  end, Connection.flatten_config_options(opt.options or {}))
-
-  return {
-    availableModels = available,
-    currentModelId = opt.currentValue,
-  }
+  -- Fallback to legacy _models field (e.g. kiro)
+  return self._models
 end
 
----Set a model via session/set_config_option
+---Set a model via session/set_config_option or legacy session/set_model
 ---@param model_id string
 ---@return boolean success
 function Connection:set_model(model_id)
   local opt = self:_find_config_option("model")
-  if not opt then
+  if opt then
+    return self:set_config_option(opt.id, model_id)
+  end
+
+  -- Fallback to legacy session/set_model (e.g. kiro)
+  if not self._models then
     log:error("[acp::set_model] Agent does not support changing models")
     return false
   end
 
-  return self:set_config_option(opt.id, model_id)
+  if not self.session_id then
+    log:error("[acp::set_model] Connection not established")
+    return false
+  end
+
+  local valid = false
+  for _, model in ipairs(self._models.availableModels or {}) do
+    if model.modelId == model_id then
+      valid = true
+      break
+    end
+  end
+
+  if not valid then
+    log:error("[acp::set_model] Invalid model ID: %s", model_id)
+    return false
+  end
+
+  if model_id == self._models.currentModelId then
+    return false
+  end
+
+  local ok = self:send_rpc_request(METHODS.SESSION_SET_MODEL, {
+    modelId = model_id,
+    sessionId = self.session_id,
+  })
+
+  if not ok then
+    log:error("[acp::set_model] Failed to set model to %s", model_id)
+    return false
+  end
+
+  self._models.currentModelId = model_id
+  log:debug("[acp::set_model] Changed model to %s", model_id)
+  return true
 end
 
 ---Get all config options, optionally excluding certain categories
