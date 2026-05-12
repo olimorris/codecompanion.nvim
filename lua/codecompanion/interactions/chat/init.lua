@@ -2021,6 +2021,10 @@ end
 function Chat.close_last_chat()
   if last_chat and not vim.tbl_isempty(last_chat) then
     if last_chat.ui:is_visible() then
+      -- pertab: leave chats visible in other tabs alone
+      if config.display.chat.window.pertab and last_chat.ui:is_visible_non_curtab() then
+        return
+      end
       last_chat.ui:hide()
     end
   end
@@ -2064,17 +2068,20 @@ function Chat.toggle(args)
     return Chat.new(chat_opts)
   end
 
-  -- If the chat is visible in a different tab ...
   if chat.ui:is_visible_non_curtab() then
-    if config.display.chat.window.layout == "tab" then
-      -- ... open it (go there) if chat opens in tabs
-      chat.ui:open()
+    if config.display.chat.window.layout == "tab" or config.display.chat.window.pertab then
+      local target_tab = api.nvim_win_get_tabpage(chat.ui.winnr)
+      if config.display.chat.window.pertab then
+        utils.notify(
+          fmt("Chat is open in tab %d. Switching tab.", api.nvim_tabpage_get_number(target_tab)),
+          vim.log.levels.INFO
+        )
+      end
+      api.nvim_set_current_tabpage(target_tab)
       return
     else
-      -- ... or close it so we can open it below
       chat.ui:hide()
     end
-  -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end

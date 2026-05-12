@@ -1102,7 +1102,8 @@ The user is working on a %s machine. Please respond with system specific command
       -- Window options for the chat buffer
       window = {
         buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat window follows when switching tabs
+        sticky = false, -- Chat window follows when switching tabs (ignored when `pertab` is true)
+        pertab = false, -- Treat each tab as having its own chat window?
 
         layout = "vertical", -- float|vertical|horizontal|tab|buffer
         full_height = true, -- for vertical layout
