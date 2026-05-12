@@ -36,6 +36,7 @@
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
