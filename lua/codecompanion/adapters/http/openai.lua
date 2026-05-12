@@ -453,11 +453,6 @@ return {
           formatted_name = "GPT-4o Mini",
           opts = { has_vision = true },
         },
-        ["gpt-4-turbo-preview"] = {
-          formatted_name = "GPT-4 Turbo Preview",
-          opts = { has_vision = true },
-        },
-        "gpt-4",
         "gpt-3.5-turbo",
       },
     },
