@@ -1,6 +1,7 @@
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
+local tags = require("codecompanion.interactions.shared.tags")
 local tool_utils = require("codecompanion.utils.tool_transformers")
 
 ---@type string|nil
@@ -164,7 +165,7 @@ return {
             end
 
             -- Check if this is an image message followed by a text message from the same user
-            if m._meta and m._meta.tag == "image" and (m.context and m.context.mimetype) then
+            if m._meta and m._meta.tag == tags.IMAGE and (m.context and m.context.mimetype) then
               if self.opts and self.opts.vision then
                 local next_msg = messages[i + 1]
                 local combined_content = {
@@ -179,7 +180,7 @@ return {
                   next_msg
                   and next_msg.role == m.role
                   and type(next_msg.content) == "string"
-                  and not (next_msg._meta and next_msg._meta.tag == "image")
+                  and not (next_msg._meta and next_msg._meta.tag == tags.IMAGE)
                 then
                   table.insert(combined_content, {
                     type = "input_text",

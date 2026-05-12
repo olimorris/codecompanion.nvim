@@ -66,6 +66,7 @@ local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local hash = require("codecompanion.utils.hash")
 local images_utils = require("codecompanion.utils.images")
@@ -874,7 +875,7 @@ function Chat:set_system_prompt(prompt, opts)
   prompt = prompt or config.interactions.chat.opts.system_prompt
   opts = opts or { visible = false }
 
-  local _meta = { tag = "system_prompt_from_config" }
+  local _meta = { tag = tags.SYSTEM_PROMPT_FROM_CONFIG }
   if opts._meta then
     _meta = opts._meta
     opts._meta = nil
@@ -925,11 +926,11 @@ function Chat:toggle_system_prompt()
     vim.tbl_map(function(msg)
       return msg._meta and msg._meta.tag
     end, self.messages),
-    "system_prompt_from_config"
+    tags.SYSTEM_PROMPT_FROM_CONFIG
   )
 
   if has_system_prompt then
-    self:remove_tagged_message("system_prompt_from_config")
+    self:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
     utils.notify("Removed system prompt")
   else
     self:set_system_prompt()
@@ -1080,7 +1081,7 @@ function Chat:add_image_message(image, opts)
     content = image.base64,
   }, {
     context = { id = id, mimetype = image.mimetype, path = image.path or image.id },
-    _meta = { tag = "image" },
+    _meta = { tag = tags.IMAGE },
     visible = false,
   })
 
@@ -2020,6 +2021,10 @@ end
 function Chat.close_last_chat()
   if last_chat and not vim.tbl_isempty(last_chat) then
     if last_chat.ui:is_visible() then
+      -- pertab: leave chats visible in other tabs alone
+      if config.display.chat.window.pertab and last_chat.ui:is_visible_non_curtab() then
+        return
+      end
       last_chat.ui:hide()
     end
   end
@@ -2063,17 +2068,20 @@ function Chat.toggle(args)
     return Chat.new(chat_opts)
   end
 
-  -- If the chat is visible in a different tab ...
   if chat.ui:is_visible_non_curtab() then
-    if config.display.chat.window.layout == "tab" then
-      -- ... open it (go there) if chat opens in tabs
-      chat.ui:open()
+    if config.display.chat.window.layout == "tab" or config.display.chat.window.pertab then
+      local target_tab = api.nvim_win_get_tabpage(chat.ui.winnr)
+      if config.display.chat.window.pertab then
+        utils.notify(
+          fmt("Chat is open in tab %d. Switching tab.", api.nvim_tabpage_get_number(target_tab)),
+          vim.log.levels.INFO
+        )
+      end
+      api.nvim_set_current_tabpage(target_tab)
       return
     else
-      -- ... or close it so we can open it below
       chat.ui:hide()
     end
-  -- If the chat is visible in the current tab, hide it and return early
   elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end

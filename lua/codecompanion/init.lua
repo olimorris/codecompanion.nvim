@@ -524,10 +524,15 @@ CodeCompanion.setup = function(opts)
   end
 
   local window_config = config.display.chat.window
-  if window_config.sticky and window_config.layout ~= "buffer" and window_config.layout ~= "tab" then
+  if window_config.sticky and window_config.pertab then
+    log:warn("`display.chat.window.sticky` is disabled when `pertab` is enabled")
+  elseif window_config.sticky and window_config.layout ~= "buffer" and window_config.layout ~= "tab" then
     api.nvim_create_autocmd("TabEnter", {
       group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
       callback = function(args)
+        if config.display.chat.window.pertab then
+          return
+        end
         local chat = CodeCompanion.last_chat()
         if chat and chat.ui:is_visible_non_curtab() then
           chat.buffer_context = get_context(args.buf)

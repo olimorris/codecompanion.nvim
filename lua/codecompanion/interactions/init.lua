@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 local rules_helpers = require("codecompanion.interactions.shared.rules.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 
 ---A user may specify an adapter for the prompt
 ---@param interaction CodeCompanion.Interactions
@@ -211,7 +212,7 @@ function Interactions:workflow()
             p.content = p.content(self.buffer_context)
           end
           if p.role == config.constants.SYSTEM_ROLE and not p.opts then
-            p.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
+            p.opts = { visible = false, _meta = { tag = tags.FROM_CUSTOM_PROMPT } }
           end
           return p
         end)
@@ -319,7 +320,7 @@ function Interactions.evaluate_prompts(prompts, buffer_context)
     :map(function(prompt)
       local content = type(prompt.content) == "function" and prompt.content(buffer_context) or prompt.content
       if prompt.role == config.constants.SYSTEM_ROLE and not prompt.opts then
-        prompt.opts = { visible = false, _meta = { tag = "from_custom_prompt" } }
+        prompt.opts = { visible = false, _meta = { tag = tags.FROM_CUSTOM_PROMPT } }
       end
       return {
         role = prompt.role or "",
