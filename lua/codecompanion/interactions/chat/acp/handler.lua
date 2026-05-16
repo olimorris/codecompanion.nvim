@@ -114,6 +114,8 @@ function ACPHandler:ensure_session()
 
   self.chat:update_metadata()
 
+  require("codecompanion.interactions.chat.acp.defaults").apply(self.chat.adapter, conn)
+
   return true
 end
 
