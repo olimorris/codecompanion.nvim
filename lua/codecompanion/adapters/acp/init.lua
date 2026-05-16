@@ -101,6 +101,12 @@ function Adapter.resolve(adapter, opts)
       })
     end
 
+    if opts.session_config_options then
+      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
+        defaults = { session_config_options = opts.session_config_options },
+      })
+    end
+
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
     if not config.adapters.acp or not config.adapters.acp[adapter] then
@@ -115,6 +121,11 @@ function Adapter.resolve(adapter, opts)
     if opts.mode then
       adapter.defaults = adapter.defaults or {}
       adapter.defaults.mode = opts.mode
+    end
+    if opts.session_config_options then
+      adapter.defaults = adapter.defaults or {}
+      adapter.defaults.session_config_options =
+        vim.tbl_deep_extend("force", adapter.defaults.session_config_options or {}, opts.session_config_options)
     end
   elseif type(adapter) == "function" then
     adapter = adapter()

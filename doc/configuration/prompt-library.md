@@ -234,6 +234,44 @@ opts = {
 
 :::
 
+For [ACP adapters](/configuration/adapters-acp), you can also pass `acp_opts` to set [session config options](https://agentclientprotocol.com/protocol/session-config-options#session-config-options). Keys are the option's `category` and values are the option's `value` (or its `name`, case-insensitively):
+
+::: code-group
+
+```markdown [Markdown]
+---
+name: Quick Review
+interaction: chat
+description: Fast review with low effort
+opts:
+  adapter:
+    name: claude_code
+    model: Opus
+    acp_opts:
+      mode: plan
+      thought_level: low
+---
+```
+
+```lua [Lua]
+opts = {
+  adapter = {
+    name = "claude_code",
+    model = "Opus",
+    acp_opts = {
+      mode = "plan",
+      thought_level = "low",
+    },
+  },
+},
+```
+
+:::
+
+::: tip
+To see what your agent supports, open a chat with that adapter open the debug window with `gd`
+:::
+
 - `alias` _(string)_ - Allows the prompt to be triggered via `:CodeCompanion /{alias}`
 - `auto_submit` _(boolean)_ - Automatically submit the prompt to the LLM
 - `enabled` _(boolean)_ - Enable/disable the prompt without removing it from the library
