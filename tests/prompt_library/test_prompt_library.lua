@@ -177,6 +177,64 @@ T["Prompt Library"]["can add rules"] = function()
   h.eq("<rules>tests/stubs/file.txt</rules>", mem_items[1].id)
 end
 
+T["Prompt Library"]["can specify acp_opts for ACP adapters"] = function()
+  local result = child.lua([[
+    codecompanion.setup({
+      adapters = {
+        acp = {
+          test_acp = {
+            name = "test_acp",
+            type = "acp",
+            roles = { user = "user", llm = "assistant" },
+            commands = { default = { "echo", "test" } },
+            defaults = {
+              timeout = 10000,
+              mcpServers = {},
+            },
+            handlers = {
+              form_messages = function(self, messages) return messages end,
+            },
+          },
+        },
+      },
+      prompt_library = {
+        ["ACP Config Options"] = {
+          strategy = "chat",
+          description = "Testing ACP config options",
+          opts = {
+            index = 1,
+            alias = "test_acp_opts",
+            adapter = {
+              name = "test_acp",
+              model = "Haiku",
+              acp_opts = {
+                mode = "auto",
+                thought_level = "low",
+              },
+            },
+          },
+          prompts = {
+            {
+              role = "foo",
+              content = "Testing ACP config options",
+            },
+          },
+        },
+      }
+    })
+    codecompanion.prompt("test_acp_opts")
+    local chat = codecompanion.last_chat()
+    return {
+      model = chat.adapter.defaults.model,
+      session_config_options = chat.adapter.defaults.session_config_options,
+    }
+  ]])
+
+  h.eq("Haiku", result.model)
+  h.eq("auto", result.session_config_options.mode)
+  h.eq("low", result.session_config_options.thought_level)
+end
+
 -- New: ensure ignore_system_prompt prevents adding the configured default system prompt
 T["Prompt Library"]["can ignore system prompt"] = function()
   local has_system_tag = child.lua([[
