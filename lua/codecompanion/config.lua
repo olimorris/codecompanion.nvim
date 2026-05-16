@@ -694,17 +694,24 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
       },
       opts = {
         context_management = {
-          trigger = 0.75, -- Compaction starts at 75% of the context window limit
-          enabled = function(adapter)
-            if adapter.type ~= "http" then
-              return false
-            end
-            -- Anthropic and OpenAI have their own server-side compaction
-            if adapter.vendor and (adapter.vendor == "anthropic" or adapter.vendor == "openai") then
-              return false
-            end
-            return true
-          end,
+          ---@type boolean|fun(adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter): boolean
+          enabled = true,
+
+          editing = {
+            trigger = 0.65, -- 65% of the context window
+            exclude_tools = { "memory" }, -- tools whose result are never edited
+            keep_cycles = 3, -- preserve tool results from the last N cycles
+          },
+
+          compaction = {
+            trigger = 0.85, -- 85% of the context window
+
+            ---The adapter to use for compaction. Defaults to the current chat adapter
+            ---@type nil|string|{ name: string, model:string }
+            adapter = nil,
+
+            fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
+          },
         },
 
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -1353,6 +1360,24 @@ M.setup = function(args)
     M.config.interactions.shared.editor_context =
       vim.tbl_deep_extend("force", M.config.interactions.shared.editor_context, args.interactions.chat.editor_context)
     M.config.interactions.chat.editor_context = nil
+  end
+
+  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
+  -- Legacy `context_management.trigger` migrates to `context_management.compaction.trigger`
+  local context_management = args.interactions
+    and args.interactions.chat
+    and args.interactions.chat.opts
+    and args.interactions.chat.opts.context_management
+  if context_management and context_management.trigger ~= nil then
+    vim.notify(
+      "[CodeCompanion] `context_management.trigger` is deprecated. Use `context_management.compaction.trigger` instead.",
+      vim.log.levels.WARN,
+      { title = "CodeCompanion" }
+    )
+    if not (context_management.compaction and context_management.compaction.trigger ~= nil) then
+      M.config.interactions.chat.opts.context_management.compaction.trigger = context_management.trigger
+    end
+    M.config.interactions.chat.opts.context_management.trigger = nil
   end
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)

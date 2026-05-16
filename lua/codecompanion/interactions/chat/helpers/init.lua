@@ -345,28 +345,34 @@ function M.format_viewport_for_llm(buf_lines)
   return table.concat(formatted, "\n\n")
 end
 
----Returns the number of tokens that trigger context management
+---Returns the number of tokens that trigger context management for a given operation
 ---@param adapter CodeCompanion.HTTPAdapter
+---@param opts? { operation?: "editing"|"compaction" } defaults to "compaction"
 ---@return number
-function M.trigger_context_management(adapter)
-  if adapter.type ~= "http" then
+function M.trigger_context_management(adapter, opts)
+  opts = opts or {}
+  local operation = opts.operation or "compaction"
+
+  local context_management = config.interactions.chat.opts.context_management
+  local settings = context_management and context_management[operation]
+  local trigger = settings and settings.trigger
+  if trigger == nil then
     return 0
   end
 
-  local ok
-  local trigger_tokens = config.interactions.chat.opts.context_management.trigger
-  if trigger_tokens < 1 then
-    ok, trigger_tokens = pcall(function()
-      return math.floor(trigger_tokens * adapter.schema.model.choices[adapter.schema.model.default].meta.context_window)
+  if trigger < 1 then
+    local ok
+    ok, trigger = pcall(function()
+      return math.floor(trigger * adapter.schema.model.choices[adapter.schema.model.default].meta.context_window)
     end)
 
     if not ok then
-      log:error("Could not get evaluate the trigger for context management in the `%s` adapter", adapter.name)
+      log:error("Could not evaluate the %s trigger for context management in the `%s` adapter", operation, adapter.name)
       return 0
     end
   end
 
-  return trigger_tokens
+  return trigger
 end
 
 return M
