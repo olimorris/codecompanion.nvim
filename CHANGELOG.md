@@ -1,5 +1,19 @@
 # Changelog
 
+## [19.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.13.0...v19.14.0) (2026-05-16)
+
+
+### Features
+
+* **chat:** add adapter type to `codecompanion_chat_metadata` table ([#3099](https://github.com/olimorris/codecompanion.nvim/issues/3099)) ([270e5d7](https://github.com/olimorris/codecompanion.nvim/commit/270e5d713f4d35c31e89d91d46c18aa67b05694f))
+* **chat:** enable chats per-tab ([#3097](https://github.com/olimorris/codecompanion.nvim/issues/3097)) ([2f315d2](https://github.com/olimorris/codecompanion.nvim/commit/2f315d2869c1e861e5643ee25a97676348d84378))
+* **prompt_library:** allow acp options to be set ([#3115](https://github.com/olimorris/codecompanion.nvim/issues/3115)) ([b1cbe52](https://github.com/olimorris/codecompanion.nvim/commit/b1cbe52ecd71e7b0ed43ac1dc6eb3aab4099db00))
+
+
+### Bug Fixes
+
+* **chat:** handle tool responses with no role ([#3094](https://github.com/olimorris/codecompanion.nvim/issues/3094)) ([2e33fbd](https://github.com/olimorris/codecompanion.nvim/commit/2e33fbdd1ace1e5019ffba8891c5a23711005707)), closes [#3093](https://github.com/olimorris/codecompanion.nvim/issues/3093)
+
 ## [19.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.12.0...v19.13.0) (2026-05-04)
 
 
