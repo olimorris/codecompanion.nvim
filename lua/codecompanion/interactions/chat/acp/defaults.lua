@@ -3,22 +3,22 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
----Resolve a desired value against an option's available values
+---Resolve a value against an option's available values
 ---@param opt table SessionConfigOption
----@param desired string
+---@param value string
 ---@return string|nil
-local function resolve_value(opt, desired)
-  local desired_lower = desired:lower()
+local function resolve_value(opt, value)
+  local value_lower = value:lower()
   for _, val in ipairs(ACP.flatten_config_options(opt.options or {})) do
-    if val.value == desired then
+    if val.value == value then
       return val.value
     end
   end
   for _, val in ipairs(ACP.flatten_config_options(opt.options or {})) do
-    if type(val.value) == "string" and val.value:lower() == desired_lower then
+    if type(val.value) == "string" and val.value:lower() == value_lower then
       return val.value
     end
-    if type(val.name) == "string" and val.name:lower() == desired_lower then
+    if type(val.name) == "string" and val.name:lower() == value_lower then
       return val.value
     end
   end
