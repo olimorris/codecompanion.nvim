@@ -35,6 +35,9 @@ return function(file)
   local query = vim.treesitter.query.parse("markdown", "(paragraph) @p")
   local get_text = vim.treesitter.get_node_text
 
+  -- Resolve relative @includes against the directory of the source file
+  local source_dir = file.path and vim.fn.fnamemodify(file.path, ":h") or nil
+
   local seen = {}
   for id, node in query:iter_captures(root, content, 0, -1) do
     if query.captures[id] == "p" then
@@ -43,6 +46,13 @@ return function(file)
         local path = line:match("^%s*@(%S+)")
         if path and not seen[path] then
           seen[path] = true
+          -- If path is relative and source file is outside cwd, resolve against source dir
+          if source_dir and not path:match("^[/~]") then
+            local resolved = vim.fs.normalize(vim.fs.joinpath(source_dir, path))
+            if vim.fn.filereadable(resolved) == 1 then
+              path = resolved
+            end
+          end
           table.insert(included_files, path)
         end
       end
