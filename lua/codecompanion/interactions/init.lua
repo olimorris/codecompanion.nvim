@@ -11,7 +11,11 @@ local tags = require("codecompanion.interactions.shared.tags")
 ---@return nil
 local function add_adapter(interaction, opts)
   if opts.adapter and opts.adapter.name then
-    interaction.selected.adapter = adapters.resolve(opts.adapter.name, { model = opts.adapter.model })
+    local resolve_opts = { model = opts.adapter.model }
+    if opts.adapter.acp_opts then
+      resolve_opts.session_config_options = opts.adapter.acp_opts
+    end
+    interaction.selected.adapter = adapters.resolve(opts.adapter.name, resolve_opts)
   end
 end
 
