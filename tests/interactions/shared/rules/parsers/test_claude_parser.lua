@@ -56,4 +56,46 @@ T["Claude parser"] = function()
   h.eq(parsed.included[1], included)
 end
 
+T["Claude parser resolves relative @includes against source file directory"] = function()
+  child.lua([[
+    package.loaded['codecompanion.config'] = {
+      rules = { parsers = { claude = "claude" } }
+    }
+  ]])
+
+  -- Create a temp directory to simulate e.g. ~/.claude/
+  local dir = child.lua("return vim.fn.tempname()")
+  child.fn.mkdir(dir, "p")
+
+  -- Create an included file inside that directory
+  local included_name = "RTK.md"
+  local included_path = dir .. "/" .. included_name
+  child.fn.writefile({ "# RTK content" }, included_path)
+
+  -- Create a CLAUDE.md in the same directory that uses a relative @include
+  local md_path = dir .. "/CLAUDE.md"
+  child.fn.writefile({
+    "# My Rules",
+    "",
+    "@" .. included_name,
+  }, md_path)
+
+  -- Parse with file.path set to the source file location
+  local parsed = child.lua(string.format(
+    [[
+    local p = require("codecompanion.interactions.shared.rules.parsers.claude")
+    local md = table.concat(vim.fn.readfile(%q), "\n") .. "\n"
+
+    local res = p({ content = md, path = %q })
+
+    return { content = res.content, included = (res.meta and res.meta.included_files) or {} }
+  ]],
+    md_path,
+    md_path
+  ))
+
+  -- The relative path should be resolved to the absolute path next to the source file
+  h.eq(parsed.included[1], included_path)
+end
+
 return T
