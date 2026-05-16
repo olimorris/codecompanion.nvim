@@ -181,8 +181,6 @@ function Connection:connect_and_initialize()
     return nil
   end
 
-  self:apply_default_config_options()
-
   utils.fire("ACPSessionPost", {
     session_id = self.session_id,
   })
@@ -258,8 +256,6 @@ function Connection:ensure_session()
   if not self:_establish_session() then
     return false
   end
-
-  self:apply_default_config_options()
 
   utils.fire("ACPSessionPost", {
     session_id = self.session_id,
@@ -350,8 +346,6 @@ function Connection:load_session(session_id, opts)
   self._loading_session = nil
   self._on_session_update = nil
 
-  self:apply_default_config_options()
-
   return true
 end
 
@@ -402,77 +396,6 @@ function Connection:_establish_session()
 
   log:debug("[acp] Session established: %s", self.session_id)
   return true
-end
-
----Apply default session config options from a user's adapter config
----@return nil
-function Connection:apply_default_config_options()
-  local adapter_defaults = self.adapter_modified and self.adapter_modified.defaults or {}
-
-  -- TODO: Remove in v20.0.0
-  -- Support old model and mode fields as fallback
-  local merged = {}
-  if adapter_defaults.model then
-    merged.model = adapter_defaults.model
-  end
-  if adapter_defaults.mode then
-    merged.mode = adapter_defaults.mode
-  end
-  if adapter_defaults.session_config_options then
-    for k, v in pairs(adapter_defaults.session_config_options) do
-      merged[k] = v
-    end
-  end
-
-  if vim.tbl_isempty(merged) then
-    return
-  end
-
-  -- Index config options by category for quick lookup
-  -- Ref: https://agentclientprotocol.com/protocol/session-config-options#option-categories
-  local by_category = {}
-  for _, opt in ipairs(self._config_options) do
-    if opt.category and opt.type == "select" then
-      by_category[opt.category] = opt
-    end
-  end
-
-  for category, default_value in pairs(merged) do
-    if type(default_value) == "function" then
-      default_value = default_value(self.adapter_modified)
-    end
-    if type(default_value) ~= "string" or default_value == "" then
-      goto continue
-    end
-
-    local opt = by_category[category]
-    if not opt then
-      log:warn("[acp::apply_default_config_options] No config option with category `%s`", category)
-      goto continue
-    end
-
-    local match_value
-    for _, val in ipairs(Connection.flatten_config_options(opt.options or {})) do
-      if val.value == default_value then
-        match_value = val.value
-        break
-      elseif val.name and val.name:lower():find(default_value:lower(), 1, true) then
-        match_value = val.value
-        break
-      end
-    end
-
-    if not match_value then
-      log:warn("ACP: Could not set value `%s` not found for `%s`", default_value, category)
-      goto continue
-    end
-
-    if match_value ~= opt.currentValue then
-      self:set_config_option(opt.id, match_value)
-    end
-
-    ::continue::
-  end
 end
 
 ---Create the ACP process
