@@ -69,11 +69,11 @@ T["Claude parser resolves relative @includes against source file directory"] = f
 
   -- Create an included file inside that directory
   local included_name = "RTK.md"
-  local included_path = dir .. "/" .. included_name
+  local included_path = vim.fs.joinpath(dir, included_name)
   child.fn.writefile({ "# RTK content" }, included_path)
 
   -- Create a CLAUDE.md in the same directory that uses a relative @include
-  local md_path = dir .. "/CLAUDE.md"
+  local md_path = vim.fs.joinpath(dir, "CLAUDE.md")
   child.fn.writefile({
     "# My Rules",
     "",

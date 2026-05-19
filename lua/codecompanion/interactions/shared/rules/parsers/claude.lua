@@ -9,6 +9,8 @@
 ===============================================================================
 --]]
 
+local files = require("codecompanion.utils.files")
+
 ---@param file CodeCompanion.Chat.Rules.ProcessedFile
 ---@return CodeCompanion.Chat.Rules.Parser
 return function(file)
@@ -49,7 +51,7 @@ return function(file)
           -- If path is relative and source file is outside cwd, resolve against source dir
           if source_dir and not path:match("^[/~]") then
             local resolved = vim.fs.normalize(vim.fs.joinpath(source_dir, path))
-            if vim.fn.filereadable(resolved) == 1 then
+            if files.exists(resolved) then
               path = resolved
             end
           end
