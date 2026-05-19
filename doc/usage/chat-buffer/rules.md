@@ -78,7 +78,7 @@ Including the file above.
 
 @INSTRUCTIONS.md
 
-If the file above, `INSTUCTIONS.md`, exists in the same directory as this rules file, it is also included.
+If the file above, `INSTRUCTIONS.md`, exists in the same directory as this rules file, it is also included.
 No need to prepend './' with the filename.
 ```
 
