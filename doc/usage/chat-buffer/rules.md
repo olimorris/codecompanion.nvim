@@ -75,6 +75,11 @@ This is a rules file that can be parsed with the Claude parser.
 Anything in this file is added as context to the chat buffer.
 
 Including the file above.
+
+@INSTRUCTIONS.md
+
+If the file above, `INSTUCTIONS.md`, exists in the same directory as this rules file, it is also included.
+No need to prepend './' with the filename.
 ```
 
 ## Adding Rules to a Chat Buffer
