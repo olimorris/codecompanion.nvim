@@ -1,4 +1,12 @@
 local openai = require("codecompanion.adapters.http.openai")
+local tool_utils = require("codecompanion.utils.tool_transformers")
+
+local function to_strict_chat_completions_schema(schema)
+  schema = tool_utils.enforce_strictness(vim.deepcopy(schema))
+  schema["function"].strict = true
+  schema["function"].parameters.strict = nil
+  return schema
+end
 
 ---@class CodeCompanion.HTTPAdapter.AzureOpenAI: CodeCompanion.HTTPAdapter
 return {
@@ -43,7 +51,21 @@ return {
       return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)
-      return openai.handlers.form_tools(self, tools)
+      if not self.opts.tools or not tools then
+        return nil
+      end
+      if vim.tbl_count(tools) == 0 then
+        return nil
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, to_strict_chat_completions_schema(schema))
+        end
+      end
+
+      return { tools = transformed }
     end,
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
