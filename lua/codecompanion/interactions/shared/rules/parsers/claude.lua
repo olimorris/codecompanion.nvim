@@ -48,7 +48,7 @@ return function(file)
         local path = line:match("^%s*@(%S+)")
         if path and not seen[path] then
           seen[path] = true
-          -- If path is relative and source file is outside cwd, resolve against source dir
+          -- Resolve non-absolute paths (no leading / or ~) against the source file's directory
           if source_dir and not path:match("^[/~]") then
             local resolved = vim.fs.normalize(vim.fs.joinpath(source_dir, path))
             if files.exists(resolved) then
