@@ -367,7 +367,7 @@ function M.trigger_context_management(adapter, opts)
     end)
 
     if not ok then
-      log:error("Could not evaluate the %s trigger for context management in the `%s` adapter", operation, adapter.name)
+      log:debug("Could not evaluate the %s trigger for context management in the `%s` adapter", operation, adapter.name)
       return 0
     end
   end
