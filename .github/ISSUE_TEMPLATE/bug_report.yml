@@ -28,6 +28,8 @@ body:
             required: true
           - label: I have searched for existing [issues](https://github.com/olimorris/codecompanion.nvim/issues) and [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
             required: true
+          - label: If [ACP](https://agentclientprotocol.com) related, I have confirmed that the issue is a CodeCompanion one and not an issue in the adapter itself
+            required: true            
           - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details)
             required: true
 
