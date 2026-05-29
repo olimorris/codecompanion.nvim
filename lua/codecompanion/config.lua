@@ -698,13 +698,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           enabled = true,
 
           editing = {
-            trigger = 0.65, -- 65% of the context window
-            exclude_tools = { "memory" }, -- tools whose result are never edited
-            keep_cycles = 3, -- preserve tool results from the last N cycles
+            trigger = 0.65, -- Context editing is triggered when X% of the context window is reached
+            exclude_tools = { "memory" }, -- Output from these tools is never edited
+            keep_cycles = 3, -- Keep the last N cycles of tool results
           },
 
           compaction = {
-            trigger = 0.85, -- 85% of the context window
+            trigger = 0.85, -- Compaction is triggered when X% of the context window is reached
+            min_token_savings = 10000, -- Only compact when at least this amount of tokens will be saved
 
             ---The adapter to use for compaction. Defaults to the current chat adapter
             ---@type nil|string|{ name: string, model:string }
