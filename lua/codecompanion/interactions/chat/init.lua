@@ -1471,6 +1471,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
   end
 
   self:checkpoint()
+  require("codecompanion.interactions.chat.context_management").check(self)
   self:ready_for_input()
 
   self:dispatch("on_completed", { status = self.status })
