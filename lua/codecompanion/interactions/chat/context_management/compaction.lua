@@ -322,6 +322,8 @@ function M.compact(chat, opts)
   end
 
   chat._compacting = true
+  chat.ui:lock_buf()
+  chat:_set_status("compacting", "Compacting the chat...")
 
   local primary = resolve_adapter(chat, opts.adapter)
 
@@ -342,7 +344,9 @@ function M.compact(chat, opts)
     })
     chat.messages = retained
     chat._compacting = false
-    if chat.ui and chat.ui.render then
+    chat:_clear_status()
+    chat.ui:unlock_buf()
+    if chat.ui.render then
       chat.ui:render(chat.buffer_context, chat.messages, chat.opts)
     end
     return utils.notify("Chat compacted")
@@ -353,6 +357,8 @@ function M.compact(chat, opts)
   ---@return nil
   local function fail(reason)
     chat._compacting = false
+    chat:_clear_status()
+    chat.ui:unlock_buf()
     return log:error("[Compaction] Failed: %s", reason)
   end
 
