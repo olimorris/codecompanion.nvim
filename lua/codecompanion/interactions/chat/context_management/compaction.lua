@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
     Description:
       Replaces the conversation history with an LLM-generated summary. System
-      messages and rules pass through verbatim; files, buffers, and images
+      messages and rules pass through directly; files, buffers, and images
       are swapped for reference placeholders, useful in future turns.
 -------------------------------------------------------------------------------
     Attribution:
@@ -327,39 +327,49 @@ function M.compact(chat, opts)
 
   local primary = resolve_adapter(chat, opts.adapter)
 
-  ---Apply the summary to the chat buffer and re-render the UI
+  ---Restore the chat to an editable state after compaction finishes
+  ---@param status string "success" or "error"
+  ---@return nil
+  local function finish(status)
+    chat._compacting = false
+
+    -- Force the role change to ensure the chat can be drawn correctly
+    chat._last_role = config.constants.LLM_ROLE
+    chat.builder.state.last_role = config.constants.LLM_ROLE
+
+    chat:ready_for_input()
+    chat:dispatch("on_completed", { status = status })
+    utils.fire("ChatDone", { bufnr = chat.bufnr, id = chat.id })
+  end
+
+  ---Add the compaction summary to the chat buffer and update the chat
   ---@param content string
   ---@return nil
   local function update_chat(content)
-    local body = CONSTANTS.SUMMARY_PREFIX .. content
+    content = CONSTANTS.SUMMARY_PREFIX .. content
     table.insert(retained, {
       role = config.constants.USER_ROLE,
-      content = body,
-      opts = { visible = true },
+      content = content,
+      opts = { visible = false },
       _meta = {
         cycle = chat.cycle,
-        estimated_tokens = tokens.calculate(body),
+        estimated_tokens = tokens.calculate(content),
         tag = tags.COMPACT_SUMMARY,
       },
     })
     chat.messages = retained
-    chat._compacting = false
-    chat:_clear_status()
-    chat.ui:unlock_buf()
-    if chat.ui.render then
-      chat.ui:render(chat.buffer_context, chat.messages, chat.opts)
-    end
-    return utils.notify("Chat compacted")
+    chat.ui:render(chat.buffer_context, chat.messages, chat.opts)
+    finish("success")
+    chat:add_buf_message({ role = config.constants.USER_ROLE, content = content })
+    utils.notify("Chat compacted")
   end
 
   ---Handle a failure in the compaction process
   ---@param reason string A message describing the failure reason
   ---@return nil
   local function fail(reason)
-    chat._compacting = false
-    chat:_clear_status()
-    chat.ui:unlock_buf()
-    return log:error("[Compaction] Failed: %s", reason)
+    finish("error")
+    log:error("[Compaction] Failed: %s", reason)
   end
 
   ---Determine if we should attempt a fallback to the chat adapter on failure
@@ -371,7 +381,7 @@ function M.compact(chat, opts)
   ---Run the fallback adapter if the primary fails or returns empty content
   ---@param reason string
   ---@return nil
-  local function run_fallback(reason)
+  local function fallback(reason)
     log:debug("[Compaction] Falling back to chat adapter (%s)", reason)
     request_summary({
       adapter = chat.adapter,
@@ -394,14 +404,14 @@ function M.compact(chat, opts)
       if content and content ~= "" then
         update_chat(content)
       elseif should_fallback() then
-        run_fallback("primary adapter returned empty content")
+        fallback("primary adapter returned empty content")
       else
         fail("compaction adapter returned empty content")
       end
     end,
     on_error = function(err)
       if should_fallback() then
-        run_fallback(err)
+        fallback(err)
       else
         fail(err)
       end
