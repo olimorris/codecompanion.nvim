@@ -61,11 +61,16 @@ function M.check(chat)
 
   local compaction_threshold = helpers.trigger_context_management(chat.adapter, { operation = "compaction" })
   if compaction_threshold > 0 and token_count >= compaction_threshold then
+    -- HACK: Add a temporary user header so the "Compacting..." status is visible, temporarily
+    chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+
     local compaction = require("codecompanion.interactions.chat.context_management.compaction")
-    return compaction.compact(chat, {
-      adapter = ctx_mgmt_config.compaction and ctx_mgmt_config.compaction.adapter,
+    compaction.compact(chat, {
+      adapter = ctx_mgmt_config.compaction.adapter,
       fallback_to_chat_adapter = ctx_mgmt_config.compaction.fallback_to_chat_adapter,
+      min_token_savings = ctx_mgmt_config.compaction.min_token_savings,
     })
+    return true
   end
 
   local editing_threshold = helpers.trigger_context_management(chat.adapter, { operation = "editing" })
