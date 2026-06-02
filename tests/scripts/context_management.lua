@@ -2,7 +2,7 @@
 -- NOTE: GENERATED ENTIRELY BY CLAUDE CODE FOR TESTING PURPOSES ONLY
 --
 -- Usage: Open Neovim with CodeCompanion loaded, then run:
---   :luafile scripts/test_context_management.lua
+--   :luafile tests/scripts/context_management.lua
 -- Or:
 --   :source %
 --
@@ -56,7 +56,9 @@ local messages = {
   -- Buffer shared via /buffer slash command (should also survive compaction)
   {
     role = "user",
-    content = '<attachment filepath="lua/codecompanion/init.lua">' .. string.rep("local codecompanion = {}\n", 20) .. "</attachment>",
+    content = '<attachment filepath="lua/codecompanion/init.lua">'
+      .. string.rep("local codecompanion = {}\n", 20)
+      .. "</attachment>",
     context = { id = buffer_context_id, path = "lua/codecompanion/init.lua" },
     _meta = { cycle = 1, id = 99, tag = tags.BUFFER },
     opts = { visible = false },

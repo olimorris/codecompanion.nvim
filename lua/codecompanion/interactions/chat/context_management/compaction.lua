@@ -323,7 +323,10 @@ function M.compact(chat, opts)
 
   chat._compacting = true
   chat.ui:lock_buf()
-  chat:_set_status("compacting", "Compacting the chat...")
+
+  local message = "Compacting the chat..."
+  chat:_set_status("compacting", message)
+  utils.notify(message)
 
   local adapter = resolve_adapter(chat, opts.adapter)
 
@@ -331,11 +334,17 @@ function M.compact(chat, opts)
   ---@param content string
   ---@return nil
   local function update_chat(content)
+    local summary = CONSTANTS.SUMMARY_PREFIX .. content
     chat.messages = retained
-    chat:add_buf_message({ role = config.constants.USER_ROLE, content = CONSTANTS.SUMMARY_PREFIX .. content })
+    chat:add_message(
+      { role = config.constants.USER_ROLE, content = summary },
+      { visible = true, _meta = { tag = tags.COMPACT_SUMMARY } }
+    )
+    chat:add_buf_message({ role = config.constants.USER_ROLE, content = summary })
     chat._compacting = false
     chat:ready_for_input()
-    chat:submit()
+    -- This prevents the chat buffer from being parsed which we don't need as we manually add the summary to the message history
+    chat:submit({ auto_submit = true })
     utils.notify("Chat compacted")
   end
 

@@ -1,14 +1,22 @@
---=============================================================================
--- Context Editing
---
--- Replaces aged messages in the chat buffer to reduce the token count. This
--- is done by mutating the message object, in-place.
---
--- Currently, only tool results are edited.
---
--- Sources:
--- https://platform.claude.com/docs/en/build-with-claude/context-editing
---=============================================================================
+--[[
+===============================================================================
+    File:       codecompanion/interactions/chat/context_management/editing.lua
+    Author:     Oli Morris
+-------------------------------------------------------------------------------
+    Description:
+      Trims aged tool results from the chat by replacing their content with a
+      placeholder string. The conversation shape stays intact — tool calls
+      keep their matching tool result messages, just with smaller payloads.
+      Tool results from the most recent `keep_cycles` cycles are preserved,
+      as are any whose tool name is listed in `exclude_tools`.
+
+    Sources:
+      https://platform.claude.com/docs/en/build-with-claude/context-editing
+-------------------------------------------------------------------------------
+    Attribution:
+      If you use or distribute this code, please credit:
+      Oli Morris (https://github.com/olimorris)
+--]]
 
 local tokens = require("codecompanion.utils.tokens")
 
