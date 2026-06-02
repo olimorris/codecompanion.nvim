@@ -1258,6 +1258,7 @@ function Chat:submit(opts)
     self.tools:refresh({ adapter = self.adapter })
   end
 
+  -- Differentiate between the user submitting and CodeCompanion automatically doing it
   if opts.auto_submit then
     self:_inject_btw()
     self.buffer_diffs:check_for_changes(self)
@@ -1471,7 +1472,9 @@ function Chat:done(output, reasoning, tools, meta, opts)
   end
 
   self:checkpoint()
-  require("codecompanion.interactions.chat.context_management").check(self)
+  if require("codecompanion.interactions.chat.context_management").check(self) then
+    return
+  end
   self:ready_for_input()
 
   self:dispatch("on_completed", { status = self.status })

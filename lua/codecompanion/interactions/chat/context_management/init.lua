@@ -61,7 +61,7 @@ function M.check(chat)
 
   local compaction_threshold = helpers.trigger_context_management(chat.adapter, { operation = "compaction" })
   if compaction_threshold > 0 and token_count >= compaction_threshold then
-    -- HACK: Add a temporary user header so the "Compacting..." status is visible, temporarily
+    -- NOTE: Add a blank message to ensure that any compaction text comes under the user
     chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
     local compaction = require("codecompanion.interactions.chat.context_management.compaction")

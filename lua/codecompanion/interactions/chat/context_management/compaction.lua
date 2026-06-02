@@ -301,7 +301,7 @@ function M.compact(chat, opts)
   opts = opts or {}
 
   if chat.adapter and chat.adapter.type == "acp" then
-    return log:debug("[Compaction] Skipped — ACP adapters handle context themselves")
+    return log:warn("[Compaction] Skipped — ACP adapters handle context themselves")
   end
   if chat._compacting then
     return log:debug("[Compaction] Skipped — a compaction is already in progress")
@@ -325,42 +325,17 @@ function M.compact(chat, opts)
   chat.ui:lock_buf()
   chat:_set_status("compacting", "Compacting the chat...")
 
-  local primary = resolve_adapter(chat, opts.adapter)
+  local adapter = resolve_adapter(chat, opts.adapter)
 
-  ---Restore the chat to an editable state after compaction finishes
-  ---@param status string "success" or "error"
-  ---@return nil
-  local function finish(status)
-    chat._compacting = false
-
-    -- Force the role change to ensure the chat can be drawn correctly
-    chat._last_role = config.constants.LLM_ROLE
-    chat.builder.state.last_role = config.constants.LLM_ROLE
-
-    chat:ready_for_input()
-    chat:dispatch("on_completed", { status = status })
-    utils.fire("ChatDone", { bufnr = chat.bufnr, id = chat.id })
-  end
-
-  ---Add the compaction summary to the chat buffer and update the chat
+  ---Add the compaction summary to the chat buffer as a user message
   ---@param content string
   ---@return nil
   local function update_chat(content)
-    content = CONSTANTS.SUMMARY_PREFIX .. content
-    table.insert(retained, {
-      role = config.constants.USER_ROLE,
-      content = content,
-      opts = { visible = false },
-      _meta = {
-        cycle = chat.cycle,
-        estimated_tokens = tokens.calculate(content),
-        tag = tags.COMPACT_SUMMARY,
-      },
-    })
     chat.messages = retained
-    chat.ui:render(chat.buffer_context, chat.messages, chat.opts)
-    finish("success")
-    chat:add_buf_message({ role = config.constants.USER_ROLE, content = content })
+    chat:add_buf_message({ role = config.constants.USER_ROLE, content = CONSTANTS.SUMMARY_PREFIX .. content })
+    chat._compacting = false
+    chat:ready_for_input()
+    chat:submit()
     utils.notify("Chat compacted")
   end
 
@@ -368,14 +343,15 @@ function M.compact(chat, opts)
   ---@param reason string A message describing the failure reason
   ---@return nil
   local function fail(reason)
-    finish("error")
+    chat._compacting = false
+    chat:ready_for_input()
     log:error("[Compaction] Failed: %s", reason)
   end
 
   ---Determine if we should attempt a fallback to the chat adapter on failure
   ---@return boolean
   local function should_fallback()
-    return opts.fallback_to_chat_adapter == true and primary ~= chat.adapter
+    return opts.fallback_to_chat_adapter == true and adapter ~= chat.adapter
   end
 
   ---Run the fallback adapter if the primary fails or returns empty content
@@ -398,7 +374,7 @@ function M.compact(chat, opts)
   end
 
   request_summary({
-    adapter = primary,
+    adapter = adapter,
     messages_text = messages_text,
     on_done = function(content)
       if content and content ~= "" then

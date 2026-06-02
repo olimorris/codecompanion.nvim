@@ -5,6 +5,10 @@ local T = MiniTest.new_set({
   hooks = {
     pre_case = function()
       h.child_start(child)
+      child.lua([[
+        h = require('tests.helpers')
+        _G.chat = h.setup_chat_buffer()
+      ]])
     end,
     post_once = child.stop,
   },
@@ -29,55 +33,48 @@ T["Compaction"]["replaces the chat with placeholders and a tagged summary"] = fu
     local tags = require("codecompanion.interactions.shared.tags")
     local file_body = string.rep("file body line\n", 800)
 
-    _G.chat = {
-      adapter = { type = "http", name = "fake" },
-      buffer_context = {},
-      cycle = 7,
-      opts = {},
-      ui = { render = function(self) return self end },
-      messages = {
-        -- System prompt passes through
-        {
-          role = "system",
-          content = "system prompt",
-          opts = { visible = false },
-          _meta = { cycle = 1, tag = tags.SYSTEM_PROMPT_FROM_CONFIG },
-        },
-        -- Project rules passes through
-        {
-          role = "user",
-          content = "Project rules",
-          opts = { visible = true },
-          _meta = { cycle = 1, tag = tags.RULES },
-        },
-        -- File replaced with placeholder
-        {
-          role = "user",
-          content = file_body,
-          opts = { visible = true },
-          _meta = { cycle = 1, tag = tags.FILE },
-        },
-        -- Buffer replaced with placeholder
-        {
-          role = "user",
-          content = file_body,
-          opts = { visible = true },
-          _meta = { cycle = 1, tag = tags.BUFFER },
-        },
-        -- User prompt dropped and summarised
-        {
-          role = "user",
-          content = "Tell me about the file",
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        -- LLM reply dropped and summarised
-        {
-          role = "llm",
-          content = "It contains 800 repeated lines",
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
+    _G.chat.messages = {
+      -- System prompt passes through
+      {
+        role = "system",
+        content = "system prompt",
+        opts = { visible = false },
+        _meta = { cycle = 1, tag = tags.SYSTEM_PROMPT_FROM_CONFIG },
+      },
+      -- Project rules passes through
+      {
+        role = "user",
+        content = "Project rules",
+        opts = { visible = true },
+        _meta = { cycle = 1, tag = tags.RULES },
+      },
+      -- File replaced with placeholder
+      {
+        role = "user",
+        content = file_body,
+        opts = { visible = true },
+        _meta = { cycle = 1, tag = tags.FILE },
+      },
+      -- Buffer replaced with placeholder
+      {
+        role = "user",
+        content = file_body,
+        opts = { visible = true },
+        _meta = { cycle = 1, tag = tags.BUFFER },
+      },
+      -- User prompt dropped and summarised
+      {
+        role = "user",
+        content = "Tell me about the file",
+        opts = { visible = true },
+        _meta = { cycle = 1 },
+      },
+      -- LLM reply dropped and summarised
+      {
+        role = "llm",
+        content = "It contains 800 repeated lines",
+        opts = { visible = true },
+        _meta = { cycle = 1 },
       },
     }
 
@@ -91,7 +88,7 @@ T["Compaction"]["replaces the chat with placeholders and a tagged summary"] = fu
 
   local messages = child.lua_get("_G.chat.messages")
 
-  -- 4 retained messages + 1 new summary
+  -- 4 retained messages + 1 summary message
   h.eq(5, #messages)
 
   -- system + rules preserved
@@ -104,11 +101,10 @@ T["Compaction"]["replaces the chat with placeholders and a tagged summary"] = fu
   h.eq(child.lua_get("_G.placeholder_buffer"), messages[4].content)
   h.is_true(messages[4]._meta.context_management.compacted)
 
-  -- Summary appended at the end with the right tag
-  local summary = messages[5]
-  h.eq(child.lua_get("_G.compact_summary_tag"), summary._meta.tag)
-  h.eq("user", summary.role)
-  h.expect_match(summary.content, "Mock summary content")
+  -- Summary is appended to the chat buffer as text
+  local content = child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, true)]])
+  h.eq(content[1], "## foo")
+  h.eq(content[3], "Below is a summary of a previous conversation:")
 
   h.eq(false, child.lua_get("_G.chat._compacting"))
 end
@@ -129,52 +125,45 @@ T["Compaction"]["re-run drops the stale summary, keeps compacted placeholders, a
     local tags = require("codecompanion.interactions.shared.tags")
     local big_chunk = string.rep("payload ", 3000)
 
-    _G.chat = {
-      adapter = { type = "http", name = "fake" },
-      buffer_context = {},
-      cycle = 9,
-      opts = {},
-      ui = { render = function(self) return self end },
-      messages = {
-        -- System prompt passes through
-        {
-          role = "system",
-          content = "system prompt",
-          opts = { visible = false },
-          _meta = { cycle = 1, tag = tags.SYSTEM_PROMPT_FROM_CONFIG },
-        },
-        -- Previous compaction's placeholder passes through
-        {
-          role = "user",
-          content = Compaction.PLACEHOLDERS.file,
-          opts = { visible = true },
-          _meta = { cycle = 1, tag = tags.FILE, context_management = { compacted = true } },
-        },
-        -- Stale summary dropped, replaced by new one
-        {
-          role = "user",
-          content = "OLD SUMMARY",
-          opts = { visible = true },
-          _meta = { cycle = 1, tag = tags.COMPACT_SUMMARY },
-        },
-        -- New user prompt dropped and summarised
-        {
-          role = "user",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        -- New LLM reply dropped and summarised
-        {
-          role = "llm",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
+    _G.chat.messages = {
+      -- System prompt passes through
+      {
+        role = "system",
+        content = "system prompt",
+        opts = { visible = false },
+        _meta = { cycle = 1, tag = tags.SYSTEM_PROMPT_FROM_CONFIG },
+      },
+      -- Previous compaction's placeholder passes through
+      {
+        role = "user",
+        content = Compaction.PLACEHOLDERS.file,
+        opts = { visible = true },
+        _meta = { cycle = 1, tag = tags.FILE, context_management = { compacted = true } },
+      },
+      -- Stale summary dropped, replaced by new one
+      {
+        role = "user",
+        content = "OLD SUMMARY",
+        opts = { visible = true },
+        _meta = { cycle = 1, tag = tags.COMPACT_SUMMARY },
+      },
+      -- New user prompt dropped and summarised
+      {
+        role = "user",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
+      },
+      -- New LLM reply dropped and summarised
+      {
+        role = "llm",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
       },
     }
 
-    Compaction.compact(_G.chat)
+    Compaction.compact(_G.chat, { min_token_savings = 1 })
 
     _G.placeholder_file = Compaction.PLACEHOLDERS.file
     _G.compact_summary_tag = tags.COMPACT_SUMMARY
@@ -187,7 +176,6 @@ T["Compaction"]["re-run drops the stale summary, keeps compacted placeholders, a
   h.eq("system prompt", messages[1].content)
   h.eq(child.lua_get("_G.placeholder_file"), messages[2].content)
   h.is_true(messages[2]._meta.context_management.compacted)
-  h.eq(child.lua_get("_G.compact_summary_tag"), messages[3]._meta.tag)
   h.expect_match(messages[3].content, "Second summary")
 end
 
@@ -204,25 +192,18 @@ T["Compaction"]["skips when estimated savings fall below min_token_savings"] = f
 
     local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
 
-    _G.chat = {
-      adapter = { type = "http", name = "fake" },
-      buffer_context = {},
-      cycle = 1,
-      opts = {},
-      ui = { render = function(self) return self end },
-      messages = {
-        {
-          role = "user",
-          content = "hi",
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        {
-          role = "llm",
-          content = "hello",
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
+    _G.chat.messages = {
+      {
+        role = "user",
+        content = "hi",
+        opts = { visible = true },
+        _meta = { cycle = 1 },
+      },
+      {
+        role = "llm",
+        content = "hello",
+        opts = { visible = true },
+        _meta = { cycle = 1 },
       },
     }
 
@@ -233,56 +214,6 @@ T["Compaction"]["skips when estimated savings fall below min_token_savings"] = f
   -- Threshold short-circuits the call, Background.ask never reached
   h.eq(false, child.lua_get("_G.ask_called"))
   h.eq(child.lua_get("_G.before"), child.lua_get("_G.chat.messages"))
-end
-
-T["Compaction"]["respects a min_token_savings override"] = function()
-  child.lua([==[
-    _G.ask_called = false
-    package.loaded["codecompanion.interactions.background"] = {
-      new = function()
-        return {
-          ask = function(_, _, opts)
-            _G.ask_called = true
-            opts.on_done({ output = { content = "summary" } })
-          end,
-        }
-      end,
-    }
-
-    local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
-    local tags = require("codecompanion.interactions.shared.tags")
-
-    _G.chat = {
-      adapter = { type = "http", name = "fake" },
-      buffer_context = {},
-      cycle = 1,
-      opts = {},
-      ui = { render = function(self) return self end },
-      messages = {
-        {
-          role = "user",
-          content = "a small chat",
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        {
-          role = "llm",
-          content = "a small response",
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-      },
-    }
-
-    -- min_token_savings of 1 bypasses the default threshold
-    Compaction.compact(_G.chat, { min_token_savings = 1 })
-
-    _G.compact_summary_tag = tags.COMPACT_SUMMARY
-  ]==])
-
-  h.is_true(child.lua_get("_G.ask_called"))
-  local messages = child.lua_get("_G.chat.messages")
-  h.eq(child.lua_get("_G.compact_summary_tag"), messages[#messages]._meta.tag)
 end
 
 T["Compaction"]["leaves messages untouched when the LLM call errors"] = function()
@@ -300,30 +231,23 @@ T["Compaction"]["leaves messages untouched when the LLM call errors"] = function
     local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
     local big_chunk = string.rep("payload ", 3000)
 
-    _G.chat = {
-      adapter = { type = "http", name = "fake" },
-      buffer_context = {},
-      cycle = 1,
-      opts = {},
-      ui = { render = function(self) return self end },
-      messages = {
-        {
-          role = "user",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        {
-          role = "llm",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
+    _G.chat.messages = {
+      {
+        role = "user",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
+      },
+      {
+        role = "llm",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
       },
     }
 
     _G.before = vim.deepcopy(_G.chat.messages)
-    Compaction.compact(_G.chat)
+    Compaction.compact(_G.chat, { min_token_savings = 1 })
   ]==])
 
   h.eq(child.lua_get("_G.before"), child.lua_get("_G.chat.messages"))
@@ -354,28 +278,21 @@ T["Compaction"]["fallback_to_chat_adapter retries on the chat adapter"] = functi
     local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
     local big_chunk = string.rep("payload ", 3000)
 
-    _G.chat_adapter = { type = "http", name = "chat" }
-    _G.override_adapter = { type = "http", name = "override" }
+    _G.chat_adapter = _G.chat.adapter
+    _G.override_adapter = { name = "override", type = "http" }
 
-    _G.chat = {
-      adapter = _G.chat_adapter,
-      buffer_context = {},
-      cycle = 1,
-      opts = {},
-      ui = { render = function(self) return self end },
-      messages = {
-        {
-          role = "user",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        {
-          role = "llm",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
+    _G.chat.messages = {
+      {
+        role = "user",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
+      },
+      {
+        role = "llm",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
       },
     }
 
@@ -386,8 +303,8 @@ T["Compaction"]["fallback_to_chat_adapter retries on the chat adapter"] = functi
   ]==])
 
   h.eq(2, child.lua_get("_G.call_count"))
-  h.eq(child.lua_get("_G.override_adapter"), child.lua_get("_G.adapters_used[1]"))
-  h.eq(child.lua_get("_G.chat_adapter"), child.lua_get("_G.adapters_used[2]"))
+  h.eq(child.lua_get("_G.override_adapter.name"), child.lua_get("_G.adapters_used[1].name"))
+  h.eq(child.lua_get("_G.chat_adapter.name"), child.lua_get("_G.adapters_used[2].name"))
 
   local messages = child.lua_get("_G.chat.messages")
   h.expect_match(messages[#messages].content, "fallback summary")
@@ -407,27 +324,20 @@ T["Compaction"]["lock prevents concurrent runs"] = function()
     local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
     local big_chunk = string.rep("payload ", 3000)
 
-    _G.chat = {
-      adapter = { type = "http", name = "fake" },
-      buffer_context = {},
-      cycle = 1,
-      opts = {},
-      ui = { render = function(self) return self end },
-      -- A compaction is already in flight
-      _compacting = true,
-      messages = {
-        {
-          role = "user",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
-        {
-          role = "llm",
-          content = big_chunk,
-          opts = { visible = true },
-          _meta = { cycle = 1 },
-        },
+    -- A compaction is already in flight
+    _G.chat._compacting = true
+    _G.chat.messages = {
+      {
+        role = "user",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
+      },
+      {
+        role = "llm",
+        content = big_chunk,
+        opts = { visible = true },
+        _meta = { cycle = 1 },
       },
     }
 
@@ -436,6 +346,100 @@ T["Compaction"]["lock prevents concurrent runs"] = function()
 
   h.eq(false, child.lua_get("_G.ask_called"))
   h.is_true(child.lua_get("_G.chat._compacting"))
+end
+
+T["Compaction"]["renders the compacted chat buffer correctly"] = function()
+  child.lua([==[
+    package.loaded["codecompanion.interactions.background"] = {
+      new = function()
+        return {
+          ask = function(_, _, opts)
+            opts.on_done({ output = { content = "The user asked about context management.\nWe discussed editing and compaction." } })
+          end,
+        }
+      end,
+    }
+
+    local tags = require("codecompanion.interactions.shared.tags")
+    local big_result = string.rep("Tool output with function signatures and variable names. ", 100)
+
+    -- Build a multi-cycle conversation with tool calls
+
+    -- Chat context
+    _G.chat.context:add({
+      id = "<buf>foo.lua</buf>",
+      path = "foo.lua",
+      source = "test",
+    })
+    _G.chat.context:add({
+      id = "<buf>bar.lua</buf>",
+      path = "bar.lua",
+      source = "test",
+    })
+
+    -- Cycle 1
+    table.insert(_G.chat.messages, {
+      role = "user",
+      content = "Read the config file",
+      _meta = { cycle = 1, id = 201 },
+      opts = { visible = true },
+    })
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      content = "",
+      _meta = { cycle = 1, id = 202 },
+      opts = { visible = false },
+      tools = { calls = { { id = "c1", type = "function", ["function"] = { name = "read_file", arguments = '{"path":"config.lua"}' } } } },
+    })
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = big_result,
+      _meta = { cycle = 1, id = 203 },
+      opts = { visible = true },
+      tools = { call_id = "c1", is_error = false, type = "tool_result" },
+    })
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      content = "I've read the config file.",
+      _meta = { cycle = 1, id = 204 },
+      opts = { visible = true },
+    })
+
+    -- Cycle 2
+    table.insert(_G.chat.messages, {
+      role = "user",
+      content = "Read the helpers file too",
+      _meta = { cycle = 2, id = 301 },
+      opts = { visible = true },
+    })
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      content = "",
+      _meta = { cycle = 2, id = 302 },
+      opts = { visible = false },
+      tools = { calls = { { id = "c2", type = "function", ["function"] = { name = "read_file", arguments = '{"path":"helpers.lua"}' } } } },
+    })
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = big_result,
+      _meta = { cycle = 2, id = 303 },
+      opts = { visible = true },
+      tools = { call_id = "c2", is_error = false, type = "tool_result" },
+    })
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      content = "I've read the helpers file.",
+      _meta = { cycle = 2, id = 304 },
+      opts = { visible = true },
+    })
+
+    _G.chat.cycle = 3
+
+    local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
+    Compaction.compact(_G.chat, { min_token_savings = 1 })
+  ]==])
+
+  MiniTest.expect.reference_screenshot(child.get_screenshot())
 end
 
 return T
