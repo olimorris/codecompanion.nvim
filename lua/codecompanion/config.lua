@@ -71,7 +71,7 @@ local defaults = {
     background = {
       adapter = {
         name = "copilot",
-        model = "claude-haiku-4.5,
+        model = "claude-haiku-4.5",
       },
       -- Callbacks within the plugin that you can attach background actions to
       chat = {
