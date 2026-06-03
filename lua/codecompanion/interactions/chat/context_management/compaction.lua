@@ -326,6 +326,7 @@ function M.compact(chat, opts)
 
   local message = "Compacting the chat..."
   chat:_set_status("compacting", message)
+  utils.fire("ChatCompacting", { bufnr = chat.bufnr, id = chat.id })
   utils.notify(message)
 
   local adapter = resolve_adapter(chat, opts.adapter)

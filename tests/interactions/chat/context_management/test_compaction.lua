@@ -435,11 +435,76 @@ T["Compaction"]["renders the compacted chat buffer correctly"] = function()
 
     _G.chat.cycle = 3
 
+    -- Render a prior user/LLM exchange to the chat buffer (mirroring real usage where
+    -- compaction is triggered after an LLM turn). Without this the buffer would be
+    -- empty and the role-change detection in `add_buf_message` would have nothing
+    -- to compare against — masking bugs where the summary lands under the LLM header.
+    _G.chat:add_buf_message({ role = "user", content = "Read the config file" })
+    _G.chat:add_buf_message({ role = "llm", content = "I've read the config file." })
+
     local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
     Compaction.compact(_G.chat, { min_token_savings = 1 })
   ]==])
 
   MiniTest.expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Compaction"]["locks the buffer and shows a status while the request is in flight"] = function()
+  child.lua([==[
+    -- Background that captures the call without resolving — leaves compaction mid-flight
+    package.loaded["codecompanion.interactions.background"] = {
+      new = function()
+        return {
+          ask = function() end,
+        }
+      end,
+    }
+
+    _G.chat:add_buf_message({ role = "user", content = "Hi" })
+    _G.chat:add_buf_message({ role = "llm", content = "Hello there." })
+
+    _G.chat.messages = {
+      { role = "user", content = string.rep("payload ", 3000), _meta = { cycle = 1 }, opts = { visible = true } },
+      { role = "llm", content = string.rep("payload ", 3000), _meta = { cycle = 1 }, opts = { visible = true } },
+    }
+
+    local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
+    Compaction.compact(_G.chat, { min_token_savings = 1 })
+  ]==])
+
+  h.is_true(child.lua_get("_G.chat._compacting"))
+  h.eq(false, child.lua_get("vim.bo[_G.chat.bufnr].modifiable"))
+  h.is_true(child.lua_get("_G.chat._status.compacting == true"))
+  MiniTest.expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Compaction"]["unlocks the buffer and clears the status after the LLM responds"] = function()
+  child.lua([==[
+    package.loaded["codecompanion.interactions.background"] = {
+      new = function()
+        return {
+          ask = function(_, _, opts)
+            opts.on_done({ output = { content = "Summary" } })
+          end,
+        }
+      end,
+    }
+
+    _G.chat:add_buf_message({ role = "user", content = "Hi" })
+    _G.chat:add_buf_message({ role = "llm", content = "Hello there." })
+
+    _G.chat.messages = {
+      { role = "user", content = string.rep("payload ", 3000), _meta = { cycle = 1 }, opts = { visible = true } },
+      { role = "llm", content = string.rep("payload ", 3000), _meta = { cycle = 1 }, opts = { visible = true } },
+    }
+
+    local Compaction = require("codecompanion.interactions.chat.context_management.compaction")
+    Compaction.compact(_G.chat, { min_token_savings = 1 })
+  ]==])
+
+  h.eq(false, child.lua_get("_G.chat._compacting"))
+  h.is_true(child.lua_get("vim.bo[_G.chat.bufnr].modifiable"))
+  h.eq(vim.NIL, child.lua_get("_G.chat._status.compacting"))
 end
 
 return T
