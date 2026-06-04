@@ -14,6 +14,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - **Naming:** snake_case for files/functions, PascalCase for classes, underscore prefix for private functions
 - **Explicit names:** `pattern` not `pat`, `should_include` not `include_ok`
 - **Readable code:** names, variables, and control flow should read like clean English. Avoid generic names like `ctx` — use domain-specific names (`permission`, `request`, `source`)
+- **Plain language:** avoid jargon shortcuts in code, comments, commit messages, and chat. Don't say "no-op" — say what the code actually does ("returns unchanged", "does nothing", "skipped because already edited")
 - **Function params:** prefer a single table argument over positional args
 - **Error handling:** `pcall` + `log:error()`, return nil on failure
 - **Type annotations:** LuaCATS for public APIs. Keep doc blocks concise — one description line, params should be self-explanatory without inline comments

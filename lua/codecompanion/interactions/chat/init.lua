@@ -36,6 +36,7 @@
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
@@ -1257,6 +1258,7 @@ function Chat:submit(opts)
     self.tools:refresh({ adapter = self.adapter })
   end
 
+  -- Differentiate between the user submitting and CodeCompanion automatically doing it
   if opts.auto_submit then
     self:_inject_btw()
     self.buffer_diffs:check_for_changes(self)
@@ -1470,6 +1472,9 @@ function Chat:done(output, reasoning, tools, meta, opts)
   end
 
   self:checkpoint()
+  if require("codecompanion.interactions.chat.context_management").check(self) then
+    return
+  end
   self:ready_for_input()
 
   self:dispatch("on_completed", { status = self.status })

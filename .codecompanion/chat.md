@@ -15,6 +15,7 @@ Messages in the chat buffer are lua table objects as seen. They contain the role
     _meta = {
       cycle = 1,
       id = 708950413,
+      estimated_tokens = 20,
       tag = "system_prompt_from_config",
     },
     opts = {
@@ -25,6 +26,7 @@ Messages in the chat buffer are lua table objects as seen. They contain the role
   }, {
     _meta = {
       cycle = 1,
+      estimated_tokens = 20,
       id = 533315931,
       sent = true
     },
@@ -32,8 +34,29 @@ Messages in the chat buffer are lua table objects as seen. They contain the role
       visible = true
     },
     role = "user"
-    content = "Are you working?",
-  }, {
+    content = "Are you working? Sharing a file with you",
+  },
+ {
+    _meta = {
+      cycle = 1,
+      estimated_tokens = 3556,
+      id = 1048633318,
+      index = 5,
+      sent = true,
+      source = "editor_context",
+      tag = "file"
+    },
+    content = "<attachment filepath=\"/Users/Oli/some_path/some_file.lua\">An example file</attachment>",
+    context = {
+      id = "<file>some_path/some_file.lua</file>",
+      path = "/Users/Oli/some_path/some_file.lua",
+    },
+    opts = {
+      visible = false
+    },
+    role = "user"
+  },
+  {
     _meta = {
       cycle = 1,
       id = 1141409506,

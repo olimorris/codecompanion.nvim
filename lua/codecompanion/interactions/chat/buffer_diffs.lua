@@ -11,7 +11,7 @@ local diff = vim.text.diff or vim.diff
 
 ---@class CodeCompanion.BufferDiffs
 ---@field buffers table<number, CodeCompanion.BufferDiffs.State> Map of buffer numbers to their states
----@field augroup integer The autocmd group ID
+---@field augroup number The autocmd group ID
 ---@field sync fun(self: CodeCompanion.BufferDiffs, bufnr: number): nil Start syncing a buffer
 ---@field unsync fun(self: CodeCompanion.BufferDiffs, bufnr: number): nil Stop syncing a buffer
 ---@field get_changes fun(self: CodeCompanion.BufferDiffs, bufnr: number): boolean, table

@@ -195,14 +195,13 @@ function M.parse_iso8601(iso)
     return nil
   end
 
-  ---@type osdateparam
   local date = {
-    year = tonumber(year) --[[@as integer]],
-    month = tonumber(month) --[[@as integer]],
-    day = tonumber(day) --[[@as integer]],
-    hour = tonumber(hour) --[[@as integer]],
-    min = tonumber(min) --[[@as integer]],
-    sec = tonumber(sec) --[[@as integer]],
+    year = tonumber(year), --[[@as number]]
+    month = tonumber(month), --[[@as number]]
+    day = tonumber(day), --[[@as number]]
+    hour = tonumber(hour), --[[@as number]]
+    min = tonumber(min), --[[@as number]]
+    sec = tonumber(sec), --[[@as number]]
   }
 
   return os.time(date)

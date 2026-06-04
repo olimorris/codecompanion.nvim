@@ -314,7 +314,7 @@ function UI:set_header(tbl, role)
 end
 
 ---Render the settings and any messages in the chat buffer
----@param context table
+---@param context table Buffer context
 ---@param messages table
 ---@param opts {force_header?: boolean, stop_context_insertion?: boolean, auto_submit?: boolean, from_prompt_library?: boolean}
 ---@return self

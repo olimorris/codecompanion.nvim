@@ -286,7 +286,7 @@ require("codecompanion").setup({
 
 :::
 
-CodeCompanion makes use of a trigger, a threshold at which the context management begins. You can specify a `trigger` as either a decimal (representing a percentage of the context window) or an integer (representing a token count). When the chat buffer reaches the defined trigger, preventative action is taken by CodeCompanion. You can read more in the [architecture](/architecture#manage-context) section.
+CodeCompanion runs two operations to keep the chat buffer under the context window: **editing** (lighter — trims old tool results) and **compaction** (heavier — summarises the chat). Each has its own trigger, expressed either as a decimal (a percentage of the context window) or an integer (an absolute token count). You can read more about how the two operations work in the [architecture](/architecture#in-the-chat-buffer) section.
 
 ::: code-group
 
@@ -296,7 +296,12 @@ require("codecompanion").setup({
     chat = {
       opts = {
         context_management = {
-          trigger = 0.75, -- Percent of the context window (e.g., 0.75 for 75%)
+          editing = {
+            trigger = 0.65, -- 65% of the context window
+          },
+          compaction = {
+            trigger = 0.85, -- 85% of the context window
+          },
         },
       },
     },
@@ -310,7 +315,12 @@ require("codecompanion").setup({
     chat = {
       opts = {
         context_management = {
-          trigger = 50000, -- tokens
+          editing = {
+            trigger = 80000, -- tokens
+          },
+          compaction = {
+            trigger = 100000, -- tokens
+          },
         },
       },
     },
@@ -319,6 +329,55 @@ require("codecompanion").setup({
 ```
 
 :::
+
+#### Editing
+
+Editing replaces the content of older tool results with a placeholder, leaving the conversation shape intact. By default, the most recent 3 cycles (a cycle being one user turn plus everything the LLM did in response) are preserved in full; older cycles are aged. You can also exclude specific tools from being edited — useful for tools whose output is referenced again later in the conversation.
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        context_management = {
+          editing = {
+            trigger = 0.65,
+            keep_cycles = 3,                -- preserve tool results from the last N cycles
+            exclude_tools = { "memory" },   -- tool names whose results are never edited
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+#### Compaction
+
+Compaction summarises the chat via a single LLM call and replaces the message history with that summary. You can point compaction at a different adapter — handy if you want a cheaper or faster model handling the summary — and choose whether a failure should silently fall back to the chat adapter.
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        context_management = {
+          compaction = {
+            trigger = 0.85,
+
+            -- Adapter used to generate the summary. Defaults to the chat adapter.
+            -- Accepts a string (adapter name) or a table `{ name = "...", model = "..." }`
+            adapter = nil,
+
+            -- If the override adapter fails, silently retry with the chat adapter
+            fallback_to_chat_adapter = false,
+          },
+        },
+      },
+    },
+  },
+})
+```
 
 ## Diff
 
