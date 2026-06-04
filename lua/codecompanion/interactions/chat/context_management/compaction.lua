@@ -108,8 +108,8 @@ The conversation and corresponding messages to summarize, is as follows:
 local M = {}
 
 M.PLACEHOLDERS = {
-  buffer = "<important>Buffer content cleared during compaction. Request the buffer from the user if you need it.</important>",
-  file = "<important>File content cleared during compaction. Re-read the file if you need it.</important>",
+  buffer = "<important>Buffer content for `%s` cleared during compaction. Request the buffer from the user if you need it.</important>",
+  file = "<important>File content for `%s` cleared during compaction. Re-read the file if you need it.</important>",
   image = "<important>Image content cleared during compaction. Request the image from the user if you need it.</important>",
 }
 
@@ -176,9 +176,9 @@ local function messages_to_retain(messages)
     else
       local placeholder
       if kind == "compacted_file" then
-        placeholder = M.PLACEHOLDERS.file
+        placeholder = fmt(M.PLACEHOLDERS.file, message.context.path)
       elseif kind == "compacted_buffer" then
-        placeholder = M.PLACEHOLDERS.buffer
+        placeholder = fmt(M.PLACEHOLDERS.buffer, message.context.path)
       elseif kind == "compacted_image" then
         placeholder = M.PLACEHOLDERS.image
       end
@@ -322,6 +322,8 @@ function M.compact(chat, opts)
   end
 
   chat._compacting = true
+  -- Add an empty user message so the status virtual text renders beneath the user header
+  chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   chat.ui:lock_buf()
 
   local message = "Compacting the chat..."

@@ -48,17 +48,19 @@ T["Compaction"]["replaces the chat with placeholders and a tagged summary"] = fu
         opts = { visible = true },
         _meta = { cycle = 1, tag = tags.RULES },
       },
-      -- File replaced with placeholder
+      -- File replaced with placeholder (path interpolated)
       {
         role = "user",
         content = file_body,
+        context = { id = "<file>lua/foo.lua</file>", path = "lua/foo.lua" },
         opts = { visible = true },
         _meta = { cycle = 1, tag = tags.FILE },
       },
-      -- Buffer replaced with placeholder
+      -- Buffer replaced with placeholder (path interpolated)
       {
         role = "user",
         content = file_body,
+        context = { id = "<buf>lua/bar.lua</buf>", path = "lua/bar.lua" },
         opts = { visible = true },
         _meta = { cycle = 1, tag = tags.BUFFER },
       },
@@ -81,8 +83,6 @@ T["Compaction"]["replaces the chat with placeholders and a tagged summary"] = fu
     -- NOTE: min_token_savings is set low so this test can run
     Compaction.compact(_G.chat, { min_token_savings = 1 })
 
-    _G.placeholder_file = Compaction.PLACEHOLDERS.file
-    _G.placeholder_buffer = Compaction.PLACEHOLDERS.buffer
     _G.compact_summary_tag = tags.COMPACT_SUMMARY
   ]==])
 
@@ -95,10 +95,10 @@ T["Compaction"]["replaces the chat with placeholders and a tagged summary"] = fu
   h.eq("system prompt", messages[1].content)
   h.eq("Project rules", messages[2].content)
 
-  -- file + buffer swapped for placeholders, marked compacted
-  h.eq(child.lua_get("_G.placeholder_file"), messages[3].content)
+  -- file + buffer swapped for placeholders with their paths interpolated, marked compacted
+  h.expect_match(messages[3].content, "File content for `lua/foo%.lua` cleared")
   h.is_true(messages[3]._meta.context_management.compacted)
-  h.eq(child.lua_get("_G.placeholder_buffer"), messages[4].content)
+  h.expect_match(messages[4].content, "Buffer content for `lua/bar%.lua` cleared")
   h.is_true(messages[4]._meta.context_management.compacted)
 
   -- Summary is appended to the chat buffer as text
@@ -133,10 +133,10 @@ T["Compaction"]["re-run drops the stale summary, keeps compacted placeholders, a
         opts = { visible = false },
         _meta = { cycle = 1, tag = tags.SYSTEM_PROMPT_FROM_CONFIG },
       },
-      -- Previous compaction's placeholder passes through
+      -- Previous compaction's placeholder passes through verbatim
       {
         role = "user",
-        content = Compaction.PLACEHOLDERS.file,
+        content = "<important>File content for `lua/keep.lua` cleared during compaction. Re-read the file if you need it.</important>",
         opts = { visible = true },
         _meta = { cycle = 1, tag = tags.FILE, context_management = { compacted = true } },
       },
@@ -165,7 +165,6 @@ T["Compaction"]["re-run drops the stale summary, keeps compacted placeholders, a
 
     Compaction.compact(_G.chat, { min_token_savings = 1 })
 
-    _G.placeholder_file = Compaction.PLACEHOLDERS.file
     _G.compact_summary_tag = tags.COMPACT_SUMMARY
   ]==])
 
@@ -174,7 +173,7 @@ T["Compaction"]["re-run drops the stale summary, keeps compacted placeholders, a
   -- system + retained placeholder + new summary
   h.eq(3, #messages)
   h.eq("system prompt", messages[1].content)
-  h.eq(child.lua_get("_G.placeholder_file"), messages[2].content)
+  h.expect_match(messages[2].content, "File content for `lua/keep%.lua` cleared")
   h.is_true(messages[2]._meta.context_management.compacted)
   h.expect_match(messages[3].content, "Second summary")
 end
