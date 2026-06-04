@@ -1,5 +1,23 @@
 # Changelog
 
+## [19.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.13.0...v19.14.0) (2026-06-04)
+
+
+### Features
+
+* **chat:** add `/share` slash command ([#3137](https://github.com/olimorris/codecompanion.nvim/issues/3137)) ([7b3128e](https://github.com/olimorris/codecompanion.nvim/commit/7b3128e6a57b36858df26671c20e7938d6167692))
+* **chat:** add adapter type to `codecompanion_chat_metadata` table ([#3099](https://github.com/olimorris/codecompanion.nvim/issues/3099)) ([270e5d7](https://github.com/olimorris/codecompanion.nvim/commit/270e5d713f4d35c31e89d91d46c18aa67b05694f))
+* **chat:** context management and context editing ([#3083](https://github.com/olimorris/codecompanion.nvim/issues/3083)) ([f373d8a](https://github.com/olimorris/codecompanion.nvim/commit/f373d8aa5c55a622f04a0882846eca85d6eb4ef7))
+* **chat:** enable chats per-tab ([#3097](https://github.com/olimorris/codecompanion.nvim/issues/3097)) ([2f315d2](https://github.com/olimorris/codecompanion.nvim/commit/2f315d2869c1e861e5643ee25a97676348d84378))
+* **prompt_library:** allow acp options to be set ([#3115](https://github.com/olimorris/codecompanion.nvim/issues/3115)) ([b1cbe52](https://github.com/olimorris/codecompanion.nvim/commit/b1cbe52ecd71e7b0ed43ac1dc6eb3aab4099db00))
+* **rules:** resolve relative [@includes](https://github.com/includes) against rules file dir ([#3116](https://github.com/olimorris/codecompanion.nvim/issues/3116)) ([57b22e0](https://github.com/olimorris/codecompanion.nvim/commit/57b22e0efd639ca2e8ad4c146d5b34966b708843))
+
+
+### Bug Fixes
+
+* **background:** replace gpt-4.1 ([#3135](https://github.com/olimorris/codecompanion.nvim/issues/3135)) ([3f562cc](https://github.com/olimorris/codecompanion.nvim/commit/3f562cc3b7efe3795527df00c08eb02ad1aa70c9))
+* **chat:** handle tool responses with no role ([#3094](https://github.com/olimorris/codecompanion.nvim/issues/3094)) ([2e33fbd](https://github.com/olimorris/codecompanion.nvim/commit/2e33fbdd1ace1e5019ffba8891c5a23711005707)), closes [#3093](https://github.com/olimorris/codecompanion.nvim/issues/3093)
+
 ## [19.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.12.0...v19.13.0) (2026-05-04)
 
 
