@@ -69,26 +69,25 @@ Anything in this section is added as context to the chat buffer. The file above 
 # Example Claude Rules File
 
 @./lua/codecompanion/interactions/chat/tools/init.lua
+@INSTRUCTIONS.md
 
 This is a rules file that can be parsed with the Claude parser.
 
 Anything in this file is added as context to the chat buffer.
 
-Including the file above.
-
-@INSTRUCTIONS.md
-
-If the file `INSTRUCTIONS.md` exists in the same directory as this Claude Rules file, it will be included automatically.
-
-You do not need to add `./` before the filename.
-
-If `INSTRUCTIONS.md` is not found in the same directory, CodeCompanion will look for it in the project's working directory.
-
-This behavior is especially important for global Claude Rules files (typically located at `~/.claude/CLAUDE.md`).
-
-If the file cannot be found in either location, a warning will be shown.
-
+Including the files above.
 ```
+
+#### Resolving `@` paths
+
+Other files can be referenced in a rules file via `@path`. CodeCompanion looks for the file in this order:
+
+1. Absolute paths (starting with `/` or `~`) are used as-is
+2. Relative paths (e.g. `@INSTRUCTIONS.md`) are first resolved against the directory of the rules file itself
+3. If not found there, they're resolved against the current working directory
+4. If neither exists, a warning is logged
+
+Taking a global rules files such as `~/.claude/CLAUDE.md`: If it contains an `@RTK.md` reference inside it, this would resolve to `~/.claude/RTK.md`, regardless of where Neovim was launched from.
 
 ## Adding Rules to a Chat Buffer
 
