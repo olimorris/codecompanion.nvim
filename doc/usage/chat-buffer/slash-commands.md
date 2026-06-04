@@ -97,6 +97,26 @@ The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) ada
 > [!NOTE]
 > The `/resume` command must be used before sending any messages. It is only available on a fresh chat buffer.
 
+## /share
+
+The _share_ slash command allows you to share the conversation in the chat buffer as a secret [GitHub Gist](https://gist.github.com). You'll need to ensure that you set a token in your configuration with permission to create gists:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["share"] = {
+          opts = {
+            token = os.getenv("GITHUB_GIST_TOKEN"),
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## /symbols
 
 > [!NOTE]
