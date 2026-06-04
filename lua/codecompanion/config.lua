@@ -517,6 +517,14 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             interactions = { "chat", "cli" },
           },
         },
+        ["share"] = {
+          path = "interactions.chat.slash_commands.builtin.share",
+          description = "Share the chat in a GitHub Gist",
+          opts = {
+            contains_code = true,
+            token = nil, -- A GitHub personal access token with the `gist` scope. Required for this command to work
+          },
+        },
         ["symbols"] = {
           path = "interactions.chat.slash_commands.builtin.symbols",
           description = "Insert symbols for a selected file",
