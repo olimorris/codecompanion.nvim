@@ -417,7 +417,8 @@ return {
         if type(model) == "function" then
           model = model()
         end
-        return not vim.startswith(model, "o1")
+        local disabled_for = { "gpt-5.4", "gpt-5.4-mini" }
+        return not vim.tbl_contains(disabled_for, model)
       end,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
