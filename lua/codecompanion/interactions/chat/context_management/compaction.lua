@@ -254,16 +254,6 @@ local function estimate_savings(original, retained)
   return math.max(0, before - after)
 end
 
----@param chat CodeCompanion.Chat
----@param override? string|table
----@return CodeCompanion.HTTPAdapter|string|table
-local function resolve_adapter(chat, override)
-  if override == nil then
-    return chat.adapter
-  end
-  return override
-end
-
 ---@class CodeCompanion.Chat.ContextManagement.Compaction.RequestOpts
 ---@field adapter CodeCompanion.HTTPAdapter|string|table
 ---@field messages_text string The chat messages, formatted for the summariser
@@ -285,6 +275,66 @@ local function request_summary(request)
       request.on_done(content)
     end,
     on_error = request.on_error,
+  })
+end
+
+---Write the summary back into the chat and trigger the next turn
+---@param chat CodeCompanion.Chat
+---@param retained CodeCompanion.Chat.Messages
+---@param content string
+---@return nil
+local function apply_summary(chat, retained, content)
+  local summary = CONSTANTS.SUMMARY_PREFIX .. content
+  chat.messages = retained
+  chat:add_message(
+    { role = config.constants.USER_ROLE, content = summary },
+    { visible = true, _meta = { tag = tags.COMPACT_SUMMARY } }
+  )
+  chat:add_buf_message({ role = config.constants.USER_ROLE, content = summary })
+  chat._compacting = false
+  chat:ready_for_input()
+  chat:submit({ auto_submit = true }) -- Don't re-parse the chat buffer
+  utils.notify("Chat compacted")
+end
+
+---Release the compaction lock and log the failure
+---@param chat CodeCompanion.Chat
+---@param reason string
+---@return nil
+local function abort(chat, reason)
+  chat._compacting = false
+  chat:ready_for_input()
+  log:error("[Compaction] Failed: %s", reason)
+end
+
+---Send the request to summarise
+---@param chat CodeCompanion.Chat
+---@param retained CodeCompanion.Chat.Messages
+---@param messages_text string
+---@param adapter CodeCompanion.HTTPAdapter|string|table
+---@param fallback_adapter? CodeCompanion.HTTPAdapter|string|table
+---@return nil
+local function run_summary(chat, retained, messages_text, adapter, fallback_adapter)
+  request_summary({
+    adapter = adapter,
+    messages_text = messages_text,
+    on_done = function(content)
+      if content and content ~= "" then
+        return apply_summary(chat, retained, content)
+      end
+      if fallback_adapter then
+        log:debug("[Compaction] Falling back to chat adapter (primary returned empty content)")
+        return run_summary(chat, retained, messages_text, fallback_adapter, nil)
+      end
+      abort(chat, "compaction adapter returned empty content")
+    end,
+    on_error = function(err)
+      if fallback_adapter then
+        log:debug("[Compaction] Falling back to chat adapter: %s", err)
+        return run_summary(chat, retained, messages_text, fallback_adapter, nil)
+      end
+      abort(chat, err)
+    end,
   })
 end
 
@@ -322,7 +372,7 @@ function M.compact(chat, opts)
   end
 
   chat._compacting = true
-  -- Add an empty user message so the status virtual text renders beneath the user header
+  -- HACK: Add an empty user message so the status renders beneath the user header as virtual text
   chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   chat.ui:lock_buf()
 
@@ -331,80 +381,10 @@ function M.compact(chat, opts)
   utils.fire("ChatCompacting", { bufnr = chat.bufnr, id = chat.id })
   utils.notify(message)
 
-  local adapter = resolve_adapter(chat, opts.adapter)
+  local adapter = opts.adapter or chat.adapter
+  local fallback_adapter = (opts.fallback_to_chat_adapter == true and adapter ~= chat.adapter) and chat.adapter or nil
 
-  ---Add the compaction summary to the chat buffer as a user message
-  ---@param content string
-  ---@return nil
-  local function update_chat(content)
-    local summary = CONSTANTS.SUMMARY_PREFIX .. content
-    chat.messages = retained
-    chat:add_message(
-      { role = config.constants.USER_ROLE, content = summary },
-      { visible = true, _meta = { tag = tags.COMPACT_SUMMARY } }
-    )
-    chat:add_buf_message({ role = config.constants.USER_ROLE, content = summary })
-    chat._compacting = false
-    chat:ready_for_input()
-    -- This prevents the chat buffer from being parsed which we don't need as we manually add the summary to the message history
-    chat:submit({ auto_submit = true })
-    utils.notify("Chat compacted")
-  end
-
-  ---Handle a failure in the compaction process
-  ---@param reason string A message describing the failure reason
-  ---@return nil
-  local function fail(reason)
-    chat._compacting = false
-    chat:ready_for_input()
-    log:error("[Compaction] Failed: %s", reason)
-  end
-
-  ---Determine if we should attempt a fallback to the chat adapter on failure
-  ---@return boolean
-  local function should_fallback()
-    return opts.fallback_to_chat_adapter == true and adapter ~= chat.adapter
-  end
-
-  ---Run the fallback adapter if the primary fails or returns empty content
-  ---@param reason string
-  ---@return nil
-  local function fallback(reason)
-    log:debug("[Compaction] Falling back to chat adapter (%s)", reason)
-    request_summary({
-      adapter = chat.adapter,
-      messages_text = messages_text,
-      on_done = function(content)
-        if content and content ~= "" then
-          update_chat(content)
-        else
-          fail("fallback adapter returned empty content")
-        end
-      end,
-      on_error = fail,
-    })
-  end
-
-  request_summary({
-    adapter = adapter,
-    messages_text = messages_text,
-    on_done = function(content)
-      if content and content ~= "" then
-        update_chat(content)
-      elseif should_fallback() then
-        fallback("primary adapter returned empty content")
-      else
-        fail("compaction adapter returned empty content")
-      end
-    end,
-    on_error = function(err)
-      if should_fallback() then
-        fallback(err)
-      else
-        fail(err)
-      end
-    end,
-  })
+  run_summary(chat, retained, messages_text, adapter, fallback_adapter)
 end
 
 return M
