@@ -1889,6 +1889,56 @@ function Chat:clear()
   utils.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
 
+---Creates a serializable snapshot of the chat for use in saving sessions to disk
+---@return table
+function Chat:snapshot()
+  local snapshot_messages = {}
+  for _, msg in ipairs(self.messages or {}) do
+    local entry = {
+      role = msg.role,
+      content = msg.content,
+    }
+    if msg.reasoning ~= nil then
+      entry.reasoning = vim.deepcopy(msg.reasoning)
+    end
+    if msg.tools ~= nil then
+      entry.tools = vim.deepcopy(msg.tools)
+    end
+    if msg.opts ~= nil then
+      entry.opts = { visible = msg.opts.visible }
+    end
+    if msg.context ~= nil then
+      entry.context = vim.deepcopy(msg.context)
+    end
+    if msg._meta and msg._meta.tag ~= nil then
+      entry._meta = { tag = msg._meta.tag }
+    end
+    table.insert(snapshot_messages, entry)
+  end
+
+  local adapter = {
+    name = self.adapter and self.adapter.name,
+    type = self.adapter and self.adapter.type,
+  }
+  if self.adapter and self.adapter.schema and self.adapter.schema.model then
+    adapter.model = self.adapter.schema.model.default
+  end
+
+  local winid = vim.fn.bufwinid(self.bufnr)
+  local cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd()
+
+  return {
+    adapter = adapter,
+    context_items = vim.deepcopy(self.context_items or {}),
+    cwd = cwd,
+    cycle = self.cycle,
+    id = self.id,
+    messages = snapshot_messages,
+    settings = self.settings and vim.deepcopy(self.settings) or nil,
+    title = self.title,
+  }
+end
+
 ---Display the chat buffer's settings and messages
 function Chat:debug()
   if vim.tbl_isempty(self.messages) then
