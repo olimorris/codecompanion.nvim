@@ -11,13 +11,11 @@
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The UI builder for the chat buffer
 ---@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
----@field chat_parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
----@field create_buf fun(): number The function that creates a new buffer for the chat
 ---@field editor_context? CodeCompanion.EditorContext The editor context available to the user
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
@@ -27,6 +25,7 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
+---@field parsers { markdown: vim.treesitter.LanguageTree, markdown_inline?: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
@@ -35,9 +34,10 @@
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
----@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field _btw? string The user's "by the way" message which is queued for sending to an LLM
 ---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
+---@field _status table Bookkeeping for the current status virtual text (extmark id + status flag)
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -118,6 +118,23 @@ local llm_role = config.interactions.chat.roles.llm
 local user_role = config.interactions.chat.roles.user
 local show_settings = config.display.chat.show_settings
 
+---Create a new buffer for the chat
+---@return number
+local function create_chat_buf()
+  local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
+  api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
+
+  vim.schedule(function()
+    pcall(vim.treesitter.start, bufnr)
+  end)
+
+  if config.interactions.chat.opts.completion_provider == "default" then
+    vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
+  end
+
+  return bufnr
+end
+
 --=============================================================================
 -- Private methods
 --=============================================================================
@@ -126,30 +143,23 @@ local show_settings = config.display.chat.show_settings
 ---@param chat CodeCompanion.Chat
 ---@return nil
 local function sync_all_buffer_content(chat)
-  local synced = vim
-    .iter(chat.context_items)
-    :filter(function(ctx)
-      return ctx.opts.sync_all
-    end)
-    :totable()
-
-  if vim.tbl_isempty(synced) then
-    return
-  end
-
-  -- Build a set of context IDs already present in this cycle for O(1) duplicate checks
-  local seen = {}
-  for _, msg in ipairs(chat.messages) do
-    if msg.context and msg.context.id and msg._meta and msg._meta.cycle == chat.cycle then
-      seen[msg.context.id] = true
-    end
-  end
-
-  for _, item in ipairs(synced) do
-    if not seen[item.id] then
-      require(item.source)
-        .new({ Chat = chat })
-        :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { sync_all = true })
+  -- Collect IDs already present in this cycle for O(1) duplicate checks
+  local seen
+  for _, item in ipairs(chat.context_items) do
+    if item.opts.sync_all then
+      if not seen then
+        seen = {}
+        for _, msg in ipairs(chat.messages) do
+          if msg.context and msg.context.id and msg._meta and msg._meta.cycle == chat.cycle then
+            seen[msg.context.id] = true
+          end
+        end
+      end
+      if not seen[item.id] then
+        require(item.source)
+          .new({ Chat = chat })
+          :output({ path = item.path, bufnr = item.bufnr, params = item.params }, { sync_all = true })
+      end
     end
   end
 end
@@ -196,13 +206,6 @@ local function find_tool_call(id, messages)
     end
   end
   return nil
-end
-
----Make an id from a string or table
----@param val string|table
----@return number
-local function make_id(val)
-  return hash.hash(val)
 end
 
 ---Used to record the last chat buffer that was opened
@@ -285,7 +288,7 @@ local function set_autocmds(chat)
         local adapter = chat.adapter
         ---@cast adapter CodeCompanion.HTTPAdapter
 
-        local settings = parser.settings(bufnr, chat.yaml_parser, adapter)
+        local settings = parser.settings(bufnr, chat.parsers.yaml, adapter)
 
         local errors = schema.validate(adapter.schema, settings, adapter)
         local node = settings.__ts_node
@@ -352,6 +355,210 @@ Chat.MESSAGE_TYPES = {
   USER_MESSAGE = "user_message",
 }
 
+---Initiate the Tree-sitter parsers used in the chat
+---@param chat CodeCompanion.Chat
+---@return boolean
+local function init_parsers(chat)
+  chat.parsers = {}
+
+  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
+  if not ok or not markdown then
+    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
+    return false
+  end
+  chat.parsers.markdown = markdown
+
+  -- markdown_inline drives image detection; cache once to avoid re-resolving per submit
+  local inline_ok, markdown_inline = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown_inline")
+  if inline_ok and markdown_inline then
+    chat.parsers.markdown_inline = markdown_inline
+  end
+
+  if show_settings then
+    local yaml_ok, yaml = pcall(vim.treesitter.get_parser, chat.bufnr, "yaml", { ignore_injections = false })
+    if not yaml_ok or not yaml then
+      log:error("Could not find the Yaml Tree-sitter parser")
+      return false
+    end
+    chat.parsers.yaml = yaml
+  end
+
+  return true
+end
+
+---Initiate the adapter used in the chat
+---@param chat CodeCompanion.Chat
+---@param args CodeCompanion.ChatArgs
+---@return boolean
+local function init_adapter(chat, args)
+  if args.adapter and adapters.resolved(args.adapter) then
+    chat.adapter = args.adapter
+  else
+    chat.adapter = adapters.resolve(args.adapter or config.interactions.chat.adapter)
+  end
+  if not chat.adapter then
+    log:error("No adapter found")
+    return false
+  end
+
+  utils.fire("ChatAdapter", {
+    adapter = adapters.make_safe(chat.adapter),
+    bufnr = chat.bufnr,
+    id = chat.id,
+  })
+  utils.fire("ChatModel", {
+    adapter = adapters.make_safe(chat.adapter),
+    bufnr = chat.bufnr,
+    id = chat.id,
+    model = chat.adapter.schema and chat.adapter.schema.model.default,
+  })
+
+  if chat.adapter.type == "http" then
+    chat:apply_settings(schema.get_default(chat.adapter, args.settings))
+  elseif chat.adapter.type == "acp" then
+    -- Connection is asynchronous; available_commands_update can arrive 1-5s later
+    vim.schedule(function()
+      if args.acp_command then
+        chat.adapter.commands.selected = chat.adapter.commands[args.acp_command]
+      end
+      helpers.create_acp_connection(chat)
+    end)
+  end
+
+  return true
+end
+
+---Initialize chat sub-components
+---@param chat CodeCompanion.Chat
+---@param args CodeCompanion.ChatArgs
+---@return nil
+local function init_components(chat, args)
+  chat.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = chat })
+  chat.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
+  chat.context = require("codecompanion.interactions.chat.context").new({ chat = chat })
+  chat.editor_context = require("codecompanion.interactions.shared.editor_context").new("chat")
+  chat.subscribers = require("codecompanion.interactions.chat.subscribers").new()
+  chat.tools = require("codecompanion.interactions.chat.tools").new({
+    adapter = chat.adapter,
+    bufnr = chat.bufnr,
+    messages = chat.messages,
+  })
+  chat.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({
+    chat = chat,
+    ctx = chat:make_system_prompt_context(),
+  })
+  chat.ui = require("codecompanion.interactions.chat.ui").new({
+    adapter = chat.adapter,
+    aug = chat.aug,
+    chat_id = chat.id,
+    chat_bufnr = chat.bufnr,
+    roles = { user = user_role, llm = llm_role },
+    settings = chat.settings,
+    title = chat.title,
+    window_opts = args.window_opts,
+  })
+end
+
+---Bind buffer-local keymaps for the chat plus any slash-command bindings
+---@param chat CodeCompanion.Chat
+---@return nil
+local function init_keymaps(chat)
+  if config.interactions.chat.keymaps then
+    local filtered_keymaps = {}
+    for k, v in pairs(config.interactions.chat.keymaps) do
+      if k:sub(1, 1) ~= "_" then
+        filtered_keymaps[k] = v
+      end
+    end
+    keymaps
+      .new({
+        bufnr = chat.bufnr,
+        callbacks = require("codecompanion.interactions.chat.keymaps"),
+        data = chat,
+        keymaps = filtered_keymaps,
+      })
+      :set()
+  end
+
+  local slash_command_keymaps = helpers.slash_command_keymaps(config.interactions.chat.slash_commands)
+  if vim.tbl_count(slash_command_keymaps) > 0 then
+    keymaps
+      .new({
+        bufnr = chat.bufnr,
+        callbacks = require("codecompanion.interactions.chat.slash_commands.keymaps"),
+        data = chat,
+        keymaps = slash_command_keymaps,
+      })
+      :set()
+  end
+end
+
+---Preload default tools and any tools explicitly listed in args
+---@param chat CodeCompanion.Chat
+---@param args CodeCompanion.ChatArgs
+---@return nil
+local function load_tools(chat, args)
+  if args.tools == "none" then
+    return
+  end
+  for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
+    chat.tool_registry:add(tool_name)
+  end
+  if args.tools then
+    for _, tool in pairs(args.tools) do
+      chat.tool_registry:add(tool)
+    end
+  end
+end
+
+---Start any MCP servers requested for this chat
+---@param chat CodeCompanion.Chat
+---@param args CodeCompanion.ChatArgs
+---@return nil
+local function start_mcp_for_chat(chat, args)
+  if chat.adapter.type == "acp" or args.mcp_servers == "none" then
+    return
+  end
+  if args.mcp_servers then
+    helpers.start_mcp_servers(chat, args.mcp_servers)
+    return
+  end
+  local servers_to_add = helpers.mcp_servers_to_add_to_chat()
+  if #servers_to_add > 0 then
+    helpers.start_mcp_servers(chat, servers_to_add)
+  end
+end
+
+---Register user-provided callbacks plus the internal subscriber lifecycle hooks
+---@param chat CodeCompanion.Chat
+---@param args CodeCompanion.ChatArgs
+---@return nil
+local function register_callbacks(chat, args)
+  if args.callbacks then
+    for event, callback_list in pairs(args.callbacks) do
+      if type(callback_list) == "function" then
+        chat:add_callback(event, callback_list)
+      elseif type(callback_list) == "table" then
+        for _, callback in ipairs(callback_list) do
+          chat:add_callback(event, callback)
+        end
+      end
+    end
+  end
+
+  chat:add_callback("on_ready", function(c)
+    c.subscribers:process(c)
+  end)
+  chat:add_callback("on_cancelled", function(c)
+    c.subscribers:stop()
+  end)
+  chat:add_callback("on_closed", function(c)
+    c.subscribers:stop()
+  end)
+
+  require("codecompanion.interactions.background.callbacks").register_chat_callbacks(chat)
+end
+
 ---@param args CodeCompanion.ChatArgs
 ---@return CodeCompanion.Chat
 function Chat.new(args)
@@ -373,55 +580,27 @@ function Chat.new(args)
     opts = args,
     status = "",
     title = args.title,
-    create_buf = function()
-      local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
-      api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
-
-      -- Safely attach treesitter
-      vim.schedule(function()
-        pcall(vim.treesitter.start, bufnr)
-      end)
-
-      -- Set up omnifunc for automatic completion when no other completion provider is active
-      local completion_provider = config.interactions.chat.opts.completion_provider
-      if completion_provider == "default" then
-        vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
-      end
-
-      return bufnr
-    end,
     _last_role = args.last_role or config.constants.USER_ROLE,
     _status = {},
   }, { __index = Chat })
   ---@cast self CodeCompanion.Chat
 
-  self.bufnr = self.create_buf()
-  self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
-    clear = false,
-  })
+  self.bufnr = create_chat_buf()
+  self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, { clear = false })
 
-  -- NOTE: Put the parser on the chat buffer for performance reasons
-  local ok, chat_parser, yaml_parser
-  ok, chat_parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
-  if not ok or not chat_parser then
-    return log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
+  if not init_parsers(self) then
+    return
   end
-  self.chat_parser = chat_parser
-
-  if show_settings then
-    ok, yaml_parser = pcall(vim.treesitter.get_parser, self.bufnr, "yaml", { ignore_injections = false })
-    if not ok or not yaml_parser then
-      return log:error("Could not find the Yaml Tree-sitter parser")
-    end
-    self.yaml_parser = yaml_parser
+  if not init_adapter(self, args) then
+    return
   end
 
+  -- Register globally only after adapter resolution so a failed adapter never
+  -- leaves a half-initialized chat in any of the global tables
   table.insert(_G.codecompanion_buffers, self.bufnr)
   chats[self.bufnr] = self
-
-  local chat_name = "Chat " .. vim.tbl_count(chats)
   registry.add(self.bufnr, {
-    name = chat_name,
+    name = "Chat " .. vim.tbl_count(chats),
     description = CONSTANTS.BLANK_DESC,
     interaction = "chat",
     open = function()
@@ -433,66 +612,7 @@ function Chat.new(args)
     end,
   })
 
-  if args.adapter and adapters.resolved(args.adapter) then
-    self.adapter = args.adapter
-  else
-    self.adapter = adapters.resolve(args.adapter or config.interactions.chat.adapter)
-  end
-  if not self.adapter then
-    return log:error("No adapter found")
-  end
-  utils.fire("ChatAdapter", {
-    adapter = adapters.make_safe(self.adapter),
-    bufnr = self.bufnr,
-    id = self.id,
-  })
-  utils.fire("ChatModel", {
-    adapter = adapters.make_safe(self.adapter),
-    bufnr = self.bufnr,
-    id = self.id,
-    model = self.adapter.schema and self.adapter.schema.model.default,
-  })
-
-  if self.adapter.type == "http" then
-    self:apply_settings(schema.get_default(self.adapter, args.settings))
-  elseif self.adapter.type == "acp" then
-    -- Initialize ACP connection early to receive available_commands_update
-    -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
-    vim.schedule(function()
-      if args.acp_command then
-        self.adapter.commands.selected = self.adapter.commands[args.acp_command]
-      end
-      helpers.create_acp_connection(self)
-    end)
-  end
-
-  -- Initialize components
-  self.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = self })
-  self.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
-  self.context = require("codecompanion.interactions.chat.context").new({ chat = self })
-  self.editor_context = require("codecompanion.interactions.shared.editor_context").new("chat")
-  self.subscribers = require("codecompanion.interactions.chat.subscribers").new()
-  self.tools = require("codecompanion.interactions.chat.tools").new({
-    adapter = self.adapter,
-    bufnr = self.bufnr,
-    messages = self.messages,
-  })
-  self.tool_registry = require("codecompanion.interactions.chat.tool_registry").new({
-    chat = self,
-    ctx = self:make_system_prompt_context(),
-  })
-
-  self.ui = require("codecompanion.interactions.chat.ui").new({
-    adapter = self.adapter,
-    aug = self.aug,
-    chat_id = self.id,
-    chat_bufnr = self.bufnr,
-    roles = { user = user_role, llm = llm_role },
-    settings = self.settings,
-    title = self.title,
-    window_opts = args.window_opts,
-  })
-
+  init_components(self, args)
   self:update_metadata()
 
   local default_servers = config.mcp.opts and config.mcp.opts.default_servers
@@ -520,9 +640,9 @@ function Chat.new(args)
     self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
   end
 
-  -- Set the header line for the chat buffer
+  -- For restored chats, locate the last user header via Tree-sitter once
   if args.messages and vim.tbl_count(args.messages) > 0 then
-    local header_line = parser.headers(self, self.chat_parser)
+    local header_line = parser.headers(self)
     self.header_line = header_line and (header_line + 1) or 1
   end
 
@@ -530,38 +650,8 @@ function Chat.new(args)
     self.ui:set_intro_msg(self.intro_message)
   end
 
-  if config.interactions.chat.keymaps then
-    -- Filter out any private keymaps
-    local filtered_keymaps = {}
-    for k, v in pairs(config.interactions.chat.keymaps) do
-      if k:sub(1, 1) ~= "_" then
-        filtered_keymaps[k] = v
-      end
-    end
+  init_keymaps(self)
 
-    keymaps
-      .new({
-        bufnr = self.bufnr,
-        callbacks = require("codecompanion.interactions.chat.keymaps"),
-        data = self,
-        keymaps = filtered_keymaps,
-      })
-      :set()
-  end
-
-  local slash_command_keymaps = helpers.slash_command_keymaps(config.interactions.chat.slash_commands)
-  if vim.tbl_count(slash_command_keymaps) > 0 then
-    keymaps
-      .new({
-        bufnr = self.bufnr,
-        callbacks = require("codecompanion.interactions.chat.slash_commands.keymaps"),
-        data = self,
-        keymaps = slash_command_keymaps,
-      })
-      :set()
-  end
-
-  ---@cast self CodeCompanion.Chat
   self:set_system_prompt()
   set_autocmds(self)
 
@@ -569,61 +659,11 @@ function Chat.new(args)
     last_chat = self
   end
 
-  if args.tools ~= "none" then
-    for _, tool_name in pairs(config.interactions.chat.tools.opts.default_tools or {}) do
-      self.tool_registry:add(tool_name)
-    end
-
-    if args.tools then
-      for _, tool in pairs(args.tools) do
-        self.tool_registry:add(tool)
-      end
-    end
-  end
-
-  if self.adapter.type ~= "acp" then
-    if args.mcp_servers == "none" then
-      -- Explicitly disabled by the prompt library
-    elseif args.mcp_servers then
-      helpers.start_mcp_servers(self, args.mcp_servers)
-    else
-      local servers_to_add = helpers.mcp_servers_to_add_to_chat()
-      if #servers_to_add > 0 then
-        helpers.start_mcp_servers(self, servers_to_add)
-      end
-    end
-  end
-
-  -- Handle callbacks
-  if args.callbacks then
-    for event, callback_list in pairs(args.callbacks) do
-      if type(callback_list) == "function" then
-        -- Single callback
-        self:add_callback(event, callback_list)
-      elseif type(callback_list) == "table" then
-        -- Array of callbacks
-        for _, callback in ipairs(callback_list) do
-          self:add_callback(event, callback)
-        end
-      end
-    end
-  end
-
-  -- Set up subscriber callbacks
-  self:add_callback("on_ready", function(c)
-    c.subscribers:process(c)
-  end)
-  self:add_callback("on_cancelled", function(c)
-    c.subscribers:stop()
-  end)
-  self:add_callback("on_closed", function(c)
-    c.subscribers:stop()
-  end)
-
-  require("codecompanion.interactions.background.callbacks").register_chat_callbacks(self)
+  load_tools(self, args)
+  start_mcp_for_chat(self, args)
+  register_callbacks(self, args)
 
   self:dispatch("on_created")
-
   backfill_estimated_tokens(self.messages)
   utils.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
@@ -909,7 +949,7 @@ function Chat:set_system_prompt(prompt, opts)
     system_prompt.opts = opts
 
     _meta.cycle = self.cycle
-    _meta.id = make_id(system_prompt)
+    _meta.id = hash.hash(system_prompt)
     _meta.index = _meta.index or 1
     _meta.estimated_tokens = tokens.calculate(prompt)
     system_prompt._meta = _meta
@@ -923,14 +963,7 @@ end
 ---Toggle the system prompt in the chat buffer
 ---@return nil
 function Chat:toggle_system_prompt()
-  local has_system_prompt = vim.tbl_contains(
-    vim.tbl_map(function(msg)
-      return msg._meta and msg._meta.tag
-    end, self.messages),
-    tags.SYSTEM_PROMPT_FROM_CONFIG
-  )
-
-  if has_system_prompt then
+  if helpers.has_tag(tags.SYSTEM_PROMPT_FROM_CONFIG, self.messages) then
     self:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
     utils.notify("Removed system prompt")
   else
@@ -943,15 +976,13 @@ end
 ---@param tag string
 ---@return nil
 function Chat:remove_tagged_message(tag)
-  self.messages = vim
-    .iter(self.messages)
-    :filter(function(msg)
-      if msg._meta and msg._meta.tag == tag then
-        return false
-      end
-      return true
-    end)
-    :totable()
+  local kept = {}
+  for _, msg in ipairs(self.messages) do
+    if not (msg._meta and msg._meta.tag == tag) then
+      kept[#kept + 1] = msg
+    end
+  end
+  self.messages = kept
 end
 
 ---Add a message to the message table
@@ -992,7 +1023,7 @@ function Chat:add_message(data, opts)
   end
 
   message.opts = opts
-  message._meta.id = make_id(message)
+  message._meta.id = hash.hash(message)
 
   if message._meta.index then
     table.insert(self.messages, message._meta.index, message)
@@ -1045,7 +1076,7 @@ function Chat:_complete_orphaned_tool_calls()
       output.opts = vim.tbl_extend("force", output.opts or {}, { visible = false })
       output._meta = {
         cycle = self.cycle,
-        id = make_id({ call_id = id, content = output.content, role = output.role }),
+        id = hash.hash({ call_id = id, content = output.content, role = output.role }),
       }
       table.insert(self.messages, output)
       log:debug("[chat::_complete_orphaned_tool_calls] Completed tool call result for tool call %s", id)
@@ -1144,7 +1175,7 @@ function Chat:_submit_http(payload)
   local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
 
   if show_settings then
-    local settings = parser.settings(self.bufnr, self.yaml_parser, adapter)
+    local settings = parser.settings(self.bufnr, self.parsers.yaml, adapter)
     helpers.apply_settings_and_model(self, settings)
   end
 
@@ -1361,11 +1392,11 @@ end
 ---multiple times.
 ---@return nil
 function Chat:label_sent_items()
-  vim.iter(self.messages):each(function(msg)
-    if msg.role == config.constants.USER_ROLE and (msg._meta and not msg._meta.sent) then
+  for _, msg in ipairs(self.messages) do
+    if msg.role == config.constants.USER_ROLE and msg._meta and not msg._meta.sent then
       msg._meta.sent = true
     end
-  end)
+  end
 end
 
 ---Method to call after the response from the LLM is received
@@ -1575,20 +1606,22 @@ function Chat:check_context()
   end
 
   -- Remove them from the messages table
-  self.messages = vim
-    .iter(self.messages)
-    :filter(function(msg)
-      return not (msg.context and msg.context.id and remove_set[msg.context.id])
-    end)
-    :totable()
+  local kept_messages = {}
+  for _, msg in ipairs(self.messages) do
+    if not (msg.context and msg.context.id and remove_set[msg.context.id]) then
+      kept_messages[#kept_messages + 1] = msg
+    end
+  end
+  self.messages = kept_messages
 
   -- And from the context_items table
-  self.context_items = vim
-    .iter(self.context_items)
-    :filter(function(ctx)
-      return not remove_set[ctx.id]
-    end)
-    :totable()
+  local kept_items = {}
+  for _, ctx in ipairs(self.context_items) do
+    if not remove_set[ctx.id] then
+      kept_items[#kept_items + 1] = ctx
+    end
+  end
+  self.context_items = kept_items
 
   -- Clear any tool's schemas
   local schemas_to_keep = {}
@@ -1621,12 +1654,13 @@ function Chat:refresh_context()
 
   -- Keep only context items that are still referenced by messages
   if self.context_items and not vim.tbl_isempty(self.context_items) then
-    self.context_items = vim
-      .iter(self.context_items)
-      :filter(function(ctx)
-        return ids_in_messages[ctx.id] == true
-      end)
-      :totable()
+    local kept = {}
+    for _, ctx in ipairs(self.context_items) do
+      if ids_in_messages[ctx.id] == true then
+        kept[#kept + 1] = ctx
+      end
+    end
+    self.context_items = kept
   end
 
   -- Clear currently rendered Context block and re-render
@@ -1718,8 +1752,6 @@ function Chat:close()
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()
   end
-
-  self = nil
 end
 
 ---Set a status message as virtual text in the chat buffer
@@ -1787,7 +1819,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   end
 
   output._meta = { cycle = self.cycle }
-  output._meta.id = make_id({ role = output.role, content = output.content })
+  output._meta.id = hash.hash({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
     visible = true,
   })
@@ -1829,8 +1861,12 @@ function Chat:ready_for_input(opts)
     self.cycle = self.cycle + 1
     self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-    self.header_line = api.nvim_buf_line_count(self.bufnr) - 2
-    self.ui:display_tokens(self.chat_parser, self.header_line)
+    -- The builder records the 0-based line where it inserted the new user
+    -- section's leading spacing. Tree-sitter scoping (and the context
+    -- block) anchor on the "## Me" header itself, which sits three lines
+    -- below the section start (two blank spacers + the header line).
+    self.header_line = (self.builder.state.current_section_start or 0) + 3
+    self.ui:display_tokens(self.parsers.markdown, self.header_line)
     self.context:render()
 
     self:dispatch("on_ready")

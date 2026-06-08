@@ -9,6 +9,29 @@ local yaml = require("codecompanion.utils.yaml")
 local get_node_text = vim.treesitter.get_node_text --[[@type function]]
 local get_query = vim.treesitter.query.get --[[@type function]]
 
+local cached_markdown_chat_query
+local function markdown_chat_query()
+  cached_markdown_chat_query = cached_markdown_chat_query or get_query("markdown", "chat")
+  return cached_markdown_chat_query
+end
+
+local cached_yaml_chat_query
+local function yaml_chat_query()
+  cached_yaml_chat_query = cached_yaml_chat_query or get_query("yaml", "chat")
+  return cached_yaml_chat_query
+end
+
+local cached_image_query
+local function image_query()
+  cached_image_query = cached_image_query
+    or vim.treesitter.query.parse(
+      "markdown_inline",
+      [[((image) @image)
+    ((inline_link) @link)]]
+    )
+  return cached_image_query
+end
+
 local M = {}
 
 ---Parse the chat buffer for settings
@@ -19,7 +42,7 @@ local M = {}
 function M.settings(bufnr, parser, adapter)
   local settings = {}
 
-  local query = get_query("yaml", "chat")
+  local query = yaml_chat_query()
   local root = parser:parse()[1]:root()
 
   local end_line = -1
@@ -71,9 +94,9 @@ end
 ---@param start_range number
 ---@return { content: string }|nil
 function M.messages(chat, start_range)
-  local query = get_query("markdown", "chat")
+  local query = markdown_chat_query()
 
-  local tree = chat.chat_parser:parse({ start_range - 1, -1 })[1]
+  local tree = chat.parsers.markdown:parse({ start_range - 1, -1 })[1]
   local root = tree:root()
 
   local content = {}
@@ -99,9 +122,9 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return number|nil
 function M.headers(chat)
-  local query = get_query("markdown", "chat")
+  local query = markdown_chat_query()
 
-  local tree = chat.chat_parser:parse({ 0, -1 })[1]
+  local tree = chat.parsers.markdown:parse({ 0, -1 })[1]
   local root = tree:root()
 
   local last_match = nil
@@ -123,14 +146,8 @@ end
 ---@param chat CodeCompanion.Chat The chat instance.
 ---@param start_range number The 1-indexed line number from where to start parsing.
 function M.images(chat, start_range)
-  local ts_query = vim.treesitter.query.parse(
-    "markdown_inline",
-    [[
-((image) @image)
-((inline_link) @link)
-  ]]
-  )
-  local parser = vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
+  local ts_query = image_query()
+  local parser = chat.parsers.markdown_inline or vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
 
   local tree = parser:parse({ start_range, -1 })[1]
   local root = tree:root()
@@ -174,8 +191,8 @@ end
 ---@param cursor? table
 ---@return TSNode|nil
 function M.codeblock(chat, cursor)
-  local root = chat.chat_parser:parse()[1]:root()
-  local query = get_query("markdown", "chat")
+  local root = chat.parsers.markdown:parse()[1]:root()
+  local query = markdown_chat_query()
   if query == nil then
     return nil
   end
