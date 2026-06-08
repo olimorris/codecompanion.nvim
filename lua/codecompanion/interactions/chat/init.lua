@@ -34,6 +34,7 @@
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
+---@field _acp_name_map_cache? table|false Memoised value -> display-name map for ACP select options; false means "computed, no entries"
 ---@field _btw? string The user's "by the way" message which is queued for sending to an LLM
 ---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
@@ -162,6 +163,34 @@ local function sync_all_buffer_content(chat)
       end
     end
   end
+end
+
+---Build a lookup from an ACP connection's select options
+---@param connection any
+---@return table|nil
+local function build_acp_name_map(connection)
+  local name_map
+  for _, opt in ipairs(connection:get_config_options()) do
+    if opt.type == "select" then
+      local entries
+      for _, item in ipairs(opt.options or {}) do
+        if item.group then
+          for _, val in ipairs(item.options or {}) do
+            entries = entries or {}
+            entries[val.value] = val.name
+          end
+        else
+          entries = entries or {}
+          entries[item.value] = item.name
+        end
+      end
+      if entries then
+        name_map = name_map or {}
+        name_map[opt.id] = entries
+      end
+    end
+  end
+  return name_map
 end
 
 ---Backfill estimated_tokens on any messages that lack it (e.g. from args.messages or restored chats)
@@ -323,6 +352,7 @@ local function set_autocmds(chat)
     desc = "Update chat metadata when ACP mode changes",
     callback = function(args)
       if chat.acp_connection and args.data and args.data.session_id == chat.acp_connection.session_id then
+        chat._acp_name_map_cache = nil
         chat:update_metadata()
       end
     end,
@@ -560,7 +590,7 @@ local function register_callbacks(chat, args)
 end
 
 ---@param args CodeCompanion.ChatArgs
----@return CodeCompanion.Chat
+---@return CodeCompanion.Chat|nil
 function Chat.new(args)
   local id = math.random(10000000)
   log:trace("Chat created with ID %d", id)
@@ -769,6 +799,7 @@ function Chat:change_adapter(adapter, cb)
   end
 
   self.acp_connection = nil
+  self._acp_name_map_cache = nil
   self.adapter = new_adapter
   self.ui.adapter = self.adapter
 
@@ -1861,11 +1892,7 @@ function Chat:ready_for_input(opts)
     self.cycle = self.cycle + 1
     self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-    -- The builder records the 0-based line where it inserted the new user
-    -- section's leading spacing. Tree-sitter scoping (and the context
-    -- block) anchor on the "## Me" header itself, which sits three lines
-    -- below the section start (two blank spacers + the header line).
-    self.header_line = (self.builder.state.current_section_start or 0) + 3
+    self.header_line = (self.builder.state.current_header_line or 0) + 1
     self.ui:display_tokens(self.parsers.markdown, self.header_line)
     self.context:render()
 
@@ -1946,28 +1973,21 @@ function Chat:update_metadata()
     local acp_models = self.acp_connection:get_models()
     model = acp_models and acp_models.currentModelId or "default"
 
-    -- Build a map of category -> { current, name } from all config options
-    config_options = {}
+    -- Cache the static name map; currentValue is read fresh below
+    if self._acp_name_map_cache == nil then
+      self._acp_name_map_cache = build_acp_name_map(self.acp_connection) or false
+    end
+    local name_map = self._acp_name_map_cache or nil
+
     for _, opt in ipairs(self.acp_connection:get_config_options()) do
       if opt.type == "select" and opt.currentValue then
-        local entry = { current = opt.currentValue }
-        -- Find the display name for the current value
-        for _, item in ipairs(opt.options or {}) do
-          if item.group then
-            for _, val in ipairs(item.options or {}) do
-              if val.value == opt.currentValue then
-                entry.name = val.name
-              end
-            end
-          elseif item.value == opt.currentValue then
-            entry.name = item.name
-          end
-        end
-        config_options[opt.category or opt.id] = entry
+        local names = name_map and name_map[opt.id]
+        config_options = config_options or {}
+        config_options[opt.category or opt.id] = {
+          current = opt.currentValue,
+          name = names and names[opt.currentValue],
+        }
       end
-    end
-    if vim.tbl_isempty(config_options) then
-      config_options = nil
     end
   end
 
@@ -2080,7 +2100,7 @@ end
 
 ---Toggle the chat buffer
 ---@param args? { params?: table, window_opts?: table, context?: table }
----@return nil
+---@return CodeCompanion.Chat|nil
 function Chat.toggle(args)
   args = args or {}
   local window_opts = args.window_opts

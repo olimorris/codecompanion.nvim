@@ -736,7 +736,7 @@ function Inline:place(placement)
 end
 
 ---Send a prompt to the chat if the placement is chat
----@return CodeCompanion.Chat
+---@return CodeCompanion.Chat|nil
 function Inline:to_chat()
   local prompt = self.prompts
 

@@ -139,7 +139,7 @@ end
 
 ---Add message using centralized state
 ---@param data { content?: string, role?: string, reasoning?: { content: string } }
----@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string, fold_info?: table, state?: table }
+---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
 ---@return number,number|nil
 function Builder:add_message(data, opts)
   opts = opts or {}
@@ -199,9 +199,13 @@ function Builder:add_message(data, opts)
 
   local insert_line, icon_id
   if not vim.tbl_isempty(lines) then
-    opts.fold_info = fold_info
-    opts.state = state
-    insert_line, icon_id = self:_write_to_buffer(lines, opts)
+    insert_line, icon_id = self:_write_to_buffer(lines, {
+      _icon_info = opts._icon_info,
+      fold_info = fold_info,
+      insert_at = opts.insert_at,
+      state = state,
+      virt_text_pos = opts.virt_text_pos,
+    })
   end
 
   if current_type then
@@ -268,7 +272,7 @@ end
 
 ---Write lines to buffer with all the buffer management
 ---@param lines string[]
----@param opts { insert_at?: number, _icon_info?: table, virt_text_pos?: string, fold_info?: table, state: table }
+---@param opts table
 ---@return number, number|nil
 function Builder:_write_to_buffer(lines, opts)
   local state = opts.state
@@ -277,10 +281,8 @@ function Builder:_write_to_buffer(lines, opts)
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
 
-  ---@type number
-  local insert_line = last_line
+  local insert_line = opts.insert_at or last_line
   if opts.insert_at then
-    insert_line = opts.insert_at
     last_column = 0
   end
 
