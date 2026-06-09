@@ -11,15 +11,20 @@ local M = {}
 ---@type table<string, table> Dynamic registry for MCP tools (server_name -> { tools: table, groups: table })
 local tool_registry = {}
 
+---@type table<string, CodeCompanion.MCP.ServerConfig>
+local resolved_configs = {}
+
 ---Resolve a server config, evaluating it if it is a function (memoized)
 ---@param name string
 ---@return CodeCompanion.MCP.ServerConfig|nil
 local function get_server_config(name)
-  local mcp_cfg = config.mcp
-  local server_cfg = mcp_cfg.servers[name]
+  if resolved_configs[name] then
+    return resolved_configs[name]
+  end
+  local server_cfg = config.mcp.servers[name]
   if type(server_cfg) == "function" then
     server_cfg = server_cfg()
-    mcp_cfg.servers[name] = server_cfg
+    resolved_configs[name] = server_cfg
   end
   return server_cfg
 end
@@ -142,6 +147,7 @@ function M.stop_servers()
     client:stop()
   end
   clients = {}
+  resolved_configs = {}
 end
 
 ---Restart all MCP servers
