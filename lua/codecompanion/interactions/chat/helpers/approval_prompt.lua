@@ -67,7 +67,7 @@ function M.request(chat, opts)
   utils.fire("ToolApprovalRequested", { bufnr = bufnr, name = opts.name })
 
   local content = build_message(opts)
-  chat:add_buf_message({ content = content })
+  chat:add_buf_message({ role = config.constants.LLM_ROLE, content = content })
 
   if config.interactions.chat.tools.opts.notify_on_approval and not ui_utils.buf_is_active(bufnr) then
     utils.notify("Tool approval required")
