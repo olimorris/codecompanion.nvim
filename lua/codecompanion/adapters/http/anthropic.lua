@@ -654,8 +654,13 @@ return {
       default = "claude-sonnet-4-6",
       choices = {
         -- Current models
-        ["claude-opus-4-7"] = {
-          formatted_name = "Claude Opus 4.7",
+        ["claude-fable-5"] = {
+          formatted_name = "Claude Fable 5",
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_manage_context = true, has_vision = true },
+        },
+        ["claude-opus-4-8"] = {
+          formatted_name = "Claude Opus 4.8",
           meta = { context_window = 1000000, max_tokens = 128000 },
           opts = { can_manage_context = true, has_vision = true },
         },
@@ -671,6 +676,11 @@ return {
         },
 
         -- Legacy models
+        ["claude-opus-4-7"] = {
+          formatted_name = "Claude Opus 4.7",
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_manage_context = true, has_vision = true },
+        },
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
           meta = { context_window = 1000000, max_tokens = 128000 },
@@ -793,7 +803,9 @@ return {
       desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
       enabled = function(self)
         local model = adapter_utils.model(self)
-        if model == "claude-opus-4-7" then
+        if
+          vim.tbl_contains({ "claude-opus-4-7", "claude-opus-4-8" }, model) or vim.startswith(model, "claude-fable")
+        then
           return false
         end
         return true
