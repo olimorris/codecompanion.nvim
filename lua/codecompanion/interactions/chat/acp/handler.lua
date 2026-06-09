@@ -241,16 +241,22 @@ function ACPHandler:process_tool_call(tool_call)
   local merged = merge_tool_call(self.tools[id], tool_call)
   tool_call = merged
 
-  local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
-  if not ok then
-    content = "[Error formatting tool output]"
-  end
-
   -- Cache or cleanup
   if tool_call.status == "completed" then
     self.tools[id] = nil
   else
     self.tools[id] = merged
+  end
+
+  -- Pending tool calls are awaiting approval or streaming input, so hold them
+  -- back from the buffer until the agent moves them out of the pending state
+  if tool_call.status == "pending" then
+    return
+  end
+
+  local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
+  if not ok then
+    content = "[Error formatting tool output]"
   end
 
   -- If the tool call has already written output to the chat buffer, update the
