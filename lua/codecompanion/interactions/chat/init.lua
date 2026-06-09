@@ -165,35 +165,7 @@ local function sync_all_buffer_content(chat)
   end
 end
 
----Build a lookup from an ACP connection's select options
----@param connection any
----@return table|nil
-local function build_acp_name_map(connection)
-  local name_map
-  for _, opt in ipairs(connection:get_config_options()) do
-    if opt.type == "select" then
-      local entries
-      for _, item in ipairs(opt.options or {}) do
-        if item.group then
-          for _, val in ipairs(item.options or {}) do
-            entries = entries or {}
-            entries[val.value] = val.name
-          end
-        else
-          entries = entries or {}
-          entries[item.value] = item.name
-        end
-      end
-      if entries then
-        name_map = name_map or {}
-        name_map[opt.id] = entries
-      end
-    end
-  end
-  return name_map
-end
-
----Backfill estimated_tokens on any messages that lack it (e.g. from args.messages or restored chats)
+---Some messages may not have estimated tokens calculated, so backfill them
 ---@param messages CodeCompanion.Chat.Messages
 ---@return nil
 local function backfill_estimated_tokens(messages)
@@ -1975,7 +1947,7 @@ function Chat:update_metadata()
 
     -- Cache the static name map; currentValue is read fresh below
     if self._acp_name_map_cache == nil then
-      self._acp_name_map_cache = build_acp_name_map(self.acp_connection) or false
+      self._acp_name_map_cache = self.acp_connection:build_name_map() or false
     end
     local name_map = self._acp_name_map_cache or nil
 
