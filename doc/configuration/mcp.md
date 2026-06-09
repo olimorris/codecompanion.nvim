@@ -43,6 +43,24 @@ require("codecompanion").setup({
 })
 ```
 
+```lua [Lazy / Deferred Config]
+require("codecompanion").setup({
+  mcp = {
+    servers = {
+      -- The function is called once, only when the server is first needed.
+      ["tavily-mcp"] = function()
+        return {
+          cmd = { "npx", "-y", "tavily-mcp@latest" },
+          env = {
+            TAVILY_API_KEY = os.getenv("TAVILY_API_KEY"),
+          },
+        }
+      end,
+    },
+  },
+})
+```
+
 :::
 
 In the environment variables example above, we're using [1Password CLI](https://developer.1password.com/docs/cli/) tool to fetch the API key. However, you can leverage CodeCompanion's built-in [environment variable](/configuration/adapters-http#environment-variables) capabilities to fetch the value from any source you like.
