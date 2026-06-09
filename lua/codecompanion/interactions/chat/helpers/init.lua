@@ -101,12 +101,12 @@ end
 ---@param messages CodeCompanion.Chat.Messages
 ---@return boolean
 function M.has_tag(tag, messages)
-  return vim.tbl_contains(
-    vim.tbl_map(function(msg)
-      return msg._meta and msg._meta.tag
-    end, messages),
-    tag
-  )
+  for _, msg in ipairs(messages) do
+    if msg._meta and msg._meta.tag == tag then
+      return true
+    end
+  end
+  return false
 end
 
 ---Resolve which MCP servers should be added to new chat buffers

@@ -64,7 +64,8 @@ local Builder = {}
 ---@field block_index number
 ---@field last_write_start number -- 0-based
 ---@field last_write_end number -- 0-based
----@field current_section_start? number -- 0-based
+---@field current_section_start? number -- 0-based, the leading blank that precedes the section header
+---@field current_header_line? number -- 0-based, the line that holds the rendered "## role" header
 ---@field last_section_start? number -- 0-based
 
 ---@class CodeCompanion.Chat.UI.BuilderArgs
@@ -92,6 +93,7 @@ function Builder.new(args)
       last_write_start = 0,
       last_write_end = 0,
       current_section_start = nil,
+      current_header_line = nil,
       last_section_start = nil,
     },
 
@@ -137,7 +139,7 @@ end
 
 ---Add message using centralized state
 ---@param data { content?: string, role?: string, reasoning?: { content: string } }
----@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string, fold_info?: table, state?: table }
+---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
 ---@return number,number|nil
 function Builder:add_message(data, opts)
   opts = opts or {}
@@ -197,9 +199,13 @@ function Builder:add_message(data, opts)
 
   local insert_line, icon_id
   if not vim.tbl_isempty(lines) then
-    opts.fold_info = fold_info
-    opts.state = state
-    insert_line, icon_id = self:_write_to_buffer(lines, opts)
+    insert_line, icon_id = self:_write_to_buffer(lines, {
+      _icon_info = opts._icon_info,
+      fold_info = fold_info,
+      insert_at = opts.insert_at,
+      state = state,
+      virt_text_pos = opts.virt_text_pos,
+    })
   end
 
   if current_type then
@@ -240,7 +246,7 @@ end
 ---@param state table
 ---@return boolean
 function Builder:_should_add_header(data, opts, state)
-  return (data.role and data.role ~= state.last_role) or (opts and opts.force_role)
+  return (data.role ~= nil and data.role ~= state.last_role) or (opts.force_role == true)
 end
 
 ---Add appropriate spacing before header
@@ -266,7 +272,7 @@ end
 
 ---Write lines to buffer with all the buffer management
 ---@param lines string[]
----@param opts { insert_at?: number, _icon_info?: table, virt_text_pos?: string, fold_info?: table, state?: table }
+---@param opts table
 ---@return number, number|nil
 function Builder:_write_to_buffer(lines, opts)
   local state = opts.state
@@ -275,9 +281,8 @@ function Builder:_write_to_buffer(lines, opts)
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
 
-  local insert_line = last_line
+  local insert_line = opts.insert_at or last_line
   if opts.insert_at then
-    insert_line = opts.insert_at
     last_column = 0
   end
 
@@ -302,6 +307,8 @@ function Builder:_write_to_buffer(lines, opts)
   if state.is_new_response then
     self.state.last_section_start = self.state.current_section_start
     self.state.current_section_start = insert_line
+    -- Header text sits 2 lines below `insert_line` (two blank spacers + header)
+    self.state.current_header_line = insert_line + 2
     self.chat.ui:render_headers()
   end
 

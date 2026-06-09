@@ -928,6 +928,33 @@ function Connection:get_config_options(opts)
   end, self._config_options or {})
 end
 
+---Build a lookup of value names from this connection's select options
+---@return table|nil
+function Connection:build_name_map()
+  local name_map
+  for _, opt in ipairs(self:get_config_options()) do
+    if opt.type == "select" then
+      local entries
+      for _, item in ipairs(opt.options or {}) do
+        if item.group then
+          for _, val in ipairs(item.options or {}) do
+            entries = entries or {}
+            entries[val.value] = val.name
+          end
+        else
+          entries = entries or {}
+          entries[item.value] = item.name
+        end
+      end
+      if entries then
+        name_map = name_map or {}
+        name_map[opt.id] = entries
+      end
+    end
+  end
+  return name_map
+end
+
 ---Set a config option via session/set_config_option
 ---@param config_id string The config option ID
 ---@param value string The value ID to set

@@ -257,7 +257,7 @@ function Folds:create_reasoning_fold(chat, start_row, end_row)
   local summary_text = "  " .. config.display.chat.icons.chat_fold .. " ..."
 
   local bufnr = chat.bufnr
-  local parser = chat.chat_parser
+  local parser = chat.parsers and chat.parsers.markdown
   if not (bufnr and parser) then
     return
   end

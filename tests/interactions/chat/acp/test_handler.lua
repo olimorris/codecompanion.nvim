@@ -9,102 +9,18 @@ T = new_set({
     pre_once = function()
       h.child_start(child)
       child.lua([[h = require('tests.helpers')]])
+      child.lua([[mocks_acp = require("tests.mocks.acp")]])
     end,
     pre_case = function()
       child.lua([[
-        -- Mock ACP connection for chat integration tests
-        _G.mock_acp_connection = {
-          _config_options = {},
-          connected = false,
-          session_id = nil,
-
-          connect_and_authenticate = function(self)
-            self.connected = true
-            return self
-          end,
-
-          ensure_session = function(self)
-            self.session_id = "test-session-123"
-            return true
-          end,
-
-          session_prompt = function(self, messages)
-            return {
-              messages = messages,
-              handlers = {},
-              options = {},
-
-              on_message_chunk = function(self, handler)
-                self.handlers.message_chunk = handler
-                return self
-              end,
-
-              on_thought_chunk = function(self, handler)
-                self.handlers.thought_chunk = handler
-                return self
-              end,
-
-              on_tool_call = function(self, handler)
-                self.handlers.tool_call = handler
-                return self
-              end,
-
-              on_tool_update = function(self, handler)
-                self.handlers.tool_update = handler
-                return self
-              end,
-
-              on_permission_request = function(self, handler)
-                self.handlers.permission_request = handler
-                return self
-              end,
-
-              on_complete = function(self, handler)
-                self.handlers.complete = handler
-                return self
-              end,
-
-              on_error = function(self, handler)
-                self.handlers.error = handler
-                return self
-              end,
-
-              on_cancel = function(self, handler)
-                self.handlers.cancel = handler
-                return self
-              end,
-
-              with_options = function(self, opts)
-                self.options = opts
-                return self
-              end,
-
-              send = function(self)
-                -- Store for verification, don't actually send
-                _G.last_prompt_request = self
-                return { shutdown = function() end }
-              end
-            }
-          end,
-
-          disconnect = function(self)
-            self.connected = false
-            self.session_id = nil
-          end,
-
-          get_config_options = function(self)
-            return self._config_options or {}
-          end,
-
-          get_models = function(self)
-            return nil
-          end
-        }
+        _G.last_prompt_request = nil
+        _G.last_permission_request = nil
+        _G.codecompanion_chat_metadata = {}
+        package.loaded["codecompanion.acp"] = nil
       ]])
     end,
-    post_case = function()
+    post_once = function()
       child.lua([[
-        _G.mock_acp_connection = nil
         _G.last_prompt_request = nil
         _G.last_permission_request = nil
         _G.codecompanion_chat_metadata = nil
@@ -117,8 +33,8 @@ T = new_set({
         package.loaded["codecompanion.interactions.chat"] = nil
         package.loaded["codecompanion.config"] = nil
       ]])
+      child.stop()
     end,
-    post_once = child.stop,
   },
 })
 
@@ -126,7 +42,6 @@ T["ACPHandler"] = new_set()
 
 T["ACPHandler"]["establishes connection when needed"] = function()
   local result = child.lua([[
-    -- Create chat with ACP adapter
     local chat = h.setup_chat_buffer({}, {
       name = "test_acp",
       config = {
@@ -145,28 +60,25 @@ T["ACPHandler"]["establishes connection when needed"] = function()
     local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
-    -- Mock the ACP client to return our mock connection
+    local conn = mocks_acp.new()
     package.loaded["codecompanion.acp"] = {
-      new = function(args)
-        return _G.mock_acp_connection
-      end
+      new = function() return conn end
     }
 
-    -- Submit should establish connection
-    local request = handler:submit({
+    handler:submit({
       messages = {{ type = "text", text = "Hello" }}
     })
 
     return {
       has_connection = chat.acp_connection ~= nil,
-      connection_established = chat.acp_connection.connected,
+      is_ready = chat.acp_connection:is_ready(),
       session_id = chat.acp_connection.session_id,
       request_sent = _G.last_prompt_request ~= nil
     }
   ]])
 
   h.is_true(result.has_connection)
-  h.is_true(result.connection_established)
+  h.is_true(result.is_ready)
   h.eq("test-session-123", result.session_id)
   h.is_true(result.request_sent)
 end
@@ -339,12 +251,10 @@ T["ACPHandler"]["handles connection errors"] = function()
     local handler = ACPHandler.new(chat)
 
     -- Mock connection failure
+    local conn = mocks_acp.new()
+    conn.connect_and_authenticate = function() return nil end
     package.loaded["codecompanion.acp"] = {
-      new = function(args)
-        return {
-          connect_and_authenticate = function() return nil end -- Connection fails
-        }
-      end
+      new = function() return conn end
     }
 
     local completion_called = false
@@ -380,11 +290,9 @@ T["ACPHandler"]["integrates with chat submit flow"] = function()
       }
     })
 
-    -- Mock the ACP connection
+    local conn = mocks_acp.new()
     package.loaded["codecompanion.acp"] = {
-      new = function(args)
-        return _G.mock_acp_connection
-      end
+      new = function() return conn end
     }
 
     -- Add a user message to submit
@@ -916,24 +824,6 @@ T["ACPHandler"]["Config Options"] = new_set()
 
 T["ACPHandler"]["Config Options"]["updates metadata with config options"] = function()
   local result = child.lua([[
-    local mock_connection = vim.deepcopy(_G.mock_acp_connection)
-    mock_connection._config_options = {
-      {
-        type = "select",
-        id = "mode",
-        name = "Mode",
-        category = "mode",
-        currentValue = "plan",
-        options = {
-          { value = "default", name = "Always Ask" },
-          { value = "plan", name = "Plan Mode" },
-        },
-      },
-    }
-    mock_connection.get_config_options = function(self)
-      return self._config_options
-    end
-
     local chat = h.setup_chat_buffer({}, {
       name = "test_acp",
       config = {
@@ -943,7 +833,21 @@ T["ACPHandler"]["Config Options"]["updates metadata with config options"] = func
       }
     })
 
-    chat.acp_connection = mock_connection
+    chat.acp_connection = mocks_acp.new({
+      config_options = {
+        {
+          type = "select",
+          id = "mode",
+          name = "Mode",
+          category = "mode",
+          currentValue = "plan",
+          options = {
+            { value = "default", name = "Always Ask" },
+            { value = "plan", name = "Plan Mode" },
+          },
+        },
+      },
+    })
     chat:update_metadata()
 
     local metadata = _G.codecompanion_chat_metadata[chat.bufnr]
@@ -962,12 +866,6 @@ end
 
 T["ACPHandler"]["Config Options"]["handles no config options gracefully"] = function()
   local result = child.lua([[
-    local mock_connection = vim.deepcopy(_G.mock_acp_connection)
-    mock_connection._config_options = {}
-    mock_connection.get_config_options = function(self)
-      return self._config_options
-    end
-
     local chat = h.setup_chat_buffer({}, {
       name = "test_acp",
       config = {
@@ -977,7 +875,7 @@ T["ACPHandler"]["Config Options"]["handles no config options gracefully"] = func
       }
     })
 
-    chat.acp_connection = mock_connection
+    chat.acp_connection = mocks_acp.new({ config_options = {} })
     chat:update_metadata()
 
     local metadata = _G.codecompanion_chat_metadata[chat.bufnr]
@@ -994,8 +892,14 @@ end
 
 T["ACPHandler"]["Config Options"]["reflects config option changes in metadata"] = function()
   local result = child.lua([[
-    local mock_connection = vim.deepcopy(_G.mock_acp_connection)
-    mock_connection.session_id = "test-session-123"
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
 
     local config_opts = {
       {
@@ -1010,21 +914,7 @@ T["ACPHandler"]["Config Options"]["reflects config option changes in metadata"] 
         },
       },
     }
-    mock_connection._config_options = config_opts
-    mock_connection.get_config_options = function(self)
-      return self._config_options
-    end
-
-    local chat = h.setup_chat_buffer({}, {
-      name = "test_acp",
-      config = {
-        name = "test_acp",
-        type = "acp",
-        handlers = { form_messages = function(a, m) return m end }
-      }
-    })
-
-    chat.acp_connection = mock_connection
+    chat.acp_connection = mocks_acp.new({ config_options = config_opts })
     chat:update_metadata()
 
     local metadata_before = vim.deepcopy(_G.codecompanion_chat_metadata[chat.bufnr])
