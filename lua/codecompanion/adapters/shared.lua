@@ -11,7 +11,7 @@ function M.map_roles(adapter, messages)
   return adapter_utils.map_roles(adapter.roles, messages)
 end
 
----Resolve the context window (in tokens) for the adapter's currently selected model
+---Resolve the context window for the current model
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return number|nil
 function M.context_window(adapter)
