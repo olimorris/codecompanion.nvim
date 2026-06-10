@@ -50,7 +50,9 @@ Make all three changes in a single tool call with multiple edits. Do not ask for
 
   validate = function(ctx, _run)
     local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then actual[#actual] = nil end
+    if actual[#actual] == "" then
+      actual[#actual] = nil
+    end
     local ok = vim.deep_equal(actual, EXPECTED)
     return ok, { actual = table.concat(actual, "\n"), expected = table.concat(EXPECTED, "\n") }
   end,

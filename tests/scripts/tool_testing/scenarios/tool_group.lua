@@ -31,7 +31,9 @@ Read the file first to confirm the exact content before editing. Do not ask for 
 
   validate = function(ctx, run)
     local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then actual[#actual] = nil end
+    if actual[#actual] == "" then
+      actual[#actual] = nil
+    end
     local file_ok = vim.deep_equal(actual, EXPECTED)
     local read_was_called = false
     for _, call in ipairs(run.tool_calls) do
@@ -40,11 +42,12 @@ Read the file first to confirm the exact content before editing. Do not ask for 
         break
       end
     end
-    return file_ok and read_was_called, {
-      actual = table.concat(actual, "\n"),
-      expected = table.concat(EXPECTED, "\n"),
-      read_was_called = read_was_called,
-    }
+    return file_ok and read_was_called,
+      {
+        actual = table.concat(actual, "\n"),
+        expected = table.concat(EXPECTED, "\n"),
+        read_was_called = read_was_called,
+      }
   end,
 
   cleanup = function(ctx)
