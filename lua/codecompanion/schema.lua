@@ -11,8 +11,6 @@
 
 local M = {}
 
-local islist = vim.islist or vim.tbl_islist
-
 ---Return the default values for a schema
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@param defaults? table Any default values to use (will override schema defaults)
@@ -20,6 +18,9 @@ M.get_default = function(adapter, defaults)
   local schema = adapter.schema
   local ret = {}
   for k, v in pairs(schema) do
+    if v.enabled == false then
+      goto continue
+    end
     if type(v.enabled) == "function" and not v.enabled(adapter) then
       goto continue
     end
@@ -63,9 +64,9 @@ local function validate_type(schema, value, adapter)
     end
   elseif ptype == "list" then
     -- TODO validate subtype
-    return type(value) == "table" and islist(value)
+    return type(value) == "table" and vim.islist(value)
   elseif ptype == "map" then
-    local valid = type(value) == "table" and (vim.tbl_isempty(value) or not islist(value))
+    local valid = type(value) == "table" and (vim.tbl_isempty(value) or not vim.islist(value))
     -- TODO validate subtype and subtype_key
     if valid then
       -- Hack to make sure empty dicts get serialized properly
