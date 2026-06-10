@@ -62,8 +62,10 @@
 ---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
+---@field yolo_mode? boolean Automatically approve all tool calls
 
 local adapters = require("codecompanion.adapters")
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
@@ -589,6 +591,10 @@ function Chat.new(args)
 
   self.bufnr = create_chat_buf()
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, { clear = false })
+
+  if args.yolo_mode then
+    approvals:toggle_yolo_mode(self.bufnr)
+  end
 
   if not init_parsers(self) then
     return
@@ -1747,6 +1753,7 @@ function Chat:close()
   end
   _G.codecompanion_chat_metadata[self.bufnr] = nil
   chats[self.bufnr] = nil
+  approvals:reset(self.bufnr)
   registry.remove(self.bufnr)
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then

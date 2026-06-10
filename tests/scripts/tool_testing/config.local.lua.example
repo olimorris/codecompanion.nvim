@@ -1,0 +1,126 @@
+-- Local configuration template for tool testing
+-- Copy this file to config.local.lua and fill in API keys
+
+local M = {}
+
+-- API Keys - Replace with actual keys
+-- OR define environment variables in the terminal
+M.api_keys = {
+  openai = "",
+  anthropic = "",
+  openrouter = "",
+  copilot = nil, -- Uses token automatically if available
+}
+
+-- Custom Adapter Definitions
+-- Define custom adapters that aren't built into CodeCompanion
+-- These will be registered before tests run
+M.adapter_definitions = {
+  -- OpenRouter adapter
+  openrouter = {
+    extends = "openai",
+    url = "https://openrouter.ai/api/v1/chat/completions",
+    env = {
+      api_key = os.getenv("OPENROUTER_API_KEY") or "sk-or-...",
+    },
+    headers = {
+      ["HTTP-Referer"] = "https://github.com/codecompanion-test",
+      ["X-Title"] = "CodeCompanion Tool Testing",
+    },
+    schema = {
+      model = {
+        default = "moonshotai/kimi-k2-0905",
+      },
+    },
+  },
+
+  -- xAI adapter
+  -- Builtin one is old and doesn't support tools
+  xai = {
+    extends = "openai",
+    url = "https://api.x.ai/v1/chat/completions",
+    env = {
+      api_key = os.getenv("XAI_API_KEY"),
+    },
+    handlers = {
+      form_parameters = function(self, params, messages)
+        local cleaned_params = vim.tbl_deep_extend("force", {}, params)
+        -- Remove parameters that grok-code-fast-1 doesn't support
+        cleaned_params.presence_penalty = nil
+        cleaned_params.frequency_penalty = nil
+        cleaned_params.logprobs = nil
+        cleaned_params.top_logprobs = nil
+        cleaned_params.logit_bias = nil
+        return cleaned_params
+      end,
+    },
+    schema = {
+      model = {
+        default = "grok-code-fast-1",
+      },
+    },
+  },
+}
+
+-- Enable/disable specific adapters
+-- You can specify multiple models per adapter using 'models' array
+-- NOTE: For custom adapters, they must be defined in adapter_definitions above
+M.adapters = {
+  {
+    name = "openai",
+    enabled = true,
+    models = { "gpt-4.1", "gpt-5-mini" }, -- Test multiple models
+    timeout = 30000,
+  },
+  {
+    name = "anthropic",
+    enabled = false,
+    model = "claude-haiku-4.5",
+    timeout = 30000,
+  },
+  {
+    name = "copilot",
+    enabled = true,
+    models = { "gpt-4.1", "gpt-5-mini", "grok-code-fast-1", "claude-haiku-4.5" },
+    timeout = 30000,
+  },
+  {
+    name = "gemini",
+    enabled = true,
+    model = "gemini-2.5-flash",
+    timeout = 30000,
+  },
+  -- Add custom adapters (e.g., OpenRouter)
+  -- Custom adapters (defined in adapter_definitions above)
+  {
+    name = "openrouter",
+    enabled = true,
+    models = {
+      "qwen/qwen3-coder",
+      "moonshotai/kimi-k2-0905",
+      "openai/gpt-oss-20b",
+      "openai/gpt-oss-120b",
+    },
+    timeout = 30000,
+  },
+  {
+    name = "xai",
+    enabled = true,
+    models = { "grok-code-fast-1" },
+    timeout = 30000,
+  },
+}
+
+M.output = {
+  verbose = true,
+  save_logs = true,
+}
+
+-- Run adapters in parallel or sequentially
+-- NOTE: Not implemented yet
+M.concurrency = {
+  parallel = false,
+  max_concurrent = 3,
+}
+
+return M

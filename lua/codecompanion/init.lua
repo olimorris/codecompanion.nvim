@@ -176,6 +176,7 @@ CodeCompanion.chat = function(args)
     hidden = args.hidden,
     messages = has_messages and messages or nil,
     window_opts = args and args.window_opts,
+    yolo_mode = args.yolo_mode,
   })
 end
 
