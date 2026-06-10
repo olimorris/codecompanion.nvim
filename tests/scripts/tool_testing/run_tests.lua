@@ -99,8 +99,10 @@ local function load_config()
   return config
 end
 
-local function load_scenarios()
-  local scenario_files = vim.fn.glob(vim.fs.joinpath(SCRIPT_DIR, "scenarios", "*.lua"), false, true)
+local function load_scenarios(tool)
+  local pattern = tool and vim.fs.joinpath(SCRIPT_DIR, "scenarios", tool, "*.lua")
+    or vim.fs.joinpath(SCRIPT_DIR, "scenarios", "*", "*.lua")
+  local scenario_files = vim.fn.glob(pattern, false, true)
   local scenarios = {}
   for _, file in ipairs(scenario_files) do
     local ok, scenario = pcall(dofile, file)
@@ -227,6 +229,7 @@ local function parse_args()
     delay = 0,
     model = nil,
     scenario = nil,
+    tool = nil,
     verbose = false,
   }
 
@@ -237,6 +240,8 @@ local function parse_args()
       args.model = arg:match("^%-%-model=(.+)$")
     elseif arg:match("^%-%-scenario=") then
       args.scenario = arg:match("^%-%-scenario=(.+)$")
+    elseif arg:match("^%-%-tool=") then
+      args.tool = arg:match("^%-%-tool=(.+)$")
     elseif arg:match("^%-%-delay=") then
       args.delay = tonumber(arg:match("^%-%-delay=(.+)$")) or 0
     elseif arg == "--csv" then
@@ -579,7 +584,7 @@ local function run_tests(config, args)
     return true
   end, config.adapters)
 
-  local all_scenarios = load_scenarios()
+  local all_scenarios = load_scenarios(args.tool)
   local scenarios_to_test = vim.tbl_filter(function(scenario)
     if args.scenario and scenario.name ~= args.scenario then
       return false

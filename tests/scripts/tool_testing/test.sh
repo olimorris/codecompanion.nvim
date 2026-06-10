@@ -82,6 +82,7 @@ Options for 'run':
     --adapter=<name>        Run only specific adapter (e.g., openai, anthropic)
     --model=<name>          Run only specific model (e.g., gpt-4o, claude-3.5)
     --scenario=<name>       Run only specific scenario
+    --tool=<name>           Run only scenarios for a specific tool (e.g., insert_edit_into_file, read_file)
     --csv                   Append results to a CSV file (path from config or results_dir/results.csv)
     --delay=<ms>            Delay between scenarios in milliseconds (default: 0)
     --verbose               Show detailed output
@@ -97,6 +98,7 @@ Examples:
     $0 run --adapter=anthropic --verbose
     $0 run --model=claude --verbose
     $0 run --scenario="Simple file edit"
+    $0 run --tool=insert_edit_into_file
     $0 run --adapter=openai --delay=2000
     $0 setup
     $0 results

@@ -39,11 +39,17 @@ Edit `config.local.lua` to list the adapters and models you want to run. This fi
 All commands are run from the repo root.
 
 ```bash
-# Run all enabled adapters
+# Run all enabled adapters across all tools
 ./tests/scripts/tool_testing/test.sh run
 
 # Single adapter
 ./tests/scripts/tool_testing/test.sh run --adapter=anthropic
+
+# Single tool (runs all scenarios in scenarios/insert_edit_into_file/)
+./tests/scripts/tool_testing/test.sh run --tool=insert_edit_into_file
+
+# Single adapter + single tool
+./tests/scripts/tool_testing/test.sh run --adapter=anthropic --tool=insert_edit_into_file
 
 # Single adapter, single model
 ./tests/scripts/tool_testing/test.sh run --adapter=anthropic --model=claude-haiku-4-5
@@ -155,12 +161,24 @@ M.adapters = {
 
 ## Adding scenarios
 
-Drop a `.lua` file into `scenarios/`. The runner globs them automatically — no registration needed.
+Scenarios are organised by tool under `scenarios/<tool_name>/`. Drop a `.lua` file into the relevant subfolder and the runner picks it up automatically — no registration needed.
+
+```
+scenarios/
+  insert_edit_into_file/
+    simple_file_edit.lua
+    multiple_edits.lua
+    tool_group.lua
+  read_file/
+    simple_read.lua
+  delete_file/
+    simple_delete.lua
+```
 
 Each scenario returns a table with four functions. The recommended pattern is to declare `CONTENT` and `EXPECTED` at the top of the file so both are visible at a glance:
 
 ````lua
--- scenarios/my_scenario.lua
+-- scenarios/insert_edit_into_file/my_scenario.lua
 local CONTENT = {
   "local M = {}",
   "return M",
