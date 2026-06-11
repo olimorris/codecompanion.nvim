@@ -5,7 +5,6 @@
 
 -- Best result by test.sh wrapper for proper terminal rendering
 
--- Setup runtime path
 local function setup_runtimepath()
   local script_path = debug.getinfo(1, "S").source:sub(2)
   local plugin_root = vim.fn.fnamemodify(script_path, ":h:h:h")

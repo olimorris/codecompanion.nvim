@@ -18,14 +18,13 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
 fi
 
 # Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Colorize function using awk
-CYAN='\033[0;36m'
 BOLD='\033[1m'
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+
 
 colorize() {
     awk -v RED="$RED" -v GREEN="$GREEN" -v YELLOW="$YELLOW" -v CYAN="$CYAN" -v BOLD="$BOLD" -v NC="$NC" '

@@ -1,16 +1,23 @@
 #!/usr/bin/env -S nvim -l
 
--- Automated tool testing runner for CodeCompanion
--- Usage: nvim -l tests/scripts/tool_testing/run_tests.lua [options]
--- Options:
---   --adapter=<name>  Run only specific adapter
---   --model=<name>    Run only specific model
---   --scenario=<name> Run only specific scenario
---   --delay=<ms>      Delay between scenarios in milliseconds (default: 0)
---   --verbose         Show detailed output
+--[[
+===============================================================================
+Automated tool testing runner for CodeCompanion
+Usage: nvim -l tests/scripts/tool_testing/run_tests.lua [options]
+
+Options:
+  --adapter=<name>  Run only specific adapter
+  --model=<name>    Run only specific model
+  --scenario=<name> Run only specific scenario
+  --tool=<name>     Run only scenarios for a specific tool
+  --delay=<ms>      Delay between scenarios in milliseconds (default: 0)
+  --verbose         Show detailed output
+--]]
 
 local SCRIPT_DIR = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
+---Set the runtimepath to include this dir
+---@return nil
 local function setup_runtimepath()
   local plugin_root = vim.fn.fnamemodify(SCRIPT_DIR, ":h:h:h")
 
@@ -68,6 +75,8 @@ end
 
 setup_runtimepath()
 
+---Allow users to specify a .env file and load into the env
+---@return nil
 local function load_env_file()
   local env_path = vim.fs.joinpath(SCRIPT_DIR, ".env")
   if vim.fn.filereadable(env_path) == 0 then
@@ -86,6 +95,8 @@ local function load_env_file()
   end
 end
 
+---Merge the default config with the user's local config if it exists
+---@return table The merged configuration
 local function load_config()
   local config_path = vim.fs.joinpath(SCRIPT_DIR, "config.lua")
   local config = dofile(config_path)
@@ -99,6 +110,9 @@ local function load_config()
   return config
 end
 
+---Load the scenarios for each tool
+---@param tool? string The tool to filter scenarios by
+---@return table A list of scenario tables
 local function load_scenarios(tool)
   local pattern = tool and vim.fs.joinpath(SCRIPT_DIR, "scenarios", tool, "*.lua")
     or vim.fs.joinpath(SCRIPT_DIR, "scenarios", "*", "*.lua")
@@ -115,6 +129,8 @@ local function load_scenarios(tool)
   return scenarios
 end
 
+---@param config table
+---@return table A list of log messages with level and msg fields
 local function register_custom_adapters(config)
   local log_messages = {}
 
@@ -125,11 +141,11 @@ local function register_custom_adapters(config)
   local cc_config = require("codecompanion.config")
   local adapters = require("codecompanion.adapters")
 
-  for adapter_name, adapter_def in pairs(config.adapter_definitions) do
+  for adapter, adapter_def in pairs(config.adapter_definitions) do
     if not adapter_def.extends then
       table.insert(log_messages, {
         level = "ERROR",
-        msg = string.format("Custom adapter '%s' missing 'extends' field", adapter_name),
+        msg = string.format("Custom adapter '%s' missing 'extends' field", adapter),
       })
       goto continue
     end
@@ -138,14 +154,14 @@ local function register_custom_adapters(config)
     if not base_adapter then
       table.insert(log_messages, {
         level = "ERROR",
-        msg = string.format("Custom adapter '%s' extends unknown adapter '%s'", adapter_name, adapter_def.extends),
+        msg = string.format("Custom adapter '%s' extends unknown adapter '%s'", adapter, adapter_def.extends),
       })
       goto continue
     end
 
     local custom_config = {
-      name = adapter_name,
-      formatted_name = adapter_name:gsub("^%l", string.upper):gsub("_(%l)", function(c)
+      name = adapter,
+      formatted_name = adapter:gsub("^%l", string.upper):gsub("_(%l)", function(c)
         return " " .. c:upper()
       end),
     }
@@ -180,15 +196,15 @@ local function register_custom_adapters(config)
     end)
 
     if ok and custom_adapter then
-      cc_config.adapters.http[adapter_name] = custom_adapter
+      cc_config.adapters.http[adapter] = custom_adapter
       table.insert(log_messages, {
         level = "INFO",
-        msg = string.format("✓ Registered custom adapter: %s (extends %s)", adapter_name, adapter_def.extends),
+        msg = string.format("✓ Registered custom adapter: %s (extends %s)", adapter, adapter_def.extends),
       })
     else
       table.insert(log_messages, {
         level = "ERROR",
-        msg = string.format("Failed to create custom adapter '%s': %s", adapter_name, tostring(custom_adapter)),
+        msg = string.format("Failed to create custom adapter '%s': %s", adapter, tostring(custom_adapter)),
       })
     end
 
@@ -198,10 +214,13 @@ local function register_custom_adapters(config)
   return log_messages
 end
 
-local function validate_adapter_exists(adapter_name)
+---Ensure that the specified adapter exists
+---@param adapter string
+---@return boolean, string|nil
+local function validate_adapter_exists(adapter)
   local cc_config = require("codecompanion.config")
 
-  if cc_config.adapters.http[adapter_name] or cc_config.adapters.acp[adapter_name] then
+  if cc_config.adapters.http[adapter] or cc_config.adapters.acp[adapter] then
     return true, nil
   end
 
@@ -217,11 +236,13 @@ local function validate_adapter_exists(adapter_name)
   return false,
     string.format(
       "Adapter '%s' not found.\n\nAvailable built-in adapters:\n  %s\n\nTo use custom adapters, define them in config.adapter_definitions",
-      adapter_name,
+      adapter,
       table.concat(available, ", ")
     )
 end
 
+---Parse any arguments to the runner
+---@return table A table of parsed arguments
 local function parse_args()
   local args = {
     adapter = nil,
@@ -254,14 +275,19 @@ local function parse_args()
   return args
 end
 
+---@param config table
+---@return string The path to the results directory
 local function setup_output_dir(config)
   local dir = config.output.results_dir
   vim.fn.mkdir(dir, "p")
   return dir
 end
 
-local function log(msg, level, verbose_only)
-  level = level or "INFO"
+---@param opts {msg: string, level?: string, verbose_only?: boolean}
+local function log(opts)
+  local msg = opts.msg
+  local level = opts.level or "INFO"
+  local verbose_only = opts.verbose_only
 
   if verbose_only and not _G._test_verbose then
     return
@@ -280,6 +306,9 @@ local function log(msg, level, verbose_only)
   end
 end
 
+---Escape a value for safe inclusion in a CSV file
+---@param value any The value to escape
+---@return string The escaped value
 local function csv_escape(value)
   value = tostring(value or "")
   if value:find('[,"\n]') then
@@ -288,11 +317,15 @@ local function csv_escape(value)
   return value
 end
 
-local function write_csv_row(csv_file, result)
+---@param opts {csv_file: string, result: table}
+local function write_csv_row(opts)
+  local csv_file = opts.csv_file
+  local result = opts.result
+
   local file_exists = vim.fn.filereadable(csv_file) == 1
   local f = io.open(csv_file, "a")
   if not f then
-    log("Failed to open CSV file: " .. csv_file, "ERROR")
+    log({ msg = "Failed to open CSV file: " .. csv_file, level = "ERROR" })
     return
   end
   if not file_exists then
@@ -312,7 +345,14 @@ local function write_csv_row(csv_file, result)
   f:close()
 end
 
-local function save_result(results_dir, adapter_name, scenario_name, result)
+---@param opts {results_dir: string, adapter_name: string, scenario_name: string, result: table}
+---@return string The path to the saved result file
+local function save_result(opts)
+  local results_dir = opts.results_dir
+  local adapter_name = opts.adapter_name
+  local scenario_name = opts.scenario_name
+  local result = opts.result
+
   local filename = vim.fs.joinpath(
     results_dir,
     string.format("%s_%s_%s.json", os.date("%Y%m%d_%H%M%S"), adapter_name, scenario_name:gsub("%s+", "_"))
@@ -322,8 +362,13 @@ local function save_result(results_dir, adapter_name, scenario_name, result)
   return filename
 end
 
-local function run_scenario_for_adapter(adapter_config, scenario, config, args)
-  log(string.format("%s :: %s", adapter_config.model, scenario.name), "RUN")
+---@param opts {adapter_config: table, scenario: table, config: table, args: table}
+---@return table The result of running the scenario
+local function run_scenario_for_adapter(opts)
+  local adapter_config = opts.adapter_config
+  local scenario = opts.scenario
+
+  log({ msg = string.format("%s :: %s", adapter_config.model, scenario.name), level = "RUN" })
 
   local result = {
     adapter = adapter_config.name,
@@ -353,7 +398,7 @@ local function run_scenario_for_adapter(adapter_config, scenario, config, args)
   local ok, codecompanion = pcall(require, "codecompanion")
   if not ok then
     result.error = "Failed to load CodeCompanion: " .. tostring(codecompanion)
-    log(result.error, "ERROR")
+    log({ msg = result.error, level = "ERROR" })
     if scenario.cleanup then
       pcall(scenario.cleanup, context)
     end
@@ -551,27 +596,31 @@ local function run_scenario_for_adapter(adapter_config, scenario, config, args)
   return result
 end
 
-local function run_tests(config, args)
-  log("Starting CodeCompanion Tool Tests", "INFO")
-  log("================================", "INFO")
+---@param opts {config: table, args: table}
+local function run_tests(opts)
+  local config = opts.config
+  local args = opts.args
+
+  log({ msg = "Starting CodeCompanion Tool Tests" })
+  log({ msg = "================================" })
 
   local results_dir = setup_output_dir(config)
-  log("Results directory: " .. results_dir, "INFO")
+  log({ msg = "Results directory: " .. results_dir })
 
   local csv_file = config.output.csv_file
   if args.csv and not csv_file then
     csv_file = vim.fs.joinpath(results_dir, "results.csv")
   end
   if csv_file then
-    log("CSV output: " .. csv_file, "INFO")
+    log({ msg = "CSV output: " .. csv_file })
   end
 
   local registration_logs = register_custom_adapters(config)
   for _, entry in ipairs(registration_logs) do
-    log(entry.msg, entry.level)
+    log({ msg = entry.msg, level = entry.level })
   end
   if #registration_logs > 0 then
-    log("", "INFO")
+    log({ msg = "" })
   end
 
   local adapters_to_test = vim.tbl_filter(function(adapter)
@@ -605,7 +654,7 @@ local function run_tests(config, args)
     end
   end
 
-  log(string.format("%d model(s) × %d scenario(s)", #test_runs, #scenarios_to_test), "INFO")
+  log({ msg = string.format("%d model(s) × %d scenario(s)", #test_runs, #scenarios_to_test) })
 
   local all_results = {}
   local summary = { errors = 0, failed = 0, passed = 0, total = 0 }
@@ -616,7 +665,10 @@ local function run_tests(config, args)
       for _, scenario in ipairs(scenarios_to_test) do
         summary.total = summary.total + 1
         summary.errors = summary.errors + 1
-        log(string.format("%s/%s - %s: %s", adapter.name, adapter.model, scenario.name, adapter_error), "ERROR")
+        log({
+          msg = string.format("%s/%s - %s: %s", adapter.name, adapter.model, scenario.name, adapter_error),
+          level = "ERROR",
+        })
         table.insert(all_results, {
           adapter = adapter.name,
           duration_ms = 0,
@@ -638,14 +690,15 @@ local function run_tests(config, args)
     for _, scenario in ipairs(scenarios_to_test) do
       summary.total = summary.total + 1
 
-      local result = run_scenario_for_adapter(adapter, scenario, config, args)
+      local result =
+        run_scenario_for_adapter({ adapter_config = adapter, args = args, config = config, scenario = scenario })
       local call_count = #(result.tool_calls or {})
       local calls_str = call_count == 1 and "1 call" or (call_count .. " calls")
 
       if result.success then
         summary.passed = summary.passed + 1
-        log(
-          string.format(
+        log({
+          msg = string.format(
             "%s/%s - %s (%.2fs, %s)",
             adapter.name,
             adapter.model,
@@ -653,35 +706,50 @@ local function run_tests(config, args)
             result.duration_ms / 1000,
             calls_str
           ),
-          "PASS"
-        )
+          level = "PASS",
+        })
       elseif result.error then
         summary.errors = summary.errors + 1
-        log(
-          string.format("%s/%s - %s: %s (%s)", adapter.name, adapter.model, scenario.name, result.error, calls_str),
-          "ERROR"
-        )
+        log({
+          msg = string.format(
+            "%s/%s - %s: %s (%s)",
+            adapter.name,
+            adapter.model,
+            scenario.name,
+            result.error,
+            calls_str
+          ),
+          level = "ERROR",
+        })
       else
         summary.failed = summary.failed + 1
-        log(string.format("%s/%s - %s (%s)", adapter.name, adapter.model, scenario.name, calls_str), "FAIL")
+        log({
+          msg = string.format("%s/%s - %s (%s)", adapter.name, adapter.model, scenario.name, calls_str),
+          level = "FAIL",
+        })
       end
 
       if csv_file then
-        write_csv_row(csv_file, result)
+        write_csv_row({ csv_file = csv_file, result = result })
       end
 
       if config.output.save_logs then
         local adapter_model_name = adapter.name .. "_" .. adapter.model:gsub("[^%w]", "_")
-        local result_file = save_result(results_dir, adapter_model_name, scenario.name, result)
+        local result_file = save_result({
+          adapter_name = adapter_model_name,
+          result = result,
+          results_dir = results_dir,
+          scenario_name = scenario.name,
+        })
         result.result_file = result_file
-        log("  Result saved to: " .. result_file, "INFO", true)
+        log({ msg = "  Result saved to: " .. result_file, verbose_only = true })
       end
 
       if result.validation then
-        log("  Validation: " .. vim.inspect(result.validation), "INFO", true)
+        log({ msg = "  Validation: " .. vim.inspect(result.validation), verbose_only = true })
       end
       if result.tool_calls and #result.tool_calls > 0 then
-        log("  Tools called: " .. vim.inspect(result.tool_calls), "INFO", true)
+        log({ msg = "  Tools called: " .. vim.inspect(result.tool_calls), verbose_only = true })
       end
 
       table.insert(all_results, result)
@@ -695,18 +763,18 @@ local function run_tests(config, args)
   end
 
   print("")
-  log("================================", "INFO")
-  log("Test Summary", "INFO")
-  log("================================", "INFO")
-  log(string.format("Total:  %d", summary.total), "INFO")
-  log(string.format("Passed: %d", summary.passed), "INFO")
-  log(string.format("Failed: %d", summary.failed), "INFO")
-  log(string.format("Errors: %d", summary.errors), "INFO")
-  log(string.format("Success Rate: %.1f%%", (summary.passed / summary.total) * 100), "INFO")
+  log({ msg = "================================" })
+  log({ msg = "Test Summary" })
+  log({ msg = "================================" })
+  log({ msg = string.format("Total:  %d", summary.total) })
+  log({ msg = string.format("Passed: %d", summary.passed) })
+  log({ msg = string.format("Failed: %d", summary.failed) })
+  log({ msg = string.format("Errors: %d", summary.errors) })
+  log({ msg = string.format("Success Rate: %.1f%%", (summary.passed / summary.total) * 100) })
 
   local summary_file = vim.fs.joinpath(results_dir, "summary_" .. os.date("%Y%m%d_%H%M%S") .. ".json")
   vim.fn.writefile(vim.split(vim.json.encode({ results = all_results, summary = summary }), "\n"), summary_file)
-  log("Summary saved to: " .. summary_file, "INFO", true)
+  log({ msg = "Summary saved to: " .. summary_file, verbose_only = true })
 
   vim.cmd(string.format("cquit %d", summary.failed + summary.errors))
 end
@@ -722,8 +790,8 @@ else
   _G._test_verbose = false
 end
 
-local ok, err = pcall(run_tests, config, args)
+local ok, err = pcall(run_tests, { config = config, args = args })
 if not ok then
-  log("Fatal error: " .. tostring(err), "FATAL")
+  log({ msg = "Fatal error: " .. tostring(err), level = "FATAL" })
   vim.cmd("cquit 1")
 end
