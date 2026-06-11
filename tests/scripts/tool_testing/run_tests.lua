@@ -10,7 +10,7 @@ Options:
   --model=<name>    Run only specific model
   --scenario=<name> Run only specific scenario
   --tool=<name>     Run only scenarios for a specific tool
-  --delay=<ms>      Delay between scenarios in milliseconds (default: 0)
+  --delay=<ms>      Stagger delay between starting runs in milliseconds (default: 0)
   --verbose         Show detailed output
 --]]
 
@@ -283,6 +283,21 @@ local function setup_output_dir(config)
   return dir
 end
 
+-- Terminal UI state — populated by ui_init(), read everywhere else
+local UI = {
+  cols = 150,
+  cuu1 = "", -- cursor-up-1 escape sequence
+  el = "", -- erase-to-end-of-line escape sequence
+  is_tty = false,
+}
+
+local ICONS = {
+  error = " ",
+  fail = " ",
+  pass = " ",
+  run = " ",
+}
+
 ---@param opts {msg: string, level?: string, verbose_only?: boolean}
 local function log(opts)
   local msg = opts.msg
@@ -293,14 +308,25 @@ local function log(opts)
     return
   end
 
+  local green = UI.is_tty and "\027[0;32m" or ""
+  local red = UI.is_tty and "\027[0;31m" or ""
+  local yellow = UI.is_tty and "\027[1;33m" or ""
+  local cyan = UI.is_tty and "\027[0;36m" or ""
+  local reset = UI.is_tty and "\027[0m" or ""
+
   if level == "PASS" then
-    print(string.format("  ✓ PASS  %s", msg))
+    print(string.format("  %s%s PASS  %s%s", green, ICONS.pass, msg, reset))
   elseif level == "FAIL" then
-    print(string.format("  ✗ FAIL  %s", msg))
+    print(string.format("  %s%s FAIL  %s%s", red, ICONS.fail, msg, reset))
   elseif level == "ERROR" then
-    print(string.format("  ✗ ERROR %s", msg))
+    print(string.format("  %s%s ERROR %s%s", red, ICONS.error, msg, reset))
   elseif level == "RUN" then
-    print(string.format("  RUN %s", msg))
+    local model, scenario = msg:match("^(.+) :: (.+)$")
+    if model and scenario then
+      print(string.format("  RUN %s%s%s :: %s%s%s", yellow, model, reset, cyan, scenario, reset))
+    else
+      print(string.format("  RUN %s", msg))
+    end
   else
     print(string.format("  %s", msg))
   end
@@ -329,7 +355,7 @@ local function write_csv_row(opts)
     return
   end
   if not file_exists then
-    f:write("run_at,adapter,model,scenario,result,duration_s,tool_calls,error\n")
+    f:write("run_at,adapter,model,scenario,result,duration_s,tool_calls,tokens,error\n")
   end
   local row = {
     csv_escape(result.timestamp),
@@ -339,6 +365,7 @@ local function write_csv_row(opts)
     csv_escape(result.success and "pass" or "fail"),
     csv_escape(string.format("%.2f", result.duration_ms / 1000)),
     csv_escape(tostring(#(result.tool_calls or {}))),
+    csv_escape(tostring(result.tokens or 0)),
     csv_escape(result.error or ""),
   }
   f:write(table.concat(row, ",") .. "\n")
@@ -362,48 +389,170 @@ local function save_result(opts)
   return filename
 end
 
----@param opts {adapter_config: table, scenario: table, config: table, args: table}
----@return table The result of running the scenario
-local function run_scenario_for_adapter(opts)
+---Detect whether stdout is a terminal and capture tput sequences
+local function ui_init()
+  local tty_check = os.execute("test -t 1")
+  if tty_check ~= true and tty_check ~= 0 then
+    return
+  end
+
+  local function shell(cmd)
+    local handle = io.popen(cmd .. " 2>/dev/null")
+    if not handle then
+      return ""
+    end
+    local result = handle:read("*a") or ""
+    handle:close()
+    return result
+  end
+
+  -- Query terminal width via stty (reads winsize via ioctl on /dev/tty).
+  local cols
+  local _, c = shell("stty size < /dev/tty"):match("(%d+)%s+(%d+)")
+  if c then
+    cols = tonumber(c)
+  end
+  if not cols or cols <= 0 then
+    cols = tonumber(os.getenv("COLUMNS"))
+  end
+  if not cols or cols <= 0 then
+    cols = tonumber(shell("tput cols"))
+  end
+  if not cols or cols <= 0 then
+    return
+  end
+
+  UI.cols = cols
+  UI.cuu1 = shell("tput cuu1")
+  UI.el = shell("tput el")
+  UI.is_tty = true
+end
+
+---Truncate a string to fit within the terminal width, appending … if needed.
+---@param str string
+---@return string
+local function ui_truncate(str)
+  if vim.fn.strdisplaywidth(str) <= UI.cols then
+    return str
+  end
+  local chars = vim.fn.strchars(str)
+  while chars > 0 and vim.fn.strdisplaywidth(vim.fn.strcharpart(str, 0, chars) .. "…") > UI.cols do
+    chars = chars - 1
+  end
+  return vim.fn.strcharpart(str, 0, chars) .. "…"
+end
+
+---Format a single run as one terminal line, using its current state
+---@param run table
+---@return string
+local function ui_format_run_line(run)
+  local adapter = run.adapter_config
+  local label = string.format("%s/%s - %s", adapter.name, adapter.model, run.scenario.name)
+
+  local plain, color
+  if not run.finalized then
+    plain = string.format("  %s  %s", ICONS.run, label)
+    color = "\027[2m"
+  else
+    local result = run.result
+    local call_count = #(result.tool_calls or {})
+    local calls_str = call_count == 1 and "1 call" or (call_count .. " calls")
+    local tokens_str = string.format("%d tokens", result.tokens or 0)
+
+    if result.success then
+      plain = string.format(
+        "  %s PASS  %s (%.2fs, %s, %s)",
+        ICONS.pass,
+        label,
+        result.duration_ms / 1000,
+        calls_str,
+        tokens_str
+      )
+      color = "\027[0;32m"
+    elseif result.error then
+      plain = string.format("  %s ERROR %s: %s (%s, %s)", ICONS.error, label, result.error, calls_str, tokens_str)
+      color = "\027[0;31m"
+    else
+      plain = string.format("  %s FAIL  %s (%s, %s)", ICONS.fail, label, calls_str, tokens_str)
+      color = "\027[0;31m"
+    end
+  end
+
+  return color .. ui_truncate(plain) .. "\027[0m"
+end
+
+---Print the run block for the first time (all runs shown as pending).
+---@param runs table
+local function ui_print_block(runs)
+  for _, run in ipairs(runs) do
+    io.write(ui_format_run_line(run) .. "\n")
+  end
+  io.flush()
+end
+
+---Move the cursor back to the top of the run block and redraw each line
+---@param runs table
+local function ui_redraw_block(runs)
+  io.write(string.rep(UI.cuu1, #runs))
+  for _, run in ipairs(runs) do
+    io.write(UI.el .. ui_format_run_line(run) .. "\n")
+  end
+  io.flush()
+end
+
+---Start a scenario run asynchronously
+---@param opts {adapter_config: table, scenario: table}
+---@return table The run object
+local function start_scenario_run(opts)
   local adapter_config = opts.adapter_config
   local scenario = opts.scenario
 
-  log({ msg = string.format("%s :: %s", adapter_config.model, scenario.name), level = "RUN" })
-
-  local result = {
-    adapter = adapter_config.name,
-    duration_ms = 0,
-    error = nil,
-    messages = {},
-    model = adapter_config.model,
+  local run = {
+    adapter_config = adapter_config,
+    capture = nil,
+    chat = nil,
+    completed = false,
+    context = {},
+    done = false,
+    finalized = false,
     response_content = "",
-    scenario = scenario.name,
-    success = false,
-    timestamp = os.date("%Y-%m-%d %H:%M:%S"),
+    result = {
+      adapter = adapter_config.name,
+      duration_ms = 0,
+      error = nil,
+      messages = {},
+      model = adapter_config.model,
+      response_content = "",
+      scenario = scenario.name,
+      success = false,
+      timestamp = os.date("%Y-%m-%d %H:%M:%S"),
+      tokens = 0,
+      tool_calls = {},
+      validation = nil,
+    },
+    scenario = scenario,
+    start_time = vim.uv.hrtime(),
+    timeout = adapter_config.timeout or 30000,
     tool_calls = {},
-    validation = nil,
+    tool_executed = false,
   }
 
-  local start_time = vim.uv.hrtime()
+  local function fail(msg)
+    run.result.error = msg
+    run.result.duration_ms = (vim.uv.hrtime() - run.start_time) / 1000000
+    run.done = true
+    return run
+  end
 
-  local context = {}
   local setup_ok, setup_result = pcall(scenario.setup)
   if not setup_ok then
-    result.error = "Setup failed: " .. tostring(setup_result)
-    result.duration_ms = (vim.uv.hrtime() - start_time) / 1000000
-    return result
+    return fail("Setup failed: " .. tostring(setup_result))
   end
-  context = setup_result or {}
+  run.context = setup_result or {}
 
   local ok, codecompanion = pcall(require, "codecompanion")
   if not ok then
-    result.error = "Failed to load CodeCompanion: " .. tostring(codecompanion)
-    log({ msg = result.error, level = "ERROR" })
-    if scenario.cleanup then
-      pcall(scenario.cleanup, context)
-    end
-    result.duration_ms = (vim.uv.hrtime() - start_time) / 1000000
-    return result
+    return fail("Failed to load CodeCompanion: " .. tostring(codecompanion))
   end
 
   local chat_ok, chat = pcall(function()
@@ -416,66 +565,46 @@ local function run_scenario_for_adapter(opts)
   end)
 
   if not chat_ok or not chat then
-    result.error = "Failed to create chat: " .. tostring(chat)
-    if scenario.cleanup then
-      pcall(scenario.cleanup, context)
-    end
-    result.duration_ms = (vim.uv.hrtime() - start_time) / 1000000
-    return result
+    return fail("Failed to create chat: " .. tostring(chat))
   end
+
+  run.chat = chat
 
   local cc_config = require("codecompanion.config")
 
   for _, tool_name in ipairs(scenario.tools) do
     local tool_config = cc_config.interactions.chat.tools and cc_config.interactions.chat.tools[tool_name]
     if not tool_config then
-      result.error = "Tool not found in config: " .. tool_name
       pcall(function()
         chat:close()
       end)
-      if scenario.cleanup then
-        pcall(scenario.cleanup, context)
-      end
-      result.duration_ms = (vim.uv.hrtime() - start_time) / 1000000
-      return result
+      return fail("Tool not found in config: " .. tool_name)
     end
 
     local tool_added, add_err = pcall(function()
       chat.tool_registry:add(tool_name, tool_config)
     end)
     if not tool_added then
-      result.error = "Failed to add tool: " .. tool_name .. " - " .. tostring(add_err)
       pcall(function()
         chat:close()
       end)
-      if scenario.cleanup then
-        pcall(scenario.cleanup, context)
-      end
-      result.duration_ms = (vim.uv.hrtime() - start_time) / 1000000
-      return result
+      return fail("Failed to add tool: " .. tool_name .. " - " .. tostring(add_err))
     end
   end
 
-  local prompt = scenario.prompt(context)
-  local completed = false
-  local chat_done = false
-  local tool_calls = {}
-  local response_content = ""
-  local tool_executed = false
-
-  local function capture_tool_data()
+  run.capture = function()
     for _, msg in ipairs(chat.messages) do
       if msg.role == "llm" and msg.tools and msg.tools.calls then
         for _, tool_call in ipairs(msg.tools.calls) do
           local already_captured = false
-          for _, captured in ipairs(tool_calls) do
+          for _, captured in ipairs(run.tool_calls) do
             if captured.id == tool_call.id then
               already_captured = true
               break
             end
           end
           if not already_captured then
-            table.insert(tool_calls, {
+            table.insert(run.tool_calls, {
               arguments = tool_call["function"] and tool_call["function"].arguments or "{}",
               id = tool_call.id,
               name = tool_call["function"] and tool_call["function"].name or "unknown",
@@ -484,116 +613,114 @@ local function run_scenario_for_adapter(opts)
         end
       end
       if msg.role == "tool" then
-        tool_executed = true
+        run.tool_executed = true
       end
       if msg.role == "llm" and msg.content then
-        if not response_content:find(msg.content, 1, true) then
-          response_content = response_content .. msg.content
+        if not run.response_content:find(msg.content, 1, true) then
+          run.response_content = run.response_content .. msg.content
         end
       end
     end
   end
 
   chat:add_callback("on_completed", function()
-    chat_done = true
+    run.completed = true
+    run.done = true
   end)
   chat:add_callback("on_cancelled", function()
-    chat_done = true
-    result.error = "Chat was cancelled"
+    run.result.error = "Chat was cancelled"
+    run.done = true
   end)
 
+  local prompt = scenario.prompt(run.context)
   chat:add_message({ content = prompt, role = "user" })
 
   local submit_ok, submit_err = pcall(function()
     chat:submit({ auto_submit = true })
-
-    local timeout = adapter_config.timeout or 30000
-    local wait_time = 0
-    local interval = 200
-
-    while wait_time < timeout and not chat_done do
-      vim.wait(interval)
-      wait_time = wait_time + interval
-      capture_tool_data()
-    end
-
-    if chat_done then
-      capture_tool_data()
-      completed = true
-    else
-      result.error = "Timeout waiting for response (waited " .. wait_time .. "ms)"
-    end
   end)
 
   if not submit_ok then
-    result.error = "Submit failed: " .. tostring(submit_err)
+    return fail("Submit failed: " .. tostring(submit_err))
   end
 
-  capture_tool_data()
+  return run
+end
 
-  for _, msg in ipairs(chat.messages) do
-    table.insert(result.messages, {
-      _meta = msg._meta,
-      content = type(msg.content) == "string" and msg.content or vim.inspect(msg.content),
-      role = msg.role,
-      tool_calls = msg.tools and msg.tools.calls or nil,
-    })
+---Validate, build messages, and set result.success on a completed run.
+---@param run table
+local function finalize_run(run)
+  local scenario = run.scenario
+  local result = run.result
+
+  run.capture()
+
+  if run.chat then
+    for _, msg in ipairs(run.chat.messages) do
+      table.insert(result.messages, {
+        _meta = msg._meta,
+        content = type(msg.content) == "string" and msg.content or vim.inspect(msg.content),
+        role = msg.role,
+        tool_calls = msg.tools and msg.tools.calls or nil,
+      })
+    end
+    result.tokens = (run.chat.ui and run.chat.ui.tokens) or 0
+    pcall(function()
+      run.chat:close()
+    end)
   end
 
-  if completed then
-    -- Check tools_required before running validate
+  result.duration_ms = (vim.uv.hrtime() - run.start_time) / 1000000
+
+  if run.completed then
+    local should_validate = true
+
     if scenario.tools_required then
       for _, required in ipairs(scenario.tools_required) do
         local was_called = false
-        for _, call in ipairs(tool_calls) do
+        for _, call in ipairs(run.tool_calls) do
           if call.name == required then
             was_called = true
             break
           end
         end
         if not was_called then
-          result.success = false
           result.error = string.format("Required tool '%s' was not called", required)
-          goto cleanup
+          should_validate = false
+          break
         end
       end
     end
 
-    local run_data = { response_content = response_content, tool_calls = tool_calls }
-    local validate_ok, validate_success, validation_details = pcall(scenario.validate, context, run_data)
-    if validate_ok then
-      result.success = validate_success
-      result.validation = validation_details
-      if not validate_success and not result.error then
-        result.error = "Validation failed"
-      elseif validate_success then
-        result.error = nil
-      end
-    else
-      if not result.error then
-        result.error = "Validation error: " .. tostring(validate_success)
+    if should_validate then
+      local run_data = { response_content = run.response_content, tool_calls = run.tool_calls }
+      local validate_ok, validate_success, validation_details = pcall(scenario.validate, run.context, run_data)
+      if validate_ok then
+        result.success = validate_success
+        result.validation = validation_details
+        if not validate_success and not result.error then
+          result.error = "Validation failed"
+        elseif validate_success then
+          result.error = nil
+        end
+      else
+        if not result.error then
+          result.error = "Validation error: " .. tostring(validate_success)
+        end
       end
     end
   end
 
-  if not result.success and #tool_calls > 0 then
+  if not result.success and #run.tool_calls > 0 then
     result.error = (result.error or "Unknown error")
-      .. string.format(" (tool called: %s, executed: %s)", #tool_calls > 0, tool_executed)
+      .. string.format(" (tool called: %s, executed: %s)", #run.tool_calls > 0, run.tool_executed)
   end
 
-  ::cleanup::
-  result.response_content = response_content
-  result.tool_calls = tool_calls
-  result.duration_ms = (vim.uv.hrtime() - start_time) / 1000000
+  result.response_content = run.response_content
+  result.tool_calls = run.tool_calls
 
-  pcall(function()
-    chat:close()
-  end)
   if scenario.cleanup then
-    pcall(scenario.cleanup, context)
+    pcall(scenario.cleanup, run.context)
   end
-
-  return result
 end
 
 ---@param opts {config: table, args: table}
@@ -659,6 +786,9 @@ local function run_tests(opts)
   local all_results = {}
   local summary = { errors = 0, failed = 0, passed = 0, total = 0 }
 
+  -- Start all runs in parallel; invalid adapters are resolved immediately
+  local active_runs = {}
+
   for _, adapter in ipairs(test_runs) do
     local adapter_valid, adapter_error = validate_adapter_exists(adapter.name)
     if not adapter_valid then
@@ -678,99 +808,182 @@ local function run_tests(opts)
           scenario = scenario.name,
           success = false,
           timestamp = os.date("%Y-%m-%d %H:%M:%S"),
+          tokens = 0,
           tool_calls = {},
           validation = nil,
         })
       end
-      goto next_adapter
-    end
-
-    print("")
-
-    for _, scenario in ipairs(scenarios_to_test) do
-      summary.total = summary.total + 1
-
-      local result =
-        run_scenario_for_adapter({ adapter_config = adapter, args = args, config = config, scenario = scenario })
-      local call_count = #(result.tool_calls or {})
-      local calls_str = call_count == 1 and "1 call" or (call_count .. " calls")
-
-      if result.success then
-        summary.passed = summary.passed + 1
-        log({
-          msg = string.format(
-            "%s/%s - %s (%.2fs, %s)",
-            adapter.name,
-            adapter.model,
-            scenario.name,
-            result.duration_ms / 1000,
-            calls_str
-          ),
-          level = "PASS",
-        })
-      elseif result.error then
-        summary.errors = summary.errors + 1
-        log({
-          msg = string.format(
-            "%s/%s - %s: %s (%s)",
-            adapter.name,
-            adapter.model,
-            scenario.name,
-            result.error,
-            calls_str
-          ),
-          level = "ERROR",
-        })
-      else
-        summary.failed = summary.failed + 1
-        log({
-          msg = string.format("%s/%s - %s (%s)", adapter.name, adapter.model, scenario.name, calls_str),
-          level = "FAIL",
-        })
+    else
+      local use_block = UI.is_tty and not args.verbose
+      if not use_block then
+        print("")
       end
-
-      if csv_file then
-        write_csv_row({ csv_file = csv_file, result = result })
-      end
-
-      if config.output.save_logs then
-        local adapter_model_name = adapter.name .. "_" .. adapter.model:gsub("[^%w]", "_")
-        local result_file = save_result({
-          adapter_name = adapter_model_name,
-          result = result,
-          results_dir = results_dir,
-          scenario_name = scenario.name,
-        })
-        result.result_file = result_file
-        log({ msg = "  Result saved to: " .. result_file, verbose_only = true })
-      end
-
-      if result.validation then
-        log({ msg = "  Validation: " .. vim.inspect(result.validation), verbose_only = true })
-      end
-      if result.tool_calls and #result.tool_calls > 0 then
-        log({ msg = "  Tools called: " .. vim.inspect(result.tool_calls), verbose_only = true })
-      end
-
-      table.insert(all_results, result)
-
-      if args.delay > 0 and scenario ~= scenarios_to_test[#scenarios_to_test] then
-        vim.wait(args.delay)
+      for _, scenario in ipairs(scenarios_to_test) do
+        if not use_block then
+          log({ msg = string.format("%s :: %s", adapter.model, scenario.name), level = "RUN" })
+        end
+        local run = start_scenario_run({ adapter_config = adapter, scenario = scenario })
+        table.insert(active_runs, run)
+        if args.delay > 0 then
+          vim.wait(args.delay)
+        end
       end
     end
-
-    ::next_adapter::
   end
 
-  print("")
-  log({ msg = "================================" })
-  log({ msg = "Test Summary" })
-  log({ msg = "================================" })
-  log({ msg = string.format("Total:  %d", summary.total) })
-  log({ msg = string.format("Passed: %d", summary.passed) })
-  log({ msg = string.format("Failed: %d", summary.failed) })
-  log({ msg = string.format("Errors: %d", summary.errors) })
-  log({ msg = string.format("Success Rate: %.1f%%", (summary.passed / summary.total) * 100) })
+  -- Single wait loop — all HTTP requests are in-flight concurrently
+  if #active_runs > 0 then
+    print("")
+    if UI.is_tty and not args.verbose then
+      ui_print_block(active_runs)
+    end
+  end
+
+  while true do
+    vim.wait(200)
+
+    local still_pending = 0
+
+    for _, run in ipairs(active_runs) do
+      if not run.done then
+        run.capture()
+        local elapsed_ms = (vim.uv.hrtime() - run.start_time) / 1000000
+        if elapsed_ms > run.timeout then
+          run.result.error = string.format("Timeout waiting for response (waited %dms)", math.floor(elapsed_ms))
+          run.done = true
+        else
+          still_pending = still_pending + 1
+        end
+      end
+
+      if run.done and not run.finalized then
+        run.finalized = true
+        finalize_run(run)
+
+        local result = run.result
+        local scenario = run.scenario
+        local adapter = run.adapter_config
+        local call_count = #(result.tool_calls or {})
+        local calls_str = call_count == 1 and "1 call" or (call_count .. " calls")
+        local tokens_str = string.format("%d tokens", result.tokens or 0)
+
+        summary.total = summary.total + 1
+        if result.success then
+          summary.passed = summary.passed + 1
+        elseif result.error then
+          summary.errors = summary.errors + 1
+        else
+          summary.failed = summary.failed + 1
+        end
+
+        if UI.is_tty and not args.verbose then
+          ui_redraw_block(active_runs)
+        else
+          if result.success then
+            log({
+              msg = string.format(
+                "%s/%s - %s (%.2fs, %s, %s)",
+                adapter.name,
+                adapter.model,
+                scenario.name,
+                result.duration_ms / 1000,
+                calls_str,
+                tokens_str
+              ),
+              level = "PASS",
+            })
+          elseif result.error then
+            log({
+              msg = string.format(
+                "%s/%s - %s: %s (%s, %s)",
+                adapter.name,
+                adapter.model,
+                scenario.name,
+                result.error,
+                calls_str,
+                tokens_str
+              ),
+              level = "ERROR",
+            })
+          else
+            log({
+              msg = string.format(
+                "%s/%s - %s (%s, %s)",
+                adapter.name,
+                adapter.model,
+                scenario.name,
+                calls_str,
+                tokens_str
+              ),
+              level = "FAIL",
+            })
+          end
+        end
+
+        if csv_file then
+          write_csv_row({ csv_file = csv_file, result = result })
+        end
+
+        if config.output.save_logs then
+          local adapter_model_name = adapter.name .. "_" .. adapter.model:gsub("[^%w]", "_")
+          local result_file = save_result({
+            adapter_name = adapter_model_name,
+            result = result,
+            results_dir = results_dir,
+            scenario_name = scenario.name,
+          })
+          result.result_file = result_file
+          log({ msg = "  Result saved to: " .. result_file, verbose_only = true })
+        end
+
+        if result.validation then
+          log({ msg = "  Validation: " .. vim.inspect(result.validation), verbose_only = true })
+        end
+        if result.tool_calls and #result.tool_calls > 0 then
+          log({ msg = "  Tools called: " .. vim.inspect(result.tool_calls), verbose_only = true })
+        end
+
+        table.insert(all_results, result)
+      end
+    end
+
+    if still_pending == 0 then
+      break
+    end
+  end
+
+  -- Explicit reset before summary to prevent color bleed from the last result line
+  if UI.is_tty then
+    io.write("\027[0m")
+  end
+
+  local function tty_color(str, ansi)
+    return UI.is_tty and (ansi .. str .. "\027[0m") or str
+  end
+
+  io.write("\n")
+  io.write("  ================================\n")
+  io.write("  Test Summary\n")
+  io.write("  ================================\n")
+  io.write(string.format("  Total:  %d\n", summary.total))
+  io.write(string.format("  Passed: %s\n", tty_color(tostring(summary.passed), "\027[0;32m")))
+  io.write(
+    string.format(
+      "  Failed: %s\n",
+      summary.failed > 0 and tty_color(tostring(summary.failed), "\027[0;31m") or tostring(summary.failed)
+    )
+  )
+  io.write(
+    string.format(
+      "  Errors: %s\n",
+      summary.errors > 0 and tty_color(tostring(summary.errors), "\027[0;31m") or tostring(summary.errors)
+    )
+  )
+
+  local success_rate = summary.total > 0 and (summary.passed / summary.total) * 100 or 0
+  local rate_color = success_rate >= 50 and "\027[0;32m" or "\027[0;31m"
+  io.write(string.format("  Success Rate: %s\n", tty_color(string.format("%.1f%%", success_rate), rate_color)))
+  io.flush()
 
   local summary_file = vim.fs.joinpath(results_dir, "summary_" .. os.date("%Y%m%d_%H%M%S") .. ".json")
   vim.fn.writefile(vim.split(vim.json.encode({ results = all_results, summary = summary }), "\n"), summary_file)
@@ -780,6 +993,7 @@ local function run_tests(opts)
 end
 
 load_env_file()
+ui_init()
 local config = load_config()
 local args = parse_args()
 

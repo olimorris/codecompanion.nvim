@@ -36,11 +36,9 @@ colorize() {
             sub(/.*/, YELLOW parts[1] NC " :: " CYAN parts[2] NC, line)
         }
         # Test result patterns
-        gsub(/✓ PASS/, GREEN "✓ PASS" NC, line)
-        gsub(/✗ FAIL/, RED "✗ FAIL" NC, line)
-        gsub(/✗ ERROR/, RED "✗ ERROR" NC, line)
-        gsub(/✓ SUCCESS/, GREEN "✓ SUCCESS" NC, line)
-        gsub(/✗ FAILED/, RED "✗ FAILED" NC, line)
+        gsub(/ PASS/, GREEN " PASS" NC, line)
+        gsub(/ FAIL/, RED " FAIL" NC, line)
+        gsub(/ ERROR/, RED " ERROR" NC, line)
 
         # Individual check marks (for test_setup)
         gsub(/  ✓ /, GREEN "  ✓ " NC, line)
@@ -225,33 +223,31 @@ cmd_run() {
         fi
     done
 
-    # Build and run command with color post-processing
+    # Build and run command.
+    # When stdout is a terminal nvim handles its own colors and in-place UI;
+    # when piped or redirected, post-process with colorize.
     if [ "$use_config" = true ]; then
         local nvim_cmd="$NVIM --headless +'luafile $SCRIPT_DIR/run_tests.lua' +q"
-        eval "$nvim_cmd" 2>&1 | colorize
-        exit_code=${PIPESTATUS[0]}
-        if [ $exit_code -eq 0 ]; then
-            echo ""
-            echo -e "${GREEN}✓ All tests passed${NC}"
-            exit 0
-        else
-            echo ""
-            echo -e "${RED}✗ Tests failed (exit code: $exit_code)${NC}"
-            exit $exit_code
-        fi
     else
         local nvim_cmd="$NVIM -l $SCRIPT_DIR/run_tests.lua$test_args"
+    fi
+
+    if [ -t 1 ]; then
+        eval "$nvim_cmd"
+        exit_code=$?
+    else
         eval "$nvim_cmd" 2>&1 | colorize
         exit_code=${PIPESTATUS[0]}
-        if [ $exit_code -eq 0 ]; then
-            echo ""
-            echo -e "${GREEN}✓ All tests passed${NC}"
-            exit 0
-        else
-            echo ""
-            echo -e "${RED}✗ Tests failed (exit code: $exit_code)${NC}"
-            exit $exit_code
-        fi
+    fi
+
+    if [ $exit_code -eq 0 ]; then
+        echo ""
+        echo -e "${GREEN}✓ All tests passed${NC}"
+        exit 0
+    else
+        echo ""
+        echo -e "${RED}✗ Tests failed (exit code: $exit_code)${NC}"
+        exit $exit_code
     fi
 }
 
