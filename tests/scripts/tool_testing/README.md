@@ -63,6 +63,9 @@ All commands are run from the repo root.
 # Append results to CSV (accumulates across runs for comparison)
 ./tests/scripts/tool_testing/test.sh run --csv
 
+# Write per-run JSON and summary JSON to disk (off by default)
+./tests/scripts/tool_testing/test.sh run --log
+
 # Add delay between scenarios (useful for rate-limited providers)
 ./tests/scripts/tool_testing/test.sh run --adapter=gemini --delay=2000
 ```
@@ -249,6 +252,10 @@ end
 ```
 
 ---
+
+## Logging to disk
+
+Pass `--log` to save per-run JSON files with full details of the chat message history and token use.
 
 ## CSV output
 

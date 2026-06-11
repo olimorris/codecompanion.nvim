@@ -248,6 +248,7 @@ local function parse_args()
     adapter = nil,
     csv = false,
     delay = 0,
+    log = false,
     model = nil,
     scenario = nil,
     tool = nil,
@@ -267,6 +268,8 @@ local function parse_args()
       args.delay = tonumber(arg:match("^%-%-delay=(.+)$")) or 0
     elseif arg == "--csv" then
       args.csv = true
+    elseif arg == "--log" then
+      args.log = true
     elseif arg == "--verbose" then
       args.verbose = true
     end
@@ -924,7 +927,7 @@ local function run_tests(opts)
           write_csv_row({ csv_file = csv_file, result = result })
         end
 
-        if config.output.save_logs then
+        if args.log and config.output.save_logs then
           local adapter_model_name = adapter.name .. "_" .. adapter.model:gsub("[^%w]", "_")
           local result_file = save_result({
             adapter_name = adapter_model_name,
@@ -985,9 +988,11 @@ local function run_tests(opts)
   io.write(string.format("  Success Rate: %s\n", tty_color(string.format("%.1f%%", success_rate), rate_color)))
   io.flush()
 
-  local summary_file = vim.fs.joinpath(results_dir, "summary_" .. os.date("%Y%m%d_%H%M%S") .. ".json")
-  vim.fn.writefile(vim.split(vim.json.encode({ results = all_results, summary = summary }), "\n"), summary_file)
-  log({ msg = "Summary saved to: " .. summary_file, verbose_only = true })
+  if args.log then
+    local summary_file = vim.fs.joinpath(results_dir, "summary_" .. os.date("%Y%m%d_%H%M%S") .. ".json")
+    vim.fn.writefile(vim.split(vim.json.encode({ results = all_results, summary = summary }), "\n"), summary_file)
+    log({ msg = "Summary saved to: " .. summary_file, verbose_only = true })
+  end
 
   vim.cmd(string.format("cquit %d", summary.failed + summary.errors))
 end

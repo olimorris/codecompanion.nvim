@@ -81,6 +81,7 @@ Options for 'run':
     --scenario=<name>       Run only specific scenario
     --tool=<name>           Run only scenarios for a specific tool (e.g., insert_edit_into_file, read_file)
     --csv                   Append results to a CSV file (path from config or results_dir/results.csv)
+    --log                   Write per-run JSON and summary JSON to the results directory
     --delay=<ms>            Delay between scenarios in milliseconds (default: 0)
     --verbose               Show detailed output
     --all                   Run all enabled adapters with all scenarios
