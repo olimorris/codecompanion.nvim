@@ -11,6 +11,24 @@ local M = {}
 ---@type table<string, table> Dynamic registry for MCP tools (server_name -> { tools: table, groups: table })
 local tool_registry = {}
 
+---@type table<string, CodeCompanion.MCP.ServerConfig>
+local resolved_configs = {}
+
+---Resolve a server config, evaluating it if it is a function (memoized)
+---@param name string
+---@return CodeCompanion.MCP.ServerConfig|nil
+local function get_server_config(name)
+  if resolved_configs[name] then
+    return resolved_configs[name]
+  end
+  local server_cfg = config.mcp.servers[name]
+  if type(server_cfg) == "function" then
+    server_cfg = server_cfg()
+    resolved_configs[name] = server_cfg
+  end
+  return server_cfg
+end
+
 ---Check if a server is in the default_servers list
 ---@param name string
 ---@return boolean
@@ -89,7 +107,7 @@ end
 ---@field register_roots_list_changed? fun(notify: fun())
 
 ---@class CodeCompanion.MCPConfig
----@field servers? table<string, CodeCompanion.MCP.ServerConfig>
+---@field servers? table<string, CodeCompanion.MCP.ServerConfig | fun(): CodeCompanion.MCP.ServerConfig>
 
 ---@type table<string, CodeCompanion.MCP.Client>
 local clients = {}
@@ -102,9 +120,9 @@ function M.start_servers()
     return
   end
 
-  for name, cfg in pairs(mcp_cfg.servers) do
+  for name, _ in pairs(mcp_cfg.servers) do
     if is_default_server(name) and not clients[name] then
-      clients[name] = Client.new({ name = name, cfg = cfg })
+      clients[name] = Client.new({ name = name, cfg = get_server_config(name) })
     end
   end
 
@@ -129,6 +147,7 @@ function M.stop_servers()
     client:stop()
   end
   clients = {}
+  resolved_configs = {}
 end
 
 ---Restart all MCP servers
@@ -145,8 +164,8 @@ end
 function M.enable_server(name, opts)
   opts = opts or {}
 
-  local mcp_cfg = config.mcp
-  local server_cfg = mcp_cfg.servers[name]
+  local server_cfg = get_server_config(name)
+
   if not server_cfg then
     log:warn("MCP server `%s` is not configured", name)
     return false, string.format("MCP server not found: %s", name)
@@ -169,8 +188,7 @@ end
 ---@param name string
 ---@return boolean, boolean|string
 function M.disable_server(name)
-  local mcp_cfg = config.mcp
-  local server_cfg = mcp_cfg.servers[name]
+  local server_cfg = get_server_config(name)
   if not server_cfg then
     return false, string.format("MCP server not found: %s", name)
   end
@@ -187,8 +205,7 @@ end
 ---@param name string
 ---@return boolean, boolean|string
 function M.toggle_server(name)
-  local mcp_cfg = config.mcp
-  local server_cfg = mcp_cfg.servers[name]
+  local server_cfg = get_server_config(name)
   if not server_cfg then
     return false, string.format("MCP server not found: %s", name)
   end
@@ -252,10 +269,12 @@ end
 function M.transform_to_acp()
   local transformed = {}
 
-  for name, cfg in pairs(config.mcp.servers) do
+  for name, _ in pairs(config.mcp.servers) do
     if not is_default_server(name) then
       goto continue
     end
+
+    local cfg = get_server_config(name)
 
     table.insert(transformed, {
       name = name,

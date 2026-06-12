@@ -101,12 +101,12 @@ end
 ---@param messages CodeCompanion.Chat.Messages
 ---@return boolean
 function M.has_tag(tag, messages)
-  return vim.tbl_contains(
-    vim.tbl_map(function(msg)
-      return msg._meta and msg._meta.tag
-    end, messages),
-    tag
-  )
+  for _, msg in ipairs(messages) do
+    if msg._meta and msg._meta.tag == tag then
+      return true
+    end
+  end
+  return false
 end
 
 ---Resolve which MCP servers should be added to new chat buffers
@@ -361,15 +361,12 @@ function M.trigger_context_management(adapter, opts)
   end
 
   if trigger < 1 then
-    local ok
-    ok, trigger = pcall(function()
-      return math.floor(trigger * adapter.schema.model.choices[adapter.schema.model.default].meta.context_window)
-    end)
-
-    if not ok then
-      log:debug("Could not evaluate the %s trigger for context management in the `%s` adapter", operation, adapter.name)
+    local context_window = require("codecompanion.adapters.shared").context_window(adapter)
+    if not context_window then
+      log:debug("[Context Window] No context window for `%s` adapter, skipping %s trigger", adapter.name, operation)
       return 0
     end
+    trigger = math.floor(trigger * context_window)
   end
 
   return trigger

@@ -341,9 +341,9 @@ require("codecompanion").setup({
       opts = {
         context_management = {
           editing = {
-            trigger = 0.65,
-            keep_cycles = 3,                -- preserve tool results from the last N cycles
-            exclude_tools = { "memory" },   -- tool names whose results are never edited
+            trigger = 0.65, -- Context editing is triggered when X% of the context window is reached
+            exclude_tools = { "memory" }, -- Output from these tools is never edited
+            keep_cycles = 3, -- Keep the last N cycles of tool results
           },
         },
       },
@@ -363,14 +363,14 @@ require("codecompanion").setup({
       opts = {
         context_management = {
           compaction = {
-            trigger = 0.85,
+            trigger = 0.85, -- Compaction is triggered when X% of the context window is reached
+            min_token_savings = 10000, -- Only compact when at least this amount of tokens will be saved
 
-            -- Adapter used to generate the summary. Defaults to the chat adapter.
-            -- Accepts a string (adapter name) or a table `{ name = "...", model = "..." }`
+            ---The adapter to use for compaction. Defaults to the current chat adapter
+            ---@type nil|string|{ name: string, model:string }
             adapter = nil,
 
-            -- If the override adapter fails, silently retry with the chat adapter
-            fallback_to_chat_adapter = false,
+            fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
           },
         },
       },

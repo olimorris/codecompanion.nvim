@@ -315,13 +315,23 @@ return {
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
+          -- Models that use the responses endpoint have the tokens in copilot_usage
+          if json.copilot_usage and json.copilot_usage.token_details then
+            local total = 0
+            for _, detail in ipairs(json.copilot_usage.token_details) do
+              total = total + (detail.token_count or 0)
+            end
+            log:trace("Tokens: %s", total)
+            return total
+          end
+
           if json.usage then
             local total_tokens = json.usage.total_tokens or 0
             local completion_tokens = json.usage.completion_tokens or 0
             local prompt_tokens = json.usage.prompt_tokens or 0
-            local tokens = total_tokens > 0 and total_tokens or completion_tokens + prompt_tokens
-            log:trace("Tokens: %s", tokens)
-            return tokens
+            local total = total_tokens > 0 and total_tokens or completion_tokens + prompt_tokens
+            log:trace("Tokens: %s", total)
+            return total
           end
         end
       end
@@ -417,7 +427,8 @@ return {
         if type(model) == "function" then
           model = model()
         end
-        return not vim.startswith(model, "o1")
+        local disabled_for = { "gpt-5.4", "gpt-5.4-mini" }
+        return not vim.tbl_contains(disabled_for, model)
       end,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },

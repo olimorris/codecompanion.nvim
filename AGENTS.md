@@ -18,6 +18,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - **Function params:** prefer a single table argument over positional args
 - **Error handling:** `pcall` + `log:error()`, return nil on failure
 - **Type annotations:** LuaCATS for public APIs. Keep doc blocks concise — one description line, params should be self-explanatory without inline comments
+- **Function descriptions:** exactly one line. No multi-paragraph rationale, no usage examples, no "why we cache this" essays — that belongs in commit messages or a single inline `--` comment at the relevant line. If you can't summarise the function in one line, the function is doing too much
 - **Functions:** keep under 50 lines
 - **Globals:** avoid; use module-local state
 - **Code blocks:** use four backticks with language spec
@@ -38,6 +39,7 @@ Core: `lua/codecompanion/`
 
 - Don't over-explore the codebase with excessive grep/read calls. If you haven't converged on an approach after 3-4 searches, pause and share what you've found so far rather than continuing to search.
 - When the user asks to fix tests, fix the tests — not the source code — unless explicitly asked otherwise.
+- If you're working with directories or files, utilise the functions in `codecompanion/utils/files.lua` ensuring you join paths with `vim.fs.joinpath`
 
 ## Important instructions
 

@@ -27,7 +27,7 @@ local context_header = "> Context:"
 local function ts_parse_buffer(chat)
   local query = query_get("markdown", "cc_context")
 
-  local tree = chat.chat_parser:parse({ chat.header_line - 1, -1 })[1]
+  local tree = chat.parsers.markdown:parse({ chat.header_line - 1, -1 })[1]
   local root = tree:root()
 
   -- Check if there are any context items already in the chat buffer
@@ -220,7 +220,7 @@ end
 local function get_range(chat)
   local query = query_get("markdown", "cc_context")
 
-  local tree = chat.chat_parser:parse()[1]
+  local tree = chat.parsers.markdown:parse()[1]
   local root = tree:root()
 
   local role = nil
@@ -352,7 +352,7 @@ end
 function Context:get_from_chat()
   local query = query_get("markdown", "cc_context")
 
-  local tree = self.Chat.chat_parser:parse()[1]
+  local tree = self.Chat.parsers.markdown:parse()[1]
   local root = tree:root()
 
   local items = {}

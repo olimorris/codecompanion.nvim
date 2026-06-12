@@ -1,5 +1,25 @@
 # Changelog
 
+## [19.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.14.0...v19.15.0) (2026-06-09)
+
+
+### Features
+
+* **adapters:** add new anthropic models ([#3148](https://github.com/olimorris/codecompanion.nvim/issues/3148)) ([7564285](https://github.com/olimorris/codecompanion.nvim/commit/756428554452739d429ef21008fa8025201ea755))
+* **mcp:** support lazy mcp config ([#3147](https://github.com/olimorris/codecompanion.nvim/issues/3147)) ([c8b776f](https://github.com/olimorris/codecompanion.nvim/commit/c8b776fd2ddcfb5492ab55f9f48402b4b564049a))
+* **ui:** improve acp tool formatting in the chat ([#3149](https://github.com/olimorris/codecompanion.nvim/issues/3149)) ([ed3ffd5](https://github.com/olimorris/codecompanion.nvim/commit/ed3ffd55dd29348d80ffe4eb99265d90ce40b061))
+
+
+### Bug Fixes
+
+* **adapters:** copilot models and top_p hyperparameter ([#3140](https://github.com/olimorris/codecompanion.nvim/issues/3140)) ([8e6357a](https://github.com/olimorris/codecompanion.nvim/commit/8e6357aafb72e0158a39607d96f7275dab8963be))
+* **chat:** context management in copilot ([#3146](https://github.com/olimorris/codecompanion.nvim/issues/3146)) ([6e89152](https://github.com/olimorris/codecompanion.nvim/commit/6e89152e763a298346e7eaee3cd16229cb567ae3))
+
+
+### Performance Improvements
+
+* **chat:** add ts caching and remove vim.iter calls ([#3145](https://github.com/olimorris/codecompanion.nvim/issues/3145)) ([8c29e80](https://github.com/olimorris/codecompanion.nvim/commit/8c29e80778fe420a8b5b870928808f2f9de3369c))
+
 ## [19.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.13.0...v19.14.0) (2026-06-04)
 
 

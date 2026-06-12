@@ -39,6 +39,10 @@ luac.out
 *.x86_64
 *.hex
 
+# Testing
+.env
+config.local.lua
+
 # Macos
 .DS_Store
 

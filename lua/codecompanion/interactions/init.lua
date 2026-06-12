@@ -239,6 +239,9 @@ function Interactions:workflow()
     messages = messages,
     tools = get_tools(self.selected),
   })
+  if not chat then
+    return
+  end
 
   if workflow.context then
     self.add_context(workflow, chat)
