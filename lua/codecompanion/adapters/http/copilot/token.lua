@@ -170,7 +170,7 @@ local function get_oauth_token()
     end
   end
 
-  local db_path = config_path .. "/github-copilot/apps.db"
+  local db_path = config_path .. "/github-copilot/auth.db"
   if vim.uv.fs_stat(db_path) then
     return get_oauth_token_from_sqlite(db_path)
   end
