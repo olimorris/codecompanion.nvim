@@ -6,29 +6,10 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
--- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
 ---@class CopilotToken
----@field annotations_enabled boolean
----@field chat_enabled boolean
----@field chat_jetbrains_enabled boolean
----@field code_quote_enabled boolean
----@field codesearch boolean
----@field copilotignore_enabled boolean
 ---@field endpoints { api: string, ["origin-tracker"]: string, proxy: string, telemetry: string }
 ---@field expires_at number
----@field individual boolean
----@field nes_enabled boolean
----@field prompt_8k boolean
----@field public_suggestions string
----@field refresh_in number
----@field sku string
----@field snippy_load_test_enabled boolean
----@field telemetry string
 ---@field token string -- The actual token we use in our requests
----@field tracking_id string
----@field vsc_electron_fetcher boolean
----@field xcode boolean
----@field xcode_chat boolean
 
 ---@alias CopilotOAuthToken string|nil
 M._oauth_token = nil
@@ -41,7 +22,7 @@ local _token_fetch_in_progress = false
 local _token_wait_timeout = 5000 -- ms
 local _token_wait_interval = 50 -- ms
 
----Finds the configuration path
+---Finds the path where the token is stored
 ---@return string|nil
 local function find_config_path()
   if os.getenv("CODECOMPANION_TOKEN_PATH") then
@@ -65,9 +46,7 @@ local function find_config_path()
   end
 end
 
----The function first attempts to load the token from the environment variables,
----specifically for GitHub Codespaces. If not found, it then attempts to load
----the token from configuration files located in the user's configuration path.
+---Tries to retrieve the GitHub OAuth token from the user's disk
 ---@return CopilotOAuthToken
 local function get_oauth_token()
   if M._oauth_token then
@@ -85,9 +64,11 @@ local function get_oauth_token()
     return nil
   end
 
+  --- 1. Try searching the JSON files for the token
+
   local file_paths = {
-    config_path .. "/github-copilot/hosts.json",
-    config_path .. "/github-copilot/apps.json",
+    vim.fs.joinpath(config_path, "github-copilot", "hosts.json"),
+    vim.fs.joinpath(config_path, "github-copilot", "apps.json"),
   }
 
   for _, file_path in ipairs(file_paths) do
@@ -108,6 +89,31 @@ local function get_oauth_token()
           return value.oauth_token
         end
       end
+    end
+  end
+
+  -- 2. Then try querying the SQLite database
+
+  local db_path = vim.fs.joinpath(config_path, "github-copilot", "auth.db")
+  if vim.uv.fs_stat(db_path) then
+    if vim.fn.executable("sqlite3") == 0 then
+      log:error("Copilot Adapter: sqlite3 is required to read tokens from the database")
+      return nil
+    end
+
+    local db_token
+    vim
+      .system(
+        { "sqlite3", db_path, "SELECT token_ciphertext FROM oauth_tokens WHERE auth_authority == 'github.com' LIMIT 1" },
+        { text = true },
+        function(obj)
+          db_token = vim.trim(obj.stdout)
+        end
+      )
+      :wait()
+
+    if db_token and db_token ~= "" then
+      return db_token
     end
   end
 
