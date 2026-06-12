@@ -92,7 +92,7 @@ local function get_oauth_token()
     end
   end
 
-  -- 2. Then try quering the SQLite database
+  -- 2. Then try querying the SQLite database
 
   local db_path = vim.fs.joinpath(config_path, "github-copilot", "auth.db")
   if vim.uv.fs_stat(db_path) then
