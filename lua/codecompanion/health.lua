@@ -25,6 +25,7 @@ M.libraries = {
   { name = "curl" },
   { name = "file", optional = true }, -- used to guess mimetype for multimodal.
   { name = "rg", optional = true },
+  { name = "sqlite3", optional = true }, -- used to read Copilot tokens from the SQLite database
 }
 
 M.adapters = {
