@@ -39,6 +39,7 @@ Core: `lua/codecompanion/`
 
 - Don't over-explore the codebase with excessive grep/read calls. If you haven't converged on an approach after 3-4 searches, pause and share what you've found so far rather than continuing to search.
 - When the user asks to fix tests, fix the tests — not the source code — unless explicitly asked otherwise.
+- If you're working with directories or files, utilise the functions in `codecompanion/utils/files.lua` ensuring you join paths with `vim.fs.joinpath`
 
 ## Important instructions
 
