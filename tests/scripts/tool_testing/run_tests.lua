@@ -358,10 +358,12 @@ local function write_csv_row(opts)
     return
   end
   if not file_exists then
-    f:write("run_at,adapter,model,scenario,result,duration_s,tool_calls,tokens,error\n")
+    f:write("run_at,id,adapter,model,scenario,result,duration_s,tool_calls,tokens,error\n")
   end
+
   local row = {
     csv_escape(result.timestamp),
+    csv_escape(result.adapter .. "-" .. result.model .. "-" .. result.scenario):gsub(" ", "_"),
     csv_escape(result.adapter),
     csv_escape(result.model),
     csv_escape(result.scenario),
