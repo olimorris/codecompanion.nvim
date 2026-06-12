@@ -1,0 +1,258 @@
+-- A realistic TypeScript API client (~100 lines).
+-- Model reads first, then makes targeted changes including adding a new method.
+
+local CONTENT = {
+  "interface RequestOptions {",
+  '  body?: unknown;',
+  '  headers?: Record<string, string>;',
+  '  method?: "DELETE" | "GET" | "PATCH" | "POST" | "PUT";',
+  '  retries?: number;',
+  '  timeout?: number;',
+  "}",
+  "",
+  "interface ApiResponse<T> {",
+  "  data: T;",
+  "  headers: Record<string, string>;",
+  "  status: number;",
+  "}",
+  "",
+  "class ApiError extends Error {",
+  "  constructor(",
+  "    public readonly status: number,",
+  "    public readonly message: string,",
+  "    public readonly body?: unknown",
+  "  ) {",
+  "    super(`HTTP ${status}: ${message}`);",
+  '    this.name = "ApiError";',
+  "  }",
+  "}",
+  "",
+  "class ApiClient {",
+  "  private readonly baseUrl: string;",
+  "  private readonly defaultHeaders: Record<string, string>;",
+  "  private readonly defaultTimeout: number;",
+  "",
+  "  constructor(baseUrl: string, options: { apiKey?: string; timeout?: number } = {}) {",
+  '    this.baseUrl = baseUrl.replace(/\\/$/, "");',
+  "    this.defaultTimeout = options.timeout ?? 10000;",
+  "    this.defaultHeaders = {",
+  '      "Accept": "application/json",',
+  '      "Content-Type": "application/json",',
+  "      ...(options.apiKey ? { \"Authorization\": `Bearer ${options.apiKey}` } : {}),",
+  "    };",
+  "  }",
+  "",
+  "  async request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {",
+  "    const url = `${this.baseUrl}${path}`;",
+  "    const controller = new AbortController();",
+  "    const timeout = options.timeout ?? this.defaultTimeout;",
+  "    const timer = setTimeout(() => controller.abort(), timeout);",
+  "",
+  "    try {",
+  "      const response = await fetch(url, {",
+  "        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,",
+  "        headers: { ...this.defaultHeaders, ...options.headers },",
+  "        method: options.method ?? \"GET\",",
+  "        signal: controller.signal,",
+  "      });",
+  "",
+  "      const responseHeaders: Record<string, string> = {};",
+  "      response.headers.forEach((value, key) => {",
+  "        responseHeaders[key] = value;",
+  "      });",
+  "",
+  "      if (!response.ok) {",
+  "        const body = await response.json().catch(() => null);",
+  "        throw new ApiError(response.status, response.statusText, body);",
+  "      }",
+  "",
+  "      const data = await response.json() as T;",
+  "      return { data, headers: responseHeaders, status: response.status };",
+  "    } catch (err) {",
+  "      if (err instanceof ApiError) throw err;",
+  '      if ((err as Error).name === "AbortError") {',
+  "        throw new ApiError(408, `Request timed out after ${timeout}ms`);",
+  "      }",
+  "      throw err;",
+  "    } finally {",
+  "      clearTimeout(timer);",
+  "    }",
+  "  }",
+  "",
+  "  async get<T>(path: string, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, method: "GET" });',
+  "  }",
+  "",
+  "  async post<T>(path: string, body: unknown, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, body, method: "POST" });',
+  "  }",
+  "",
+  "  async put<T>(path: string, body: unknown, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, body, method: "PUT" });',
+  "  }",
+  "",
+  "  async delete<T>(path: string, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, method: "DELETE" });',
+  "  }",
+  "}",
+  "",
+  "export { ApiClient, ApiError };",
+  "export type { ApiResponse, RequestOptions };",
+}
+
+local EXPECTED = {
+  "interface RequestOptions {",
+  '  body?: unknown;',
+  '  headers?: Record<string, string>;',
+  '  method?: "DELETE" | "GET" | "PATCH" | "POST" | "PUT";',
+  '  retries?: number;',
+  '  timeout?: number;',
+  "}",
+  "",
+  "interface ApiResponse<T> {",
+  "  data: T;",
+  "  headers: Record<string, string>;",
+  "  status: number;",
+  "}",
+  "",
+  "class ApiError extends Error {",
+  "  constructor(",
+  "    public readonly status: number,",
+  "    public readonly message: string,",
+  "    public readonly body?: unknown",
+  "  ) {",
+  "    super(`HTTP ${status}: ${message}`);",
+  '    this.name = "ApiError";',
+  "  }",
+  "}",
+  "",
+  "class ApiClient {",
+  "  private readonly baseUrl: string;",
+  "  private readonly defaultHeaders: Record<string, string>;",
+  "  private readonly defaultTimeout: number;",
+  "",
+  "  constructor(baseUrl: string, options: { apiKey?: string; timeout?: number } = {}) {",
+  '    this.baseUrl = baseUrl.replace(/\\/$/, "");',
+  "    this.defaultTimeout = options.timeout ?? 30000;",
+  "    this.defaultHeaders = {",
+  '      "Accept": "application/json",',
+  '      "Content-Type": "application/json",',
+  "      ...(options.apiKey ? { \"Authorization\": `Bearer ${options.apiKey}` } : {}),",
+  "    };",
+  "  }",
+  "",
+  "  async request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {",
+  "    const url = `${this.baseUrl}${path}`;",
+  "    const controller = new AbortController();",
+  "    const timeout = options.timeout ?? this.defaultTimeout;",
+  "    const timer = setTimeout(() => controller.abort(), timeout);",
+  "",
+  "    try {",
+  "      const response = await fetch(url, {",
+  "        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,",
+  "        headers: { ...this.defaultHeaders, ...options.headers },",
+  "        method: options.method ?? \"GET\",",
+  "        signal: controller.signal,",
+  "      });",
+  "",
+  "      const responseHeaders: Record<string, string> = {};",
+  "      response.headers.forEach((value, key) => {",
+  "        responseHeaders[key] = value;",
+  "      });",
+  "",
+  "      if (!response.ok) {",
+  "        const body = await response.json().catch(() => null);",
+  "        throw new ApiError(response.status, response.statusText, body);",
+  "      }",
+  "",
+  "      const data = await response.json() as T;",
+  "      return { data, headers: responseHeaders, status: response.status };",
+  "    } catch (err) {",
+  "      if (err instanceof ApiError) throw err;",
+  '      if ((err as Error).name === "AbortError") {',
+  "        throw new ApiError(408, `Request timed out after ${timeout}ms`);",
+  "      }",
+  "      throw err;",
+  "    } finally {",
+  "      clearTimeout(timer);",
+  "    }",
+  "  }",
+  "",
+  "  async get<T>(path: string, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, method: "GET" });',
+  "  }",
+  "",
+  "  async patch<T>(path: string, body: unknown, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, body, method: "PATCH" });',
+  "  }",
+  "",
+  "  async post<T>(path: string, body: unknown, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, body, method: "POST" });',
+  "  }",
+  "",
+  "  async put<T>(path: string, body: unknown, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, body, method: "PUT" });',
+  "  }",
+  "",
+  "  async delete<T>(path: string, options?: Omit<RequestOptions, \"body\" | \"method\">): Promise<ApiResponse<T>> {",
+  '    return this.request<T>(path, { ...options, method: "DELETE" });',
+  "  }",
+  "}",
+  "",
+  "export { ApiClient, ApiError };",
+  "export type { ApiResponse, RequestOptions };",
+}
+
+return {
+  cleanup = function(ctx)
+    vim.fn.delete(ctx.test_file)
+  end,
+
+  description = "read_file + insert_edit_into_file: realistic TypeScript API client (~100 lines) — change timeout default and insert a new method",
+  name = "Real-world TypeScript client",
+  tools = { "read_file", "insert_edit_into_file" },
+  tools_required = { "read_file", "insert_edit_into_file" },
+
+  setup = function()
+    local test_file = vim.fn.tempname() .. ".ts"
+    vim.fn.writefile(CONTENT, test_file)
+    return { test_file = test_file }
+  end,
+
+  prompt = function(ctx)
+    return string.format(
+      [[First use @{read_file} to read `%s`, then use @{insert_edit_into_file} to make two changes in a single tool call:
+
+1. Change the default timeout from `10000` to `30000` in the constructor: `options.timeout ?? 10000` → `options.timeout ?? 30000`
+2. Add a `patch` method between `get` and `post` (after the closing brace of `get`, before `post`):
+```typescript
+  async patch<T>(path: string, body: unknown, options?: Omit<RequestOptions, "body" | "method">): Promise<ApiResponse<T>> {
+    return this.request<T>(path, { ...options, body, method: "PATCH" });
+  }
+```
+
+Read the file first. Do not ask for permission — call the tools directly.]],
+      ctx.test_file
+    )
+  end,
+
+  validate = function(ctx, run)
+    local actual = vim.fn.readfile(ctx.test_file)
+    if actual[#actual] == "" then
+      actual[#actual] = nil
+    end
+    local file_ok = vim.deep_equal(actual, EXPECTED)
+    local read_called = false
+    for _, call in ipairs(run.tool_calls) do
+      if call.name == "read_file" then
+        read_called = true
+        break
+      end
+    end
+    return file_ok and read_called, {
+      actual = table.concat(actual, "\n"),
+      expected = table.concat(EXPECTED, "\n"),
+      read_called = read_called,
+    }
+  end,
+}
