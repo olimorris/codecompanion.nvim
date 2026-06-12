@@ -534,6 +534,77 @@ T["Token initialization"]["forces token init for synchronous model fetching"] = 
   h.eq(token_child.lua_get("_G.init_called"), true)
 end
 
+T["Token initialization"]["loads oauth token from apps.db"] = function()
+  token_child.lua([[
+    local config_dir = vim.fn.tempname()
+    local copilot_dir = config_dir .. "/github-copilot"
+    local db_path = copilot_dir .. "/apps.db"
+
+    vim.fn.mkdir(copilot_dir, "p")
+    vim.fn.writefile({ "" }, db_path)
+
+    vim.env.CODECOMPANION_TOKEN_PATH = config_dir
+
+    package.loaded["codecompanion.config"] = require("tests.config")
+    package.loaded["plenary.curl"] = {
+      get = function()
+        return {
+          body = vim.json.encode({
+            token = "test_copilot_token",
+            expires_at = os.time() + 3600,
+            endpoints = { api = "https://api.githubcopilot.com" },
+          }),
+        }
+      end,
+    }
+
+    package.loaded["sqlite.db"] = nil
+    package.preload["sqlite.db"] = function()
+      return {
+        open = function(_, opened_path, opts)
+          _G.sqlite_opened_path = opened_path
+          _G.sqlite_open_mode = opts.open_mode
+          _G.sqlite_expected_path = db_path
+
+          return {
+            eval = function(_, query)
+              if query:find("sqlite_master", 1, true) then
+                return { { name = "github_users" } }
+              end
+
+              if query:find("SELECT token_ciphertext", 1, true) then
+                return { { token_ciphertext = "db_oauth_token" } }
+              end
+
+              return {}
+            end,
+            close = function() end,
+          }
+        end,
+      }
+    end
+
+    package.loaded["codecompanion.adapters.http.copilot.token"] = nil
+
+    local token = require("codecompanion.adapters.http.copilot.token")
+    token._oauth_token = nil
+    token._copilot_token = nil
+
+    local fetched = token.fetch({ force = true })
+    _G.oauth_token_from_apps_db = fetched.oauth_token
+    _G.copilot_token_from_apps_db = fetched.copilot_token
+
+    package.preload["sqlite.db"] = nil
+    vim.fn.delete(config_dir, "rf")
+    vim.env.CODECOMPANION_TOKEN_PATH = nil
+  ]])
+
+  h.eq(token_child.lua_get("_G.sqlite_opened_path"), token_child.lua_get("_G.sqlite_expected_path"))
+  h.eq(token_child.lua_get("_G.sqlite_open_mode"), "ro")
+  h.eq(token_child.lua_get("_G.oauth_token_from_apps_db"), "db_oauth_token")
+  h.eq(token_child.lua_get("_G.copilot_token_from_apps_db"), "test_copilot_token")
+end
+
 T["test model selection dialog works with copilot adapter"] = function()
   local child = MiniTest.new_child_neovim()
   child.restart({ "-u", "scripts/minimal_init.lua" })

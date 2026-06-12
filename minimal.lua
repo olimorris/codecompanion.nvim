@@ -5,6 +5,7 @@ NOTE: Set the config path to enable the copilot adapter to work.
 It will search the following paths for a token:
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
+  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.db"
 --]]
 vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 

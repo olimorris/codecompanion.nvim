@@ -32,7 +32,7 @@ test_file: deps
 	@echo Testing File...
 	LC_ALL=C nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')"
 
-deps: deps/plenary.nvim deps/nvim-treesitter deps/mini.nvim deps/panvimdoc
+deps: deps/plenary.nvim deps/nvim-treesitter deps/mini.nvim deps/panvimdoc deps/sqlite.lua
 	@echo Pulling...
 
 deps/plenary.nvim:
@@ -51,3 +51,7 @@ deps/mini.nvim:
 deps/panvimdoc:
 	@mkdir -p deps
 	git clone --filter=blob:none https://github.com/kdheepak/panvimdoc $@
+
+deps/sqlite.lua:
+	@mkdir -p deps
+	git clone --filter=blob:none https://github.com/kkharji/sqlite.lua $@

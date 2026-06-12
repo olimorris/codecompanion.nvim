@@ -65,6 +65,65 @@ local function find_config_path()
   end
 end
 
+---Run a sqlite query and return the first row
+---@param db table
+---@param file_path string
+---@param query string
+---@return table|nil
+local function query_sqlite_row(db, file_path, query)
+  local ok, rows = pcall(db.eval, db, query)
+  if not ok then
+    log:error("Copilot Adapter: Could not read token from %s: %s", file_path, rows)
+    return nil
+  end
+
+  if type(rows) ~= "table" or not rows[1] then
+    return nil
+  end
+
+  return rows[1]
+end
+
+---Read an OAuth token from a Copilot sqlite database
+---@param file_path string
+---@return string|nil
+local function get_oauth_token_from_sqlite(file_path)
+  local ok, sqlite_db = pcall(require, "sqlite.db")
+  if not ok then
+    log:error("Copilot Adapter: Could not read token from %s: sqlite.lua is not available", file_path)
+    return nil
+  end
+
+  local db_ok, db = pcall(function()
+    return sqlite_db:open(file_path, { open_mode = "ro" })
+  end)
+  if not db_ok then
+    log:error("Copilot Adapter: Could not open token database %s: %s", file_path, db)
+    return nil
+  end
+
+  local table_name_row = query_sqlite_row(
+    db,
+    file_path,
+    "SELECT DISTINCT m.name AS name FROM sqlite_master AS m "
+      .. "JOIN pragma_table_info(m.name) AS p "
+      .. "WHERE m.type = 'table' AND p.name = 'token_ciphertext' LIMIT 1;"
+  )
+  if not table_name_row then
+    db:close()
+    return nil
+  end
+
+  local token_row = query_sqlite_row(
+    db,
+    file_path,
+    string.format('SELECT token_ciphertext FROM "%s" LIMIT 1;', table_name_row.name:gsub('"', '""'))
+  )
+  db:close()
+
+  return token_row and token_row.token_ciphertext or nil
+end
+
 ---The function first attempts to load the token from the environment variables,
 ---specifically for GitHub Codespaces. If not found, it then attempts to load
 ---the token from configuration files located in the user's configuration path.
@@ -109,6 +168,11 @@ local function get_oauth_token()
         end
       end
     end
+  end
+
+  local db_path = config_path .. "/github-copilot/apps.db"
+  if vim.uv.fs_stat(db_path) then
+    return get_oauth_token_from_sqlite(db_path)
   end
 
   return nil
