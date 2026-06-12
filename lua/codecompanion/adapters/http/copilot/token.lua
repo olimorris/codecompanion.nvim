@@ -95,7 +95,12 @@ local function get_oauth_token()
   -- 2. Then try quering the SQLite database
 
   local db_path = vim.fs.joinpath(config_path, "github-copilot", "auth.db")
-  if vim.uv.fs_stat(db_path) and vim.fn.executable("sqlite3") then
+  if vim.uv.fs_stat(db_path) then
+    if vim.fn.executable("sqlite3") == 0 then
+      log:error("Copilot Adapter: sqlite3 is required to read tokens from the database")
+      return nil
+    end
+
     local db_token
     vim
       .system(
