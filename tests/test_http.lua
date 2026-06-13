@@ -9,14 +9,8 @@ local T = new_set({
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
       child.lua([[
-        _G.__calls = {
-          post = 0,
-          get = 0,
-          shutdown_called = false,
-          err_received = nil,
-          callback_calls = 0,
-          done_called = false,
-        }
+        -- Counters maintained by the default POST/GET stubs
+        _G.__calls = { get = 0, post = 0 }
 
         -- Factory for a minimal adapter
         _G.__make_adapter = function(overrides)
@@ -66,14 +60,14 @@ local T = new_set({
           default = function(opts)
             _G.__calls.post = _G.__calls.post + 1
             _G.__last_request_opts = opts
-            return { args = "mocked args", shutdown = function() _G.__calls.shutdown_called = true end }
+            return { args = "mocked args", shutdown = function() end }
           end,
         }
         _G.Client.static.methods.get = {
           default = function(opts)
             _G.__calls.get = _G.__calls.get + 1
             _G.__last_request_opts = opts
-            return { args = "mocked args", shutdown = function() _G.__calls.shutdown_called = true end }
+            return { args = "mocked args", shutdown = function() end }
           end,
         }
       ]])
@@ -85,7 +79,7 @@ local T = new_set({
 T["can call POST API endpoint"] = function()
   child.lua([[
     local adapter = __make_adapter()
-    local cb = function() _G.__calls.callback_calls = _G.__calls.callback_calls + 1 end
+    local cb = function() end
     Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
   ]])
 
@@ -168,68 +162,64 @@ T["dispatches GET when method is GET"] = function()
 end
 
 T["invokes on_error callback with error"] = function()
-  child.lua([[
+  local result = child.lua([[
     -- Override POST to trigger on_error
     _G.Client.static.methods.post = {
       default = function(opts)
-        _G.__calls.post = _G.__calls.post + 1
-        _G.__last_request_opts = opts
         opts.on_error({ message = "boom", stderr = "boom" })
         return { args = "mocked args", shutdown = function() end }
       end,
     }
 
     local adapter = __make_adapter()
+    local err_received
     local cb = function(err, _)
-      _G.__calls.err_received = err and err.message or nil
+      err_received = err and err.message or nil
     end
     Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
 
-    -- schedule is synchronous, but keep a small wait for safety
-    vim.wait(10, function() return _G.__calls.err_received ~= nil end, 1)
+    return { err_received = err_received }
   ]])
 
-  h.eq(child.lua_get([[_G.__calls.err_received]]), "boom")
+  h.eq(result.err_received, "boom")
 end
 
 T["calls done then emits error callback for HTTP status >= 400"] = function()
-  child.lua([[
+  local result = child.lua([[
     -- Override POST to simulate a non-streaming 500 response
     _G.Client.static.methods.post = {
       default = function(opts)
-        _G.__calls.post = _G.__calls.post + 1
-        _G.__last_request_opts = opts
         opts.callback({ status = 500 })
         return { args = "mocked args", shutdown = function() end }
       end,
     }
 
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
+    local callback_calls = 0
+    local err_received
     local cb = function(err, _)
-      _G.__calls.callback_calls = _G.__calls.callback_calls + 1
-      if err then _G.__calls.err_received = err.message end
+      callback_calls = callback_calls + 1
+      if err then err_received = err.message end
     end
-    local done = function() _G.__calls.done_called = true end
+    local done_called = false
+    local done = function() done_called = true end
 
     Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb, done = done }, {})
 
-    vim.wait(20, function()
-      return _G.__calls.done_called == true and _G.__calls.callback_calls >= 2 and _G.__calls.err_received ~= nil
-    end, 1)
+    return { callback_calls = callback_calls, done_called = done_called, err_received = err_received }
   ]])
 
-  h.eq(child.lua_get([[_G.__calls.done_called]]), true)
-  h.eq(child.lua_get([[_G.__calls.callback_calls]]), 2)
-  h.eq(child.lua_get([[_G.__calls.err_received]]), "500 error: ")
+  h.eq(result.done_called, true)
+  h.eq(result.callback_calls, 2)
+  h.eq(result.err_received, "500 error: ")
 end
 
 T["send_sync returns response on success"] = function()
-  child.lua([[
+  local result = child.lua([[
     -- Override POST to return a synchronous success response
     _G.Client.static.methods.post = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
-        _G.__last_request_opts = opts
         return { status = 200, headers = { "OK" }, body = "ok", exit = 0 }
       end,
     }
@@ -237,24 +227,26 @@ T["send_sync returns response on success"] = function()
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
     local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
 
-    _G.__sync_resp_status = resp and resp.status or nil
-    _G.__sync_resp_body = resp and resp.body or nil
-    _G.__sync_err_is_nil = (err == nil)
+    return {
+      body = resp and resp.body or nil,
+      err_is_nil = err == nil,
+      post = _G.__calls.post,
+      status = resp and resp.status or nil,
+    }
   ]])
 
-  h.eq(child.lua_get([[_G.__calls.post]]), 1)
-  h.eq(child.lua_get([[_G.__sync_resp_status]]), 200)
-  h.eq(child.lua_get([[_G.__sync_resp_body]]), "ok")
-  h.eq(child.lua_get([[_G.__sync_err_is_nil]]), true)
+  h.eq(result.post, 1)
+  h.eq(result.status, 200)
+  h.eq(result.body, "ok")
+  h.eq(result.err_is_nil, true)
 end
 
 T["send_sync returns error on HTTP status >= 400"] = function()
-  child.lua([[
+  local result = child.lua([[
     -- Override POST to return a synchronous 500 response
     _G.Client.static.methods.post = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
-        _G.__last_request_opts = opts
         return { status = 500, headers = { "ERR" }, body = "boom", exit = 0 }
       end,
     }
@@ -262,22 +254,24 @@ T["send_sync returns error on HTTP status >= 400"] = function()
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
     local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
 
-    _G.__sync_resp_is_nil = (resp == nil)
-    _G.__sync_err_message = err and err.message or nil
+    return {
+      err_message = err and err.message or nil,
+      post = _G.__calls.post,
+      resp_is_nil = resp == nil,
+    }
   ]])
 
-  h.eq(child.lua_get([[_G.__calls.post]]), 1)
-  h.eq(child.lua_get([[_G.__sync_resp_is_nil]]), true)
-  h.eq(child.lua_get([[_G.__sync_err_message]]), "500 error: ")
+  h.eq(result.post, 1)
+  h.eq(result.resp_is_nil, true)
+  h.eq(result.err_message, "500 error: ")
 end
 
 T["send_sync returns error when curl call fails"] = function()
-  child.lua([[
+  local result = child.lua([[
     -- Override POST to simulate a thrown error in curl
     _G.Client.static.methods.post = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
-        _G.__last_request_opts = opts
         error("curl failed")
       end,
     }
@@ -285,17 +279,20 @@ T["send_sync returns error when curl call fails"] = function()
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
     local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
 
-    _G.__sync_resp_is_nil = (resp == nil)
-    _G.__sync_err_message = err and err.message or nil
+    return {
+      err_message = err and err.message or nil,
+      post = _G.__calls.post,
+      resp_is_nil = resp == nil,
+    }
   ]])
 
-  h.eq(child.lua_get([[_G.__calls.post]]), 1)
-  h.eq(child.lua_get([[_G.__sync_resp_is_nil]]), true)
-  h.expect_contains("curl failed", child.lua_get([[_G.__sync_err_message]]))
+  h.eq(result.post, 1)
+  h.eq(result.resp_is_nil, true)
+  h.expect_contains("curl failed", result.err_message)
 end
 
 T["handles nil data with captured stream error"] = function()
-  child.lua([[
+  local result = child.lua([[
     _G.Client.static.methods.post = {
       default = function(opts)
         if opts.stream then
@@ -307,16 +304,17 @@ T["handles nil data with captured stream error"] = function()
     }
 
     local adapter = __make_adapter({ opts = { method = "POST", stream = true } })
+    local err_received
     local cb = function(err, _)
-      if err then _G.__calls.err_received = err.message end
+      if err then err_received = err.message end
     end
 
     Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
 
-    vim.wait(20, function() return _G.__calls.err_received ~= nil end, 1)
+    return { err_received = err_received }
   ]])
 
-  h.eq(child.lua_get([[_G.__calls.err_received]]), "Request failed")
+  h.eq(result.err_received, "Request failed")
 end
 
 return T
