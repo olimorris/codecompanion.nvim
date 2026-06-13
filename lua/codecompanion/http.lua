@@ -9,9 +9,9 @@ local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.HTTPClient
 ---@field adapter CodeCompanion.HTTPAdapter
----@field static table
----@field opts nil|table
 ---@field methods table
+---@field opts nil|table
+---@field static table
 ---@field user_args nil|table
 local Client = {}
 Client.static = {}
@@ -24,6 +24,19 @@ Client.static.methods = {
   schedule = { default = vim.schedule },
   schedule_wrap = { default = vim.schedule_wrap },
 }
+
+---Write HTTP headers to a temp file on disk
+---@param headers table
+---@return table
+local function write_headers_file(headers)
+  local lines = {}
+  for k, v in pairs(headers) do
+    table.insert(lines, k .. ": " .. tostring(v))
+  end
+  local file = Path.new(vim.fn.tempname() .. ".headers")
+  file:write(table.concat(lines, "\n"), "w")
+  return file
+end
 
 ---Allow for easier testing/mocking of the static methods
 ---@param opts? table
@@ -202,12 +215,6 @@ function Client:send_sync(payload, opts)
   local body_file = Path.new(vim.fn.tempname() .. ".json")
   body_file:write(vim.split(body, "\n"), "w")
 
-  local function cleanup_file()
-    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
-      body_file:rm()
-    end
-  end
-
   local raw = {
     "--retry",
     "3",
@@ -223,9 +230,18 @@ function Client:send_sync(payload, opts)
     vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
   end
 
+  local headers_file = write_headers_file(adapter_utils.set_env_vars(adapter, adapter.headers))
+  vim.list_extend(raw, { "--header", "@" .. headers_file.filename })
+
+  local function cleanup_file()
+    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
+      body_file:rm()
+      headers_file:rm()
+    end
+  end
+
   local request_opts = {
     url = adapter_utils.set_env_vars(adapter, adapter.url),
-    headers = adapter_utils.set_env_vars(adapter, adapter.headers),
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
@@ -330,12 +346,6 @@ function Client:request(payload, actions, opts)
 
   log:info("Request body file: %s", body_file.filename)
 
-  local function cleanup(status)
-    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
-      body_file:rm()
-    end
-  end
-
   local raw = {
     "--retry",
     "3",
@@ -356,12 +366,21 @@ function Client:request(payload, actions, opts)
     vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
   end
 
+  local headers_file = write_headers_file(adapter_utils.set_env_vars(adapter, adapter.headers))
+  vim.list_extend(raw, { "--header", "@" .. headers_file.filename })
+
+  local function cleanup(status)
+    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
+      body_file:rm()
+      headers_file:rm()
+    end
+  end
+
   -- Capture streaming errors for use in final callback
   local stream_error_body = nil
 
   local request_opts = {
     url = adapter_utils.set_env_vars(adapter, adapter.url),
-    headers = adapter_utils.set_env_vars(adapter, adapter.headers),
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
