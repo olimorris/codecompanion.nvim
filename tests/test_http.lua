@@ -100,11 +100,44 @@ T["substitutes variables in url, headers, and raw"] = function()
   ]])
 
   h.eq(child.lua_get([[ _G.__last_request_opts.url ]]), "https://api.openai.com/v1/chat/completions")
-  h.eq(child.lua_get([[ _G.__last_request_opts.headers.content_type ]]), "application/json")
-  local last1 = child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw - 1] ]])
-  local last2 = child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw] ]])
+
+  -- Headers are written to a file and passed via --header @file to avoid exposure in process args
+  local header_arg = child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw] ]])
+  local header_path = header_arg:match("^@(.+)$")
+  h.eq(type(header_path), "string")
+  h.eq(child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw - 1] ]]), "--header")
+  h.eq(vim.tbl_contains(vim.fn.readfile(header_path), "content_type: application/json"), true)
+
+  -- adapter.raw entries come before --header @file
+  local last1 = child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw - 3] ]])
+  local last2 = child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw - 2] ]])
   h.eq(last1, "--arg1-RAW_VALUE")
   h.eq(last2, "--arg2-RAW_VALUE")
+end
+
+T["writes headers to a temp file with one header per line"] = function()
+  child.lua([[
+    local adapter = __make_adapter()
+    local cb = function() end
+    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+  ]])
+
+  -- Headers must not appear as process args
+  h.eq(child.lua_get([[ type(_G.__last_request_opts.headers) ]]), "nil")
+
+  -- --header @file is the last two entries in raw
+  h.eq(child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw - 1] ]]), "--header")
+  local header_arg = child.lua_get([[ _G.__last_request_opts.raw[#_G.__last_request_opts.raw] ]])
+  h.eq(header_arg:match("^@.+%.headers$") ~= nil, true)
+
+  -- File has env vars substituted and each header on its own line
+  local header_path = header_arg:match("^@(.+)$")
+  local lines = vim.fn.readfile(header_path)
+  h.eq(#lines > 0, true)
+  h.eq(vim.tbl_contains(lines, "content_type: application/json"), true)
+  for _, line in ipairs(lines) do
+    h.eq(line:match("^[^:]+: .+") ~= nil, true)
+  end
 end
 
 T["adds streaming flags and stream handler when stream=true"] = function()
