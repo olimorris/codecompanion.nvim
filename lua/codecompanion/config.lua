@@ -1045,6 +1045,12 @@ The user is working on a %s machine. Please respond with system specific command
             ".codecompanion/tests/test.md",
           },
         },
+        ["automated-tool-testing"] = {
+          description = "Automating the testing of tools within the plugin",
+          files = {
+            ".codecompanion/tests/automated-tools.md",
+          },
+        },
         ["tools"] = {
           description = "Tools implementation in the plugin",
           files = {
