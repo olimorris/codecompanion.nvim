@@ -110,11 +110,12 @@ Do not ask for permission — call the tool directly.]],
     local old_count = select(2, content:gsub("user_id", ""))
     local new_count = select(2, content:gsub("account_id", ""))
     local ok = old_count == 0 and new_count >= 10
-    return ok, {
-      actual = content,
-      expected = table.concat(EXPECTED, "\n"),
-      old_occurrences_remaining = old_count,
-      new_occurrences = new_count,
-    }
+    return ok,
+      {
+        actual = content,
+        expected = table.concat(EXPECTED, "\n"),
+        old_occurrences_remaining = old_count,
+        new_occurrences = new_count,
+      }
   end,
 }

@@ -201,10 +201,11 @@ The file uses real tab characters for indentation — your old_string must use r
         break
       end
     end
-    return file_ok and read_called, {
-      actual = table.concat(actual, "\n"),
-      expected = table.concat(EXPECTED, "\n"),
-      read_called = read_called,
-    }
+    return file_ok and read_called,
+      {
+        actual = table.concat(actual, "\n"),
+        expected = table.concat(EXPECTED, "\n"),
+        read_called = read_called,
+      }
   end,
 }

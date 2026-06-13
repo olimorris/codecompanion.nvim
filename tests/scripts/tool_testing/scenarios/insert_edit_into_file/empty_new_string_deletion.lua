@@ -105,10 +105,11 @@ Do not ask for permission — call the tool directly.]],
     local ok = vim.deep_equal(actual, EXPECTED)
     local content = table.concat(actual, "\n")
     local still_has_normalize = content:find("M.normalize") ~= nil
-    return ok and not still_has_normalize, {
-      actual = content,
-      expected = table.concat(EXPECTED, "\n"),
-      still_has_normalize = still_has_normalize,
-    }
+    return ok and not still_has_normalize,
+      {
+        actual = content,
+        expected = table.concat(EXPECTED, "\n"),
+        still_has_normalize = still_has_normalize,
+      }
   end,
 }

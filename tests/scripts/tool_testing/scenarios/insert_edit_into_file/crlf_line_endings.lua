@@ -2,8 +2,10 @@
 -- After editing, line endings must still be CRLF throughout.
 
 -- CONTENT and EXPECTED are the raw file bytes (strings, not line arrays).
-local CONTENT_RAW = "local M = {}\r\n\r\nM.VERSION = '1.0.0'\r\nM.NAME = 'myapp'\r\n\r\nfunction M.greet(name)\r\n  return 'Hello, ' .. name\r\nend\r\n\r\nreturn M\r\n"
-local EXPECTED_RAW = "local M = {}\r\n\r\nM.VERSION = '1.0.0'\r\nM.NAME = 'myapp'\r\n\r\nfunction M.greet(name)\r\n  return 'Hi, ' .. name\r\nend\r\n\r\nreturn M\r\n"
+local CONTENT_RAW =
+  "local M = {}\r\n\r\nM.VERSION = '1.0.0'\r\nM.NAME = 'myapp'\r\n\r\nfunction M.greet(name)\r\n  return 'Hello, ' .. name\r\nend\r\n\r\nreturn M\r\n"
+local EXPECTED_RAW =
+  "local M = {}\r\n\r\nM.VERSION = '1.0.0'\r\nM.NAME = 'myapp'\r\n\r\nfunction M.greet(name)\r\n  return 'Hi, ' .. name\r\nend\r\n\r\nreturn M\r\n"
 
 -- Content shown to the model in the prompt (LF version for readability)
 local CONTENT_DISPLAY = {
@@ -63,12 +65,13 @@ Do not ask for permission — call the tool directly.]],
     local content_ok = actual_raw == EXPECTED_RAW
     local has_crlf = actual_raw:find("\r\n") ~= nil
     local no_bare_lf = not actual_raw:find("[^\r]\n")
-    return content_ok and has_crlf and no_bare_lf, {
-      actual = actual_raw:gsub("\r\n", "\n"),
-      content_match = content_ok,
-      expected = EXPECTED_RAW:gsub("\r\n", "\n"),
-      has_crlf = has_crlf,
-      no_bare_lf = no_bare_lf,
-    }
+    return content_ok and has_crlf and no_bare_lf,
+      {
+        actual = actual_raw:gsub("\r\n", "\n"),
+        content_match = content_ok,
+        expected = EXPECTED_RAW:gsub("\r\n", "\n"),
+        has_crlf = has_crlf,
+        no_bare_lf = no_bare_lf,
+      }
   end,
 }

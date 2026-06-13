@@ -86,11 +86,12 @@ Do not ask for permission — call the tool directly.]],
       end
     end
 
-    return file_ok and minimal, {
-      actual = table.concat(actual, "\n"),
-      expected = table.concat(EXPECTED, "\n"),
-      minimal_edit = minimal,
-      file_len = file_len,
-    }
+    return file_ok and minimal,
+      {
+        actual = table.concat(actual, "\n"),
+        expected = table.concat(EXPECTED, "\n"),
+        minimal_edit = minimal,
+        file_len = file_len,
+      }
   end,
 }

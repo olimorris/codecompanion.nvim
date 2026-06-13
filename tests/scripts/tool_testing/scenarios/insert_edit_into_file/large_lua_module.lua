@@ -425,10 +425,11 @@ Read the file first to confirm the exact content. Do not ask for permission — 
         break
       end
     end
-    return file_ok and read_called, {
-      actual = table.concat(actual, "\n"),
-      expected = table.concat(EXPECTED, "\n"),
-      read_called = read_called,
-    }
+    return file_ok and read_called,
+      {
+        actual = table.concat(actual, "\n"),
+        expected = table.concat(EXPECTED, "\n"),
+        read_called = read_called,
+      }
   end,
 }

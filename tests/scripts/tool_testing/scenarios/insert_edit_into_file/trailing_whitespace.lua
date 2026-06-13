@@ -92,10 +92,11 @@ Do not ask for permission — call the tool directly.]],
     local break_count = select(2, raw:gsub("  \n", ""))
     local breaks_ok = break_count >= 2
 
-    return content_ok and breaks_ok, {
-      actual = table.concat(actual, "\n"),
-      expected = table.concat(EXPECTED, "\n"),
-      trailing_space_line_breaks = break_count,
-    }
+    return content_ok and breaks_ok,
+      {
+        actual = table.concat(actual, "\n"),
+        expected = table.concat(EXPECTED, "\n"),
+        trailing_space_line_breaks = break_count,
+      }
   end,
 }
