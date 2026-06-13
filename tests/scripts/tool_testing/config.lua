@@ -42,8 +42,14 @@ M.output = {
 
 -- Concurrency settings
 M.concurrency = {
-  max_concurrent = 3, -- Maximum concurrent tests
-  parallel = false, -- Run adapters in parallel (true) or sequentially (false)
+  max_concurrent = 5, -- Maximum concurrent tests
+  parallel = true, -- Run adapters in parallel (true) or sequentially (false)
+}
+
+-- Success rate colour thresholds (percentage)
+M.thresholds = {
+  error_below = 50, -- red below this value
+  warn_below = 80, -- amber below this value, green at or above
 }
 
 return M
