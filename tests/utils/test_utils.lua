@@ -305,4 +305,20 @@ T["Utils"]["resolve_nested_value()"]["handles numeric keys in path"] = function(
   h.eq(result, vim.NIL) -- Won't resolve numeric keys as strings
 end
 
+T["Utils"]["timestamp_from_iso()"] = MiniTest.new_set()
+
+T["Utils"]["timestamp_from_iso()"]["parses a UTC timestamp back to the same UTC fields"] = function()
+  -- Round-trips through os.date in UTC, so the result is correct regardless of the machine's timezone
+  local result = child.lua([[
+    local ts = utils.timestamp_from_iso("2026-03-18T22:29:29.993Z")
+    return os.date("!%Y-%m-%dT%H:%M:%S", ts)
+  ]])
+  h.eq(result, "2026-03-18T22:29:29")
+end
+
+T["Utils"]["timestamp_from_iso()"]["returns nil for an unparseable string"] = function()
+  local result = child.lua([[return utils.timestamp_from_iso("not a timestamp")]])
+  h.eq(result, vim.NIL)
+end
+
 return T
