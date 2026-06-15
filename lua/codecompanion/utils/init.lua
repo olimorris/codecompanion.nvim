@@ -185,26 +185,33 @@ function M.set_option(bufnr, opt, value)
   end
 end
 
----Parse an ISO 8601 timestamp to a Unix timestamp
+---Convert an ISO 8601 timestamp to a Unix timestamp
 ---@param iso string ISO 8601 timestamp (e.g. "2026-03-18T22:29:29.993Z")
 ---@return number|nil
-function M.parse_iso8601(iso)
+function M.timestamp_from_iso(iso)
   local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)"
   local year, month, day, hour, min, sec = iso:match(pattern)
   if not year then
     return nil
   end
 
+  ---@type osdateparam
   local date = {
-    year = tonumber(year), --[[@as number]]
-    month = tonumber(month), --[[@as number]]
     day = tonumber(day), --[[@as number]]
     hour = tonumber(hour), --[[@as number]]
     min = tonumber(min), --[[@as number]]
+    month = tonumber(month), --[[@as number]]
     sec = tonumber(sec), --[[@as number]]
+    year = tonumber(year), --[[@as number]]
   }
 
-  return os.time(date)
+  -- The timestamp is UTC, but os.time() reads the table as local time, so add
+  -- the local offset from UTC to recover the true instant
+  local now = os.time()
+  local utc = os.date("!*t", now) --[[@as osdateparam]]
+  local utc_offset = os.difftime(now, os.time(utc))
+
+  return os.time(date) + utc_offset
 end
 
 ---Make a timestamp relative
