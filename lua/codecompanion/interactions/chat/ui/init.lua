@@ -520,18 +520,20 @@ end
 ---@param args { parser: table, start_row: number, tokens?: number|table }
 ---@return nil
 function UI:display_tokens(args)
-  if config.display.chat.show_token_count and args.tokens then
-    local token_text = config.display.chat.token_count
-    if type(token_text) == "function" then
-      token_text = token_text(args.tokens, self.adapter)
-      require("codecompanion.utils.tokens").display({
-        bufnr = self.chat_bufnr,
-        ns_id = CONSTANTS.NS_TOKENS,
-        parser = args.parser,
-        start_row = args.start_row,
-        token_str = token_text,
-      })
-    end
+  -- NOTE: Not handling token tables yet
+  if not config.display.chat.show_token_count or type(args.tokens) ~= "number" then
+    return
+  end
+
+  local formatter = config.display.chat.token_count
+  if type(formatter) == "function" then
+    require("codecompanion.utils.tokens").display({
+      bufnr = self.chat_bufnr,
+      ns_id = CONSTANTS.NS_TOKENS,
+      parser = args.parser,
+      start_row = args.start_row,
+      token_str = formatter(args.tokens, self.adapter),
+    })
   end
 end
 
