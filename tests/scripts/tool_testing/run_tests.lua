@@ -546,7 +546,7 @@ local function finalize_run(run)
         tool_calls = msg.tools and msg.tools.calls or nil,
       })
     end
-    result.tokens = (run.chat.ui and run.chat.ui.tokens) or 0
+    result.tokens = run.chat.tokens or 0
     pcall(function()
       run.chat:close()
     end)

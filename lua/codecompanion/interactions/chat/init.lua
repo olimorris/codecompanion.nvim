@@ -29,7 +29,7 @@
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
----@field tokens? nil|number The number of tokens in the chat
+---@field tokens? number|table The tokens reported by the adapter
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
@@ -58,7 +58,7 @@
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field title? string The title of the chat buffer
----@field tokens? table Total tokens spent in the chat buffer so far
+---@field tokens? number|table Total tokens spent in the chat buffer so far
 ---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
@@ -1100,7 +1100,7 @@ function Chat:checkpoint()
     adapter = adapters.make_safe(self.adapter),
     estimated_tokens = tokens.get_tokens(self.messages),
     messages = self.messages,
-    reported_tokens = self.ui.tokens,
+    reported_tokens = self.tokens,
   })
 end
 
@@ -1197,7 +1197,7 @@ function Chat:_submit_http(payload)
     if adapter.features.tokens then
       local token_count = adapters.call_handler(adapter, "parse_tokens", data)
       if token_count then
-        self.ui.tokens = token_count
+        self.tokens = token_count
       end
     end
 
@@ -1455,7 +1455,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
       content = content,
       reasoning = reasoning_content,
     }
-    local token_meta = { cumulative_tokens = self.ui.tokens }
+    local token_meta = { cumulative_tokens = self.tokens }
     self:add_message(message, {
       _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
     })
@@ -1467,7 +1467,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
       reasoning = reasoning_content,
     }, {
       visible = false,
-      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.ui.tokens }),
+      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.tokens }),
     })
     reasoning_content = nil
   end
@@ -1482,7 +1482,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if has_tools then
     tools = adapters.call_handler(self.adapter, "format_calls", tools)
     if tools then
-      local token_meta = { cumulative_tokens = self.ui.tokens }
+      local token_meta = { cumulative_tokens = self.tokens }
       local message = {
         role = config.constants.LLM_ROLE,
         reasoning = reasoning_content,
@@ -1872,7 +1872,7 @@ function Chat:ready_for_input(opts)
     self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
     self.header_line = (self.builder.state.current_header_line or 0) + 1
-    self.ui:display_tokens(self.parsers.markdown, self.header_line)
+    self.ui:display_tokens({ parser = self.parsers.markdown, start_row = self.header_line, tokens = self.tokens })
     self.context:render()
 
     self:dispatch("on_ready")
@@ -1981,7 +1981,7 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
-    tokens = self.ui.tokens or 0,
+    tokens = self.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
 

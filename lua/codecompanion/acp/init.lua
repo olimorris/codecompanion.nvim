@@ -42,6 +42,7 @@ local uv = vim.uv
 ---@class CodeCompanion.ACP.Connection
 ---@field adapter CodeCompanion.ACPAdapter
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
+---@field chat? CodeCompanion.Chat
 ---@field pending_responses table<number, CodeCompanion.ACP.Connection.PendingResponse>
 ---@field session_id string|nil
 ---@field _agent_info {agentCapabilities: ACP.agentCapabilities, authMethods: ACP.authMethods, protocolVersion: number}|nil
@@ -72,6 +73,7 @@ local METHOD_DEFAULTS = {
 
 ---@class CodeCompanion.ACPConnectionArgs
 ---@field adapter CodeCompanion.ACPAdapter
+---@field chat? CodeCompanion.Chat
 ---@field session_id? string
 ---@field opts? table
 
@@ -86,6 +88,7 @@ function Connection.new(args)
   local self = setmetatable({
     adapter = args.adapter,
     adapter_modified = {},
+    chat = args.chat,
     methods = methods,
     pending_responses = {},
     session_id = args.session_id,
@@ -627,7 +630,16 @@ local DISPATCH = {
     elseif m.params.update and m.params.update.sessionUpdate == "config_option_update" then
       self:handle_config_option_update(m.params.sessionId, m.params.update.configOptions)
     elseif m.params.update and m.params.update.sessionUpdate == "session_info_update" then
-      self:handle_session_info_update(m.params.sessionId, m.params.update)
+      -- Ref: https://agentclientprotocol.com/rfds/session-info-update
+      local chat = self:get_chat(m.params.sessionId)
+      if chat and m.params.update.title and type(m.params.update.title) == "string" then
+        chat:set_title(m.params.update.title)
+      end
+    elseif m.params.update and m.params.update.sessionUpdate == "usage_update" then
+      local chat = self:get_chat(m.params.sessionId)
+      if chat and m.params.update.used then
+        chat.tokens = m.params.update.used
+      end
     elseif self._loading_session and self._on_session_update then
       self._on_session_update(m.params.update)
     elseif self._active_prompt then
@@ -812,27 +824,12 @@ function Connection:handle_config_option_update(session_id, config_options)
   end
 end
 
----Handle session_info_update notification
+---Return the chat that's connected to this ACP instance
 ---@param session_id string
----@param update { sessionUpdate?: string, title?: string, _meta?: table }
----@return nil
-function Connection:handle_session_info_update(session_id, update)
-  --Ref: https://agentclientprotocol.com/rfds/session-info-update
-  if not session_id or session_id ~= self.session_id then
-    return
-  end
-
-  -- Set the title on the chat buffer
-  if type(update.title) == "string" then
-    local acp_commands = require("codecompanion.interactions.chat.acp.commands")
-    local bufnr = acp_commands.get_buffer_for_session(session_id)
-    if bufnr then
-      local Chat = require("codecompanion.interactions.chat")
-      local chat = Chat.buf_get_chat(bufnr)
-      if chat then
-        chat:set_title(update.title)
-      end
-    end
+---@return CodeCompanion.Chat|nil
+function Connection:get_chat(session_id)
+  if session_id and session_id == self.session_id then
+    return self.chat
   end
 end
 
