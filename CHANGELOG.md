@@ -1,5 +1,20 @@
 # Changelog
 
+## [19.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.15.0...v19.16.0) (2026-06-15)
+
+
+### Features
+
+* **adapters:** support db tokens in copilot ([#3155](https://github.com/olimorris/codecompanion.nvim/issues/3155)) ([d8a5d88](https://github.com/olimorris/codecompanion.nvim/commit/d8a5d885ae477d80d9f4fdfad4f600cd0db75451))
+* **http:** curl headers written to temp file ([#3157](https://github.com/olimorris/codecompanion.nvim/issues/3157)) ([ffae107](https://github.com/olimorris/codecompanion.nvim/commit/ffae107d791d64166a1a7fc024b0cddafe8e75b4))
+* **ui:** display tokens for ACP adapters ([#3159](https://github.com/olimorris/codecompanion.nvim/issues/3159)) ([b8e383d](https://github.com/olimorris/codecompanion.nvim/commit/b8e383d67f0a6273d5d0b17098a6d934a2ee57aa))
+
+
+### Bug Fixes
+
+* **adapters:** token reporting in copilot ([#3154](https://github.com/olimorris/codecompanion.nvim/issues/3154)) ([52e44e0](https://github.com/olimorris/codecompanion.nvim/commit/52e44e0f048be51a2892989de0d86e79f70aecad))
+* **adapters:** turn `top_p` off by default in openai_responses ([#3150](https://github.com/olimorris/codecompanion.nvim/issues/3150)) ([c33f868](https://github.com/olimorris/codecompanion.nvim/commit/c33f868c921bc877a3fb8b66673ff31cd98c3936))
+
 ## [19.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.14.0...v19.15.0) (2026-06-09)
 
 
