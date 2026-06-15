@@ -44,7 +44,6 @@ end
 ---@field winnr number The window number of the chat
 ---@field settings table The settings for the chat
 ---@field title string|nil The title of the chat window
----@field tokens number The current token count in the chat
 ---@field window_opts? table The window configuration options for the chat buffer
 
 ---@class CodeCompanion.Chat.UIArgs
@@ -56,7 +55,6 @@ end
 ---@field winnr number
 ---@field settings table
 ---@field title string|nil
----@field tokens number
 ---@field window_opts? table
 
 ---@class CodeCompanion.Chat.UI
@@ -76,7 +74,6 @@ function UI.new(args)
     roles = args.roles,
     settings = args.settings,
     title = args.title,
-    tokens = args.tokens,
     winnr = args.winnr,
     window_opts = args.window_opts,
   }, { __index = UI })
@@ -520,16 +517,23 @@ function UI:last()
 end
 
 ---Display the tokens in the chat buffer
----@param parser table
----@param start_row number
+---@param args { parser: table, start_row: number, tokens?: number|table }
 ---@return nil
-function UI:display_tokens(parser, start_row)
-  if config.display.chat.show_token_count and self.tokens then
-    local to_display = config.display.chat.token_count
-    if type(to_display) == "function" then
-      to_display = to_display(self.tokens, self.adapter)
-      require("codecompanion.utils.tokens").display(to_display, CONSTANTS.NS_TOKENS, parser, start_row, self.chat_bufnr)
-    end
+function UI:display_tokens(args)
+  -- NOTE: Not handling token tables yet
+  if not config.display.chat.show_token_count or type(args.tokens) ~= "number" then
+    return
+  end
+
+  local formatter = config.display.chat.token_count
+  if type(formatter) == "function" then
+    require("codecompanion.utils.tokens").display({
+      bufnr = self.chat_bufnr,
+      ns_id = CONSTANTS.NS_TOKENS,
+      parser = args.parser,
+      start_row = args.start_row,
+      token_str = formatter(args.tokens, self.adapter),
+    })
   end
 end
 
