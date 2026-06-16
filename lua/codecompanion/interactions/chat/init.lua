@@ -29,6 +29,7 @@
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
+---@field title_locked? boolean Whether the title was set manually and should not be overwritten
 ---@field tokens? number|table The tokens reported by the adapter
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools

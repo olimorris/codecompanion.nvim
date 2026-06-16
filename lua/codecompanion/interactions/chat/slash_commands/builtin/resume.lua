@@ -1,3 +1,4 @@
+local session_titles = require("codecompanion.utils.session_titles")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.SlashCommand.Resume: CodeCompanion.SlashCommand
@@ -35,8 +36,9 @@ end
 
 ---Format a session for display in the picker
 ---@param session table SessionInfo
+---@param custom_title? string A user-defined title that overrides the agent-generated one
 ---@return string
-local function format_session(session)
+local function format_session(session, custom_title)
   local parts = {}
 
   if session.updatedAt then
@@ -46,11 +48,7 @@ local function format_session(session)
     end
   end
 
-  if session.title then
-    table.insert(parts, session.title)
-  else
-    table.insert(parts, session.sessionId)
-  end
+  table.insert(parts, custom_title or session.title or session.sessionId)
 
   return table.concat(parts, " ")
 end
@@ -76,10 +74,11 @@ function SlashCommand:execute()
     return utils.notify("No previous sessions found", vim.log.levels.INFO)
   end
 
+  local stored_titles = session_titles.load_all()
   local choices = {}
   local session_map = {}
   for i, session in ipairs(sessions) do
-    table.insert(choices, format_session(session))
+    table.insert(choices, format_session(session, stored_titles[session.sessionId]))
     session_map[i] = session
   end
 
@@ -107,7 +106,11 @@ function SlashCommand:execute()
 
       require("codecompanion.interactions.chat.acp.render").restore_session(Chat, updates)
 
-      if selected.title then
+      local persisted_title = session_titles.get(selected.sessionId)
+      if persisted_title then
+        Chat.title_locked = true
+        Chat:set_title(persisted_title)
+      elseif selected.title then
         Chat:set_title(selected.title)
       end
 
@@ -118,7 +121,7 @@ function SlashCommand:execute()
         title = Chat.title,
       })
 
-      utils.notify("Resumed session: " .. (selected.title or selected.sessionId), vim.log.levels.INFO)
+      utils.notify("Resumed session: " .. (Chat.title or selected.sessionId), vim.log.levels.INFO)
     else
       utils.notify("Failed to load session", vim.log.levels.ERROR)
     end

@@ -407,6 +407,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
           },
         },
+        ["rename"] = {
+          path = "interactions.chat.slash_commands.builtin.rename",
+          description = "Rename the current chat",
+          opts = {
+            contains_code = false,
+          },
+        },
         ["compact"] = {
           path = "interactions.chat.slash_commands.builtin.compact",
           description = "Clears some of the chat history, keeping a summary in context",

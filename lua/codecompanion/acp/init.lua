@@ -401,6 +401,22 @@ function Connection:_establish_session()
   return true
 end
 
+---Send a session_info_update request to the agent with a new title
+---@param title string
+---@return table|nil result nil on failure
+function Connection:send_session_title(title)
+  if not self.session_id then
+    return nil
+  end
+  return self:send_rpc_request(METHODS.SESSION_UPDATE, {
+    sessionId = self.session_id,
+    update = {
+      sessionUpdate = "session_info_update",
+      title = title,
+    },
+  })
+end
+
 ---Create the ACP process
 ---@return boolean success
 function Connection:start_agent_process()
@@ -632,7 +648,7 @@ local DISPATCH = {
     elseif m.params.update and m.params.update.sessionUpdate == "session_info_update" then
       -- Ref: https://agentclientprotocol.com/rfds/session-info-update
       local chat = self:get_chat(m.params.sessionId)
-      if chat and m.params.update.title and type(m.params.update.title) == "string" then
+      if chat and not chat.title_locked and m.params.update.title and type(m.params.update.title) == "string" then
         chat:set_title(m.params.update.title)
       end
     elseif m.params.update and m.params.update.sessionUpdate == "usage_update" then
