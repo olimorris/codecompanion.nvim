@@ -72,7 +72,7 @@ ACP agents can advertise their own slash commands dynamically. You can access th
 
 ### Session Resume
 
-If an agent supports the `session/list` capability, you can resume a previous session using the `/resume` slash command in a fresh chat buffer. This calls `session/list` to discover previous sessions, then `session/load` to restore the selected session's conversation history into the chat buffer. See [Slash Commands](/usage/chat-buffer/slash-commands#resume) for usage details.
+If an agent supports the `session/list` capability, you can resume a previous session using the `/resume` slash command in a fresh chat buffer. This calls `session/list` to discover previous sessions, then `session/load` to restore the selected session's conversation history into the chat buffer. Sessions can be given a custom name with `/rename` — the name is persisted to disk and shown in the picker on resume. See [Slash Commands](/usage/chat-buffer/slash-commands#resume) for usage details.
 
 ### Model Selection
 

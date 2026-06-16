@@ -90,9 +90,13 @@ The _mode_ slash command is specific to [ACP](/configuration/adapters-acp) adapt
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
 
+## /rename
+
+The _rename_ slash command lets you give the current chat buffer a custom name. It accepts an optional inline argument (`/rename My title`) or prompts via `vim.ui.input` if no argument is provided. Once renamed, auto-generated titles will no longer overwrite your choice. For ACP adapters, the custom name is sent to the agent directly. If that fails, it is persisted to disk as a fallback and restored automatically when you resume the session via `/resume`.
+
 ## /resume
 
-The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) adapters that support the `session/list` capability. It allows you to resume a previous session by listing your past sessions and restoring the selected one into the chat buffer. The conversation history is rendered so you can continue where you left off.
+The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) adapters that support the `session/list` capability. It allows you to resume a previous session by listing your past sessions and restoring the selected one into the chat buffer. The conversation history is rendered so you can continue where you left off. If a session was previously renamed with `/rename`, the custom name is shown in the picker and restored on resume.
 
 > [!NOTE]
 > The `/resume` command must be used before sending any messages. It is only available on a fresh chat buffer.
