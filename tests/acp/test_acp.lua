@@ -785,4 +785,40 @@ T["ACP Responses"]["error response notifies active prompt"] = function()
   h.eq(result.error_message, "LLM provider error: quota exceeded")
 end
 
+T["ACP Responses"]["session_info_update applies title to chat when not locked"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "s1"
+    connection.chat = { title = nil, title_locked = false, set_title = function(self, t) self.title = t end }
+
+    local notification = vim.json.encode({
+      jsonrpc = "2.0",
+      method = "session/update",
+      params = { sessionId = "s1", update = { sessionUpdate = "session_info_update", title = "My New Title" } }
+    })
+    connection:buffer_stdout_and_dispatch(notification .. "\n")
+    return connection.chat.title
+  ]])
+
+  h.eq(result, "My New Title")
+end
+
+T["ACP Responses"]["session_info_update does not overwrite title when locked"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "s1"
+    connection.chat = { title = "User Title", title_locked = true, set_title = function(self, t) self.title = t end }
+
+    local notification = vim.json.encode({
+      jsonrpc = "2.0",
+      method = "session/update",
+      params = { sessionId = "s1", update = { sessionUpdate = "session_info_update", title = "Agent Title" } }
+    })
+    connection:buffer_stdout_and_dispatch(notification .. "\n")
+    return connection.chat.title
+  ]])
+
+  h.eq(result, "User Title")
+end
+
 return T

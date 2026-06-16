@@ -767,4 +767,110 @@ T["Chat"]["inject"]["is injected after tool results in auto-submit flow"] = func
   h.eq("Tool result: file contents here", result.second_last_content)
 end
 
+T["Chat"]["set_title updates the chat title"] = function()
+  local result = child.lua([[
+    _G.chat:set_title("My Renamed Chat")
+    return _G.chat.title
+  ]])
+
+  h.eq("My Renamed Chat", result)
+end
+
+T["Chat"]["/rename with inline arg sets title and locks it"] = function()
+  local result = child.lua([[
+    local SlashCommand = require("codecompanion.interactions.chat.slash_commands.builtin.rename")
+    local cmd = SlashCommand.new({
+      Chat = _G.chat,
+      config = {},
+      context = { args = "My Inline Title" },
+    })
+    cmd:execute()
+    return { title = _G.chat.title, locked = _G.chat.title_locked }
+  ]])
+
+  h.eq("My Inline Title", result.title)
+  h.eq(true, result.locked)
+end
+
+T["Chat"]["/rename trims whitespace from inline arg"] = function()
+  local result = child.lua([[
+    local SlashCommand = require("codecompanion.interactions.chat.slash_commands.builtin.rename")
+    local cmd = SlashCommand.new({
+      Chat = _G.chat,
+      config = {},
+      context = { args = "  Padded Title  " },
+    })
+    cmd:execute()
+    return _G.chat.title
+  ]])
+
+  h.eq("Padded Title", result)
+end
+
+T["Chat"]["/rename with empty arg does not change title"] = function()
+  local result = child.lua([[
+    _G.chat.title = "Original"
+    local SlashCommand = require("codecompanion.interactions.chat.slash_commands.builtin.rename")
+    local cmd = SlashCommand.new({
+      Chat = _G.chat,
+      config = {},
+      context = { args = "   " },
+    })
+    cmd:execute()
+    return _G.chat.title
+  ]])
+
+  h.eq("Original", result)
+end
+
+T["Chat"]["/rename sends title to ACP agent when connection exists"] = function()
+  local result = child.lua([[
+    local session_titles_calls = {}
+    package.loaded["codecompanion.utils.session_titles"] = {
+      set = function(_, title) table.insert(session_titles_calls, title) end,
+    }
+    local SlashCommand = require("codecompanion.interactions.chat.slash_commands.builtin.rename")
+    _G.chat.acp_connection = {
+      session_id = "test-session",
+      send_session_title = function(self, title) return { ok = true } end,
+    }
+    local cmd = SlashCommand.new({
+      Chat = _G.chat,
+      config = {},
+      context = { args = "ACP Title" },
+    })
+    cmd:execute()
+    return { title = _G.chat.title, session_titles_calls = session_titles_calls }
+  ]])
+
+  h.eq("ACP Title", result.title)
+  h.eq({}, result.session_titles_calls)
+end
+
+T["Chat"]["/rename falls back to local file when ACP request fails"] = function()
+  local result = child.lua([[
+    local session_titles_calls = {}
+    package.loaded["codecompanion.utils.session_titles"] = {
+      set = function(sid, title) table.insert(session_titles_calls, { sid = sid, title = title }) end,
+    }
+    local SlashCommand = require("codecompanion.interactions.chat.slash_commands.builtin.rename")
+    _G.chat.acp_connection = {
+      session_id = "test-session",
+      send_session_title = function(self, title) return nil end,
+    }
+    local cmd = SlashCommand.new({
+      Chat = _G.chat,
+      config = {},
+      context = { args = "Fallback Title" },
+    })
+    cmd:execute()
+    return { title = _G.chat.title, session_titles_calls = session_titles_calls }
+  ]])
+
+  h.eq("Fallback Title", result.title)
+  h.eq(1, #result.session_titles_calls)
+  h.eq("test-session", result.session_titles_calls[1].sid)
+  h.eq("Fallback Title", result.session_titles_calls[1].title)
+end
+
 return T
