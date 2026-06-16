@@ -121,6 +121,7 @@ T["Prompt Builder"]["PromptBuilder"] = function()
       content = { type = "text", text = "Hello!" }
     })
     prompt:handle_done()
+    vim.wait(150, function() return #handler_calls == 3 end, 10)
 
     return {
       handler_count = #handler_calls,
@@ -141,6 +142,119 @@ T["Prompt Builder"]["PromptBuilder"] = function()
   h.eq(result.has_cancel, true)
   h.eq(result.sent_request.method, "session/prompt")
   h.eq(result.sent_request.params.sessionId, "test-session-123")
+end
+
+T["Prompt Builder"]["end_turn waits for quiet prompt completion"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({ adapter = test_adapter })
+    connection.session_id = "test-session-123"
+    connection.methods = { encode = vim.json.encode }
+    connection._agent_info = agent_info
+
+    local completed = {}
+    local prompt = connection:session_prompt({ { role = "user", content = "Test message" } })
+      :on_complete(function(reason)
+        table.insert(completed, reason)
+      end)
+      :with_options({ silent = true })
+
+    connection._active_prompt = prompt
+    prompt:handle_done("end_turn")
+
+    local before_wait = {
+      completed = #completed,
+      still_active = connection._active_prompt == prompt,
+    }
+
+    vim.wait(150, function() return #completed == 1 end, 10)
+
+    return {
+      before_wait = before_wait,
+      after_wait = {
+        completed = #completed,
+        reason = completed[1],
+        cleared = connection._active_prompt == nil,
+      },
+    }
+  ]])
+
+  h.eq(result.before_wait.completed, 0)
+  h.eq(result.before_wait.still_active, true)
+  h.eq(result.after_wait.completed, 1)
+  h.eq(result.after_wait.reason, "end_turn")
+  h.eq(result.after_wait.cleared, true)
+end
+
+T["Prompt Builder"]["late chunks extend the end_turn settle window"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({ adapter = test_adapter })
+    connection.session_id = "test-session-123"
+    connection.methods = { encode = vim.json.encode }
+    connection._agent_info = agent_info
+
+    local completed = {}
+    local seen_messages = {}
+    local prompt = connection:session_prompt({ { role = "user", content = "Test message" } })
+      :on_message_chunk(function(content)
+        table.insert(seen_messages, content)
+      end)
+      :on_complete(function(reason)
+        table.insert(completed, reason)
+      end)
+      :with_options({ silent = true })
+
+    connection._active_prompt = prompt
+    prompt:handle_done("end_turn")
+    vim.wait(60, function() return false end, 10)
+    prompt:handle_session_update({
+      sessionUpdate = "agent_message_chunk",
+      content = { type = "text", text = "late chunk" }
+    })
+
+    local after_late_chunk = {
+      completed = #completed,
+      message = seen_messages[1],
+    }
+
+    vim.wait(150, function() return #completed == 1 end, 10)
+
+    return {
+      after_late_chunk = after_late_chunk,
+      after_wait = {
+        completed = #completed,
+        reason = completed[1],
+      },
+    }
+  ]])
+
+  h.eq(result.after_late_chunk.completed, 0)
+  h.eq(result.after_late_chunk.message, "late chunk")
+  h.eq(result.after_wait.completed, 1)
+  h.eq(result.after_wait.reason, "end_turn")
+end
+
+T["Prompt Builder"]["settle completion does not clear newer prompt ownership"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({ adapter = test_adapter })
+    connection.session_id = "test-session-123"
+    connection.methods = { encode = vim.json.encode }
+    connection._agent_info = agent_info
+
+    local older = connection:session_prompt({ { role = "user", content = "older" } })
+      :with_options({ silent = true })
+    local newer = connection:session_prompt({ { role = "user", content = "newer" } })
+      :with_options({ silent = true })
+
+    connection._active_prompt = older
+    older:handle_done("end_turn")
+    connection._active_prompt = newer
+
+    vim.wait(150, function() return false end, 10)
+
+    return connection._active_prompt == newer
+  ]])
+
+  h.eq(result, true)
 end
 
 T["Prompt Builder"]["extracts text safely from non-text content"] = function()
