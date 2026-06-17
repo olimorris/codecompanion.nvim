@@ -372,7 +372,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-4.1",
+      default = "gpt-5.4-mini",
       ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
       choices = function(self, opts)
         opts = opts or {}
@@ -381,7 +381,7 @@ return {
         local force = opts.async == false
         local fetched = token.fetch({ force = force })
         if not fetched or not fetched.copilot_token then
-          return { ["gpt-4.1"] = { opts = {} } }
+          return { ["gpt-5.4-mini"] = { opts = {} } }
         end
         return get_models.choices(self, { token = fetched, async = opts.async })
       end,
