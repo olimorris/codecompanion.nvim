@@ -24,6 +24,7 @@ local defaults = {
       ollama = "ollama",
       openai = "openai",
       openai_responses = "openai_responses",
+      openrouter = "openrouter",
       xai = "xai",
       jina = "jina",
       tavily = "tavily",
