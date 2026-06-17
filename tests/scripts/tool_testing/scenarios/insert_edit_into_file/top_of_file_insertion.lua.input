@@ -1,0 +1,22 @@
+local M = {}
+
+local function split(str, sep)
+  local parts = {}
+  local pattern = string.format('([^%s]*)', sep)
+  for part in str:gmatch(pattern) do
+    if part ~= '' then
+      table.insert(parts, part)
+    end
+  end
+  return parts
+end
+
+function M.parse_path(path)
+  return split(path, '/')
+end
+
+function M.join_path(parts)
+  return table.concat(parts, '/')
+end
+
+return M

@@ -1,48 +1,23 @@
--- File contains multi-byte Unicode characters (emoji).
--- The model must emit the emoji codepoints exactly in old_string.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local CONTENT = {
-  "local M = {}",
-  "",
-  "M.messages = {",
-  "  error = 'Something went wrong \xF0\x9F\x98\x9E',",
-  "  processing = 'Processing your request... \xE2\x8F\xB3',",
-  "  success = 'Done! \xE2\x9C\x85',",
-  "  warning = 'Proceed with caution \xE2\x9A\xA0\xEF\xB8\x8F',",
-  "  welcome = 'Welcome to CodeCompanion! \xF0\x9F\x8E\x89',",
-  "}",
-  "",
-  "return M",
-}
-
-local EXPECTED = {
-  "local M = {}",
-  "",
-  "M.messages = {",
-  "  error = 'An error occurred \xF0\x9F\x98\x9E',",
-  "  processing = 'Processing your request... \xE2\x8F\xB3',",
-  "  success = 'Done! \xE2\x9C\x85',",
-  "  warning = 'Proceed with caution \xE2\x9A\xA0\xEF\xB8\x8F',",
-  "  welcome = 'Welcome to CodeCompanion! \xF0\x9F\x8E\x89',",
-  "}",
-  "",
-  "return M",
-}
+local input_file = "unicode_content.lua.input"
+local expected_file = "unicode_content.lua.expected"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: file contains emoji — model must emit multi-byte codepoints exactly in old_string",
+  description = "Edit a file containing an emoji",
   name = "Unicode content",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".lua"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -58,16 +33,13 @@ Change the `error` message from `'Something went wrong 😞'` to `'An error occu
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
-    end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    return ok, { actual = table.concat(actual, "\n"), expected = table.concat(EXPECTED, "\n") }
+  test = function(ctx)
+    local actual = files.read(ctx.test_file)
+    local expected = files.read(vim.fs.joinpath(FIXTURES, expected_file))
+    return actual == expected, actual ~= expected and "content mismatch" or nil
   end,
 }

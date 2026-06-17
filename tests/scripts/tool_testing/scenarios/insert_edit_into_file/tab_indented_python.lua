@@ -1,72 +1,22 @@
--- The file content uses real tab characters for indentation.
--- The model must emit real tabs in old_string — not spaces.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local CONTENT = {
-  "class DataProcessor:",
-  "\tdef __init__(self, config):",
-  "\t\tself.config = config",
-  "\t\tself.results = []",
-  "\t\tself.errors = []",
-  "",
-  "\tdef process(self, items):",
-  "\t\tfor item in items:",
-  "\t\t\tif not item.get('active'):",
-  "\t\t\t\tcontinue",
-  "\t\t\ttry:",
-  "\t\t\t\tresult = self._transform(item)",
-  "\t\t\t\tself.results.append(result)",
-  "\t\t\texcept Exception as e:",
-  "\t\t\t\tself.errors.append({'id': item['id'], 'error': str(e)})",
-  "\t\treturn self.results",
-  "",
-  "\tdef _transform(self, item):",
-  "\t\treturn {",
-  "\t\t\t'id': item['id'],",
-  "\t\t\t'value': item['value'] * 2,",
-  "\t\t\t'label': item.get('label', 'unknown'),",
-  "\t\t}",
-}
-
-local EXPECTED = {
-  "class DataProcessor:",
-  "\tdef __init__(self, config):",
-  "\t\tself.config = config",
-  "\t\tself.results = []",
-  "\t\tself.errors = []",
-  "",
-  "\tdef process(self, items):",
-  "\t\tfor item in items:",
-  "\t\t\tif not item.get('active'):",
-  "\t\t\t\tcontinue",
-  "\t\t\ttry:",
-  "\t\t\t\tresult = self._transform(item)",
-  "\t\t\t\tself.results.append(result)",
-  "\t\t\texcept Exception as e:",
-  "\t\t\t\tself.errors.append({'id': item['id'], 'error': str(e)})",
-  "\t\treturn self.results",
-  "",
-  "\tdef _transform(self, item):",
-  "\t\treturn {",
-  "\t\t\t'id': item['id'],",
-  "\t\t\t'value': item['value'] * self.config.multiplier,",
-  "\t\t\t'label': item.get('label', 'unknown'),",
-  "\t\t}",
-}
+local input_file = "tab_indented_python.py.input"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: tab-indented Python — old_string must use real tab characters, not spaces",
+  description = "Edit tab-indented Python",
   name = "Tab-indented Python",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".py"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -84,16 +34,19 @@ Important: the file uses real tab characters for indentation. Your old_string an
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
+  test = function(ctx)
+    if vim.fn.executable("python3") == 0 then
+      return false, "python3 not available"
     end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    return ok, { actual = table.concat(actual, "\n"), expected = table.concat(EXPECTED, "\n") }
+    local result = vim.system({ "python3", ctx.test_file }):wait()
+    if result.code ~= 0 then
+      return false, "execution failed: " .. vim.trim(result.stderr or "")
+    end
+    local output = vim.trim(result.stdout)
+    return output == "12", output ~= "12" and "expected '12', got: " .. output or nil
   end,
 }

@@ -1,72 +1,22 @@
--- Inserting at the very top of a file.
--- The model must anchor on the first line of the file with no "above" context.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local CONTENT = {
-  "local M = {}",
-  "",
-  "local function split(str, sep)",
-  "  local parts = {}",
-  "  local pattern = string.format('([^%s]*)', sep)",
-  "  for part in str:gmatch(pattern) do",
-  "    if part ~= '' then",
-  "      table.insert(parts, part)",
-  "    end",
-  "  end",
-  "  return parts",
-  "end",
-  "",
-  "function M.parse_path(path)",
-  "  return split(path, '/')",
-  "end",
-  "",
-  "function M.join_path(parts)",
-  "  return table.concat(parts, '/')",
-  "end",
-  "",
-  "return M",
-}
-
-local EXPECTED = {
-  "local log = require('codecompanion.utils.log')",
-  "",
-  "local M = {}",
-  "",
-  "local function split(str, sep)",
-  "  local parts = {}",
-  "  local pattern = string.format('([^%s]*)', sep)",
-  "  for part in str:gmatch(pattern) do",
-  "    if part ~= '' then",
-  "      table.insert(parts, part)",
-  "    end",
-  "  end",
-  "  return parts",
-  "end",
-  "",
-  "function M.parse_path(path)",
-  "  return split(path, '/')",
-  "end",
-  "",
-  "function M.join_path(parts)",
-  "  return table.concat(parts, '/')",
-  "end",
-  "",
-  "return M",
-}
+local input_file = "top_of_file_insertion.lua.input"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: insert a require statement at the very top of the file",
+  description = "Insert a require statement at the very top of the file with no preceding context to anchor on",
   name = "Top-of-file insertion",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".lua"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -82,16 +32,15 @@ Add `local log = require('codecompanion.utils.log')` as the very first line of t
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
+  test = function(ctx)
+    if vim.fn.executable("luac") == 0 then
+      return false, "luac not available"
     end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    return ok, { actual = table.concat(actual, "\n"), expected = table.concat(EXPECTED, "\n") }
+    local result = vim.system({ "luac", "-p", ctx.test_file }):wait()
+    return result.code == 0, result.code ~= 0 and vim.trim(result.stderr or "") or nil
   end,
 }

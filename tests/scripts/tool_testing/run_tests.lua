@@ -11,7 +11,6 @@ Options:
   --scenario=<name> Run only specific scenario
   --tool=<name>     Run only scenarios for a specific tool
   --delay=<ms>      Stagger delay between starting runs in milliseconds (default: 0)
-  --verbose         Show detailed output
 --]]
 
 local SCRIPT_DIR = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
@@ -252,7 +251,6 @@ local function parse_args()
     model = nil,
     scenario = nil,
     tool = nil,
-    verbose = false,
   }
 
   for _, arg in ipairs(vim.v.argv) do
@@ -270,8 +268,6 @@ local function parse_args()
       args.csv = true
     elseif arg == "--log" then
       args.log = true
-    elseif arg == "--verbose" then
-      args.verbose = true
     end
   end
 
@@ -286,30 +282,10 @@ local function setup_output_dir(config)
   return dir
 end
 
----Run `diff -u` between expected and actual strings, returning the diff output.
----@param actual string
----@param expected string
----@return string
-local function unified_diff(actual, expected)
-  local tmp_expected = vim.fn.tempname()
-  local tmp_actual = vim.fn.tempname()
-  vim.fn.writefile(vim.split(expected, "\n", { plain = true }), tmp_expected)
-  vim.fn.writefile(vim.split(actual, "\n", { plain = true }), tmp_actual)
-  local output = vim.fn.system(string.format("diff -u --label expected --label actual %s %s", tmp_expected, tmp_actual))
-  vim.fn.delete(tmp_expected)
-  vim.fn.delete(tmp_actual)
-  return vim.trim(output)
-end
-
----@param opts {msg: string, level?: string, verbose_only?: boolean}
+---@param opts {msg: string, level?: string}
 local function log(opts)
   local msg = opts.msg
   local level = opts.level or "INFO"
-  local verbose_only = opts.verbose_only
-
-  if verbose_only and not _G._test_verbose then
-    return
-  end
 
   if level == "PASS" then
     print(string.format("  PASS  %s", msg))
@@ -347,7 +323,7 @@ local function write_csv_row(opts)
     return
   end
   if not file_exists then
-    f:write("run_at,id,adapter,model,scenario,result,duration_s,tool_calls,tokens,error\n")
+    f:write("run_at,id,adapter,model,scenario,pass,duration_s,tool_calls,tokens,error\n")
   end
 
   local row = {
@@ -356,7 +332,7 @@ local function write_csv_row(opts)
     csv_escape(result.adapter),
     csv_escape(result.model),
     csv_escape(result.scenario),
-    csv_escape(result.success and "pass" or "fail"),
+    csv_escape(result.success and "1" or "0"),
     csv_escape(string.format("%.2f", result.duration_ms / 1000)),
     csv_escape(tostring(#(result.tool_calls or {}))),
     csv_escape(tostring(result.tokens or 0)),
@@ -411,7 +387,6 @@ local function start_scenario_run(opts)
       timestamp = os.date("%Y-%m-%d %H:%M:%S"),
       tokens = 0,
       tool_calls = {},
-      validation = nil,
     },
     scenario = scenario,
     start_time = vim.uv.hrtime(),
@@ -529,7 +504,7 @@ local function start_scenario_run(opts)
   return run
 end
 
----Validate, build messages, and set result.success on a completed run.
+---Run the scenario's test function and set result.success.
 ---@param run table
 local function finalize_run(run)
   local scenario = run.scenario
@@ -555,10 +530,10 @@ local function finalize_run(run)
   result.duration_ms = (vim.uv.hrtime() - run.start_time) / 1000000
 
   if run.completed then
-    local should_validate = true
+    local should_test = true
 
-    if scenario.tools_required then
-      for _, required in ipairs(scenario.tools_required) do
+    if scenario.tools then
+      for _, required in ipairs(scenario.tools) do
         local was_called = false
         for _, call in ipairs(run.tool_calls) do
           if call.name == required then
@@ -568,34 +543,22 @@ local function finalize_run(run)
         end
         if not was_called then
           result.error = string.format("Required tool '%s' was not called", required)
-          should_validate = false
+          should_test = false
           break
         end
       end
     end
 
-    if should_validate then
+    if should_test then
       local run_data = { response_content = run.response_content, tool_calls = run.tool_calls }
-      local validate_ok, validate_success, validation_details = pcall(scenario.validate, run.context, run_data)
-      if validate_ok then
-        result.success = validate_success
-        result.validation = validation_details
-        if not validate_success and not result.error then
-          result.error = "Validation failed"
-        elseif validate_success then
-          result.error = nil
-        end
+      local test_ok, test_success, test_msg = pcall(scenario.test, run.context, run_data)
+      if test_ok then
+        result.success = test_success
+        result.error = not test_success and (test_msg or "Test failed") or nil
       else
-        if not result.error then
-          result.error = "Validation error: " .. tostring(validate_success)
-        end
+        result.error = "Test error: " .. tostring(test_success)
       end
     end
-  end
-
-  if not result.success and #run.tool_calls > 0 then
-    result.error = (result.error or "Unknown error")
-      .. string.format(" (tool called: %s, executed: %s)", #run.tool_calls > 0, run.tool_executed)
   end
 
   result.response_content = run.response_content
@@ -695,7 +658,6 @@ local function run_tests(opts)
           timestamp = os.date("%Y-%m-%d %H:%M:%S"),
           tokens = 0,
           tool_calls = {},
-          validation = nil,
         })
       end
     else
@@ -789,22 +751,6 @@ local function run_tests(opts)
             scenario_name = scenario.name,
           })
           result.result_file = result_file
-          log({ msg = "  Result saved to: " .. result_file, verbose_only = true })
-        end
-
-        if not result.success and result.validation then
-          local val = result.validation
-          if type(val.actual) == "string" and type(val.expected) == "string" and val.actual ~= val.expected then
-            local diff = unified_diff(val.actual, val.expected)
-            if diff ~= "" then
-              log({ msg = "  Diff:", verbose_only = true })
-              for _, diff_line in ipairs(vim.split(diff, "\n", { plain = true })) do
-                log({ msg = "  " .. diff_line, verbose_only = true })
-              end
-            end
-          else
-            log({ msg = "  Validation: " .. vim.inspect(val), verbose_only = true })
-          end
         end
 
         table.insert(all_results, result)
@@ -839,7 +785,7 @@ local function run_tests(opts)
   if args.log then
     local summary_file = vim.fs.joinpath(results_dir, "summary_" .. os.date("%Y%m%d_%H%M%S") .. ".json")
     vim.fn.writefile(vim.split(vim.json.encode({ results = all_results, summary = summary }), "\n"), summary_file)
-    log({ msg = "Summary saved to: " .. summary_file, verbose_only = true })
+    log({ msg = "Summary saved to: " .. summary_file })
   end
 
   vim.cmd(string.format("cquit %d", summary.failed + summary.errors))
@@ -850,13 +796,6 @@ io.stdout:setvbuf("line")
 load_env_file()
 local config = load_config()
 local args = parse_args()
-
-if args.verbose then
-  config.output.verbose = true
-  _G._test_verbose = true
-else
-  _G._test_verbose = false
-end
 
 local ok, err = pcall(run_tests, { config = config, args = args })
 if not ok then

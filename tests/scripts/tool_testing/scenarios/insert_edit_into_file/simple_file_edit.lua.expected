@@ -1,0 +1,8 @@
+local M = {}
+
+function M.welcome(name)
+  return "Welcome, " .. name
+end
+
+print(M.welcome("World"))
+return M

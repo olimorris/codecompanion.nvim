@@ -1,81 +1,22 @@
--- Deleting a function block entirely by setting new_string to "".
--- The model must include the blank line separators so the result is clean.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local CONTENT = {
-  "local M = {}",
-  "",
-  "function M.validate(input)",
-  "  if type(input) ~= 'string' then",
-  "    return false, 'expected string'",
-  "  end",
-  "  if #input == 0 then",
-  "    return false, 'cannot be empty'",
-  "  end",
-  "  return true, nil",
-  "end",
-  "",
-  "function M.format(input)",
-  "  return input:gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')",
-  "end",
-  "",
-  "-- Deprecated: use M.format instead",
-  "function M.normalize(input)",
-  "  return (input:gsub('%s+', ' '))",
-  "end",
-  "",
-  "function M.transform(input)",
-  "  local ok, err = M.validate(input)",
-  "  if not ok then",
-  "    return nil, err",
-  "  end",
-  "  return M.format(input), nil",
-  "end",
-  "",
-  "return M",
-}
-
-local EXPECTED = {
-  "local M = {}",
-  "",
-  "function M.validate(input)",
-  "  if type(input) ~= 'string' then",
-  "    return false, 'expected string'",
-  "  end",
-  "  if #input == 0 then",
-  "    return false, 'cannot be empty'",
-  "  end",
-  "  return true, nil",
-  "end",
-  "",
-  "function M.format(input)",
-  "  return input:gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')",
-  "end",
-  "",
-  "function M.transform(input)",
-  "  local ok, err = M.validate(input)",
-  "  if not ok then",
-  "    return nil, err",
-  "  end",
-  "  return M.format(input), nil",
-  "end",
-  "",
-  "return M",
-}
+local input_file = "empty_new_string_deletion.lua.input"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: delete a deprecated function by setting new_string to empty string",
+  description = "Delete a deprecated function block by setting new_string to empty string",
   name = "Delete function with empty new_string",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".lua"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -93,23 +34,19 @@ The result should have `M.format` followed directly by `M.transform` with a sing
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
+  test = function(ctx)
+    if vim.fn.executable("nvim") == 0 then
+      return false, "nvim not available"
     end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    local content = table.concat(actual, "\n")
-    local still_has_normalize = content:find("M.normalize") ~= nil
-    return ok and not still_has_normalize,
-      {
-        actual = content,
-        expected = table.concat(EXPECTED, "\n"),
-        still_has_normalize = still_has_normalize,
-      }
+    local result = vim.system({ "nvim", "-l", ctx.test_file }):wait()
+    if result.code ~= 0 then
+      return false, "execution failed: " .. vim.trim(result.stderr or "")
+    end
+    local output = vim.trim(result.stderr)
+    return output == "deleted", output ~= "deleted" and "expected 'deleted', got: " .. output or nil
   end,
 }

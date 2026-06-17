@@ -1,62 +1,23 @@
--- Markdown file where lines intentionally end with two spaces (hard line break).
--- Model must include the trailing spaces verbatim in old_string; stripping them
--- causes a lookup failure because the tool searches for an exact byte match.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
--- Two trailing spaces encoded explicitly so editors can't silently strip them.
-local BREAK = "  "
-
-local CONTENT = {
-  "# Deployment Guide",
-  "",
-  "## Prerequisites",
-  "",
-  "Ensure Docker is installed and running on the host machine." .. BREAK,
-  "Check that ports 80 and 443 are available before continuing.",
-  "",
-  "## Steps",
-  "",
-  "Pull the latest image from the registry." .. BREAK,
-  "Run `docker compose up -d` to start all services.",
-  "",
-  "## Rollback",
-  "",
-  "Stop the current containers with `docker compose down`." .. BREAK,
-  "Then deploy the previous image tag.",
-}
-
-local EXPECTED = {
-  "# Deployment Guide",
-  "",
-  "## Prerequisites",
-  "",
-  "Ensure Docker is installed and running on the host machine." .. BREAK,
-  "Check that ports 80 and 443 are available before continuing.",
-  "",
-  "## Steps",
-  "",
-  "Pull the latest image from the registry." .. BREAK,
-  "Run `docker compose up -d` to start all services.",
-  "",
-  "## Rollback",
-  "",
-  "Stop all running containers with `docker compose down`." .. BREAK,
-  "Then deploy the previous image tag.",
-}
+local input_file = "trailing_whitespace.md.input"
+local expected_file = "trailing_whitespace.md.expected"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: Markdown with intentional trailing two-space line breaks — old_string must preserve trailing spaces exactly",
+  description = "Edit Markdown with intentional trailing two-space line breaks",
   name = "Trailing whitespace preserved",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".md"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -72,31 +33,30 @@ In the Rollback section, change "Stop the current containers" to "Stop all runni
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
+  test = function(ctx)
     -- Read raw bytes to verify trailing spaces are preserved
     local f = assert(io.open(ctx.test_file, "rb"))
     local raw = f:read("*a")
     f:close()
 
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
-    end
+    local actual = files.read(ctx.test_file)
+    local expected = files.read(vim.fs.joinpath(FIXTURES, expected_file))
 
-    local content_ok = vim.deep_equal(actual, EXPECTED)
+    local content_ok = actual == expected
     -- Confirm at least two of the trailing-space line breaks survived the edit
     local break_count = select(2, raw:gsub("  \n", ""))
     local breaks_ok = break_count >= 2
 
-    return content_ok and breaks_ok,
-      {
-        actual = table.concat(actual, "\n"),
-        expected = table.concat(EXPECTED, "\n"),
-        trailing_space_line_breaks = break_count,
-      }
+    if not content_ok then
+      return false, "content mismatch"
+    end
+    if not breaks_ok then
+      return false, "trailing-space line breaks lost"
+    end
+    return true
   end,
 }
