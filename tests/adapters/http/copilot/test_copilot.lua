@@ -602,9 +602,7 @@ T["Token initialization"]["loads oauth token from auth.db"] = function()
 
   h.eq(token_child.lua_get("_G.sqlite_opened_path"), token_child.lua_get("_G.sqlite_expected_path"))
   h.eq(token_child.lua_get("_G.sqlite_open_mode"), "ro")
-  h.expect_truthy(
-    token_child.lua_get('_G.sqlite_token_query:find("CAST(token_ciphertext AS TEXT)", 1, true)')
-  )
+  h.expect_truthy(token_child.lua_get('_G.sqlite_token_query:find("CAST(token_ciphertext AS TEXT)", 1, true)'))
   h.eq(token_child.lua_get("_G.oauth_token_from_auth_db"), "db_oauth_token")
   h.eq(token_child.lua_get("_G.copilot_token_from_auth_db"), "test_copilot_token")
 end

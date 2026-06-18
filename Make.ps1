@@ -13,6 +13,7 @@ function Install-Deps
         "nvim-treesitter" = "https://github.com/nvim-treesitter/nvim-treesitter.git"
         "mini.nvim"       = "https://github.com/echasnovski/mini.nvim"
         "panvimdoc"       = "https://github.com/kdheepak/panvimdoc"
+        "sqlite.lua"      = "https://github.com/kkharji/sqlite.lua"
     }
 
     foreach ($name in $deps.Keys)

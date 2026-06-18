@@ -87,6 +87,7 @@ Update your config and turn debug logging on:
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
+    "kkharji/sqlite.lua",
   },
   opts = {
     -- NOTE: The log_level is in `opts.opts`
