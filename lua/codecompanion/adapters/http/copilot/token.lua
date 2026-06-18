@@ -117,10 +117,16 @@ local function get_oauth_token_from_sqlite(file_path)
   local token_row = query_sqlite_row(
     db,
     file_path,
-    string.format('SELECT token_ciphertext FROM "%s" LIMIT 1;', table_name_row.name:gsub('"', '""'))
+    string.format(
+      'SELECT CAST(token_ciphertext AS TEXT) AS token_ciphertext FROM "%s" LIMIT 1;',
+      table_name_row.name:gsub('"', '""')
+    )
   )
   db:close()
-
+  log:info("Copilot Adapter: Loaded OAuth token from sqlite database %s", file_path)
+  for key, value in pairs(token_row) do
+    log:info(" - %s: %s", key, value)
+  end
   return token_row and token_row.token_ciphertext or nil
 end
 

@@ -534,11 +534,11 @@ T["Token initialization"]["forces token init for synchronous model fetching"] = 
   h.eq(token_child.lua_get("_G.init_called"), true)
 end
 
-T["Token initialization"]["loads oauth token from apps.db"] = function()
+T["Token initialization"]["loads oauth token from auth.db"] = function()
   token_child.lua([[
     local config_dir = vim.fn.tempname()
     local copilot_dir = config_dir .. "/github-copilot"
-    local db_path = copilot_dir .. "/apps.db"
+    local db_path = copilot_dir .. "/auth.db"
 
     vim.fn.mkdir(copilot_dir, "p")
     vim.fn.writefile({ "" }, db_path)
@@ -572,7 +572,8 @@ T["Token initialization"]["loads oauth token from apps.db"] = function()
                 return { { name = "github_users" } }
               end
 
-              if query:find("SELECT token_ciphertext", 1, true) then
+              if query:find("token_ciphertext", 1, true) then
+                _G.sqlite_token_query = query
                 return { { token_ciphertext = "db_oauth_token" } }
               end
 
@@ -591,8 +592,8 @@ T["Token initialization"]["loads oauth token from apps.db"] = function()
     token._copilot_token = nil
 
     local fetched = token.fetch({ force = true })
-    _G.oauth_token_from_apps_db = fetched.oauth_token
-    _G.copilot_token_from_apps_db = fetched.copilot_token
+    _G.oauth_token_from_auth_db = fetched.oauth_token
+    _G.copilot_token_from_auth_db = fetched.copilot_token
 
     package.preload["sqlite.db"] = nil
     vim.fn.delete(config_dir, "rf")
@@ -601,8 +602,11 @@ T["Token initialization"]["loads oauth token from apps.db"] = function()
 
   h.eq(token_child.lua_get("_G.sqlite_opened_path"), token_child.lua_get("_G.sqlite_expected_path"))
   h.eq(token_child.lua_get("_G.sqlite_open_mode"), "ro")
-  h.eq(token_child.lua_get("_G.oauth_token_from_apps_db"), "db_oauth_token")
-  h.eq(token_child.lua_get("_G.copilot_token_from_apps_db"), "test_copilot_token")
+  h.expect_truthy(
+    token_child.lua_get('_G.sqlite_token_query:find("CAST(token_ciphertext AS TEXT)", 1, true)')
+  )
+  h.eq(token_child.lua_get("_G.oauth_token_from_auth_db"), "db_oauth_token")
+  h.eq(token_child.lua_get("_G.copilot_token_from_auth_db"), "test_copilot_token")
 end
 
 T["test model selection dialog works with copilot adapter"] = function()
