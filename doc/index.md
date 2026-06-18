@@ -49,10 +49,10 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
 - Cline CLI (`cline_cli`)
 - Codex (`codex`) - Requires an API key
-- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in [Copilot.vim](https://github.com/github/copilot.vim)
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
+- GitHub Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in [Copilot.vim](https://github.com/github/copilot.vim)
 - GitHub Models (`githubmodels`) - Requires [`gh`](https://github.com/cli/cli) to be installed and logged in
 - Goose (`goose`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
@@ -62,7 +62,8 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
-- opencode (`opencode`) - Requires an API key
+- Opencode (`opencode`) - Requires an API key
+- OpenRouter (`openrouter`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
 In order to add a custom adapter, please refer to the [extending adapters](/extending/adapters) documentation. Also, be sure to check out the [community adapters](configuration/adapters-http#community-adapters) section for user contributed adapters.
