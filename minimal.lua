@@ -5,7 +5,7 @@ NOTE: Set the config path to enable the copilot adapter to work.
 It will search the following paths for a token:
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
-  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.db"
+  - "$CODECOMPANION_TOKEN_PATH/github-copilot/auth.db"
 --]]
 vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 
@@ -25,6 +25,7 @@ local plugins = {
         lazy = false,
         build = ":TSUpdate",
       },
+      { "kkharji/sqlite.lua" },
 
       -- Test with blink.cmp
       {
