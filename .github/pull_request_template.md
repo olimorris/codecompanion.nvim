@@ -3,18 +3,26 @@
 ## Description
 
 <!--
-  Please provide a clear and concise description of your changes.
-
+  Please provide a clear and concise description of your changes:
   - What does this PR do?
   - Why is this change needed?
   - If this is a feature request, describe how it will benefit other CodeCompanion users.
+-->
+
+## Supporting Documentation
+
+<!--
+  Share any links to supporting documentation, such as:
+  - Agent Client Protocol (ACP) documentation
+  - Model Context Protocol (MCP) documentation
+  - Any relevant LLM or agent documentation
 -->
 
 ## AI Usage
 
 <!--
   CodeCompanion actively encourages PRs and the use of CodeCompanion to help write them.
-  If you used AI assistance to help with this PR, please briefly describe how you used it and the models you used.
+  If you used AI assistance to help with this PR, please describe how you used it and the models you used.
 -->
 
 ## Related Issue(s)
@@ -26,7 +34,7 @@
 
 ## Screenshots
 
-<!-- Add screenshots of the changes if applicable, to help visualize the change. -->
+<!-- Add screenshots of the changes if applicable, to help visualize the change -->
 
 ## Checklist
 

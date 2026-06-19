@@ -452,6 +452,11 @@ return {
           meta = { context_window = 1048576 },
           opts = { can_reason = true, has_vision = true },
         },
+        ["gemini-3.5-flash"] = {
+          formatted_name = "Gemini 3.5 Flash",
+          meta = { context_window = 1048576 },
+          opts = { can_reason = true, has_vision = true },
+        },
         ["gemini-3.1-flash-lite-preview"] = {
           formatted_name = "Gemini 3.1 Flash Lite",
           meta = { context_window = 1048576 },
