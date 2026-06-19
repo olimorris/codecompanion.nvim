@@ -68,6 +68,10 @@ All commands are run from the repo root.
 
 # Add delay between scenarios (useful for rate-limited providers)
 ./tests/scripts/tool_testing/test.sh run --adapter=gemini --delay=2000
+
+# Repeat each scenario n times (useful for measuring consistency across runs)
+./tests/scripts/tool_testing/test.sh run --repeat=5
+./tests/scripts/tool_testing/test.sh run --scenario="Simple file edit" --repeat=10 --csv
 ```
 
 ### Inspecting results

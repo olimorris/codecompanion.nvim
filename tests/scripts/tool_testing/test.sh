@@ -103,6 +103,7 @@ Options for 'run':
     --csv                   Append results to a CSV file (path from config or results_dir/results.csv)
     --log                   Write per-run JSON and summary JSON to the results directory
     --delay=<ms>            Delay between scenarios in milliseconds (default: 0)
+    --repeat=<n>            Run each scenario n times (default: 1)
     --verbose               Show detailed output
     --all                   Run all enabled adapters with all scenarios
     --use-config            Use full Neovim config instead of minimal setup

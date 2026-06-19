@@ -249,6 +249,7 @@ local function parse_args()
     delay = 0,
     log = false,
     model = nil,
+    repeat_count = 1,
     scenario = nil,
     tool = nil,
   }
@@ -264,6 +265,8 @@ local function parse_args()
       args.tool = arg:match("^%-%-tool=(.+)$")
     elseif arg:match("^%-%-delay=") then
       args.delay = tonumber(arg:match("^%-%-delay=(.+)$")) or 0
+    elseif arg:match("^%-%-repeat=") then
+      args.repeat_count = math.max(1, tonumber(arg:match("^%-%-repeat=(.+)$")) or 1)
     elseif arg == "--csv" then
       args.csv = true
     elseif arg == "--log" then
@@ -627,7 +630,15 @@ local function run_tests(opts)
     end
   end
 
-  log({ msg = string.format("%d model(s) × %d scenario(s)", #test_runs, #scenarios_to_test) })
+  local repeat_count = args.repeat_count or 1
+  log({
+    msg = string.format(
+      "%d model(s) × %d scenario(s)%s",
+      #test_runs,
+      #scenarios_to_test,
+      repeat_count > 1 and string.format(" × %d repeats", repeat_count) or ""
+    ),
+  })
 
   local all_results = {}
   local summary = { errors = 0, failed = 0, passed = 0, total = 0 }
@@ -662,7 +673,9 @@ local function run_tests(opts)
       end
     else
       for _, scenario in ipairs(scenarios_to_test) do
-        table.insert(pending_queue, { adapter = adapter, scenario = scenario })
+        for _ = 1, repeat_count do
+          table.insert(pending_queue, { adapter = adapter, scenario = scenario })
+        end
       end
     end
   end
