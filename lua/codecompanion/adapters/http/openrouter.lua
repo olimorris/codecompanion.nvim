@@ -89,16 +89,13 @@ end
 ---@param parameter string
 ---@return boolean
 local function model_supports(self, parameter)
-  local model = self.schema.model.default
-  if type(model) == "function" then
-    model = model(self)
+  local cached_models = get_models()
+  local model_cache = cached_models[self.schema.model.default]
+  if not model_cache then
+    return false
   end
-  local choices = self.schema.model.choices
-  if type(choices) == "function" then
-    choices = choices(self, { async = true })
-  end
-  local opts = choices and choices[model] and choices[model].opts
-  return opts and opts.supported_parameters and opts.supported_parameters[parameter] or false
+
+  return model_cache.opts.supported_parameters[parameter] or false
 end
 
 ---@class CodeCompanion.HTTPAdapter.OpenRouter: CodeCompanion.HTTPAdapter
