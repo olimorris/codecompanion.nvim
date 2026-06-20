@@ -270,9 +270,12 @@ return {
       end,
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
+        "xhigh",
         "high",
         "medium",
         "low",
+        "minimal",
+        "none",
       },
     },
     temperature = {
