@@ -114,6 +114,28 @@ return {
     tools = true,
     vision = false,
   },
+  available_tools = {
+    ["web_fetch"] = {
+      description = "Gives any model the ability to fetch content from a specific URL",
+      ---@param self CodeCompanion.HTTPAdapter.OpenRouter
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
+          type = "web_fetch",
+        })
+      end,
+    },
+    ["web_search"] = {
+      description = "Gives any model access to real-time web information",
+      ---@param self CodeCompanion.HTTPAdapter.OpenRouter
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
+          type = "web_search",
+        })
+      end,
+    },
+  },
   features = {
     text = true,
     tokens = true,
@@ -160,8 +182,32 @@ return {
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param tools table<string, table>
+    ---@return table|nil
     form_tools = function(self, tools)
-      return openai.handlers.form_tools(self, tools)
+      if not self.opts.tools or not tools then
+        return nil
+      end
+      if vim.tbl_count(tools) == 0 then
+        return nil
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          if schema._meta and schema._meta.adapter_tool then
+            if self.available_tools[schema.name] then
+              self.available_tools[schema.name].callback(self, { tools = transformed })
+            end
+          else
+            table.insert(transformed, schema)
+          end
+        end
+      end
+
+      return { tools = transformed }
     end,
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
