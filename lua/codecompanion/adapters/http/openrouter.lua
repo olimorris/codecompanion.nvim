@@ -90,12 +90,12 @@ end
 ---@return boolean
 local function model_supports(self, parameter)
   local cached_models = get_models()
-  local model_cache = cached_models[self.schema.model.default]
-  if not model_cache then
+  local model = cached_models[self.schema.model.default]
+  if not model then
     return false
   end
 
-  return model_cache.opts.supported_parameters[parameter] or false
+  return model.opts.supported_parameters[parameter] or false
 end
 
 ---@class CodeCompanion.HTTPAdapter.OpenRouter: CodeCompanion.HTTPAdapter
