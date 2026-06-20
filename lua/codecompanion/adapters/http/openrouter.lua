@@ -125,6 +125,9 @@ return {
   headers = {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
+    ["HTTP-Referer"] = "https://github.com/olimorris/codecompanion.nvim",
+    ["X-OpenRouter-Categories"] = "ide-extension",
+    ["X-OpenRouter-Title"] = "codecompanion.nvim",
   },
   handlers = {
     ---Check for a token before starting the request
