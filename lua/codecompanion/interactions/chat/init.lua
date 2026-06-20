@@ -1413,11 +1413,16 @@ end
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
 ---@param meta? table Any metadata from the LLM
----@param opts? {status: "stopped"} The reason the done method was called
+---@param opts? { status: "stopped" } The reason the done method was called
 ---@return nil
 function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
   self.current_request = nil
+
+  -- NOTE: When doing automated testing, the chat buffer may be closed before the response is received
+  if not api.nvim_buf_is_valid(self.bufnr) then
+    return
+  end
 
   self:_clear_status()
 

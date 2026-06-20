@@ -38,7 +38,12 @@ tests/scripts/tool_testing/
 - **CSV output** — `--csv` flag appends rows. Accumulates across runs for cross-model comparison.
 - **Secrets in `.env`** — loaded by `test.sh` (shell `source`) and `run_tests.lua` (`vim.fn.setenv`). `config.local.lua` holds the adapter matrix only, no keys.
 - **deps/ for plenary** — `setup_runtimepath()` prefers `deps/plenary.nvim` (same as `make test`) over lazy.nvim data dir.
-- **Concurrency** — up to `config.concurrency.max_concurrent` scenarios run at once (default 5). When a slot frees, the next queued scenario starts immediately.
+- **Concurrency** — up to `config.concurrency.max_concurrent` scenarios run at once (default 5), enforced as a ceiling: priming starts that many, then each finished run triggers exactly one refill.
+- **Queue (`utils/queue.lua` deque)** — runs are shuffled before being pushed, so the active window spans different adapters/models rather than draining identical runs back-to-back. `start_next_run` pops the front, and defers (pushes back) any run whose `adapter+model+scenario` is already in flight — a hard guarantee that identical runs never hit one endpoint at once. Shuffle spreads load probabilistically; the in-flight check is the deterministic floor.
+- **`--repeat=<n>`** — runs each scenario `n` times (default 1). Repeats are expanded into separate queue items before shuffling, so they serialize per-endpoint via the in-flight check rather than firing concurrently.
+- **Request errors vs. tool-not-called** — `on_completed` carries `{ status }`; a `"status == error"` run (bad model name, auth, schema rejection — typically `0.22s, 0 tokens`) is reported as `Adapter request failed` instead of the misleading `Required tool was not called`.
+- **Timeout label preserved** — a timed-out run closes its chat, which cancels the request and fires `on_cancelled`; that callback only sets its error if none exists, so the real `Timeout` reason isn't masked by `Chat was cancelled`.
+- **Closing mid-request is safe** — the harness closes timed-out chats while their request is still in flight; `Chat:done()` guards against an invalid buffer so a deferred render can't crash on a deleted buffer.
 - **Paired output** — `RUN` line is printed at finalize time, immediately followed by the `PASS`/`FAIL`/`ERROR` line. No interleaving between the two.
 - **Colourisation** — all ANSI codes are applied in `test.sh` via awk (Lua outputs plain text). Nerd Font icons for PASS/FAIL/ERROR are injected there too.
 - **Success rate thresholds** — configurable in `config.thresholds`: `error_below` (red) and `warn_below` (amber); green at or above `warn_below`.
@@ -56,6 +61,7 @@ make deps  # first time only
 ./tests/scripts/tool_testing/test.sh run --scenario="CRLF line endings"
 ./tests/scripts/tool_testing/test.sh run --scenario="CRLF line endings" --adapter=openai
 ./tests/scripts/tool_testing/test.sh run --tool=insert_edit_into_file
+./tests/scripts/tool_testing/test.sh run --repeat=5
 ./tests/scripts/tool_testing/test.sh run --csv
 ./tests/scripts/tool_testing/test.sh results
 ./tests/scripts/tool_testing/test.sh failures

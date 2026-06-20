@@ -484,12 +484,17 @@ local function start_scenario_run(opts)
     end
   end
 
-  chat:add_callback("on_completed", function()
+  chat:add_callback("on_completed", function(_, completion)
     run.completed = true
+    run.status = completion and completion.status
     run.done = true
   end)
   chat:add_callback("on_cancelled", function()
-    run.result.error = "Chat was cancelled"
+    -- A timed-out run closes its chat, which cancels the in-flight request and
+    -- fires this callback — keep the timeout error rather than masking it.
+    if not run.result.error then
+      run.result.error = "Chat was cancelled"
+    end
     run.done = true
   end)
 
@@ -532,7 +537,11 @@ local function finalize_run(run)
 
   result.duration_ms = (vim.uv.hrtime() - run.start_time) / 1000000
 
-  if run.completed then
+  if run.status == "error" then
+    -- The adapter request failed (bad model name, auth, schema rejection) and
+    -- finished with no content — surface that rather than blaming the tool call
+    result.error = "Adapter request failed — check the model name and API key (see CodeCompanion log)"
+  elseif run.completed then
     local should_test = true
 
     if scenario.tools then
@@ -570,6 +579,17 @@ local function finalize_run(run)
   if scenario.cleanup then
     pcall(scenario.cleanup, run.context)
   end
+end
+
+---Shuffle a list in place using Fisher–Yates
+---@param list table
+---@return table The same list, reordered
+local function shuffle(list)
+  for i = #list, 2, -1 do
+    local j = math.random(i)
+    list[i], list[j] = list[j], list[i]
+  end
+  return list
 end
 
 ---@param opts {config: table, args: table}
@@ -644,10 +664,11 @@ local function run_tests(opts)
   local summary = { errors = 0, failed = 0, passed = 0, total = 0 }
 
   local active_runs = {}
-  local pending_queue = {}
+  local pending_queue = require("codecompanion.utils.queue").new()
   local max_concurrent = (config.concurrency and config.concurrency.max_concurrent) or 3
 
-  -- Build queue; resolve invalid adapters immediately
+  -- Collect runnable items; resolve invalid adapters immediately
+  local runnable = {}
   for _, adapter in ipairs(test_runs) do
     local adapter_valid, adapter_error = validate_adapter_exists(adapter.name)
     if not adapter_valid then
@@ -674,25 +695,59 @@ local function run_tests(opts)
     else
       for _, scenario in ipairs(scenarios_to_test) do
         for _ = 1, repeat_count do
-          table.insert(pending_queue, { adapter = adapter, scenario = scenario })
+          table.insert(runnable, { adapter = adapter, scenario = scenario })
         end
       end
     end
   end
 
-  local function start_next_run()
-    if #pending_queue == 0 then
-      return
+  -- Shuffle so the active window spans different adapters and models rather
+  -- than draining identical runs back-to-back and hammering one model at once
+  shuffle(runnable)
+  for _, item in ipairs(runnable) do
+    pending_queue:push(item)
+  end
+
+  ---True while another run with the same adapter, model and scenario is in flight
+  ---@param adapter table
+  ---@param scenario table
+  ---@return boolean
+  local function in_flight(adapter, scenario)
+    for _, run in ipairs(active_runs) do
+      if
+        not run.done
+        and run.adapter_config.name == adapter.name
+        and run.adapter_config.model == adapter.model
+        and run.scenario.name == scenario.name
+      then
+        return true
+      end
     end
-    local item = table.remove(pending_queue, 1)
-    local run = start_scenario_run({ adapter_config = item.adapter, scenario = item.scenario })
-    table.insert(active_runs, run)
-    if args.delay > 0 then
-      vim.wait(args.delay)
+    return false
+  end
+
+  -- Pull the next queued run that isn't a duplicate of one already in flight.
+  -- Identical runs are pushed back so they execute one at a time, not at once.
+  local function start_next_run()
+    for _ = 1, pending_queue:count() do
+      local item = pending_queue:pop()
+      if item == nil then
+        return
+      end
+      if in_flight(item.adapter, item.scenario) then
+        pending_queue:push(item)
+      else
+        local run = start_scenario_run({ adapter_config = item.adapter, scenario = item.scenario })
+        table.insert(active_runs, run)
+        if args.delay > 0 then
+          vim.wait(args.delay)
+        end
+        return
+      end
     end
   end
 
-  for _ = 1, math.min(max_concurrent, #pending_queue) do
+  for _ = 1, math.min(max_concurrent, pending_queue:count()) do
     start_next_run()
   end
 
@@ -773,7 +828,7 @@ local function run_tests(opts)
       end
     end
 
-    if still_pending == 0 and #pending_queue == 0 then
+    if still_pending == 0 and pending_queue:is_empty() then
       break
     end
   end
@@ -806,6 +861,7 @@ end
 
 io.stdout:setvbuf("line")
 
+math.randomseed(os.time())
 load_env_file()
 local config = load_config()
 local args = parse_args()
