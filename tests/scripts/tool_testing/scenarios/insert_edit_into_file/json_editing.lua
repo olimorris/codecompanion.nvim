@@ -1,70 +1,22 @@
--- JSON config with "timeout" appearing three times at different nesting levels.
--- Model must use surrounding context to target only the http.timeout value.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local CONTENT = {
-  "{",
-  '  "database": {',
-  '    "host": "localhost",',
-  '    "port": 5432,',
-  '    "timeout": 30,',
-  '    "pool": {',
-  '      "min": 2,',
-  '      "max": 10,',
-  '      "timeout": 5000',
-  "    }",
-  "  },",
-  '  "http": {',
-  '    "host": "0.0.0.0",',
-  '    "port": 8080,',
-  '    "timeout": 30,',
-  '    "keepalive": true',
-  "  },",
-  '  "cache": {',
-  '    "ttl": 300,',
-  '    "timeout": 10',
-  "  }",
-  "}",
-}
-
-local EXPECTED = {
-  "{",
-  '  "database": {',
-  '    "host": "localhost",',
-  '    "port": 5432,',
-  '    "timeout": 30,',
-  '    "pool": {',
-  '      "min": 2,',
-  '      "max": 10,',
-  '      "timeout": 5000',
-  "    }",
-  "  },",
-  '  "http": {',
-  '    "host": "0.0.0.0",',
-  '    "port": 8080,',
-  '    "timeout": 60,',
-  '    "keepalive": true',
-  "  },",
-  '  "cache": {',
-  '    "ttl": 300,',
-  '    "timeout": 10',
-  "  }",
-  "}",
-}
+local input_file = "json_editing.json.input"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = 'insert_edit_into_file: "timeout" appears 3× at different nesting levels — model must anchor on http context to target the right one',
+  description = "Edit one of three identically-named keys, identified by its nesting context",
   name = "JSON editing with repeated keys",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".json"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -80,16 +32,26 @@ Change the HTTP server timeout from `30` to `60`. Note that `"timeout"` appears 
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
+  test = function(ctx)
+    if vim.fn.executable("python3") == 0 then
+      return false, "python3 not available"
     end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    return ok, { actual = table.concat(actual, "\n"), expected = table.concat(EXPECTED, "\n") }
+    local result = vim
+      .system({
+        "python3",
+        "-c",
+        string.format("import json; d=json.load(open('%s')); print(d['http']['timeout'])", ctx.test_file),
+      })
+      :wait()
+    if result.code ~= 0 then
+      local first_line = vim.split(vim.trim(result.stderr or ""), "\n")[1] or ""
+      return false, "invalid JSON: " .. first_line
+    end
+    local output = vim.trim(result.stdout)
+    return output == "60", output ~= "60" and "expected http.timeout=60, got: " .. output or nil
   end,
 }

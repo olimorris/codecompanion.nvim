@@ -1,0 +1,13 @@
+local config = {
+  database = {
+    host = 'localhost',
+    name = 'myapp_dev',
+    pool_size = 5,
+    port = 5432,
+    ssl = false,
+    timeout = 15,
+  },
+}
+
+print(config.database.host .. "/" .. config.database.name)
+return config

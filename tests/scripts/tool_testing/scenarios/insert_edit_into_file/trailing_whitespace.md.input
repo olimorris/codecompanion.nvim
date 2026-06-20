@@ -1,0 +1,16 @@
+# Deployment Guide
+
+## Prerequisites
+
+Ensure Docker is installed and running on the host machine.  
+Check that ports 80 and 443 are available before continuing.
+
+## Steps
+
+Pull the latest image from the registry.  
+Run `docker compose up -d` to start all services.
+
+## Rollback
+
+Stop the current containers with `docker compose down`.  
+Then deploy the previous image tag.

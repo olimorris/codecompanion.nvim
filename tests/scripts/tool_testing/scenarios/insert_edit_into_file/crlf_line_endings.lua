@@ -1,45 +1,29 @@
--- File uses Windows CRLF (\r\n) line endings.
--- After editing, line endings must still be CRLF throughout.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
--- CONTENT and EXPECTED are the raw file bytes (strings, not line arrays).
-local CONTENT_RAW =
-  "local M = {}\r\n\r\nM.VERSION = '1.0.0'\r\nM.NAME = 'myapp'\r\n\r\nfunction M.greet(name)\r\n  return 'Hello, ' .. name\r\nend\r\n\r\nreturn M\r\n"
-local EXPECTED_RAW =
-  "local M = {}\r\n\r\nM.VERSION = '1.0.0'\r\nM.NAME = 'myapp'\r\n\r\nfunction M.greet(name)\r\n  return 'Hi, ' .. name\r\nend\r\n\r\nreturn M\r\n"
-
--- Content shown to the model in the prompt (LF version for readability)
-local CONTENT_DISPLAY = {
-  "local M = {}",
-  "",
-  "M.VERSION = '1.0.0'",
-  "M.NAME = 'myapp'",
-  "",
-  "function M.greet(name)",
-  "  return 'Hello, ' .. name",
-  "end",
-  "",
-  "return M",
-}
+local input_file = "crlf_line_endings.lua.input"
+local expected_file = "crlf_line_endings.lua.expected"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: CRLF file — line endings must be preserved after edit",
+  description = "Edit a file with Windows CRLF line endings",
   name = "CRLF line endings",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".lua"
     local f = assert(io.open(test_file, "wb"))
-    f:write(CONTENT_RAW)
+    f:write(files.read(input_path))
     f:close()
-    return { test_file = test_file }
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
+    local display = files.read(ctx.input_path):gsub("\r\n", "\n")
     return string.format(
       [[Use @{insert_edit_into_file} to edit the file at `%s`.
 
@@ -54,24 +38,27 @@ Note: the file uses Windows-style CRLF line endings. Your old_string should matc
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT_DISPLAY, "\n")
+      display
     )
   end,
 
-  validate = function(ctx, _run)
+  test = function(ctx)
     local f = assert(io.open(ctx.test_file, "rb"))
     local actual_raw = f:read("*a")
     f:close()
-    local content_ok = actual_raw == EXPECTED_RAW
+    local expected = files.read(vim.fs.joinpath(FIXTURES, expected_file))
+    local content_ok = actual_raw == expected
     local has_crlf = actual_raw:find("\r\n") ~= nil
     local no_bare_lf = not actual_raw:find("[^\r]\n")
-    return content_ok and has_crlf and no_bare_lf,
-      {
-        actual = actual_raw:gsub("\r\n", "\n"),
-        content_match = content_ok,
-        expected = EXPECTED_RAW:gsub("\r\n", "\n"),
-        has_crlf = has_crlf,
-        no_bare_lf = no_bare_lf,
-      }
+    if not content_ok then
+      return false, "content mismatch"
+    end
+    if not has_crlf then
+      return false, "CRLF line endings lost"
+    end
+    if not no_bare_lf then
+      return false, "bare LF introduced"
+    end
+    return true
   end,
 }

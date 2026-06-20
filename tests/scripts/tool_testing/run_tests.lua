@@ -11,7 +11,6 @@ Options:
   --scenario=<name> Run only specific scenario
   --tool=<name>     Run only scenarios for a specific tool
   --delay=<ms>      Stagger delay between starting runs in milliseconds (default: 0)
-  --verbose         Show detailed output
 --]]
 
 local SCRIPT_DIR = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
@@ -250,9 +249,9 @@ local function parse_args()
     delay = 0,
     log = false,
     model = nil,
+    repeat_count = 1,
     scenario = nil,
     tool = nil,
-    verbose = false,
   }
 
   for _, arg in ipairs(vim.v.argv) do
@@ -266,12 +265,12 @@ local function parse_args()
       args.tool = arg:match("^%-%-tool=(.+)$")
     elseif arg:match("^%-%-delay=") then
       args.delay = tonumber(arg:match("^%-%-delay=(.+)$")) or 0
+    elseif arg:match("^%-%-repeat=") then
+      args.repeat_count = math.max(1, tonumber(arg:match("^%-%-repeat=(.+)$")) or 1)
     elseif arg == "--csv" then
       args.csv = true
     elseif arg == "--log" then
       args.log = true
-    elseif arg == "--verbose" then
-      args.verbose = true
     end
   end
 
@@ -286,30 +285,10 @@ local function setup_output_dir(config)
   return dir
 end
 
----Run `diff -u` between expected and actual strings, returning the diff output.
----@param actual string
----@param expected string
----@return string
-local function unified_diff(actual, expected)
-  local tmp_expected = vim.fn.tempname()
-  local tmp_actual = vim.fn.tempname()
-  vim.fn.writefile(vim.split(expected, "\n", { plain = true }), tmp_expected)
-  vim.fn.writefile(vim.split(actual, "\n", { plain = true }), tmp_actual)
-  local output = vim.fn.system(string.format("diff -u --label expected --label actual %s %s", tmp_expected, tmp_actual))
-  vim.fn.delete(tmp_expected)
-  vim.fn.delete(tmp_actual)
-  return vim.trim(output)
-end
-
----@param opts {msg: string, level?: string, verbose_only?: boolean}
+---@param opts {msg: string, level?: string}
 local function log(opts)
   local msg = opts.msg
   local level = opts.level or "INFO"
-  local verbose_only = opts.verbose_only
-
-  if verbose_only and not _G._test_verbose then
-    return
-  end
 
   if level == "PASS" then
     print(string.format("  PASS  %s", msg))
@@ -347,7 +326,7 @@ local function write_csv_row(opts)
     return
   end
   if not file_exists then
-    f:write("run_at,id,adapter,model,scenario,result,duration_s,tool_calls,tokens,error\n")
+    f:write("run_at,id,adapter,model,scenario,pass,duration_s,tool_calls,tokens,error\n")
   end
 
   local row = {
@@ -356,7 +335,7 @@ local function write_csv_row(opts)
     csv_escape(result.adapter),
     csv_escape(result.model),
     csv_escape(result.scenario),
-    csv_escape(result.success and "pass" or "fail"),
+    csv_escape(result.success and "1" or "0"),
     csv_escape(string.format("%.2f", result.duration_ms / 1000)),
     csv_escape(tostring(#(result.tool_calls or {}))),
     csv_escape(tostring(result.tokens or 0)),
@@ -411,7 +390,6 @@ local function start_scenario_run(opts)
       timestamp = os.date("%Y-%m-%d %H:%M:%S"),
       tokens = 0,
       tool_calls = {},
-      validation = nil,
     },
     scenario = scenario,
     start_time = vim.uv.hrtime(),
@@ -506,12 +484,17 @@ local function start_scenario_run(opts)
     end
   end
 
-  chat:add_callback("on_completed", function()
+  chat:add_callback("on_completed", function(_, completion)
     run.completed = true
+    run.status = completion and completion.status
     run.done = true
   end)
   chat:add_callback("on_cancelled", function()
-    run.result.error = "Chat was cancelled"
+    -- A timed-out run closes its chat, which cancels the in-flight request and
+    -- fires this callback — keep the timeout error rather than masking it.
+    if not run.result.error then
+      run.result.error = "Chat was cancelled"
+    end
     run.done = true
   end)
 
@@ -529,7 +512,7 @@ local function start_scenario_run(opts)
   return run
 end
 
----Validate, build messages, and set result.success on a completed run.
+---Run the scenario's test function and set result.success.
 ---@param run table
 local function finalize_run(run)
   local scenario = run.scenario
@@ -554,11 +537,15 @@ local function finalize_run(run)
 
   result.duration_ms = (vim.uv.hrtime() - run.start_time) / 1000000
 
-  if run.completed then
-    local should_validate = true
+  if run.status == "error" then
+    -- The adapter request failed (bad model name, auth, schema rejection) and
+    -- finished with no content — surface that rather than blaming the tool call
+    result.error = "Adapter request failed — check the model name and API key (see CodeCompanion log)"
+  elseif run.completed then
+    local should_test = true
 
-    if scenario.tools_required then
-      for _, required in ipairs(scenario.tools_required) do
+    if scenario.tools then
+      for _, required in ipairs(scenario.tools) do
         local was_called = false
         for _, call in ipairs(run.tool_calls) do
           if call.name == required then
@@ -568,34 +555,22 @@ local function finalize_run(run)
         end
         if not was_called then
           result.error = string.format("Required tool '%s' was not called", required)
-          should_validate = false
+          should_test = false
           break
         end
       end
     end
 
-    if should_validate then
+    if should_test then
       local run_data = { response_content = run.response_content, tool_calls = run.tool_calls }
-      local validate_ok, validate_success, validation_details = pcall(scenario.validate, run.context, run_data)
-      if validate_ok then
-        result.success = validate_success
-        result.validation = validation_details
-        if not validate_success and not result.error then
-          result.error = "Validation failed"
-        elseif validate_success then
-          result.error = nil
-        end
+      local test_ok, test_success, test_msg = pcall(scenario.test, run.context, run_data)
+      if test_ok then
+        result.success = test_success
+        result.error = not test_success and (test_msg or "Test failed") or nil
       else
-        if not result.error then
-          result.error = "Validation error: " .. tostring(validate_success)
-        end
+        result.error = "Test error: " .. tostring(test_success)
       end
     end
-  end
-
-  if not result.success and #run.tool_calls > 0 then
-    result.error = (result.error or "Unknown error")
-      .. string.format(" (tool called: %s, executed: %s)", #run.tool_calls > 0, run.tool_executed)
   end
 
   result.response_content = run.response_content
@@ -604,6 +579,17 @@ local function finalize_run(run)
   if scenario.cleanup then
     pcall(scenario.cleanup, run.context)
   end
+end
+
+---Shuffle a list in place using Fisher–Yates
+---@param list table
+---@return table The same list, reordered
+local function shuffle(list)
+  for i = #list, 2, -1 do
+    local j = math.random(i)
+    list[i], list[j] = list[j], list[i]
+  end
+  return list
 end
 
 ---@param opts {config: table, args: table}
@@ -664,16 +650,25 @@ local function run_tests(opts)
     end
   end
 
-  log({ msg = string.format("%d model(s) × %d scenario(s)", #test_runs, #scenarios_to_test) })
+  local repeat_count = args.repeat_count or 1
+  log({
+    msg = string.format(
+      "%d model(s) × %d scenario(s)%s",
+      #test_runs,
+      #scenarios_to_test,
+      repeat_count > 1 and string.format(" × %d repeats", repeat_count) or ""
+    ),
+  })
 
   local all_results = {}
   local summary = { errors = 0, failed = 0, passed = 0, total = 0 }
 
   local active_runs = {}
-  local pending_queue = {}
+  local pending_queue = require("codecompanion.utils.queue").new()
   local max_concurrent = (config.concurrency and config.concurrency.max_concurrent) or 3
 
-  -- Build queue; resolve invalid adapters immediately
+  -- Collect runnable items; resolve invalid adapters immediately
+  local runnable = {}
   for _, adapter in ipairs(test_runs) do
     local adapter_valid, adapter_error = validate_adapter_exists(adapter.name)
     if not adapter_valid then
@@ -695,29 +690,64 @@ local function run_tests(opts)
           timestamp = os.date("%Y-%m-%d %H:%M:%S"),
           tokens = 0,
           tool_calls = {},
-          validation = nil,
         })
       end
     else
       for _, scenario in ipairs(scenarios_to_test) do
-        table.insert(pending_queue, { adapter = adapter, scenario = scenario })
+        for _ = 1, repeat_count do
+          table.insert(runnable, { adapter = adapter, scenario = scenario })
+        end
       end
     end
   end
 
-  local function start_next_run()
-    if #pending_queue == 0 then
-      return
+  -- Shuffle so the active window spans different adapters and models rather
+  -- than draining identical runs back-to-back and hammering one model at once
+  shuffle(runnable)
+  for _, item in ipairs(runnable) do
+    pending_queue:push(item)
+  end
+
+  ---True while another run with the same adapter, model and scenario is in flight
+  ---@param adapter table
+  ---@param scenario table
+  ---@return boolean
+  local function in_flight(adapter, scenario)
+    for _, run in ipairs(active_runs) do
+      if
+        not run.done
+        and run.adapter_config.name == adapter.name
+        and run.adapter_config.model == adapter.model
+        and run.scenario.name == scenario.name
+      then
+        return true
+      end
     end
-    local item = table.remove(pending_queue, 1)
-    local run = start_scenario_run({ adapter_config = item.adapter, scenario = item.scenario })
-    table.insert(active_runs, run)
-    if args.delay > 0 then
-      vim.wait(args.delay)
+    return false
+  end
+
+  -- Pull the next queued run that isn't a duplicate of one already in flight.
+  -- Identical runs are pushed back so they execute one at a time, not at once.
+  local function start_next_run()
+    for _ = 1, pending_queue:count() do
+      local item = pending_queue:pop()
+      if item == nil then
+        return
+      end
+      if in_flight(item.adapter, item.scenario) then
+        pending_queue:push(item)
+      else
+        local run = start_scenario_run({ adapter_config = item.adapter, scenario = item.scenario })
+        table.insert(active_runs, run)
+        if args.delay > 0 then
+          vim.wait(args.delay)
+        end
+        return
+      end
     end
   end
 
-  for _ = 1, math.min(max_concurrent, #pending_queue) do
+  for _ = 1, math.min(max_concurrent, pending_queue:count()) do
     start_next_run()
   end
 
@@ -789,22 +819,6 @@ local function run_tests(opts)
             scenario_name = scenario.name,
           })
           result.result_file = result_file
-          log({ msg = "  Result saved to: " .. result_file, verbose_only = true })
-        end
-
-        if not result.success and result.validation then
-          local val = result.validation
-          if type(val.actual) == "string" and type(val.expected) == "string" and val.actual ~= val.expected then
-            local diff = unified_diff(val.actual, val.expected)
-            if diff ~= "" then
-              log({ msg = "  Diff:", verbose_only = true })
-              for _, diff_line in ipairs(vim.split(diff, "\n", { plain = true })) do
-                log({ msg = "  " .. diff_line, verbose_only = true })
-              end
-            end
-          else
-            log({ msg = "  Validation: " .. vim.inspect(val), verbose_only = true })
-          end
         end
 
         table.insert(all_results, result)
@@ -814,7 +828,7 @@ local function run_tests(opts)
       end
     end
 
-    if still_pending == 0 and #pending_queue == 0 then
+    if still_pending == 0 and pending_queue:is_empty() then
       break
     end
   end
@@ -839,7 +853,7 @@ local function run_tests(opts)
   if args.log then
     local summary_file = vim.fs.joinpath(results_dir, "summary_" .. os.date("%Y%m%d_%H%M%S") .. ".json")
     vim.fn.writefile(vim.split(vim.json.encode({ results = all_results, summary = summary }), "\n"), summary_file)
-    log({ msg = "Summary saved to: " .. summary_file, verbose_only = true })
+    log({ msg = "Summary saved to: " .. summary_file })
   end
 
   vim.cmd(string.format("cquit %d", summary.failed + summary.errors))
@@ -847,16 +861,10 @@ end
 
 io.stdout:setvbuf("line")
 
+math.randomseed(os.time())
 load_env_file()
 local config = load_config()
 local args = parse_args()
-
-if args.verbose then
-  config.output.verbose = true
-  _G._test_verbose = true
-else
-  _G._test_verbose = false
-end
 
 local ok, err = pcall(run_tests, { config = config, args = args })
 if not ok then

@@ -1,0 +1,31 @@
+local M = {}
+
+function M.get(account_id)
+  return db.find('users', { id = account_id })
+end
+
+function M.update(account_id, data)
+  local user = M.get(account_id)
+  if not user then
+    return nil, 'user ' .. account_id .. ' not found'
+  end
+  return db.update('users', { id = account_id }, data)
+end
+
+function M.delete(account_id)
+  return db.delete('users', { id = account_id })
+end
+
+function M.audit(account_id, action)
+  return db.insert('audit_log', {
+    action = action,
+    timestamp = os.time(),
+    account_id = account_id,
+  })
+end
+
+function M.permissions(account_id)
+  return db.find_all('permissions', { account_id = account_id })
+end
+
+return M

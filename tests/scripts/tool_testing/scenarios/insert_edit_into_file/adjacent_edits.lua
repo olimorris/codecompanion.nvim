@@ -1,50 +1,22 @@
--- Three independent edits clustered close together in a config block.
--- All three must land in a single tool call.
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local CONTENT = {
-  "local config = {",
-  "  database = {",
-  "    host = 'localhost',",
-  "    name = 'myapp_dev',",
-  "    pool_size = 5,",
-  "    port = 5432,",
-  "    ssl = false,",
-  "    timeout = 15,",
-  "  },",
-  "}",
-  "",
-  "return config",
-}
-
-local EXPECTED = {
-  "local config = {",
-  "  database = {",
-  "    host = 'db.production.internal',",
-  "    name = 'myapp_prod',",
-  "    pool_size = 5,",
-  "    port = 5432,",
-  "    ssl = true,",
-  "    timeout = 15,",
-  "  },",
-  "}",
-  "",
-  "return config",
-}
+local input_file = "adjacent_edits.lua.input"
 
 return {
   cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    files.delete(ctx.test_file)
   end,
 
-  description = "insert_edit_into_file: three adjacent single-line changes in a single tool call",
+  description = "Make three adjacent single-line changes in a single tool call",
   name = "Adjacent edits",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".lua"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
@@ -63,16 +35,21 @@ Make all three changes in a single tool call with three edits:
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      table.concat(CONTENT, "\n")
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
+  test = function(ctx)
+    if vim.fn.executable("nvim") == 0 then
+      return false, "nvim not available"
     end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    return ok, { actual = table.concat(actual, "\n"), expected = table.concat(EXPECTED, "\n") }
+    local result = vim.system({ "nvim", "-l", ctx.test_file }):wait()
+    if result.code ~= 0 then
+      return false, "execution failed: " .. vim.trim(result.stderr or "")
+    end
+    local output = vim.trim(result.stderr)
+    return output == "db.production.internal/myapp_prod",
+      output ~= "db.production.internal/myapp_prod" and "expected 'db.production.internal/myapp_prod', got: " .. output
+        or nil
   end,
 }

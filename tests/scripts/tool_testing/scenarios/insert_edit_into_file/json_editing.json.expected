@@ -1,0 +1,22 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "timeout": 30,
+    "pool": {
+      "min": 2,
+      "max": 10,
+      "timeout": 5000
+    }
+  },
+  "http": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "timeout": 60,
+    "keepalive": true
+  },
+  "cache": {
+    "ttl": 300,
+    "timeout": 10
+  }
+}
