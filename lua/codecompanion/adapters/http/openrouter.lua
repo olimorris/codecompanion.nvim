@@ -179,8 +179,21 @@ return {
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param params table
+    ---@param messages table
+    ---@return table
     form_parameters = function(self, params, messages)
-      return openai.handlers.form_parameters(self, params, messages)
+      params = openai.handlers.form_parameters(self, params, messages)
+
+      -- Enable automatic caching with Anthropic
+      -- Ref: https://openrouter.ai/docs/features/prompt-caching#anthropic-claude
+      local model = self.schema.model.default
+      if model and model:find("anthropic", 1, true) then
+        params.cache_control = { type = "ephemeral" }
+      end
+
+      return params
     end,
     ---Provides the schemas of the tools that are available to the LLM to call
     ---@param self CodeCompanion.HTTPAdapter

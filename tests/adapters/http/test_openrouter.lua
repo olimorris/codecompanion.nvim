@@ -19,6 +19,22 @@ T["OpenRouter adapter"]["it can form tools to be sent to the API"] = function()
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
+T["OpenRouter adapter"]["caches the prompt for Anthropic models"] = function()
+  local anthropic = require("codecompanion.adapters").extend("openrouter", {
+    schema = { model = { default = "anthropic/claude-sonnet-4.5" } },
+  })
+
+  local params = anthropic.handlers.form_parameters(anthropic, {}, {})
+
+  h.eq({ type = "ephemeral" }, params.cache_control)
+end
+
+T["OpenRouter adapter"]["does not cache the prompt for non-Anthropic models"] = function()
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+
+  h.eq(nil, params.cache_control)
+end
+
 T["OpenRouter adapter"]["forms reasoning output"] = function()
   local messages = {
     {
