@@ -107,6 +107,7 @@ return {
     user = "user",
   },
   opts = {
+    provider = {},
     stream = true,
     tools = true,
     vision = true,
@@ -191,6 +192,12 @@ return {
       local model = self.schema.model.default
       if model and model:find("anthropic", 1, true) then
         params.cache_control = { type = "ephemeral" }
+      end
+
+      -- Enable provider routing options
+      -- Ref: https://openrouter.ai/docs/guides/routing/provider-selection
+      if self.opts.provider and type(self.opts.provider) == "table" and vim.tbl_count(self.opts.provider) > 0 then
+        params.provider = self.opts.provider
       end
 
       return params
