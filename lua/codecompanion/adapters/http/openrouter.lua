@@ -107,7 +107,6 @@ return {
     user = "user",
   },
   opts = {
-    provider = {},
     stream = true,
     tools = true,
     vision = true,
@@ -192,12 +191,6 @@ return {
       local model = self.schema.model.default
       if model and model:find("anthropic", 1, true) then
         params.cache_control = { type = "ephemeral" }
-      end
-
-      -- Enable provider routing options
-      -- Ref: https://openrouter.ai/docs/guides/routing/provider-selection
-      if self.opts.provider and type(self.opts.provider) == "table" and vim.tbl_count(self.opts.provider) > 0 then
-        params.provider = self.opts.provider
       end
 
       return params
@@ -503,6 +496,24 @@ return {
           return n >= -100 and n <= 100, "Must be between -100 and 100"
         end,
       },
+    },
+    -- Ref: https://openrouter.ai/docs/guides/features/presets
+    preset = {
+      order = 11,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = nil,
+      desc = "Presets allow you to separate your LLM configuration from your code. Create and manage presets through the OpenRouter web application to control provider routing, model selection, system prompts, and other parameters, then reference them in OpenRouter API requests.",
+    },
+    -- Ref: https://openrouter.ai/docs/guides/routing/provider-selection
+    provider = {
+      order = 12,
+      mapping = "parameters",
+      type = "map",
+      optional = true,
+      default = nil,
+      desc = "OpenRouter routes requests to the best available providers for your model. By default, requests are load balanced across the top providers to maximize uptime.",
     },
   },
 }
