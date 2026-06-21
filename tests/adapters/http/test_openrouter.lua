@@ -117,6 +117,47 @@ T["OpenRouter adapter"]["sends preserved reasoning back to the API"] = function(
   }, result.messages)
 end
 
+T["OpenRouter adapter"]["strips tool messages for models that do not support tools"] = function()
+  local no_tools_adapter = require("codecompanion.adapters").extend("openrouter", {
+    opts = { tools = false },
+  })
+
+  local messages = {
+    { role = "user", content = "What is the weather in London?" },
+    {
+      role = "assistant",
+      content = "",
+      tools = { calls = { { id = "call_1", ["function"] = { name = "weather", arguments = "{}" } } } },
+    },
+    { role = "tool", content = "15 degrees", tools = { call_id = "call_1", name = "weather" } },
+    { role = "user", content = "Thanks" },
+  }
+
+  local result = no_tools_adapter.handlers.form_messages(no_tools_adapter, messages)
+
+  h.eq({
+    { role = "user", content = "What is the weather in London?" },
+    { role = "user", content = "Thanks" },
+  }, result.messages)
+end
+
+T["OpenRouter adapter"]["strips image messages for models that do not support vision"] = function()
+  local no_vision_adapter = require("codecompanion.adapters").extend("openrouter", {
+    opts = { vision = false },
+  })
+
+  local messages = {
+    { role = "user", content = "Describe this image" },
+    { role = "user", content = "base64data", _meta = { tag = "image" }, context = { mimetype = "image/png" } },
+  }
+
+  local result = no_vision_adapter.handlers.form_messages(no_vision_adapter, messages)
+
+  h.eq({
+    { role = "user", content = "Describe this image" },
+  }, result.messages)
+end
+
 T["OpenRouter adapter"]["can output tool call"] = function()
   local output = "The weather in London is 15 degrees"
   local tool_call = {

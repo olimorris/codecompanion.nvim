@@ -233,6 +233,15 @@ return {
     ---@param messages table
     ---@return table
     form_messages = function(self, messages)
+      if not self.opts.tools then
+        messages = vim
+          .iter(messages)
+          :filter(function(m)
+            return not (m.role == "tool" or (m.tools and m.tools.calls))
+          end)
+          :totable()
+      end
+
       local result = openai.handlers.form_messages(self, messages)
 
       -- OpenRouter requires reasoning to be preserved in any subsequent requests
