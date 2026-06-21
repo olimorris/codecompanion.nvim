@@ -201,6 +201,12 @@ return {
     ---@param data table The request payload built by the chat buffer
     ---@return table|nil
     set_body = function(self, data)
+      -- A user's session ID takes priority...
+      if self.opts and self.opts.session_id then
+        return { session_id = self.opts.session_id }
+      end
+
+      -- ...over one from the chat buffer
       if data and data.session_id then
         return { session_id = data.session_id }
       end

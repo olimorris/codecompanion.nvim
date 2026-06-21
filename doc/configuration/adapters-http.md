@@ -507,7 +507,21 @@ require("codecompanion").setup({
 
 :::
 
-The adapter also supports [sticky sessions](https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions) via the use of a `session_id`. When a chat buffer is created, the plugin will automatically generate a unique session ID and pass it to the adapter. This ID can be renamed in the debug window of the chat to make it more relevant to the session you are working on.
+The adapter also supports [sticky sessions](https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions) via the use of a `session_id`. When a chat buffer is created, the plugin will automatically generate a unique session ID and pass it to the adapter. This ID can be renamed in the debug window of the chat to make it more relevant to the session you are working on. You can also statically set this on the adapter:
+
+```lua {6}
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter_title_generation = function()
+        return require("codecompanion.adapters").extend("openrouter", {
+          opts = { session_id = "title_generation" },
+        })
+      end,
+    },
+  },
+})
+```
 
 ## Community Adapters
 
