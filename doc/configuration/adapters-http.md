@@ -507,6 +507,8 @@ require("codecompanion").setup({
 
 :::
 
+The adapter also supports [sticky sessions](https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions) via the use of a `session_id`. When a chat buffer is created, the plugin will automatically generate a unique session ID and pass it to the adapter. This ID can be renamed in the debug window of the chat to make it more relevant to the session you are working on.
+
 ## Community Adapters
 
 Thanks to the community for building the following adapters:

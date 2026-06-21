@@ -195,6 +195,16 @@ return {
 
       return params
     end,
+    ---Send the chat's session ID so OpenRouter can pin sticky sessions and track cost
+    ---Ref: https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table The request payload built by the chat buffer
+    ---@return table|nil
+    set_body = function(self, data)
+      if data and data.session_id then
+        return { session_id = data.session_id }
+      end
+    end,
     ---Provides the schemas of the tools that are available to the LLM to call
     ---@param self CodeCompanion.HTTPAdapter
     ---@param tools table<string, table>
