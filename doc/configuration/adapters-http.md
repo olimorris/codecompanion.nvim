@@ -301,7 +301,6 @@ require("codecompanion").setup({
 }),
 ```
 
-
 ## Setup Examples
 
 Below are some examples of how you can configure various adapters within CodeCompanion. Some merely serve as illustrations and are not actively supported by the plugin.
@@ -414,7 +413,6 @@ require("codecompanion").setup({
 })
 ```
 
-
 ### OpenAI Responses API
 
 CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
@@ -452,6 +450,63 @@ require("codecompanion").setup({
 
 By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
 
+### OpenRouter
+
+> [!NOTE]
+> Depending on the model you've selected, the OpenRouter adapter will turn on/off certain features such as tool use, vision and hyperparameters
+
+CodeCompanion supports a number of [OpenRouter](https://openrouter.ai) features out of the box:
+
+- Explicit prompt caching for Anthropic models
+- Server tools such as [web_fetch](https://openrouter.ai/docs/guides/features/server-tools/web-fetch) and [web_search](https://openrouter.ai/docs/guides/features/server-tools/web-search)
+- Reasoning [effort](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#reasoning-effort-level) levels
+- [Presets](http://openrouter.ai/docs/guides/features/presets)
+- [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
+
+Below are some useful configuration examples for the OpenRouter adapter:
+
+::: code-group
+
+```lua [Presets] {7}
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter = function()
+        return require("codecompanion.adapters").extend("openrouter", {
+          schema = {
+            preset = { default = "email-copywriter" },
+          },
+        })
+      end,
+    },
+  },
+},
+```
+
+```lua [Provider Routing] {7-13}
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter = function()
+        return require("codecompanion.adapters").extend("openrouter", {
+          schema = {
+            provider = {
+              default = {
+                allow_fallbacks = true,
+                order = { "anthropic", "openai" },
+                require_parameters = false,
+              },
+            },
+          },
+        })
+      end,
+    },
+  },
+},
+```
+
+:::
+
 ## Community Adapters
 
 Thanks to the community for building the following adapters:
@@ -460,7 +515,6 @@ Thanks to the community for building the following adapters:
 - [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
 - [InceptionLabs - Mercury 2](https://github.com/olimorris/codecompanion.nvim/discussions/2867)
 - [Nvidia NIM](https://github.com/olimorris/codecompanion.nvim/discussions/2810)
-- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
 - [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
 - [Vertex AI](https://github.com/viespejo/cc-adapter-vertex-ai.nvim)
 
