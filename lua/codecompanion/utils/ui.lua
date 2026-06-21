@@ -19,6 +19,7 @@ local M = {}
 ---@field title? string Title of the floating window
 ---@field width? number Default width if not specified in window
 ---@field height? number Default height if not specified in window
+---@field winbar? string Winbar text to display at the top of the window
 
 ---Open a floating window with the provided lines
 ---@param lines table
@@ -88,6 +89,10 @@ M.create_float = function(lines, opts)
   if opts.lock then
     vim.bo[bufnr].modified = false
     vim.bo[bufnr].modifiable = false
+  end
+
+  if opts.winbar then
+    vim.wo[winnr].winbar = opts.winbar
   end
 
   if opts.opts then

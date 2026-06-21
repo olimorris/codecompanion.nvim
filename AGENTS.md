@@ -16,6 +16,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - **Readable code:** names, variables, and control flow should read like clean English. Avoid generic names like `ctx` — use domain-specific names (`permission`, `request`, `source`)
 - **Plain language:** avoid jargon shortcuts in code, comments, commit messages, and chat. Don't say "no-op" — say what the code actually does ("returns unchanged", "does nothing", "skipped because already edited")
 - **Comments earn their place:** don't restate what a readable line of code already says. If a guard like `if type(x) ~= "number" then return end` is self-evident, a comment explaining it is noise. Comment the *why* that isn't in the code (e.g. `-- NOTE: Not handling token tables yet`), not the *what*
+- **Don't narrate every change:** the maintainer is an expert who knows this codebase. Do NOT add a comment to explain routine code (`-- Clear the modified flag`, `-- Loop over the messages`, `-- Return early`). Default to no comment. Reserve comments for genuinely non-obvious *why* — a subtle API quirk, a workaround, an ordering constraint — the kind of thing that would trip up even a reader who knows the codebase
 - **Function params:** prefer a single table argument over positional args
 - **Error handling:** `pcall` + `log:error()`, return nil on failure
 - **Type annotations:** LuaCATS for public APIs. Keep doc blocks concise — one description line, params should be self-explanatory without inline comments
