@@ -463,7 +463,7 @@ CodeCompanion supports a number of [OpenRouter](https://openrouter.ai) features 
 - [Presets](http://openrouter.ai/docs/guides/features/presets)
 - [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
 
-Below are some useful configuration examples for the OpenRouter adapter:
+You can configure the OpenRouter adapter in your config, as shown in the section below. However, you can also customise it on a per-chat basis, using `gd` to open the [debug window](/usage/chat-buffer/#debug-window).
 
 ::: code-group
 
