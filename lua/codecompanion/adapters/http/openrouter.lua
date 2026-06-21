@@ -84,21 +84,18 @@ local function get_models()
   return models
 end
 
----Check whether the currently selected model accepts a given request parameter
+---Check whether the currently selected model supports the given parameter
 ---@param self CodeCompanion.HTTPAdapter
 ---@param parameter string
 ---@return boolean
 local function model_supports(self, parameter)
-  local model = self.schema.model.default
-  if type(model) == "function" then
-    model = model(self)
+  local cached_models = get_models()
+  local model = cached_models[self.schema.model.default]
+  if not model then
+    return false
   end
-  local choices = self.schema.model.choices
-  if type(choices) == "function" then
-    choices = choices(self, { async = true })
-  end
-  local opts = choices and choices[model] and choices[model].opts
-  return opts and opts.supported_parameters and opts.supported_parameters[parameter] or false
+
+  return model.opts.supported_parameters[parameter] or false
 end
 
 ---@class CodeCompanion.HTTPAdapter.OpenRouter: CodeCompanion.HTTPAdapter
@@ -112,7 +109,29 @@ return {
   opts = {
     stream = true,
     tools = true,
-    vision = false,
+    vision = true,
+  },
+  available_tools = {
+    ["web_fetch"] = {
+      description = "Gives any model the ability to fetch content from a specific URL",
+      ---@param self CodeCompanion.HTTPAdapter.OpenRouter
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
+          type = "web_fetch",
+        })
+      end,
+    },
+    ["web_search"] = {
+      description = "Gives any model access to real-time web information",
+      ---@param self CodeCompanion.HTTPAdapter.OpenRouter
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
+          type = "web_search",
+        })
+      end,
+    },
   },
   features = {
     text = true,
@@ -125,6 +144,9 @@ return {
   headers = {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
+    ["HTTP-Referer"] = "https://codecompanion.olimorris.dev",
+    ["X-OpenRouter-Categories"] = "ide-extension",
+    ["X-OpenRouter-Title"] = "CodeCompanion",
   },
   handlers = {
     ---Check for a token before starting the request
@@ -147,39 +169,174 @@ return {
       if (self.opts and self.opts.tools) and (model_opts and model_opts.opts and not model_opts.opts.can_use_tools) then
         self.opts.tools = false
       end
+      if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
+        self.opts.vision = false
+      end
+
       return true
     end,
 
-    --- Use the OpenAI adapter for the bulk of the work
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param params table
+    ---@param messages table
+    ---@return table
     form_parameters = function(self, params, messages)
-      return openai.handlers.form_parameters(self, params, messages)
+      params = openai.handlers.form_parameters(self, params, messages)
+
+      -- Enable automatic caching with Anthropic
+      -- Ref: https://openrouter.ai/docs/features/prompt-caching#anthropic-claude
+      local model = self.schema.model.default
+      if model and model:find("anthropic", 1, true) then
+        params.cache_control = { type = "ephemeral" }
+      end
+
+      return params
     end,
+    ---Send the chat's session ID so OpenRouter can pin sticky sessions and track cost
+    ---Ref: https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table The request payload built by the chat buffer
+    ---@return table|nil
+    set_body = function(self, data)
+      if data and data.session_id then
+        return { session_id = data.session_id }
+      end
+    end,
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param tools table<string, table>
+    ---@return table|nil
     form_tools = function(self, tools)
-      return openai.handlers.form_tools(self, tools)
+      if not self.opts.tools or not tools then
+        return nil
+      end
+      if vim.tbl_count(tools) == 0 then
+        return nil
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          if schema._meta and schema._meta.adapter_tool then
+            if self.available_tools[schema.name] then
+              self.available_tools[schema.name].callback(self, { tools = transformed })
+            end
+          else
+            table.insert(transformed, schema)
+          end
+        end
+      end
+
+      return { tools = transformed }
     end,
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param messages table
+    ---@return table
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      if not self.opts.tools then
+        messages = vim
+          .iter(messages)
+          :filter(function(m)
+            return not (m.role == "tool" or (m.tools and m.tools.calls))
+          end)
+          :totable()
+      end
+
+      local result = openai.handlers.form_messages(self, messages)
+
+      -- OpenRouter requires reasoning to be preserved in any subsequent requests
+      -- Ref: https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#preserving-reasoning
+      for _, message in ipairs(result.messages) do
+        if type(message.reasoning) == "table" and message.reasoning._data then
+          message.reasoning_details = message.reasoning._data.reasoning_details
+        end
+        message.reasoning = nil
+      end
+
+      return result
     end,
-    chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
-    end,
-    ---OpenRouter includes an empty content string when reasoning. So strip it ou
+
+    ---Surface the reasoning text and the reasoning blocks that must be sent back
     ---@param self CodeCompanion.HTTPAdapter
     ---@param data table
-    ---@return table
-    parse_message_meta = function(self, data)
-      local extra = data.extra
+    ---@param tools? table
+    ---@return table|nil
+    chat_output = function(self, data, tools)
+      local output = openai.handlers.chat_output(self, data, tools)
+      if not output then
+        return output
+      end
+
+      -- To preserve reasoning, ensure it's saved to the chat buffer
+      local extra = output.extra
       if extra and extra.reasoning and extra.reasoning ~= "" then
-        data.output.reasoning = data.output.reasoning or {}
-        data.output.reasoning.content = extra.reasoning
+        output.output.reasoning = output.output.reasoning or {}
+        output.output.reasoning.content = extra.reasoning
       end
-      if data.output.content == "" then
-        data.output.content = nil
+
+      if extra and extra.reasoning_details then
+        output.output.reasoning = output.output.reasoning or {}
+        output.output.reasoning.reasoning_details = extra.reasoning_details
       end
-      return data
+      if output.output.content == "" then
+        output.output.content = nil
+      end
+
+      return output
+    end,
+
+    ---Collapse the reasoning chunks collected while streaming into a single block
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table The reasoning items gathered by the chat buffer
+    ---@return nil|{ content: string, _data: table }
+    form_reasoning = function(self, data)
+      local content = vim
+        .iter(data)
+        :map(function(item)
+          return item.content
+        end)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      -- Streamed `reasoning_details` arrive as deltas: text-bearing fields for the
+      -- same block are split across chunks and grouped by `index`, while complete
+      -- blocks (e.g. encrypted) carry no index. Merge deltas by index, keep the rest.
+      -- Metadata fields (type, format, index) repeat unchanged each chunk, so any
+      -- field whose value grows across chunks is treated as streamed text and joined
+      local details = {}
+      local details_by_index = {}
+      for _, item in ipairs(data) do
+        for _, detail in ipairs(item.reasoning_details or {}) do
+          local existing = detail.index ~= nil and details_by_index[detail.index]
+          if existing then
+            for key, value in pairs(detail) do
+              if type(value) == "string" and type(existing[key]) == "string" and existing[key] ~= value then
+                existing[key] = existing[key] .. value
+              else
+                existing[key] = value
+              end
+            end
+          else
+            local copy = vim.deepcopy(detail)
+            table.insert(details, copy)
+            if detail.index ~= nil then
+              details_by_index[detail.index] = copy
+            end
+          end
+        end
+      end
+
+      return {
+        content = content,
+        _data = {
+          reasoning_details = details,
+        },
+      }
     end,
     tools = {
       format_tool_calls = function(self, tools)
@@ -221,9 +378,12 @@ return {
       end,
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
+        "xhigh",
         "high",
         "medium",
         "low",
+        "minimal",
+        "none",
       },
     },
     temperature = {
@@ -346,6 +506,24 @@ return {
           return n >= -100 and n <= 100, "Must be between -100 and 100"
         end,
       },
+    },
+    -- Ref: https://openrouter.ai/docs/guides/features/presets
+    preset = {
+      order = 11,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = nil,
+      desc = "Presets allow you to separate your LLM configuration from your code. Create and manage presets through the OpenRouter web application to control provider routing, model selection, system prompts, and other parameters, then reference them in OpenRouter API requests.",
+    },
+    -- Ref: https://openrouter.ai/docs/guides/routing/provider-selection
+    provider = {
+      order = 12,
+      mapping = "parameters",
+      type = "map",
+      optional = true,
+      default = nil,
+      desc = "OpenRouter routes requests to the best available providers for your model. By default, requests are load balanced across the top providers to maximize uptime.",
     },
   },
 }

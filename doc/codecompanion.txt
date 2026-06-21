@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 17
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 21
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -118,10 +118,10 @@ agents. Out of the box, the plugin supports:
 - Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
 - Cline CLI (`cline_cli`)
 - Codex (`codex`) - Requires an API key
-- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
+- GitHub Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
 - GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
 - Goose (`goose`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
@@ -131,7 +131,8 @@ agents. Out of the box, the plugin supports:
 - Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
-- opencode (`opencode`) - Requires an API key
+- Opencode (`opencode`) - Requires an API key
+- OpenRouter (`openrouter`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
 In order to add a custom adapter, please refer to the
@@ -1983,6 +1984,26 @@ via the API. This is standard behaviour across all http adapters within the
 plugin.
 
 
+OPENROUTER
+
+
+  [!NOTE] Depending on the model you've selected, the OpenRouter adapter will
+  turn on/off certain features such as tool use, vision and hyperparameters
+CodeCompanion supports a number of OpenRouter <https://openrouter.ai> features
+out of the box:
+
+- Explicit prompt caching for Anthropic models
+- Server tools such as web_fetch <https://openrouter.ai/docs/guides/features/server-tools/web-fetch> and web_search <https://openrouter.ai/docs/guides/features/server-tools/web-search>
+- Reasoning effort <https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#reasoning-effort-level> levels
+- Presets <http://openrouter.ai/docs/guides/features/presets>
+- Provider routing <https://openrouter.ai/docs/guides/routing/provider-selection>
+
+You can configure the OpenRouter adapter in your config, as shown in the
+section below. However, you can also customise it on a per-chat basis, using
+`gd` to open the |codecompanion-usage-chat-buffer--debug-window|.
+
+
+
 COMMUNITY ADAPTERS ~
 
 Thanks to the community for building the following adapters:
@@ -1991,7 +2012,6 @@ Thanks to the community for building the following adapters:
 - Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
 - InceptionLabs - Mercury 2 <https://github.com/olimorris/codecompanion.nvim/discussions/2867>
 - Nvidia NIM <https://github.com/olimorris/codecompanion.nvim/discussions/2810>
-- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
@@ -3970,11 +3990,16 @@ refer to it, unless you actively alter the history of the conversation via
 
 DEBUG WINDOW ~
 
+
+
 Sometimes it's necessary to peek under the hood of the chat buffer to
 understand what hyperparameters are being sent to the LLM, or what the message
 history looks like. By pressing `gd`, you can open up a debug window which
 contains all of the relevant information about the chat buffer, including the
 message history, adapter settings and context items.
+
+You can edit all content in the debug window and persist it to the chat buffer
+by doing `<C-s>`.
 
 
 GENERATING TITLES ~

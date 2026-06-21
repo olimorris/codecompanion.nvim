@@ -21,11 +21,12 @@
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
 ---@field hidden boolean Whether the chat is hidden (no window opened)
----@field id number The unique identifier for the chat
+---@field id number The unique identifier for the chat (internal use only)
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parsers { markdown: vim.treesitter.LanguageTree, markdown_inline?: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
+---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
@@ -582,6 +583,7 @@ function Chat.new(args)
     intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
     opts = args,
+    session_id = fmt("codecompanion-%d-%d", os.time(), id),
     status = "",
     title = args.title,
     _last_role = args.last_role or config.constants.USER_ROLE,
@@ -1370,6 +1372,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(shallow_messages),
+    session_id = self.session_id,
     tools = (not vim.tbl_isempty(self.tool_registry.schemas) and { self.tool_registry.schemas } or {}),
   }
 
