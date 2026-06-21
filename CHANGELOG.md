@@ -1,5 +1,20 @@
 # Changelog
 
+## [19.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.16.0...v19.17.0) (2026-06-21)
+
+
+### Features
+
+* **adapters:** add additional `OpenRouter` features ([#3179](https://github.com/olimorris/codecompanion.nvim/issues/3179)) ([5fd730f](https://github.com/olimorris/codecompanion.nvim/commit/5fd730ff8ecd8e533b36b33b2c1eb6b215b5f674))
+* **adapters:** add gemini 3.5 flash ([#3171](https://github.com/olimorris/codecompanion.nvim/issues/3171)) ([35d9acc](https://github.com/olimorris/codecompanion.nvim/commit/35d9accf36b10d39c93a8028d18200f04ba6c2c2))
+* **adapters:** add support for `OpenRouter` ([#3168](https://github.com/olimorris/codecompanion.nvim/issues/3168)) ([339c270](https://github.com/olimorris/codecompanion.nvim/commit/339c27087d86a7d1cebb966ac160fba31b305123))
+
+
+### Bug Fixes
+
+* **adapters:** change default copilot model ([#3167](https://github.com/olimorris/codecompanion.nvim/issues/3167)) ([ffd2859](https://github.com/olimorris/codecompanion.nvim/commit/ffd2859929b60c701faa4ae9188aa71983113608))
+* **utils:** update datetime formatting ([#3160](https://github.com/olimorris/codecompanion.nvim/issues/3160)) ([7cc35b7](https://github.com/olimorris/codecompanion.nvim/commit/7cc35b7f7f08d093469fa9ae67d3af716bd729c3))
+
 ## [19.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.15.0...v19.16.0) (2026-06-15)
 
 
