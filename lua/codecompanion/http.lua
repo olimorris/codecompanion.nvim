@@ -1,7 +1,7 @@
 local Curl = require("plenary.curl")
 local Path = require("plenary.path")
 
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")

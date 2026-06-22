@@ -465,7 +465,7 @@ end
 local function adapter_config(adapter_type, opts)
   if opts and opts.adapters and opts.adapters[adapter_type] then
     if config.adapters[adapter_type].opts.show_presets then
-      local adapters_util = require("codecompanion.utils.adapters")
+      local adapters_util = require("codecompanion.adapters.utils")
       adapters_util.extend(config.adapters[adapter_type], opts.adapters[adapter_type])
     else
       config.adapters[adapter_type] =

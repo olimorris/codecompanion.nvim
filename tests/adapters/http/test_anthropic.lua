@@ -1,6 +1,6 @@
 local h = require("tests.helpers")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.utils.tool_transformers")
+local transform = require("codecompanion.adapters.utils.tool_transformers")
 local adapter
 
 local new_set = MiniTest.new_set

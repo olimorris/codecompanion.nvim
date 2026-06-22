@@ -1,8 +1,8 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local tags = require("codecompanion.interactions.shared.tags")
-local tool_utils = require("codecompanion.utils.tool_transformers")
+local tool_utils = require("codecompanion.adapters.utils.tool_transformers")
 
 ---@type string|nil
 local response_id

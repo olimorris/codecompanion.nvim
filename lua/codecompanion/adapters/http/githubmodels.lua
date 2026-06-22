@@ -1,5 +1,5 @@
 local Job = require("plenary.job")
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 

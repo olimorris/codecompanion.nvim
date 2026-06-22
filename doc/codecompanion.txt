@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 21
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -6114,7 +6114,7 @@ comes with some handy utility functions to work with this:
 
 >lua
     -- Put this at the top of your adapter
-    local utils = require("codecompanion.utils.adapters")
+    local utils = require("codecompanion.adapters.utils")
     
     handlers = {
       response = {
@@ -6413,7 +6413,7 @@ which prevent you from using the OpenAI Adapter. Common issues can be:
 - Messages must follow a `User -> LLM -> User -> LLM` turn based flow (`deepseek`)
 
 To address this, an adapter utilities
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/adapters.lua>
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/utils.lua>
 file has been created that you can leverage in building or extending your own
 adapters. Finally, always refer to the pre-built adapters as a reference point.
 
