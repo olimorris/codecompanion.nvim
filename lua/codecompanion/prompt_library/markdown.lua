@@ -11,12 +11,30 @@ local allowed_roles = {
   config.constants.USER_ROLE,
 }
 
+local _yaml_parser_warned = false
+
+---Check if YAML treesitter parser is available and warn if missing
+local function check_yaml_parser()
+  if _yaml_parser_warned then
+    return
+  end
+
+  _yaml_parser_warned = true
+
+  local ok = pcall(vim.treesitter.get_string_parser, "name: test", "yaml")
+  if not ok then
+    log:warn("[Prompt Library] Install with :TSInstall yaml to properly parse prompt frontmatter")
+  end
+end
+
 ---Load all markdown prompts from a directory
 ---@param dir string
 ---@param context CodeCompanion.BufferContext
 ---@return table
 function M.load_from_dir(dir, context)
   local prompts = {}
+
+  check_yaml_parser()
 
   dir = vim.fs.normalize(dir)
 
@@ -32,7 +50,6 @@ function M.load_from_dir(dir, context)
     local ok, prompt = pcall(M.parse_file, path, context)
 
     if ok and prompt then
-      prompt.name = prompt.name or vim.fn.fnamemodify(path, ":t:r")
       table.insert(prompts, prompt)
     end
   end
@@ -52,7 +69,6 @@ function M.parse_file(path, context)
 
   local frontmatter = M.parse_frontmatter(content)
 
-  --TODO: Remove frontmatter.strategy conditional in v19.0.0
   if not frontmatter or not (frontmatter.interaction or frontmatter.strategy) or not frontmatter.name then
     log:warn("[Prompt Library] Missing frontmatter, name or interaction in `%s`", path)
     return nil
