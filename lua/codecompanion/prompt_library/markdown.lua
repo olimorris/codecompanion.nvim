@@ -14,9 +14,11 @@ local allowed_roles = {
 ---Load all markdown prompts from a directory
 ---@param dir string
 ---@param context CodeCompanion.BufferContext
+---@param opts? table
 ---@return table
-function M.load_from_dir(dir, context)
+function M.load_from_dir(dir, context, opts)
   local prompts = {}
+  opts = opts or {}
 
   dir = vim.fs.normalize(dir)
 
@@ -33,6 +35,9 @@ function M.load_from_dir(dir, context)
 
     if ok and prompt then
       prompt.name = prompt.name or vim.fn.fnamemodify(path, ":t:r")
+      if opts.default_interaction and not prompt.interaction then
+        prompt.interaction = opts.default_interaction
+      end
       table.insert(prompts, prompt)
     end
   end
@@ -51,26 +56,22 @@ function M.parse_file(path, context)
   end
 
   local frontmatter = M.parse_frontmatter(content)
-
-  --TODO: Remove frontmatter.strategy conditional in v19.0.0
-  if not frontmatter or not (frontmatter.interaction or frontmatter.strategy) or not frontmatter.name then
-    log:warn("[Prompt Library] Missing frontmatter, name or interaction in `%s`", path)
-    return nil
-  end
+  local name = (frontmatter and frontmatter.name) or vim.fn.fnamemodify(path, ":t:r")
+  local interaction = frontmatter and (frontmatter.interaction or frontmatter.strategy) or nil
 
   local prompts = M.parse_prompt(content, frontmatter)
 
   return {
-    context = frontmatter.context or nil,
-    description = frontmatter.description or "",
-    interaction = frontmatter.interaction,
-    mcp_servers = frontmatter.mcp_servers,
-    name = frontmatter.name,
-    opts = frontmatter.opts or {},
+    context = frontmatter and frontmatter.context or nil,
+    description = frontmatter and frontmatter.description or "",
+    interaction = interaction,
+    mcp_servers = frontmatter and frontmatter.mcp_servers,
+    name = name,
+    opts = (frontmatter and frontmatter.opts) or {},
     path = path,
     prompts = prompts,
-    rules = frontmatter.rules,
-    tools = frontmatter.tools,
+    rules = frontmatter and frontmatter.rules,
+    tools = frontmatter and frontmatter.tools,
   }
 end
 
