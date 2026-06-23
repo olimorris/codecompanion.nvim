@@ -1,4 +1,4 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
 local stats = require("codecompanion.adapters.http.copilot.stats")

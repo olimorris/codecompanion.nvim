@@ -271,7 +271,7 @@ The first thing to note with streaming endpoints is that they don't return valid
 
 ```lua
 -- Put this at the top of your adapter
-local utils = require("codecompanion.utils.adapters")
+local utils = require("codecompanion.adapters.utils")
 
 handlers = {
   response = {
@@ -533,7 +533,7 @@ A lot of LLM endpoints claim to be "OpenAI Compatible" yet have odd quirks which
 - System messages have to be one message (`anthropic`, `deepseek`)
 - Messages must follow a `User -> LLM -> User -> LLM` turn based flow (`deepseek`)
 
-To address this, an [adapter utilities](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/adapters.lua) file has been created that you can leverage in building or extending your own adapters. Finally, always refer to the pre-built adapters as a reference point.
+To address this, an [adapter utilities](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/utils/init.lua) file has been created that you can leverage in building or extending your own adapters. Finally, always refer to the pre-built adapters as a reference point.
 
 ## Schema
 

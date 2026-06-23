@@ -20,7 +20,7 @@
 
 local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local jsonrpc = require("codecompanion.utils.jsonrpc")

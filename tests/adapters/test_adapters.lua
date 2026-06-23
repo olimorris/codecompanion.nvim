@@ -9,7 +9,7 @@ T = new_set({
       h.child_start(child)
       child.lua([[
         h = require('tests.helpers')
-        utils = require("codecompanion.utils.adapters")
+        utils = require("codecompanion.adapters.utils")
 
         _G.test_acp_adapter = {
           name = "test_acp",
@@ -208,7 +208,7 @@ end
 
 T["HTTP Adapter"]["can form environment variables"] = function()
   local result = child.lua([[
-    local utils = require("codecompanion.utils.adapters")
+    local utils = require("codecompanion.adapters.utils")
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
     return utils.get_env_vars(adapter)
   ]])
@@ -219,7 +219,7 @@ end
 
 T["HTTP Adapter"]["can set environment variables in the adapter"] = function()
   local result = child.lua([[
-    local utils = require("codecompanion.utils.adapters")
+    local utils = require("codecompanion.adapters.utils")
     adapter = require("codecompanion.adapters").extend(_G.test_adapter2)
     utils.get_env_vars(adapter)
 
@@ -240,7 +240,7 @@ end
 
 T["HTTP Adapter"]["will not set environment variables if it doesn't need to"] = function()
   local params = child.lua([[
-    local utils = require("codecompanion.utils.adapters")
+    local utils = require("codecompanion.adapters.utils")
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
     utils.get_env_vars(adapter)
     return utils.set_env_vars(adapter, adapter.parameters)
@@ -251,7 +251,7 @@ end
 
 T["HTTP Adapter"]["environment variables can be functions"] = function()
   local result = child.lua([[
-    local utils = require("codecompanion.utils.adapters")
+    local utils = require("codecompanion.adapters.utils")
     local adapter = require("codecompanion.adapters").extend("openai", {
       env = {
         api_key = function()

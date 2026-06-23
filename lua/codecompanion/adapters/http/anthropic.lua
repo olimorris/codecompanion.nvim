@@ -1,7 +1,7 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.utils.tool_transformers")
+local transform = require("codecompanion.adapters.utils.tool_transformers")
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
