@@ -130,15 +130,22 @@ local function fetch_async(adapter, opts)
                 log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
                 goto continue
               end
-              if model.capabilities.supports and model.capabilities.supports.streaming then
-                choice_opts.can_stream = true
+
+              if model.capabilities.supports then
+                if model.capabilities.supports.streaming then
+                  choice_opts.can_stream = true
+                end
+                if model.capabilities.supports.structured_outputs then
+                  choice_opts.can_use_structured_outputs = true
+                end
+                if model.capabilities.supports.tool_calls then
+                  choice_opts.can_use_tools = true
+                end
+                if model.capabilities.supports.vision then
+                  choice_opts.has_vision = true
+                end
               end
-              if model.capabilities.supports and model.capabilities.supports.tool_calls then
-                choice_opts.can_use_tools = true
-              end
-              if model.capabilities.supports and model.capabilities.supports.vision then
-                choice_opts.has_vision = true
-              end
+
               if model.capabilities.limits then
                 limits.max_output_tokens = model.capabilities.limits.max_output_tokens
                 limits.max_prompt_tokens = model.capabilities.limits.max_prompt_tokens
