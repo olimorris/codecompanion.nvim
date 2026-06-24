@@ -48,6 +48,22 @@ T["Structured Outputs"]["can transform to Gemini"] = function()
   h.eq(output[1], output[2])
 end
 
+T["Structured Outputs"]["can transform to Ollama"] = function()
+  local output = child.lua([[
+    local input = vim.fn.readfile("tests/adapters/utils/stubs/input.json")
+    input = vim.json.decode(table.concat(input, "\n"))
+
+    local ollama = vim.fn.readfile("tests/adapters/utils/stubs/ollama_structured_output.json")
+    ollama = vim.json.decode(table.concat(ollama, "\n"))
+
+    local output = transform.to_ollama(input)
+
+    return { ollama, output }
+  ]])
+
+  h.eq(output[1], output[2])
+end
+
 T["Structured Outputs"]["can transform to OpenAI"] = function()
   local output = child.lua([[
     local input = vim.fn.readfile("tests/adapters/utils/stubs/input.json")
