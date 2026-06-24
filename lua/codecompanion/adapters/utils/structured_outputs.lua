@@ -68,8 +68,18 @@ function M.to_gemini(input)
   }
 end
 
+---Convert a structured-output schema to the Ollama generate API body fragment
+---Ref: https://ollama.com/blog/structured-outputs
+---@param input CodeCompanion.StructuredOutput.Schema
+---@return table
+function M.to_ollama(input)
+  return {
+    format = vim.deepcopy(input.schema),
+  }
+end
+
 ---Convert a structured-output schema to the OpenAI Chat Completions API body fragment
----Ref: https://developers.openai.com/api/docs/guides/structured-outputs#examples
+---Ref: https://developers.openai.com/cookbook/examples/structured_outputs_intro
 ---@param input CodeCompanion.StructuredOutput.Schema
 ---@return table
 function M.to_openai(input)
