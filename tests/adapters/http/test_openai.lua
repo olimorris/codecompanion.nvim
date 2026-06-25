@@ -325,4 +325,30 @@ T["OpenAI adapter"]["reasoning_effort enabled"] = function()
   h.eq(false, enabled_result_missing)
 end
 
+T["OpenAI adapter"]["it can form a structured output"] = function()
+  local schema = {
+    name = "weather",
+    strict = true,
+    schema = {
+      type = "object",
+      properties = {
+        location = { type = "string" },
+      },
+      required = { "location" },
+      additionalProperties = false,
+    },
+  }
+
+  local output = adapter.handlers.form_structured_output(adapter, schema)
+
+  h.eq("json_schema", output.response_format.type)
+  h.eq("weather", output.response_format.json_schema.name)
+  h.eq(true, output.response_format.json_schema.strict)
+  h.eq(schema.schema, output.response_format.json_schema.schema)
+end
+
+T["OpenAI adapter"]["form_structured_output returns nil when no schema"] = function()
+  h.eq(nil, adapter.handlers.form_structured_output(adapter, nil))
+end
+
 return T

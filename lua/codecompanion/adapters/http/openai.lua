@@ -5,13 +5,13 @@ local tags = require("codecompanion.interactions.shared.tags")
 local CONSTANTS = {
   STANDARD_MESSAGE_FIELDS = {
     -- fields that are defined in the standard openai chat-completion API (inc. streaming and non-streaming)
+    "annotations",
+    "audio",
     "content",
     "function_call",
     "refusal",
     "role",
     "tool_calls",
-    "annotations",
-    "audio",
   },
 }
 
@@ -188,6 +188,17 @@ return {
       end
 
       return { tools = transformed }
+    end,
+
+    ---Form the structured output schema for the request body
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema then
+        return nil
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_openai(schema)
     end,
 
     ---Returns the number of tokens generated from the LLM

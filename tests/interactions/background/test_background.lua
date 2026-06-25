@@ -62,6 +62,34 @@ T["Background"]["ask"]["performs sync requests"] = function()
   h.eq(result.output.content, "Test response from LLM")
 end
 
+T["Background"]["ask"]["threads structured output schema into the sync payload"] = function()
+  child.lua([[
+    _G.mock_client:clear_requests()
+    _G.mock_client:queue_response({
+      body = vim.json.encode({
+        choices = { { message = { content = '{"location":"London"}' } } },
+      }),
+    })
+  ]])
+
+  child.lua([[
+    background = b.new({ adapter = _G.mock_adapter })
+    local messages = { { role = "user", content = "Where am I?" } }
+    local structured_output = {
+      name = "location",
+      strict = true,
+      schema = { type = "object", properties = { location = { type = "string" } } },
+    }
+    _G.result, _G.err = background:ask(messages, { method = "sync", silent = true, structured_output = structured_output })
+  ]])
+
+  local requests = h.get_mock_http_requests(child)
+
+  h.eq(#requests, 1)
+  h.eq(requests[1].payload.structured_output.name, "location")
+  h.eq(requests[1].payload.structured_output.strict, true)
+end
+
 T["Background"]["ask"]["handles sync errors"] = function()
   -- Don't queue a response - mock will return error
   child.lua([[

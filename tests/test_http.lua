@@ -291,6 +291,65 @@ T["send_sync returns error when curl call fails"] = function()
   h.expect_contains("curl failed", result.err_message)
 end
 
+T["send_sync merges structured output schema into the request body"] = function()
+  local result = child.lua([[
+    local captured_body
+    _G.Client.static.methods.encode = {
+      default = function(tbl) captured_body = tbl; return vim.json.encode(tbl) end,
+    }
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        return { status = 200, headers = {}, body = "ok", exit = 0 }
+      end,
+    }
+
+    local adapter = __make_adapter({
+      opts = { method = "POST", stream = false },
+      handlers = {
+        form_structured_output = function(self, schema)
+          return { response_format = { type = "json_schema", json_schema = { name = schema.name } } }
+        end,
+      },
+    })
+
+    local structured_output = { name = "weather", strict = true, schema = { type = "object" } }
+    local resp, err = Client.new({ adapter = adapter }):send_sync(
+      { messages = {}, tools = {}, structured_output = structured_output },
+      { stream = false, silent = true, timeout = 100 }
+    )
+
+    return {
+      err_is_nil = err == nil,
+      response_format = captured_body and captured_body.response_format or nil,
+    }
+  ]])
+
+  h.eq(result.err_is_nil, true)
+  h.eq(result.response_format.type, "json_schema")
+  h.eq(result.response_format.json_schema.name, "weather")
+end
+
+T["send_sync returns error when adapter does not support structured outputs"] = function()
+  local result = child.lua([[
+    local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
+    local structured_output = { name = "weather", schema = { type = "object" } }
+    local resp, err = Client.new({ adapter = adapter }):send_sync(
+      { messages = {}, structured_output = structured_output },
+      { stream = false, silent = true, timeout = 100 }
+    )
+
+    return {
+      resp_is_nil = resp == nil,
+      err_message = err and err.message or nil,
+      post = _G.__calls.post,
+    }
+  ]])
+
+  h.eq(result.resp_is_nil, true)
+  h.eq(result.post, 0)
+  h.expect_contains("does not support structured outputs", result.err_message)
+end
+
 T["handles nil data with captured stream error"] = function()
   local result = child.lua([[
     _G.Client.static.methods.post = {

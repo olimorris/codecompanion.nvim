@@ -177,17 +177,23 @@ function Client:send(payload, opts)
 end
 
 ---Synchronous request API
----@param payload { messages: table, tools?: table }
+---@param payload { messages: table, structured_output?: CodeCompanion.StructuredOutput.Schema, tools?: table }
 ---@param opts { stream?: false, timeout?: number, silent?: boolean }|nil
 ---@return table|nil, table|nil  -- response, err
 function Client:send_sync(payload, opts)
   opts = opts or {}
-  -- We do not support stream in sync mode
-  -- if self.adapter and self.adapter.opts and self.adapter.opts.stream then
-  --   return nil, { message = "send_sync does not support streaming adapters", stderr = "stream=true" }
-  -- end
 
   local adapter = vim.deepcopy(self.adapter)
+
+  if adapter.opts then
+    adapter.opts.stream = false
+  end
+
+  if payload.structured_output and not adapters.get_handler(adapter, "build_structured_output") then
+    local msg = string.format("Adapter '%s' does not support structured outputs", adapter.formatted_name)
+    log:warn("[http::send_sync] %s", msg)
+    return nil, { message = msg, stderr = msg }
+  end
 
   local ok = adapters.call_handler(adapter, "setup")
   if ok == false then
@@ -207,6 +213,7 @@ function Client:send_sync(payload, opts)
       ) or {},
       adapters.call_handler(adapter, "build_messages", payload.messages) or {},
       adapters.call_handler(adapter, "build_tools", payload.tools) or {},
+      adapters.call_handler(adapter, "build_structured_output", payload.structured_output) or {},
       adapter.body and adapter.body or {},
       adapters.call_handler(adapter, "build_body", payload) or {}
     )

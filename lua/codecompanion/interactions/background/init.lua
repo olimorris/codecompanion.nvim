@@ -73,7 +73,7 @@ end
 ---Ask the LLM, synchronously
 ---@param background CodeCompanion.Background
 ---@param messages CodeCompanion.Chat.Messages
----@param opts? { silent?: boolean, parse_handler?: string }
+---@param opts? { silent?: boolean, parse_handler?: string, structured_output?: CodeCompanion.StructuredOutput.Schema }
 ---@return any, table|nil -- parsed response, error
 local function ask_sync(background, messages, opts)
   opts = opts or {}
@@ -85,6 +85,7 @@ local function ask_sync(background, messages, opts)
   local client = http.new({ adapter = background.adapter })
   local payload = {
     messages = background.adapter:map_roles(vim.deepcopy(messages)),
+    structured_output = opts.structured_output,
   }
 
   log:debug("[background::init] Ask Sync Payload:\n%s", payload)
@@ -138,7 +139,7 @@ end
 
 ---Ask the LLM for a specific response
 ---@param messages CodeCompanion.Chat.Message[]
----@param opts? { method?: string, silent?: boolean, parse_handler?: string }
+---@param opts? { method?: string, silent?: boolean, parse_handler?: string, structured_output?: CodeCompanion.StructuredOutput.Schema }
 function Background:ask(messages, opts)
   opts = vim.tbl_deep_extend("force", { method = "async" }, opts or {})
 
