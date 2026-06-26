@@ -35,9 +35,9 @@ local function enforce_strict(node)
 end
 
 ---@class CodeCompanion.StructuredOutput.Schema
----@field name string Identifier for the schema. Required for OpenAI / OpenAI Responses / OpenRouter; ignored by Anthropic / Gemini.
----@field schema table The JSON Schema describing the response.
----@field strict? boolean When true (default), OpenAI variants auto-enforce strict mode.
+---@field name string Identifier for the schema. Required for OpenAI / OpenAI Responses / OpenRouter; ignored by Anthropic / Gemini
+---@field schema table The JSON Schema describing the response
+---@field strict? boolean When true (default), OpenAI variants auto-enforce strict mode
 
 ---Convert a structured-output schema to the Anthropic Messages API body fragment
 ---Ref: https://platform.claude.com/docs/en/build-with-claude/structured-outputs#quick-start

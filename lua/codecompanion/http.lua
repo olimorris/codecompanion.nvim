@@ -248,12 +248,12 @@ function Client:send_sync(payload, opts)
   end
 
   local request_opts = {
-    url = adapter_utils.set_env_vars(adapter, adapter.url),
+    body = body_file.filename or "",
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
-    body = body_file.filename or "",
-    timeout = opts.timeout,
+    timeout = opts.timeout or 120000,
+    url = adapter_utils.set_env_vars(adapter, adapter.url),
   }
 
   local method = "post"
