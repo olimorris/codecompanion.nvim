@@ -66,7 +66,7 @@ return {
           if not model_opts.opts.has_vision then
             self.opts.vision = false
           end
-          if not model_opts.opts.has_function_calling then
+          if not model_opts.opts.can_use_tools then
             self.opts.tools = false
           end
           if self.opts.compaction == false then
@@ -279,6 +279,23 @@ return {
         end
 
         return { tools = transformed }
+      end,
+
+      ---Form the structured output schema for the request body
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param schema CodeCompanion.StructuredOutput.Schema
+      ---@return table|nil
+      build_structured_output = function(self, schema)
+        if not schema then
+          return nil
+        end
+        if not self.opts.can_form_structured_outputs then
+          return log:warn(
+            "[openai_responses] Model '%s' does not support structured outputs",
+            self.model and self.model.name
+          )
+        end
+        return require("codecompanion.adapters.utils.structured_outputs").to_openai_responses(schema)
       end,
 
       ---Form the reasoning output that is stored in the chat buffer
@@ -593,37 +610,85 @@ return {
       ---@type string|fun(): string
       default = "gpt-5",
       choices = {
+        ["gpt-5.5"] = {
+          formatted_name = "GPT 5.5",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
         ["gpt-5.4-pro"] = {
           formatted_name = "GPT 5.4 Pro",
           meta = { context_window = 1050000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
 
         -- Frontier models
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-5.4-mini"] = {
           formatted_name = "GPT 5.4 Mini",
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-5.4-nano"] = {
           formatted_name = "GPT 5.4 Nano",
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-5"] = {
           formatted_name = "GPT-5",
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-4.1"] = {
           formatted_name = "GPT-4.1",
           meta = { context_window = 1047576 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
 
         -- Codex models
@@ -631,33 +696,33 @@ return {
           formatted_name = "GPT-5.3 Codex",
 
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
         ["gpt-5.2-codex"] = {
           formatted_name = "GPT-5.2 Codex",
           meta = { context_window = 400000 },
 
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
         ["gpt-5.1-codex-max"] = {
           formatted_name = "GPT-5.1 Codex Max",
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
         ["gpt-5.1-codex"] = {
           formatted_name = "GPT-5.1 Codex",
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
         ["gpt-5-codex"] = {
           formatted_name = "GPT-5 Codex",
           meta = { context_window = 400000 },
-          opts = { can_manage_context = true, has_function_calling = true, has_vision = true, can_reason = true },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
         -- ChatGPT models
         ["gpt-5-chat-latest"] = {
           formatted_name = "GPT-5 Chat",
-          opts = { has_function_calling = true, has_vision = true },
+          opts = { can_use_tools = true, has_vision = true },
         },
       },
     },
@@ -684,10 +749,11 @@ return {
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
+        "xhigh",
         "high",
         "medium",
         "low",
-        "minimal",
+        "none",
       },
     },
     ["reasoning.summary"] = {

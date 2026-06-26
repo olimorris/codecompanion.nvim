@@ -1,25 +1,53 @@
--- Manual test script for the structured output path on the OpenAI adapter
--- NOTE: GENERATED ENTIRELY BY CLAUDE CODE FOR TESTING PURPOSES ONLY
---
--- Usage: With CodeCompanion loaded in Neovim:
---   :source %
---
--- What it does:
---   1. Builds a Background interaction against the OpenAI adapter
---   2. Issues a sync request with a `structured_output` schema in opts
---   3. Prints the raw content, the decoded table, and any error
---
--- Expected: the LLM returns valid JSON matching the schema (location,
--- temperature, conditions). If the adapter lacks a structured-output
--- handler the request short-circuits and an error is printed.
+--[[
+Manual test script for structured output
+NOTE: GENERATED ENTIRELY BY AUGMENT CODE FOR TESTING PURPOSES ONLY
+
+Usage: With CodeCompanion loaded in Neovim:
+  :source %
+
+What it does:
+  1. Builds a Background interaction against an adapter
+  2. Issues a sync request with a `structured_output` schema in opts
+  3. Prints the raw content, the decoded table, and any error
+
+Expected: the LLM returns valid JSON matching the schema (location,
+temperature, conditions). If the adapter lacks a structured-output
+handler the request short-circuits and an error is printed.
+--]]
 
 local Background = require("codecompanion.interactions.background")
 
-local adapter = require("codecompanion.adapters").extend("openai", {
-  env = {
-    api_key = "cmd:op read op://personal/OpenAI_API/credential --no-newline",
-  },
-})
+local adapter_config = {
+  anthropic = require("codecompanion.adapters").extend("anthropic", {
+    env = {
+      api_key = "cmd:op read op://personal/Anthropic_API/credential --no-newline",
+    },
+  }),
+  copilot = "copilot",
+  gemini = require("codecompanion.adapters").extend("gemini", {
+    env = {
+      api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+    },
+  }),
+  openai = require("codecompanion.adapters").extend("openai", {
+    env = {
+      api_key = "cmd:op read op://personal/OpenAI_API/credential --no-newline",
+    },
+  }),
+  openai_responses = require("codecompanion.adapters").extend("openai_responses", {
+    env = {
+      api_key = "cmd:op read op://personal/OpenAI_API/credential --no-newline",
+    },
+  }),
+  openrouter = require("codecompanion.adapters").extend("openrouter", {
+    env = {
+      api_key = "cmd:op read op://personal/OpenRouter_API/credential --no-newline",
+    },
+  }),
+}
+
+local adapter_name = "gemini"
+local adapter = adapter_config[adapter_name]
 
 local structured_output = {
   name = "weather",
@@ -39,7 +67,7 @@ local structured_output = {
 local messages = {
   {
     role = "system",
-    content = "You are a weather reporter. Respond with concise, plausible data.",
+    content = "You are a weather reporter. Respond with concise, plausible data. You can make this up. Don't use live data",
   },
   {
     role = "user",
@@ -68,6 +96,7 @@ if not result then
 end
 
 print("Status: " .. tostring(result.status))
+print("Adapter: " .. tostring(adapter_name))
 print("Raw content:")
 print(result.output and result.output.content or "<nil>")
 

@@ -70,6 +70,25 @@ function Background.new(args)
   return self ---@type CodeCompanion.Background
 end
 
+---Build the request prior to sending to the adapter
+---@param background CodeCompanion.Background
+---@param messages CodeCompanion.Chat.Messages,
+---@param opts { structured_output?: CodeCompanion.StructuredOutput.Schema }
+---@return CodeCompanion.HTTPAdapter, table
+local function build_request(background, messages, opts)
+  local adapter = vim.deepcopy(background.adapter)
+  if adapter.opts then
+    adapter.opts.stream = false
+  end
+
+  local payload = {
+    messages = adapter:map_roles(vim.deepcopy(messages)),
+    structured_output = opts.structured_output,
+  }
+
+  return adapter, payload
+end
+
 ---Ask the LLM, synchronously
 ---@param background CodeCompanion.Background
 ---@param messages CodeCompanion.Chat.Messages
@@ -82,13 +101,10 @@ local function ask_sync(background, messages, opts)
     return nil, { message = "[background::init] ask_sync only supports HTTP adapters" }
   end
 
-  local client = http.new({ adapter = background.adapter })
-  local payload = {
-    messages = background.adapter:map_roles(vim.deepcopy(messages)),
-    structured_output = opts.structured_output,
-  }
+  local adapter, payload = build_request(background, messages, { structured_output = opts.structured_output })
+  local client = http.new({ adapter = adapter })
 
-  log:debug("[background::init] Ask Sync Payload:\n%s", payload)
+  log:debug("[background::init]\nAdapter: %s\nAsk Sync Payload:\n%s", adapter.name, payload)
   local response, err = client:send_sync(payload, { silent = opts.silent, timeout = opts.timeout })
 
   if err then
@@ -97,43 +113,34 @@ local function ask_sync(background, messages, opts)
   end
 
   local parse_handler = opts.parse_handler or "parse_chat"
-  local result = adapters.call_handler(background.adapter, parse_handler, response.body)
+  local result = adapters.call_handler(adapter, parse_handler, response)
   return result, nil
 end
 
 ---Ask the LLM asynchronously
 ---@param background CodeCompanion.Background
 ---@param messages CodeCompanion.Chat.Messages
----@param opts { on_done: function, on_error?: function, on_chunk?: function, silent?: boolean, parse_handler?: string }
+---@param opts { on_done: function, on_error?: function, on_chunk?: function, silent?: boolean, parse_handler?: string, structured_output?: CodeCompanion.StructuredOutput.Schema }
 ---@return CodeCompanion.HTTPClient.RequestHandle
 local function ask_async(background, messages, opts)
   assert(opts.on_done, "on_done callback is required for ask_async")
 
-  -- Temporarily disable streaming for this request
-  local adapter = vim.deepcopy(background.adapter)
-  if adapter.opts then
-    adapter.opts.stream = false
-  end
-
+  local adapter, payload = build_request(background, messages, { structured_output = opts.structured_output })
   local client = http.new({ adapter = adapter })
-  local payload = {
-    messages = adapter:map_roles(vim.deepcopy(messages)),
-  }
 
   -- Wrap the on_done callback to parse the response
   local parse_handler = opts.parse_handler or "parse_chat"
   local original_on_done = opts.on_done
   opts.on_done = function(response, meta)
     if not response or not response.body then
-      original_on_done(nil, meta)
-      return
+      return original_on_done(nil, meta)
     end
 
-    local result = adapters.call_handler(adapter, parse_handler, response.body)
+    local result = adapters.call_handler(adapter, parse_handler, response)
     original_on_done(result, meta)
   end
 
-  log:trace("[background::init] Ask Async Payload:\n%s", payload)
+  log:trace("[background::init]\nAdapter: %s\nAsk Async Payload:\n%s", adapter.name, payload)
   return client:send(payload, opts)
 end
 

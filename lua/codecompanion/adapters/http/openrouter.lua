@@ -64,6 +64,7 @@ local function get_models()
 
     local choice_opts = {
       supported_parameters = supported,
+      can_form_structured_outputs = supported.structured_outputs or false,
       can_use_tools = supported.tools or false,
       can_reason = supported.reasoning or false,
     }
@@ -172,6 +173,11 @@ return {
       if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
         self.opts.vision = false
       end
+      self.opts.can_form_structured_outputs = (
+        model_opts
+        and model_opts.opts
+        and model_opts.opts.can_form_structured_outputs
+      ) or false
 
       return true
     end,
@@ -237,6 +243,20 @@ return {
       end
 
       return { tools = transformed }
+    end,
+    ---OpenRouter passes structured outputs through to the underlying provider using OpenAI's shape
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      ---Ref: https://openrouter.ai/docs/guides/features/structured-outputs#using-structured-outputs
+      if not self.opts.can_form_structured_outputs then
+        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      end
+      return openai.handlers.form_structured_output(self, schema)
     end,
     ---@param self CodeCompanion.HTTPAdapter
     ---@param messages table

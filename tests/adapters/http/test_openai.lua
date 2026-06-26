@@ -339,6 +339,7 @@ T["OpenAI adapter"]["it can form a structured output"] = function()
     },
   }
 
+  adapter.opts.can_form_structured_outputs = true
   local output = adapter.handlers.form_structured_output(adapter, schema)
 
   h.eq("json_schema", output.response_format.type)
@@ -348,6 +349,7 @@ T["OpenAI adapter"]["it can form a structured output"] = function()
 end
 
 T["OpenAI adapter"]["form_structured_output returns nil when no schema"] = function()
+  adapter.opts.can_form_structured_outputs = true
   h.eq(nil, adapter.handlers.form_structured_output(adapter, nil))
 end
 
