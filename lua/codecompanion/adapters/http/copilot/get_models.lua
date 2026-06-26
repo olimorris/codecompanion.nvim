@@ -44,7 +44,6 @@ local function get_cached_models()
     log:trace("Copilot Adapter: Using cached Copilot models")
     return _cached_models
   end
-
   return nil
 end
 
@@ -136,7 +135,7 @@ local function fetch_async(adapter, opts)
                   choice_opts.can_stream = true
                 end
                 if model.capabilities.supports.structured_outputs then
-                  choice_opts.can_use_structured_outputs = true
+                  choice_opts.can_form_structured_outputs = true
                 end
                 if model.capabilities.supports.tool_calls then
                   choice_opts.can_use_tools = true
