@@ -37,9 +37,9 @@ local T = new_set({
         package.loaded["codecompanion.http"] = {
           new = function()
             return {
-              request = function(_, __, handlers)
+              stream = function(_, __, opts)
                 vim.schedule(function()
-                  handlers.callback(nil, { html = "Hello World content" })
+                  opts.on_done({ html = "Hello World content" })
                 end)
               end
             }

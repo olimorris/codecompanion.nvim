@@ -39,24 +39,27 @@ return {
 
       local query = args.query
 
+      local function resolve(data)
+        if not data then
+          return
+        end
+        local output = adapter.methods.tools.web_search.callback(adapter, data)
+        if output.status == "error" then
+          log:error([[[Web Search Tool] Error searching for "%s"]], query)
+          return cb({ status = "error", data = fmt([[Error searching for "%s" %s]], query, output.content) })
+        end
+
+        return cb({ status = "success", data = output.content })
+      end
+
       client
         .new({
           adapter = adapter,
         })
-        :request({ query = query, domains = args.domains }, {
-          callback = function(err, data)
-            local error_message = [[Error searching for "%s"]]
-            local error_message_expanded = error_message .. " %s"
-
-            if data then
-              local output = adapter.methods.tools.web_search.callback(adapter, data)
-              if output.status == "error" then
-                log:error("[Web Search Tool] " .. error_message, query)
-                return cb({ status = "error", data = fmt(error_message_expanded, query, output.content) })
-              end
-
-              return cb({ status = "success", data = output.content })
-            end
+        :stream({ query = query, domains = args.domains }, {
+          on_done = resolve,
+          on_error = function(err)
+            resolve(err and err.stderr)
           end,
         })
     end,

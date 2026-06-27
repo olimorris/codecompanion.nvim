@@ -45,22 +45,22 @@ return {
         .new({
           adapter = adapter,
         })
-        :request({ messages = {}, tools = nil }, {
-          callback = function(err, data)
-            if err then
-              log:error("[Fetch Webpage Tool] Error fetching `%s`: %s", url, err)
-              return cb({ status = "error", data = fmt("Error fetching `%s`\n%s", url, err) })
+        :stream({ messages = {}, tools = nil }, {
+          on_error = function(err)
+            log:error("[Fetch Webpage Tool] Error fetching `%s`: %s", url, err)
+            return cb({ status = "error", data = fmt("Error fetching `%s`\n%s", url, err) })
+          end,
+          on_done = function(data)
+            if not data then
+              return
+            end
+            local output = adapter.methods.tools.fetch_webpage.callback(adapter, data)
+            if output.status == "error" then
+              log:error("[Fetch Webpage Tool] Error processing data for `%s`: %s", url, output.content)
+              return cb({ status = "error", data = fmt("Error processing `%s`\n%s", url, output.content) })
             end
 
-            if data then
-              local output = adapter.methods.tools.fetch_webpage.callback(adapter, data)
-              if output.status == "error" then
-                log:error("[Fetch Webpage Tool] Error processing data for `%s`: %s", url, output.content)
-                return cb({ status = "error", data = fmt("Error processing `%s`\n%s", url, output.content) })
-              end
-
-              return cb({ status = "success", data = output.content })
-            end
+            return cb({ status = "success", data = output.content })
           end,
         })
     end,
