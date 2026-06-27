@@ -41,7 +41,7 @@ function MockHTTPClient.new(args)
   }, { __index = MockHTTPClient })
 end
 
----Queue a response to be returned on the next send/send_sync call
+---Queue a response to be returned on the next stream/fetch call
 ---@param response table The mock response
 ---@return nil
 function MockHTTPClient:queue_response(response)
@@ -58,28 +58,29 @@ end
 ---@param payload table
 ---@param opts table
 ---@return CodeCompanion.HTTPClient.RequestHandle
-function MockHTTPClient:send(payload, opts)
+function MockHTTPClient:stream(payload, opts)
   opts = opts or {}
   table.insert(self.requests, { type = "async", payload = payload, opts = opts })
 
   local response = self:dequeue_response()
   local handle_state = "pending"
+  local meta = { id = "mock", adapter = self.adapter }
 
   vim.schedule(function()
     if response then
       if opts.on_chunk and response.stream then
         for _, chunk in ipairs(response.stream) do
-          opts.on_chunk(chunk, { id = "mock" })
+          opts.on_chunk(chunk, meta)
         end
       end
       handle_state = "success"
       if opts.on_done then
-        opts.on_done(response, { id = "mock" })
+        opts.on_done(response, meta)
       end
     else
       handle_state = "error"
       if opts.on_error then
-        opts.on_error({ message = "No queued response" }, { id = "mock" })
+        opts.on_error({ message = "No queued response" }, meta)
       end
     end
   end)
@@ -101,7 +102,7 @@ end
 ---@param payload table
 ---@param opts table
 ---@return table|nil, table|nil
-function MockHTTPClient:send_sync(payload, opts)
+function MockHTTPClient:fetch(payload, opts)
   opts = opts or {}
   table.insert(self.requests, { type = "sync", payload = payload, opts = opts })
 

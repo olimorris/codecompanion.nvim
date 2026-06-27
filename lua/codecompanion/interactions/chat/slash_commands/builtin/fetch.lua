@@ -320,44 +320,44 @@ local function fetch(chat, adapter, url, opts)
     .new({
       adapter = adapter,
     })
-    :request({ url = url }, {
-      callback = function(err, data)
-        if err then
-          return log:error("Failed to fetch the URL, with error %s", err)
+    :stream({ url = url }, {
+      on_error = function(err)
+        return log:error("Failed to fetch the URL, with error %s", err)
+      end,
+      on_done = function(data)
+        if not data then
+          return
+        end
+        local body = adapter.methods.slash_commands.fetch.callback(adapter, data)
+
+        if body.status == "error" then
+          return log:error("Error fetching URL: %s", body.content)
         end
 
-        if data then
-          local body = adapter.methods.slash_commands.fetch.callback(adapter, data)
+        output(chat, {
+          content = body.content,
+          url = url,
+        }, opts)
 
-          if body.status == "error" then
-            return log:error("Error fetching URL: %s", body.content)
+        -- Cache the response
+        -- TODO: Get an LLM to create summary
+        vim.ui.select({ "Yes", "No" }, {
+          prompt = "Do you want to cache this URL?",
+          kind = "codecompanion.nvim",
+        }, function(selected)
+          if selected == "Yes" then
+            local hash = hash_utils.hash(url)
+            write_cache(
+              hash,
+              vim.json.encode({
+                url = url,
+                hash = hash,
+                timestamp = os.time(),
+                data = body.content,
+              })
+            )
           end
-
-          output(chat, {
-            content = body.content,
-            url = url,
-          }, opts)
-
-          -- Cache the response
-          -- TODO: Get an LLM to create summary
-          vim.ui.select({ "Yes", "No" }, {
-            prompt = "Do you want to cache this URL?",
-            kind = "codecompanion.nvim",
-          }, function(selected)
-            if selected == "Yes" then
-              local hash = hash_utils.hash(url)
-              write_cache(
-                hash,
-                vim.json.encode({
-                  url = url,
-                  hash = hash,
-                  timestamp = os.time(),
-                  data = body.content,
-                })
-              )
-            end
-          end)
-        end
+        end)
       end,
     })
 end

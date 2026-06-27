@@ -80,7 +80,7 @@ T["can call POST API endpoint"] = function()
   child.lua([[
     local adapter = __make_adapter()
     local cb = function() end
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
   ]])
 
   h.eq(child.lua_get([[_G.__calls.post]]), 1)
@@ -90,7 +90,7 @@ T["substitutes variables in url, headers, and raw"] = function()
   child.lua([[
     local adapter = __make_adapter()
     local cb = function() end
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
   ]])
 
   h.eq(child.lua_get([[ _G.__last_request_opts.url ]]), "https://api.openai.com/v1/chat/completions")
@@ -113,7 +113,7 @@ T["writes headers to a temp file with one header per line"] = function()
   child.lua([[
     local adapter = __make_adapter()
     local cb = function() end
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
   ]])
 
   -- Headers must not appear as process args
@@ -138,7 +138,7 @@ T["adds streaming flags and stream handler when stream=true"] = function()
   child.lua([[
     local adapter = __make_adapter({ opts = { method = "POST", stream = true, compress = false } })
     local cb = function() end
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
   ]])
 
   h.eq(child.lua_get([[ type(_G.__last_request_opts.stream) ]]), "function")
@@ -154,7 +154,7 @@ T["dispatches GET when method is GET"] = function()
   child.lua([[
     local adapter = __make_adapter({ opts = { method = "GET", stream = false } })
     local cb = function() end
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
   ]])
 
   h.eq(child.lua_get([[_G.__calls.get]]), 1)
@@ -176,7 +176,7 @@ T["invokes on_error callback with error"] = function()
     local cb = function(err, _)
       err_received = err and err.message or nil
     end
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
 
     return { err_received = err_received }
   ]])
@@ -204,7 +204,7 @@ T["calls done then emits error callback for HTTP status >= 400"] = function()
     local done_called = false
     local done = function() done_called = true end
 
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb, done = done }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb, done = done }, {})
 
     return { callback_calls = callback_calls, done_called = done_called, err_received = err_received }
   ]])
@@ -214,7 +214,7 @@ T["calls done then emits error callback for HTTP status >= 400"] = function()
   h.eq(result.err_received, "500 error: ")
 end
 
-T["send_sync returns response on success"] = function()
+T["fetch returns response on success"] = function()
   local result = child.lua([[
     -- Override POST to return a synchronous success response
     _G.Client.static.methods.post = {
@@ -225,7 +225,7 @@ T["send_sync returns response on success"] = function()
     }
 
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
-    local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
+    local resp, err = Client.new({ adapter = adapter }):fetch({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
 
     return {
       body = resp and resp.body or nil,
@@ -241,7 +241,7 @@ T["send_sync returns response on success"] = function()
   h.eq(result.err_is_nil, true)
 end
 
-T["send_sync returns error on HTTP status >= 400"] = function()
+T["fetch returns error on HTTP status >= 400"] = function()
   local result = child.lua([[
     -- Override POST to return a synchronous 500 response
     _G.Client.static.methods.post = {
@@ -252,7 +252,7 @@ T["send_sync returns error on HTTP status >= 400"] = function()
     }
 
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
-    local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
+    local resp, err = Client.new({ adapter = adapter }):fetch({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
 
     return {
       err_message = err and err.message or nil,
@@ -266,7 +266,7 @@ T["send_sync returns error on HTTP status >= 400"] = function()
   h.eq(result.err_message, "500 error: ")
 end
 
-T["send_sync returns error when curl call fails"] = function()
+T["fetch returns error when curl call fails"] = function()
   local result = child.lua([[
     -- Override POST to simulate a thrown error in curl
     _G.Client.static.methods.post = {
@@ -277,7 +277,7 @@ T["send_sync returns error when curl call fails"] = function()
     }
 
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
-    local resp, err = Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
+    local resp, err = Client.new({ adapter = adapter }):fetch({ messages = {}, tools = {} }, { stream = false, silent = true, timeout = 100 })
 
     return {
       err_message = err and err.message or nil,
@@ -309,7 +309,7 @@ T["handles nil data with captured stream error"] = function()
       if err then err_received = err.message end
     end
 
-    Client.new({ adapter = adapter }):request({ messages = {}, tools = {} }, { callback = cb }, {})
+    Client.new({ adapter = adapter }):_dispatch({ messages = {}, tools = {} }, { callback = cb }, {})
 
     return { err_received = err_received }
   ]])

@@ -427,33 +427,25 @@ function Inline:submit(prompt)
 
   self.current_request = client
     .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineStarted" } })
-    :request({ messages = self.adapter:map_roles(prompt) }, {
-      ---@param err string
-      ---@param data table
-      ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
-      callback = function(err, data, adapter)
-        local function error(msg)
-          log:error("[Inline] Request failed with error %s", msg)
-        end
-
-        if err then
-          local msg = type(err) == "table" and err.message or err
-          return error(msg)
-        end
-
-        if data then
-          data = adapters.call_handler(adapter, "parse_inline", data, self.buffer_context)
-          if data and data.status == CONSTANTS.STATUS_SUCCESS then
-            return self:done(data.output)
-          elseif data then
-            return error(data.output)
-          end
-        end
-      end,
-    }, {
+    :stream({ messages = self.adapter:map_roles(prompt) }, {
       bufnr = self.bufnr,
       buffer_context = self.buffer_context or {},
       interaction = "inline",
+      on_error = function(err)
+        local msg = type(err) == "table" and err.message or err
+        log:error("[Inline] Request failed with error %s", msg)
+      end,
+      on_done = function(data, meta)
+        if not data then
+          return
+        end
+        data = adapters.call_handler(meta.adapter, "parse_inline", data, self.buffer_context)
+        if data and data.status == CONSTANTS.STATUS_SUCCESS then
+          return self:done(data.output)
+        elseif data then
+          return log:error("[Inline] Request failed with error %s", data.output)
+        end
+      end,
     })
 end
 

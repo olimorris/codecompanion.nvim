@@ -88,7 +88,7 @@ local function ask_sync(background, messages, opts)
   }
 
   log:debug("[background::init] Ask Sync Payload:\n%s", payload)
-  local response, err = client:send_sync(payload, { silent = opts.silent })
+  local response, err = client:fetch(payload, { silent = opts.silent })
 
   if err then
     log:debug("[background::init] ask_sync failed: %s", err.stderr or err.message)
@@ -133,7 +133,7 @@ local function ask_async(background, messages, opts)
   end
 
   log:trace("[background::init] Ask Async Payload:\n%s", payload)
-  return client:send(payload, opts)
+  return client:stream(payload, opts)
 end
 
 ---Ask the LLM for a specific response

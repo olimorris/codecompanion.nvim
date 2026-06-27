@@ -1248,7 +1248,7 @@ function Chat:_submit_http(payload)
     end
   end
 
-  local handle = get_client(adapter).new({ adapter = mapped_settings }):send(payload, {
+  local handle = get_client(adapter).new({ adapter = mapped_settings }):stream(payload, {
     on_chunk = function(data)
       process_chunk(data)
     end,

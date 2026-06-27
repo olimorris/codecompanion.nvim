@@ -53,30 +53,28 @@ function Cmd:start()
     table.insert(messages, p)
   end)
 
+  -- The command is parsed from a single response, so we don't stream it back
+  self.adapter.opts.stream = false
+
   client
     .new({ adapter = self.adapter:map_schema_to_params() })
-    :request({ messages = self.adapter:map_roles(messages) }, {
-      ---@param err string
-      ---@param data table
-      ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
-      callback = function(err, data, adapter)
-        if err then
-          return log:error(err)
-        end
-
-        if data then
-          local result = adapters.call_handler(adapter, "parse_chat", data)
-          if result and result.output and result.output.content then
-            local content = result.output.content
-            content:gsub("^%s*(.-)%s*$", "%1")
-            vim.api.nvim_feedkeys(content, "n", false)
-          end
-        end
-      end,
-      done = function() end,
-    }, {
+    :stream({ messages = self.adapter:map_roles(messages) }, {
       bufnr = self.buffer_context.bufnr,
       interaction = "cmd",
+      on_error = function(err)
+        return log:error(err)
+      end,
+      on_done = function(data, meta)
+        if not data then
+          return
+        end
+        local result = adapters.call_handler(meta.adapter, "parse_chat", data)
+        if result and result.output and result.output.content then
+          local content = result.output.content
+          content:gsub("^%s*(.-)%s*$", "%1")
+          vim.api.nvim_feedkeys(content, "n", false)
+        end
+      end,
     })
 end
 
