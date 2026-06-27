@@ -194,11 +194,11 @@ end
 
 ---Send an async request, wraps around client:request
 ---@param payload { messages: table, tools?: table }
----@param opts { stream?: boolean,
----              on_chunk?: fun(chunk: table, meta: CodeCompanion.HTTPClient.Request),
+---@param opts { on_chunk?: fun(chunk: table, meta: CodeCompanion.HTTPClient.Request),
 ---              on_done?: fun(response: table|nil, meta: CodeCompanion.HTTPClient.Request),
 ---              on_error?: fun(err: table, meta: CodeCompanion.HTTPClient.Request),
 ---              silent?: boolean,
+---              stream?: boolean,
 ---              timeout?: number}|nil
 ---@return CodeCompanion.HTTPClient.RequestHandle
 function Client:send(payload, opts)
@@ -290,7 +290,7 @@ end
 
 ---Send a synchronous request
 ---@param payload { messages: table, tools?: table }
----@param opts { stream?: false, timeout?: number, silent?: boolean }|nil
+---@param opts { silent?: boolean, stream?: false, timeout?: number}|nil
 ---@return table|nil, table|nil  -- response, err
 function Client:send_sync(payload, opts)
   opts = opts or {}
