@@ -1,9 +1,9 @@
 local Curl = require("plenary.curl")
-local Path = require("plenary.path")
 
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
+local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
@@ -25,17 +25,37 @@ Client.static.methods = {
   schedule_wrap = { default = vim.schedule_wrap },
 }
 
----Write HTTP headers to a temp file on disk
+---@param body string
+---@return string path
+local function write_body_file(body)
+  local path = vim.fn.tempname() .. ".json"
+  files.write_to_path(path, body)
+  return path
+end
+
 ---@param headers table
----@return table
+---@return string path
 local function write_headers_file(headers)
   local lines = {}
   for k, v in pairs(headers) do
     table.insert(lines, k .. ": " .. tostring(v))
   end
-  local file = Path.new(vim.fn.tempname() .. ".headers")
-  file:write(table.concat(lines, "\n"), "w")
-  return file
+
+  local path = vim.fn.tempname() .. ".headers"
+  files.write_to_path(path, table.concat(lines, "\n"))
+
+  return path
+end
+
+---@param paths string[]
+---@param status? string
+local function delete_temp_files(paths, status)
+  if status == "error" or not vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
+    return
+  end
+  for _, path in ipairs(paths) do
+    files.delete(path)
+  end
 end
 
 ---Allow for easier testing/mocking of the static methods
@@ -50,7 +70,99 @@ local function transform_static_methods(opts)
       ret[k] = v.default
     end
   end
+
   return ret
+end
+
+---@param self CodeCompanion.HTTPClient
+---@return CodeCompanion.HTTPAdapter|nil adapter, table|nil err
+local function prepare_adapter(self)
+  local adapter = vim.deepcopy(self.adapter)
+
+  local ok = adapters.call_handler(adapter, "setup")
+  if ok == false then
+    return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
+  end
+
+  return adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout }), nil
+end
+
+---Build and encode the request body from the adapter handlers and payload
+---@param self CodeCompanion.HTTPClient
+---@param adapter CodeCompanion.HTTPAdapter
+---@param payload { messages: table, tools?: table }
+---@return string
+local function encode_body(self, adapter, payload)
+  return self.methods.encode(
+    vim.tbl_extend(
+      "keep",
+      adapters.call_handler(
+        adapter,
+        "build_parameters",
+        adapter_utils.set_env_vars(adapter, adapter.parameters),
+        payload.messages
+      ) or {},
+      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
+      adapter.body and adapter.body or {},
+      adapters.call_handler(adapter, "build_body", payload) or {}
+    )
+  )
+end
+
+---Assemble the curl args shared by every request, plus the adapter's headers file
+---@param adapter CodeCompanion.HTTPAdapter
+---@param opts? { stream?: boolean }
+---@return table raw, string headers_file
+local function build_curl_args(adapter, opts)
+  opts = opts or {}
+
+  local raw = {
+    "--retry",
+    "3",
+    "--retry-delay",
+    "1",
+    "--keepalive-time",
+    "60",
+    "--connect-timeout",
+    "10",
+  }
+
+  if opts.stream then
+    table.insert(raw, "--tcp-nodelay")
+    table.insert(raw, "--no-buffer")
+  end
+
+  if adapter.raw then
+    vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
+  end
+
+  local headers_file = write_headers_file(adapter_utils.set_env_vars(adapter, adapter.headers))
+  vim.list_extend(raw, { "--header", "@" .. headers_file })
+
+  return raw, headers_file
+end
+
+---Resolve the HTTP method the adapter should use
+---@param adapter CodeCompanion.HTTPAdapter
+---@return string
+local function resolve_method(adapter)
+  if adapter.opts and adapter.opts.method then
+    return adapter.opts.method:lower()
+  end
+  return "post"
+end
+
+---The adapter data attached to request lifecycle events
+---@param adapter CodeCompanion.HTTPAdapter
+---@return table
+local function adapter_event_data(adapter)
+  local model = adapter.schema.model.default
+  return {
+    name = adapter.name,
+    formatted_name = adapter.formatted_name,
+    model = type(model) == "function" and model(adapter) or model or "",
+  }
 end
 
 ---@class CodeCompanion.HTTPClientArgs
@@ -80,14 +192,14 @@ end
 ---@field cancel fun(): boolean
 ---@field status fun(): "pending"|"streaming"|"success"|"error"|"cancelled"
 
----Async request API
+---Send an async request, wraps around client:request
 ---@param payload { messages: table, tools?: table }
----@param opts { stream?: boolean,
----             on_chunk?: fun(chunk: table, meta: CodeCompanion.HTTPClient.Request),
----             on_done?: fun(response: table|nil, meta: CodeCompanion.HTTPClient.Request),
----             on_error?: fun(err: table, meta: CodeCompanion.HTTPClient.Request),
----             timeout?: number,
----             silent?: boolean }|nil
+---@param opts { on_chunk?: fun(chunk: table, meta: CodeCompanion.HTTPClient.Request),
+---              on_done?: fun(response: table|nil, meta: CodeCompanion.HTTPClient.Request),
+---              on_error?: fun(err: table, meta: CodeCompanion.HTTPClient.Request),
+---              silent?: boolean,
+---              stream?: boolean,
+---              timeout?: number}|nil
 ---@return CodeCompanion.HTTPClient.RequestHandle
 function Client:send(payload, opts)
   opts = opts or {}
@@ -176,9 +288,9 @@ function Client:send(payload, opts)
   return handle
 end
 
----Synchronous request API
+---Send a synchronous request
 ---@param payload { messages: table, tools?: table }
----@param opts { stream?: false, timeout?: number, silent?: boolean }|nil
+---@param opts { silent?: boolean, stream?: false, timeout?: number}|nil
 ---@return table|nil, table|nil  -- response, err
 function Client:send_sync(payload, opts)
   opts = opts or {}
@@ -187,90 +299,33 @@ function Client:send_sync(payload, opts)
   --   return nil, { message = "send_sync does not support streaming adapters", stderr = "stream=true" }
   -- end
 
-  local adapter = vim.deepcopy(self.adapter)
-
-  local ok = adapters.call_handler(adapter, "setup")
-  if ok == false then
-    return nil, { message = "Failed to setup adapter", stderr = "setup=false" }
+  local adapter, prepare_err = prepare_adapter(self)
+  if not adapter then
+    return nil, prepare_err
   end
 
-  adapter = adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
-
-  local body = self.methods.encode(
-    vim.tbl_extend(
-      "keep",
-      adapters.call_handler(
-        adapter,
-        "build_parameters",
-        adapter_utils.set_env_vars(adapter, adapter.parameters),
-        payload.messages
-      ) or {},
-      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
-      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
-      adapter.body and adapter.body or {},
-      adapters.call_handler(adapter, "build_body", payload) or {}
-    )
-  )
-
-  local body_file = Path.new(vim.fn.tempname() .. ".json")
-  body_file:write(vim.split(body, "\n"), "w")
-
-  local raw = {
-    "--retry",
-    "3",
-    "--retry-delay",
-    "1",
-    "--keepalive-time",
-    "60",
-    "--connect-timeout",
-    "10",
-  }
-
-  if adapter.raw then
-    vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
-  end
-
-  local headers_file = write_headers_file(adapter_utils.set_env_vars(adapter, adapter.headers))
-  vim.list_extend(raw, { "--header", "@" .. headers_file.filename })
-
-  local function cleanup_file()
-    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
-      body_file:rm()
-      headers_file:rm()
-    end
-  end
+  local body_file = write_body_file(encode_body(self, adapter, payload))
+  local raw, headers_file = build_curl_args(adapter)
 
   local request_opts = {
-    url = adapter_utils.set_env_vars(adapter, adapter.url),
+    body = body_file,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
-    body = body_file.filename or "",
     timeout = opts.timeout,
+    url = adapter_utils.set_env_vars(adapter, adapter.url),
   }
 
-  local method = "post"
-  if adapter.opts and adapter.opts.method then
-    method = adapter.opts.method:lower()
-  end
-
-  -- Emit start event (optional)
   local event_opts = {
     id = tostring(math.random(10000000)),
-    adapter = {
-      name = adapter.name,
-      formatted_name = adapter.formatted_name,
-      model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default(adapter)
-        or adapter.schema.model.default
-        or "",
-    },
+    adapter = adapter_event_data(adapter),
   }
   if not opts.silent then
     utils.fire("RequestStarted", event_opts)
   end
 
   local response, err = nil, nil
-  local ok, result = pcall(self.methods[method], request_opts)
+  local ok, result = pcall(self.methods[resolve_method(adapter)], request_opts)
   if not ok then
     err = { message = tostring(result), stderr = tostring(result) }
   else
@@ -288,7 +343,7 @@ function Client:send_sync(payload, opts)
     utils.fire("RequestFinished", event_opts)
   end
 
-  cleanup_file()
+  delete_temp_files({ body_file, headers_file }, err and "error" or "success")
   return response, err
 end
 
@@ -296,7 +351,7 @@ end
 ---@field callback fun(err: nil|table, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
 ---@field done? fun() Function to run when the request is complete
 
----Send a HTTP request (legacy interface). Kept for backwards compatibility.
+---Send a HTTP request. Kept for backwards compatibility.
 ---@param payload { messages: table, tools: table|nil } The payload to be sent to the endpoint
 ---@param actions CodeCompanion.HTTPAdapter.RequestActions
 ---@param opts? table Options that can be passed to the request
@@ -316,75 +371,25 @@ function Client:request(payload, actions, opts)
   local cb = log:wrap_cb(actions.callback, "Response error: %s") --[[@type function]]
 
   -- Make a copy of the adapter to ensure that we replace variables in every request
-  local adapter = vim.deepcopy(self.adapter)
-
-  local ok = adapters.call_handler(adapter, "setup")
-  if ok == false then
+  local adapter = prepare_adapter(self)
+  if not adapter then
     return log:error("Failed to setup adapter")
   end
 
-  adapter = adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
+  local body_file = write_body_file(encode_body(self, adapter, payload))
+  log:info("Request body file: %s", body_file)
 
-  local body = self.methods.encode(
-    vim.tbl_extend(
-      "keep",
-      adapters.call_handler(
-        adapter,
-        "build_parameters",
-        adapter_utils.set_env_vars(adapter, adapter.parameters),
-        payload.messages
-      ) or {},
-      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
-      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
-      adapter.body and adapter.body or {},
-      adapters.call_handler(adapter, "build_body", payload) or {}
-    )
-  )
-
-  local body_file = Path.new(vim.fn.tempname() .. ".json")
-  body_file:write(vim.split(body, "\n"), "w")
-
-  log:info("Request body file: %s", body_file.filename)
-
-  local raw = {
-    "--retry",
-    "3",
-    "--retry-delay",
-    "1",
-    "--keepalive-time",
-    "60",
-    "--connect-timeout",
-    "10",
-  }
-
-  if adapter.opts and adapter.opts.stream then
-    table.insert(raw, "--tcp-nodelay")
-    table.insert(raw, "--no-buffer")
-  end
-
-  if adapter.raw then
-    vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
-  end
-
-  local headers_file = write_headers_file(adapter_utils.set_env_vars(adapter, adapter.headers))
-  vim.list_extend(raw, { "--header", "@" .. headers_file.filename })
-
-  local function cleanup(status)
-    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
-      body_file:rm()
-      headers_file:rm()
-    end
-  end
+  local raw, headers_file = build_curl_args(adapter, { stream = adapter.opts and adapter.opts.stream })
 
   -- Capture streaming errors for use in final callback
   local stream_error_body = nil
 
   local request_opts = {
-    url = adapter_utils.set_env_vars(adapter, adapter.url),
+    body = body_file,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
-    body = body_file.filename or "",
+    url = adapter_utils.set_env_vars(adapter, adapter.url),
     -- Final callback invoked when HTTP request is complete
     callback = function(data)
       self.methods.schedule(function()
@@ -412,7 +417,7 @@ function Client:request(payload, actions, opts)
         if not opts.silent then
           utils.fire("RequestFinished", opts)
         end
-        cleanup(opts.status)
+        delete_temp_files({ body_file, headers_file }, opts.status)
         if self.user_args.event then
           if not opts.silent then
             utils.fire(self.user_args.event, opts)
@@ -440,10 +445,9 @@ function Client:request(payload, actions, opts)
     request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
         log:debug("Output data:\n%s", data)
-        -- Capture error responses that come through the stream (various API formats)
         if data:match('^%s*{"error"') or data:match('^%s*{"type"%s*:%s*"error"') then
           stream_error_body = data
-          return -- Don't pass error to cb, handle in final callback
+          return
         end
       end
       if not has_started_steaming then
@@ -456,22 +460,10 @@ function Client:request(payload, actions, opts)
     end)
   end
 
-  local request_method = "post"
-  if adapter.opts and adapter.opts.method then
-    request_method = adapter.opts.method:lower()
-  end
+  local job = self.methods[resolve_method(adapter)](request_opts)
 
-  local job = self.methods[request_method](request_opts)
-
-  -- Data to be sent via the request
   opts.id = opts.id or math.random(10000000)
-  opts.adapter = {
-    name = adapter.name,
-    formatted_name = adapter.formatted_name,
-    model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default(adapter)
-      or adapter.schema.model.default
-      or "",
-  }
+  opts.adapter = adapter_event_data(adapter)
 
   if not opts.silent then
     utils.fire("RequestStarted", opts)
@@ -486,7 +478,6 @@ function Client:request(payload, actions, opts)
     end
   end
 
-  -- Unify the API across the plugin
   job.cancel = function()
     job:shutdown()
   end
