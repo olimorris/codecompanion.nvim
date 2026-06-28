@@ -66,6 +66,8 @@ local function get_models()
       supported_parameters = supported,
       can_use_tools = supported.tools or false,
       can_reason = supported.reasoning or false,
+      reasoning_efforts = model.reasoning and model.reasoning.supported_efforts or nil,
+      reasoning_default_effort = model.reasoning and model.reasoning.default_effort or nil,
     }
     if model.architecture and model.architecture.input_modalities then
       choice_opts.has_vision = vim.tbl_contains(model.architecture.input_modalities, "image")
@@ -96,6 +98,15 @@ local function model_supports(self, parameter)
   end
 
   return model.opts.supported_parameters[parameter] or false
+end
+
+---Get the opts table for the currently selected model
+---@param self CodeCompanion.HTTPAdapter
+---@return table|nil
+local function current_model_opts(self)
+  local cached_models = get_models()
+  local model = cached_models[self.schema.model.default]
+  return model and model.opts or nil
 end
 
 ---@class CodeCompanion.HTTPAdapter.OpenRouter: CodeCompanion.HTTPAdapter
@@ -171,6 +182,16 @@ return {
       end
       if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
         self.opts.vision = false
+      end
+
+      -- Some models only support a subset of reasoning efforts, or, none at all
+      local reasoning_opts = model_opts and model_opts.opts
+      if reasoning_opts and reasoning_opts.reasoning_efforts and self.parameters.reasoning then
+        local effort = self.parameters.reasoning.effort
+        if not vim.tbl_contains(reasoning_opts.reasoning_efforts, effort) then
+          self.parameters.reasoning.effort = reasoning_opts.reasoning_default_effort
+            or reasoning_opts.reasoning_efforts[1]
+        end
       end
 
       return true
@@ -378,19 +399,32 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      default = "medium",
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return string
+      default = function(self)
+        local model_opts = current_model_opts(self)
+        return (model_opts and model_opts.reasoning_default_effort) or "medium"
+      end,
       enabled = function(self)
         return model_supports(self, "reasoning")
       end,
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
-      choices = {
-        "xhigh",
-        "high",
-        "medium",
-        "low",
-        "minimal",
-        "none",
-      },
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response. Not all efforts are supported by every model.",
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return string[]
+      choices = function(self)
+        local model_opts = current_model_opts(self)
+        if model_opts and model_opts.reasoning_efforts then
+          return model_opts.reasoning_efforts
+        end
+        return {
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "minimal",
+          "none",
+        }
+      end,
     },
     temperature = {
       order = 3,
