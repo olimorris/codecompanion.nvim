@@ -46,7 +46,7 @@ local adapter_config = {
   }),
 }
 
-local adapter_name = "openrouter"
+local adapter_name = "anthropic"
 local adapter = adapter_config[adapter_name]
 
 local structured_output = {
