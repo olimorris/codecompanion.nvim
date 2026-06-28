@@ -55,15 +55,38 @@ function M.to_anthropic(input)
 end
 
 ---Convert a structured-output schema to the Gemini generateContent body fragment
----Ref: https://ai.google.dev/gemini-api/docs/structured-output#rest_3
+---Ref: https://ai.google.dev/gemini-api/docs/structured-output#rest
 ---@param input CodeCompanion.StructuredOutput.Schema
 ---@return table
 function M.to_gemini(input)
+  local schema = vim.deepcopy(input.schema)
+
+  -- Gemini's responseSchema is a restricted OpenAPI subset that rejects `additionalProperties`
+  local function strip(node)
+    if type(node) ~= "table" then
+      return
+    end
+    node.additionalProperties = nil
+    if node.properties then
+      for _, value in pairs(node.properties) do
+        strip(value)
+      end
+    end
+    strip(node.items)
+    for _, combinator in ipairs({ "anyOf", "oneOf", "allOf" }) do
+      if type(node[combinator]) == "table" then
+        for _, branch in ipairs(node[combinator]) do
+          strip(branch)
+        end
+      end
+    end
+  end
+  strip(schema)
+
   return {
-    response_format = {
-      type = "text",
-      mime_type = "application/json",
-      schema = vim.deepcopy(input.schema),
+    generationConfig = {
+      responseMimeType = "application/json",
+      responseSchema = schema,
     },
   }
 end

@@ -1,10 +1,8 @@
 {
-  "response_format": {
-    "type": "text",
-    "mime_type": "application/json",
-    "schema": {
+  "generationConfig": {
+    "responseMimeType": "application/json",
+    "responseSchema": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "conditions": {
           "type": "string",

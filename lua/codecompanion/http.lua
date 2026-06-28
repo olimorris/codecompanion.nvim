@@ -87,28 +87,34 @@ local function prepare_adapter(self)
   return adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout }), nil
 end
 
+---Merge the request body from the adapter handlers and payload
+---@param adapter CodeCompanion.HTTPAdapter
+---@param payload { messages?: table, structured_output?: CodeCompanion.StructuredOutput.Schema, tools?: table }
+---@return table
+function Client.merge_body(adapter, payload)
+  return vim.tbl_deep_extend(
+    "keep",
+    adapters.call_handler(
+      adapter,
+      "build_parameters",
+      adapter_utils.set_env_vars(adapter, adapter.parameters),
+      payload.messages
+    ) or {},
+    adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+    adapters.call_handler(adapter, "build_tools", payload.tools) or {},
+    adapters.call_handler(adapter, "build_structured_output", payload.structured_output) or {},
+    adapter.body and adapter.body or {},
+    adapters.call_handler(adapter, "build_body", payload) or {}
+  )
+end
+
 ---Build and encode the request body from the adapter handlers and payload
 ---@param self CodeCompanion.HTTPClient
 ---@param adapter CodeCompanion.HTTPAdapter
----@param payload { messages: table, structured_output?: CodeCompanion.StructuredOutput.Schema, tools?: table }
+---@param payload { messages?: table, structured_output?: CodeCompanion.StructuredOutput.Schema, tools?: table }
 ---@return string
 local function encode_body(self, adapter, payload)
-  return self.methods.encode(
-    vim.tbl_extend(
-      "keep",
-      adapters.call_handler(
-        adapter,
-        "build_parameters",
-        adapter_utils.set_env_vars(adapter, adapter.parameters),
-        payload.messages
-      ) or {},
-      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
-      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
-      adapters.call_handler(adapter, "build_structured_output", payload.structured_output) or {},
-      adapter.body and adapter.body or {},
-      adapters.call_handler(adapter, "build_body", payload) or {}
-    )
-  )
+  return self.methods.encode(Client.merge_body(adapter, payload))
 end
 
 ---Assemble the curl args shared by every request, plus the adapter's headers file

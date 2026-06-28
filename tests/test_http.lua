@@ -329,6 +329,25 @@ T["send_sync merges structured output schema into the request body"] = function(
   h.eq(result.response_format.json_schema.name, "weather")
 end
 
+T["merge_body deep-merges colliding body keys from different handlers"] = function()
+  -- Regression: OpenAI Responses maps `verbosity` to body.text while structured
+  -- output writes to text.format. A shallow merge silently dropped the latter.
+  local result = child.lua([[
+    local adapter = {
+      parameters = {},
+      handlers = {
+        form_parameters = function() return { text = { verbosity = "medium" } } end,
+        form_structured_output = function() return { text = { format = { type = "json_schema" } } } end,
+      },
+    }
+    local body = Client.merge_body(adapter, { structured_output = { name = "weather" } })
+    return { verbosity = body.text.verbosity, format_type = body.text.format.type }
+  ]])
+
+  h.eq(result.verbosity, "medium")
+  h.eq(result.format_type, "json_schema")
+end
+
 T["send_sync returns error when adapter does not support structured outputs"] = function()
   local result = child.lua([[
     local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
