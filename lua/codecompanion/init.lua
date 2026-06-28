@@ -129,7 +129,12 @@ CodeCompanion.chat = function(args)
     adapter = config.adapters.http[adapter_name] or config.adapters.acp[adapter_name]
     adapter = require("codecompanion.adapters").resolve(adapter)
     if args.params.model then
-      adapter.schema.model.default = args.params.model
+      if adapter.schema and adapter.schema.model then
+        adapter.schema.model.default = args.params.model
+      elseif adapter.type == "acp" then
+        adapter.defaults = adapter.defaults or {}
+        adapter.defaults.model = args.params.model
+      end
     end
     if adapter.type == "acp" and args.params.command then
       acp_command = args.params.command
