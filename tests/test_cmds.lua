@@ -477,4 +477,48 @@ T["cmds_pertab"]["closing a tab leaves its chat in the hidden pool, available to
   h.eq(true, child.lua_get("require('codecompanion.interactions.shared.registry').get(_G.tab2_bufnr) ~= nil"))
 end
 
+T["cmds_acp"] = new_set({
+  hooks = {
+    pre_once = function()
+      h.child_start(child)
+      child.lua([[
+        h = require('tests.helpers')
+        config = require('codecompanion.config')
+        config.adapters = config.adapters or {}
+        config.adapters.acp = config.adapters.acp or {}
+        config.adapters.acp.test_acp = {
+          name = "test_acp",
+          type = "acp",
+          command = { "node", "test-agent.js" },
+          roles = { user = "user", assistant = "assistant" },
+        }
+        config.rules.opts.chat.enabled = false
+        h.setup_plugin(config)
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["cmds_acp"]["chat with model param on ACP adapter"] = function()
+  child.lua([[
+    local CC = require('codecompanion')
+
+    local ok, err = pcall(CC.chat, { params = { adapter = "test_acp", model = "sonnet" } })
+
+    _G.test_acp_ok = ok
+    if not ok then
+      _G.test_acp_err = tostring(err)
+    end
+
+    local chat = CC.last_chat()
+    if chat and chat.adapter then
+      _G.acp_adapter_model = chat.adapter.defaults and chat.adapter.defaults.model
+    end
+  ]])
+
+  h.expect_truthy(child.lua_get("_G.test_acp_ok"))
+  h.eq("sonnet", child.lua_get("_G.acp_adapter_model"))
+end
+
 return T
