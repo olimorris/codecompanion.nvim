@@ -215,6 +215,10 @@ function Debug:render()
           formatted_key = '["' .. key .. '"]'
         end
 
+        if type(val) == "function" then
+          val = val(self.adapter)
+        end
+
         if key == "model" then
           local other_models = " -- "
 
@@ -227,21 +231,35 @@ function Debug:render()
             end
           end)
 
-          if type(val) == "function" then
-            val = val(self.adapter)
-          end
           if vim.tbl_count(models) > 1 then
             table.insert(lines, "  " .. formatted_key .. ' = "' .. val .. '", ' .. other_models)
           else
             table.insert(lines, "  " .. formatted_key .. ' = "' .. val .. '",')
           end
+        elseif type(val) == "string" and adapter.schema[key] and adapter.schema[key].choices then
+          local choices = adapter.schema[key].choices
+          if type(choices) == "function" then
+            choices = choices(self.adapter)
+          end
+
+          local other_choices = vim
+            .iter(choices)
+            :map(function(choice, choice_name)
+              return type(choice) == "number" and choice_name or choice
+            end)
+            :filter(function(choice)
+              return choice ~= val
+            end)
+            :totable()
+
+          local line = "  " .. formatted_key .. ' = "' .. val .. '",'
+          if #other_choices > 0 then
+            line = line .. ' -- "' .. table.concat(other_choices, '", "') .. '"'
+          end
+          table.insert(lines, line)
         elseif is_nil and current_settings[key] == nil then
           table.insert(lines, "  " .. formatted_key .. " = nil,")
         else
-          if type(val) == "function" then
-            val = val(self.adapter)
-          end
-
           if type(val) == "number" or type(val) == "boolean" then
             table.insert(lines, "  " .. formatted_key .. " = " .. tostring(val) .. ",")
           elseif type(val) == "string" then
