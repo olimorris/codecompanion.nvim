@@ -29,6 +29,11 @@ local adapter_config = {
       api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
     },
   }),
+  mistral = require("codecompanion.adapters").extend("mistral", {
+    env = {
+      api_key = "cmd:op read op://personal/Mistral_API/credential --no-newline",
+    },
+  }),
   openai = require("codecompanion.adapters").extend("openai", {
     env = {
       api_key = "cmd:op read op://personal/OpenAI_API/credential --no-newline",
@@ -46,7 +51,7 @@ local adapter_config = {
   }),
 }
 
-local adapter_name = "openai"
+local adapter_name = "mistral"
 local adapter = adapter_config[adapter_name]
 
 local structured_output = {
@@ -96,7 +101,8 @@ if not result then
 end
 
 print("Status: " .. tostring(result.status))
-print("Adapter: " .. tostring(adapter_name))
+print("Adapter: " .. tostring(background.adapter.formatted_name))
+print("Model: " .. tostring(background.adapter.schema.model.default))
 print("Raw content:")
 print(result.output and result.output.content or "<nil>")
 

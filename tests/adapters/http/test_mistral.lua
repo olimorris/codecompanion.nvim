@@ -104,6 +104,39 @@ T["Mistral adapter"]["form_messages"]["it can form tools to be sent to the API"]
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
+T["Mistral adapter"]["form_structured_output"] = new_set()
+
+T["Mistral adapter"]["form_structured_output"]["forms the request body for the API"] = function()
+  local schema = {
+    name = "weather",
+    strict = true,
+    schema = { type = "object", properties = { location = { type = "string" } }, required = { "location" } },
+  }
+
+  adapter.opts.can_form_structured_outputs = true
+  local output = adapter.handlers.form_structured_output(adapter, schema)
+
+  h.eq("json_schema", output.response_format.type)
+  h.eq("weather", output.response_format.json_schema.name)
+  h.eq(true, output.response_format.json_schema.strict)
+  h.eq({
+    type = "object",
+    properties = { location = { type = "string" } },
+    required = { "location" },
+    additionalProperties = false,
+  }, output.response_format.json_schema.schema)
+end
+
+T["Mistral adapter"]["form_structured_output"]["returns nil when no schema"] = function()
+  adapter.opts.can_form_structured_outputs = true
+  h.eq(nil, adapter.handlers.form_structured_output(adapter, nil))
+end
+
+T["Mistral adapter"]["form_structured_output"]["returns nil when the model cannot form structured outputs"] = function()
+  adapter.opts.can_form_structured_outputs = false
+  h.eq(nil, adapter.handlers.form_structured_output(adapter, { name = "weather", schema = {} }))
+end
+
 T["Mistral adapter"]["Streaming"] = new_set({
   hooks = {
     pre_case = function()
