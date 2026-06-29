@@ -18,7 +18,6 @@ local _cache_expires
 local _cache_file = vim.fn.tempname()
 local _cached_models
 
----Get a list of available models
 ---@params self CodeCompanion.HTTPAdapter
 ---@params opts? table
 ---@return table
@@ -66,8 +65,10 @@ local function get_models()
       supported_parameters = supported,
       can_use_tools = supported.tools or false,
       can_reason = supported.reasoning or false,
-      reasoning_efforts = model.reasoning and model.reasoning.supported_efforts or nil,
-      reasoning_default_effort = model.reasoning and model.reasoning.default_effort or nil,
+      reasoning = model.reasoning and {
+        default = model.reasoning.default_effort,
+        supported = model.reasoning.supported_efforts,
+      } or nil,
     }
     if model.architecture and model.architecture.input_modalities then
       choice_opts.has_vision = vim.tbl_contains(model.architecture.input_modalities, "image")
@@ -86,7 +87,14 @@ local function get_models()
   return models
 end
 
----Check whether the currently selected model supports the given parameter
+---@param self CodeCompanion.HTTPAdapter
+---@return table|nil
+local function model_choices(self)
+  local cached_models = get_models()
+  local model = cached_models[self.schema.model.default]
+  return model and model.opts or nil
+end
+
 ---@param self CodeCompanion.HTTPAdapter
 ---@param parameter string
 ---@return boolean
@@ -98,15 +106,6 @@ local function model_supports(self, parameter)
   end
 
   return model.opts.supported_parameters[parameter] or false
-end
-
----Get the opts table for the currently selected model
----@param self CodeCompanion.HTTPAdapter
----@return table|nil
-local function current_model_opts(self)
-  local cached_models = get_models()
-  local model = cached_models[self.schema.model.default]
-  return model and model.opts or nil
 end
 
 ---@class CodeCompanion.HTTPAdapter.OpenRouter: CodeCompanion.HTTPAdapter
@@ -185,12 +184,11 @@ return {
       end
 
       -- Some models only support a subset of reasoning efforts, or, none at all
-      local reasoning_opts = model_opts and model_opts.opts
-      if reasoning_opts and reasoning_opts.reasoning_efforts and self.parameters.reasoning then
+      local reasoning = model_opts and model_opts.opts and model_opts.opts.reasoning
+      if reasoning and reasoning.supported and self.parameters.reasoning then
         local effort = self.parameters.reasoning.effort
-        if not vim.tbl_contains(reasoning_opts.reasoning_efforts, effort) then
-          self.parameters.reasoning.effort = reasoning_opts.reasoning_default_effort
-            or reasoning_opts.reasoning_efforts[1]
+        if not vim.tbl_contains(reasoning.supported, effort) then
+          self.parameters.reasoning.effort = reasoning.default or reasoning.supported[1]
         end
       end
 
@@ -402,8 +400,8 @@ return {
       ---@param self CodeCompanion.HTTPAdapter
       ---@return string
       default = function(self)
-        local model_opts = current_model_opts(self)
-        return (model_opts and model_opts.reasoning_default_effort) or "medium"
+        local choices = model_choices(self)
+        return (choices and choices.reasoning and choices.reasoning.default) or "medium"
       end,
       enabled = function(self)
         return model_supports(self, "reasoning")
@@ -412,18 +410,11 @@ return {
       ---@param self CodeCompanion.HTTPAdapter
       ---@return string[]
       choices = function(self)
-        local model_opts = current_model_opts(self)
-        if model_opts and model_opts.reasoning_efforts then
-          return model_opts.reasoning_efforts
+        local choices = model_choices(self)
+        if choices and choices.reasoning and choices.reasoning.supported then
+          return choices.reasoning.supported
         end
-        return {
-          "xhigh",
-          "high",
-          "medium",
-          "low",
-          "minimal",
-          "none",
-        }
+        return { "xhigh", "high", "medium", "low", "minimal", "none" }
       end,
     },
     temperature = {
