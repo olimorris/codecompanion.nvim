@@ -376,11 +376,82 @@ T["HTTP Adapter"]["can extend an adapter"] = function()
   h.eq("test_api_key", result)
 end
 
+T["HTTP Adapter"]["extend patches by config key, not resolved name"] = function()
+  local result = child.lua([[
+    require("codecompanion").setup({
+      adapters = { http = {
+        -- A second config key resolving to the same preset
+        openai_variant = function()
+          return require("codecompanion.adapters").extend("openai")
+        end,
+        extend = {
+          openai = { env = { api_key = "key_for_openai" } },
+          openai_variant = { env = { api_key = "key_for_variant" } },
+        },
+      } },
+    })
+    local adapters = require("codecompanion.adapters")
+    return {
+      openai = adapters.resolve("openai").env.api_key,
+      variant = adapters.resolve("openai_variant").env.api_key,
+    }
+  ]])
+
+  h.eq("key_for_openai", result.openai)
+  h.eq("key_for_variant", result.variant)
+end
+
+T["HTTP Adapter"]["extend doesn't overwrite opts defaults"] = function()
+  local result = child.lua([[
+    require("codecompanion").setup({
+      adapters = { http = { extend = { openai = { env = { api_key = "abc" } } } } },
+    })
+    local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
+    local models = change_adapter.list_http_models(require("codecompanion.adapters").resolve("openai"))
+    return {
+      show_model_choices = require("codecompanion.config").adapters.http.opts.show_model_choices,
+      models_listed = models and #models or 0,
+    }
+  ]])
+
+  h.eq(true, result.show_model_choices)
+  h.expect_truthy(result.models_listed > 1)
+end
+
 --=============================================================================
 -- ACP Adapter Tests
 --=============================================================================
 
 T["ACP Adapter"] = new_set()
+
+T["ACP Adapter"]["extend deep-merges defaults and env onto the adapter"] = function()
+  local result = child.lua([[
+    require("codecompanion").setup({
+      adapters = { acp = {
+        test_acp = function()
+          return require("codecompanion.adapters").extend(_G.test_acp_adapter)
+        end,
+        extend = {
+          test_acp = {
+            defaults = { auth_method = "gemini-api-key" },
+            env = { GEMINI_API_KEY = "cmd:echo key" },
+          },
+        },
+      } },
+    })
+    local adapter = require("codecompanion.adapters").resolve("test_acp")
+    return {
+      auth_method = adapter.defaults.auth_method,
+      api_key = adapter.env.GEMINI_API_KEY,
+      -- A sibling default from the preset must survive the merge
+      timeout = adapter.defaults.timeout,
+    }
+  ]])
+
+  h.eq("gemini-api-key", result.auth_method)
+  h.eq("cmd:echo key", result.api_key)
+  h.eq(10000, result.timeout)
+end
 
 T["ACP Adapter"]["can extend an adapter"] = function()
   local result = child.lua([[

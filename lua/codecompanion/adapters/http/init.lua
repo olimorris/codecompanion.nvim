@@ -312,6 +312,8 @@ function Adapter.resolve(adapter, opts)
   adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
+  local key = type(adapter) == "string" and adapter or nil
+
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
       log:trace("[adapters:http:resolve] Returning existing resolved adapter: %s", adapter.name)
@@ -350,6 +352,8 @@ function Adapter.resolve(adapter, opts)
   if adapter.handlers and adapter.handlers.resolve then
     adapter.handlers.resolve(adapter)
   end
+
+  shared.apply_extend(adapter, { extend = config.adapters.http.extend, key = key })
 
   return Adapter.set_model({ adapter = adapter })
 end

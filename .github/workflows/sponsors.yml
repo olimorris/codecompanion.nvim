@@ -21,7 +21,7 @@ jobs:
         if: ${{ github.repository == 'olimorris/codecompanion.nvim' }}
 
       - name: Create Pull Request 🚀
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "docs: update sponsors in README.md"
           title: "docs: update sponsors in README.md"

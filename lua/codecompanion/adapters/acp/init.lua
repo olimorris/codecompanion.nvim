@@ -79,6 +79,8 @@ function Adapter.resolve(adapter, opts)
   adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
+  local key = type(adapter) == "string" and adapter or nil
+
   if type(adapter) == "table" then
     -- Handle { name = "claude_code", model = "opus" } style config first
     if adapter.name and adapter.model and not adapter.type then
@@ -130,6 +132,8 @@ function Adapter.resolve(adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end
+
+  shared.apply_extend(adapter, { extend = config.adapters.acp.extend, key = key })
 
   if adapter.commands and adapter.commands.default then
     adapter.commands.selected = adapter.commands.default
