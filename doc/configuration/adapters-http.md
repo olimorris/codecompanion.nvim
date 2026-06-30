@@ -8,7 +8,7 @@ description: "Configure CodeCompanion's HTTP adapters to connect Neovim to OpenA
 > Want to connect to an LLM that isn't supported out of the box? Check out
 > [these](#community-adapters) user contributed adapters, [create](/extending/adapters) your own or post in the [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
-An adapter is what connects Neovim to an LLM provider and model. It's the interface that allows data to be sent, received and processed. There are a multitude of ways to customize them.
+An adapter is what connects Neovim to an LLM provider and model. It's the interface that allows data to be sent, received and processed. There are a multitude of ways to customise them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
@@ -72,6 +72,46 @@ require("codecompanion").setup({
 ```
 
 :::
+
+## Customising an Adapter
+
+There are two ways to customise a preset adapter, and you'll see both throughout this page:
+
+- **Function** - Use this for full or computed setups. Custom `url`, `headers`, `schema`, or values resolved at call time
+- **`extend` table** - Use this for static overrides like credentials or setting a default value
+
+::: code-group
+
+```lua [Function]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = { api_key = "cmd:op read op://personal/Anthropic/credential --no-newline" },
+        })
+      end,
+    },
+  },
+})
+```
+
+```lua [Extend Table]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      extend = {
+        anthropic = { env = { api_key = "cmd:op read op://personal/Anthropic/credential --no-newline" } },
+      },
+    },
+  },
+})
+```
+
+:::
+
+> [!IMPORTANT]
+> The `extend` key is the adapter's name in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), not the resolved adapter name.
 
 ## Changing Adapter Parameters (Schema)
 
