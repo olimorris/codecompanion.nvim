@@ -1,5 +1,15 @@
 # Changelog
 
+## [19.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.17.0...v19.18.0) (2026-06-30)
+
+
+### Features
+
+* **adapters:** allow static `session_id` in OpenRouter ([#3183](https://github.com/olimorris/codecompanion.nvim/issues/3183)) ([f6a7b89](https://github.com/olimorris/codecompanion.nvim/commit/f6a7b8934fe9399755c1f9e1aa0cc6eb479ac12b))
+* **adapters:** cleaner way to customise adapters ([#3195](https://github.com/olimorris/codecompanion.nvim/issues/3195)) ([166feb3](https://github.com/olimorris/codecompanion.nvim/commit/166feb3e6579ff31f08be9ddba4121a203b19710))
+* **adapters:** display reasoning effort for `openrouter` models ([#3193](https://github.com/olimorris/codecompanion.nvim/issues/3193)) ([d841a1c](https://github.com/olimorris/codecompanion.nvim/commit/d841a1c5d0b3f8b9f96e960770844d9fd9a36c1f))
+* **chat:** allow `session_id` to be edited in the debug window ([#3180](https://github.com/olimorris/codecompanion.nvim/issues/3180)) ([e1352a2](https://github.com/olimorris/codecompanion.nvim/commit/e1352a2f71813e8bd11de317defe8a70362e8bc9))
+
 ## [19.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.16.0...v19.17.0) (2026-06-21)
 
 
