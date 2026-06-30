@@ -29,7 +29,7 @@ local function get_adapters(type)
     _cached_adapters[type] = vim
       .iter(config_adapters)
       :filter(function(k, _)
-        return k ~= "acp" and k ~= "http" and k ~= "opts" and k ~= "extend"
+        return k ~= "acp" and k ~= "http" and k ~= "extend" and k ~= "opts"
       end)
       :map(function(k, _)
         return k

@@ -309,7 +309,7 @@ function Adapter.resolve(adapter, opts)
   adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
-  local config_key = type(adapter) == "string" and adapter or nil
+  local key = type(adapter) == "string" and adapter or nil
 
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
@@ -350,7 +350,7 @@ function Adapter.resolve(adapter, opts)
     adapter.handlers.resolve(adapter)
   end
 
-  shared.apply_extend(adapter, { extend = config.adapters.http.extend, config_key = config_key })
+  shared.apply_extend(adapter, { extend = config.adapters.http.extend, key = key })
 
   return Adapter.set_model({ adapter = adapter })
 end

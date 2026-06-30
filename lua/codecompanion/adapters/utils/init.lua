@@ -61,8 +61,7 @@ end
 ---@return nil
 function M.extend(base_tbl, new_tbl)
   for name, adapter in pairs(new_tbl) do
-    -- NOTE: `opts` and `extend` are adapter-table metadata, not adapters, so leave them be
-    if name ~= "opts" and name ~= "extend" and base_tbl[name] then
+    if name ~= "extend" and name ~= "opts" and base_tbl[name] then
       if type(adapter) == "table" then
         base_tbl[name] = adapter
         if adapter.schema then

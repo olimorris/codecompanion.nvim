@@ -32,10 +32,10 @@ function M.get_adapters_list(current_adapter)
     .iter(adapters)
     :filter(function(adapter)
       -- Clear out the acp and http keys
-      return adapter ~= "opts"
-        and adapter ~= "extend"
-        and adapter ~= "acp"
+      return adapter ~= "acp"
         and adapter ~= "http"
+        and adapter ~= "extend"
+        and adapter ~= "opts"
         and adapter ~= current_adapter
     end)
     :map(function(adapter, _)

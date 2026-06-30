@@ -13,12 +13,12 @@ end
 
 ---Deep-merge a user's extend table onto a resolved adapter
 ---@param adapter table
----@param opts { extend?: table, config_key?: string }
+---@param opts { extend?: table, key?: string }
 ---@return table
 function M.apply_extend(adapter, opts)
   opts = opts or {}
 
-  local patch = opts.config_key and opts.extend and opts.extend[opts.config_key]
+  local patch = opts.key and opts.extend and opts.extend[opts.key]
   if type(patch) ~= "table" then
     return adapter
   end
