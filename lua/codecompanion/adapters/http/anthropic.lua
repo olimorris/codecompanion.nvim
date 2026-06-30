@@ -651,9 +651,14 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-sonnet-4-6",
+      default = "claude-sonnet-5",
       choices = {
         -- Current models
+        ["claude-sonnet-5"] = {
+          formatted_name = "Claude Sonnet 5",
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_reason = true, can_manage_context = true, has_vision = true },
+        },
         ["claude-fable-5"] = {
           formatted_name = "Claude Fable 5",
           meta = { context_window = 1000000, max_tokens = 128000 },
@@ -663,11 +668,6 @@ return {
           formatted_name = "Claude Opus 4.8",
           meta = { context_window = 1000000, max_tokens = 128000 },
           opts = { can_manage_context = true, has_vision = true },
-        },
-        ["claude-sonnet-4-6"] = {
-          formatted_name = "Claude Sonnet 4.6",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, can_manage_context = true, has_vision = true },
         },
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
@@ -691,6 +691,11 @@ return {
           meta = { context_window = 200000, max_tokens = 64000 },
           opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
+        ["claude-sonnet-4-6"] = {
+          formatted_name = "Claude Sonnet 4.6",
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_reason = true, can_manage_context = true, has_vision = true },
+        },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
           meta = { context_window = 100000, max_tokens = 64000 },
@@ -699,16 +704,6 @@ return {
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
           meta = { context_window = 200000, max_tokens = 32000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-opus-4-0"] = {
-          formatted_name = "Claude Opus 4",
-          meta = { context_window = 200000, max_tokens = 32000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-sonnet-4-0"] = {
-          formatted_name = "Claude Sonnet 4",
-          meta = { context_window = 1000000, max_tokens = 64000 },
           opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
       },
