@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 23
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 30
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1147,38 +1147,19 @@ This section contains configuration which is specific to Agent Client Protocol
 recommended you read the two pages together.
 
 
-ADAPTER SETTINGS ~
+CUSTOMISING AN ADAPTER ~
 
-To change any of the default settings for an ACP adapter, you can extend it in
-your CodeCompanion setup. For example, to change the timeout and authentication
-method for the Gemini CLI adapter, you can do the following:
+There are two ways to customise a preset adapter, and you'll see both
+throughout this page:
 
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              commands = {
-                default = {
-                  "some-other-gemini"
-                  "--experimental-acp",
-                },
-              },
-              defaults = {
-                auth_method = "gemini-api-key",
-                timeout = 20000, -- 20 seconds
-              },
-              env = {
-                GEMINI_API_KEY = "GEMINI_API_KEY",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
+- **Function** - Use this for full or computed setups. Custom `commands`, `defaults`, or values resolved at call time
+- **extend table** - Use this for static overrides like credentials or setting a default value
 
+
+
+  [!IMPORTANT] The `extend` key is the adapter's name in the config
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
+  not the resolved adapter name.
 
 SETTING A DEFAULT ADAPTER ~
 
@@ -1638,7 +1619,7 @@ HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
   <https://github.com/olimorris/codecompanion.nvim/discussions>
 An adapter is what connects Neovim to an LLM provider and model. It's the
 interface that allows data to be sent, received and processed. There are a
-multitude of ways to customize them.
+multitude of ways to customise them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which
 connect you to an LLM and |codecompanion-configuration-adapters-acp| adapters
@@ -1681,6 +1662,20 @@ A core part of working with CodeCompanion is being able to easily switch
 between adapters and LLMs. Below are two examples of how this can be achieved.
 
 
+
+CUSTOMISING AN ADAPTER ~
+
+There are two ways to customise a preset adapter, and you'll see both
+throughout this page:
+
+- **Function** - Use this for full or computed setups. Custom `url`, `headers`, `schema`, or values resolved at call time
+- **extend table** - Use this for static overrides like credentials or setting a default value
+
+
+
+  [!IMPORTANT] The `extend` key is the adapter's name in the config
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
+  not the resolved adapter name.
 
 CHANGING ADAPTER PARAMETERS (SCHEMA) ~
 
