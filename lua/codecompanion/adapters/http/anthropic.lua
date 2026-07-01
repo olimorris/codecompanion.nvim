@@ -1,7 +1,20 @@
 local adapter_utils = require("codecompanion.adapters.utils")
+local config = require("codecompanion.config")
+local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.adapters.utils.tool_transformers")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
+
+local models = fetch_models.sync({
+  name = "Anthropic",
+  url = "https://api.anthropic.com/v1/models",
+  ---@param adapter CodeCompanion.HTTPAdapter
+  ---@return table
+  headers = function(adapter)
+    adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
+    return adapter_utils.set_env_vars(adapter, adapter.headers)
+  end,
+})
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
@@ -426,7 +439,7 @@ return {
               self.available_tools[schema.name].callback(self, { tools = transformed })
             end
           else
-            table.insert(transformed, transform.to_anthropic(schema))
+            table.insert(transformed, tool_transformer.to_anthropic(schema))
           end
         end
       end
@@ -666,61 +679,11 @@ return {
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-5",
-      choices = {
-        -- Current models
-        ["claude-sonnet-5"] = {
-          formatted_name = "Claude Sonnet 5",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-fable-5"] = {
-          formatted_name = "Claude Fable 5",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-opus-4-8"] = {
-          formatted_name = "Claude Opus 4.8",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-haiku-4-5"] = {
-          formatted_name = "Claude Haiku 4.5",
-          meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_form_structured_outputs = true, can_reason = false, has_vision = true },
-        },
-
-        -- Legacy models
-        ["claude-opus-4-7"] = {
-          formatted_name = "Claude Opus 4.7",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-opus-4-6"] = {
-          formatted_name = "Claude Opus 4.6",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, can_reason = true, has_vision = true },
-        },
-        ["claude-opus-4-5"] = {
-          formatted_name = "Claude Opus 4.5",
-          meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-sonnet-4-6"] = {
-          formatted_name = "Claude Sonnet 4.6",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-sonnet-4-5"] = {
-          formatted_name = "Claude Sonnet 4.5",
-          meta = { context_window = 100000, max_tokens = 64000 },
-          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-opus-4-1"] = {
-          formatted_name = "Claude Opus 4.1",
-          meta = { context_window = 200000, max_tokens = 32000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-      },
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return table<string, CodeCompanion.Adapter.ModelChoice>
+      choices = function(self)
+        return models(self)
+      end,
     },
     ---@type CodeCompanion.Schema
     extended_output = {

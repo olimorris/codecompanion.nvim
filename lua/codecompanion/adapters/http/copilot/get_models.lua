@@ -2,6 +2,7 @@ local Curl = require("plenary.curl")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local model_transformers = require("codecompanion.adapters.utils.models.transform")
 local token = require("codecompanion.adapters.http.copilot.token")
 
 local CONSTANTS = {
@@ -104,74 +105,12 @@ local function fetch_async(adapter, opts)
 
         local models = {}
         for _, model in ipairs(json.data) do
-          -- Copilot models can use the "completions" or "responses" endpoint
-          local internal_endpoint = "completions"
-          if model.supported_endpoints then
-            for _, endpoint in ipairs(model.supported_endpoints) do
-              if endpoint == "/responses" then
-                internal_endpoint = "responses"
-                break
-              end
-            end
+          local id, entry = model_transformers.from_copilot(model)
+          if id then
+            models[id] = entry
+          else
+            log:debug("Copilot Adapter: Skipping model '%s'", model.id)
           end
-
-          if model.model_picker_enabled then
-            local choice_opts = {}
-            local limits = {}
-            local billing = {}
-
-            if model.capabilities then
-              if type(model.capabilities.type) == "string" and model.capabilities.type ~= "chat" then
-                log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
-                goto continue
-              end
-              if type(model.capabilities.type) == "table" and not vim.tbl_contains(model.capabilities.type, "chat") then
-                log:debug("Copilot Adapter: Skipping non-chat model '%s'", model.id)
-                goto continue
-              end
-
-              if model.capabilities.supports then
-                if model.capabilities.supports.streaming then
-                  choice_opts.can_stream = true
-                end
-                if model.capabilities.supports.structured_outputs then
-                  choice_opts.can_form_structured_outputs = true
-                end
-                if model.capabilities.supports.tool_calls then
-                  choice_opts.can_use_tools = true
-                end
-                if model.capabilities.supports.vision then
-                  choice_opts.has_vision = true
-                end
-              end
-
-              if model.capabilities.limits then
-                limits.max_output_tokens = model.capabilities.limits.max_output_tokens
-                limits.max_prompt_tokens = model.capabilities.limits.max_prompt_tokens
-                limits.context_window = model.capabilities.limits.max_context_window_tokens
-              end
-            end
-
-            if model.billing then
-              billing.is_premium = model.billing.is_premium
-              billing.multiplier = model.billing.multiplier
-            end
-
-            local description = model.name .. (billing.multiplier and (" (" .. billing.multiplier .. "x)") or "")
-
-            models[model.id] = {
-              billing = billing,
-              description = description,
-              endpoint = internal_endpoint,
-              formatted_name = model.name,
-              limits = limits,
-              meta = limits.context_window and { context_window = limits.context_window } or nil,
-              opts = choice_opts,
-              vendor = model.vendor,
-            }
-          end
-
-          ::continue::
         end
 
         _cached_models = models

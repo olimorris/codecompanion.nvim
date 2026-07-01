@@ -1,97 +1,16 @@
-local Curl = require("plenary.curl")
-local adapter_utils = require("codecompanion.adapters.utils")
-local config = require("codecompanion.config")
+local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
----@class OpenRouterModels
----@field archirecture { input_modalities: string[], output_modalities: string[] } e.g. { input_modalities = { "text", "image" }, output_modalities = { "text" } }
----@field context_length number e.g. 1000000
----@field created number e.g. 1759161676
----@field default_parameters table e.g. { temperature = 1, top_p = 1, top_k = null }
----@field description string
----@field id string e.g. anthropic/claude-sonnet-4.5
----@field name string e.g. Anthropic: Claude Sonnet 4.5
----@field pricing table
-
-local _cache_expires
-local _cache_file = vim.fn.tempname()
-local _cached_models
-
----@params self CodeCompanion.HTTPAdapter
----@params opts? table
----@return table
-local function get_models()
-  if _cached_models and _cache_expires and _cache_expires > os.time() then
-    return _cached_models
-  end
-
-  local url = "https://openrouter.ai/api/v1/models"
-
-  local ok
-  local response ---@type OpenRouterModels
-
-  ok, response = pcall(function()
-    return Curl.get(url, {
-      headers = {
-        Authorization = "Bearer ${api_key}",
-      },
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-      sync = true,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the OpenRouter models from " .. url .. "\nError: %s", response)
-    return {}
-  end
-
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Error parsing the response from " .. url .. "\nError: %s", response.body)
-    return {}
-  end
-
-  local models = {}
-  for _, model in ipairs(json.data) do
-    -- Turn the model's `supported_parameters` array into a lookup set so the
-    -- schema fields can check, per model, which parameters the API accepts
-    local supported = {}
-    for _, parameter in ipairs(model.supported_parameters or {}) do
-      supported[parameter] = true
-    end
-
-    local choice_opts = {
-      supported_parameters = supported,
-      can_form_structured_outputs = supported.structured_outputs or false,
-      can_use_tools = supported.tools or false,
-      can_reason = supported.reasoning or false,
-      reasoning = model.reasoning and {
-        default = model.reasoning.default_effort,
-        supported = model.reasoning.supported_efforts,
-      } or nil,
-    }
-    if model.architecture and model.architecture.input_modalities then
-      choice_opts.has_vision = vim.tbl_contains(model.architecture.input_modalities, "image")
-    end
-
-    models[model.id] = {
-      formatted_name = model.name,
-      meta = model.context_length and { context_window = model.context_length } or nil,
-      opts = choice_opts,
-    }
-  end
-
-  _cached_models = models
-  _cache_expires = adapter_utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
-
-  return models
-end
+local models = fetch_models.sync({
+  name = "OpenRouter",
+  url = "https://openrouter.ai/api/v1/models",
+})
 
 ---@param self CodeCompanion.HTTPAdapter
 ---@return table|nil
 local function model_choices(self)
-  local cached_models = get_models()
+  local cached_models = models(self)
   local model = cached_models[self.schema.model.default]
   return model and model.opts or nil
 end
@@ -100,7 +19,7 @@ end
 ---@param parameter string
 ---@return boolean
 local function model_supports(self, parameter)
-  local cached_models = get_models()
+  local cached_models = models(self)
   local model = cached_models[self.schema.model.default]
   if not model then
     return false
@@ -409,7 +328,7 @@ return {
       default = "openai/gpt-5.4-mini",
       ---@return table
       choices = function(self)
-        return get_models()
+        return models(self)
       end,
     },
     ["reasoning.effort"] = {

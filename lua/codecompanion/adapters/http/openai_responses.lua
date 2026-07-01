@@ -2,7 +2,7 @@ local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local tags = require("codecompanion.interactions.shared.tags")
-local tool_utils = require("codecompanion.adapters.utils.tool_transformers")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
 ---@type string|nil
 local response_id
@@ -270,7 +270,7 @@ return {
             else
               table.insert(
                 transformed,
-                tool_utils.transform_schema_if_needed(schema, {
+                tool_transformer.transform_schema_if_needed(schema, {
                   strict_mode = true,
                 })
               )
