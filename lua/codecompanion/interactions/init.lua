@@ -71,9 +71,19 @@ function Interactions.new(args)
   }, { __index = Interactions })
 end
 
----@param interaction string
 function Interactions:start(interaction)
-  return self[interaction](self)
+  interaction = interaction or self.selected.interaction or self.selected.strategy or "chat"
+
+  local handler = self[interaction]
+  if type(handler) ~= "function" then
+    return log:warn(
+      "[Prompt Library] Unknown interaction `%s` for `%s`",
+      tostring(interaction),
+      tostring(self.selected.name)
+    )
+  end
+
+  return handler(self)
 end
 
 ---Add context to the chat buffer
