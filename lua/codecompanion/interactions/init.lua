@@ -39,15 +39,21 @@ end
 local function get_callbacks(selected)
   local opts = selected.opts or {}
   local callbacks = opts.callbacks or {}
-
   --TODO: Remove opts.rules fallback in v20.0.0
   local rules = selected.rules or opts.rules
-  if rules and rules ~= "none" then
-    local rules_cb = rules_helpers.add_callbacks(callbacks, rules)
-    if rules_cb then
-      callbacks = rules_cb
-    end
+  if rules == "none" then
+    -- Explicit opt-out: this prompt loads no rules at all.
+    return callbacks
   end
+  -- When the prompt names rules, load those. When it names none (`rules == nil`),
+  -- fall back to the global `rules.opts.chat.autoload` default by passing no name
+  -- to `add_callbacks`, so prompt-library prompts get the default rules just like a
+  -- plain chat does.
+  local rules_cb = rules_helpers.add_callbacks(callbacks, rules)
+  if rules_cb then
+    callbacks = rules_cb
+  end
+
   return callbacks
 end
 
