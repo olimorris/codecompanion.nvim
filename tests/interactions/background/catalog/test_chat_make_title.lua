@@ -43,4 +43,16 @@ T["chat_make_title"]["formats a title on_done"] = function()
   h.eq(title, "Python Agent Chatbot")
 end
 
+T["chat_make_title"]["formats a title on_done from structured output JSON"] = function()
+  local title = child.lua([[
+    return builtin.on_done({
+      output = {
+	content = '{"title":"Python Agent Chatbot"}'
+      }
+    })
+  ]])
+
+  h.eq(title, "Python Agent Chatbot")
+end
+
 return T
