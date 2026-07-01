@@ -294,6 +294,7 @@ T["HTTP Adapter"]["can update a model on the adapter"] = function()
     formatted_name = "o4 Mini",
     name = "o4-mini-2025-04-16",
     opts = {
+      can_form_structured_outputs = true,
       can_reason = true,
       has_vision = true,
     },

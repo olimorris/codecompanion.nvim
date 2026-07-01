@@ -7,6 +7,11 @@ local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
+---@class CodeCompanion.HTTPPayload
+---@field messages? table
+---@field structured_output? CodeCompanion.StructuredOutput.Schema
+---@field tools? table
+
 ---@class CodeCompanion.HTTPClient
 ---@field adapter CodeCompanion.HTTPAdapter
 ---@field methods table
@@ -87,34 +92,41 @@ local function prepare_adapter(self)
   return adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout }), nil
 end
 
+---Merge the request body from the adapter handlers and payload
+---@param adapter CodeCompanion.HTTPAdapter
+---@param payload CodeCompanion.HTTPPayload
+---@return table
+function Client.merge_body(adapter, payload)
+  return vim.tbl_deep_extend(
+    "keep",
+    adapters.call_handler(
+      adapter,
+      "build_parameters",
+      adapter_utils.set_env_vars(adapter, adapter.parameters),
+      payload.messages
+    ) or {},
+    adapters.call_handler(adapter, "build_messages", payload.messages) or {},
+    adapters.call_handler(adapter, "build_tools", payload.tools) or {},
+    adapters.call_handler(adapter, "build_structured_output", payload.structured_output) or {},
+    adapter.body and adapter.body or {},
+    adapters.call_handler(adapter, "build_body", payload) or {}
+  )
+end
+
 ---Build and encode the request body from the adapter handlers and payload
 ---@param self CodeCompanion.HTTPClient
 ---@param adapter CodeCompanion.HTTPAdapter
----@param payload { messages: table, tools?: table }
+---@param payload CodeCompanion.HTTPPayload
 ---@return string
 local function encode_body(self, adapter, payload)
-  return self.methods.encode(
-    vim.tbl_extend(
-      "keep",
-      adapters.call_handler(
-        adapter,
-        "build_parameters",
-        adapter_utils.set_env_vars(adapter, adapter.parameters),
-        payload.messages
-      ) or {},
-      adapters.call_handler(adapter, "build_messages", payload.messages) or {},
-      adapters.call_handler(adapter, "build_tools", payload.tools) or {},
-      adapter.body and adapter.body or {},
-      adapters.call_handler(adapter, "build_body", payload) or {}
-    )
-  )
+  return self.methods.encode(Client.merge_body(adapter, payload))
 end
 
 ---Assemble the curl args shared by every request, plus the adapter's headers file
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@param opts? { stream?: boolean }
 ---@return table raw, string headers_file
-local function build_curl_args(adapter, opts)
+function Client.build_curl_args(adapter, opts)
   opts = opts or {}
 
   local raw = {
@@ -146,7 +158,7 @@ end
 ---Resolve the HTTP method the adapter should use
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return string
-local function resolve_method(adapter)
+function Client.resolve_method(adapter)
   if adapter.opts and adapter.opts.method then
     return adapter.opts.method:lower()
   end
@@ -289,30 +301,37 @@ function Client:send(payload, opts)
 end
 
 ---Send a synchronous request
----@param payload { messages: table, tools?: table }
+---@param payload CodeCompanion.HTTPPayload
 ---@param opts { silent?: boolean, stream?: false, timeout?: number}|nil
 ---@return table|nil, table|nil  -- response, err
 function Client:send_sync(payload, opts)
   opts = opts or {}
-  -- We do not support stream in sync mode
-  -- if self.adapter and self.adapter.opts and self.adapter.opts.stream then
-  --   return nil, { message = "send_sync does not support streaming adapters", stderr = "stream=true" }
-  -- end
 
   local adapter, prepare_err = prepare_adapter(self)
   if not adapter then
     return nil, prepare_err
   end
 
+  -- Turn streaming off so we don't have to handle malformed JSON chunks
+  if adapter.opts then
+    adapter.opts.stream = false
+  end
+
+  if payload.structured_output and not adapters.get_handler(adapter, "build_structured_output") then
+    local msg = string.format("Adapter `%s` does not support structured outputs", adapter.formatted_name)
+    log:warn("[http::send_sync] %s", msg)
+    return nil, { message = msg, stderr = msg }
+  end
+
   local body_file = write_body_file(encode_body(self, adapter, payload))
-  local raw, headers_file = build_curl_args(adapter)
+  local raw, headers_file = Client.build_curl_args(adapter)
 
   local request_opts = {
     body = body_file,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
-    timeout = opts.timeout,
+    timeout = opts.timeout or 120000,
     url = adapter_utils.set_env_vars(adapter, adapter.url),
   }
 
@@ -325,7 +344,7 @@ function Client:send_sync(payload, opts)
   end
 
   local response, err = nil, nil
-  local ok, result = pcall(self.methods[resolve_method(adapter)], request_opts)
+  local ok, result = pcall(self.methods[Client.resolve_method(adapter)], request_opts)
   if not ok then
     err = { message = tostring(result), stderr = tostring(result) }
   else
@@ -352,7 +371,7 @@ end
 ---@field done? fun() Function to run when the request is complete
 
 ---Send a HTTP request. Kept for backwards compatibility.
----@param payload { messages: table, tools: table|nil } The payload to be sent to the endpoint
+---@param payload CodeCompanion.HTTPPayload
 ---@param actions CodeCompanion.HTTPAdapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
@@ -379,7 +398,7 @@ function Client:request(payload, actions, opts)
   local body_file = write_body_file(encode_body(self, adapter, payload))
   log:info("Request body file: %s", body_file)
 
-  local raw, headers_file = build_curl_args(adapter, { stream = adapter.opts and adapter.opts.stream })
+  local raw, headers_file = Client.build_curl_args(adapter, { stream = adapter.opts and adapter.opts.stream })
 
   -- Capture streaming errors for use in final callback
   local stream_error_body = nil
@@ -460,7 +479,7 @@ function Client:request(payload, actions, opts)
     end)
   end
 
-  local job = self.methods[resolve_method(adapter)](request_opts)
+  local job = self.methods[Client.resolve_method(adapter)](request_opts)
 
   opts.id = opts.id or math.random(10000000)
   opts.adapter = adapter_event_data(adapter)

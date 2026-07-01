@@ -128,6 +128,12 @@ return {
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
     end,
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_ollama(schema)
+    end,
     chat_output = function(self, data, tools)
       if not data or data == "" then
         return nil
