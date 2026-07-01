@@ -520,6 +520,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             interactions = { "chat", "cli" },
           },
         },
+        ["save"] = {
+          path = "interactions.chat.slash_commands.builtin.save",
+          description = "Save the chat as a persistent session",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+          },
+        },
         ["share"] = {
           path = "interactions.chat.slash_commands.builtin.share",
           description = "Share the chat in a GitHub Gist",
