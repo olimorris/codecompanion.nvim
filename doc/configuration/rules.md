@@ -250,6 +250,27 @@ require("codecompanion").setup({
 
 :::
 
+#### Autoloading Rules for Prompt Library Prompts
+
+By default, [prompt library](/configuration/prompt-library) prompts that don't name any `rules` of their own load **no** rules. This differs from a plain chat buffer, which autoloads the `autoload` groups.
+
+To make prompt-library prompts also autoload the `autoload` groups, opt in with `autoload_prompt_library`:
+
+```lua{6} [Autoload for prompts]
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      chat = {
+        autoload = "default",
+        autoload_prompt_library = true,
+      },
+    },
+  },
+})
+```
+
+With this enabled, a prompt that names no rules behaves like a plain chat and loads the `autoload` groups. A prompt can still opt out explicitly with `rules = "none"` (see [Rules](/configuration/prompt-library#rules) in the prompt library docs), and a prompt that names its own rules always loads those instead.
+
 ## Parsers
 
 Parsers allow CodeCompanion to transform rules, affecting how they are shared in the chat buffer. This is particularly useful if you reference files in your rules. Currently, the plugin has two in-built parsers:
