@@ -1,5 +1,13 @@
 # Changelog
 
+## [19.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.18.0...v19.19.0) (2026-07-01)
+
+
+### Features
+
+* **adapters:** add support for claude-sonnet-5 ([#3197](https://github.com/olimorris/codecompanion.nvim/issues/3197)) ([dfd6d8f](https://github.com/olimorris/codecompanion.nvim/commit/dfd6d8f5a9565bcc3a0e4f508ce9b695ce5186b9))
+* **adapters:** add support for structured outputs ([#3187](https://github.com/olimorris/codecompanion.nvim/issues/3187)) ([a09beab](https://github.com/olimorris/codecompanion.nvim/commit/a09beabc9f2200292a516222b8976872d0241bcf))
+
 ## [19.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.17.0...v19.18.0) (2026-06-30)
 
 
