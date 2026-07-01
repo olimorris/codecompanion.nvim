@@ -422,6 +422,9 @@ end
 ---@return table?
 function M.model_choice(adapter)
   local choices = adapter.schema.model.choices
+  if type(choices) == "function" then
+    choices = choices(adapter)
+  end
   if type(choices) ~= "table" then
     return nil
   end

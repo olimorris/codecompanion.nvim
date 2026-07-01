@@ -196,3 +196,7 @@ Sharing an example HTTP adapter for OpenAI. Note: This adapter currently uses th
 @.codecompanion/adapters/plenary_curl.md
 
 The http.lua module implements a provider-agnostic HTTP client for CodeCompanion that centralizes request construction, streaming, scheduling, and testability. It uses `adapters.call_handler()` to invoke adapter handlers in a backwards-compatible way, working seamlessly with both old and new handler formats.
+
+## Models
+
+@.codecompanion/adapters/models_list.md

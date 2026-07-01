@@ -1,0 +1,64 @@
+{
+  "models": [
+    {
+      "name": "vatistasdim/Cipher:latest",
+      "model": "vatistasdim/Cipher:latest",
+      "modified_at": "2026-06-23T08:44:40.673864576+01:00",
+      "size": 2019376500,
+      "digest": "c71a0954f1d8596cd60227b577ef77b12625514297e65a3655ad4102a733633c",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "llama",
+        "families": ["llama"],
+        "parameter_size": "3.2B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "phi4:latest",
+      "model": "phi4:latest",
+      "modified_at": "2026-06-23T08:40:53.626443834+01:00",
+      "size": 9053116391,
+      "digest": "ac896e5b8b34a1f4efa7b14d7520725140d5512484457fab45d2a4ea14c69dba",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "phi3",
+        "families": ["phi3"],
+        "parameter_size": "14.7B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "gemma:latest",
+      "model": "gemma:latest",
+      "modified_at": "2026-04-04T11:21:40.71189545+01:00",
+      "size": 5011853225,
+      "digest": "a72c7f4d0a15522df81486d13ce432c79e191bda2558d024fbad4362c4f7cbf8",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma",
+        "families": ["gemma"],
+        "parameter_size": "9B",
+        "quantization_level": "Q4_0"
+      }
+    },
+    {
+      "name": "llama3:latest",
+      "model": "llama3:latest",
+      "modified_at": "2026-01-11T18:55:35.681497009Z",
+      "size": 4661224676,
+      "digest": "365c0bd3c000a25d28ddbf732fe1c6add414de7275464c4e4d1c3b5fcb5d8ad1",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "llama",
+        "families": ["llama"],
+        "parameter_size": "8.0B",
+        "quantization_level": "Q4_0"
+      }
+    }
+  ]
+}
