@@ -32,6 +32,13 @@ local TIMEOUTS = {
   RESPONSE_POLL = 10, -- 10ms
 }
 
+-- Synthetic config option ids used for agents that only implement the
+-- older, separate `modes`/`models` session/new fields and the
+-- `session/set_mode` / `session/set_model` methods, rather than the unified
+-- `configOptions` / `session/set_config_option` extension.
+local LEGACY_MODE_CONFIG_ID = "__legacy_mode"
+local LEGACY_MODEL_CONFIG_ID = "__legacy_model"
+
 local api = vim.api
 local uv = vim.uv
 
@@ -372,6 +379,12 @@ function Connection:_establish_session()
     if session_data.configOptions then
       self:_apply_config_options(session_data.configOptions)
       log:debug("[acp::_establish_session] %s config options applied", source)
+    else
+      local legacy_options = Connection._legacy_config_options_from_session(session_data)
+      if #legacy_options > 0 then
+        self:_apply_config_options(legacy_options)
+        log:debug("[acp::_establish_session] %s legacy mode/model options applied", source)
+      end
     end
   end
 
@@ -793,6 +806,49 @@ function Connection:handle_available_commands_update(session_id, commands)
   acp_commands.register_commands(session_id, commands)
 end
 
+---Build synthetic SessionConfigOption entries from the older, separate
+---`modes`/`models` fields returned by `session/new` and `session/load`, for
+---agents that don't implement the `configOptions` extension.
+---@param session_data table
+---@return table[]
+function Connection._legacy_config_options_from_session(session_data)
+  local options = {}
+
+  local modes = session_data.modes
+  if modes and modes.availableModes and #modes.availableModes > 0 then
+    table.insert(options, {
+      id = LEGACY_MODE_CONFIG_ID,
+      name = "Mode",
+      description = "Session permission mode",
+      category = "mode",
+      type = "select",
+      currentValue = modes.currentModeId,
+      legacy_method = "mode",
+      options = vim.tbl_map(function(m)
+        return { value = m.id, name = m.name, description = m.description }
+      end, modes.availableModes),
+    })
+  end
+
+  local models = session_data.models
+  if models and models.availableModels and #models.availableModels > 0 then
+    table.insert(options, {
+      id = LEGACY_MODEL_CONFIG_ID,
+      name = "Model",
+      description = "AI model to use",
+      category = "model",
+      type = "select",
+      currentValue = models.currentModelId,
+      legacy_method = "model",
+      options = vim.tbl_map(function(m)
+        return { value = m.modelId, name = m.name, description = m.description }
+      end, models.availableModels),
+    })
+  end
+
+  return options
+end
+
 ---Store raw configOptions from the agent
 ---@param config_options table[] Array of SessionConfigOption
 function Connection:_apply_config_options(config_options)
@@ -952,6 +1008,36 @@ function Connection:build_name_map()
   return name_map
 end
 
+---Set a mode/model via the legacy `session/set_mode` / `session/set_model`
+---methods, for agents that only expose the separate `modes`/`models` fields
+---rather than the unified `configOptions` extension.
+---@param option table The synthetic config option (see `_legacy_config_options_from_session`)
+---@param config_id string The config option ID
+---@param value string The value ID to set
+---@return boolean success
+function Connection:_set_legacy_config_option(option, config_id, value)
+  local method, param_key
+  if option.legacy_method == "mode" then
+    method, param_key = METHODS.SESSION_SET_MODE, "modeId"
+  else
+    method, param_key = METHODS.SESSION_SET_MODEL, "modelId"
+  end
+
+  local result = self:send_rpc_request(method, {
+    sessionId = self.session_id,
+    [param_key] = value,
+  })
+
+  if not result then
+    log:error("[acp::set_config_option] Failed to set %s to %s", config_id, value)
+    return false
+  end
+
+  option.currentValue = value
+  log:debug("[acp::set_config_option] Changed %s to %s (legacy)", config_id, value)
+  return true
+end
+
 ---Set a config option via session/set_config_option
 ---@param config_id string The config option ID
 ---@param value string The value ID to set
@@ -960,6 +1046,12 @@ function Connection:set_config_option(config_id, value)
   if not self.session_id then
     log:error("[acp::set_config_option] Connection not established")
     return false
+  end
+
+  for _, opt in ipairs(self._config_options or {}) do
+    if opt.id == config_id and opt.legacy_method then
+      return self:_set_legacy_config_option(opt, config_id, value)
+    end
   end
 
   -- Ref: https://agentclientprotocol.com/protocol/session-config-options#from-the-client

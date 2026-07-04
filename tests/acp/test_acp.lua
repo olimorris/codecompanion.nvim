@@ -271,6 +271,108 @@ T["ACP Connection"]["session/new stores config options metadata"] = function()
   h.eq(result.models.availableModels[1].modelId, "claude-opus")
 end
 
+T["ACP Connection"]["session/new synthesizes config options from legacy models/modes"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
+      elseif method == "session/new" then
+        return {
+          sessionId = "new-session",
+          models = {
+            currentModelId = "glm-5.1",
+            availableModels = {
+              { modelId = "glm-5.1", name = "GLM-5.1", description = "Latest GLM reasoning model" },
+              { modelId = "glm-4.7", name = "GLM-4.7", description = "200K-context reasoning model" },
+            },
+          },
+          modes = {
+            currentModeId = "default",
+            availableModes = {
+              { id = "default", name = "Ask for permission", description = "Prompt before edits and commands." },
+              { id = "bypassPermissions", name = "Bypass all permissions", description = "Edits and commands run without prompting." },
+            },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    local options = connection:get_config_options()
+    return {
+      ok = ok ~= nil,
+      config_options_count = #options,
+      models = connection:get_models(),
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.config_options_count, 2)
+  h.eq(#result.models.availableModels, 2)
+  h.eq(result.models.availableModels[1].modelId, "glm-5.1")
+  h.eq(result.models.currentModelId, "glm-5.1")
+end
+
+T["ACP Connection"]["set_config_option routes legacy mode/model options through session/set_mode and session/set_model"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    local calls = {}
+    function connection:send_rpc_request(method, params)
+      table.insert(calls, { method = method, params = params })
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
+      elseif method == "session/new" then
+        return {
+          sessionId = "new-session",
+          models = {
+            currentModelId = "glm-5.1",
+            availableModels = { { modelId = "glm-5.1", name = "GLM-5.1" }, { modelId = "glm-4.7", name = "GLM-4.7" } },
+          },
+          modes = {
+            currentModeId = "default",
+            availableModes = { { id = "default", name = "Default" }, { id = "bypassPermissions", name = "Bypass" } },
+          },
+        }
+      elseif method == "session/set_mode" or method == "session/set_model" then
+        return {}
+      end
+    end
+
+    connection:connect_and_initialize()
+
+    local model_opt, mode_opt
+    for _, opt in ipairs(connection:get_config_options()) do
+      if opt.category == "model" then model_opt = opt end
+      if opt.category == "mode" then mode_opt = opt end
+    end
+
+    local model_ok = connection:set_config_option(model_opt.id, "glm-4.7")
+    local mode_ok = connection:set_config_option(mode_opt.id, "bypassPermissions")
+
+    return {
+      model_ok = model_ok,
+      mode_ok = mode_ok,
+      calls = calls,
+      model_current_value = model_opt.currentValue,
+      mode_current_value = mode_opt.currentValue,
+    }
+  ]])
+
+  h.eq(result.model_ok, true)
+  h.eq(result.mode_ok, true)
+  h.eq(result.model_current_value, "glm-4.7")
+  h.eq(result.mode_current_value, "bypassPermissions")
+
+  local methods_called = {}
+  for _, c in ipairs(result.calls) do
+    table.insert(methods_called, c.method)
+  end
+  h.eq(true, vim.tbl_contains(methods_called, "session/set_mode"))
+  h.eq(true, vim.tbl_contains(methods_called, "session/set_model"))
+  h.eq(false, vim.tbl_contains(methods_called, "session/set_config_option"))
+end
+
 T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
   local result = child.lua([[
     local calls = {}
