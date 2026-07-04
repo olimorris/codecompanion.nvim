@@ -314,6 +314,39 @@ T["ACP Connection"]["session/new synthesizes config options from legacy models/m
   h.eq(result.models.currentModelId, "glm-5.1")
 end
 
+T["ACP Connection"]["falls back to legacy models/modes when configOptions is an empty array"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
+      elseif method == "session/new" then
+        return {
+          sessionId = "new-session",
+          configOptions = {},
+          models = {
+            currentModelId = "glm-5.1",
+            availableModels = { { modelId = "glm-5.1", name = "GLM-5.1" } },
+          },
+          modes = {
+            currentModeId = "default",
+            availableModes = { { id = "default", name = "Default" } },
+          },
+        }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      config_options_count = #connection:get_config_options(),
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.config_options_count, 2)
+end
+
 T["ACP Connection"]["set_config_option routes legacy mode/model options through session/set_mode and session/set_model"] = function()
   local result = child.lua([[
     local connection = create_init_connection()

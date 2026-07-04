@@ -376,7 +376,7 @@ function Connection:_establish_session()
   end
 
   local function apply_session_metadata(session_data, source)
-    if session_data.configOptions then
+    if session_data.configOptions and #session_data.configOptions > 0 then
       self:_apply_config_options(session_data.configOptions)
       log:debug("[acp::_establish_session] %s config options applied", source)
     else
