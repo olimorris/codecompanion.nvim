@@ -34,7 +34,7 @@
       "id": "open-mistral-nemo",
       "object": "model",
       "created": 1782930794,
-      "owned_by": "mistralai",
+      "owned_by": "mistralai",
       "capabilities": {
         "completion_chat": true,
         "function_calling": true,

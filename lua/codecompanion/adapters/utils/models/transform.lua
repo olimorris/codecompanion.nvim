@@ -140,6 +140,27 @@ function M.from_ollama(name, model_info)
   }
 end
 
+---Ref: https://docs.mistral.ai/api/#tag/models/operation/list_models_v1_models_get
+---@param model table
+---@return string id, CodeCompanion.Adapter.ModelChoice entry
+function M.from_mistral(model)
+  local capabilities = model.capabilities or {}
+
+  local opts = {
+    can_form_structured_outputs = capabilities.function_calling or false,
+    can_reason = capabilities.reasoning or false,
+    can_use_tools = capabilities.function_calling or false,
+    has_vision = capabilities.vision or false,
+  }
+
+  return model.id,
+    {
+      formatted_name = model.name,
+      meta = model.max_context_length and { context_window = model.max_context_length } or nil,
+      opts = opts,
+    }
+end
+
 ---Ref: https://openrouter.ai/docs/api-reference/list-available-models
 ---@param model table
 ---@return string id, CodeCompanion.Adapter.ModelChoice entry
