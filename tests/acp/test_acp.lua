@@ -297,6 +297,43 @@ T["ACP Connection"]["falls back to session/new if session/load fails"] = functio
   h.eq(result.session_id, "new-session")
 end
 
+T["ACP Connection"]["start_agent_process passes filtered codex env vars"] = function()
+  local result = child.lua([[
+    local codex_adapter = require("codecompanion.adapters.acp.codex")
+    local captured_env
+
+    local connection = create_test_connection({
+      job = function(command, options)
+        captured_env = options.env
+        return { write = function() end }
+      end,
+    })
+
+    function connection:prepare_adapter()
+      return {
+        command = { "codex-acp" },
+        defaults = { auth_method = "chatgpt" },
+        parameters = test_adapter.parameters,
+        env_replaced = {
+          OPENAI_API_KEY = "openai-test-key",
+          CODEX_API_KEY = "codex-test-key",
+        },
+        handlers = codex_adapter.handlers,
+      }
+    end
+
+    local started = connection:start_agent_process()
+
+    return {
+      started = started,
+      env = captured_env,
+    }
+  ]])
+
+  h.eq(true, result.started)
+  h.eq({}, result.env)
+end
+
 T["ACP Responses"] = new_set()
 
 T["ACP Responses"]["handles partial JSON messages correctly"] = function()

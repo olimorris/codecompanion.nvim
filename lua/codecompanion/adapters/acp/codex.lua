@@ -1,5 +1,14 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
+local AUTH_ENV_BY_METHOD = {
+  ["openai-api-key"] = {
+    OPENAI_API_KEY = true,
+  },
+  ["codex-api-key"] = {
+    CODEX_API_KEY = true,
+  },
+}
+
 ---@class CodeCompanion.ACPAdapter.Codex: CodeCompanion.ACPAdapter
 return {
   name = "codex",
@@ -24,6 +33,7 @@ return {
   },
   env = {
     OPENAI_API_KEY = "OPENAI_API_KEY",
+    CODEX_API_KEY = "CODEX_API_KEY",
   },
   parameters = {
     protocolVersion = 1,
@@ -39,6 +49,16 @@ return {
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     setup = function(self)
+      local allowed_env = AUTH_ENV_BY_METHOD[self.defaults.auth_method] or {}
+      local filtered_env = {}
+
+      for env_name, env_value in pairs(self.env_replaced or {}) do
+        if allowed_env[env_name] then
+          filtered_env[env_name] = env_value
+        end
+      end
+
+      self.env_replaced = filtered_env
       return true
     end,
 

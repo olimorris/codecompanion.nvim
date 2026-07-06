@@ -107,4 +107,73 @@ T["ACP Adapter"]["extends adapters correctly"] = function()
   h.eq({ max_tokens = 1000 }, result.parameters)
 end
 
+T["ACP Adapter"]["codex chatgpt auth does not pass API key env vars"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = require("codecompanion.adapters.acp").extend("codex", {
+      env = {
+        OPENAI_API_KEY = "openai-test-key",
+        CODEX_API_KEY = "codex-test-key",
+      },
+      defaults = {
+        auth_method = "chatgpt",
+      },
+    })
+
+    adapter = utils.get_env_vars(adapter)
+    adapter.defaults.auth_method = utils.set_env_vars(adapter, adapter.defaults.auth_method)
+    adapter.handlers.setup(adapter)
+
+    return adapter.env_replaced
+  ]])
+
+  h.eq({}, result)
+end
+
+T["ACP Adapter"]["codex openai-api-key auth keeps OPENAI_API_KEY only"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = require("codecompanion.adapters.acp").extend("codex", {
+      env = {
+        OPENAI_API_KEY = "openai-test-key",
+        CODEX_API_KEY = "codex-test-key",
+      },
+      defaults = {
+        auth_method = "openai-api-key",
+      },
+    })
+
+    adapter = utils.get_env_vars(adapter)
+    adapter.defaults.auth_method = utils.set_env_vars(adapter, adapter.defaults.auth_method)
+    adapter.handlers.setup(adapter)
+
+    return adapter.env_replaced
+  ]])
+
+  h.eq({ OPENAI_API_KEY = "openai-test-key" }, result)
+end
+
+T["ACP Adapter"]["codex codex-api-key auth keeps CODEX_API_KEY only"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = require("codecompanion.adapters.acp").extend("codex", {
+      env = {
+        OPENAI_API_KEY = "openai-test-key",
+        CODEX_API_KEY = "codex-test-key",
+      },
+      defaults = {
+        auth_method = "codex-api-key",
+      },
+    })
+
+    adapter = utils.get_env_vars(adapter)
+    adapter.defaults.auth_method = utils.set_env_vars(adapter, adapter.defaults.auth_method)
+    adapter.handlers.setup(adapter)
+
+    return adapter.env_replaced
+  ]])
+
+  h.eq({ CODEX_API_KEY = "codex-test-key" }, result)
+end
+
 return T
