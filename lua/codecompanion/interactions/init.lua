@@ -71,16 +71,11 @@ function Interactions.new(args)
   }, { __index = Interactions })
 end
 
+---@param interaction string
 function Interactions:start(interaction)
-  interaction = interaction or self.selected.interaction or self.selected.strategy or "chat"
-
   local handler = self[interaction]
   if type(handler) ~= "function" then
-    return log:warn(
-      "[Prompt Library] Unknown interaction `%s` for `%s`",
-      tostring(interaction),
-      tostring(self.selected.name)
-    )
+    return log:warn("[Prompt Library] Unknown interaction `%s` for `%s`", interaction, self.selected.name)
   end
 
   return handler(self)

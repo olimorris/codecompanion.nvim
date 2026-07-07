@@ -11,30 +11,12 @@ local allowed_roles = {
   config.constants.USER_ROLE,
 }
 
-local _yaml_parser_warned = false
-
----Check if YAML treesitter parser is available and warn if missing
-local function check_yaml_parser()
-  if _yaml_parser_warned then
-    return
-  end
-
-  _yaml_parser_warned = true
-
-  local ok = pcall(vim.treesitter.get_string_parser, "name: test", "yaml")
-  if not ok then
-    log:warn("[Prompt Library] Install with :TSInstall yaml to properly parse prompt frontmatter")
-  end
-end
-
 ---Load all markdown prompts from a directory
 ---@param dir string
 ---@param context CodeCompanion.BufferContext
 ---@return table
 function M.load_from_dir(dir, context)
   local prompts = {}
-
-  check_yaml_parser()
 
   dir = vim.fs.normalize(dir)
 
@@ -69,7 +51,7 @@ function M.parse_file(path, context)
 
   local frontmatter = M.parse_frontmatter(content)
 
-  if not frontmatter or not (frontmatter.interaction or frontmatter.strategy) or not frontmatter.name then
+  if not frontmatter or not frontmatter.interaction or not frontmatter.name then
     log:warn("[Prompt Library] Missing frontmatter, name or interaction in `%s`", path)
     return nil
   end
@@ -101,7 +83,7 @@ function M.parse_frontmatter(content)
 
   local ok, parser = pcall(vim.treesitter.get_string_parser, content, "yaml")
   if not ok then
-    return
+    return log:warn("[Prompt Library] Install the `yaml` treesitter parser to parse frontmatter")
   end
 
   local query = vim.treesitter.query.get("yaml", "prompt_library")
@@ -118,7 +100,6 @@ function M.parse_frontmatter(content)
 
   for id, node in query:iter_captures(root, content, 0, -1) do
     local capture_name = query.captures[id]
-
     if capture_name == "cc_top_key" then
       pending_key = vim.treesitter.get_node_text(node, content)
     elseif capture_name == "cc_top_value" then
