@@ -210,6 +210,7 @@
 ---@class CodeCompanion.BufferContext
 ---@field bufnr number The buffer number
 ---@field buftype string The buffer type
+---@field code string|false The lines of the selection
 ---@field cursor_pos number[] The cursor position as [line, col]
 ---@field end_col number The end column of the selection
 ---@field end_line number The end line of the selection
