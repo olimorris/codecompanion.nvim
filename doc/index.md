@@ -20,7 +20,7 @@ CodeCompanion is a plugin which enables you to code with AI, using LLMs and agen
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :zap: Integrates Neovim with LLMs and Agents in the CLI
-- :electric_plug: Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
+- :electric_plug: Support for LLMs from [Anthropic](https://platform.claude.com/docs/en/about-claude/models/overview),  [DeepSeek](https://www.deepseek.com), [Google Gemini](https://ai.google.dev/gemini-api/docs/models), [GitHub Copilot](https://github.com/features/copilot), [GitHub Models](https://docs.github.com/en/github-models), [Mistral](https://mistral.ai/), [Novita](https://novita.ai/), [Ollama](https://ollama.com/), [OpenAI](https://developers.openai.com/api/docs/models), Azure OpenAI, [OpenRouter](https://openrouter.ai/), [HuggingFace](https://huggingface.co/) and [xAI](https://docs.x.ai/developers/models) out of the box (or [bring your own!](/extending/adapters))
 - :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Cline CLI](https://docs.cline.bot/home), [Codex](https://openai.com/codex), [Copilot CLI](https://github.com/features/copilot/cli), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Cursor CLI](https://cursor.com/docs/cli/overview), [Kilo Code](https://kilo.ai), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/cli/), [Mistral Vibe](https://github.com/mistralai/mistral-vibe) and [OpenCode](https://opencode.ai)
 - :heart_hands: User contributed and supported [adapters](/configuration/adapters-http#community-adapters)
 - :battery: Support for [Model Context Protocol (MCP)](/model-context-protocol)
@@ -49,10 +49,10 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
 - Cline CLI (`cline_cli`)
 - Codex (`codex`) - Requires an API key
-- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in [Copilot.vim](https://github.com/github/copilot.vim)
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
+- GitHub Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in [Copilot.vim](https://github.com/github/copilot.vim)
 - GitHub Models (`githubmodels`) - Requires [`gh`](https://github.com/cli/cli) to be installed and logged in
 - Goose (`goose`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
@@ -62,7 +62,8 @@ CodeCompanion uses [HTTP](configuration/adapters-http) and [ACP](configuration/a
 - Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
-- opencode (`opencode`) - Requires an API key
+- Opencode (`opencode`) - Requires an API key
+- OpenRouter (`openrouter`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
 In order to add a custom adapter, please refer to the [extending adapters](/extending/adapters) documentation. Also, be sure to check out the [community adapters](configuration/adapters-http#community-adapters) section for user contributed adapters.

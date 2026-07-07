@@ -1,9 +1,23 @@
+local adapters = require("codecompanion.adapters")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
 local M = {}
+
+local TITLE_SCHEMA = {
+  name = "title",
+  schema = {
+    type = "object",
+    properties = {
+      title = { type = "string", description = "A pithy title, 8 words or fewer, capturing the chat's main topic" },
+    },
+    required = { "title" },
+    additionalProperties = false,
+  },
+  strict = true,
+}
 
 ---Format the messages from a chat buffer
 ---@param messages CodeCompanion.Chat.Messages
@@ -39,11 +53,25 @@ function M.on_done(result)
     return
   end
 
-  local title = result and result.output and result.output.content
-  if title then
-    title = title:match("^%s*[\"']?(.-)[\"']?%s*$")
-    return title and title ~= "" and title or nil
+  local content = result and result.output and result.output.content
+  if not content then
+    return
   end
+
+  local ok, decoded = pcall(vim.json.decode, content)
+  local title = (ok and type(decoded) == "table" and decoded.title) or content
+
+  title = title:match("^%s*[\"']?(.-)[\"']?%s*$")
+  return title and title ~= "" and title or nil
+end
+
+---@param background CodeCompanion.Background
+---@return boolean
+local function supports_structured_output(background)
+  local adapter = background.adapter
+  return adapters.get_handler(adapter, "build_structured_output") ~= nil
+    and adapter.opts ~= nil
+    and adapter.opts.can_form_structured_outputs == true
 end
 
 ---Make the request to generate a title for the chat
@@ -66,6 +94,7 @@ function M.request(background, chat)
   }, {
     method = "async",
     silent = true,
+    structured_output = supports_structured_output(background) and TITLE_SCHEMA or nil,
     on_done = function(result)
       local title = M.on_done(result)
       if title then

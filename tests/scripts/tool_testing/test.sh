@@ -18,16 +18,24 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
 fi
 
 # Colors for output
-BOLD='\033[1m'
-CYAN='\033[0;36m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
+BOLD=$'\033[1m'
+CYAN=$'\033[0;36m'
+GREEN=$'\033[0;32m'
+NC=$'\033[0m'
+ORANGE=$'\033[0;33m'
+RED=$'\033[0;31m'
+YELLOW=$'\033[1;33m'
+
+# Nerd Font icons
+ICON_PASS=$'\xef\x81\x9d'
+ICON_FAIL=$'\xef\x81\x9c'
+ICON_ERROR=$'\xef\x81\xaa'
 
 
 colorize() {
-    awk -v RED="$RED" -v GREEN="$GREEN" -v YELLOW="$YELLOW" -v CYAN="$CYAN" -v BOLD="$BOLD" -v NC="$NC" '
+    awk -v RED="$RED" -v GREEN="$GREEN" -v YELLOW="$YELLOW" -v CYAN="$CYAN" -v BOLD="$BOLD" -v NC="$NC" \
+        -v ORANGE="$ORANGE" \
+        -v ICON_PASS="$ICON_PASS" -v ICON_FAIL="$ICON_FAIL" -v ICON_ERROR="$ICON_ERROR" '
     {
         line = $0
         # Scenario dispatch line: "  RUN model :: scenario"
@@ -35,10 +43,15 @@ colorize() {
             n = split(line, parts, " :: ")
             sub(/.*/, YELLOW parts[1] NC " :: " CYAN parts[2] NC, line)
         }
-        # Test result patterns
-        gsub(/ PASS/, GREEN " PASS" NC, line)
-        gsub(/ FAIL/, RED " FAIL" NC, line)
-        gsub(/ ERROR/, RED " ERROR" NC, line)
+        # Test result patterns (two-space prefix preserved, icon added in colour)
+        gsub(/  PASS/, GREEN "  " ICON_PASS " PASS" NC, line)
+        gsub(/  FAIL/, RED "  " ICON_FAIL " FAIL" NC, line)
+        gsub(/  ERROR/, RED "  " ICON_ERROR " ERROR" NC, line)
+
+        # Unified diff lines (produced by diff -u, indented by the log prefix)
+        if (line ~ /^    \+[^+]/) { sub(/\+/, GREEN "+", line); line = line NC }
+        if (line ~ /^    -[^-]/) { sub(/-/, RED "-", line); line = line NC }
+        if (line ~ /^    @@/) sub(/@@[^@]*@@/, CYAN "&" NC, line)
 
         # Individual check marks (for test_setup)
         gsub(/  ✓ /, GREEN "  ✓ " NC, line)
@@ -54,8 +67,15 @@ colorize() {
         if (match(line, /Errors: [0-9]+/)) {
             sub(/Errors: [0-9]+/, "Errors: " RED substr(line, RSTART + 8, RLENGTH - 8) NC, line)
         }
-        if (match(line, /Success Rate: [0-9.]+%/)) {
-            sub(/Success Rate: [0-9.]+%/, "Success Rate: " GREEN substr(line, RSTART + 14, RLENGTH - 14) NC, line)
+        if (match(line, /Success Rate: [0-9.]+% \[green\]/)) {
+            sub(/ \[green\]/, "", line)
+            sub(/[0-9.]+%/, GREEN "&" NC, line)
+        } else if (match(line, /Success Rate: [0-9.]+% \[amber\]/)) {
+            sub(/ \[amber\]/, "", line)
+            sub(/[0-9.]+%/, ORANGE "&" NC, line)
+        } else if (match(line, /Success Rate: [0-9.]+% \[red\]/)) {
+            sub(/ \[red\]/, "", line)
+            sub(/[0-9.]+%/, RED "&" NC, line)
         }
 
         print line
@@ -83,6 +103,7 @@ Options for 'run':
     --csv                   Append results to a CSV file (path from config or results_dir/results.csv)
     --log                   Write per-run JSON and summary JSON to the results directory
     --delay=<ms>            Delay between scenarios in milliseconds (default: 0)
+    --repeat=<n>            Run each scenario n times (default: 1)
     --verbose               Show detailed output
     --all                   Run all enabled adapters with all scenarios
     --use-config            Use full Neovim config instead of minimal setup
@@ -215,41 +236,23 @@ cmd_run() {
 
     # Check if using full config
     local use_config=false
-    local test_args=""
+    local nvim_args=()
     for arg in "$@"; do
         if [ "$arg" = "--use-config" ]; then
             use_config=true
         else
-            test_args="$test_args $arg"
+            nvim_args+=("$arg")
         fi
     done
 
-    # Build and run command.
-    # When stdout is a terminal nvim handles its own colors and in-place UI;
-    # when piped or redirected, post-process with colorize.
     if [ "$use_config" = true ]; then
-        local nvim_cmd="$NVIM --headless +'luafile $SCRIPT_DIR/run_tests.lua' +q"
+        "$NVIM" --headless +"luafile $SCRIPT_DIR/run_tests.lua" +q 2>&1 | colorize
     else
-        local nvim_cmd="$NVIM -l $SCRIPT_DIR/run_tests.lua$test_args"
+        "$NVIM" -l "$SCRIPT_DIR/run_tests.lua" "${nvim_args[@]}" 2>&1 | colorize
     fi
+    exit_code=${PIPESTATUS[0]}
 
-    if [ -t 1 ]; then
-        eval "$nvim_cmd"
-        exit_code=$?
-    else
-        eval "$nvim_cmd" 2>&1 | colorize
-        exit_code=${PIPESTATUS[0]}
-    fi
-
-    if [ $exit_code -eq 0 ]; then
-        echo ""
-        echo -e "${GREEN}✓ All tests passed${NC}"
-        exit 0
-    else
-        echo ""
-        echo -e "${RED}✗ Tests failed (exit code: $exit_code)${NC}"
-        exit $exit_code
-    fi
+    exit $exit_code
 }
 
 cmd_clean() {

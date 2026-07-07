@@ -1,0 +1,31 @@
+local M = {}
+
+function M.validate(input)
+  if type(input) ~= 'string' then
+    return false, 'expected string'
+  end
+  if #input == 0 then
+    return false, 'cannot be empty'
+  end
+  return true, nil
+end
+
+function M.format(input)
+  return input:gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')
+end
+
+-- Deprecated: use M.format instead
+function M.normalize(input)
+  return (input:gsub('%s+', ' '))
+end
+
+function M.transform(input)
+  local ok, err = M.validate(input)
+  if not ok then
+    return nil, err
+  end
+  return M.format(input), nil
+end
+
+print(M.normalize == nil and "deleted" or "present")
+return M

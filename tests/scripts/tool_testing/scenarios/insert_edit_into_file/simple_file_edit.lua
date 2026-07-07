@@ -1,37 +1,25 @@
-local CONTENT = {
-  "local M = {}",
-  "",
-  "function M.greet(name)",
-  '  return "Hello, " .. name',
-  "end",
-  "",
-  "return M",
-}
+local files = require("codecompanion.utils.files")
+local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local EXPECTED = {
-  "local M = {}",
-  "",
-  "function M.welcome(name)",
-  '  return "Welcome, " .. name',
-  "end",
-  "",
-  "return M",
-}
+local input_file = "simple_file_edit.lua.input"
 
 return {
-  description = "insert_edit_into_file: rename a function and a string literal",
+  cleanup = function(ctx)
+    files.delete(ctx.test_file)
+  end,
+
+  description = "Rename a function, update its string literal, and update the call site",
   name = "Simple file edit",
   tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },
 
   setup = function()
+    local input_path = vim.fs.joinpath(FIXTURES, input_file)
     local test_file = vim.fn.tempname() .. ".lua"
-    vim.fn.writefile(CONTENT, test_file)
-    return { test_file = test_file }
+    files.write_to_path(test_file, files.read(input_path))
+    return { input_path = input_path, test_file = test_file }
   end,
 
   prompt = function(ctx)
-    local content = table.concat(CONTENT, "\n")
     return string.format(
       [[Use @{insert_edit_into_file} to edit the file at `%s`.
 
@@ -42,27 +30,25 @@ Current content:
 
 Changes needed:
 1. Change the function name from `greet` to `welcome`
-2. Change "Hello" to "Welcome"
+2. Change `"Hello, "` to `"Welcome, "`
+3. Update the call site: `M.greet("World")` → `M.welcome("World")`
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
-      content
+      files.read(ctx.input_path)
     )
   end,
 
-  validate = function(ctx, _run)
-    local actual = vim.fn.readfile(ctx.test_file)
-    if actual[#actual] == "" then
-      actual[#actual] = nil
+  test = function(ctx)
+    if vim.fn.executable("nvim") == 0 then
+      return false, "nvim not available"
     end
-    local ok = vim.deep_equal(actual, EXPECTED)
-    return ok, {
-      actual = table.concat(actual, "\n"),
-      expected = table.concat(EXPECTED, "\n"),
-    }
-  end,
-
-  cleanup = function(ctx)
-    vim.fn.delete(ctx.test_file)
+    local result = vim.system({ "nvim", "-l", ctx.test_file }):wait()
+    if result.code ~= 0 then
+      return false, "execution failed: " .. vim.trim(result.stderr or "")
+    end
+    local output = vim.trim(result.stderr)
+    return output == "Welcome, World",
+      output ~= "Welcome, World" and "expected 'Welcome, World', got: " .. output or nil
   end,
 }

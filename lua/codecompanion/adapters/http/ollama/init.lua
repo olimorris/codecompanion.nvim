@@ -1,4 +1,4 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
@@ -127,6 +127,12 @@ return {
     end,
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
+    end,
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_ollama(schema)
     end,
     chat_output = function(self, data, tools)
       if not data or data == "" then

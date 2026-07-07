@@ -1,0 +1,31 @@
+local M = {}
+
+function M.get(user_id)
+  return db.find('users', { id = user_id })
+end
+
+function M.update(user_id, data)
+  local user = M.get(user_id)
+  if not user then
+    return nil, 'user ' .. user_id .. ' not found'
+  end
+  return db.update('users', { id = user_id }, data)
+end
+
+function M.delete(user_id)
+  return db.delete('users', { id = user_id })
+end
+
+function M.audit(user_id, action)
+  return db.insert('audit_log', {
+    action = action,
+    timestamp = os.time(),
+    user_id = user_id,
+  })
+end
+
+function M.permissions(user_id)
+  return db.find_all('permissions', { user_id = user_id })
+end
+
+return M

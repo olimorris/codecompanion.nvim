@@ -2,7 +2,7 @@ local METHODS = require("codecompanion.mcp.methods")
 local config = require("codecompanion.config")
 local tool_bridge = require("codecompanion.mcp.tool_bridge")
 
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")

@@ -123,23 +123,19 @@ function M.get_tokens(messages, opts)
 end
 
 ---Display the number of tokens in the current buffer
----@param token_str string
----@param ns_id number
----@param parser table
----@param start_row number
----@param bufnr? number
+---@param args { bufnr?: number, ns_id: number, parser: table, start_row: number, token_str: string }
 ---@return nil
-function M.display(token_str, ns_id, parser, start_row, bufnr)
-  bufnr = bufnr or api.nvim_get_current_buf()
+function M.display(args)
+  local bufnr = args.bufnr or api.nvim_get_current_buf()
 
-  api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+  api.nvim_buf_clear_namespace(bufnr, args.ns_id, 0, -1)
 
   local query = vim.treesitter.query.get("markdown", "tokens")
-  local tree = parser:parse({ start_row - 1, -1 })[1]
+  local tree = args.parser:parse({ args.start_row - 1, -1 })[1]
   local root = tree:root()
 
   local header
-  for id, node in query:iter_captures(root, bufnr, start_row - 1, -1) do
+  for id, node in query:iter_captures(root, bufnr, args.start_row - 1, -1) do
     if query.captures[id] == "role" then
       header = node
     end
@@ -148,9 +144,9 @@ function M.display(token_str, ns_id, parser, start_row, bufnr)
   if header then
     local _, _, end_row, _ = header:range()
 
-    local virtual_text = { { token_str, "CodeCompanionChatTokens" } }
+    local virtual_text = { { args.token_str, "CodeCompanionChatTokens" } }
 
-    api.nvim_buf_set_extmark(bufnr, ns_id, end_row - 1, 0, {
+    api.nvim_buf_set_extmark(bufnr, args.ns_id, end_row - 1, 0, {
       virt_text = virtual_text,
       virt_text_pos = "eol",
       priority = 110,

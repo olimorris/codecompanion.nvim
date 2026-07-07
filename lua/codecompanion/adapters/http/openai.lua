@@ -1,17 +1,16 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local CONSTANTS = {
   STANDARD_MESSAGE_FIELDS = {
-    -- fields that are defined in the standard openai chat-completion API (inc. streaming and non-streaming)
+    "annotations",
+    "audio",
     "content",
     "function_call",
     "refusal",
     "role",
     "tool_calls",
-    "annotations",
-    "audio",
   },
 }
 
@@ -188,6 +187,20 @@ return {
       end
 
       return { tools = transformed }
+    end,
+
+    ---Form the structured output schema for the request body
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      if not self.opts.can_form_structured_outputs then
+        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_openai(schema)
     end,
 
     ---Returns the number of tokens generated from the LLM
@@ -395,63 +408,63 @@ return {
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-5.4-mini"] = {
           formatted_name = "GPT 5.4 Mini",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-5.4-nano"] = {
           formatted_name = "GPT 5.4 Nano",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-5"] = {
           formatted_name = "GPT 5",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-5-mini"] = {
           formatted_name = "GPT 5 Mini",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-5-nano"] = {
           formatted_name = "GPT 5 Nano",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-4.1"] = {
           formatted_name = "GPT 4.1",
           meta = { context_window = 1047576 },
-          opts = { has_vision = true },
+          opts = { has_vision = true, can_form_structured_outputs = true },
         },
 
         -- Older models
         ["o4-mini-2025-04-16"] = {
           formatted_name = "o4 Mini",
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["o3-mini-2025-01-31"] = {
           formatted_name = "o3 Mini",
-          opts = { can_reason = true },
+          opts = { can_reason = true, can_form_structured_outputs = true },
         },
         ["o3-2025-04-16"] = {
           formatted_name = "o3",
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["o1-2024-12-17"] = {
           formatted_name = "o1",
-          opts = { has_vision = true, can_reason = true },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
         },
         ["gpt-4o"] = {
           formatted_name = "GPT-4o",
-          opts = { has_vision = true },
+          opts = { has_vision = true, can_form_structured_outputs = true },
         },
         ["gpt-4o-mini"] = {
           formatted_name = "GPT-4o Mini",
-          opts = { has_vision = true },
+          opts = { has_vision = true, can_form_structured_outputs = true },
         },
         ["gpt-4-turbo-preview"] = {
           formatted_name = "GPT-4 Turbo Preview",

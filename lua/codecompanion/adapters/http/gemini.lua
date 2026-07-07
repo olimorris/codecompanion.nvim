@@ -1,9 +1,9 @@
 ---Source: https://ai.google.dev/gemini-api/docs
 
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.utils.tool_transformers")
+local transform = require("codecompanion.adapters.utils.tool_transformers")
 
 ---Extract the first complete JSON object from a potentially concatenated string
 ---Workaround for Gemini bug where multiple JSON objects get concatenated
@@ -284,6 +284,20 @@ return {
       }
     end,
 
+    ---Form the structured output schema for the request body
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      if not self.opts.can_form_structured_outputs then
+        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_gemini(schema)
+    end,
+
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.HTTPAdapter
     ---@param data string The data from the LLM
@@ -450,34 +464,39 @@ return {
         ["gemini-3.1-pro-preview"] = {
           formatted_name = "Gemini 3.1 Pro",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
+        },
+        ["gemini-3.5-flash"] = {
+          formatted_name = "Gemini 3.5 Flash",
+          meta = { context_window = 1048576 },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
         },
         ["gemini-3.1-flash-lite-preview"] = {
           formatted_name = "Gemini 3.1 Flash Lite",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
         },
         ["gemini-3-flash-preview"] = {
           formatted_name = "Gemini 3 Flash",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
         },
 
         -- Gemini 2.5
         ["gemini-2.5-pro"] = {
           formatted_name = "Gemini 2.5 Pro",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
         },
         ["gemini-2.5-flash"] = {
           formatted_name = "Gemini 2.5 Flash",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
         },
         ["gemini-2.5-flash-lite"] = {
           formatted_name = "Gemini 2.5 Flash Lite",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true },
         },
 
         -- Older models

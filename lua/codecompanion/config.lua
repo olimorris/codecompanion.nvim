@@ -24,9 +24,11 @@ local defaults = {
       ollama = "ollama",
       openai = "openai",
       openai_responses = "openai_responses",
+      openrouter = "openrouter",
       xai = "xai",
       jina = "jina",
       tavily = "tavily",
+      extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
       opts = {
         allow_insecure = false, -- Allow insecure connections?
         cache_models_for = 1800, -- Cache adapter models for this long (seconds)
@@ -49,6 +51,7 @@ local defaults = {
       kiro = "kiro",
       mistral_vibe = "mistral_vibe",
       opencode = "opencode",
+      extend = nil, -- Per-adapter overrides keyed by config key e.g. { codex = { env = { OPENAI_API_KEY = "ABC-123" } } }
       opts = {
         show_presets = true,
       },
@@ -1058,6 +1061,12 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Testing in the plugin",
           files = {
             ".codecompanion/tests/test.md",
+          },
+        },
+        ["automated-tool-testing"] = {
+          description = "Automating the testing of tools within the plugin",
+          files = {
+            ".codecompanion/tests/automated-tools.md",
           },
         },
         ["tools"] = {

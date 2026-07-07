@@ -1,0 +1,115 @@
+import copy
+import json
+import os
+from pathlib import Path
+from typing import Any, Optional
+
+
+class ConfigError(Exception):
+    pass
+
+
+class Config:
+    """Application configuration with environment variable overrides."""
+
+    DEFAULTS = {
+        "cache": {
+            "backend": "memory",
+            "max_size": 1000,
+            "ttl": 600,
+        },
+        "database": {
+            "host": "localhost",
+            "name": "app",
+            "pool_size": 10,
+            "port": 5432,
+            "timeout": 30,
+        },
+        "debug": False,
+        "host": "localhost",
+        "log_level": "INFO",
+        "port": 8080,
+    }
+
+    def __init__(self, path: Optional[str] = None):
+        self._data: dict[str, Any] = {}
+        self._path = path
+        self._load_defaults()
+        if path:
+            self._load_file(path)
+        self._apply_env_overrides()
+
+    def _load_defaults(self) -> None:
+        self._data = copy.deepcopy(self.DEFAULTS)
+
+    def _load_file(self, path: str) -> None:
+        p = Path(path)
+        if not p.exists():
+            raise ConfigError(f"config file not found: {path!r}")
+        if not p.is_file():
+            raise ConfigError(f"config path is not a file: {path}")
+        try:
+            with open(p) as f:
+                loaded = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ConfigError(f"invalid JSON in config file: {e}") from e
+        self._merge(self._data, loaded)
+
+    def _merge(self, base: dict, override: dict) -> None:
+        for key, value in override.items():
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                self._merge(base[key], value)
+            else:
+                base[key] = value
+
+    def _apply_env_overrides(self) -> None:
+        env_map = {
+            "APP_DEBUG": ("debug",),
+            "APP_HOST": ("host",),
+            "APP_LOG_LEVEL": ("log_level",),
+            "APP_PORT": ("port",),
+            "DB_HOST": ("database", "host"),
+            "DB_NAME": ("database", "name"),
+            "DB_POOL_SIZE": ("database", "pool_size"),
+            "DB_PORT": ("database", "port"),
+        }
+        for env_var, keys in env_map.items():
+            value = os.getenv(env_var)
+            if value is None:
+                continue
+            target = self._data
+            for key in keys[:-1]:
+                target = target[key]
+            last_key = keys[-1]
+            current = target.get(last_key)
+            if isinstance(current, bool):
+                target[last_key] = value.lower() in ("1", "true", "yes")
+            elif isinstance(current, int):
+                try:
+                    target[last_key] = int(value)
+                except ValueError:
+                    raise ConfigError(f"env var {env_var} must be an integer, got: {value!r}")
+            else:
+                target[last_key] = value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        keys = key.split(".")
+        target = self._data
+        for k in keys:
+            if not isinstance(target, dict) or k not in target:
+                return default
+            target = target[k]
+        return target
+
+    def require(self, key: str) -> Any:
+        value = self.get(key)
+        if value is None:
+            raise ConfigError(f"required config key missing: {key}")
+        return value
+
+    def as_dict(self) -> dict[str, Any]:
+        return copy.deepcopy(self._data)
+
+if __name__ == '__main__':
+    c = Config()
+    print(str(c.get("cache.ttl")) + "/" + str(c.get("database.pool_size")))

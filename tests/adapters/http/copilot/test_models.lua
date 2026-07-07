@@ -35,7 +35,7 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
     end
 
     -- Avoid filesystem side effects
-    local adapters_utils = require("codecompanion.utils.adapters")
+    local adapters_utils = require("codecompanion.adapters.utils")
     adapters_utils.refresh_cache = function()
       return os.time() + 100
     end
@@ -130,7 +130,7 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
     end
 
     -- Avoid filesystem side effects
-    local adapters_utils = require("codecompanion.utils.adapters")
+    local adapters_utils = require("codecompanion.adapters.utils")
     adapters_utils.refresh_cache = function()
       return os.time() + 100
     end

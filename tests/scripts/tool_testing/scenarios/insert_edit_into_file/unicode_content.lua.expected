@@ -1,0 +1,11 @@
+local M = {}
+
+M.messages = {
+  error = 'An error occurred 😞',
+  processing = 'Processing your request... ⏳',
+  success = 'Done! ✅',
+  warning = 'Proceed with caution ⚠️',
+  welcome = 'Welcome to CodeCompanion! 🎉',
+}
+
+return M

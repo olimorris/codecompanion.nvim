@@ -82,7 +82,11 @@ Finally, it's important to note that all http adapter endpoints require the send
 
 ## Debug Window
 
+<img src="https://github.com/user-attachments/assets/9790def5-dc9c-4922-911f-90c6042b122d" alt="Debug window" />
+
 Sometimes it's necessary to peek under the hood of the chat buffer to understand what hyperparameters are being sent to the LLM, or what the message history looks like. By pressing `gd`, you can open up a debug window which contains all of the relevant information about the chat buffer, including the message history, adapter settings and context items.
+
+You can edit all content in the debug window and persist it to the chat buffer by doing `<C-s>`.
 
 ## Generating Titles
 

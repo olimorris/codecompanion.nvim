@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+class ApiClient
+  DEFAULT_TIMEOUT = 30
+  DEFAULT_RETRIES = 3
+
+  def initialize(base_url, options = {})
+    @base_url = base_url
+    @timeout = options.fetch(:timeout, DEFAULT_TIMEOUT)
+    @retries = options.fetch(:retries, DEFAULT_RETRIES)
+  end
+
+  def get(path, params = {})
+    request(:get, path, params: params)
+  end
+
+  def post(path, body = {})
+    request(:post, path, body: body)
+  end
+
+  def patch(path, body = {})
+    request(:patch, path, body: body)
+  end
+
+  def delete(path)
+    request(:delete, path)
+  end
+
+  private
+
+  def request(method, path, options = {})
+    uri = URI.join(@base_url, path)
+    # ... implementation
+    { method: method, uri: uri, options: options }
+  end
+end

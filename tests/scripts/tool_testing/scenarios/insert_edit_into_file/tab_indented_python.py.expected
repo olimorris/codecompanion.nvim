@@ -1,0 +1,31 @@
+class DataProcessor:
+	def __init__(self, config):
+		self.config = config
+		self.results = []
+		self.errors = []
+
+	def process(self, items):
+		for item in items:
+			if not item.get('active'):
+				continue
+			try:
+				result = self._transform(item)
+				self.results.append(result)
+			except Exception as e:
+				self.errors.append({'id': item['id'], 'error': str(e)})
+		return self.results
+
+	def _transform(self, item):
+		return {
+			'id': item['id'],
+			'value': item['value'] * self.config.multiplier,
+			'label': item.get('label', 'unknown'),
+		}
+
+class _Config:
+	multiplier = 3
+
+if __name__ == '__main__':
+	dp = DataProcessor(_Config())
+	result = dp._transform({'id': 1, 'value': 4, 'label': 'test'})
+	print(result['value'])

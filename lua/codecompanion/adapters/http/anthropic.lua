@@ -1,7 +1,7 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.utils.tool_transformers")
+local transform = require("codecompanion.adapters.utils.tool_transformers")
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
@@ -434,6 +434,20 @@ return {
       return { tools = transformed }
     end,
 
+    ---Form the structured output schema for the request body
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      if not self.opts.can_form_structured_outputs then
+        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_anthropic(schema)
+    end,
+
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.HTTPAdapter
     ---@param data table The data from the LLM
@@ -651,64 +665,59 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-sonnet-4-6",
+      default = "claude-sonnet-5",
       choices = {
         -- Current models
+        ["claude-sonnet-5"] = {
+          formatted_name = "Claude Sonnet 5",
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_reason = true, can_manage_context = true, has_vision = true },
+        },
         ["claude-fable-5"] = {
           formatted_name = "Claude Fable 5",
           meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_manage_context = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
         },
         ["claude-opus-4-8"] = {
           formatted_name = "Claude Opus 4.8",
           meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_manage_context = true, has_vision = true },
-        },
-        ["claude-sonnet-4-6"] = {
-          formatted_name = "Claude Sonnet 4.6",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, can_manage_context = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
         },
         ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
           meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_reason = false, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_reason = false, has_vision = true },
         },
 
         -- Legacy models
         ["claude-opus-4-7"] = {
           formatted_name = "Claude Opus 4.7",
           meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_manage_context = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
         },
         ["claude-opus-4-6"] = {
           formatted_name = "Claude Opus 4.6",
           meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_manage_context = true, can_reason = true, has_vision = true },
+          opts = { can_form_structured_outputs = true, can_manage_context = true, can_reason = true, has_vision = true },
         },
         ["claude-opus-4-5"] = {
           formatted_name = "Claude Opus 4.5",
           meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true, legacy_reasoning = true },
+        },
+        ["claude-sonnet-4-6"] = {
+          formatted_name = "Claude Sonnet 4.6",
+          meta = { context_window = 1000000, max_tokens = 128000 },
+          opts = { can_reason = true, can_manage_context = true, has_vision = true },
         },
         ["claude-sonnet-4-5"] = {
           formatted_name = "Claude Sonnet 4.5",
           meta = { context_window = 100000, max_tokens = 64000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
+          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true, legacy_reasoning = true },
         },
         ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
           meta = { context_window = 200000, max_tokens = 32000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-opus-4-0"] = {
-          formatted_name = "Claude Opus 4",
-          meta = { context_window = 200000, max_tokens = 32000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-sonnet-4-0"] = {
-          formatted_name = "Claude Sonnet 4",
-          meta = { context_window = 1000000, max_tokens = 64000 },
           opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
         },
       },

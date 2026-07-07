@@ -10,7 +10,7 @@ local T = new_set({
 
       -- Load the ACP module in child
       child.lua([[
-				package.loaded['codecompanion.utils.adapters'] = {
+				package.loaded['codecompanion.adapters.utils'] = {
 					get_env_vars = function(a) return a end,
 					set_env_vars = function(_, x) return x end,
 				}

@@ -1,4 +1,4 @@
-local adapter_utils = require("codecompanion.utils.adapters")
+local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
@@ -59,6 +59,20 @@ return {
     end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
+    end,
+    ---Mistral passes structured outputs through using OpenAI's `response_format.json_schema` shape
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema then
+        return
+      end
+      ---Ref: https://docs.mistral.ai/studio-api/conversations/structured-output/custom
+      if not self.opts.can_form_structured_outputs then
+        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      end
+      return openai.handlers.form_structured_output(self, schema)
     end,
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
@@ -188,17 +202,17 @@ return {
       default = "mistral-small-latest",
       choices = {
         -- Premier models
-        "mistral-large-latest",
-        ["pixtral-large-latest"] = { opts = { has_vision = true } },
-        ["magistral-medium-latest"] = { opts = { can_reason = true } },
-        ["magistral-small-latest"] = { opts = { can_reason = true } },
-        ["mistral-medium-latest"] = { opts = { has_vision = true } },
+        ["mistral-large-latest"] = { opts = { can_form_structured_outputs = true } },
+        ["pixtral-large-latest"] = { opts = { has_vision = true, can_form_structured_outputs = true } },
+        ["magistral-medium-latest"] = { opts = { can_reason = true, can_form_structured_outputs = true } },
+        ["magistral-small-latest"] = { opts = { can_reason = true, can_form_structured_outputs = true } },
+        ["mistral-medium-latest"] = { opts = { has_vision = true, can_form_structured_outputs = true } },
         ["mistral-saba-latest"] = { opts = { has_function_calling = false } },
-        "codestral-latest",
-        "ministral-8b-latest",
-        "ministral-3b-latest",
+        ["codestral-latest"] = { opts = { can_form_structured_outputs = true } },
+        ["ministral-8b-latest"] = { opts = { can_form_structured_outputs = true } },
+        ["ministral-3b-latest"] = { opts = { can_form_structured_outputs = true } },
         -- Free models, latest
-        ["mistral-small-latest"] = { opts = { has_vision = true } },
+        ["mistral-small-latest"] = { opts = { has_vision = true, can_form_structured_outputs = true } },
         ["pixtral-12b-2409"] = { opts = { has_vision = true } },
         -- Free models, research
         "open-mistral-nemo",

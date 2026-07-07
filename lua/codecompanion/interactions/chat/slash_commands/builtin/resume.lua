@@ -40,7 +40,7 @@ local function format_session(session)
   local parts = {}
 
   if session.updatedAt then
-    local ts = utils.parse_iso8601(session.updatedAt)
+    local ts = utils.timestamp_from_iso(session.updatedAt)
     if ts then
       table.insert(parts, "(" .. utils.make_relative(ts) .. ")")
     end

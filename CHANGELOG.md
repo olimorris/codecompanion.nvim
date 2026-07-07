@@ -1,5 +1,45 @@
 # Changelog
 
+## [19.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.17.0...v19.18.0) (2026-06-30)
+
+
+### Features
+
+* **adapters:** allow static `session_id` in OpenRouter ([#3183](https://github.com/olimorris/codecompanion.nvim/issues/3183)) ([f6a7b89](https://github.com/olimorris/codecompanion.nvim/commit/f6a7b8934fe9399755c1f9e1aa0cc6eb479ac12b))
+* **adapters:** cleaner way to customise adapters ([#3195](https://github.com/olimorris/codecompanion.nvim/issues/3195)) ([166feb3](https://github.com/olimorris/codecompanion.nvim/commit/166feb3e6579ff31f08be9ddba4121a203b19710))
+* **adapters:** display reasoning effort for `openrouter` models ([#3193](https://github.com/olimorris/codecompanion.nvim/issues/3193)) ([d841a1c](https://github.com/olimorris/codecompanion.nvim/commit/d841a1c5d0b3f8b9f96e960770844d9fd9a36c1f))
+* **chat:** allow `session_id` to be edited in the debug window ([#3180](https://github.com/olimorris/codecompanion.nvim/issues/3180)) ([e1352a2](https://github.com/olimorris/codecompanion.nvim/commit/e1352a2f71813e8bd11de317defe8a70362e8bc9))
+
+## [19.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.16.0...v19.17.0) (2026-06-21)
+
+
+### Features
+
+* **adapters:** add additional `OpenRouter` features ([#3179](https://github.com/olimorris/codecompanion.nvim/issues/3179)) ([5fd730f](https://github.com/olimorris/codecompanion.nvim/commit/5fd730ff8ecd8e533b36b33b2c1eb6b215b5f674))
+* **adapters:** add gemini 3.5 flash ([#3171](https://github.com/olimorris/codecompanion.nvim/issues/3171)) ([35d9acc](https://github.com/olimorris/codecompanion.nvim/commit/35d9accf36b10d39c93a8028d18200f04ba6c2c2))
+* **adapters:** add support for `OpenRouter` ([#3168](https://github.com/olimorris/codecompanion.nvim/issues/3168)) ([339c270](https://github.com/olimorris/codecompanion.nvim/commit/339c27087d86a7d1cebb966ac160fba31b305123))
+
+
+### Bug Fixes
+
+* **adapters:** change default copilot model ([#3167](https://github.com/olimorris/codecompanion.nvim/issues/3167)) ([ffd2859](https://github.com/olimorris/codecompanion.nvim/commit/ffd2859929b60c701faa4ae9188aa71983113608))
+* **utils:** update datetime formatting ([#3160](https://github.com/olimorris/codecompanion.nvim/issues/3160)) ([7cc35b7](https://github.com/olimorris/codecompanion.nvim/commit/7cc35b7f7f08d093469fa9ae67d3af716bd729c3))
+
+## [19.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.15.0...v19.16.0) (2026-06-15)
+
+
+### Features
+
+* **adapters:** support db tokens in copilot ([#3155](https://github.com/olimorris/codecompanion.nvim/issues/3155)) ([d8a5d88](https://github.com/olimorris/codecompanion.nvim/commit/d8a5d885ae477d80d9f4fdfad4f600cd0db75451))
+* **http:** curl headers written to temp file ([#3157](https://github.com/olimorris/codecompanion.nvim/issues/3157)) ([ffae107](https://github.com/olimorris/codecompanion.nvim/commit/ffae107d791d64166a1a7fc024b0cddafe8e75b4))
+* **ui:** display tokens for ACP adapters ([#3159](https://github.com/olimorris/codecompanion.nvim/issues/3159)) ([b8e383d](https://github.com/olimorris/codecompanion.nvim/commit/b8e383d67f0a6273d5d0b17098a6d934a2ee57aa))
+
+
+### Bug Fixes
+
+* **adapters:** token reporting in copilot ([#3154](https://github.com/olimorris/codecompanion.nvim/issues/3154)) ([52e44e0](https://github.com/olimorris/codecompanion.nvim/commit/52e44e0f048be51a2892989de0d86e79f70aecad))
+* **adapters:** turn `top_p` off by default in openai_responses ([#3150](https://github.com/olimorris/codecompanion.nvim/issues/3150)) ([c33f868](https://github.com/olimorris/codecompanion.nvim/commit/c33f868c921bc877a3fb8b66673ff31cd98c3936))
+
 ## [19.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.14.0...v19.15.0) (2026-06-09)
 
 

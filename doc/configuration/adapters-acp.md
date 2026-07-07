@@ -6,35 +6,55 @@ description: "Configure Agent Client Protocol (ACP) adapters in CodeCompanion to
 
 This section contains configuration which is specific to Agent Client Protocol (ACP) adapters only. There is a lot of shared functionality between ACP and [http](/configuration/adapters-http) adapters. Therefore it's recommended you read the two pages together.
 
-## Configuring Adapter Settings
+## Customising an Adapter
 
-To change any of the default settings for an ACP adapter, you can extend it in your CodeCompanion setup. For example, to change the timeout and authentication method for the Gemini CLI adapter, you can do the following:
+There are two ways to customise a preset adapter, and you'll see both throughout this page:
 
-```lua
+- **Function** - Use this for full or computed setups. Custom `commands`, `defaults`, or values resolved at call time
+- **`extend` table** - Use this for static overrides like credentials or setting a default value
+
+::: code-group
+
+```lua [Function]
 require("codecompanion").setup({
   adapters = {
     acp = {
       gemini_cli = function()
         return require("codecompanion.adapters").extend("gemini_cli", {
           commands = {
-            default = {
-              "some-other-gemini"
-              "--experimental-acp",
-            },
+            default = { "some-other-gemini", "--experimental-acp" },
           },
           defaults = {
             auth_method = "gemini-api-key",
             timeout = 20000, -- 20 seconds
           },
-          env = {
-            GEMINI_API_KEY = "GEMINI_API_KEY",
-          },
+          env = { GEMINI_API_KEY = "cmd:op read op://personal/Gemini/credential --no-newline" },
         })
       end,
     },
   },
 })
 ```
+
+```lua [Extend Table]
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      extend = {
+        gemini_cli = {
+          defaults = { auth_method = "gemini-api-key" },
+          env = { GEMINI_API_KEY = "cmd:op read op://personal/Gemini/credential --no-newline" },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+> [!IMPORTANT]
+> The `extend` key is the adapter's name in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), not the resolved adapter name.
 
 ## Setting a Default Adapter
 

@@ -21,15 +21,16 @@
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field header_ns number The namespace for the virtual text that appears in the header
 ---@field hidden boolean Whether the chat is hidden (no window opened)
----@field id number The unique identifier for the chat
+---@field id number The unique identifier for the chat (internal use only)
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parsers { markdown: vim.treesitter.LanguageTree, markdown_inline?: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
+---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
----@field tokens? nil|number The number of tokens in the chat
+---@field tokens? number|table The tokens reported by the adapter
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
@@ -58,7 +59,7 @@
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field title? string The title of the chat buffer
----@field tokens? table Total tokens spent in the chat buffer so far
+---@field tokens? number|table Total tokens spent in the chat buffer so far
 ---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
@@ -582,6 +583,7 @@ function Chat.new(args)
     intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
     opts = args,
+    session_id = fmt("codecompanion-%d-%d", os.time(), id),
     status = "",
     title = args.title,
     _last_role = args.last_role or config.constants.USER_ROLE,
@@ -1100,7 +1102,7 @@ function Chat:checkpoint()
     adapter = adapters.make_safe(self.adapter),
     estimated_tokens = tokens.get_tokens(self.messages),
     messages = self.messages,
-    reported_tokens = self.ui.tokens,
+    reported_tokens = self.tokens,
   })
 end
 
@@ -1197,7 +1199,7 @@ function Chat:_submit_http(payload)
     if adapter.features.tokens then
       local token_count = adapters.call_handler(adapter, "parse_tokens", data)
       if token_count then
-        self.ui.tokens = token_count
+        self.tokens = token_count
       end
     end
 
@@ -1370,6 +1372,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(shallow_messages),
+    session_id = self.session_id,
     tools = (not vim.tbl_isempty(self.tool_registry.schemas) and { self.tool_registry.schemas } or {}),
   }
 
@@ -1413,11 +1416,16 @@ end
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
 ---@param meta? table Any metadata from the LLM
----@param opts? {status: "stopped"} The reason the done method was called
+---@param opts? { status: "stopped" } The reason the done method was called
 ---@return nil
 function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
   self.current_request = nil
+
+  -- NOTE: When doing automated testing, the chat buffer may be closed before the response is received
+  if not api.nvim_buf_is_valid(self.bufnr) then
+    return
+  end
 
   self:_clear_status()
 
@@ -1455,7 +1463,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
       content = content,
       reasoning = reasoning_content,
     }
-    local token_meta = { cumulative_tokens = self.ui.tokens }
+    local token_meta = { cumulative_tokens = self.tokens }
     self:add_message(message, {
       _meta = vim.tbl_extend("force", has_meta and meta or {}, token_meta),
     })
@@ -1467,7 +1475,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
       reasoning = reasoning_content,
     }, {
       visible = false,
-      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.ui.tokens }),
+      _meta = vim.tbl_extend("force", meta, { cumulative_tokens = self.tokens }),
     })
     reasoning_content = nil
   end
@@ -1482,7 +1490,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if has_tools then
     tools = adapters.call_handler(self.adapter, "format_calls", tools)
     if tools then
-      local token_meta = { cumulative_tokens = self.ui.tokens }
+      local token_meta = { cumulative_tokens = self.tokens }
       local message = {
         role = config.constants.LLM_ROLE,
         reasoning = reasoning_content,
@@ -1872,7 +1880,7 @@ function Chat:ready_for_input(opts)
     self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
     self.header_line = (self.builder.state.current_header_line or 0) + 1
-    self.ui:display_tokens(self.parsers.markdown, self.header_line)
+    self.ui:display_tokens({ parser = self.parsers.markdown, start_row = self.header_line, tokens = self.tokens })
     self.context:render()
 
     self:dispatch("on_ready")
@@ -2031,7 +2039,7 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
-    tokens = self.ui.tokens or 0,
+    tokens = self.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
 

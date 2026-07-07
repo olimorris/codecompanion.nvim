@@ -1,5 +1,5 @@
 local h = require("tests.helpers")
-local transform = require("codecompanion.utils.tool_transformers")
+local transform = require("codecompanion.adapters.utils.tool_transformers")
 local new_set = MiniTest.new_set
 T = new_set()
 

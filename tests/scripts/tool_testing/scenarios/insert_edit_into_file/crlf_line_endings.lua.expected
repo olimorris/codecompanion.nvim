@@ -1,0 +1,10 @@
+local M = {}
+
+M.VERSION = '1.0.0'
+M.NAME = 'myapp'
+
+function M.greet(name)
+  return 'Hi, ' .. name
+end
+
+return M

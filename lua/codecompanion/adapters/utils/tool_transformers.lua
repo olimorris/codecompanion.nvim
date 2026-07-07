@@ -3,7 +3,7 @@
 local M = {}
 
 ---Convert the OpenAI schema to Anthropic's schema
----REF: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#example-simple-tool-definition
+---Ref: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#example-simple-tool-definition
 ---@param schema table
 ---@return table
 M.to_anthropic = function(schema)
@@ -73,7 +73,7 @@ M.schema_is_legacy_format = function(schema)
 end
 
 ---Convert the original OpenAI schema to the new OpenAI schema
----REF: https://platform.openai.com/docs/guides/function-calling#defining-functions
+---Ref: https://platform.openai.com/docs/guides/function-calling#defining-functions
 ---@param schema table
 ---@param opts? {strict_mode: boolean}
 ---@return table
@@ -144,7 +144,7 @@ local function strip_unsupported_gemini_fields(obj)
 end
 
 ---Convert the OpenAI schema to Gemini's functionDeclaration schema
----REF: https://ai.google.dev/gemini-api/docs/function-calling
+---Ref: https://ai.google.dev/gemini-api/docs/function-calling
 ---@param schema table
 ---@return table
 M.to_gemini = function(schema)

@@ -74,8 +74,10 @@ function ACPHandler:ensure_connection()
   end
 
   if not self.chat.acp_connection then
+    local adapter = self.chat.adapter --[[@as CodeCompanion.ACPAdapter]]
     self.chat.acp_connection = require("codecompanion.acp").new({
-      adapter = self.chat.adapter, ---@type CodeCompanion.ACPAdapter
+      adapter = adapter,
+      chat = self.chat,
     })
   end
 

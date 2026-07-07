@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 04
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 30
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -80,7 +80,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
--  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
+-  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
@@ -118,10 +118,10 @@ agents. Out of the box, the plugin supports:
 - Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
 - Cline CLI (`cline_cli`)
 - Codex (`codex`) - Requires an API key
-- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
+- GitHub Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
 - GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
 - Goose (`goose`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
@@ -131,7 +131,8 @@ agents. Out of the box, the plugin supports:
 - Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
-- opencode (`opencode`) - Requires an API key
+- Opencode (`opencode`) - Requires an API key
+- OpenRouter (`openrouter`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
 In order to add a custom adapter, please refer to the
@@ -1146,38 +1147,19 @@ This section contains configuration which is specific to Agent Client Protocol
 recommended you read the two pages together.
 
 
-ADAPTER SETTINGS ~
+CUSTOMISING AN ADAPTER ~
 
-To change any of the default settings for an ACP adapter, you can extend it in
-your CodeCompanion setup. For example, to change the timeout and authentication
-method for the Gemini CLI adapter, you can do the following:
+There are two ways to customise a preset adapter, and you'll see both
+throughout this page:
 
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          gemini_cli = function()
-            return require("codecompanion.adapters").extend("gemini_cli", {
-              commands = {
-                default = {
-                  "some-other-gemini"
-                  "--experimental-acp",
-                },
-              },
-              defaults = {
-                auth_method = "gemini-api-key",
-                timeout = 20000, -- 20 seconds
-              },
-              env = {
-                GEMINI_API_KEY = "GEMINI_API_KEY",
-              },
-            })
-          end,
-        },
-      },
-    })
-<
+- **Function** - Use this for full or computed setups. Custom `commands`, `defaults`, or values resolved at call time
+- **extend table** - Use this for static overrides like credentials or setting a default value
 
+
+
+  [!IMPORTANT] The `extend` key is the adapter's name in the config
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
+  not the resolved adapter name.
 
 SETTING A DEFAULT ADAPTER ~
 
@@ -1637,7 +1619,7 @@ HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
   <https://github.com/olimorris/codecompanion.nvim/discussions>
 An adapter is what connects Neovim to an LLM provider and model. It's the
 interface that allows data to be sent, received and processed. There are a
-multitude of ways to customize them.
+multitude of ways to customise them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which
 connect you to an LLM and |codecompanion-configuration-adapters-acp| adapters
@@ -1680,6 +1662,20 @@ A core part of working with CodeCompanion is being able to easily switch
 between adapters and LLMs. Below are two examples of how this can be achieved.
 
 
+
+CUSTOMISING AN ADAPTER ~
+
+There are two ways to customise a preset adapter, and you'll see both
+throughout this page:
+
+- **Function** - Use this for full or computed setups. Custom `url`, `headers`, `schema`, or values resolved at call time
+- **extend table** - Use this for static overrides like credentials or setting a default value
+
+
+
+  [!IMPORTANT] The `extend` key is the adapter's name in the config
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
+  not the resolved adapter name.
 
 CHANGING ADAPTER PARAMETERS (SCHEMA) ~
 
@@ -1983,6 +1979,38 @@ via the API. This is standard behaviour across all http adapters within the
 plugin.
 
 
+OPENROUTER
+
+
+  [!NOTE] Depending on the model you've selected, the OpenRouter adapter will
+  turn on/off certain features such as tool use, vision and hyperparameters
+CodeCompanion supports a number of OpenRouter <https://openrouter.ai> features
+out of the box:
+
+- Explicit prompt caching for Anthropic models
+- Server tools such as web_fetch <https://openrouter.ai/docs/guides/features/server-tools/web-fetch> and web_search <https://openrouter.ai/docs/guides/features/server-tools/web-search>
+- Reasoning effort <https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#reasoning-effort-level> levels
+- Presets <http://openrouter.ai/docs/guides/features/presets>
+- Provider routing <https://openrouter.ai/docs/guides/routing/provider-selection>
+
+You can configure the OpenRouter adapter in your config, as shown in the
+section below. However, you can also customise it on a per-chat basis, using
+`gd` to open the |codecompanion-usage-chat-buffer--debug-window|.
+
+
+The adapter also supports sticky sessions
+<https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions>
+via the use of a `session_id`. When a chat buffer is created, the plugin will
+automatically generate a unique session ID and pass it to the adapter. This ID
+can be renamed in the debug window of the chat to make it more relevant to the
+session you are working on. You can also statically set this on the adapter:
+
+`lua {6} require("codecompanion").setup({ adapters = { http = {
+openrouter_title_generation = function() return
+require("codecompanion.adapters").extend("openrouter", { opts = { session_id =
+"title_generation" }, }) end, }, }, })`
+
+
 COMMUNITY ADAPTERS ~
 
 Thanks to the community for building the following adapters:
@@ -1991,7 +2019,6 @@ Thanks to the community for building the following adapters:
 - Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
 - InceptionLabs - Mercury 2 <https://github.com/olimorris/codecompanion.nvim/discussions/2867>
 - Nvidia NIM <https://github.com/olimorris/codecompanion.nvim/discussions/2810>
-- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
@@ -2306,9 +2333,9 @@ conversation.
           opts = {
             context_management = {
               editing = {
-                trigger = 0.65,
-                keep_cycles = 3,                -- preserve tool results from the last N cycles
-                exclude_tools = { "memory" },   -- tool names whose results are never edited
+                trigger = 0.65, -- Context editing is triggered when X% of the context window is reached
+                exclude_tools = { "memory" }, -- Output from these tools is never edited
+                keep_cycles = 3, -- Keep the last N cycles of tool results
               },
             },
           },
@@ -2332,14 +2359,14 @@ whether a failure should silently fall back to the chat adapter.
           opts = {
             context_management = {
               compaction = {
-                trigger = 0.85,
+                trigger = 0.85, -- Compaction is triggered when X% of the context window is reached
+                min_token_savings = 10000, -- Only compact when at least this amount of tokens will be saved
     
-                -- Adapter used to generate the summary. Defaults to the chat adapter.
-                -- Accepts a string (adapter name) or a table `{ name = "...", model = "..." }`
+                ---The adapter to use for compaction. Defaults to the current chat adapter
+                ---@type nil|string|{ name: string, model:string }
                 adapter = nil,
     
-                -- If the override adapter fails, silently retry with the chat adapter
-                fallback_to_chat_adapter = false,
+                fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
               },
             },
           },
@@ -3970,11 +3997,16 @@ refer to it, unless you actively alter the history of the conversation via
 
 DEBUG WINDOW ~
 
+
+
 Sometimes it's necessary to peek under the hood of the chat buffer to
 understand what hyperparameters are being sent to the LLM, or what the message
 history looks like. By pressing `gd`, you can open up a debug window which
 contains all of the relevant information about the chat buffer, including the
 message history, adapter settings and context items.
+
+You can edit all content in the debug window and persist it to the chat buffer
+by doing `<C-s>`.
 
 
 GENERATING TITLES ~
@@ -6077,7 +6109,7 @@ comes with some handy utility functions to work with this:
 
 >lua
     -- Put this at the top of your adapter
-    local utils = require("codecompanion.utils.adapters")
+    local utils = require("codecompanion.adapters.utils")
     
     handlers = {
       response = {
@@ -6376,7 +6408,7 @@ which prevent you from using the OpenAI Adapter. Common issues can be:
 - Messages must follow a `User -> LLM -> User -> LLM` turn based flow (`deepseek`)
 
 To address this, an adapter utilities
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/adapters.lua>
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/utils/init.lua>
 file has been created that you can leverage in building or extending your own
 adapters. Finally, always refer to the pre-built adapters as a reference point.
 

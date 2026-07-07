@@ -43,6 +43,7 @@ local function get_handler(adapter, name)
     build_parameters = "form_parameters",
     build_messages = "form_messages",
     build_tools = "form_tools",
+    build_structured_output = "form_structured_output",
     build_body = "set_body",
     build_reasoning = "form_reasoning",
 
@@ -78,6 +79,7 @@ end
 ---@field build_parameters? fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
 ---@field build_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table
 ---@field build_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table|nil
+---@field build_structured_output? fun(self: CodeCompanion.HTTPAdapter, schema: CodeCompanion.StructuredOutput.Schema): table|nil
 ---@field build_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
 ---@field build_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
 
@@ -103,6 +105,7 @@ end
 ---@field form_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table (Deprecated: use request.build_messages)
 ---@field form_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table } (Deprecated: use request.build_reasoning)
 ---@field form_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table (Deprecated: use request.build_tools)
+---@field form_structured_output? fun(self: CodeCompanion.HTTPAdapter, schema: CodeCompanion.StructuredOutput.Schema): table|nil (Deprecated: use request.build_structured_output)
 ---@field tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil (Deprecated: use response.parse_tokens)
 ---@field chat_output? fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil (Deprecated: use response.parse_chat)
 ---@field inline_output? fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil (Deprecated: use response.parse_inline)
@@ -309,6 +312,8 @@ function Adapter.resolve(adapter, opts)
   adapter = adapter or config.interactions.chat.adapter
   opts = opts or {}
 
+  local key = type(adapter) == "string" and adapter or nil
+
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
       log:trace("[adapters:http:resolve] Returning existing resolved adapter: %s", adapter.name)
@@ -347,6 +352,8 @@ function Adapter.resolve(adapter, opts)
   if adapter.handlers and adapter.handlers.resolve then
     adapter.handlers.resolve(adapter)
   end
+
+  shared.apply_extend(adapter, { extend = config.adapters.http.extend, key = key })
 
   return Adapter.set_model({ adapter = adapter })
 end

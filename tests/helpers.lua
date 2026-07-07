@@ -99,7 +99,8 @@ Helpers.create_mock_adapter = function(child, adapter, opts)
         handlers = {
           response = {
             parse_chat = function(self, data)
-              local ok, body = pcall(vim.json.decode, data)
+              local raw = type(data) == "table" and data.body or data
+              local ok, body = pcall(vim.json.decode, raw)
               if not ok then
                 return nil
               end

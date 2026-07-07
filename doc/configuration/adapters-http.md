@@ -8,7 +8,7 @@ description: "Configure CodeCompanion's HTTP adapters to connect Neovim to OpenA
 > Want to connect to an LLM that isn't supported out of the box? Check out
 > [these](#community-adapters) user contributed adapters, [create](/extending/adapters) your own or post in the [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
-An adapter is what connects Neovim to an LLM provider and model. It's the interface that allows data to be sent, received and processed. There are a multitude of ways to customize them.
+An adapter is what connects Neovim to an LLM provider and model. It's the interface that allows data to be sent, received and processed. There are a multitude of ways to customise them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and [ACP](/configuration/adapters-acp) adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
 
@@ -72,6 +72,46 @@ require("codecompanion").setup({
 ```
 
 :::
+
+## Customising an Adapter
+
+There are two ways to customise a preset adapter, and you'll see both throughout this page:
+
+- **Function** - Use this for full or computed setups. Custom `url`, `headers`, `schema`, or values resolved at call time
+- **`extend` table** - Use this for static overrides like credentials or setting a default value
+
+::: code-group
+
+```lua [Function]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = { api_key = "cmd:op read op://personal/Anthropic/credential --no-newline" },
+        })
+      end,
+    },
+  },
+})
+```
+
+```lua [Extend Table]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      extend = {
+        anthropic = { env = { api_key = "cmd:op read op://personal/Anthropic/credential --no-newline" } },
+      },
+    },
+  },
+})
+```
+
+:::
+
+> [!IMPORTANT]
+> The `extend` key is the adapter's name in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), not the resolved adapter name.
 
 ## Changing Adapter Parameters (Schema)
 
@@ -301,7 +341,6 @@ require("codecompanion").setup({
 }),
 ```
 
-
 ## Setup Examples
 
 Below are some examples of how you can configure various adapters within CodeCompanion. Some merely serve as illustrations and are not actively supported by the plugin.
@@ -414,7 +453,6 @@ require("codecompanion").setup({
 })
 ```
 
-
 ### OpenAI Responses API
 
 CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
@@ -452,6 +490,79 @@ require("codecompanion").setup({
 
 By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.
 
+### OpenRouter
+
+> [!NOTE]
+> Depending on the model you've selected, the OpenRouter adapter will turn on/off certain features such as tool use, vision and hyperparameters
+
+CodeCompanion supports a number of [OpenRouter](https://openrouter.ai) features out of the box:
+
+- Explicit prompt caching for Anthropic models
+- Server tools such as [web_fetch](https://openrouter.ai/docs/guides/features/server-tools/web-fetch) and [web_search](https://openrouter.ai/docs/guides/features/server-tools/web-search)
+- Reasoning [effort](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens#reasoning-effort-level) levels
+- [Presets](http://openrouter.ai/docs/guides/features/presets)
+- [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
+
+You can configure the OpenRouter adapter in your config, as shown in the section below. However, you can also customise it on a per-chat basis, using `gd` to open the [debug window](/usage/chat-buffer/#debug-window).
+
+::: code-group
+
+```lua [Presets] {7}
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter = function()
+        return require("codecompanion.adapters").extend("openrouter", {
+          schema = {
+            preset = { default = "email-copywriter" },
+          },
+        })
+      end,
+    },
+  },
+},
+```
+
+```lua [Provider Routing] {7-13}
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter = function()
+        return require("codecompanion.adapters").extend("openrouter", {
+          schema = {
+            provider = {
+              default = {
+                allow_fallbacks = true,
+                order = { "anthropic", "openai" },
+                require_parameters = false,
+              },
+            },
+          },
+        })
+      end,
+    },
+  },
+},
+```
+
+:::
+
+The adapter also supports [sticky sessions](https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions) via the use of a `session_id`. When a chat buffer is created, the plugin will automatically generate a unique session ID and pass it to the adapter. This ID can be renamed in the debug window of the chat to make it more relevant to the session you are working on. You can also statically set this on the adapter:
+
+```lua {6}
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openrouter_title_generation = function()
+        return require("codecompanion.adapters").extend("openrouter", {
+          opts = { session_id = "title_generation" },
+        })
+      end,
+    },
+  },
+})
+```
+
 ## Community Adapters
 
 Thanks to the community for building the following adapters:
@@ -460,7 +571,6 @@ Thanks to the community for building the following adapters:
 - [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
 - [InceptionLabs - Mercury 2](https://github.com/olimorris/codecompanion.nvim/discussions/2867)
 - [Nvidia NIM](https://github.com/olimorris/codecompanion.nvim/discussions/2810)
-- [OpenRouter](https://github.com/olimorris/codecompanion.nvim/discussions/1013)
 - [Venice.ai](https://github.com/olimorris/codecompanion.nvim/discussions/972)
 - [Vertex AI](https://github.com/viespejo/cc-adapter-vertex-ai.nvim)
 
