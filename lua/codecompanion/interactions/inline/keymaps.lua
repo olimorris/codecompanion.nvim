@@ -6,7 +6,7 @@ local M = {}
 ---Clear a keymap from a specific buffer
 ---@param keymaps table
 ---@param bufnr? number
-local function clear_map(keymaps, bufnr)
+function M.clear_map(keymaps, bufnr)
   bufnr = bufnr or 0
 
   for _, map in pairs(keymaps) do
@@ -19,7 +19,7 @@ end
 M.stop = {
   callback = function(inline)
     inline:stop()
-    clear_map(config.interactions.inline.keymaps, inline.bufnr)
+    M.clear_map(config.interactions.inline.keymaps, inline.bufnr)
     log:trace("[Inline] Cancelling the request")
   end,
 }
