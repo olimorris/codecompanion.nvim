@@ -221,25 +221,33 @@ T["Inline"]["integration"] = function()
   h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
 end
 
-T["Inline"]["removes the stop keymap once the request finishes"] = function()
-  child.lua([[inline:set_keymaps(inline.buffer_context.bufnr, { keymaps = { "stop" } })]])
+T["Inline"]["clears the stop keymap as soon as the request completes"] = function()
+  child.lua([[
+    local http = require("codecompanion.http")
+    _G.original_http_new = http.new
+    http.new = function()
+      return {
+        request = function(_, _, actions)
+          actions.callback("network error")
+        end,
+      }
+    end
 
-  local has_stop_keymap = function()
-    return child.lua([[
-      for _, map in ipairs(vim.api.nvim_buf_get_keymap(0, "n")) do
-        if map.lhs == "q" then
-          return true
-        end
+    inline:submit({ { role = "user", content = "test prompt" } })
+  ]])
+
+  local has_stop_keymap = child.lua([[
+    for _, map in ipairs(vim.api.nvim_buf_get_keymap(0, "n")) do
+      if map.lhs == "q" then
+        return true
       end
-      return false
-    ]])
-  end
+    end
+    return false
+  ]])
 
-  h.eq(true, has_stop_keymap())
+  h.eq(false, has_stop_keymap)
 
-  child.lua([[inline:reset()]])
-
-  h.eq(false, has_stop_keymap())
+  child.lua([[require("codecompanion.http").new = _G.original_http_new]])
 end
 
 T["Inline"]["can parse adapter syntax"] = function()
