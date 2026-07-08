@@ -4,59 +4,149 @@ local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.adapters.utils.models.transform")
 local utils = require("codecompanion.adapters.utils")
 
+local TIMEOUT = 3000
+local POLL_INTERVAL = 10
+
+---@alias CodeCompanion.Adapter.ModelFetcher.RequestOpts { async?: boolean }
+
+---@class CodeCompanion.Adapter.ModelFetcher.Spec
+---@field name string
+---@field url string|fun(adapter: CodeCompanion.HTTPAdapter, request_opts?: CodeCompanion.Adapter.ModelFetcher.RequestOpts): string
+---@field headers? fun(adapter: CodeCompanion.HTTPAdapter, request_opts?: CodeCompanion.Adapter.ModelFetcher.RequestOpts): table|nil
+
 local M = {}
 
----@class CodeCompanion.Adapter.ModelFetcher.Opts
----@field name string The adapter's name. Used in log messages and to find its `transform.from_<name>` function
----@field url string
----@field headers? fun(adapter: CodeCompanion.HTTPAdapter): table
+-- Per-adapter model cache, keyed by adapter name
+local caches = {}
 
----Synchronously fetch models from an endpoint
----@param opts CodeCompanion.Adapter.ModelFetcher.Opts
----@return fun(adapter: CodeCompanion.HTTPAdapter): table<string, CodeCompanion.Adapter.ModelChoice>
-function M.sync(opts)
-  local from_vendor = transform["from_" .. opts.name:lower()]
-  assert(from_vendor, "No model transformer found for adapter: " .. opts.name)
-
-  local cache_expires
-  local cache_file = vim.fn.tempname()
-  local cached_models
-
-  return function(adapter)
-    if cached_models and cache_expires and cache_expires > os.time() then
-      return cached_models
-    end
-
-    local ok, response = pcall(function()
-      return Curl.get(opts.url, {
-        headers = opts.headers and opts.headers(adapter) or nil,
-        insecure = config.adapters.http.opts.allow_insecure,
-        proxy = config.adapters.http.opts.proxy,
-        sync = true,
-      })
-    end)
-    if not ok then
-      log:error("Could not get the %s models from " .. opts.url .. "\nError: %s", opts.name, response)
-      return {}
-    end
-
-    local decode_ok, json = pcall(vim.json.decode, response.body)
-    if not decode_ok or not json.data then
-      log:error("Error parsing the %s response from " .. opts.url .. "\nError: %s", opts.name, response.body)
-      return {}
-    end
-
-    local models = {}
-    for _, model in ipairs(json.data) do
-      local id, entry = from_vendor(model)
-      models[id] = entry
-    end
-
-    cached_models = models
-    cache_expires = utils.refresh_cache(cache_file, config.adapters.http.opts.cache_models_for)
-
-    return cached_models
+---Return the cache record for an adapter, creating it on first use
+---@param spec CodeCompanion.Adapter.ModelFetcher.Spec
+---@return { file: string, in_progress: boolean, transform: function, models?: table, expires?: number }
+local function cache_for(spec)
+  if not caches[spec.name] then
+    local transformer = transform["from_" .. spec.name:lower()]
+    assert(transformer, "No model transformer found for adapter: " .. spec.name)
+    caches[spec.name] = { file = vim.fn.tempname(), in_progress = false, transform = transformer }
   end
+  return caches[spec.name]
+end
+
+---Return the cached models, or nil when the cache is empty or has expired
+---@param cache table
+---@return table<string, CodeCompanion.Adapter.ModelChoice>|nil
+local function fresh(cache)
+  if cache.models and cache.expires and cache.expires > os.time() then
+    return cache.models
+  end
+end
+
+---Parse the API response into model choices and cache them
+---@param cache table
+---@param json table
+---@return nil
+local function store(cache, json)
+  local models = {}
+  for _, model in ipairs(json.data) do
+    local id, choice = cache.transform(model)
+    if id then
+      models[id] = choice
+    end
+  end
+
+  cache.models = models
+  cache.expires = utils.refresh_cache(cache.file, config.adapters.http.opts.cache_models_for)
+end
+
+---Kick off a non-blocking request for the model list, unless one is already running
+---@param spec CodeCompanion.Adapter.ModelFetcher.Spec
+---@param adapter CodeCompanion.HTTPAdapter
+---@param request_opts? CodeCompanion.Adapter.ModelFetcher.RequestOpts
+---@return nil
+local function request(spec, adapter, request_opts)
+  local cache = cache_for(spec)
+  if fresh(cache) or cache.in_progress then
+    return
+  end
+
+  local headers = spec.headers and spec.headers(adapter, request_opts)
+  if spec.headers and not headers then
+    -- Not ready to fetch yet (e.g. no auth token available)
+    return
+  end
+
+  cache.in_progress = true
+  local url = type(spec.url) == "function" and spec.url(adapter, request_opts) or spec.url
+
+  local ok, err = pcall(function()
+    Curl.get(url, {
+      headers = headers,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
+      callback = vim.schedule_wrap(function(response)
+        cache.in_progress = false
+
+        local decode_ok, json = pcall(vim.json.decode, response and response.body)
+        if not decode_ok or type(json) ~= "table" or not json.data then
+          log:error(
+            "Error parsing the %s response from " .. url .. "\nError: %s",
+            spec.name,
+            response and response.body
+          )
+          return
+        end
+
+        store(cache, json)
+      end),
+    })
+  end)
+
+  if not ok then
+    cache.in_progress = false
+    log:error("Could not start async request for %s models: %s", spec.name, err)
+  end
+end
+
+---Block until the model list is available, or the request times out
+---@param spec CodeCompanion.Adapter.ModelFetcher.Spec
+---@param adapter CodeCompanion.HTTPAdapter
+---@param request_opts? CodeCompanion.Adapter.ModelFetcher.RequestOpts
+---@return table<string, CodeCompanion.Adapter.ModelChoice>
+local function wait(spec, adapter, request_opts)
+  local cache = cache_for(spec)
+  local models = fresh(cache)
+  if models then
+    return models
+  end
+
+  request(spec, adapter, request_opts)
+
+  local ok = vim.wait(TIMEOUT, function()
+    return fresh(cache) ~= nil
+  end, POLL_INTERVAL)
+
+  if not ok then
+    log:error("Timeout waiting for %s models", spec.name)
+    return {}
+  end
+
+  return cache.models
+end
+
+---Return an adapter's models, blocking for the result when `async == false`
+---@param spec CodeCompanion.Adapter.ModelFetcher.Spec
+---@param adapter CodeCompanion.HTTPAdapter
+---@param request_opts? CodeCompanion.Adapter.ModelFetcher.RequestOpts
+---@return table<string, CodeCompanion.Adapter.ModelChoice>
+function M.get(spec, adapter, request_opts)
+  local cache = cache_for(spec)
+
+  if request_opts and request_opts.async == false then
+    return wait(spec, adapter, request_opts)
+  end
+
+  -- Non-blocking: start the background fetch (if needed) and return whatever's cached
+  request(spec, adapter, request_opts)
+  return fresh(cache) or {}
 end
 
 return M
