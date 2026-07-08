@@ -221,6 +221,27 @@ T["Inline"]["integration"] = function()
   h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
 end
 
+T["Inline"]["removes the stop keymap once the request finishes"] = function()
+  child.lua([[inline:set_keymaps(inline.buffer_context.bufnr, { keymaps = { "stop" } })]])
+
+  local has_stop_keymap = function()
+    return child.lua([[
+      for _, map in ipairs(vim.api.nvim_buf_get_keymap(0, "n")) do
+        if map.lhs == "q" then
+          return true
+        end
+      end
+      return false
+    ]])
+  end
+
+  h.eq(true, has_stop_keymap())
+
+  child.lua([[inline:reset()]])
+
+  h.eq(false, has_stop_keymap())
+end
+
 T["Inline"]["can parse adapter syntax"] = function()
   child.lua([[
     _G.submitted_prompts = {}

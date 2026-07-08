@@ -195,8 +195,9 @@ function DiffUI:setup_keymaps(opts)
     self:_set_keymap("n", shared_keymaps.previous_hunk.modes.n, keymaps.previous_hunk)
   end
 
-  -- Always add 'q' to close
-  self:_set_keymap("n", "q", keymaps.close_window)
+  if not self.inline then
+    self:_set_keymap("n", "q", keymaps.close_window)
+  end
 end
 
 ---Apply diff highlighting to merged lines in a buffer
