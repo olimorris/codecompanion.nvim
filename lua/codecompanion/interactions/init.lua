@@ -73,7 +73,12 @@ end
 
 ---@param interaction string
 function Interactions:start(interaction)
-  return self[interaction](self)
+  local handler = self[interaction]
+  if type(handler) ~= "function" then
+    return log:warn("[Prompt Library] Unknown interaction `%s` for `%s`", interaction, self.selected.name)
+  end
+
+  return handler(self)
 end
 
 ---Add context to the chat buffer
