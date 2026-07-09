@@ -4,7 +4,7 @@ local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
-local model_source = {
+local models_source = {
   name = "Mistral",
   url = "https://api.mistral.ai/v1/models",
   ---@param adapter CodeCompanion.HTTPAdapter
@@ -216,7 +216,7 @@ return {
       ---@param opts? { async?: boolean }
       ---@return table<string, CodeCompanion.Adapter.ModelChoice>
       choices = function(self, opts)
-        return fetch_models.get(model_source, self, opts)
+        return fetch_models.get(models_source, self, opts)
       end,
     },
     temperature = {

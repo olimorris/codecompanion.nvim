@@ -5,7 +5,7 @@ local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
-local model_source = {
+local models_source = {
   name = "Anthropic",
   url = "https://api.anthropic.com/v1/models",
   ---@param adapter CodeCompanion.HTTPAdapter
@@ -683,7 +683,7 @@ return {
       ---@param opts? { async?: boolean }
       ---@return table<string, CodeCompanion.Adapter.ModelChoice>
       choices = function(self, opts)
-        return fetch_models.get(model_source, self, opts)
+        return fetch_models.get(models_source, self, opts)
       end,
     },
     ---@type CodeCompanion.Schema

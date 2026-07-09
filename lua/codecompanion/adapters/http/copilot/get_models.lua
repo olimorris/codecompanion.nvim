@@ -19,7 +19,7 @@ local function resolve_token(request_opts)
   return token.fetch({ force = force })
 end
 
-local model_source = {
+local models_source = {
   name = "Copilot",
   ---@param _ CodeCompanion.HTTPAdapter
   ---@param request_opts? { token?: table, async?: boolean }
@@ -51,7 +51,7 @@ local model_source = {
 ---@param opts? { token: table, async: boolean }
 ---@return CopilotModels|nil
 function M.choices(adapter, opts)
-  local result = fetch_models.get(model_source, adapter, opts)
+  local result = fetch_models.get(models_source, adapter, opts)
 
   if opts and opts.async == false then
     return result
