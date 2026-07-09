@@ -383,7 +383,6 @@ return {
       return handlers(self).inline_output(self, data, context)
     end,
     on_exit = function(self, data)
-      get_models.reset_cache()
       return handlers(self).on_exit(self, data)
     end,
   },

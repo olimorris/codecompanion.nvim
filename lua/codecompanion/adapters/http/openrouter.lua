@@ -2,15 +2,15 @@ local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
-local models = fetch_models.sync({
+local models_source = {
   name = "OpenRouter",
   url = "https://openrouter.ai/api/v1/models",
-})
+}
 
 ---@param self CodeCompanion.HTTPAdapter
 ---@return table|nil
 local function model_choices(self)
-  local cached_models = models(self)
+  local cached_models = fetch_models.get(models_source, self)
   local model = cached_models[self.schema.model.default]
   return model and model.opts or nil
 end
@@ -19,7 +19,7 @@ end
 ---@param parameter string
 ---@return boolean
 local function model_supports(self, parameter)
-  local cached_models = models(self)
+  local cached_models = fetch_models.get(models_source, self)
   local model = cached_models[self.schema.model.default]
   if not model then
     return false
@@ -326,9 +326,10 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
       default = "openai/gpt-5.4-mini",
+      ---@param opts? { async?: boolean }
       ---@return table
-      choices = function(self)
-        return models(self)
+      choices = function(self, opts)
+        return fetch_models.get(models_source, self, opts)
       end,
     },
     ["reasoning.effort"] = {

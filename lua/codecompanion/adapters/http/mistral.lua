@@ -4,7 +4,7 @@ local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
-local models = fetch_models.sync({
+local models_source = {
   name = "Mistral",
   url = "https://api.mistral.ai/v1/models",
   ---@param adapter CodeCompanion.HTTPAdapter
@@ -13,7 +13,7 @@ local models = fetch_models.sync({
     adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
     return adapter_utils.set_env_vars(adapter, adapter.headers)
   end,
-})
+}
 
 ---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
 return {
@@ -213,9 +213,10 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "mistral-small-latest",
       ---@param self CodeCompanion.HTTPAdapter
+      ---@param opts? { async?: boolean }
       ---@return table<string, CodeCompanion.Adapter.ModelChoice>
-      choices = function(self)
-        return models(self)
+      choices = function(self, opts)
+        return fetch_models.get(models_source, self, opts)
       end,
     },
     temperature = {
