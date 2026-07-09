@@ -43,6 +43,10 @@ Core: `lua/codecompanion/`
 - When the user asks to fix tests, fix the tests — not the source code — unless explicitly asked otherwise.
 - If you're working with directories or files, utilise the functions in `codecompanion/utils/files.lua` ensuring you join paths with `vim.fs.joinpath`
 
+### Testing
+
+- When running `make test_file` tests, do not append `| tail -12` or similar to filter the output. This prevents the user's rules governing what can be auto-accepted, from applying
+
 ## Important instructions
 
 - Do what has been asked; nothing more, nothing less.

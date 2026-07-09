@@ -1,4 +1,3 @@
-local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
 
 local M = {}
@@ -21,38 +20,11 @@ function M.filter_out_messages(params)
   return filtered_message
 end
 
----Refresh when we should next check the model cache
----@param file string
----@param cache_for number
+---Return the time at which the model cache should next be refreshed
+---@param cache_for? number Seconds to cache for; defaults to 30 minutes
 ---@return number
-function M.refresh_cache(file, cache_for)
-  cache_for = cache_for or 1800
-  local time = os.time() + cache_for
-  Path.new(file):write(time, "w")
-  return time
-end
-
----Return when the model cache expires
----@param file string
----@return number
-function M.cache_expires(file, cache_for)
-  cache_for = cache_for or 1800
-  local ok, expires = pcall(function()
-    return Path.new(file):read()
-  end)
-  if not ok then
-    expires = M.refresh_cache(file, cache_for)
-  end
-  expires = tonumber(expires)
-  assert(expires, "Could not get the cache expiry time")
-  return expires
-end
-
----Check if the cache has expired
----@param file string
----@return boolean
-function M.cache_expired(file)
-  return os.time() > M.cache_expires(file)
+function M.cache_expiry(cache_for)
+  return os.time() + (cache_for or 1800)
 end
 
 ---Extend a default adapter

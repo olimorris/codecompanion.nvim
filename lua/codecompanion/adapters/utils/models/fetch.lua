@@ -4,8 +4,10 @@ local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.adapters.utils.models.transform")
 local utils = require("codecompanion.adapters.utils")
 
-local TIMEOUT = 3000
-local POLL_INTERVAL = 10
+local CONSTANTS = {
+  TIMEOUT = 3000,
+  POLL_INTERVAL = 10,
+}
 
 ---@alias CodeCompanion.Adapter.ModelFetcher.RequestOpts { async?: boolean }
 
@@ -21,12 +23,12 @@ local caches = {}
 
 ---Return the cache record for an adapter, creating it on first use
 ---@param spec CodeCompanion.Adapter.ModelFetcher.Spec
----@return { file: string, in_progress: boolean, transform: function, models?: table, expires?: number }
+---@return { in_progress: boolean, transform: function, models?: table, expires?: number }
 local function cache_for(spec)
   if not caches[spec.name] then
     local transformer = transform["from_" .. spec.name:lower()]
     assert(transformer, "No model transformer found for adapter: " .. spec.name)
-    caches[spec.name] = { file = vim.fn.tempname(), in_progress = false, transform = transformer }
+    caches[spec.name] = { in_progress = false, transform = transformer }
   end
   return caches[spec.name]
 end
@@ -54,7 +56,7 @@ local function store(cache, json)
   end
 
   cache.models = models
-  cache.expires = utils.refresh_cache(cache.file, config.adapters.http.opts.cache_models_for)
+  cache.expires = utils.cache_expiry(config.adapters.http.opts.cache_models_for)
 end
 
 ---Kick off a non-blocking request for the model list, unless one is already running
@@ -120,9 +122,9 @@ local function wait(spec, adapter, request_opts)
 
   request(spec, adapter, request_opts)
 
-  local ok = vim.wait(TIMEOUT, function()
+  local ok = vim.wait(CONSTANTS.TIMEOUT, function()
     return fresh(cache) ~= nil
-  end, POLL_INTERVAL)
+  end, CONSTANTS.POLL_INTERVAL)
 
   if not ok then
     log:error("Timeout waiting for %s models", spec.name)
@@ -132,7 +134,7 @@ local function wait(spec, adapter, request_opts)
   return cache.models
 end
 
----Return an adapter's models, blocking for the result when `async == false`
+---Return an adapter's models
 ---@param spec CodeCompanion.Adapter.ModelFetcher.Spec
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@param request_opts? CodeCompanion.Adapter.ModelFetcher.RequestOpts
@@ -140,11 +142,12 @@ end
 function M.get(spec, adapter, request_opts)
   local cache = cache_for(spec)
 
+  -- Blocking
   if request_opts and request_opts.async == false then
     return wait(spec, adapter, request_opts)
   end
 
-  -- Non-blocking: start the background fetch (if needed) and return whatever's cached
+  -- Async
   request(spec, adapter, request_opts)
   return fresh(cache) or {}
 end
