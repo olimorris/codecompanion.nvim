@@ -77,8 +77,12 @@ end
 ---Make the request to generate a title for the chat
 ---@param background CodeCompanion.Background
 ---@param chat CodeCompanion.Chat
-function M.request(background, chat)
+---@param opts? { deregister: fun() }
+function M.request(background, chat, opts)
   if chat.title and chat.title ~= "" then
+    if opts and opts.deregister then
+      opts.deregister()
+    end
     return
   end
 
@@ -99,7 +103,9 @@ function M.request(background, chat)
       local title = M.on_done(result)
       if title then
         chat:set_title(title)
-        -- TODO: Remove the callback from the chat buffer
+        if opts and opts.deregister then
+          opts.deregister()
+        end
         log:debug("[Background] Chat title generated: %s", title)
       end
     end,
