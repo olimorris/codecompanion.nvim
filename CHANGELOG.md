@@ -1,5 +1,23 @@
 # Changelog
 
+## [19.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.18.0...v19.19.0) (2026-07-10)
+
+
+### Features
+
+* **adapters:** add new OpenAI models ([#3212](https://github.com/olimorris/codecompanion.nvim/issues/3212)) ([8287f6f](https://github.com/olimorris/codecompanion.nvim/commit/8287f6fd3df6ecf618f84654349015b6941e0e66))
+* **adapters:** add support for claude-sonnet-5 ([#3197](https://github.com/olimorris/codecompanion.nvim/issues/3197)) ([dfd6d8f](https://github.com/olimorris/codecompanion.nvim/commit/dfd6d8f5a9565bcc3a0e4f508ce9b695ce5186b9))
+* **adapters:** add support for structured outputs ([#3187](https://github.com/olimorris/codecompanion.nvim/issues/3187)) ([a09beab](https://github.com/olimorris/codecompanion.nvim/commit/a09beabc9f2200292a516222b8976872d0241bcf))
+* **adapters:** fetch models async ([#3208](https://github.com/olimorris/codecompanion.nvim/issues/3208)) ([44de560](https://github.com/olimorris/codecompanion.nvim/commit/44de5603f252d3cd80ad4fb851e6484719fb20d1))
+* **adapters:** load models dynamically for `anthropic` and `mistral` ([#3201](https://github.com/olimorris/codecompanion.nvim/issues/3201)) ([4fb6e67](https://github.com/olimorris/codecompanion.nvim/commit/4fb6e67d537d88d1a642c623efcbbee80d7d231c))
+* **background:** can deregister commands ([#3213](https://github.com/olimorris/codecompanion.nvim/issues/3213)) ([402808c](https://github.com/olimorris/codecompanion.nvim/commit/402808cde035389184b7f7975f1b9f3677b5e73f))
+
+
+### Bug Fixes
+
+* **adapters:** gpt-5.6-luna does not support top_p in copilot ([#3209](https://github.com/olimorris/codecompanion.nvim/issues/3209)) ([09556b2](https://github.com/olimorris/codecompanion.nvim/commit/09556b27adaf58ef972231ba5f701329464424b3))
+* **inline:** orphaned keymaps after request ([#3206](https://github.com/olimorris/codecompanion.nvim/issues/3206)) ([c6e6c82](https://github.com/olimorris/codecompanion.nvim/commit/c6e6c829e952976b6cec4b8c99b363220f561d1f)), closes [#3205](https://github.com/olimorris/codecompanion.nvim/issues/3205)
+
 ## [19.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.17.0...v19.18.0) (2026-06-30)
 
 
