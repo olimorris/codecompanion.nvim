@@ -608,8 +608,55 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5",
+      default = "gpt-5.6-luna",
       choices = {
+        -- Frontier Models
+        ["gpt-5.6-sol"] = {
+          formatted_name = "GPT 5.6 Sol",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-terra"] = {
+          formatted_name = "GPT 5.6 Terra",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-luna"] = {
+          formatted_name = "GPT 5.6 Luna",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
+        -- Older models
+        ["gpt-5.5-pro"] = {
+          formatted_name = "GPT 5.5 Pro",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
         ["gpt-5.5"] = {
           formatted_name = "GPT 5.5",
           meta = { context_window = 1050000 },
@@ -634,7 +681,6 @@ return {
           },
         },
 
-        -- Frontier models
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },
