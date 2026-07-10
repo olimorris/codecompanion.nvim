@@ -697,6 +697,23 @@ function Chat:add_callback(event, callback)
   return self
 end
 
+---Remove a previously registered callback for an event
+---@param event string The event name
+---@param callback fun(chat: CodeCompanion.Chat) The exact callback function that was registered
+---@return CodeCompanion.Chat
+function Chat:remove_callback(event, callback)
+  local callbacks = self.callbacks[event]
+  if not callbacks then
+    return self
+  end
+  for i = #callbacks, 1, -1 do
+    if callbacks[i] == callback then
+      table.remove(callbacks, i)
+    end
+  end
+  return self
+end
+
 ---Dispatch callbacks for a specific event
 ---@param event string The event name
 ---@param ... any Additional arguments to pass to callbacks
@@ -707,7 +724,8 @@ function Chat:dispatch(event, ...)
     return self
   end
 
-  for _, callback in ipairs(callbacks) do
+  -- Iterate a snapshot so a callback that deregisters itself doesn't shift the loop
+  for _, callback in ipairs(vim.list_slice(callbacks, 1, #callbacks)) do
     local ok, err = pcall(callback, self, ...)
     if not ok then
       log:error("Callback error for %s: %s", event, err, { silent = true })
