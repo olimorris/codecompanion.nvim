@@ -54,6 +54,7 @@ local uv = vim.uv
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
+---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
 ---@field methods table
 local Connection = {}
 
@@ -131,8 +132,6 @@ function Connection:connect_and_authenticate()
       return log:error("[acp::connect_and_authenticate] Failed to initialize")
     end
     self._agent_info = initialized
-
-    log:debug("[acp::connect_and_authenticate] Agent info: %s", initialized)
 
     if
       initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
@@ -416,6 +415,9 @@ function Connection:start_agent_process()
 
   self._state.line_buffer:reset()
 
+  self._rpc_log = log.new_response_file()
+  log:info("[acp] RPC log: %s", self._rpc_log.path)
+
   local ok, sysobj = pcall(
     self.methods.job,
     self.adapter_modified.command,
@@ -557,6 +559,10 @@ function Connection:handle_rpc_message(line)
     return
   end
 
+  if self._rpc_log then
+    self._rpc_log.write("Received:\n" .. line)
+  end
+
   local ok, message = jsonrpc.decode(line, self.methods.decode)
   if not ok then
     return log:error("[acp::handle_rpc_message] Invalid JSON:\n%s", line)
@@ -690,6 +696,10 @@ function Connection:write_message(data)
     return false
   end
 
+  if self._rpc_log then
+    self._rpc_log.write("Sent:\n" .. vim.trim(data))
+  end
+
   local ok, err = pcall(function()
     self._state.handle:write(data)
   end)
@@ -797,7 +807,6 @@ end
 ---@param config_options table[] Array of SessionConfigOption
 function Connection:_apply_config_options(config_options)
   self._config_options = config_options
-  log:debug("[acp] Config options: %s", config_options)
 end
 
 ---Find a config option by category

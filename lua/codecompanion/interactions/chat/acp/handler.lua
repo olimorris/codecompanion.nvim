@@ -238,8 +238,6 @@ end
 function ACPHandler:process_tool_call(tool_call)
   local id = tool_call.toolCallId
 
-  log:debug("[ACP::Handler] Processing tool call %s", utils.truncate(tool_call))
-
   local merged = merge_tool_call(self.tools[id], tool_call)
   tool_call = merged
 
@@ -332,16 +330,6 @@ function ACPHandler:_process_next_permission()
       request.tool_call = merge_tool_call(cached, tool_call)
     end
   end
-
-  log:debug(
-    "[ACP::Handler] Permission Request\n  id: %s\n  kind: %s\n  %s\n  options: %s",
-    tool_call and tool_call.toolCallId or "unknown",
-    tool_call and tool_call.kind or "unknown",
-    tool_call and tool_call.title or "No title",
-    vim.inspect(vim.tbl_map(function(o)
-      return o.kind
-    end, request.options or {}))
-  )
 
   -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec
   self._permission.respond = request.respond
