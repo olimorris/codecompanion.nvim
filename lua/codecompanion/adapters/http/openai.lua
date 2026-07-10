@@ -405,6 +405,41 @@ return {
       default = "gpt-4.1",
       choices = {
         -- Frontier models
+        ["gpt-5.6-sol"] = {
+          formatted_name = "GPT 5.5",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            can_reason = true,
+            has_vision = true,
+          },
+        },
+        ["gpt-5.6-terra"] = {
+          formatted_name = "GPT 5.6 Terra",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
+        -- Older models
+        ["gpt-5.5"] = {
+          formatted_name = "GPT 5.5",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },
@@ -440,8 +475,7 @@ return {
           meta = { context_window = 1047576 },
           opts = { has_vision = true, can_form_structured_outputs = true },
         },
-
-        -- Older models
+        --
         ["o4-mini-2025-04-16"] = {
           formatted_name = "o4 Mini",
           opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
