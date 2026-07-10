@@ -108,8 +108,6 @@ local function fetch_async(adapter, opts)
           local id, entry = model_transformers.from_copilot(model)
           if id then
             models[id] = entry
-          else
-            log:debug("Copilot Adapter: Skipping model '%s'", model.id)
           end
         end
 
