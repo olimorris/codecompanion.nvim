@@ -34,12 +34,6 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
       }
     end
 
-    -- Avoid filesystem side effects
-    local adapters_utils = require("codecompanion.adapters.utils")
-    adapters_utils.refresh_cache = function()
-      return os.time() + 100
-    end
-
     -- Mock Curl.get to trigger the scheduled callback with a stub response
     local curl = require("plenary.curl")
     local body = vim.json.encode({
@@ -127,12 +121,6 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
         copilot_token = "test-token",
         endpoints = { api = "https://api.githubcopilot.com" },
       }
-    end
-
-    -- Avoid filesystem side effects
-    local adapters_utils = require("codecompanion.adapters.utils")
-    adapters_utils.refresh_cache = function()
-      return os.time() + 100
     end
 
     -- Mock Curl.get to trigger the scheduled callback with a stub response

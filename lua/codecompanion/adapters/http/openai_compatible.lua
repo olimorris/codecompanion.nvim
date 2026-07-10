@@ -11,7 +11,6 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
 local _cache_expires
-local _cache_file = vim.fn.tempname()
 local _cached_models
 
 ---Return the cached models
@@ -70,7 +69,7 @@ local function get_models(self, opts)
     table.insert(_cached_models, model.id)
   end
 
-  _cache_expires = adapter_utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
+  _cache_expires = adapter_utils.cache_expiry(config.adapters.http.opts.cache_models_for)
 
   return models(opts)
 end

@@ -5,7 +5,7 @@ local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
-local models = fetch_models.sync({
+local models_source = {
   name = "Anthropic",
   url = "https://api.anthropic.com/v1/models",
   ---@param adapter CodeCompanion.HTTPAdapter
@@ -14,7 +14,7 @@ local models = fetch_models.sync({
     adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
     return adapter_utils.set_env_vars(adapter, adapter.headers)
   end,
-})
+}
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
@@ -680,9 +680,10 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-5",
       ---@param self CodeCompanion.HTTPAdapter
+      ---@param opts? { async?: boolean }
       ---@return table<string, CodeCompanion.Adapter.ModelChoice>
-      choices = function(self)
-        return models(self)
+      choices = function(self, opts)
+        return fetch_models.get(models_source, self, opts)
       end,
     },
     ---@type CodeCompanion.Schema
