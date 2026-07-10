@@ -32,8 +32,9 @@ end
 ---Execute an action
 ---@param path string The path to the module
 ---@param chat CodeCompanion.Chat The chat instance
+---@param opts? { deregister: fun() }
 ---@return nil
-local function execute_action(path, chat)
+local function execute_action(path, chat, opts)
   local action = resolve(path)
   if not action then
     return log:error("[background::callbacks] File `%s` could not be found", path)
@@ -55,11 +56,9 @@ local function execute_action(path, chat)
 
   -- Don't block the main thread
   vim.schedule(function()
-    local ok, result = pcall(action.request, background, chat)
+    local ok, result = pcall(action.request, background, chat, { deregister = opts and opts.deregister })
     if not ok then
       log:debug("[background::callbacks] Error executing action %s: %s", path, result)
-    else
-      log:debug("[background::callbacks] Action %s completed successfully", path)
     end
   end)
 end
@@ -74,16 +73,20 @@ function M.register_chat_callbacks(chat)
     return
   end
 
-  -- Register callbacks for each configured event
+  -- Register each action as its own callback so it can deregister itself once done
   for event, event_config in pairs(background_config.callbacks) do
     if event_config.enabled and event_config.actions then
-      chat:add_callback(event, function(c)
-        log:debug("[background::callbacks] Executing %d actions for event: %s", #event_config.actions, event)
-
-        for _, path in ipairs(event_config.actions) do
-          execute_action(path, c)
+      for _, path in ipairs(event_config.actions) do
+        local callback
+        callback = function(c)
+          execute_action(path, c, {
+            deregister = function()
+              c:remove_callback(event, callback)
+            end,
+          })
         end
-      end)
+        chat:add_callback(event, callback)
+      end
 
       log:debug("[background::callbacks] Registered %d actions for chat event: %s", #event_config.actions, event)
     end

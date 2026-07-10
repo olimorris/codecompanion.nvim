@@ -30,7 +30,7 @@ T["callbacks"]["can register chat callbacks"] = function()
       callbacks = {
         test_event = {
           enabled = true,
-          actions = {}
+          actions = { "some.background.action" }
         }
       }
     }
