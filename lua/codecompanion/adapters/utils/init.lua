@@ -174,6 +174,34 @@ local function is_cmd(var)
   return var:match("^cmd:")
 end
 
+---Check if a variable starts with "file:"
+---@param var string
+---@return boolean
+local function is_file(var)
+  return var:match("^file:")
+end
+
+---Read the contents of the file in the environment variable, relative to the cwd if not absolute
+---@param var string
+---@return string|nil
+local function read_file(var)
+  log:trace("[Adapters] Detected file in environment variable")
+
+  local path = vim.fs.normalize(var:sub(6))
+  local files = require("codecompanion.utils.files")
+
+  if not files.exists(path) then
+    return log:error("[Adapters] Could not find file: %s", path)
+  end
+
+  local ok, content = pcall(files.read, path)
+  if not ok then
+    return log:error("[Adapters] Could not read file: %s", path)
+  end
+
+  return (content:gsub("%s+$", ""))
+end
+
 ---Check if the variable is an environment variable
 ---@param var string
 ---@return boolean
@@ -288,6 +316,8 @@ function M.get_env_vars(adapter, args)
     if type(v) == "string" and is_cmd(v) then
       local timeout = (args and args.timeout) or 5000
       adapter.env_replaced[k] = run_cmd(v, timeout)
+    elseif type(v) == "string" and is_file(v) then
+      adapter.env_replaced[k] = read_file(v)
     elseif type(v) == "string" and is_env_var(v) then
       adapter.env_replaced[k] = get_env_var(v)
     elseif type(v) == "function" then

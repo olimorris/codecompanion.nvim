@@ -200,3 +200,8 @@ The http.lua module implements a provider-agnostic HTTP client for CodeCompanion
 ## Models
 
 @.codecompanion/adapters/models_list.md
+
+## Tests
+
+@./tests/adapters/test_adapters.lua
+@./tests/adapters/http/test_openai.lua
