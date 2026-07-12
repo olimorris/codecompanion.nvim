@@ -92,6 +92,7 @@ return {
     user = "user",
   },
   opts = {
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -164,6 +165,17 @@ return {
       if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
         self.opts.vision = false
       end
+
+      -- NOTE: Does NOT seem possible to be able to send documents through the
+      -- /chat/completions endpoint. Copilot has a translation layer that
+      -- returns a 400 error asking for `image_url` or `text` block
+      if self.opts and self.opts.documents then
+        local vendor = model_opts and model_opts.vendor
+        if not (vendor and vendor:find("OpenAI", 1, true)) then
+          self.opts.documents = false
+        end
+      end
+
       self.opts.can_form_structured_outputs = (
         model_opts
         and model_opts.opts

@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -238,6 +239,44 @@ T["Copilot adapter"]["forms reasoning output"] = function()
 
   h.eq("Content 1\nContent 2\nContent 3\n", form_reasoning.content)
   h.eq("gj5HGhYVIOT", form_reasoning.opaque)
+end
+
+T["Copilot adapter"]["drops the PDF instead of sending raw base64 once setup disables documents for the model"] = function()
+  local anthropic_adapter = require("codecompanion.adapters").extend("copilot", {
+    schema = { model = { default = "claude-sonnet-4" } },
+  })
+
+  anthropic_adapter.handlers.setup(anthropic_adapter)
+
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local result = anthropic_adapter.handlers.form_messages(anthropic_adapter, messages)
+
+  h.eq({
+    {
+      role = "user",
+      content = "What does this PDF say?",
+      copilot_cache_control = { type = "ephemeral" },
+    },
+  }, result.messages)
 end
 
 T["Copilot adapter"]["Streaming"] = new_set()

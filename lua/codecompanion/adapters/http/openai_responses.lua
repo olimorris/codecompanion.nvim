@@ -231,6 +231,11 @@ return {
                   role = m.role,
                   content = combined_content,
                 })
+              else
+                return log:warn(
+                  "The `%s` model does not support documents so has been removed from the request",
+                  self.formatted_name
+                )
               end
             elseif m.role == "tool" then
               table.insert(input, {

@@ -168,6 +168,11 @@ return {
                   },
                 },
               }
+            else
+              return log:warn(
+                "The `%s` model does not support documents so has been removed from the request",
+                self.formatted_name
+              )
             end
           end
 
