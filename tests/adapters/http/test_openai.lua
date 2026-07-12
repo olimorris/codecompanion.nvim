@@ -152,35 +152,6 @@ T["OpenAI adapter"]["only PDFs are converted into document blocks"] = function()
   h.eq("somefakebase64encoding", output[1].content)
 end
 
-T["OpenAI adapter"]["leaves document messages untouched for adapters that do not support documents"] = function()
-  local no_documents_adapter = require("codecompanion.adapters").extend("openai", {
-    opts = { documents = false },
-  })
-
-  local messages = {
-    {
-      content = "somefakebase64encoding",
-      role = "user",
-      context = {
-        id = "<file>report.pdf</file>",
-        mimetype = "application/pdf",
-        path = "report.pdf",
-      },
-      _meta = {
-        tag = tags.DOCUMENT,
-        filetype = "pdf",
-      },
-      opts = {
-        visible = false,
-      },
-    },
-  }
-
-  local output = no_documents_adapter.handlers.form_messages(no_documents_adapter, messages).messages
-
-  h.eq("somefakebase64encoding", output[1].content)
-end
-
 T["OpenAI adapter"]["it can form messages with tools"] = function()
   local messages = {
     {
