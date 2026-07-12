@@ -27,8 +27,6 @@ Helpers.setup_plugin = function(config)
   local function mock_external_calls()
     local ok, copilot = pcall(require, "codecompanion.adapters.http.copilot")
     if ok then
-      copilot.schema.max_tokens.default = 16000
-
       local get_models_ok, get_models = pcall(require, "codecompanion.adapters.http.copilot.get_models")
       if get_models_ok then
         get_models.choices = function(adapter, opts, provided_token)
