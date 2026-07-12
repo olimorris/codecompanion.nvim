@@ -42,6 +42,7 @@ return {
     tool = "tool",
   },
   opts = {
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -145,6 +146,28 @@ return {
             else
               -- Remove the message if vision is not supported
               return nil
+            end
+          end
+
+          -- Process any documents
+          -- NOTE: Only support PDFs for now
+          if
+            m._meta
+            and m._meta.tag == tags.DOCUMENT
+            and m._meta.filetype == "pdf"
+            and m.context
+            and m.context.mimetype
+          then
+            if self.opts and self.opts.documents then
+              m.content = {
+                {
+                  type = "file",
+                  file = {
+                    filename = vim.fn.fnamemodify(m.context.path, ":t"),
+                    file_data = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                },
+              }
             end
           end
 

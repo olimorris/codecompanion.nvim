@@ -81,6 +81,106 @@ T["OpenAI adapter"]["it can form messages with images"] = function()
   h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
 end
 
+T["OpenAI adapter"]["it can form messages with documents"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "file",
+          file = {
+            filename = "report.pdf",
+            file_data = "data:application/pdf;base64,somefakebase64encoding",
+          },
+        },
+      },
+      role = "user",
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["OpenAI adapter"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        path = "report.docx",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages).messages
+
+  h.eq("somefakebase64encoding", output[1].content)
+end
+
+T["OpenAI adapter"]["leaves document messages untouched for adapters that do not support documents"] = function()
+  local no_documents_adapter = require("codecompanion.adapters").extend("openai", {
+    opts = { documents = false },
+  })
+
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+  }
+
+  local output = no_documents_adapter.handlers.form_messages(no_documents_adapter, messages).messages
+
+  h.eq("somefakebase64encoding", output[1].content)
+end
+
 T["OpenAI adapter"]["it can form messages with tools"] = function()
   local messages = {
     {

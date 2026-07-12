@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -156,6 +157,101 @@ T["OpenRouter adapter"]["strips image messages for models that do not support vi
   h.eq({
     { role = "user", content = "Describe this image" },
   }, result.messages)
+end
+
+T["OpenRouter adapter"]["forms documents into file content blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  h.eq({
+    {
+      role = "user",
+      content = {
+        {
+          type = "file",
+          file = {
+            filename = "report.pdf",
+            file_data = "data:application/pdf;base64,somefakebase64encoding",
+          },
+        },
+      },
+      tool_calls = nil,
+      tool_call_id = nil,
+    },
+    {
+      role = "user",
+      content = "What does this PDF say?",
+      tool_calls = nil,
+      tool_call_id = nil,
+    },
+  }, result.messages)
+end
+
+T["OpenRouter adapter"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        path = "report.docx",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  h.eq("somefakebase64encoding", result.messages[1].content)
+end
+
+T["OpenRouter adapter"]["leaves document messages untouched for adapters that do not support documents"] = function()
+  local no_documents_adapter = require("codecompanion.adapters").extend("openrouter", {
+    opts = { documents = false },
+  })
+
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+    },
+  }
+
+  local result = no_documents_adapter.handlers.form_messages(no_documents_adapter, messages)
+
+  h.eq("somefakebase64encoding", result.messages[1].content)
 end
 
 T["OpenRouter adapter"]["can output tool call"] = function()

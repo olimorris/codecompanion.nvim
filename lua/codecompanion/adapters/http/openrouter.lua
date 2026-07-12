@@ -37,6 +37,7 @@ return {
     user = "user",
   },
   opts = {
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
