@@ -223,6 +223,117 @@ T["Responses"]["build_messages"]["multiple consecutive images are not merged as 
   h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
+T["Responses"]["build_messages"]["documents"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        visible = false,
+      },
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    input = {
+      {
+        content = {
+          {
+            type = "input_file",
+            filename = "report.pdf",
+            file_data = "data:application/pdf;base64,somefakebase64encoding",
+          },
+          {
+            type = "input_text",
+            text = "What does this PDF say?",
+          },
+        },
+        role = "user",
+      },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
+end
+
+T["Responses"]["build_messages"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        visible = false,
+      },
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        path = "report.docx",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+    },
+  }
+
+  local result = adapter.handlers.request.build_messages(adapter, messages)
+
+  h.eq("somefakebase64encoding", result.input[1].content)
+end
+
+T["Responses"]["build_messages"]["skips document messages for adapters that do not support documents"] = function()
+  local no_documents_adapter = require("codecompanion.adapters").extend("openai_responses", {
+    opts = { documents = false },
+  })
+
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        visible = false,
+      },
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local result = no_documents_adapter.handlers.request.build_messages(no_documents_adapter, messages)
+
+  h.eq({
+    input = {
+      {
+        content = "What does this PDF say?",
+        role = "user",
+      },
+    },
+  }, result)
+end
+
 T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {

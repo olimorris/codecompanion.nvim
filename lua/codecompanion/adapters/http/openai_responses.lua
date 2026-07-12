@@ -23,6 +23,7 @@ return {
   },
   opts = {
     compaction = true,
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -181,6 +182,43 @@ return {
                   and next_msg.role == m.role
                   and type(next_msg.content) == "string"
                   and not (next_msg._meta and next_msg._meta.tag == tags.IMAGE)
+                then
+                  table.insert(combined_content, {
+                    type = "input_text",
+                    text = next_msg.content,
+                  })
+                  i = i + 1 -- Skip the next message since we've combined it
+                end
+
+                table.insert(input, {
+                  role = m.role,
+                  content = combined_content,
+                })
+              end
+            elseif
+              -- NOTE: Only support PDFs for now
+              m._meta
+              and m._meta.tag == tags.DOCUMENT
+              and m._meta.filetype == "pdf"
+              and (m.context and m.context.mimetype)
+            then
+              -- Check if this is a document message followed by a text message from the same user
+              if self.opts and self.opts.documents then
+                local next_msg = messages[i + 1]
+                local combined_content = {
+                  {
+                    type = "input_file",
+                    filename = vim.fn.fnamemodify(m.context.path, ":t"),
+                    file_data = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                }
+
+                -- If next message is also from user with text content, combine them
+                if
+                  next_msg
+                  and next_msg.role == m.role
+                  and type(next_msg.content) == "string"
+                  and not (next_msg._meta and next_msg._meta.tag == tags.DOCUMENT)
                 then
                   table.insert(combined_content, {
                     type = "input_text",
