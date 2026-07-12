@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 June 30
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5045,6 +5045,18 @@ The `file` slash command allows you to add the contents of a file in the
 current working directory to the chat buffer. The command has native,
 `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
 Also, multiple files can be selected and added to the chat buffer.
+
+#3218 <https://github.com/olimorris/codecompanion.nvim/pull/3218> added support
+for PDFs for the following http adapters:
+
+- Anthropic
+- Copilot (currently only supports OpenAI models)
+- OpenAI
+- OpenAI Responses
+- OpenRouter
+
+Simply use the `/file` slash command and select a PDF file. The plugin will
+`base64` encode the PDF and send it to the LLM.
 
 This slash command is also available in the
 |codecompanion-usage-cli-slash-commands|, where it inserts `@path` references

@@ -218,9 +218,9 @@ function M.get_mimetype(path)
     gif = "image/gif",
     jpg = "image/jpeg",
     jpeg = "image/jpeg",
+    pdf = "application/pdf",
     png = "image/png",
     webp = "image/webp",
-    pdf = "application/pdf",
   }
 
   local extension = vim.fn.fnamemodify(path, ":e")

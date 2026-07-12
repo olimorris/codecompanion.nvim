@@ -144,6 +144,76 @@ T["Anthropic adapter"]["form_messages"]["images"] = function()
   h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
 end
 
+T["Anthropic adapter"]["form_messages"]["documents"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "document",
+          source = {
+            type = "base64",
+            media_type = "application/pdf",
+            data = "somefakebase64encoding",
+          },
+        },
+        {
+          type = "text",
+          text = "What does this PDF say?",
+        },
+      },
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["Anthropic adapter"]["form_messages"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages).messages
+
+  h.eq("somefakebase64encoding", output[1].content[1].text)
+end
+
 T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results"] = function()
   local input = {
     {

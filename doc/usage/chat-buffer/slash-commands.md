@@ -55,6 +55,16 @@ The _fetch_ slash command allows you to add the contents of a URL to the chat bu
 
 The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
 
+[#3218](https://github.com/olimorris/codecompanion.nvim/pull/3218) added support for PDFs for the following http adapters:
+
+- Anthropic
+- Copilot (currently only supports OpenAI models)
+- OpenAI
+- OpenAI Responses
+- OpenRouter
+
+Simply use the `/file` slash command and select a PDF file. The plugin will `base64` encode the PDF and send it to the LLM.
+
 This slash command is also available in the [CLI prompt input](/usage/cli#slash-commands), where it inserts `@path` references instead of file contents.
 
 - Select a single file: `⏎ enter`
