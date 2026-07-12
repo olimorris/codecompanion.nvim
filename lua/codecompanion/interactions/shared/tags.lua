@@ -4,6 +4,7 @@ local M = {
   COMPACT_SUMMARY = "compact_summary",
   DIAGNOSTICS = "diagnostics",
   DIFF = "diff",
+  DOCUMENT = "document",
   EDITOR_CONTEXT = "editor_context",
   FILE = "file",
   FROM_CUSTOM_PROMPT = "from_custom_prompt",

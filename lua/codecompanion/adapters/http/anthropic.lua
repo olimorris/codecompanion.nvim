@@ -30,6 +30,7 @@ return {
   },
   opts = {
     compaction = true,
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -222,6 +223,29 @@ return {
           else
             -- Remove the message if vision is not supported
             return nil
+          end
+        end
+
+        -- 3b. Account for any documents
+        -- NOTE: Only support PDFs for now
+        if
+          m._meta
+          and m._meta.tag == tags.DOCUMENT
+          and m._meta.filetype == "pdf"
+          and m.context
+          and m.context.mimetype
+        then
+          if self.opts and self.opts.documents then
+            m.content = {
+              {
+                type = "document",
+                source = {
+                  type = "base64",
+                  media_type = m.context.mimetype,
+                  data = m.content,
+                },
+              },
+            }
           end
         end
 

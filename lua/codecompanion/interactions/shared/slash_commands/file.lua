@@ -1,6 +1,7 @@
 local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
+local files_utils = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
@@ -185,6 +186,53 @@ function SlashCommand:read(selected)
   return content, ft, id, selected.path
 end
 
+---Base64 encode a document and add it to the chat buffer for adapters that support documents
+---@param selected { path: string }
+---@param opts { filetype: string, mimetype: string, silent: boolean, sync_all: boolean }
+---@return nil
+function SlashCommand:output_doc(selected, opts)
+  local adapter = self.Chat.adapter
+  if not (adapter.opts and adapter.opts.documents) then
+    return log:warn(
+      "The `%s` adapter does not support documents. `%s` was not added to the chat",
+      adapter.formatted_name,
+      vim.fn.fnamemodify(selected.path, ":t")
+    )
+  end
+
+  local base64, err = files_utils.base64_encode_file(selected.path)
+  if err then
+    return log:error(err)
+  end
+
+  local id = "<file>" .. vim.fn.fnamemodify(selected.path, ":.") .. "</file>"
+
+  self.Chat:add_message({
+    role = config.constants.USER_ROLE,
+    content = base64,
+  }, {
+    visible = false,
+    context = { id = id, mimetype = opts.mimetype, path = selected.path },
+    _meta = { tag = tags.DOCUMENT, filetype = opts.filetype },
+  })
+
+  if opts.sync_all then
+    return
+  end
+
+  self.Chat.context:add({
+    id = id,
+    path = selected.path,
+    source = "codecompanion.interactions.shared.slash_commands.file",
+  })
+
+  if opts.silent then
+    return
+  end
+
+  utils.notify(fmt("Added the `%s` document to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+end
+
 ---Output from the slash command in the chat buffer
 ---@param selected { path: string, relative_path?: string, description?: string }
 ---@param opts? { message?:string, description?: string, silent: boolean, sync_all: boolean }
@@ -194,6 +242,12 @@ function SlashCommand:output(selected, opts)
     return log:warn("Sending of code has been disabled")
   end
   opts = opts or {}
+
+  local mimetype = files_utils.get_mimetype(selected.path)
+  if mimetype == "application/pdf" then
+    opts = vim.tbl_extend("force", opts, { filetype = "pdf", mimetype = mimetype })
+    return self:output_doc(selected, opts)
+  end
 
   if selected.description then
     opts.message = selected.description
