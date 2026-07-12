@@ -277,6 +277,22 @@ require("codecompanion").setup({
 })
 ```
 
+```lua{7} [File]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = {
+            api_key = "file:~/.dotfiles/.anthropic_api_key",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
 :::
 
 > [!NOTE]
@@ -287,6 +303,7 @@ Supported `env` value types:
 - **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
 - **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
 - **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
+- **File (string prefixed with `file:`)**: any value that starts with `file:` will be read from disk, e.g. `"file:.api_key"` (relative to the cwd) or `"file:~/.dotfiles/.api_key"`. The file is read fresh on every request rather than being cached, so updating the file takes effect immediately.
 
 ## Disabling Compaction
 
