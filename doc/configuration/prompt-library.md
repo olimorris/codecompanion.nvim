@@ -709,9 +709,7 @@ rules:
 :::
 
 > [!INFO]
-> By default, a prompt that names no `rules` loads **no** rules, unlike a plain chat buffer which autoloads its [`autoload`](/configuration/rules#autoload) groups.
-> To make prompts without a `rules` field autoload those groups too, set [`rules.opts.chat.autoload_prompt_library = true`](/configuration/rules#autoloading-rules-for-prompt-library-prompts).
-> A prompt can always opt out with `rules = "none"`, regardless of that setting.
+> A prompt that names no rules loads none by default. Enable `rules.opts.chat.autoload_prompt_library` to have your prompts autoload rule groups that you've specified in `rules.opts.chat.autoload`
 
 #### Tools
 
