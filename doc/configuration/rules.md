@@ -269,7 +269,7 @@ require("codecompanion").setup({
 })
 ```
 
-With this enabled, a prompt that explictly names no rules, will have the autoload groups loaded in the chat buffer. However, a prompt that names its own rules will use those instead.
+With this enabled, a prompt that explicitly names no rules, will have the autoload groups loaded in the chat buffer. However, a prompt that names its own rules will use those instead.
 
 ## Parsers
 

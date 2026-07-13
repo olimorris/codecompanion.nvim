@@ -3334,7 +3334,7 @@ To have prompts leverage autoload groups when they don't name their own rules:
 rules = { opts = { chat = { autoload = "default", autoload_prompt_library =
 true, }, }, }, })`
 
-With this enabled, a prompt that explictly names no rules, will have the
+With this enabled, a prompt that explicitly names no rules, will have the
 autoload groups loaded in the chat buffer. However, a prompt that names its own
 rules will use those instead.
 
