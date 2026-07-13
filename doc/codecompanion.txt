@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 12
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 13
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -90,7 +90,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Built-in |codecompanion-usage-action-palette| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
--  Support for |codecompanion-usage-chat-buffer--images-vision| as input
+-  Support for |codecompanion-usage-chat-buffer--images-vision| and PDFs as input
 -  Async execution for fast performance
 
 
