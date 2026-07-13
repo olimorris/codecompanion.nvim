@@ -254,7 +254,7 @@ require("codecompanion").setup({
 
 By default, prompt library prompts will never autoload rule groups. A prompt only gets rules if it names them itself, via its own rules field.
 
-To have prompts fall back to the autoload groups when they don't name their own rules, enable autoload_for_prompt_library:
+To have prompts leverage autoload groups when they don't name their own rules:
 
 ```lua{6} [Autoload for prompt library prompts]
 require("codecompanion").setup({
