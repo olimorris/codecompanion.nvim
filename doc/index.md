@@ -27,11 +27,10 @@ CodeCompanion is a plugin which enables you to code with AI, using LLMs and agen
 - :rocket: [Inline transformations](/usage/inline), code creation and refactoring
 - :robot: [Editor Context](/usage/chat-buffer/editor-context), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/agents-tools) and [Workflows](/usage/workflows) to improve LLM output
 - :brain: Support for [rules](/usage/chat-buffer/rules) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
-- :page_facing_up: Upload PDFs as part of your chats
 - :sparkles: Built-in [prompt library](/usage/action-palette) for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own [custom prompts](configuration/prompt-library#creating-prompts), Editor Context and Slash Commands
 - :inbox_tray: Have [multiple chats](/usage/introduction#quickly-accessing-a-chat-buffer) open at the same time
-- :art: Support for [vision and images](/usage/chat-buffer/#images-vision) as input
+- :art: Support for [images](/usage/chat-buffer/#images-vision) and PDFs as input
 - :muscle: Async execution for fast performance
 
 ## Overview
