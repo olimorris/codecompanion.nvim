@@ -436,6 +436,50 @@ require("codecompanion").setup({
 })
 ```
 
+### OpenAI-compatible multi-model gateway (DaoXE)
+
+Use the built-in `openai_compatible` adapter for any Chat Completions host that speaks the OpenAI API. Example with [DaoXE](https://daoxe.com) (`https://daoxe.com/v1`):
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      daoxe = function()
+        return require("codecompanion.adapters").extend("openai_compatible", {
+          env = {
+            url = "https://daoxe.com",
+            api_key = "OPENAI_API_KEY", -- export your DaoXE key as OPENAI_API_KEY
+            chat_url = "/v1/chat/completions",
+            models_endpoint = "/v1/models",
+          },
+          schema = {
+            model = {
+              default = "your-account-model-id", -- exact ID from GET /v1/models or dashboard
+            },
+          },
+        })
+      end,
+    },
+  },
+  interactions = {
+    chat = {
+      adapter = "daoxe",
+    },
+  },
+})
+```
+
+```bash
+export OPENAI_API_KEY=your_daoxe_api_key
+```
+
+Notes:
+
+- Model IDs are account-scoped; do not hardcode a static public catalog.
+- Chat Completions path only (`openai_compatible`).
+- DaoXE is not available in mainland China.
+- Contributor disclosure: this example was contributed by a DaoXE affiliate.
+
 ### Ollama (remotely)
 
 The simplest way to connect to a remote Ollama instance is to set the `OLLAMA_HOST` environment variable (the same variable used by the Ollama CLI):
