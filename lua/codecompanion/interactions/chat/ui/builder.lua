@@ -197,6 +197,13 @@ function Builder:add_message(data, opts)
     opts._icon_info.line_offset = (opts._icon_info.line_offset or 0) + pre_content_lines
   end
 
+  -- The formatter numbers its fold offsets from the start of its own content,
+  -- unaware a header was prepended above it. Push them down past the header.
+  if fold_info and pre_content_lines > 0 then
+    fold_info.start_offset = fold_info.start_offset + pre_content_lines
+    fold_info.end_offset = fold_info.end_offset + pre_content_lines
+  end
+
   local insert_line, icon_id
   if not vim.tbl_isempty(lines) then
     insert_line, icon_id = self:_write_to_buffer(lines, {
