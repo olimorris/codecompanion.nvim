@@ -39,15 +39,23 @@ end
 local function get_callbacks(selected)
   local opts = selected.opts or {}
   local callbacks = opts.callbacks or {}
-
   --TODO: Remove opts.rules fallback in v20.0.0
   local rules = selected.rules or opts.rules
-  if rules and rules ~= "none" then
-    local rules_cb = rules_helpers.add_callbacks(callbacks, rules)
-    if rules_cb then
-      callbacks = rules_cb
-    end
+  if rules == "none" then
+    return callbacks
   end
+
+  -- Load a prompt library's explicit rules, or the autoload rules groups, if enabled
+  local chat_rules = config.rules and config.rules.opts and config.rules.opts.chat
+  if not rules and not (chat_rules and chat_rules.autoload_groups_in_prompt_library) then
+    return callbacks
+  end
+
+  local rules_cb = rules_helpers.add_callbacks(callbacks, rules)
+  if rules_cb then
+    callbacks = rules_cb
+  end
+
   return callbacks
 end
 

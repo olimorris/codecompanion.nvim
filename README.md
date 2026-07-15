@@ -39,8 +39,8 @@ Thank you to the following people:
 - :brain: Support for [rules](https://codecompanion.olimorris.dev/usage/chat-buffer/rules.html) files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
 - :sparkles: Built-in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/configuration/prompt-library.html#creating-prompts), Editor Context and Slash Commands
-- :books: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
-- :art: Support for [vision and images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images-vision) as input
+- :inbox_tray: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
+- :art: Support for [images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images-vision) and PDFs as input
 - :muscle: Async execution for fast performance
 
 <!-- panvimdoc-ignore-start -->

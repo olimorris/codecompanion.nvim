@@ -1082,6 +1082,8 @@ The user is working on a %s machine. Please respond with system specific command
         ---@type string|fun(): string
         autoload = "default",
 
+        autoload_groups_in_prompt_library = false, -- Load the autoload rule groups into a prompt library by default?
+
         ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
         enabled = true,
 

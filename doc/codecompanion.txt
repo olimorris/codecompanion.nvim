@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 14
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -90,7 +90,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Built-in |codecompanion-usage-action-palette| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
--  Support for |codecompanion-usage-chat-buffer--images-vision| as input
+-  Support for |codecompanion-usage-chat-buffer--images-vision| and PDFs as input
 -  Async execution for fast performance
 
 
@@ -3323,6 +3323,22 @@ available.
 
 
 
+RULES IN PROMPT LIBRARY PROMPTS
+
+By default, prompt library prompts will never autoload rule groups. A prompt
+only gets rules if it names them itself, via its own rules field.
+
+To have prompts leverage the autoload groups when they don't name any rules:
+
+`lua{6} [Autoload for prompt library prompts] require("codecompanion").setup({
+rules = { opts = { chat = { autoload = "default",
+autoload_groups_in_prompt_library = true, }, }, }, })`
+
+With this enabled, a prompt that names no rules will have the autoload groups
+(`rules.opts.chat.autoload`) loaded in the chat buffer. However, a prompt that
+names its own rules will use those instead.
+
+
 PARSERS ~
 
 Parsers allow CodeCompanion to transform rules, affecting how they are shared
@@ -3406,6 +3422,142 @@ BASIC STRUCTURE
 At their core, prompts define a series of messages sent to an LLM. Let's start
 with a simple example:
 
+
+
+PICKERS
+
+Pickers allow you to create dynamic prompt menus based on runtime data.
+
+**Lua only:**
+
+>lua
+    ["My picker menu ..."] = {
+      name = "A list of items",
+      interaction = " ",
+      description = "My current items",
+      picker = {
+        prompt = "Select an item",
+        columns = { "name", "description" },
+        items = {
+          {
+            name = "Item 1",
+            description = "This is item 1",
+            callback = function()
+              print("You selected item 1")
+            end,
+          },
+          {
+            name = "Item 2",
+            description = "This is item 2",
+            callback = function()
+              print("You selected item 2")
+            end,
+          },
+        },
+      },
+    },
+<
+
+
+PRE-HOOKS
+
+Pre-hooks allow you to run custom logic before a prompt is executed. This is
+particularly useful for creating new buffers or setting up the environment:
+
+**Lua only:**
+
+>lua
+    ["Boilerplate HTML"] = {
+      interaction = "inline",
+      description = "Generate some boilerplate HTML",
+      opts = {
+        ---@return number
+        pre_hook = function()
+          local bufnr = vim.api.nvim_create_buf(true, false)
+          vim.api.nvim_set_current_buf(bufnr)
+          vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr })
+          return bufnr
+        end,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = "You are an expert HTML programmer",
+        },
+        {
+          role = "user",
+          content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
+        },
+      },
+    }
+<
+
+For the inline interaction, the plugin will detect a number being returned from
+the `pre_hook` and assume that is the buffer number you wish any code to be
+streamed into.
+
+
+RULES
+
+You can also specify rules to be loaded with your prompt:
+
+
+
+  [!INFO] A prompt that names no rules loads none by default. Enable
+  `rules.opts.chat.autoload_groups_in_prompt_library` to have your prompts
+  autoload rule groups that you've specified in `rules.opts.chat.autoload`
+
+TOOLS
+
+You can also specify tools to be loaded with your prompt. These can be
+individual tools as well as tool groups:
+
+
+::: tip Disabling all tools Setting `tools` to `none` will prevent any tools
+from being loaded in the chat, including any
+|codecompanion-configuration-chat-buffer-default-tools|:
+
+
+:::
+
+
+WORKFLOWS
+
+Workflows allow you to chain multiple prompts together in a sequence. That is,
+the first prompt is sent to the LLM, the LLM responds, then the next prompt in
+the workflow is sent, etc. This can be useful for implementing multi-step
+processes such as chain-of-thought reasoning or iterative code refinement.
+
+**Note:** Markdown prompts do not support
+|codecompanion-extending-agentic-workflows|.
+
+
+You can also modify the options for the entire workflow at an individual prompt
+level. This can be useful if you wish to automatically submit certain prompts
+or change the adapter/model mid-workflow. Simply use a yaml code block with
+`opts` as a meta field:
+
+
+
+OTHERS ~
+
+
+HIDING BUILT-IN PROMPTS
+
+You can hide the built-in prompts from the Action Palette by setting the
+following configuration option:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        action_palette = {
+          opts = {
+            show_preset_prompts = false,
+          }
+        },
+      },
+    })
+<
 
 
 SYSTEM PROMPTS                    *codecompanion-configuration-system-prompts*

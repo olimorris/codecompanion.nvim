@@ -608,6 +608,8 @@ mcp_servers: none
 
 :::
 
+:::
+
 #### Pickers
 
 Pickers allow you to create dynamic prompt menus based on runtime data.
@@ -706,6 +708,9 @@ rules:
 
 :::
 
+> [!INFO]
+> A prompt that names no rules loads none by default. Enable `rules.opts.chat.autoload_groups_in_prompt_library` to have your prompts autoload rule groups that you've specified in `rules.opts.chat.autoload`
+
 #### Tools
 
 You can also specify tools to be loaded with your prompt. These can be individual tools as well as tool groups:
@@ -757,6 +762,8 @@ tools: none
   tools = "none",
 },
 ```
+
+:::
 
 :::
 
