@@ -254,7 +254,7 @@ require("codecompanion").setup({
 
 By default, prompt library prompts will never autoload rule groups. A prompt only gets rules if it names them itself, via its own rules field.
 
-To have prompts leverage autoload groups when they don't name their own rules:
+To have prompts leverage the autoload groups when they don't name any rules:
 
 ```lua{6} [Autoload for prompt library prompts]
 require("codecompanion").setup({
@@ -262,14 +262,14 @@ require("codecompanion").setup({
     opts = {
       chat = {
         autoload = "default",
-        autoload_prompt_library = true,
+        autoload_groups_in_prompt_library  = true,
       },
     },
   },
 })
 ```
 
-With this enabled, a prompt that explicitly names no rules, will have the autoload groups loaded in the chat buffer. However, a prompt that names its own rules will use those instead.
+With this enabled, a prompt that names no rules will have the autoload groups (`rules.opts.chat.autoload`) loaded in the chat buffer. However, a prompt that names its own rules will use those instead.
 
 ## Parsers
 

@@ -42,16 +42,12 @@ local function get_callbacks(selected)
   --TODO: Remove opts.rules fallback in v20.0.0
   local rules = selected.rules or opts.rules
   if rules == "none" then
-    -- Explicit opt-out: this prompt loads no rules at all.
     return callbacks
   end
 
-  -- When the prompt names rules explicitly, load those. When it names none
-  -- (`rules == nil`), only fall back to the global `rules.opts.chat.autoload`
-  -- default if the user opted in via `autoload_prompt_library`; otherwise a
-  -- prompt-library prompt loads no rules, preserving the historic behaviour.
+  -- Load a prompt library's explicit rules, or the autoload rules groups, if enabled
   local chat_rules = config.rules and config.rules.opts and config.rules.opts.chat
-  if not rules and not (chat_rules and chat_rules.autoload_prompt_library) then
+  if not rules and not (chat_rules and chat_rules.autoload_groups_in_prompt_library) then
     return callbacks
   end
 

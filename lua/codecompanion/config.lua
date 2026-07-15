@@ -1081,10 +1081,7 @@ The user is working on a %s machine. Please respond with system specific command
         ---@type string|fun(): string
         autoload = "default",
 
-        ---Also autoload the `autoload` rule groups for prompt-library prompts
-        ---that name no rules of their own? Prompts can still opt out with `rules = "none"`.
-        ---@type boolean
-        autoload_prompt_library = false,
+        autoload_groups_in_prompt_library = false, -- Load the autoload rule groups into a prompt library by default?
 
         ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
         enabled = true,

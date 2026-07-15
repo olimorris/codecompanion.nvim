@@ -709,7 +709,7 @@ rules:
 :::
 
 > [!INFO]
-> A prompt that names no rules loads none by default. Enable `rules.opts.chat.autoload_prompt_library` to have your prompts autoload rule groups that you've specified in `rules.opts.chat.autoload`
+> A prompt that names no rules loads none by default. Enable `rules.opts.chat.autoload_groups_in_prompt_library` to have your prompts autoload rule groups that you've specified in `rules.opts.chat.autoload`
 
 #### Tools
 

@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 13
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3328,15 +3328,15 @@ RULES IN PROMPT LIBRARY PROMPTS
 By default, prompt library prompts will never autoload rule groups. A prompt
 only gets rules if it names them itself, via its own rules field.
 
-To have prompts leverage autoload groups when they don't name their own rules:
+To have prompts leverage the autoload groups when they don't name any rules:
 
 `lua{6} [Autoload for prompt library prompts] require("codecompanion").setup({
-rules = { opts = { chat = { autoload = "default", autoload_prompt_library =
-true, }, }, }, })`
+rules = { opts = { chat = { autoload = "default",
+autoload_groups_in_prompt_library = true, }, }, }, })`
 
-With this enabled, a prompt that explicitly names no rules, will have the
-autoload groups loaded in the chat buffer. However, a prompt that names its own
-rules will use those instead.
+With this enabled, a prompt that names no rules will have the autoload groups
+(`rules.opts.chat.autoload`) loaded in the chat buffer. However, a prompt that
+names its own rules will use those instead.
 
 
 PARSERS ~
@@ -3504,8 +3504,8 @@ You can also specify rules to be loaded with your prompt:
 
 
   [!INFO] A prompt that names no rules loads none by default. Enable
-  `rules.opts.chat.autoload_prompt_library` to have your prompts autoload rule
-  groups that you've specified in `rules.opts.chat.autoload`
+  `rules.opts.chat.autoload_groups_in_prompt_library` to have your prompts
+  autoload rule groups that you've specified in `rules.opts.chat.autoload`
 
 TOOLS
 
