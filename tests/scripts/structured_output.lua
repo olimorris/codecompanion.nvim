@@ -29,6 +29,11 @@ local adapter_config = {
       api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
     },
   }),
+  gemini_interactions = require("codecompanion.adapters").extend("gemini_interactions", {
+    env = {
+      api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+    },
+  }),
   mistral = require("codecompanion.adapters").extend("mistral", {
     env = {
       api_key = "cmd:op read op://personal/Mistral_API/credential --no-newline",
@@ -51,7 +56,7 @@ local adapter_config = {
   }),
 }
 
-local adapter_name = "mistral"
+local adapter_name = "gemini_interactions"
 local adapter = adapter_config[adapter_name]
 
 local structured_output = {

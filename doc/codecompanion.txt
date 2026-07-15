@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 12
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 14
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*

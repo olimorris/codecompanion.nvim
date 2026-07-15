@@ -160,4 +160,22 @@ M.to_gemini = function(schema)
   }
 end
 
+---Convert the OpenAI schema to Gemini's Interactions API tool schema
+---Ref: https://ai.google.dev/gemini-api/docs/interactions-overview
+---@param schema table
+---@return table
+M.to_gemini_interactions = function(schema)
+  local function_def = schema["function"]
+
+  local parameters = vim.deepcopy(function_def.parameters)
+  strip_unsupported_gemini_fields(parameters)
+
+  return {
+    type = "function",
+    name = function_def.name,
+    description = function_def.description,
+    parameters = parameters,
+  }
+end
+
 return M
