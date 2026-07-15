@@ -648,6 +648,12 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.change_adapter",
           description = "Change adapter and model",
         },
+        change_effort = {
+          modes = { n = "ge" },
+          index = 15,
+          callback = "keymaps.change_effort",
+          description = "Change the reasoning effort",
+        },
         fold_code = {
           modes = { n = "gf" },
           index = 15,

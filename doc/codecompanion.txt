@@ -4205,6 +4205,7 @@ available to the user in normal mode are:
 - `close`: `<C-c>` to close the chat buffer
 - `stop`: `q` to stop the current request
 - `change_adapter`: `ga` to change the adapter for the current chat
+- `change_effort`: `ge` to change the reasoning effort for the current model
 - `clear`: `gx` to clear the chat buffer's contents
 - `copilot_stats`: `gS` to show copilot usage stats
 - `btw`: `gm` type a message to the LLM whilst it's streaming
