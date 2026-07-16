@@ -1,5 +1,3 @@
----Source: https://ai.google.dev/gemini-api/docs
-
 local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")

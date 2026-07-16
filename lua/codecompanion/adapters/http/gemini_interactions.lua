@@ -5,8 +5,7 @@ local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
----Track the step type at each stream index so a `step.delta` event knows
----whether it belongs to a thought or a model_output
+---Track the step type at each stream index so a `step.delta` event knows whether it belongs to a thought or a model_output
 ---@type table<number, string>
 local step_types = {}
 
@@ -119,7 +118,7 @@ return {
     store = false,
   },
   available_tools = {
-    ["google_search"] = {
+    ["web_search"] = {
       description = "Allows the model to search the web via Google Search for the latest information before generating a response.",
       ---@param self CodeCompanion.HTTPAdapter.GeminiInteractions
       ---@param meta { tools: table }
