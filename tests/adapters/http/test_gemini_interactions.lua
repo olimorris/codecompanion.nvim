@@ -271,10 +271,10 @@ end
 T["Gemini Interactions adapter"]["can form the built-in google_search tool"] = function()
   local tools = {
     {
-      ["<tool>google_search</tool>"] = {
+      ["<tool>web_search</tool>"] = {
         _meta = { adapter_tool = true },
         description = "Allows the model to search the web via Google Search",
-        name = "google_search",
+        name = "web_search",
       },
     },
   }
