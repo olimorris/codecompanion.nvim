@@ -1,0 +1,20 @@
+{
+  "id": "v1_Chd...",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 300
+  },
+  "steps": [
+    {
+      "type": "model_output",
+      "content": [
+        {
+          "type": "text",
+          "text": "The local image displays a pipe organ..."
+        }
+      ]
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.5-flash"
+}

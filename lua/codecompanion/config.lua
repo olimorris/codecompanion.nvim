@@ -17,6 +17,7 @@ local defaults = {
       copilot = "copilot",
       deepseek = "deepseek",
       gemini = "gemini",
+      gemini_interactions = "gemini_interactions",
       githubmodels = "githubmodels",
       huggingface = "huggingface",
       novita = "novita",
