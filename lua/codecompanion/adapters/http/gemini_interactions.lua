@@ -455,9 +455,6 @@ return {
           }
         end
 
-        -- Streaming: SSE events carry their own `event_type` in the JSON body,
-        -- so the `event:` line can be ignored (fails JSON decoding and is
-        -- skipped below)
         local data_mod = adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
         if not ok then
