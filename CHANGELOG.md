@@ -1,5 +1,21 @@
 # Changelog
 
+## [19.20.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.19.0...v19.20.0) (2026-07-17)
+
+
+### Features
+
+* **adapters:** add new `gemini_interactions` adapter ([#3224](https://github.com/olimorris/codecompanion.nvim/issues/3224)) ([b71da02](https://github.com/olimorris/codecompanion.nvim/commit/b71da02bd2fdb77761d1f0ebbe238db5367ddcfa))
+* **adapters:** add pdf file support for `http` adapters ([#3218](https://github.com/olimorris/codecompanion.nvim/issues/3218)) ([cca990a](https://github.com/olimorris/codecompanion.nvim/commit/cca990aebf131b6e612dc60fd1c797f4dab777db))
+* **adapters:** env vars can be in files ([#3220](https://github.com/olimorris/codecompanion.nvim/issues/3220)) ([e8f3863](https://github.com/olimorris/codecompanion.nvim/commit/e8f386361f649960ec1414f59f0815836c94713d))
+* **prompt_library:** automatically add default rule groups to prompt ([#3222](https://github.com/olimorris/codecompanion.nvim/issues/3222)) ([edf049c](https://github.com/olimorris/codecompanion.nvim/commit/edf049c3d36e86d067efce9c901eb4229110d749))
+
+
+### Bug Fixes
+
+* **adapters:** remove `copilot` schema options ([#3216](https://github.com/olimorris/codecompanion.nvim/issues/3216)) ([16ebb40](https://github.com/olimorris/codecompanion.nvim/commit/16ebb400e2405f5c1a4b9c79e94bcfaa563713ac))
+* **ui:** extmarks being placed incorrectly ([#3227](https://github.com/olimorris/codecompanion.nvim/issues/3227)) ([9455f15](https://github.com/olimorris/codecompanion.nvim/commit/9455f15ecd356858fca2b4a31b9285180376d6fe))
+
 ## [19.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.18.0...v19.19.0) (2026-07-10)
 
 
