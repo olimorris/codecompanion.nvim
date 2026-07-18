@@ -9,6 +9,7 @@ concurrency:
 
 jobs:
   tests:
+    if: ${{ !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease') }}
     strategy:
       fail-fast: false
       matrix:
