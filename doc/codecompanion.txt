@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 15
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -80,7 +80,7 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
--  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
+-  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Kimi <https://platform.kimi.ai>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
 -  Support for |codecompanion-model-context-protocol|
