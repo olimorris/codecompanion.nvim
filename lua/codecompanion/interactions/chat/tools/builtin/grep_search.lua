@@ -232,7 +232,7 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
       if type(data) == "table" then
         -- Results were found - data is an array of file paths
         local results = #data
-        local results_msg = fmt("Searched text for `%s`, %d results\n```\n%s\n```", query, results, output)
+        local results_msg = fmt("Searched text for `%s`, %d results\n````\n%s\n````", query, results, output)
         chat:add_tool_output(self, fmt(llm_output, results_msg), results_msg)
       else
         -- No results found - data is a string message
