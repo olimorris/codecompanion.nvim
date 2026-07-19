@@ -16,6 +16,7 @@ jobs:
         nvim_tag: [nightly, v0.12.0, v0.11.0]
     name: ${{ matrix.os }} / ${{ matrix.nvim_tag }}
     runs-on: ${{ matrix.os }}
+    if: ${{ !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease') }}
     env:
       NVIM: ${{ matrix.os == 'windows-latest' && 'nvim-win64\\bin\\nvim.exe' || 'nvim' }}
 

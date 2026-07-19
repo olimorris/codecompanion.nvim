@@ -118,7 +118,7 @@ require("codecompanion").setup({
           role = "user",
           content = function(context)
             local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
-            return "Please explain the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```"
+            return "Please explain the following code:\n\n````" .. context.filetype .. "\n" .. text .. "\n````"
           end,
         },
       },

@@ -211,10 +211,9 @@ function SlashCommand:output(selected, opts)
   if selected.description then
     description = fmt(
       [[%s
-
-```%s
+````%s
 %s
-```]],
+````]],
       selected.description,
       ft,
       content
