@@ -28,7 +28,7 @@ Sharing my #{annotations} with you for review and to make any necessary changes
 ```
 
 > [!NOTE]
-> Annotations are cleared after being shared wth the LLM. You can use them once per message cycle.
+> Annotations are cleared after being shared with the LLM. You can use them once per message cycle.
 
 ## #buffer
 

@@ -4866,7 +4866,7 @@ to leave a comment for the LLM. These can then be shared with your LLM by using
 <
 
 
-  [!NOTE] Annotations are cleared after being shared wth the LLM. You can use
+  [!NOTE] Annotations are cleared after being shared with the LLM. You can use
   them once per message cycle.
 
 #BUFFER ~
