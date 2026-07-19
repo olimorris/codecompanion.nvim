@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 18
+*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 19
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3962,6 +3962,15 @@ to run a test suite on your behalf and give insight on failing cases. Simply
 tag the `@run_command` in the chat buffer and ask it run your tests.
 
 
+LEAVING REVIEW COMMENTS FOR AN LLM ~
+
+Rather than switching to the chat buffer to type out every comment on an
+agent's changes, use `:CodeCompanionChat Annotate` over a line or visual
+selection to make a comment. Repeat across as many buffers and lines as you
+like, then share them with a chat with the
+|codecompanion-usage-chat-buffer-editor-context-annotations| context.
+
+
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
 
 You can quickly move between responses in the chat buffer using `[[` or `]]`.
@@ -4844,6 +4853,21 @@ message to the LLM.
   captures a point-in-time snapshot when your message is sent. If the underlying
   data changes (e.g. new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
+
+#ANNOTATIONS ~
+
+The `annotations` context shares any pending annotations you've made across
+your buffers. Use `:CodeCompanionChat Annotate` over a line or visual selection
+to leave a comment for the LLM. These can then be shared with your LLM by using
+`#{annotations}` in any open chat buffer.
+
+>md
+    Sharing my #{annotations} with you for review and to make any necessary changes
+<
+
+
+  [!NOTE] Annotations are cleared after being shared wth the LLM. You can use
+  them once per message cycle.
 
 #BUFFER ~
 

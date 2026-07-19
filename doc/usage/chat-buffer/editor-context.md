@@ -19,6 +19,17 @@ Editor context uses the `#{context}` syntax to dynamically insert content into y
 > [!IMPORTANT]
 > With the exception of `#{buffer}` and `#{buffers}`, editor context captures a point-in-time snapshot when your message is sent. If the underlying data changes (e.g. new diagnostics, a different quickfix list), simply use the context again in a new message to share the latest state.
 
+## #annotations
+
+The _annotations_ context shares any pending annotations you've made across your buffers. Use `:CodeCompanionChat Annotate` over a line or visual selection to leave a comment for the LLM. These can then be shared with your LLM by using `#{annotations}` in any open chat buffer.
+
+```md
+Sharing my #{annotations} with you for review and to make any necessary changes
+```
+
+> [!NOTE]
+> Annotations are cleared after being shared wth the LLM. You can use them once per message cycle.
+
 ## #buffer
 
 > [!NOTE]
