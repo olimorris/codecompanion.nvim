@@ -18,6 +18,12 @@ The [@insert_edit_into_file](/usage/chat-buffer/agents-tools#files) tool, combin
 
 The [run_command](/usage/chat-buffer/agents-tools#run-command) tool enables an LLM to execute commands on your machine. This can be useful if you wish the LLM to run a test suite on your behalf and give insight on failing cases. Simply tag the `@run_command` in the chat buffer and ask it run your tests.
 
+## Leaving review comments for an LLM
+
+Rather than switching to the chat buffer to type out every comment on an agent's changes, use `:CodeCompanionChat Annotate` over a line or visual selection to make a comment. Repeat across as many buffers and lines as you like, then share them with a chat with the [#annotations](/usage/chat-buffer/editor-context#annotations) context.
+
+To navigate to the files an agent has edited or created, use `:CodeCompanionChat Changes` to open them in the quickfix list. Every file the LLM touches in your Neovim session is tracked, across chats and the CLI, so you can jump between them as you annotate.
+
 ## Navigating between responses in the chat buffer
 
 You can quickly move between responses in the chat buffer using `[[` or `]]`.

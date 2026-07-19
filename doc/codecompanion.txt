@@ -555,10 +555,13 @@ However, there are multiple options available:
 - `CodeCompanion <prompt>` - Prompt the inline interaction
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline interaction with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item via its alias from the |codecompanion-configuration-prompt-library|
+- `CodeCompanionActions Refresh` - Refresh the action palette and any items in the prompt library
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
 - `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat Annotate` - Add a comment to the pending |codecompanion-usage-chat-buffer-editor-context-annotations| list
+- `CodeCompanionChat Changes` - Open the quickfix list with all files that have been changed by the LLM
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionCLI` - Open a new CLI interaction
@@ -3388,7 +3391,7 @@ If you add or modify markdown prompts whilst your Neovim session is running,
 you can refresh the prompt library to pick up the changes with:
 
 >
-    :CodeCompanionActions refresh
+    :CodeCompanionActions Refresh
 <
 
 
@@ -3961,6 +3964,20 @@ to run a test suite on your behalf and give insight on failing cases. Simply
 tag the `@run_command` in the chat buffer and ask it run your tests.
 
 
+LEAVING REVIEW COMMENTS FOR AN LLM ~
+
+Rather than switching to the chat buffer to type out every comment on an
+agent's changes, use `:CodeCompanionChat Annotate` over a line or visual
+selection to make a comment. Repeat across as many buffers and lines as you
+like, then share them with a chat with the
+|codecompanion-usage-chat-buffer-editor-context-annotations| context.
+
+To navigate to the files an agent has edited or created, use
+`:CodeCompanionChat Changes` to open them in the quickfix list. Every file the
+LLM touches in your Neovim session is tracked, across chats and the CLI, so you
+can jump between them as you annotate.
+
+
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
 
 You can quickly move between responses in the chat buffer using `[[` or `]]`.
@@ -4016,7 +4033,7 @@ The built-in prompts can be turned off by setting
 `display.action_palette.opts.show_preset_prompts = false`.
 
 You can also refresh the markdown prompts in your prompt library with
-`:CodeCompanionActions refresh`
+`:CodeCompanionActions Refresh`
 
 
 CHAT BUFFER                                  *codecompanion-usage-chat-buffer*
@@ -4843,6 +4860,21 @@ message to the LLM.
   captures a point-in-time snapshot when your message is sent. If the underlying
   data changes (e.g. new diagnostics, a different quickfix list), simply use the
   context again in a new message to share the latest state.
+
+#ANNOTATIONS ~
+
+The `annotations` context shares any pending annotations you've made across
+your buffers. Use `:CodeCompanionChat Annotate` over a line or visual selection
+to leave a comment for the LLM. These can then be shared with your LLM by using
+`#{annotations}` in any open chat buffer.
+
+>md
+    Sharing my #{annotations} with you for review and to make any necessary changes
+<
+
+
+  [!NOTE] Annotations are cleared after being shared with the LLM. You can use
+  them once per message cycle.
 
 #BUFFER ~
 
@@ -5700,6 +5732,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
+- `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat

@@ -140,12 +140,13 @@ return {
       local params = {}
       local prompt = {}
       local subcommand = nil
+      local subcommands = { add = true, annotate = true, changes = true, refreshcache = true, toggle = true }
 
       for _, arg in ipairs(opts.fargs) do
         local key, value = arg:match("^(%w+)=(.+)$")
         if key and value then
           params[key] = value
-        elseif arg:lower() == "toggle" or arg:lower() == "add" or arg:lower() == "refreshcache" then
+        elseif subcommands[arg:lower()] then
           subcommand = arg:lower()
         else
           -- Anything else is a prompt
@@ -255,6 +256,8 @@ return {
             "model=",
             "Toggle",
             "Add",
+            "Annotate",
+            "Changes",
             "RefreshCache",
           }
 
@@ -378,7 +381,7 @@ return {
       range = true,
       nargs = "*",
       complete = function(arg_lead, cmdline, _cursor_pos)
-        return { "refresh" }
+        return { "Refresh" }
       end,
     },
   },

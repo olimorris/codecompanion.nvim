@@ -102,15 +102,31 @@ CodeCompanion.add = function(args)
 
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
-    content = "Here is some code from "
-      .. context.path
-      .. ":\n\n```"
-      .. context.filetype
-      .. "\n"
-      .. content
-      .. "\n```\n",
+    content = string.format(
+      [[Here is some code from %s:
+````%s
+%s
+````
+]],
+      context.path,
+      context.filetype,
+      content
+    ),
   })
   chat.ui:open()
+end
+
+---Annotate the current line or visual selection with a comment for the LLM
+---@param args table
+---@return nil
+CodeCompanion.annotate = function(args)
+  return require("codecompanion.interactions.shared.annotations").create(args)
+end
+
+---Open the files the LLM has edited this session in the quickfix list
+---@return nil
+CodeCompanion.changes = function()
+  return require("codecompanion.interactions.shared.edited_files").to_quickfix()
 end
 
 ---Open a chat buffer and converse with an LLM
@@ -140,6 +156,10 @@ CodeCompanion.chat = function(args)
   if args.subcommand then
     if args.subcommand == "add" then
       return CodeCompanion.add(args)
+    elseif args.subcommand == "annotate" then
+      return CodeCompanion.annotate(args)
+    elseif args.subcommand == "changes" then
+      return CodeCompanion.changes()
     elseif args.subcommand == "toggle" then
       return CodeCompanion.toggle_chat(args)
     elseif args.subcommand == "refreshcache" then
@@ -490,6 +510,8 @@ CodeCompanion.setup = function(opts)
   for _, cmd in ipairs(cmds) do
     api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
+
+  require("codecompanion.interactions.shared.edited_files").setup()
 
   -- Load the main completion module first to register its autocmds
   require("codecompanion.providers.completion")

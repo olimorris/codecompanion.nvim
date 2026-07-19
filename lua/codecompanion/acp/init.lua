@@ -787,6 +787,7 @@ function Connection:handle_fs_write_file_request(id, params)
   local ok, err = fs.write_text_file(path, content)
   if ok then
     self:send_result(id, vim.NIL)
+    utils.fire("FileEdited", { path = path, tool = (self.adapter and self.adapter.name) or "acp" })
     local info = { path = path, bytes = #content, sessionId = params.sessionId }
     if self._active_prompt and self._active_prompt.handlers and self._active_prompt.handlers.write_text_file then
       pcall(self._active_prompt.handlers.write_text_file, info)

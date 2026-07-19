@@ -60,6 +60,37 @@ T["Core Functionality"]["performs basic single edit"] = function()
   h.eq(output, { "function getFullName() {", "  return 'John Doe';", "}" })
 end
 
+T["Core Functionality"]["fires FileEdited with the first changed line"] = function()
+  child.lua([[
+    local initial = "before\ntarget\nafter"
+    vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+
+    _G.file_edits = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args)
+        table.insert(_G.file_edits, args.data)
+      end,
+    })
+
+    local tool = {{
+      ["function"] = {
+        name = "insert_edit_into_file",
+        arguments = string.format('{"filepath": "%s", "edits": [{"oldText": "target", "newText": "replacement"}]}', _G.TEST_TMPFILE)
+      },
+    }}
+
+    tools:execute(chat, tool)
+    vim.wait(10)
+  ]])
+
+  local edits = child.lua_get("_G.file_edits")
+  h.eq(1, #edits)
+  h.eq(child.lua_get("_G.TEST_TMPFILE"), edits[1].path)
+  h.eq("insert_edit_into_file", edits[1].tool)
+  h.eq(2, edits[1].line)
+end
+
 T["Core Functionality"]["handles multiple sequential edits"] = function()
   child.lua([[
     local initial = "function getName() {\n  return 'John';\n}\n\nfunction getAge() {\n  return 25;\n}"
