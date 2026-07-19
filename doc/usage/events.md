@@ -33,6 +33,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
+- `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat

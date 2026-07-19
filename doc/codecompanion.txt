@@ -3970,6 +3970,11 @@ selection to make a comment. Repeat across as many buffers and lines as you
 like, then share them with a chat with the
 |codecompanion-usage-chat-buffer-editor-context-annotations| context.
 
+To navigate to the files an agent has edited or created, use
+`:CodeCompanionChat Changes` to open them in the quickfix list. Every file the
+LLM touches in your Neovim session is tracked, across chats and the CLI, so you
+can jump between them as you annotate.
+
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
 
@@ -5725,6 +5730,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
+- `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
