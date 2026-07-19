@@ -140,7 +140,7 @@ return {
       local params = {}
       local prompt = {}
       local subcommand = nil
-      local subcommands = { add = true, annotate = true, refreshcache = true, toggle = true }
+      local subcommands = { add = true, annotate = true, changes = true, refreshcache = true, toggle = true }
 
       for _, arg in ipairs(opts.fargs) do
         local key, value = arg:match("^(%w+)=(.+)$")
@@ -257,6 +257,7 @@ return {
             "Toggle",
             "Add",
             "Annotate",
+            "Changes",
             "RefreshCache",
           }
 
