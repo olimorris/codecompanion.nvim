@@ -150,6 +150,8 @@ CodeCompanion.chat = function(args)
   if args.subcommand then
     if args.subcommand == "add" then
       return CodeCompanion.add(args)
+    elseif args.subcommand == "annotate" then
+      return CodeCompanion.annotate(args)
     elseif args.subcommand == "toggle" then
       return CodeCompanion.toggle_chat(args)
     elseif args.subcommand == "refreshcache" then
