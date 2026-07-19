@@ -216,11 +216,22 @@ function Connection:_authenticate()
     if #auth_methods > 0 then
       local wanted = self.adapter_modified.defaults.auth_method
       local method_id
+      local available_method_ids = {}
       for _, m in ipairs(auth_methods) do
+        table.insert(available_method_ids, m.id)
         if m.id == wanted then
           method_id = m.id
           break
         end
+      end
+
+      if wanted and not method_id then
+        log:error(
+          "[acp::_authenticate] Auth method %s is not advertised by the agent; available methods: %s",
+          wanted,
+          table.concat(available_method_ids, ", ")
+        )
+        return false
       end
       method_id = method_id or (auth_methods[1] and auth_methods[1].id)
 
