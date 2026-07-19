@@ -55,7 +55,7 @@ require("codecompanion").setup({
 If you add or modify markdown prompts whilst your Neovim session is running, you can refresh the prompt library to pick up the changes with:
 
 ```
-:CodeCompanionActions refresh
+:CodeCompanionActions Refresh
 ```
 
 ## Creating Prompts

@@ -254,10 +254,13 @@ However, there are multiple options available:
 - `CodeCompanion <prompt>` - Prompt the inline interaction
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline interaction with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item via its alias from the [prompt library](configuration/prompt-library)
+- `CodeCompanionActions Refresh` - Refresh the action palette and any items in the prompt library
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
 - `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat Annotate` - Add a comment to the pending [annotations](/usage/chat-buffer/editor-context#annotations) list
+- `CodeCompanionChat Changes` - Open the quickfix list with all files that have been changed by the LLM
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionCLI` - Open a new CLI interaction

@@ -381,7 +381,7 @@ return {
       range = true,
       nargs = "*",
       complete = function(arg_lead, cmdline, _cursor_pos)
-        return { "refresh" }
+        return { "Refresh" }
       end,
     },
   },
