@@ -327,7 +327,7 @@ function Connection:session_list(opts)
       end
     end
 
-    cursor = result.nextCursor
+    cursor = type(result.nextCursor) == "string" and result.nextCursor or nil
   until not cursor or #all_sessions >= max_sessions
 
   return all_sessions
