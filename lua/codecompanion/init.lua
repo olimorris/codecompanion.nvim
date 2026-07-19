@@ -102,15 +102,25 @@ CodeCompanion.add = function(args)
 
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
-    content = "Here is some code from "
-      .. context.path
-      .. ":\n\n```"
-      .. context.filetype
-      .. "\n"
-      .. content
-      .. "\n```\n",
+    content = string.format(
+      [[Here is some code from %s:
+````%s
+%s
+````
+]],
+      context.path,
+      context.filetype,
+      content
+    ),
   })
   chat.ui:open()
+end
+
+---Annotate the current line or visual selection with a comment for the LLM
+---@param args table
+---@return nil
+CodeCompanion.annotate = function(args)
+  return require("codecompanion.interactions.shared.annotations").create(args)
 end
 
 ---Open a chat buffer and converse with an LLM

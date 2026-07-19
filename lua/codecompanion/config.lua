@@ -684,7 +684,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Toggle auto-approval of tool calls",
+          description = "Toggle YOLO/auto-approval of tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -853,6 +853,13 @@ The user is working on a %s machine. Please respond with system specific command
               "help",
               "terminal",
             },
+          },
+        },
+        ["annotations"] = {
+          path = "interactions.shared.editor_context.annotations",
+          description = "Share your pending annotations with the LLM",
+          opts = {
+            contains_code = true,
           },
         },
         ["buffer"] = {

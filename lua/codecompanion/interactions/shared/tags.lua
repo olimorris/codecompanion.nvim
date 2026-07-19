@@ -1,5 +1,6 @@
 ---@class CodeCompanion.Chat.MessageTags
 local M = {
+  ANNOTATIONS = "annotations",
   BUFFER = "buffer",
   COMPACT_SUMMARY = "compact_summary",
   DIAGNOSTICS = "diagnostics",
