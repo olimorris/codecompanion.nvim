@@ -18,7 +18,7 @@ return {
     },
   },
   defaults = {
-    auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+    auth_method = "api-key", -- "api-key"|"chat-gpt"
     mcpServers = {},
     timeout = 20000, -- 20 seconds
   },
