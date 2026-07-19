@@ -585,6 +585,170 @@ T["ACPHandler"]["handles no connection"] = function()
   h.eq("\\cost", result.content)
 end
 
+T["ACPHandler"]["Edited Files"] = new_set()
+
+T["ACPHandler"]["Edited Files"]["fires FileEdited when an edit tool call completes"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+    chat.add_buf_message = function() end
+
+    local events = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args)
+        table.insert(events, args.data)
+      end,
+    })
+
+    -- Replays the update sequence Claude Code sends for a direct-to-disk edit
+    local id = "toolu_0145UJoLG4Q6dsWnaTu8fr3n"
+    handler:process_tool_call({
+      toolCallId = id,
+      sessionUpdate = "tool_call",
+      status = "pending",
+      title = "Edit",
+      kind = "edit",
+      content = {},
+      locations = {},
+    })
+    handler:process_tool_call({
+      toolCallId = id,
+      sessionUpdate = "tool_call_update",
+      title = "Edit version.txt",
+      kind = "edit",
+      content = {
+        { type = "diff", path = "/tmp/version.txt", oldText = "19.20.0", newText = "19.21.0" },
+      },
+      locations = { { path = "/tmp/version.txt" } },
+    })
+    handler:process_tool_call({
+      toolCallId = id,
+      sessionUpdate = "tool_call_update",
+      content = {
+        { type = "diff", path = "/tmp/version.txt", oldText = "19.20.0", newText = "19.21.0" },
+      },
+      locations = { { path = "/tmp/version.txt", line = 1 } },
+    })
+    handler:process_tool_call({
+      toolCallId = id,
+      sessionUpdate = "tool_call_update",
+      status = "completed",
+      rawOutput = "The file /tmp/version.txt has been updated successfully.",
+    })
+
+    return {
+      event_count = #events,
+      path = events[1] and events[1].path,
+      line = events[1] and events[1].line,
+      tool = events[1] and events[1].tool,
+    }
+  ]])
+
+  h.eq(1, result.event_count)
+  h.eq("/tmp/version.txt", result.path)
+  h.eq(1, result.line)
+  h.eq("test_acp", result.tool)
+end
+
+T["ACPHandler"]["Edited Files"]["falls back to diff content when locations are absent"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+    chat.add_buf_message = function() end
+
+    local events = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args)
+        table.insert(events, args.data)
+      end,
+    })
+
+    handler:process_tool_call({
+      toolCallId = "toolu_diff_only",
+      sessionUpdate = "tool_call",
+      status = "completed",
+      kind = "edit",
+      content = {
+        { type = "diff", path = "/tmp/a.lua", oldText = "a", newText = "b" },
+      },
+    })
+
+    return {
+      event_count = #events,
+      path = events[1] and events[1].path,
+      line = events[1] and events[1].line,
+    }
+  ]])
+
+  h.eq(1, result.event_count)
+  h.eq("/tmp/a.lua", result.path)
+  h.eq(nil, result.line)
+end
+
+T["ACPHandler"]["Edited Files"]["ignores failed edits and non-edit tool calls"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+    chat.add_buf_message = function() end
+
+    local events = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args)
+        table.insert(events, args.data)
+      end,
+    })
+
+    handler:process_tool_call({
+      toolCallId = "toolu_failed",
+      sessionUpdate = "tool_call",
+      status = "failed",
+      kind = "edit",
+      locations = { { path = "/tmp/failed.lua" } },
+    })
+    handler:process_tool_call({
+      toolCallId = "toolu_execute",
+      sessionUpdate = "tool_call",
+      status = "completed",
+      kind = "execute",
+      locations = { { path = "/tmp/executed.lua" } },
+    })
+
+    return #events
+  ]])
+
+  h.eq(0, result)
+end
+
 T["ACPHandler"]["Permission Queue"] = new_set()
 
 T["ACPHandler"]["Permission Queue"]["queues concurrent requests and presents one at a time"] = function()

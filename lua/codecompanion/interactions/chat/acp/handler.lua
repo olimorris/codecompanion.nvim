@@ -48,6 +48,30 @@ local function merge_tool_call(existing, incoming)
   return out
 end
 
+---If a file has been edited, fire an event
+---@param tool_call table The merged tool call
+---@param adapter_name string
+---@return nil
+local function fire_file_edited(tool_call, adapter_name)
+  local fired = {}
+  local function fire(path, line)
+    if type(path) ~= "string" or path == "" or fired[path] then
+      return
+    end
+    fired[path] = true
+    utils.fire("FileEdited", { path = path, tool = adapter_name, line = line })
+  end
+
+  for _, location in ipairs(tool_call.locations or {}) do
+    fire(location.path, location.line)
+  end
+  for _, content in ipairs(tool_call.content or {}) do
+    if content.type == "diff" then
+      fire(content.path)
+    end
+  end
+end
+
 ---Submit payload to ACP and handle streaming response
 ---@param payload table The payload to send to the LLM
 ---@return table|nil Request object or nil on error
@@ -246,6 +270,10 @@ function ACPHandler:process_tool_call(tool_call)
     self.tools[id] = nil
   else
     self.tools[id] = merged
+  end
+
+  if tool_call.status == "completed" and tool_call.kind == "edit" then
+    fire_file_edited(tool_call, self.chat.adapter.name)
   end
 
   -- Pending tool calls are awaiting approval or streaming input, so hold them
