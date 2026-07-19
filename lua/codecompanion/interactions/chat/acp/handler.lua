@@ -52,8 +52,10 @@ end
 ---@param tool_call table The merged tool call
 ---@param adapter_name string
 ---@return nil
-local function fire_file_edited(tool_call, adapter_name)
+local function file_edited(tool_call, adapter_name)
   local fired = {}
+
+  -- Fire an event but only once per file
   local function fire(path, line)
     if type(path) ~= "string" or path == "" or fired[path] then
       return
@@ -273,7 +275,7 @@ function ACPHandler:process_tool_call(tool_call)
   end
 
   if tool_call.status == "completed" and tool_call.kind == "edit" then
-    fire_file_edited(tool_call, self.chat.adapter.name)
+    file_edited(tool_call, self.chat.adapter.name)
   end
 
   -- Pending tool calls are awaiting approval or streaming input, so hold them
