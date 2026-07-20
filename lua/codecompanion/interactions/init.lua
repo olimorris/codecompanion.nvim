@@ -133,7 +133,9 @@ function Interactions:chat()
     return self:workflow()
   end
 
-  local mode = self.buffer_context.mode:lower()
+  -- Prompts are only keyed by "n" and "v"; collapse any other captured mode
+  -- (e.g. picker insert mode leaking through) to normal so the correct branch runs
+  local mode = self.buffer_context.is_visual and "v" or "n"
   local prompts = self.selected.prompts
 
   if type(prompts[mode]) == "function" then

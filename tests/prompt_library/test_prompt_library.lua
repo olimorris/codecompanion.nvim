@@ -270,4 +270,46 @@ T["Prompt Library"]["can ignore system prompt"] = function()
   h.eq(false, has_system_tag)
 end
 
+-- Regression: launching the action palette from a focused chat window captures
+-- the picker's insert mode. The "Chat" prompt table is keyed only by "n" and "v",
+-- so a leaked "i" mode must still resolve to the normal-mode branch rather than
+-- flattening the prompt table into messages with empty roles (which the API rejects).
+T["Prompt Library"]["collapses a leaked mode to normal for n/v keyed prompts"] = function()
+  local has_empty_role = child.lua([[
+    local Interactions = require("codecompanion.interactions")
+    local config = require("codecompanion.config")
+    local selected = {
+      name = "Chat",
+      interaction = "chat",
+      opts = { stop_context_insertion = true },
+      prompts = {
+        n = function()
+          return require("codecompanion").chat()
+        end,
+        v = {
+          {
+            role = config.constants.USER_ROLE,
+            content = "visual prompt",
+          },
+        },
+      },
+    }
+    Interactions.new({
+      buffer_context = { mode = "i", is_visual = false, is_normal = true, filetype = "lua" },
+      selected = selected,
+    }):start("chat")
+
+    local chat = require("codecompanion").last_chat()
+    local has_empty_role = false
+    for _, msg in ipairs(chat.messages) do
+      if msg.role == "" then
+        has_empty_role = true
+      end
+    end
+    return has_empty_role
+  ]])
+
+  h.eq(false, has_empty_role)
+end
+
 return T
