@@ -308,11 +308,27 @@ return {
           m.content = m.content or {}
           for _, call in ipairs(m.tools.calls) do
             local args = call["function"].arguments
+            ---@type table
+            local input = vim.empty_dict()
+            if type(args) == "string" and args ~= "" then
+              local ok, decoded = pcall(vim.json.decode, args)
+              if ok then
+                input = decoded
+              else
+                log:error(
+                  "[Anthropic] Discarding malformed tool_use arguments for tool '%s' (id %s). "
+                    .. "The tool call was likely truncated (e.g. stop_reason=max_tokens). Raw: %s",
+                  call["function"].name,
+                  call.id,
+                  args
+                )
+              end
+            end
             table.insert(m.content, {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
-              input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
+              input = input,
             })
           end
           m.tools = nil
