@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local T = new_set()
 
@@ -138,7 +137,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   local reference = require("tests.adapters.http.stubs.output." .. reference_file)
   h.eq(messages, reference)
 
-  expect.reference_screenshot(
+  h.expect_screenshot(
     child.get_screenshot(),
     "tests/screenshots/adapters/http/tools_chat_buffer_" .. adapter .. "_" .. file
   )
