@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
 
@@ -33,13 +32,13 @@ T["cmds"][":CodeCompanionChat"] = function()
     -- Restore the original function
     h.restore_submit(original)
   ]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["cmds"][":CodeCompanionChat Toggle"] = function()
   child.cmd([[tabnew]])
   child.cmd([[CodeCompanionChat Toggle]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["cmds"]["sticky chat window"] = function()
@@ -58,7 +57,7 @@ T["cmds"]["sticky chat window"] = function()
     vim.cmd("tabnew")
   ]])
 
-  -- expect.reference_screenshot(child.get_screenshot())
+  -- h.expect_screenshot(child.get_screenshot())
   -- window opened
   h.eq(true, child.lua_get("require('codecompanion').last_chat().ui:is_visible()"))
   -- window opened in the current tab (in other words, NOT in NON_CURRENT tab)
@@ -286,17 +285,17 @@ T["cmds_tab"][":CodeCompanionChat opens in tab when set in config"] = function()
     -- Restore the original function
     h.restore_submit(original)
   ]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["cmds_tab"][":CodeCompanionChat Toggle goes to last tab from chat"] = function()
   child.cmd([[CodeCompanionChat Toggle]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["cmds_tab"][":CodeCompanionChat Toggle goes to chat from any other tab"] = function()
   child.cmd([[CodeCompanionChat Toggle]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["cmds_tab"][":CodeCompanionChat Toggle after reopen does not error"] = function()
@@ -346,7 +345,7 @@ T["cmds_tab_sticky"][":CodeCompanionChat doesnt follow if sticky is set"] = func
     -- Open a new tab
     vim.cmd("tabnew")
   ]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["cmds_pertab"] = new_set({
