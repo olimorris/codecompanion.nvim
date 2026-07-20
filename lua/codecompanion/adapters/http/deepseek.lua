@@ -2,6 +2,73 @@ local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
+---Set the format of the role and content for the messages from the chat buffer
+---@param self CodeCompanion.HTTPAdapter
+---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+---@param process_message? fun(msg: table): table|nil Runs against each raw message before merging, e.g. to transform image content. Return nil to drop the message.
+---@return table
+local function build_messages(self, messages, process_message)
+  if process_message then
+    messages = vim.iter(messages):map(process_message):totable()
+  end
+
+  messages = adapter_utils.merge_messages(messages, { "tools", "reasoning" })
+  messages = adapter_utils.merge_system_messages(messages)
+
+  messages = vim
+    .iter(messages)
+    :map(function(msg)
+      -- Ensure that all messages have a content field
+      local content = msg.content
+      if vim.islist(content) then
+        local has_content_block = vim.iter(content):any(function(part)
+          return type(part) == "table"
+        end)
+        if has_content_block then
+          -- Wrap plain strings (e.g. text merged alongside an image) as text content blocks
+          content = vim
+            .iter(content)
+            :map(function(part)
+              if type(part) == "string" then
+                return { type = "text", text = part }
+              end
+              return part
+            end)
+            :totable()
+        else
+          content = table.concat(content, "\n")
+        end
+      elseif not content then
+        content = ""
+      end
+
+      -- Process tool_calls
+      local tool_calls = msg.tools
+        and msg.tools.calls
+        and vim
+          .iter(msg.tools.calls)
+          :map(function(call)
+            return {
+              id = call.id,
+              type = call.type,
+              ["function"] = call["function"],
+            }
+          end)
+          :totable()
+
+      return {
+        role = msg.role,
+        content = content,
+        reasoning_content = msg.role == self.roles.llm and msg.reasoning or nil,
+        tool_calls = tool_calls,
+        tool_call_id = msg.tools and msg.tools.call_id,
+      }
+    end)
+    :totable()
+
+  return { messages = messages }
+end
+
 ---@class CodeCompanion.HTTPAdapter.DeepSeek: CodeCompanion.HTTPAdapter
 return {
   name = "deepseek",
@@ -83,45 +150,7 @@ return {
       ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
       ---@return table
       build_messages = function(self, messages)
-        messages = adapter_utils.merge_messages(messages, { "tools", "reasoning" })
-        messages = adapter_utils.merge_system_messages(messages)
-
-        messages = vim
-          .iter(messages)
-          :map(function(msg)
-            -- Ensure that all messages have a content field
-            local content = msg.content
-            if vim.islist(content) then
-              content = table.concat(content, "\n")
-            elseif not content then
-              content = ""
-            end
-
-            -- Process tool_calls
-            local tool_calls = msg.tools
-              and msg.tools.calls
-              and vim
-                .iter(msg.tools.calls)
-                :map(function(call)
-                  return {
-                    id = call.id,
-                    type = call.type,
-                    ["function"] = call["function"],
-                  }
-                end)
-                :totable()
-
-            return {
-              role = msg.role,
-              content = content,
-              reasoning_content = msg.role == self.roles.llm and msg.reasoning or nil,
-              tool_calls = tool_calls,
-              tool_call_id = msg.tools and msg.tools.call_id,
-            }
-          end)
-          :totable()
-
-        return { messages = messages }
+        return build_messages(self, messages)
       end,
 
       ---Provides the schemas of the tools that are available to the LLM to call
@@ -349,4 +378,5 @@ return {
       },
     },
   },
+  build_messages = build_messages,
 }
