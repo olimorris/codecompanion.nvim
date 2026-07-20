@@ -1,5 +1,6 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local deepseek = require("codecompanion.adapters.http.deepseek")
+local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.HTTPAdapter.DeepSeek: CodeCompanion.HTTPAdapter
 return {
@@ -13,7 +14,7 @@ return {
   opts = {
     stream = true,
     tools = true,
-    vision = false,
+    vision = true,
   },
   features = {
     text = true,
@@ -32,7 +33,12 @@ return {
       ---@param self CodeCompanion.HTTPAdapter
       ---@return boolean
       setup = function(self)
-        return deepseek.handlers.lifecycle.setup(self)
+        deepseek.handlers.lifecycle.setup(self)
+
+        local model_choice = adapter_utils.model_choice(self)
+        self.opts.vision = (model_choice and model_choice.opts and model_choice.opts.has_vision) == true
+
+        return true
       end,
 
       on_exit = function(self, data)
@@ -54,7 +60,22 @@ return {
       ---@param messages table
       ---@return table
       build_messages = function(self, messages)
-        return deepseek.handlers.request.build_messages(self, messages)
+        return deepseek.build_messages(self, messages, function(msg)
+          if msg._meta and msg._meta.tag == tags.IMAGE and msg.context and msg.context.mimetype then
+            if not (self.opts and self.opts.vision) then
+              return nil
+            end
+            msg.content = {
+              {
+                type = "image_url",
+                image_url = {
+                  url = string.format("data:%s;base64,%s", msg.context.mimetype, msg.content),
+                },
+              },
+            }
+          end
+          return msg
+        end)
       end,
 
       ---Provides the schemas of the tools that are available to the LLM to call
@@ -142,7 +163,7 @@ return {
         ["kimi-k3"] = {
           formatted_name = "Kimi K3",
           meta = { context_window = 1048576 },
-          opts = { can_reason = true, can_use_tools = true },
+          opts = { can_reason = true, can_use_tools = true, has_vision = true },
         },
         ["kimi-k2.7-code"] = {
           formatted_name = "Kimi K2.7 Code",
