@@ -614,6 +614,72 @@ T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
   h.eq({ cache_control = { type = "ephemeral" }, messages = expected }, result)
 end
 
+T["Anthropic adapter"]["form_messages"]["tolerates malformed tool_use arguments without crashing"] = function()
+  local messages = {
+    {
+      role = "user",
+      content = "What's the weather like in London?",
+    },
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              -- Truncated JSON: an outbound request would previously raise E5108 here
+              arguments = '{"ops":[{"kind":"insert"',
+              name = "insert_edit_into_file",
+            },
+            id = "toolu_truncated",
+            type = "function",
+          },
+        },
+      },
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  local tool_block = result.messages[2].content[1]
+  h.eq("tool_use", tool_block.type)
+  h.eq("toolu_truncated", tool_block.id)
+  h.eq("insert_edit_into_file", tool_block.name)
+  h.eq(vim.empty_dict(), tool_block.input)
+end
+
+T["Anthropic adapter"]["form_messages"]["decodes well-formed tool_use arguments"] = function()
+  local messages = {
+    {
+      role = "user",
+      content = "What's the weather like in London?",
+    },
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            _index = 1,
+            ["function"] = {
+              arguments = '{"location": "London, UK", "units": "celsius"}',
+              name = "weather",
+            },
+            id = "toolu_valid",
+            type = "function",
+          },
+        },
+      },
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  local tool_block = result.messages[2].content[1]
+  h.eq("tool_use", tool_block.type)
+  h.eq("toolu_valid", tool_block.id)
+  h.eq({ location = "London, UK", units = "celsius" }, tool_block.input)
+end
+
 T["Anthropic adapter"]["form_messages"]["includes compaction block from previous response"] = function()
   local messages = {
     {
