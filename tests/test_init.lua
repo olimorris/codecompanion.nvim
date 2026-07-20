@@ -1,7 +1,6 @@
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
-local expect = MiniTest.expect
 local child = MiniTest.new_child_neovim()
 
 T = new_set()
@@ -141,7 +140,7 @@ T["cli()"]["prompt=true opens the input buffer"] = function()
     vim.cmd("enew")
     require("codecompanion").cli({ prompt = true })
   ]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 --=============================================================================
