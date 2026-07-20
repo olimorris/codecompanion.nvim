@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local child = MiniTest.new_child_neovim()
 local new_set = MiniTest.new_set
 
@@ -644,7 +643,7 @@ T["Context"]["does not fold single context item but applies extmark"] = function
     })
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T
