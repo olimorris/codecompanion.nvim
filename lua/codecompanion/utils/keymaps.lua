@@ -1,4 +1,4 @@
--- Taken from:
+-- Part taken from:
 -- https://github.com/stevearc/oil.nvim/blob/master/lua/oil/keymap_util.lua
 
 ---@class CodeCompanion.Keymaps
@@ -6,6 +6,7 @@
 ---@field callbacks table The callbacks to execute for each keymap
 ---@field data table The CodeCompanion class
 ---@field keymaps table The keymaps from the user's config
+---@field Override CodeCompanion.Keymaps.Override
 
 ---Get the current position of the cursor when the keymap was triggered
 ---@return table
@@ -115,5 +116,69 @@ function Keymaps:set(opts)
     ::continue::
   end
 end
+
+--[[
+  Overrides keymaps in a buffer, storing any mappings so they can be restored later
+--]]
+
+---@class CodeCompanion.Keymaps.Override
+---@field bufnr number The buffer the keymaps are applied to
+---@field bound string[] The lhs of each overridden keymap, in the order they were set
+---@field overwritten table<string, table|false> The mappings that were replaced, keyed by lhs
+local Override = {}
+
+---@param bufnr number
+---@return CodeCompanion.Keymaps.Override
+function Override.new(bufnr)
+  return setmetatable({ bufnr = bufnr, bound = {}, overwritten = {} }, { __index = Override }) ---@type CodeCompanion.Keymaps.Override
+end
+
+---Set a normal-mode keymap on the buffer, remembering any mapping it replaces
+---@param lhs string
+---@param rhs string|function
+---@param opts? { desc?: string }
+---@return nil
+function Override:set(lhs, rhs, opts)
+  if self.overwritten[lhs] == nil then
+    self.overwritten[lhs] = false
+    for _, map in ipairs(vim.api.nvim_buf_get_keymap(self.bufnr, "n")) do
+      if map.lhs == lhs then
+        self.overwritten[lhs] = map
+        break
+      end
+    end
+  end
+
+  opts = vim.tbl_extend("force", { buffer = self.bufnr, nowait = true, silent = true }, opts or {})
+  vim.keymap.set("n", lhs, rhs, opts)
+  table.insert(self.bound, lhs)
+end
+
+---Remove the overridden keymaps and restore any mappings they replaced
+---@return nil
+function Override:restore()
+  for _, lhs in ipairs(self.bound) do
+    pcall(vim.keymap.del, "n", lhs, { buffer = self.bufnr })
+
+    local saved = self.overwritten[lhs]
+    if saved then
+      local rhs = saved.callback
+      if not rhs and saved.rhs and saved.rhs ~= "" then
+        rhs = saved.rhs
+      end
+      if rhs then
+        pcall(vim.keymap.set, "n", lhs, rhs, {
+          buffer = self.bufnr,
+          desc = saved.desc,
+          expr = saved.expr == 1,
+          nowait = saved.nowait == 1,
+          silent = saved.silent == 1,
+        })
+      end
+    end
+  end
+end
+
+Keymaps.Override = Override
 
 return Keymaps
