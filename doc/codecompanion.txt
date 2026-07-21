@@ -1868,8 +1868,8 @@ GITHUB COPILOT FREE/STUDENT
 If you are a Copilot Student or Copilot Free user, you have access to models
 "through auto model selection only"
 <https://docs.github.com/en/copilot/reference/ai-models/supported-models#supported-ai-models-per-copilot-plan>.
-By default, Copilot should work out of the box, but if you want to explicitly
-set it up, you can do so as follows:
+By default, Copilot should work out of the box but you can explicitly select
+the `auto` model as follows:
 
 >lua
     require("codecompanion").setup({
