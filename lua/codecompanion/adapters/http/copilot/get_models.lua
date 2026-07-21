@@ -1,10 +1,6 @@
 local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local token = require("codecompanion.adapters.http.copilot.token")
 
-local CONSTANTS = {
-  AUTO_MODEL = "auto",
-}
-
 local M = {}
 
 ---@class CopilotModels
@@ -50,7 +46,7 @@ local models_source = {
   end,
 }
 
----GitHub picks the model on our behalf; capabilities are assumed to match the best available model
+---Allow the model to be automatically selected by Copilot
 ---@type CopilotModels
 local auto_model = {
   formatted_name = "Auto",
@@ -70,7 +66,7 @@ function M.choices(adapter, opts)
 
   if opts and opts.async == false then
     result = result or {}
-    result[CONSTANTS.AUTO_MODEL] = result[CONSTANTS.AUTO_MODEL] or auto_model
+    result["auto"] = result["auto"] or auto_model
     return result
   end
 
@@ -79,7 +75,7 @@ function M.choices(adapter, opts)
     return nil
   end
 
-  result[CONSTANTS.AUTO_MODEL] = result[CONSTANTS.AUTO_MODEL] or auto_model
+  result["auto"] = result["auto"] or auto_model
   return result
 end
 
