@@ -187,7 +187,14 @@ return {
 
     --- Use the OpenAI adapter for the bulk of the work
     form_parameters = function(self, params, messages)
-      return handlers(self).form_parameters(self, params, messages)
+      local result = handlers(self).form_parameters(self, params, messages)
+
+      -- GitHub picks the model on our behalf, so it must be omitted from the request
+      if result and self.model and self.model.name == "auto" then
+        result.model = nil
+      end
+
+      return result
     end,
     form_messages = function(self, messages)
       for _, m in ipairs(messages) do
@@ -406,7 +413,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5.4-mini",
+      default = "auto",
       ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
       choices = function(self, opts)
         opts = opts or {}

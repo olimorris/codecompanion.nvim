@@ -219,6 +219,22 @@ T["Copilot adapter"]["it can form tools to be sent to the API"] = function()
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
+T["Copilot adapter"]["omits the model from the request payload when set to auto"] = function()
+  adapter.model.name = "auto"
+
+  local result = adapter.handlers.form_parameters(adapter, { model = "auto" }, {})
+
+  h.eq(nil, result.model)
+end
+
+T["Copilot adapter"]["includes the model in the request payload when not set to auto"] = function()
+  adapter.model.name = "gpt-5.4-mini"
+
+  local result = adapter.handlers.form_parameters(adapter, { model = "gpt-5.4-mini" }, {})
+
+  h.eq("gpt-5.4-mini", result.model)
+end
+
 T["Copilot adapter"]["forms reasoning output"] = function()
   local messages = {
     {
