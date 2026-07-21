@@ -396,6 +396,25 @@ require("codecompanion").setup({
 }),
 ```
 
+### GitHub Copilot Free/Student
+
+If you are a Copilot Student or Copilot Free user, you have access to models ["through auto model selection only"](https://docs.github.com/en/copilot/reference/ai-models/supported-models#supported-ai-models-per-copilot-plan). By default, Copilot should work out of the box, but if you want to explicitly set it up, you can do so as follows:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "copilot",
+      model = "auto"
+    },
+    inline = {
+      adapter = "copilot",
+      model = "auto"
+    },
+  },
+})
+```
+
 ### llama.cpp with `--reasoning-format deepseek`
 
 ```lua
