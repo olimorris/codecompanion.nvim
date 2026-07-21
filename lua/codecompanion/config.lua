@@ -15,6 +15,7 @@ local defaults = {
       anthropic = "anthropic",
       azure_openai = "azure_openai",
       copilot = "copilot",
+      copilot_free = "copilot_free",
       deepseek = "deepseek",
       gemini = "gemini",
       gemini_interactions = "gemini_interactions",
