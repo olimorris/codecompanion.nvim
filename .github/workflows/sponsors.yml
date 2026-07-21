@@ -23,6 +23,7 @@ jobs:
       - name: Create Pull Request 🚀
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.SPONSORS_TOKEN }}
           commit-message: "docs: update sponsors in README.md"
           title: "docs: update sponsors in README.md"
           labels: "ignore-for-release"
