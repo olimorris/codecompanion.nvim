@@ -138,6 +138,7 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `stop`: `q` to stop the current request
 
 - `change_adapter`: `ga` to change the adapter for the current chat
+- `change_effort`: `ge` to change the reasoning effort for the current model
 - `clear`: `gx` to clear the chat buffer’s contents
 - `copilot_stats`: `gS` to show copilot usage stats
 - `btw`: `gm` type a message to the LLM whilst it's streaming
