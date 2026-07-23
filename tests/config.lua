@@ -81,6 +81,31 @@ return {
       },
     },
     background = {},
+    -- Tests submit chats with the cwd inside the real repo, so never snapshot it
+    code_review = {
+      enabled = false,
+      -- Pinned here so the keymap tests stay independent of the shipped defaults
+      keymaps = {
+        accept = {
+          modes = { n = "a" },
+          callback = "keymaps.accept",
+          description = "Accept the hunk under the cursor",
+        },
+        comment = {
+          modes = { n = "c" },
+          callback = "keymaps.comment",
+          description = "Comment on the hunk under the cursor",
+        },
+        ignore = {
+          modes = { n = "x" },
+          callback = "keymaps.ignore",
+          description = "Ignore the hunk's file until the baseline advances",
+        },
+      },
+      opts = {
+        storage_dir = vim.fs.joinpath(vim.fn.tempname(), "codecompanion", "code_review"),
+      },
+    },
     chat = {
       adapter = "test_adapter",
       roles = {

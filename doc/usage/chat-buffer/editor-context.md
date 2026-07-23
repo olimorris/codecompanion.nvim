@@ -19,17 +19,6 @@ Editor context uses the `#{context}` syntax to dynamically insert content into y
 > [!IMPORTANT]
 > With the exception of `#{buffer}` and `#{buffers}`, editor context captures a point-in-time snapshot when your message is sent. If the underlying data changes (e.g. new diagnostics, a different quickfix list), simply use the context again in a new message to share the latest state.
 
-## #annotations
-
-The _annotations_ context shares any pending annotations you've made across your buffers. Use `:CodeCompanionChat Annotate` over a line or visual selection to leave a comment for the LLM. These can then be shared with your LLM by using `#{annotations}` in any open chat buffer.
-
-```md
-Sharing my #{annotations} with you for review and to make any necessary changes
-```
-
-> [!NOTE]
-> Annotations are cleared after being shared with the LLM. You can use them once per message cycle.
-
 ## #buffer
 
 > [!NOTE]
@@ -75,6 +64,17 @@ The _buffers_ context shares all currently open buffers with the LLM. Buffers wi
 ```md
 #{buffers} can you explain what's going on in these files?
 ```
+
+## #code_review
+
+The _code_review_ context shares your [code review](/usage/code-review) with an LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment` is sent when you submit the chat buffer and the review baseline advances so the next review only shows what changes in the next iteration.
+
+```md
+Sharing my review. Please action every comment #{code_review}
+```
+
+> [!NOTE]
+> Sharing your review clears the pending comments. Like a PR review, submitting it also approves everything you didn't comment on.
 
 ## #diagnostics
 

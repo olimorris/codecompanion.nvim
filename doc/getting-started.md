@@ -259,7 +259,6 @@ However, there are multiple options available:
 - `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
 - `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
-- `CodeCompanionChat Annotate` - Add a comment to the pending [annotations](/usage/chat-buffer/editor-context#annotations) list
 - `CodeCompanionChat Changes` - Open the quickfix list with all files that have been changed by the LLM
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
@@ -268,6 +267,8 @@ However, there are multiple options available:
 - `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
 - `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
 - `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
+- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for a [code review](/usage/code-review)
+- `CodeCompanionCodeReview Comment` - Leave a review comment on the current line or visual selection
 
 ## Suggested Plugin Workflow
 

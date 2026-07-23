@@ -1,8 +1,8 @@
 ---@class CodeCompanion.Chat.MessageTags
 local M = {
-  ANNOTATIONS = "annotations",
   BUFFER = "buffer",
   COMPACT_SUMMARY = "compact_summary",
+  CODE_REVIEW = "review",
   DIAGNOSTICS = "diagnostics",
   DIFF = "diff",
   DOCUMENT = "document",
