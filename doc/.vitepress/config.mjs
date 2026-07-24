@@ -183,6 +183,7 @@ export default withMermaid(
             { text: "Adapters - HTTP", link: "/configuration/adapters-http" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
             { text: "CLI", link: "/configuration/cli" },
+            { text: "Code Reviews", link: "/configuration/code-reviews" },
             { text: "Extensions", link: "/configuration/extensions" },
             {
               text: "Inline",
@@ -222,6 +223,7 @@ export default withMermaid(
               ],
             },
             { text: "CLI", link: "/usage/cli" },
+            { text: "Code Reviews", link: "/usage/code-reviews" },
             { text: "Events", link: "/usage/events" },
             { text: "Inline", link: "/usage/inline" },
             { text: "Prompt Library", link: "/usage/prompt-library" },

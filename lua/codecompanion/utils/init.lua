@@ -13,11 +13,14 @@ end
 ---Notify the user
 ---@param msg string
 ---@param level? number|string
+---@param opts? table
 ---@return nil
-function M.notify(msg, level)
+function M.notify(msg, level, opts)
+  opts = opts or {}
   level = level or vim.log.levels.INFO
+
   return vim.notify(msg, level, {
-    title = "CodeCompanion",
+    title = opts.title or "CodeCompanion",
   })
 end
 

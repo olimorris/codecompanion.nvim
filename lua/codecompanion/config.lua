@@ -835,6 +835,29 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
     },
+    code_review = {
+      enabled = true,
+      keymaps = {
+        accept = {
+          modes = { n = "a" },
+          callback = "keymaps.accept",
+          description = "Accept the hunk under the cursor",
+        },
+        comment = {
+          modes = { n = "c" },
+          callback = "keymaps.comment",
+          description = "Comment on the hunk under the cursor",
+        },
+        ignore = {
+          modes = { n = "x" },
+          callback = "keymaps.ignore",
+          description = "Ignore the hunk's file until the baseline advances",
+        },
+      },
+      opts = {
+        storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
+      },
+    },
     shared = {
       editor_context = {
         opts = {
@@ -850,13 +873,6 @@ The user is working on a %s machine. Please respond with system specific command
               "help",
               "terminal",
             },
-          },
-        },
-        ["annotations"] = {
-          path = "interactions.shared.editor_context.annotations",
-          description = "Share your pending annotations with the LLM",
-          opts = {
-            contains_code = true,
           },
         },
         ["buffer"] = {
@@ -875,6 +891,13 @@ The user is working on a %s machine. Please respond with system specific command
             contains_code = true,
             default_params = "diff", -- all|diff
             has_params = true,
+          },
+        },
+        ["code_review"] = {
+          path = "interactions.shared.editor_context.code_review",
+          description = "Share your pending code review comments with the LLM",
+          opts = {
+            contains_code = true,
           },
         },
         ["diagnostics"] = {
