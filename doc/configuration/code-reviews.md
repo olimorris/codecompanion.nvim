@@ -1,16 +1,16 @@
-# Code Review
+# Configuring Code Reviews
 
 CodeCompanion supports code reviews, based loosely on GitHub's pull requests. Find out how they work in the [usage guide](/usage/code-review).
 
-## Enabling
+## Disabling
 
-By default, code reviews are disabled. To enable them:
+To disable code reviews, set `enabled` to `false`:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     code_review = {
-      enabled = true,
+      enabled = false,
     },
   },
 })
@@ -60,3 +60,20 @@ require("codecompanion").setup({
   },
 })
 ```
+
+## Storage Location
+
+You can change the default storage location for code review assets with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    code_review = {
+      opts = {
+        storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
+      },
+    },
+  },
+})
+```
+

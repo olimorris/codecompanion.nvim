@@ -15,7 +15,7 @@ doc/configuration/adapters-acp.md
 doc/configuration/adapters-http.md
 doc/configuration/chat-buffer.md
 doc/configuration/cli.md
-doc/configuration/code-review.md
+doc/configuration/code-reviews.md
 doc/configuration/inline.md
 doc/configuration/mcp.md
 doc/configuration/rules.md
@@ -35,7 +35,7 @@ doc/usage/chat-buffer/editor-context.md
 doc/usage/chat-buffer/rules.md
 doc/usage/chat-buffer/slash-commands.md
 doc/usage/cli.md
-doc/usage/code-review.md
+doc/usage/code-reviews.md
 doc/usage/events.md
 doc/usage/inline.md
 doc/usage/prompt-library.md

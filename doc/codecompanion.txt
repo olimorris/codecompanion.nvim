@@ -39,7 +39,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
   - Command-Line Interface (CLI)|codecompanion-configuration-command-line-interface-(cli)|
-  - Code Review                      |codecompanion-configuration-code-review|
+  - Code Reviews                    |codecompanion-configuration-code-reviews|
   - Inline Interaction        |codecompanion-configuration-inline-interaction|
   - MCP Servers                      |codecompanion-configuration-mcp-servers|
   - Rules                                  |codecompanion-configuration-rules|
@@ -56,7 +56,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Rules                                          |codecompanion-usage-rules|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Command-Line Interface (CLI)|codecompanion-usage-command-line-interface-(cli)|
-  - Code Review                              |codecompanion-usage-code-review|
+  - Code Reviews                            |codecompanion-usage-code-reviews|
   - Events / Hooks                        |codecompanion-usage-events-/-hooks|
   - Inline Interaction                |codecompanion-usage-inline-interaction|
   - Prompt Library                        |codecompanion-usage-prompt-library|
@@ -2336,21 +2336,6 @@ stack:
 <
 
 
-CODE REVIEW ~
-
-Baseline tracking for a |codecompanion-usage-code-review| can be enabled with:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        code_review = {
-          enabled = true,
-        },
-      },
-    })
-<
-
-
 CONTEXT MANAGEMENT ~
 
 CodeCompanion can manage context in the chat buffer to try and prevent
@@ -3067,21 +3052,21 @@ You can also pass `width` and `height` overrides via the Lua API:
 <
 
 
-CODE REVIEW                          *codecompanion-configuration-code-review*
+CODE REVIEWS                        *codecompanion-configuration-code-reviews*
 
 CodeCompanion supports code reviews, based loosely on GitHub's pull requests.
 Find out how they work in the |codecompanion-usage-code-review|.
 
 
-ENABLING ~
+DISABLING ~
 
-By default, code reviews are disabled. To enable them:
+To disable code reviews, set `enabled` to `false`:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         code_review = {
-          enabled = true,
+          enabled = false,
         },
       },
     })
@@ -3128,6 +3113,23 @@ To disable a keymap:
           keymaps = {
             -- Disable the ignore keymap
             ignore = false,
+          },
+        },
+      },
+    })
+<
+
+
+STORAGE LOCATION ~
+
+You can change the default storage location for code review assets with:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          opts = {
+            storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
           },
         },
       },
@@ -5803,11 +5805,11 @@ OPTIONS
                                                         window height
   -----------------------------------------------------------------------
 
-CODE REVIEW                                  *codecompanion-usage-code-review*
+CODE REVIEWS                                *codecompanion-usage-code-reviews*
 
-A common friction point for senior developers working with agents is how they
-adequately review the changes that are made. To that end, CodeCompanion lets
-you review an agent's edits the way you'd review a pull request
+A common friction point for senior developers working with agents is how can
+they adequately review their changes. To that end, CodeCompanion lets you
+review an agent's edits the way you'd review a pull request
 <https://docs.github.com/en/pull-requests/reference/pull-request-reviews> on
 GitHub. You can step through every change, leave comments in place and submit
 them back to the agent to address. It works with CodeCompanion's own tools, ACP

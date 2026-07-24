@@ -2,9 +2,9 @@
 description: "Review an agent's changes in Neovim like a pull request — step through every hunk, leave comments in place, and submit them all to the LLM in one go."
 ---
 
-# Code Review
+# Using Code Reviews
 
-A common friction point for senior developers working with agents is how they adequately review the changes that are made. To that end, CodeCompanion lets you review an agent's edits the way you'd review a [pull request](https://docs.github.com/en/pull-requests/reference/pull-request-reviews) on GitHub. You can step through every change, leave comments in place and submit them back to the agent to address. It works with CodeCompanion's own tools, ACP agents, and even CLI agents like Claude Code running outside of Neovim.
+A common friction point for senior developers working with agents is how can they adequately review their changes. To that end, CodeCompanion lets you review an agent's edits the way you'd review a [pull request](https://docs.github.com/en/pull-requests/reference/pull-request-reviews) on GitHub. You can step through every change, leave comments in place and submit them back to the agent to address. It works with CodeCompanion's own tools, ACP agents, and even CLI agents like Claude Code running outside of Neovim.
 
 ## How It Works
 
