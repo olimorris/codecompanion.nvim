@@ -366,6 +366,26 @@ T["Review"]["comment from the quickfix list targets the hunk"] = function()
   h.eq(1, pending[1].end_line)
 end
 
+T["Review"]["open_diff hands the hunk under the cursor to the configured provider"] = function()
+  child.lua([[
+    config.interactions.code_review.opts.diff.provider = function(target)
+      captured = target
+    end
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
+    write("a.lua", { "local a = 10" })
+
+    review.open()
+    review.open_diff()
+  ]])
+
+  h.eq("a.lua", child.lua_get("captured.path"))
+  h.eq(1, child.lua_get("captured.line"))
+  h.eq(child.lua_get("baseline.alias()"), child.lua_get("captured.baseline_ref"))
+  h.is_true(child.lua_get("captured.id ~= nil"))
+end
+
 T["Review"]["open sets the review keymaps in the quickfix window"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
@@ -377,11 +397,16 @@ T["Review"]["open sets the review keymaps in the quickfix window"] = function()
     mapped = vim.tbl_map(function(map)
       return map.lhs
     end, vim.api.nvim_buf_get_keymap(0, "n"))
+
+    unmapped = {}
+    for name, keymap in pairs(config.interactions.code_review.keymaps) do
+      if not vim.list_contains(mapped, keymap.modes.n) then
+        table.insert(unmapped, name)
+      end
+    end
   ]])
 
-  h.is_true(child.lua_get([[vim.list_contains(mapped, "a")]]))
-  h.is_true(child.lua_get([[vim.list_contains(mapped, "c")]]))
-  h.is_true(child.lua_get([[vim.list_contains(mapped, "x")]]))
+  h.eq({}, child.lua_get("unmapped"))
 end
 
 T["Review"]["keymaps release when another list takes over the quickfix"] = function()
@@ -395,15 +420,21 @@ T["Review"]["keymaps release when another list takes over the quickfix"] = funct
     vim.fn.setqflist({}, " ", { title = "grep", items = { { text = "hit" } } })
   ]])
 
-  child.type_keys("a")
+  child.type_keys(child.lua_get("config.interactions.code_review.keymaps.accept.modes.n"))
 
   child.lua([[
     mapped = vim.tbl_map(function(map)
       return map.lhs
     end, vim.api.nvim_buf_get_keymap(0, "n"))
+
+    still_mapped = {}
+    for name, keymap in pairs(config.interactions.code_review.keymaps) do
+      if vim.list_contains(mapped, keymap.modes.n) then
+        table.insert(still_mapped, name)
+      end
+    end
   ]])
-  h.is_true(child.lua_get([[not vim.list_contains(mapped, "a")]]))
-  h.is_true(child.lua_get([[not vim.list_contains(mapped, "c")]]))
+  h.eq({}, child.lua_get("still_mapped"))
   h.eq(0, child.lua_get("#notifications"))
 end
 
@@ -414,17 +445,19 @@ T["Review"]["keymaps restore the mapping they replaced"] = function()
     store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 10" })
 
+    accept_key = config.interactions.code_review.keymaps.accept.modes.n
+
     vim.cmd.copen()
-    vim.keymap.set("n", "a", "j", { buffer = 0, desc = "the user's own map" })
+    vim.keymap.set("n", accept_key, "j", { buffer = 0, desc = "the user's own map" })
     review.open()
     vim.fn.setqflist({}, " ", { title = "grep", items = { { text = "hit" } } })
   ]])
 
-  child.type_keys("a")
+  child.type_keys(child.lua_get("accept_key"))
 
   child.lua([[
     user_map = vim.iter(vim.api.nvim_buf_get_keymap(0, "n")):find(function(map)
-      return map.lhs == "a"
+      return map.lhs == accept_key
     end)
   ]])
   h.eq("the user's own map", child.lua_get("user_map.desc"))

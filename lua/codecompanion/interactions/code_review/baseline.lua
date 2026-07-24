@@ -86,6 +86,33 @@ local function sync_alias(root, ref)
   end
 end
 
+---The stable ref that always follows the current baseline, for gitsigns/diffview
+---@return string
+function M.alias()
+  return CONSTANTS.REF_ALIAS
+end
+
+---Show a file's contents at the baseline
+---@param root string
+---@param path string A path relative to the root
+---@return string[]
+function M.show(root, path)
+  local ok, result = pcall(function()
+    return vim.system({ "git", "show", ref_for(root) .. ":" .. path }, { cwd = root, text = true }):wait()
+  end)
+
+  if not ok or result.code ~= 0 then
+    return {}
+  end
+
+  local lines = vim.split(result.stdout or "", "\n")
+  if lines[#lines] == "" then
+    table.remove(lines)
+  end
+
+  return lines
+end
+
 ---Return the baseline commit sha, if one exists
 ---@param root string
 ---@return string|nil

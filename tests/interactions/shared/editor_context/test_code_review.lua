@@ -54,6 +54,23 @@ T["Editor context"]["chat_render adds a hidden message and drains the comments"]
   h.eq(0, child.lua_get("#review.pending()"))
 end
 
+T["Editor context"]["chat_render writes the comments into the chat buffer for the user to read"] = function()
+  child.lua([[
+    chat = h.setup_chat_buffer()
+    config.interactions.code_review.opts.storage_dir = storage_dir
+    store.add_comment(repo, { comment = "Handle the nil case", code = "local x = 1", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
+    store.add_comment(repo, { comment = "Rename these", code = "local y = 2", filetype = "lua", path = "b.lua", start_line = 4, end_line = 6 })
+
+    require("codecompanion.interactions.shared.editor_context.code_review").new({ Chat = chat }):chat_render()
+    buffer = table.concat(vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, false), "\n")
+  ]])
+
+  local buffer = child.lua_get("buffer")
+  h.expect_contains("````markdown", buffer)
+  h.expect_contains("a.lua:1\nHandle the nil case", buffer)
+  h.expect_contains("b.lua:4-6\nRename these", buffer)
+end
+
 T["Editor context"]["chat_render adds nothing when there are no comments"] = function()
   child.lua([[
     chat = h.setup_chat_buffer()
@@ -64,6 +81,14 @@ T["Editor context"]["chat_render adds nothing when there are no comments"] = fun
   ]])
 
   h.eq(child.lua_get("message_count"), child.lua_get("#chat.messages"))
+end
+
+T["Editor context"]["replace swaps the tag for a phrase that reads as English"] = function()
+  local replaced = child.lua_get([[
+    require("codecompanion.interactions.shared.editor_context.code_review").replace("#", "Can you action #{code_review}?")
+  ]])
+
+  h.eq("Can you action my comments from the code review, which I've attached?", replaced)
 end
 
 T["Editor context"]["cli_render returns the formatted block and drains the comments"] = function()

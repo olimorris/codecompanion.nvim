@@ -96,6 +96,11 @@ return {
           callback = "keymaps.comment",
           description = "Comment on the hunk under the cursor",
         },
+        diff = {
+          modes = { n = "d" },
+          callback = "keymaps.diff",
+          description = "Diff the hunk under the cursor against the baseline",
+        },
         ignore = {
           modes = { n = "x" },
           callback = "keymaps.ignore",

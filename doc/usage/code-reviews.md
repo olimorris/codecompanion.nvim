@@ -47,24 +47,26 @@ Submitting a review advances the baseline, so the next review only shows what th
 
 ## Workflow
 
+> [!NOTE]
+> You can use `:CodeCompanionCodeReview Comment` to add a comment to any line or selection without following the workflow below. Sharing with an agent via `#{code_review}`
+
 CodeCompanion's code review workflow has been loosely designed around GitHub's  [pull request review](https://docs.github.com/en/pull-requests/reference/pull-request-reviews). The full workflow is:
 
-1. Ask an agent to make changes, via the [chat](/usage/chat-buffer/index), the [CLI](/usage/cli) interaction or in outside of Neovim
-2. `:CodeCompanionCodeReview` sends every change to the quickfix list (`:h quickfix`), one entry per hunk, with line numbers. Use `All` to widen the list to every change since the baseline - your own edits and previously accepted hunks included
-3. Step through the changes with `:cnext` or `]q`
+1. An agent makes changes to your codebase, via the [chat](/usage/chat-buffer/index), the [CLI](/usage/cli) interaction or even outside Neovim
+2. `:CodeCompanionCodeReview` sends every change to the quickfix list (`:h quickfix`), one entry per hunk, with line numbers. Append `All` to widen the list to every change since the baseline including your own edits and previously accepted hunks
+3. Step through the changes in the quickfix with Vim's native keymaps (`:cnext` or `]q`). Press `d` on a hunk to see it as a diff against the baseline
 4. Use `:CodeCompanionCodeReview Comment` to leave feedback on a line or a visual selection
-5. Use `:CodeCompanionCodeReview Accept` to drop the hunk from the list and keep it out of future reviews, or `Ignore` to drop the file's hunks altogether - useful for lockfiles and generated code
-6. You can send your comments to the agent by using the [#{code_review}](/usage/chat-buffer/editor-context#code_review) editor context, or approve all the agent's changes with `:CodeCompanionCodeReview Approve`, which advances the baseline:
+5. Use `:CodeCompanionCodeReview Accept` to drop the hunk from the quickfix list, keeping it out of future reviews, or `Ignore` to drop the file's hunks altogether. This will be reset when the baseline advances
+6. You can send your comments to the agent by using the [code_review](/usage/chat-buffer/editor-context#code-review) editor context, or approve all the agent's changes with `:CodeCompanionCodeReview Approve`, which advances the baseline:
 
-```
+```md
 Please action #{code_review}
 ```
 
-Sharing your comments with `#{code_review}` resets the comments and advances the baseline, so the next review only shows what the agent changed in response. If you stepped through and had nothing to say, there's nothing for `#{code_review}` to send - end a clean review with `:CodeCompanionCodeReview Approve` instead.
+Using `#{code_review}` resets the comments and advances the baseline, so the next review only shows what the agent changed in response. If you stepped through and had nothing to say, there's nothing for `#{code_review}` to send. You can end a clean review with `:CodeCompanionCodeReview Approve` instead.
 
-7. If you need to edit any comments you've made, you can do so with `:CodeCompanionCodeReview Comments`
-8. If you're working with an agent outside of Neovim, you can use `:CodeCompanionCodeReview Share` to submit your comments to a file and copy its path to your clipboard. The agent can then read the file and respond to your feedback
-
+7. If you need to edit any comments you've made, execute `:CodeCompanionCodeReview Comments`
+8. If you're working with an agent outside of Neovim, you can use `:CodeCompanionCodeReview Share` to send your comments to a file and copy its path to your clipboard. The agent can then read the file and respond to your feedback
 
 ## Commands
 
@@ -84,17 +86,15 @@ Sharing your comments with `#{code_review}` resets the comments and advances the
 
 CodeCompanion sets keymaps in the quickfix window when you start a review.
 
-
 | Keymap | Description |
 | --- | --- |
 | `a` | Accept the hunk under the cursor |
 | `c` | Comment on the hunk under the cursor |
+| `d` | Diff the hunk under the cursor  |
 | `x` | Ignore the hunk's file until the baseline advances |
 
 
-## Editing Review Comments
-
-Prior to sending your review, you can edit your comments in place with `:CodeCompanionCodeReview Comments`. To retract a comment, delete its section; to amend one, edit the prose. The file is the source of truth, so anything you change there is what gets submitted.
+Of course, you still have the default Vim keymaps in the quickfix such as `[q` / `]q` to step through the hunks, and `:copen` / `:cclose` to open and close the quickfix window.
 
 ## Working in the CLI
 
@@ -119,22 +119,6 @@ The `All` scope is needed because CodeCompanion can only attribute changes to an
 > The review file's path is static, at a repository level. Therefore, in a `CLAUDE.md` or `AGENTS.md` file you can reference this file, only needing to do `:CodeCompanionCodeReview Share` to advance the baseline.
 
 If the agent runs in CodeCompanion's own [CLI interaction](/usage/cli), steps 1-4 are the same, but you can submit with `#{code_review}` directly in the prompt instead of `Share`.
-
-## Using `gitsigns` or `diffview`
-
-Because the baseline is a real git ref, plugins that render diffs can point to it. With [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim):
-
-```vim
-:Gitsigns change_base refs/worktree/codecompanion/baseline true
-```
-
-The sign column now marks exactly the agent's changes, and `]c` / `[c` steps through them with inline previews. With [diffview.nvim](https://github.com/sindrets/diffview.nvim), a full side-by-side review:
-
-```vim
-:DiffviewOpen refs/worktree/codecompanion/baseline
-```
-
-The ref name is stable, and always follows the baseline for the branch you're on.
 
 ## Without Git
 

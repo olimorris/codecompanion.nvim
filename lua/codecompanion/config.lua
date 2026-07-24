@@ -848,6 +848,11 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.comment",
           description = "Comment on the hunk under the cursor",
         },
+        diff = {
+          modes = { n = "d" },
+          callback = "keymaps.diff",
+          description = "Diff the hunk under the cursor against the baseline",
+        },
         ignore = {
           modes = { n = "x" },
           callback = "keymaps.ignore",
@@ -855,6 +860,11 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
       opts = {
+        diff = {
+          enabled = true, -- Disable to bring your own diff plugin, pointed at the baseline ref
+          layout = "vertical", -- vertical|horizontal
+          provider = "native", -- "native"|fun(target: CodeCompanion.CodeReview.DiffTarget)
+        },
         storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
       },
     },

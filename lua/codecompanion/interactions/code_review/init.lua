@@ -1,5 +1,6 @@
 local baseline = require("codecompanion.interactions.code_review.baseline")
 local config = require("codecompanion.config")
+local diff = require("codecompanion.interactions.code_review.diff")
 local files = require("codecompanion.utils.files")
 local input = require("codecompanion.interactions.shared.input")
 local keymaps = require("codecompanion.interactions.code_review.keymaps")
@@ -59,8 +60,8 @@ local function add_comment(context)
   })
 end
 
----Review the entry in the quickfix list
----@return table|nil entry, number index, table list
+---The review hunk under the cursor in the quickfix list, with its place in it
+---@return { entry: table, index: number, list: table }?
 local function get_qf_entry()
   local list = vim.fn.getqflist({ idx = 0, items = true })
 
@@ -71,20 +72,22 @@ local function get_qf_entry()
 
   local entry = list.items[index]
   if not (entry and type(entry.user_data) == "table" and entry.user_data.code_review_hunk) then
-    return notify("No review hunk under the cursor", vim.log.levels.WARN)
+    notify("No review hunk under the cursor", vim.log.levels.WARN)
+    return
   end
 
-  return entry, index, list
+  return { entry = entry, index = index, list = list }
 end
 
 ---Comment on the hunk under the cursor in the quickfix list
 ---@return nil
 local function comment_on_entry()
-  local entry = get_qf_entry()
-  if not entry then
+  local selected = get_qf_entry()
+  if not selected then
     return
   end
 
+  local entry = selected.entry
   local filename = api.nvim_buf_get_name(entry.bufnr)
 
   -- The review diffs the files on disk, so read the commented line from there too
@@ -103,15 +106,16 @@ end
 
 ---Advance the baseline so only changes made from now on appear in a review
 ---@param root string
----@return nil
+---@return boolean success Whether the baseline moved; state is kept intact when the snapshot fails
 local function advance_baseline(root)
-  if baseline.get_root() then
-    baseline.snapshot(root)
+  if baseline.get_root() and not baseline.snapshot(root) then
+    return false
   end
   store.clear_edited(root)
   store.clear_accepted(root)
   store.clear_ignored(root)
   keymaps.restore()
+  return true
 end
 
 ---Replace the review quickfix list, keeping the cursor on a nearby entry
@@ -195,7 +199,11 @@ function M.approve()
     notify(fmt("%d pending comment(s) kept", pending), vim.log.levels.WARN)
   end
 
-  advance_baseline(root)
+  if not advance_baseline(root) then
+    notify("Could not advance the baseline", vim.log.levels.ERROR)
+    return
+  end
+
   notify("Baseline set. Tracking agent changes from here")
 end
 
@@ -207,12 +215,13 @@ function M.open(opts)
 
   local root = baseline.get_root()
   if not root then
-    -- Handle for non it repos
+    -- Without git there's no baseline, so fall back to the files edited this session
     return require("codecompanion.interactions.shared.edited_files").to_quickfix()
   end
 
   if not baseline.get(root) then
-    return notify("No edits to review yet", vim.log.levels.WARN)
+    notify("No edits to review yet", vim.log.levels.WARN)
+    return
   end
 
   local paths = nil
@@ -257,28 +266,49 @@ function M.open(opts)
   keymaps.set(api.nvim_get_current_buf())
 end
 
----Accept the current quickfix hunk, keeping it out of the review from now on
+---Diff the hunk under the cursor against the baseline
 ---@return nil
-function M.accept()
-  local entry, index, list = get_qf_entry()
-  if not entry then
+function M.open_diff()
+  local selected = get_qf_entry()
+  if not selected then
     return
   end
 
-  store.accept(get_storage_root(), entry.user_data.code_review_hunk)
+  local entry = selected.entry
+  local root = get_storage_root()
+  local filename = api.nvim_buf_get_name(entry.bufnr)
+  diff.show({
+    root = root,
+    path = vim.fs.relpath(root, filename) or filename,
+    baseline_ref = baseline.alias(),
+    line = entry.lnum,
+    id = entry.user_data.code_review_hunk,
+  })
+end
 
-  table.remove(list.items, index)
-  replace_quickfix(list.items, index)
+---Accept the current quickfix hunk, keeping it out of the review from now on
+---@return nil
+function M.accept()
+  local selected = get_qf_entry()
+  if not selected then
+    return
+  end
+
+  store.accept(get_storage_root(), selected.entry.user_data.code_review_hunk)
+
+  table.remove(selected.list.items, selected.index)
+  replace_quickfix(selected.list.items, selected.index)
 end
 
 ---Ignore the current hunk's file until the baseline advances
 ---@return nil
 function M.ignore()
-  local entry, index, list = get_qf_entry()
-  if not entry then
+  local selected = get_qf_entry()
+  if not selected then
     return
   end
 
+  local entry = selected.entry
   local root = get_storage_root()
   local path = vim.fs.relpath(root, api.nvim_buf_get_name(entry.bufnr))
   if not path then
@@ -291,8 +321,8 @@ function M.ignore()
   replace_quickfix(
     vim.tbl_filter(function(item)
       return item.bufnr ~= entry.bufnr
-    end, list.items),
-    index
+    end, selected.list.items),
+    selected.index
   )
 end
 
@@ -310,7 +340,7 @@ end
 
 ---@return nil
 function M.setup()
-  if config.interactions.code_review.disabled then
+  if not config.interactions.code_review.enabled then
     return
   end
 

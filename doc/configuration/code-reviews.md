@@ -16,6 +16,38 @@ require("codecompanion").setup({
 })
 ```
 
+## Diff View
+
+Pressing `d` on a hunk shows it as a diff against the baseline. Everything about that view lives under `opts.diff`:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    code_review = {
+      opts = {
+        diff = {
+          enabled = true, -- Set to false to render nothing, especially if you're using your own provider
+          layout = "vertical", -- vertical or horizontal
+          provider = "native", -- "native": Neovim's own diff (default), or a function to render the hunk yourself
+        },
+      },
+    },
+  },
+})
+```
+
+If you don't wish to use the `native` provider, you can set a custom function. A function provider receives the hunk to render:
+
+```lua
+provider = function(target)
+  -- target = { root, path, baseline_ref, line, id }
+  vim.cmd("DiffviewOpen " .. target.baseline_ref .. " -- " .. target.path)
+end,
+```
+
+`baseline_ref` is the stable `refs/worktree/codecompanion/baseline` alias, so the same value works with `gitsigns`, `diffview`, or any git-diff plugin.
+
+
 ## Keymaps
 
 Keymaps are bound solely to the code review's quickfix window. The default keymaps are:
@@ -34,6 +66,11 @@ require("codecompanion").setup({
           modes = { n = "c" },
           callback = "keymaps.comment",
           description = "Comment on the hunk under the cursor",
+        },
+        diff = {
+          modes = { n = "d" },
+          callback = "keymaps.diff",
+          description = "Diff the hunk under the cursor against the baseline",
         },
         ignore = {
           modes = { n = "x" },

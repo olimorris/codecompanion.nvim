@@ -41,6 +41,9 @@ M.accept = {
 M.comment = {
   callback = review_action("comment"),
 }
+M.diff = {
+  callback = review_action("open_diff"),
+}
 M.ignore = {
   callback = review_action("ignore"),
 }
