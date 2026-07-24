@@ -267,7 +267,7 @@ However, there are multiple options available:
 - `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
 - `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
 - `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
-- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for a [code review](/usage/code-review)
+- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for [code reviews](/usage/code-reviews)
 - `CodeCompanionCodeReview Comment` - Leave a review comment on the current line or visual selection
 
 ## Suggested Plugin Workflow

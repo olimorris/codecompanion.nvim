@@ -49,7 +49,7 @@ Submitting a review advances the baseline, so the next review only shows what th
 
 CodeCompanion's code review workflow has been loosely designed around GitHub's  [pull request review](https://docs.github.com/en/pull-requests/reference/pull-request-reviews). The full workflow is:
 
-1. Ask an agent to make changes, via the [chat](/usage/chat-buffer), the [CLI](/usage/cli) interaction or in outside of Neovim
+1. Ask an agent to make changes, via the [chat](/usage/chat-buffer/index), the [CLI](/usage/cli) interaction or in outside of Neovim
 2. `:CodeCompanionCodeReview` sends every change to the quickfix list (`:h quickfix`), one entry per hunk, with line numbers. Use `All` to widen the list to every change since the baseline - your own edits and previously accepted hunks included
 3. Step through the changes with `:cnext` or `]q`
 4. Use `:CodeCompanionCodeReview Comment` to leave feedback on a line or a visual selection

@@ -67,7 +67,7 @@ The _buffers_ context shares all currently open buffers with the LLM. Buffers wi
 
 ## #code_review
 
-The _code_review_ context shares your [code review](/usage/code-review) with an LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment` is sent when you submit the chat buffer and the review baseline advances so the next review only shows what changes in the next iteration.
+The _code_review_ context shares your [code reviews](/usage/code-reviews) with an LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment` is sent when you submit the chat buffer and the review baseline advances so the next review only shows what changes in the next iteration.
 
 ```md
 Sharing my review. Please action every comment #{code_review}

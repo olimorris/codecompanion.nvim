@@ -1,6 +1,6 @@
 # Configuring Code Reviews
 
-CodeCompanion supports code reviews, based loosely on GitHub's pull requests. Find out how they work in the [usage guide](/usage/code-review).
+CodeCompanion supports code reviews, based loosely on GitHub's pull requests. Find out how they work in the [usage guide](/usage/code-reviews).
 
 ## Disabling
 

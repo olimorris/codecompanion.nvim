@@ -12,7 +12,7 @@ The [@insert_edit_into_file](/usage/chat-buffer/agents-tools#files) tool, combin
 
 ## Code review an LLM/agent's changes
 
-You can [review an LLM or agent's changes](/usage/code-review) like a pull request. `:CodeCompanionCodeReview` opens every change in the quickfix list, one entry per hunk. You can step through them, leave in place comments with `:CodeCompanionCodeReview Comment` and then share the review in a chat buffer with the [#{code_review}](/usage/chat-buffer/editor-context#code_review) context.
+You can [review an LLM or agent's changes](/usage/code-reviews) like a pull request. `:CodeCompanionCodeReview` opens every change in the quickfix list, one entry per hunk. You can step through them, leave in place comments with `:CodeCompanionCodeReview Comment` and then share the review in a chat buffer with the [#{code_review}](/usage/chat-buffer/editor-context#code_review) context.
 
 To navigate to the files an agent has edited or created, use `:CodeCompanionChat Changes` to open them in the quickfix list. Every file the LLM touches in your Neovim session is tracked, across chats and the CLI.
 
