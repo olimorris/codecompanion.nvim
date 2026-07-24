@@ -9,6 +9,7 @@ concurrency:
 
 jobs:
   tests:
+    if: ${{ !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease') && !contains(join(github.event.pull_request.labels.*.name, ','), 'ignore-for-release') }}
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +22,6 @@ jobs:
 
     steps:
       - name: Checkout 📋
-        if: ${{ !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease') && !contains(join(github.event.pull_request.labels.*.name, ','), 'ignore-for-release') }}
         uses: actions/checkout@v6
 
       - name: Install Tree-sitter 🌳
