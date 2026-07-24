@@ -1,5 +1,25 @@
 # Changelog
 
+## [19.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.20.0...v19.21.0) (2026-07-21)
+
+
+### Features
+
+* **adapters:** add `kimi` adapter ([#3230](https://github.com/olimorris/codecompanion.nvim/issues/3230)) ([7b352a9](https://github.com/olimorris/codecompanion.nvim/commit/7b352a9a680d72dd0b4b1e52c3a411f9ec9d7751))
+* **adapters:** add vision support to `kimi` ([#3247](https://github.com/olimorris/codecompanion.nvim/issues/3247)) ([cb63fa3](https://github.com/olimorris/codecompanion.nvim/commit/cb63fa31804369db308c5c1c62486c6884d98e3b))
+* **adapters:** change default copilot model to `auto` ([#3252](https://github.com/olimorris/codecompanion.nvim/issues/3252)) ([d34edce](https://github.com/olimorris/codecompanion.nvim/commit/d34edce7227e8ed5801c333839dc0ca7ea271caa))
+* **chat:** annotate and track edited files ([#3237](https://github.com/olimorris/codecompanion.nvim/issues/3237)) ([bf78cb6](https://github.com/olimorris/codecompanion.nvim/commit/bf78cb68a7f39756793c1061c64fd8dff5541be0))
+* **tools:** improve `ask_questions` tool ([#3248](https://github.com/olimorris/codecompanion.nvim/issues/3248)) ([16ebfa4](https://github.com/olimorris/codecompanion.nvim/commit/16ebfa4ab5c81dd9aa8ab31daa7d9d21dca41113))
+
+
+### Bug Fixes
+
+* **acp:** `codex` authentication method IDs ([#3238](https://github.com/olimorris/codecompanion.nvim/issues/3238)) ([dbadf44](https://github.com/olimorris/codecompanion.nvim/commit/dbadf44f12061dea4502a9db5b1d5611488a542d))
+* **acp:** normalize session/list responses ([#3240](https://github.com/olimorris/codecompanion.nvim/issues/3240)) ([15f39ba](https://github.com/olimorris/codecompanion.nvim/commit/15f39ba587154a97c912284646c1bd076b55a3be))
+* **chat:** track edits from acp adapters ([#3239](https://github.com/olimorris/codecompanion.nvim/issues/3239)) ([fda1e96](https://github.com/olimorris/codecompanion.nvim/commit/fda1e96830b30d1dd5761f7b97a6ffe4600b161d))
+* consistency of four markdown backticks ([#3235](https://github.com/olimorris/codecompanion.nvim/issues/3235)) ([123cebb](https://github.com/olimorris/codecompanion.nvim/commit/123cebbc76f2ad673a0c37b43922a131ed9a2347))
+* **tools:** auto-approve `run_command` tool ([#3246](https://github.com/olimorris/codecompanion.nvim/issues/3246)) ([31b0291](https://github.com/olimorris/codecompanion.nvim/commit/31b0291b2b7819587c91d8f028ab006e1976b76a))
+
 ## [19.20.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.19.0...v19.20.0) (2026-07-17)
 
 
