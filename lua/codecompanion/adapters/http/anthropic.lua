@@ -801,7 +801,8 @@ return {
       enabled = function(self)
         local model = adapter_utils.model(self)
         if
-          vim.tbl_contains({ "claude-opus-4-7", "claude-opus-4-8" }, model) or vim.startswith(model, "claude-fable")
+          vim.tbl_contains({ "claude-opus-4-7", "claude-opus-4-8", "claude-opus-5", "claude-sonnet-5" }, model)
+          or vim.startswith(model, "claude-fable")
         then
           return false
         end
