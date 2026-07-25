@@ -5,6 +5,10 @@ local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
+local CONSTANTS = {
+  EDITOR_CONTEXT_TAG = "{code_review}",
+}
+
 ---@class CodeCompanion.EditorContext.CodeReview: CodeCompanion.EditorContext
 local EditorContext = {}
 
@@ -18,6 +22,16 @@ function EditorContext.new(args)
   }, { __index = EditorContext })
 
   return self
+end
+
+---Format a comment's file and line range, as `path:1` or `path:1-4`
+---@param comment CodeCompanion.CodeReview.Comment
+---@return string
+local function location(comment)
+  if comment.start_line == comment.end_line then
+    return fmt("%s:%d", comment.path, comment.start_line)
+  end
+  return fmt("%s:%d-%d", comment.path, comment.start_line, comment.end_line)
 end
 
 ---Format a code review comment into a `<comment>` block
@@ -52,6 +66,20 @@ local function format_all(comments)
   return "Here are the comments from my code review:\n\n" .. table.concat(blocks, "\n\n")
 end
 
+---Format the comments for the user to read back in the chat buffer
+---@param comments CodeCompanion.CodeReview.Comment[]
+---@return string
+local function format_for_buffer(comments)
+  local blocks = {}
+  for _, comment in ipairs(comments) do
+    table.insert(blocks, fmt("%s\n%s", location(comment), comment.comment))
+  end
+
+  -- Leading break because add_buf_message continues the line the user's message ended on.
+  -- Fenced so a comment's own markdown can't bleed into the chat buffer's formatting.
+  return fmt("\n\n````markdown\n%s\n````", table.concat(blocks, "\n\n"))
+end
+
 ---Render in the chat interaction
 ---@return nil
 function EditorContext:chat_render()
@@ -64,6 +92,24 @@ function EditorContext:chat_render()
     role = config.constants.USER_ROLE,
     content = format_all(comments),
   }, { _meta = { source = "editor_context", tag = tags.CODE_REVIEW }, visible = false })
+
+  self.Chat:add_buf_message({
+    role = config.constants.USER_ROLE,
+    content = format_for_buffer(comments),
+  }, { type = self.Chat.MESSAGE_TYPES.USER_MESSAGE })
+end
+
+---Replace the editor context tag in the message
+---@param prefix string
+---@param message string
+---@return string
+function EditorContext.replace(prefix, message)
+  local replacement = config.interactions.shared.editor_context.code_review.opts.replacement
+
+  message = message:gsub(prefix .. CONSTANTS.EDITOR_CONTEXT_TAG .. "{[^}]*}", replacement)
+  message = message:gsub(prefix .. CONSTANTS.EDITOR_CONTEXT_TAG, replacement)
+
+  return message
 end
 
 ---Render in the CLI interaction

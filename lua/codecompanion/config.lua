@@ -908,6 +908,7 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Share your pending code review comments with the LLM",
           opts = {
             contains_code = true,
+            replacement = "my comments from the code review, which I've attached",
           },
         },
         ["diagnostics"] = {
