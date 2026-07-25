@@ -27,7 +27,7 @@ end
 ---Format a comment's file and line range, as `path:1` or `path:1-4`
 ---@param comment CodeCompanion.CodeReview.Comment
 ---@return string
-local function location(comment)
+local function format_file_loc(comment)
   if comment.start_line == comment.end_line then
     return fmt("%s:%d", comment.path, comment.start_line)
   end
@@ -72,11 +72,9 @@ end
 local function format_for_buffer(comments)
   local blocks = {}
   for _, comment in ipairs(comments) do
-    table.insert(blocks, fmt("%s\n%s", location(comment), comment.comment))
+    table.insert(blocks, fmt("%s\n%s", format_file_loc(comment), comment.comment))
   end
 
-  -- Leading break because add_buf_message continues the line the user's message ended on.
-  -- Fenced so a comment's own markdown can't bleed into the chat buffer's formatting.
   return fmt("\n\n````markdown\n%s\n````", table.concat(blocks, "\n\n"))
 end
 
