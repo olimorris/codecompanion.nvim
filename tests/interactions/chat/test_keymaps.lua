@@ -12,6 +12,7 @@ T["Keymaps"] = new_set({
         h = require('tests.helpers')
         config = require("tests.config")
         change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
+        change_effort = require("codecompanion.interactions.chat.keymaps.change_effort")
       ]])
     end,
     post_once = child.stop,
@@ -192,6 +193,141 @@ T["Keymaps"]["change_adapter"]["list_acp_models returns nil when < 2 models"] = 
   ]])
 
   h.expect_truthy(result)
+end
+
+T["Keymaps"]["change_effort"] = new_set()
+
+T["Keymaps"]["change_effort"]["find_effort_schema discovers the `effort` key"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    local adapter = {
+      type = "http",
+      schema = {
+        effort = { enabled = function() return true end, choices = { "low", "high" } },
+      },
+    }
+    local key = change_effort.find_effort_schema(adapter)
+    return key
+  ]])
+
+  h.eq(result, "effort")
+end
+
+T["Keymaps"]["change_effort"]["find_effort_schema discovers the nested `reasoning.effort` key"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    local adapter = {
+      type = "http",
+      schema = {
+        ["reasoning.effort"] = { enabled = function() return true end, choices = { "low", "high" } },
+      },
+    }
+    return change_effort.find_effort_schema(adapter)
+  ]])
+
+  h.eq(result, "reasoning.effort")
+end
+
+T["Keymaps"]["change_effort"]["find_effort_schema returns nil when the schema entry is disabled"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    local adapter = {
+      type = "http",
+      schema = {
+        effort = { enabled = function() return false end, choices = { "low", "high" } },
+      },
+    }
+    return change_effort.find_effort_schema(adapter) == nil
+  ]])
+
+  h.expect_truthy(result)
+end
+
+T["Keymaps"]["change_effort"]["find_effort_schema returns nil when no effort key exists"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    local adapter = { type = "http", schema = { model = { default = "x" } } }
+    return change_effort.find_effort_schema(adapter) == nil
+  ]])
+
+  h.expect_truthy(result)
+end
+
+T["Keymaps"]["change_effort"]["callback applies the selected level to a flat key"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    vim.ui.select = function(items, opts, on_choice)
+      on_choice("xhigh")
+    end
+    local chat = {
+      adapter = {
+        type = "http",
+        schema = { effort = { enabled = function() return true end, choices = { "low", "high", "xhigh" } } },
+      },
+      settings = {},
+    }
+    change_effort.callback(chat)
+    return chat.settings.effort
+  ]])
+
+  h.eq(result, "xhigh")
+end
+
+T["Keymaps"]["change_effort"]["callback applies the selected level to a nested key"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    vim.ui.select = function(items, opts, on_choice)
+      on_choice("medium")
+    end
+    local chat = {
+      adapter = {
+        type = "http",
+        schema = { ["reasoning.effort"] = { enabled = function() return true end, choices = { "low", "medium" } } },
+      },
+      settings = {},
+    }
+    change_effort.callback(chat)
+    return chat.settings.reasoning.effort
+  ]])
+
+  h.eq(result, "medium")
+end
+
+T["Keymaps"]["change_effort"]["callback marks the current level with an asterisk"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    local marked
+    vim.ui.select = function(items, opts, on_choice)
+      marked = opts.format_item("high")
+    end
+    local chat = {
+      adapter = {
+        type = "http",
+        schema = { effort = { enabled = function() return true end, choices = { "low", "high" } } },
+      },
+      settings = { effort = "high" },
+    }
+    change_effort.callback(chat)
+    return marked
+  ]])
+
+  h.eq(result, "* high")
+end
+
+T["Keymaps"]["change_effort"]["callback does not open the picker when effort is unsupported"] = function()
+  local result = child.lua([[
+    h.setup_plugin()
+    local opened = false
+    vim.ui.select = function() opened = true end
+    local chat = {
+      adapter = { type = "http", schema = { model = { default = "x" } } },
+      settings = {},
+    }
+    change_effort.callback(chat)
+    return opened
+  ]])
+
+  h.eq(result, false)
 end
 
 return T

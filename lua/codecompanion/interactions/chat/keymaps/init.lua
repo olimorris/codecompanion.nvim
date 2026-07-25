@@ -564,6 +564,13 @@ M.change_adapter = {
   end,
 }
 
+M.change_effort = {
+  desc = "Change the reasoning effort",
+  callback = function(chat)
+    return require("codecompanion.interactions.chat.keymaps.change_effort").callback(chat)
+  end,
+}
+
 M.fold_code = {
   callback = function(chat)
     chat.ui:fold_code()

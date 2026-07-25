@@ -972,6 +972,47 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
   )
 end
 
+T["Anthropic adapter"]["form_parameters"] = new_set()
+
+---Point the adapter at a model whose choices carry the given opts, so model_choice resolves them
+local function stub_model(name, opts)
+  adapter.schema.model.default = name
+  adapter.schema.model.choices = { [name] = { opts = opts } }
+end
+
+T["Anthropic adapter"]["form_parameters"]["sets output_config.effort for supported levels"] = function()
+  stub_model(
+    "claude-sonnet-5",
+    { can_reason = true, reasoning = { supported = { "low", "medium", "high", "xhigh", "max" } } }
+  )
+  adapter.temp.effort = "xhigh"
+
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+
+  h.eq({ effort = "xhigh" }, params.output_config)
+end
+
+T["Anthropic adapter"]["form_parameters"]["drops effort the model does not support"] = function()
+  stub_model("claude-sonnet-4-6", { can_reason = true, reasoning = { supported = { "low", "medium", "high", "max" } } })
+  adapter.temp.effort = "xhigh"
+
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+
+  h.eq(nil, params.output_config)
+end
+
+T["Anthropic adapter"]["form_parameters"]["leaves output_config unset when no effort is chosen"] = function()
+  stub_model(
+    "claude-sonnet-5",
+    { can_reason = true, reasoning = { supported = { "low", "medium", "high", "xhigh", "max" } } }
+  )
+  adapter.temp.effort = nil
+
+  local params = adapter.handlers.form_parameters(adapter, {}, {})
+
+  h.eq(nil, params.output_config)
+end
+
 T["Anthropic model_transformers"] = new_set()
 
 T["Anthropic model_transformers"]["from_anthropic() transforms the stubbed model list"] = function()
@@ -990,6 +1031,7 @@ T["Anthropic model_transformers"]["from_anthropic() transforms the stubbed model
   h.eq({ context_window = 1000000, max_tokens = 128000 }, result["claude-sonnet-5"].meta)
   h.eq(true, result["claude-sonnet-5"].opts.can_reason)
   h.eq(true, result["claude-sonnet-5"].opts.has_vision)
+  h.eq({ "low", "medium", "high", "xhigh", "max" }, result["claude-sonnet-5"].opts.reasoning.supported)
 
   -- Supports context_management as a whole, including compact_20260112
   h.eq(true, result["claude-sonnet-5"].opts.can_manage_context)

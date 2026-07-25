@@ -168,6 +168,14 @@ return {
         end
       end
 
+      -- Effort controls how many tokens Claude spends across thinking, text, and tool
+      -- calls. It lives at output_config.effort in the request body, not on `thinking`.
+      -- Ref: https://platform.claude.com/docs/en/build-with-claude/effort
+      local supported_efforts = models and models.opts and models.opts.reasoning and models.opts.reasoning.supported
+      if self.temp.effort and supported_efforts and vim.tbl_contains(supported_efforts, self.temp.effort) then
+        params.output_config = vim.tbl_deep_extend("force", params.output_config or {}, { effort = self.temp.effort })
+      end
+
       return params
     end,
 
@@ -773,8 +781,38 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    max_tokens = {
+    effort = {
       order = 5,
+      mapping = "temp",
+      type = "string",
+      optional = true,
+      desc = "Controls how many tokens Claude spends on the response, including thinking and tool calls. Higher effort favours thoroughness; lower effort favours speed and cost.",
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return string
+      default = function(self)
+        local models = adapter_utils.model_choice(self)
+        local supported = models and models.opts and models.opts.reasoning and models.opts.reasoning.supported
+        if supported and vim.tbl_contains(supported, "high") then
+          return "high"
+        end
+        return supported and supported[1] or "high"
+      end,
+      ---@param self CodeCompanion.HTTPAdapter
+      enabled = function(self)
+        local models = adapter_utils.model_choice(self)
+        return not not (models and models.opts and models.opts.reasoning and models.opts.reasoning.supported)
+      end,
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return string[]
+      choices = function(self)
+        local models = adapter_utils.model_choice(self)
+        local supported = models and models.opts and models.opts.reasoning and models.opts.reasoning.supported
+        return supported or { "low", "medium", "high", "xhigh", "max" }
+      end,
+    },
+    ---@type CodeCompanion.Schema
+    max_tokens = {
+      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -792,7 +830,7 @@ return {
     },
     ---@type CodeCompanion.Schema
     temperature = {
-      order = 6,
+      order = 7,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -813,7 +851,7 @@ return {
     },
     ---@type CodeCompanion.Schema
     top_p = {
-      order = 7,
+      order = 8,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -825,7 +863,7 @@ return {
     },
     ---@type CodeCompanion.Schema
     top_k = {
-      order = 8,
+      order = 9,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -837,7 +875,7 @@ return {
     },
     ---@type CodeCompanion.Schema
     stop_sequences = {
-      order = 9,
+      order = 10,
       mapping = "parameters",
       type = "list",
       optional = true,
