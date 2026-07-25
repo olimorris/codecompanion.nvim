@@ -107,6 +107,12 @@ return {
           description = "Ignore the hunk's file until the baseline advances",
         },
       },
+      display = {
+        virtual_text = {
+          enabled = true,
+          icon = "💬 ",
+        },
+      },
       opts = {
         storage_dir = vim.fs.joinpath(vim.fn.tempname(), "codecompanion", "code_review"),
       },
@@ -422,6 +428,14 @@ return {
           description = "Share all open buffers with the LLM",
           opts = {
             contains_code = true,
+          },
+        },
+        ["code_review"] = {
+          path = "interactions.shared.editor_context.code_review",
+          description = "Share your pending code review comments with the LLM",
+          opts = {
+            contains_code = true,
+            replacement = "my comments from the code review, which I've attached",
           },
         },
         ["foo"] = {

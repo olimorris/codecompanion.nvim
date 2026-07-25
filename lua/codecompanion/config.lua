@@ -859,12 +859,19 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Ignore the hunk's file until the baseline advances",
         },
       },
-      opts = {
+      display = {
         diff = {
           enabled = true, -- Disable to bring your own diff plugin, pointed at the baseline ref
           layout = "vertical", -- vertical|horizontal
           provider = "native", -- "native"|fun(target: CodeCompanion.CodeReview.DiffTarget)
         },
+        virtual_text = {
+          enabled = true, -- Show pending comments as virtual text in the buffer
+          icon = "💬 ", -- The icon to use for virtual text
+          overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
+        },
+      },
+      opts = {
         storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
       },
     },

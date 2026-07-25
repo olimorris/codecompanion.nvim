@@ -91,6 +91,21 @@ T["Editor context"]["replace swaps the tag for a phrase that reads as English"] 
   h.eq("Can you action my comments from the code review, which I've attached?", replaced)
 end
 
+T["Editor context"]["a chat message tagged with #{code_review} carries the comments to the LLM"] = function()
+  child.lua([[
+    chat = h.setup_chat_buffer()
+    config.interactions.code_review.opts.storage_dir = storage_dir
+    store.add_comment(repo, { comment = "Handle the nil case", code = "local x = 1", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
+
+    message = { role = "user", content = "Can you action #{code_review}?" }
+    chat:replace_user_inputs(message)
+  ]])
+
+  h.eq("Can you action my comments from the code review, which I've attached?", child.lua_get("message.content"))
+  h.expect_contains("Handle the nil case", child.lua_get("chat.messages[#chat.messages].content"))
+  h.eq(0, child.lua_get("#review.pending()"))
+end
+
 T["Editor context"]["cli_render returns the formatted block and drains the comments"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "Handle the nil case", code = "local x = 1", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })

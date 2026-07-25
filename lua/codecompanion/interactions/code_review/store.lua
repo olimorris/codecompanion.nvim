@@ -43,7 +43,7 @@ end
 
 ---@param path string
 ---@return nil
-local function remove(path)
+local function delete(path)
   if files.exists(path) then
     files.delete(path)
   end
@@ -181,11 +181,29 @@ function M.add_comment(root, comment)
   files.write_to_path(path, existing .. separator .. format(comment) .. "\n")
 end
 
----Remove all pending comments for a repo
+---Write the pending comments to disk, or, delete the file if there are none
+---@param root string
+---@param comments CodeCompanion.CodeReview.Comment[]
+---@return nil
+function M.write_comments(root, comments)
+  local path = M.comments_path(root)
+  if #comments == 0 then
+    return delete(path)
+  end
+
+  local blocks = {}
+  for _, comment in ipairs(comments) do
+    table.insert(blocks, format(comment))
+  end
+
+  files.write_to_path(path, table.concat(blocks, "\n") .. "\n")
+end
+
+---Delete all pending comments for a repo
 ---@param root string
 ---@return nil
 function M.clear_comments(root)
-  remove(M.comments_path(root))
+  delete(M.comments_path(root))
 end
 
 ---The path of the last submitted review for a repo
@@ -241,7 +259,7 @@ end
 ---@param root string
 ---@return nil
 function M.clear_edited(root)
-  remove(edited_files_path(root))
+  delete(edited_files_path(root))
 end
 
 local accepted_path = branch_file("accepted.txt")
@@ -265,7 +283,7 @@ end
 ---@param root string
 ---@return nil
 function M.clear_accepted(root)
-  remove(accepted_path(root))
+  delete(accepted_path(root))
 end
 
 local ignored_files_path = branch_file("ignored_files.txt")
@@ -289,7 +307,7 @@ end
 ---@param root string
 ---@return nil
 function M.clear_ignored(root)
-  remove(ignored_files_path(root))
+  delete(ignored_files_path(root))
 end
 
 return M

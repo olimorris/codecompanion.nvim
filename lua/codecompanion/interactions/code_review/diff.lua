@@ -20,6 +20,11 @@ local panes = { baseline = nil, active = nil }
 
 local M = {}
 
+---@return table
+local function opts()
+  return config.interactions.code_review.display.diff
+end
+
 ---@param win number?
 ---@return boolean
 local function is_open(win)
@@ -55,9 +60,7 @@ local function render_baseline(lines, path)
   if is_open(panes.baseline) then
     api.nvim_set_current_win(panes.baseline)
   else
-    vim.cmd(
-      config.interactions.code_review.opts.diff.layout == "horizontal" and "aboveleft split" or "leftabove vsplit"
-    )
+    vim.cmd(opts().layout == "horizontal" and "aboveleft split" or "leftabove vsplit")
     panes.baseline = api.nvim_get_current_win()
   end
 
@@ -97,12 +100,11 @@ end
 ---@param target CodeCompanion.CodeReview.DiffTarget
 ---@return nil
 function M.show(target)
-  local opts = config.interactions.code_review.opts.diff
-  if not opts.enabled then
+  if not opts().enabled then
     return
   end
-  if type(opts.provider) == "function" then
-    return opts.provider(target)
+  if type(opts().provider) == "function" then
+    return opts().provider(target)
   end
 
   return M.native(target)

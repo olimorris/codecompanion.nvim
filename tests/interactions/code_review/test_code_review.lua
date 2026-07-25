@@ -368,7 +368,8 @@ end
 
 T["Review"]["open_diff hands the hunk under the cursor to the configured provider"] = function()
   child.lua([[
-    config.interactions.code_review.opts.diff.provider = function(target)
+    -- NOTE: Why is this so tightly coupled to the config?!
+    config.interactions.code_review.display.diff.provider = function(target)
       captured = target
     end
     write("a.lua", { "local a = 1" })

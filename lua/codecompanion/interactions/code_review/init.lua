@@ -6,6 +6,7 @@ local input = require("codecompanion.interactions.shared.input")
 local keymaps = require("codecompanion.interactions.code_review.keymaps")
 local log = require("codecompanion.utils.log")
 local store = require("codecompanion.interactions.code_review.store")
+local ui = require("codecompanion.interactions.code_review.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -20,10 +21,7 @@ local function notify(message, level)
   return utils.notify(message, level or vim.log.levels.INFO, { title = "CodeCompanion Code Review" })
 end
 
----@return string
-local function get_storage_root()
-  return baseline.get_root() or vim.fs.normalize(vim.uv.cwd() or "")
-end
+local get_storage_root = baseline.storage_root
 
 ---Fetch the context of where the use is commenting in the buffer
 ---@param bufnr number
@@ -55,7 +53,33 @@ local function add_comment(context)
     on_submit = function(comment)
       local root = get_storage_root()
       store.add_comment(root, vim.tbl_extend("force", context, { comment = comment }))
+      ui.refresh()
       notify(fmt("Added comment (%d pending)", #store.comments(root)))
+    end,
+  })
+end
+
+---Open the user input to change a comment already written against a line
+---@param existing { comment: CodeCompanion.CodeReview.Comment, index: number }
+---@return nil
+local function edit_comment(existing)
+  input.open({
+    title = " Edit Comment ",
+    initial_content = existing.comment.comment,
+    on_submit = function(comment)
+      local root = get_storage_root()
+      local comments = store.comments(root)
+
+      if vim.trim(comment) == "" then
+        table.remove(comments, existing.index)
+        notify("Removed comment")
+      else
+        comments[existing.index].comment = comment
+        notify("Updated comment")
+      end
+
+      store.write_comments(root, comments)
+      ui.refresh()
     end,
   })
 end
@@ -146,8 +170,14 @@ function M.comment(args)
     return comment_on_entry()
   end
 
-  local context = get_context(api.nvim_get_current_buf(), args)
-  add_comment(context)
+  local bufnr = api.nvim_get_current_buf()
+
+  local existing = ui.comment_at(bufnr, api.nvim_win_get_cursor(0)[1])
+  if existing then
+    return edit_comment(existing)
+  end
+
+  add_comment(get_context(bufnr, args))
 end
 
 ---Return all pending review comments
@@ -167,6 +197,7 @@ function M.consume()
 
   store.clear_comments(root)
   advance_baseline(root)
+  ui.clear_all()
 
   return pending
 end
@@ -185,6 +216,7 @@ function M.share()
   end
 
   advance_baseline(root)
+  ui.clear_all()
   vim.fn.setreg("+", path)
   notify(fmt("Code review ready at `%s` (path copied to the clipboard)", path))
 end
@@ -336,6 +368,8 @@ function M.edit_comments()
 
   -- Escape any '%' chars
   vim.cmd.edit(vim.fn.fnameescape(path))
+
+  ui.watch_comments_file(api.nvim_get_current_buf())
 end
 
 ---@return nil
@@ -369,6 +403,8 @@ function M.setup()
       end
     end,
   })
+
+  ui.refresh()
 end
 
 return M

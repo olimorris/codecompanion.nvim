@@ -52,6 +52,12 @@ function M.get_root()
   return vim.fs.root(vim.uv.cwd() or 0, ".git")
 end
 
+---The root that a review's state is stored against
+---@return string
+function M.storage_root()
+  return M.get_root() or vim.fs.normalize(vim.uv.cwd() or "")
+end
+
 ---Get the checked-out branch for a repo, if HEAD isn't detached
 ---@param root string
 ---@return string|nil
