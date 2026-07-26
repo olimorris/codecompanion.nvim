@@ -91,7 +91,6 @@ return {
         model = model(self)
       end
       if type(choices) == "function" then
-        -- Ensure that the model list is cached before checking for the model's capabilities
         choices = choices(self, { async = false })
       end
       local model_opts = choices[model]

@@ -510,8 +510,6 @@ T["Gemini Interactions adapter"]["resolves model capabilities on the first reque
   local adapters = require("codecompanion.adapters")
 
   adapter.schema.model.default = "gemini-3-pro-preview"
-  -- The model fetcher only returns the list when asked to block; without that it
-  -- fires the request and returns an empty table until the response lands
   adapter.schema.model.choices = function(_, opts)
     if not (opts and opts.async == false) then
       return {}

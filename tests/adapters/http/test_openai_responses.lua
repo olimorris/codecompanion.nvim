@@ -819,8 +819,6 @@ T["Responses"]["resolves model capabilities on the first request"] = function()
   local adapters = require("codecompanion.adapters")
 
   adapter.schema.model.default = "gpt-5.4"
-  -- The model fetcher only returns the list when asked to block; without that it
-  -- fires the request and returns an empty table until the response lands
   adapter.schema.model.choices = function(_, opts)
     if not (opts and opts.async == false) then
       return {}

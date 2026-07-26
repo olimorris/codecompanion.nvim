@@ -1,5 +1,4 @@
 local adapter_utils = require("codecompanion.adapters.utils")
-local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
 ---Set the format of the role and content for the messages from the chat buffer
@@ -107,17 +106,14 @@ return {
         end
         local choices = self.schema.model.choices
         if type(choices) == "function" then
-          -- Ensure that the model list is cached before checking for the model's capabilities
           choices = choices(self, { async = false })
         end
         local model_opts = choices and choices[model]
 
-        -- Merge model opts
         if model_opts and model_opts.opts then
           self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         end
 
-        -- Set stream
         if self.opts and self.opts.stream then
           self.parameters.stream = true
           self.parameters.stream_options = { include_usage = true }

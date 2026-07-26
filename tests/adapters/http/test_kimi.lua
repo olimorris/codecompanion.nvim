@@ -16,8 +16,6 @@ T["Kimi adapter"]["resolves model capabilities on the first request"] = function
   local adapters = require("codecompanion.adapters")
 
   adapter.schema.model.default = "kimi-k2.7-code"
-  -- The model fetcher only returns the list when asked to block; without that it
-  -- fires the request and returns an empty table until the response lands
   adapter.schema.model.choices = function(_, opts)
     if not (opts and opts.async == false) then
       return {}
