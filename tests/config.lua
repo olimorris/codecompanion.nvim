@@ -84,29 +84,6 @@ return {
     -- Tests submit chats with the cwd inside the real repo, so never snapshot it
     code_review = {
       enabled = false,
-      -- Pinned here so the keymap tests stay independent of the shipped defaults
-      keymaps = {
-        accept = {
-          modes = { n = "a" },
-          callback = "keymaps.accept",
-          description = "Accept the hunk under the cursor",
-        },
-        comment = {
-          modes = { n = "c" },
-          callback = "keymaps.comment",
-          description = "Comment on the hunk under the cursor",
-        },
-        diff = {
-          modes = { n = "d" },
-          callback = "keymaps.diff",
-          description = "Diff the hunk under the cursor against the baseline",
-        },
-        ignore = {
-          modes = { n = "x" },
-          callback = "keymaps.ignore",
-          description = "Ignore the hunk's file until the baseline advances",
-        },
-      },
       display = {
         virtual_text = {
           enabled = true,
