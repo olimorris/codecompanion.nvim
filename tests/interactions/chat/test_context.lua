@@ -10,7 +10,7 @@ local T = new_set({
       child.lua([[
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
-        config = require("tests.config")
+        config = require("codecompanion.config")
         _G.chat, _G.tools = h.setup_chat_buffer()
       ]])
     end,

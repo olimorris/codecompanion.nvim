@@ -10,7 +10,7 @@ T["Keymaps"] = new_set({
       h.child_start(child)
       child.lua([[
         h = require('tests.helpers')
-        config = require("tests.config")
+        config = require("codecompanion.config")
         change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
       ]])
     end,

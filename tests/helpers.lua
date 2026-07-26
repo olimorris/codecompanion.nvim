@@ -18,17 +18,6 @@ local function mock_http_client()
   client.static.methods.post.default = unanswered_request
 end
 
----Mock the plugin config
----@return table
-local function mock_config()
-  mock_http_client()
-  local config_module = require("codecompanion.config")
-  config_module.can_send_code = function()
-    return true
-  end
-  return config_module
-end
-
 ---Set up the CodeCompanion plugin with test configuration
 ---@param config? table
 ---@return nil
@@ -93,7 +82,7 @@ Helpers.create_mock_adapter = function(child, adapter, opts)
       adapter_config = {
         name = "test_adapter",
         type = "http",
-        url = "https://api.openai.com/v1/chat/completions",
+        url = "http://localhost/v1/chat/completions",
         roles = {
           llm = "assistant",
           user = "user",
@@ -227,9 +216,9 @@ end
 ---@param adapter? table
 ---@return CodeCompanion.Chat, CodeCompanion.Tools, CodeCompanion.EditorContext
 Helpers.setup_chat_buffer = function(config, adapter)
-  local test_config = vim.deepcopy(require("tests.config"))
-  local config_module = mock_config()
-  config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
+  mock_http_client()
+  local config_module = require("codecompanion.config")
+  config_module.setup(vim.tbl_deep_extend("force", vim.deepcopy(require("tests.config")), config or {}))
 
   -- Extend the adapters
   if adapter then
@@ -330,9 +319,10 @@ end
 ---@param config table
 ---@return CodeCompanion.Inline
 Helpers.setup_inline = function(config)
-  local test_config = vim.deepcopy(require("tests.config"))
-  local config_module = mock_config()
-  config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
+  mock_http_client()
+  require("codecompanion.config").setup(
+    vim.tbl_deep_extend("force", vim.deepcopy(require("tests.config")), config or {})
+  )
 
   return require("codecompanion.interactions.inline").new({
     buffer_context = {
