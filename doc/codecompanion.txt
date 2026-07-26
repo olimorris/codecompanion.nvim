@@ -6142,7 +6142,7 @@ PARALLEL AGENTS ~
 
 If you run multiple agents at at time, it's common to have each in its own git
 worktree <https://git-scm.com/docs/git-worktree> within the repository and Code
-Reviews have been built to suppor that.
+Reviews have been built to support that.
 
 The baseline ref lives under `refs/worktree/`, which git scopes per-worktree in
 the same way it scopes `HEAD`. Comments are stored per repository root and per
