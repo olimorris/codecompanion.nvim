@@ -1714,6 +1714,37 @@ Custom adapters can be added to the plugin as follows:
 <
 
 
+BACKGROUND INTERACTION ADAPTERS ~
+
+Background interactions are calls that CodeCompanion can make…in the
+background! That is, no user input is made and a request is sent to an LLM.
+
+By default every background action uses the shared
+`interactions.background.adapter`. However, you can override this at an action
+level:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          chat = {
+            callbacks = {
+              ["on_ready"] = {
+                actions = {
+                  {
+                    path = "interactions.background.builtin.chat_make_title",
+                    adapter = { name = "copilot", model = "claude-haiku-4.5" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
 CONTROLLING MODEL CHOICES ~
 
 When switching between adapters, the plugin typically displays all available
@@ -2223,20 +2254,10 @@ The `actions` table contains module paths that are resolved and executed
 asynchronously. See the |codecompanion-usage-chat-buffer--generating-titles|
 section for a working example.
 
-By default every background action uses the shared
-`interactions.background.adapter`. An action can override this - for instance
-to judge with a cheaper, faster model - by declaring it as a table with its own
-`adapter`:
 
->lua
-    actions = {
-      {
-        path = "interactions.background.builtin.chat_make_title",
-        adapter = { name = "copilot", model = "claude-haiku-4.5" },
-      },
-    },
-<
-
+  [!TIP] You can change the adapters used for background callbacks, see the
+  |codecompanion-configuration-adapters-http-background-interaction-adapters|
+  section
 
 PREVENTING SUBMISSION
 

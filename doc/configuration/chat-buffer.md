@@ -145,16 +145,8 @@ require("codecompanion").setup({
 
 The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
 
-By default every background action uses the shared `interactions.background.adapter`. An action can override this - for instance to judge with a cheaper, faster model - by declaring it as a table with its own `adapter`:
-
-```lua
-actions = {
-  {
-    path = "interactions.background.builtin.chat_make_title",
-    adapter = { name = "copilot", model = "claude-haiku-4.5" },
-  },
-},
-```
+> [!TIP]
+> You can change the adapters used for background callbacks, see the [background interaction adapters](/configuration/adapters-http#background-interaction-adapters) section
 
 ### Preventing Submission
 
