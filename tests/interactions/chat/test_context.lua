@@ -409,7 +409,7 @@ T["Context"]["Correctly removes tool schema and usage flag on context deletion"]
   child.lua([[
      -- Add a user message that triggers multiple tool calls
      local message = {
-       role = config.constants.USER_ROLE,
+       role = require("codecompanion.config").constants.USER_ROLE,
        content = "Whats the @{weather} like in London? Also adding a @{func} tool too.",
      }
      _G.chat:add_message(message) -- Add to message history

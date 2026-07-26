@@ -171,16 +171,22 @@ T["Copilot adapter"] = new_set({
         }
       end
 
-      adapter = require("codecompanion.adapters").resolve("copilot")
-
       local get_models = require("codecompanion.adapters.http.copilot.get_models")
       _original_choices = get_models.choices
       get_models.choices = function(adapter_arg, opts, provided_token)
         return copilot_models
       end
+
+      adapter = require("codecompanion.adapters").resolve("copilot")
     end,
 
     post_case = function()
+      -- Resolving the adapter defers a model fetch, which has to run while the
+      -- token and model mocks are still in place
+      vim.wait(20, function()
+        return false
+      end)
+
       if _original_choices then
         local get_models = require("codecompanion.adapters.http.copilot.get_models")
         get_models.choices = _original_choices
@@ -454,6 +460,11 @@ T["Token initialization"] = new_set({
   hooks = {
     pre_case = function()
       token_child.restart({ "-u", "scripts/minimal_init.lua" })
+      -- Resolving the adapter fetches tokens and models in the background. None of
+      -- these tests need a response, so answer every request with nothing
+      token_child.lua([[
+        require("plenary.curl").get = function() return {} end
+      ]])
     end,
     post_once = token_child.stop,
   },

@@ -2,13 +2,27 @@ local Helpers = {}
 
 Helpers = vim.tbl_extend("error", Helpers, require("tests.expectations"))
 
+---Stop adapter requests from reaching the network. A submitted request returns a
+---job which never calls back, so tests that need a response must supply their own
+---@return nil
+local function mock_http_client()
+  local client = require("codecompanion.http")
+  -- `Helpers.mock_http` has already swapped the module for `tests.mocks.http`
+  if not client.static then
+    return
+  end
+  local function unanswered_request()
+    return { args = {}, shutdown = function() end }
+  end
+  client.static.methods.get.default = unanswered_request
+  client.static.methods.post.default = unanswered_request
+end
+
 ---Mock the plugin config
 ---@return table
 local function mock_config()
+  mock_http_client()
   local config_module = require("codecompanion.config")
-  config_module.setup = function(args)
-    config_module.config = args or {}
-  end
   config_module.can_send_code = function()
     return true
   end
@@ -52,6 +66,7 @@ Helpers.setup_plugin = function(config)
   end
 
   mock_external_calls()
+  mock_http_client()
 
   local codecompanion = require("codecompanion")
   codecompanion.setup(test_config)
@@ -244,6 +259,7 @@ end
 ---@return nil
 Helpers.send_to_llm = function(chat, message, callback)
   message = message or "Hello there"
+  mock_http_client()
   chat:submit()
   chat:add_buf_message({ role = "llm", content = message })
   chat.status = "success"

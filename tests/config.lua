@@ -1,10 +1,4 @@
-local og_config = require("codecompanion.config")
 return {
-  constants = {
-    LLM_ROLE = "llm",
-    USER_ROLE = "user",
-    SYSTEM_ROLE = "system",
-  },
   adapters = {
     http = {
       test_adapter = {
@@ -87,11 +81,14 @@ return {
         llm = "assistant",
         user = "foo",
       },
-      keymaps = og_config.interactions.chat.keymaps,
       tools = {
         ["run_command"] = {
           path = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
+          opts = {
+            require_approval_before = false,
+            require_cmd_approval = false,
+          },
         },
         ["files"] = {
           path = "interactions.chat.tools.builtin.files",
@@ -115,10 +112,16 @@ return {
         ["create_file"] = {
           path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["delete_file"] = {
           path = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["fetch_webpage"] = {
           path = "interactions.chat.tools.builtin.fetch_webpage",
@@ -144,10 +147,16 @@ return {
         ["grep_search"] = {
           path = "interactions.chat.tools.builtin.grep_search",
           description = "Search for text in the current working directory",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["read_file"] = {
           path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["get_diagnostics"] = {
           path = "interactions.chat.tools.builtin.get_diagnostics",
@@ -309,6 +318,9 @@ return {
           },
         },
         opts = {
+          -- Keep tool output in the chat buffer; auto-submitting would fire a request to the adapter
+          auto_submit_errors = false,
+          auto_submit_success = false,
           system_prompt = "My tool system prompt",
           folds = {
             enabled = false,
@@ -364,7 +376,6 @@ return {
     },
     inline = {
       adapter = "test_adapter",
-      keymaps = og_config.interactions.inline.keymaps,
       editor_context = {
         ["foo"] = {
           path = vim.fn.getcwd() .. "/tests/interactions/inline/editor_context/foo.lua",
@@ -377,7 +388,6 @@ return {
       },
     },
     shared = {
-      keymaps = og_config.interactions.shared.keymaps,
       editor_context = {
         ["buffer"] = {
           path = "interactions.shared.editor_context.buffer",
