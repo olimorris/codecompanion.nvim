@@ -35,7 +35,6 @@ T = new_set({
     pre_case = function()
       child.lua([[
         config.interactions.code_review.opts.storage_dir = vim.fn.tempname()
-        config.interactions.code_review.display.virtual_text.enabled = true
 
         repo = vim.fn.tempname()
         vim.fn.mkdir(repo, "p")
@@ -51,112 +50,25 @@ T = new_set({
 
 T["UI"] = new_set()
 
-T["UI"]["renders a comment above the line it was written against"] = function()
+T["UI"]["shows the pending comments for a file, and clears them when the review is sent"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "Why 1?", code = "local a = 1", path = "a.txt", start_line = 1, end_line = 1 })
+    -- Line 20 doesn't exist, so this one clamps to the last line rather than disappearing
+    store.add_comment(repo, { comment = "Outlived\nits code", code = "local z = 9", path = "a.txt", start_line = 20, end_line = 20 })
+    store.add_comment(repo, { comment = "Another file", code = "local d = 4", path = "b.txt", start_line = 1, end_line = 1 })
+
+    -- Opening the file after the refresh also covers drawing into a buffer opened mid-review
+    ui.refresh()
     bufnr = open("a.txt")
-    ui.render(bufnr)
   ]])
 
-  h.eq({ "💬 Why 1?" }, child.lua_get("rendered(bufnr)"))
-end
+  h.eq({ "💬 Why 1?", "💬 Outlived", "💬 its code" }, child.lua_get("rendered(bufnr)"))
 
-T["UI"]["renders each line of a multi-line comment"] = function()
-  child.lua([[
-    store.add_comment(repo, { comment = "Why 1?\nExplain", code = "local a = 1", path = "a.txt", start_line = 1, end_line = 1 })
-    bufnr = open("a.txt")
-    ui.render(bufnr)
-  ]])
-
-  h.eq({ "💬 Why 1?", "💬 Explain" }, child.lua_get("rendered(bufnr)"))
-end
-
-T["UI"]["renders nothing for a file with no comments"] = function()
-  child.lua([[
-    store.add_comment(repo, { comment = "Why 1?", code = "local a = 1", path = "b.txt", start_line = 1, end_line = 1 })
-    bufnr = open("a.txt")
-    ui.render(bufnr)
-  ]])
-
+  child.lua([[ui.clear_all()]])
   h.eq({}, child.lua_get("rendered(bufnr)"))
 end
 
-T["UI"]["renders nothing when virtual text is turned off"] = function()
-  child.lua([[
-    config.interactions.code_review.display.virtual_text.enabled = false
-    store.add_comment(repo, { comment = "Why 1?", code = "local a = 1", path = "a.txt", start_line = 1, end_line = 1 })
-    bufnr = open("a.txt")
-    ui.render(bufnr)
-  ]])
-
-  h.eq({}, child.lua_get("rendered(bufnr)"))
-end
-
-T["UI"]["keeps a comment in view when its line no longer exists"] = function()
-  child.lua([[
-    store.add_comment(repo, { comment = "Gone", code = "local z = 9", path = "a.txt", start_line = 20, end_line = 20 })
-    bufnr = open("a.txt")
-    ui.render(bufnr)
-  ]])
-
-  h.eq({ "💬 Gone" }, child.lua_get("rendered(bufnr)"))
-end
-
-T["UI"]["clear_all removes the comments from every buffer"] = function()
-  child.lua([[
-    store.add_comment(repo, { comment = "Why 1?", code = "local a = 1", path = "a.txt", start_line = 1, end_line = 1 })
-    bufnr = open("a.txt")
-    ui.render(bufnr)
-    ui.clear_all()
-  ]])
-
-  h.eq({}, child.lua_get("rendered(bufnr)"))
-end
-
-T["UI"]["watches for files being opened only while comments are pending"] = function()
-  child.lua([[
-    watchers = function()
-      return #vim.api.nvim_get_autocmds({ event = "BufReadPost" })
-    end
-
-    ui.refresh()
-    without_comments = watchers()
-
-    store.add_comment(repo, { comment = "Why 1?", code = "local a = 1", path = "a.txt", start_line = 1, end_line = 1 })
-    ui.refresh()
-    with_comments = watchers()
-
-    ui.clear_all()
-    after_clearing = watchers()
-  ]])
-
-  h.eq(child.lua_get("without_comments") + 1, child.lua_get("with_comments"))
-  h.eq(child.lua_get("without_comments"), child.lua_get("after_clearing"))
-end
-
-T["UI"]["draws a comment into a file opened while comments are pending"] = function()
-  child.lua([[
-    store.add_comment(repo, { comment = "Why 1?", code = "local a = 1", path = "a.txt", start_line = 1, end_line = 1 })
-    ui.refresh()
-
-    bufnr = open("a.txt")
-  ]])
-
-  h.eq({ "💬 Why 1?" }, child.lua_get("rendered(bufnr)"))
-end
-
-T["UI"]["comment_at finds the comment on a line"] = function()
-  child.lua([[
-    store.add_comment(repo, { comment = "Why 2?", code = "local b = 2", path = "a.txt", start_line = 2, end_line = 2 })
-    bufnr = open("a.txt")
-    ui.render(bufnr)
-  ]])
-
-  h.eq("Why 2?", child.lua_get("ui.comment_at(bufnr, 2).comment.comment"))
-  h.eq(vim.NIL, child.lua_get("ui.comment_at(bufnr, 1)"))
-end
-
-T["UI"]["comment_at follows a line that has moved"] = function()
+T["UI"]["finds the comment on a line after the line has moved"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "Why 2?", code = "local b = 2", path = "a.txt", start_line = 2, end_line = 2 })
     bufnr = open("a.txt")

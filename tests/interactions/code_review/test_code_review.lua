@@ -13,19 +13,12 @@ T = new_set({
 
         baseline = require("codecompanion.interactions.code_review.baseline")
         config = require("codecompanion.config")
+        keymaps = require("codecompanion.interactions.code_review.keymaps")
         review = require("codecompanion.interactions.code_review")
         store = require("codecompanion.interactions.code_review.store")
 
         write = function(path, lines)
           vim.fn.writefile(lines, vim.fs.joinpath(repo, path))
-        end
-
-        commit = function(message)
-          vim.system({ "git", "-C", repo, "-c", "user.name=Test", "-c", "user.email=test@test", "commit", "--quiet", "--allow-empty", "-m", message }):wait()
-        end
-
-        checkout = function(...)
-          vim.system({ "git", "-C", repo, "checkout", "--quiet", ... }):wait()
         end
 
         -- Stub the input popup so `comment` submits immediately
@@ -51,6 +44,9 @@ T = new_set({
         repo = vim.uv.fs_realpath(repo)
         vim.system({ "git", "-C", repo, "init", "--quiet" }):wait()
         vim.cmd.cd(repo)
+
+        -- Every case shares one quickfix buffer, so release any maps the last one left on it
+        keymaps.restore()
 
         notifications = {}
       ]])
@@ -228,7 +224,7 @@ T["Review"]["open with scope all includes changes outside the agent's files"] = 
   h.eq(2, child.lua_get("#vim.fn.getqflist()"))
 end
 
-T["Review"]["accept keeps the hunk out of future reviews"] = function()
+T["Review"]["accept keeps the hunk out of later reviews, until the baseline advances"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
     write("b.lua", { "local b = 2" })
@@ -248,6 +244,12 @@ T["Review"]["accept keeps the hunk out of future reviews"] = function()
   child.lua([[review.open()]])
   h.eq(1, child.lua_get("#vim.fn.getqflist()"))
   h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[1].bufnr), 'b.lua')"))
+
+  child.lua([[review.open({ scope = "all" })]])
+  h.eq(2, child.lua_get("#vim.fn.getqflist()"))
+
+  child.lua([[review.approve()]])
+  h.is_true(child.lua_get("next(store.accepted(repo)) == nil"))
 end
 
 T["Review"]["an accepted hunk returns when the change changes"] = function()
@@ -266,36 +268,6 @@ T["Review"]["an accepted hunk returns when the change changes"] = function()
   h.eq(1, child.lua_get("#vim.fn.getqflist()"))
 end
 
-T["Review"]["open with scope all includes accepted hunks"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    write("a.lua", { "local a = 10" })
-
-    review.open()
-    review.accept()
-    review.open({ scope = "all" })
-  ]])
-
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-end
-
-T["Review"]["advancing the baseline forgets the accepted hunks"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    write("a.lua", { "local a = 10" })
-
-    review.open()
-    review.accept()
-    review.approve()
-  ]])
-
-  h.is_true(child.lua_get("next(store.accepted(repo)) == nil"))
-end
-
 T["Review"]["accept warns without a review entry"] = function()
   child.lua([[
     vim.fn.setqflist({}, " ", { items = {} })
@@ -305,7 +277,7 @@ T["Review"]["accept warns without a review entry"] = function()
   h.eq("No review hunk under the cursor", child.lua_get("notifications[1]"))
 end
 
-T["Review"]["ignore drops every hunk in the file until the baseline advances"] = function()
+T["Review"]["ignore drops every hunk in the file, until the baseline advances"] = function()
   child.lua([[
     write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
     write("b.lua", { "local d = 4" })
@@ -328,20 +300,8 @@ T["Review"]["ignore drops every hunk in the file until the baseline advances"] =
 
   child.lua([[review.open({ scope = "all" })]])
   h.eq(3, child.lua_get("#vim.fn.getqflist()"))
-end
 
-T["Review"]["advancing the baseline forgets the ignored files"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    write("a.lua", { "local a = 10" })
-
-    review.open()
-    review.ignore()
-    review.approve()
-  ]])
-
+  child.lua([[review.approve()]])
   h.is_true(child.lua_get("next(store.ignored(repo)) == nil"))
 end
 
@@ -387,81 +347,57 @@ T["Review"]["open_diff hands the hunk under the cursor to the configured provide
   h.is_true(child.lua_get("captured.id ~= nil"))
 end
 
-T["Review"]["open sets the review keymaps in the quickfix window"] = function()
+T["Review"]["the review keymaps take the quickfix window, and give it back to another list"] = function()
   child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    write("a.lua", { "local a = 10" })
+    -- Which keys are bound is the user's business, so the whole test drives off the config
+    review_keymaps = function()
+      local descriptions = vim.tbl_map(function(map)
+        return map.desc
+      end, vim.api.nvim_buf_get_keymap(0, "n"))
 
-    review.open()
-    mapped = vim.tbl_map(function(map)
-      return map.lhs
-    end, vim.api.nvim_buf_get_keymap(0, "n"))
-
-    unmapped = {}
-    for name, keymap in pairs(config.interactions.code_review.keymaps) do
-      if not vim.list_contains(mapped, keymap.modes.n) then
-        table.insert(unmapped, name)
+      local found = {}
+      for name, keymap in pairs(config.interactions.code_review.keymaps) do
+        if vim.list_contains(descriptions, keymap.description) then
+          table.insert(found, name)
+        end
       end
+      table.sort(found)
+      return found
     end
-  ]])
 
-  h.eq({}, child.lua_get("unmapped"))
-end
-
-T["Review"]["keymaps release when another list takes over the quickfix"] = function()
-  child.lua([[
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
     store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 10" })
 
-    review.open()
-    vim.fn.setqflist({}, " ", { title = "grep", items = { { text = "hit" } } })
-  ]])
-
-  child.type_keys(child.lua_get("config.interactions.code_review.keymaps.accept.modes.n"))
-
-  child.lua([[
-    mapped = vim.tbl_map(function(map)
-      return map.lhs
-    end, vim.api.nvim_buf_get_keymap(0, "n"))
-
-    still_mapped = {}
-    for name, keymap in pairs(config.interactions.code_review.keymaps) do
-      if vim.list_contains(mapped, keymap.modes.n) then
-        table.insert(still_mapped, name)
-      end
-    end
-  ]])
-  h.eq({}, child.lua_get("still_mapped"))
-  h.eq(0, child.lua_get("#notifications"))
-end
-
-T["Review"]["keymaps restore the mapping they replaced"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    write("a.lua", { "local a = 10" })
+    all_keymaps = vim.tbl_keys(config.interactions.code_review.keymaps)
+    table.sort(all_keymaps)
 
     accept_key = config.interactions.code_review.keymaps.accept.modes.n
-
     vim.cmd.copen()
     vim.keymap.set("n", accept_key, "j", { buffer = 0, desc = "the user's own map" })
+
     review.open()
+    during_review = review_keymaps()
+
     vim.fn.setqflist({}, " ", { title = "grep", items = { { text = "hit" } } })
   ]])
 
+  h.eq(child.lua_get("all_keymaps"), child.lua_get("during_review"))
+
+  -- The review's own key, pressed on a list it doesn't own, hands the window back
   child.type_keys(child.lua_get("accept_key"))
 
   child.lua([[
+    after_takeover = review_keymaps()
     user_map = vim.iter(vim.api.nvim_buf_get_keymap(0, "n")):find(function(map)
       return map.lhs == accept_key
     end)
   ]])
+
+  h.eq({}, child.lua_get("after_takeover"))
   h.eq("the user's own map", child.lua_get("user_map.desc"))
+  h.eq(0, child.lua_get("#notifications"))
 end
 
 return T
