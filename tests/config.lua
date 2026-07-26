@@ -1,15 +1,9 @@
-local og_config = require("codecompanion.config")
 return {
-  constants = {
-    LLM_ROLE = "llm",
-    USER_ROLE = "user",
-    SYSTEM_ROLE = "system",
-  },
   adapters = {
     http = {
       test_adapter = {
         name = "test_adapter",
-        url = "https://api.openai.com/v1/chat/completions",
+        url = "http://localhost/v1/chat/completions",
         roles = {
           llm = "assistant",
           user = "user",
@@ -56,10 +50,6 @@ return {
           },
         },
       },
-      opts = {
-        allow_insecure = false,
-        proxy = nil,
-      },
     },
     acp = {
       test_acp = {
@@ -94,23 +84,20 @@ return {
         llm = "assistant",
         user = "foo",
       },
-      keymaps = og_config.interactions.chat.keymaps,
       tools = {
         ["run_command"] = {
-          path = "interactions.chat.tools.builtin.run_command",
-          description = "Run shell commands initiated by the LLM",
+          opts = {
+            require_approval_before = false,
+            require_cmd_approval = false,
+          },
         },
+        -- Shares a name with the shipped `files` tool group, so that a tool is
+        -- shown to win over a group of the same name
         ["files"] = {
-          path = "interactions.chat.tools.builtin.files",
-          description = "Update the file system with the LLM's response",
-        },
-        ["memory"] = {
-          path = "interactions.chat.tools.builtin.memory",
-          description = "The memory tool enables Claude to store and retrieve information across conversations through a memory file directory",
+          path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func.lua",
+          description = "Some function tool to test",
         },
         ["insert_edit_into_file"] = {
-          path = "interactions.chat.tools.builtin.insert_edit_into_file",
-          description = "Robustly edit files with multiple automatic fallback interactions",
           opts = {
             require_approval_before = {
               buffer = false,
@@ -120,49 +107,24 @@ return {
           },
         },
         ["create_file"] = {
-          path = "interactions.chat.tools.builtin.create_file",
-          description = "Create a file in the current working directory",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["delete_file"] = {
-          path = "interactions.chat.tools.builtin.delete_file",
-          description = "Delete a file in the current working directory",
-        },
-        ["fetch_webpage"] = {
-          path = "interactions.chat.tools.builtin.fetch_webpage",
-          description = "Fetches content from a webpage",
           opts = {
-            adapter = "jina",
-          },
-        },
-        ["web_search"] = {
-          path = "interactions.chat.tools.builtin.web_search",
-          description = "Searches the web for a given query",
-          opts = {
-            adapter = "tavily",
-          },
-        },
-        ["file_search"] = {
-          path = "interactions.chat.tools.builtin.file_search",
-          description = "Search for files in the current working directory by glob pattern",
-          opts = {
-            max_results = 500,
+            require_approval_before = false,
           },
         },
         ["grep_search"] = {
-          path = "interactions.chat.tools.builtin.grep_search",
-          description = "Search for text in the current working directory",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["read_file"] = {
-          path = "interactions.chat.tools.builtin.read_file",
-          description = "Read a file in the current working directory",
-        },
-        ["get_diagnostics"] = {
-          path = "interactions.chat.tools.builtin.get_diagnostics",
-          description = "Get LSP diagnostics for a given file",
-        },
-        ["ask_questions"] = {
-          path = "interactions.chat.tools.builtin.ask_questions",
-          description = "Ask the user questions to clarify requirements or validate assumptions",
+          opts = {
+            require_approval_before = false,
+          },
         },
         ["weather"] = {
           path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/weather.lua",
@@ -316,22 +278,17 @@ return {
           },
         },
         opts = {
+          -- Keep tool output in the chat buffer; auto-submitting would fire a request to the adapter
+          auto_submit_errors = false,
+          auto_submit_success = false,
           system_prompt = "My tool system prompt",
           folds = {
             enabled = false,
-            failure_words = {
-              "error",
-              "failed",
-              "invalid",
-            },
           },
-          tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
       slash_commands = {
         ["buffer"] = {
-          path = "interactions.chat.slash_commands.builtin.buffer",
-          description = "Insert open buffers",
           keymaps = {
             modes = {
               i = "<C-b>",
@@ -339,31 +296,21 @@ return {
             },
           },
           opts = {
-            contains_code = true,
             provider = "default",
           },
         },
         ["fetch"] = {
-          path = "interactions.chat.slash_commands.builtin.fetch",
-          description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina|tavily
-            cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = "default",
           },
         },
         ["file"] = {
-          path = "interactions.chat.slash_commands.builtin.file",
-          description = "Insert a file",
           opts = {
-            contains_code = true,
-            max_lines = 1000,
             provider = "default", -- default|telescope|mini_pick|fzf_lua
           },
         },
       },
       opts = {
-        blank_prompt = "",
         debounce = 0,
         wait_timeout = 3000,
         system_prompt = "default system prompt",
@@ -371,7 +318,6 @@ return {
     },
     inline = {
       adapter = "test_adapter",
-      keymaps = og_config.interactions.inline.keymaps,
       editor_context = {
         ["foo"] = {
           path = vim.fn.getcwd() .. "/tests/interactions/inline/editor_context/foo.lua",
@@ -384,31 +330,7 @@ return {
       },
     },
     shared = {
-      keymaps = og_config.interactions.shared.keymaps,
       editor_context = {
-        ["buffer"] = {
-          path = "interactions.shared.editor_context.buffer",
-          description = "Share the current buffer with the LLM",
-          opts = {
-            contains_code = true,
-            has_params = true,
-          },
-        },
-        ["buffers"] = {
-          path = "interactions.shared.editor_context.buffers",
-          description = "Share all open buffers with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
-        ["code_review"] = {
-          path = "interactions.shared.editor_context.code_review",
-          description = "Share your pending code review comments with the LLM",
-          opts = {
-            contains_code = true,
-            replacement = "my comments from the code review, which I've attached",
-          },
-        },
         ["foo"] = {
           path = "tests.interactions.shared.editor_context.foo",
           description = "foo",
@@ -433,14 +355,19 @@ return {
           path = "tests.interactions.shared.editor_context.baz",
           description = "baz",
         },
+        ["code_review"] = {
+          path = "interactions.shared.editor_context.code_review",
+          description = "Share your pending code review comments with the LLM",
+          opts = {
+            contains_code = true,
+            replacement = "my comments from the code review, which I've attached",
+          },
+        },
       },
     },
   },
   mcp = {
-    servers = {},
     opts = {
-      default_servers = {},
-      acp_enabled = true, -- Enable MCP servers with ACP adapters?
       timeout = 10e3,
     },
   },
@@ -500,7 +427,6 @@ return {
   },
   rules = {
     default = {
-      description = "Default file selection for CodeCompanion",
       files = {
         "tests/stubs/rules/.rules",
         "tests/stubs/rules/CLAUDE.md",
@@ -508,61 +434,19 @@ return {
     },
   },
   display = {
-    action_palette = {
-      opts = {},
-    },
     chat = {
       icons = {
-        buffer_sync_all = "󰪴 ",
-        buffer_sync_diff = " ",
         tool_success = "!! ",
         tool_failure = "xx ",
       },
-      show_context = true,
-      fold_context = false,
-      show_settings = false,
-      fold_reasoning = true,
-      show_reasoning = true,
-      window = {
-        buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat window follows when switching tabs
-
-        layout = "vertical", -- float|vertical|horizontal|buffer
-        full_height = true, -- for vertical layout
-        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
-
-        width = 0.5, ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
-        height = 0.8,
-        border = "single",
-        relative = "editor",
-        opts = {
-          breakindent = true,
-          linebreak = true,
-          wrap = true,
-        },
-      },
-      floating_window = {},
-
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
       show_tools_processing = false, -- Show the loading message when tools are being executed?
     },
     diff = {
       enabled = false,
-      window = {
-        opts = {},
-      },
     },
     icons = {
       loading = " ",
-      warning = " ",
-    },
-  },
-  opts = {
-    triggers = {
-      acp_slash_commands = "\\",
-      editor_context = "#",
-      slash_commands = "/",
-      tools = "@",
     },
   },
 }
