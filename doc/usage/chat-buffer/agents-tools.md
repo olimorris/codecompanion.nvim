@@ -397,6 +397,11 @@ Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, note that some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set.
 
+If you've configured [tool safety checks](/configuration/chat-buffer#tool-safety-check) then any commands from those tools will be sent to an LLM judge to verify if they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports safety checks.
+
+> [!TIP]
+> The [delete_file](#delete_file) and [run_command](#run_command) tools both support safety checks
+
 ## Compatibility
 
 Below is the tool use status of various adapters and models in CodeCompanion:
@@ -408,13 +413,16 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Copilot           |                   | :white_check_mark: | Dependent on the model              |
 | DeepSeek          |                   | :white_check_mark: | Dependent on the model              |
 | Gemini            |                   | :white_check_mark: | Dependent on the model              |
-| GitHub Models     | All               | :x:                | Not supported yet                   |
-| Huggingface       | All               | :x:                | Not supported yet                   |
+| GitHub Models     | | :x:                | Not supported yet                   |
+| Huggingface       | | :x:                | Not supported yet                   |
+| Kimi            |                   | :white_check_mark: | Dependent on the model              |
 | Mistral           |                   | :white_check_mark: | Dependent on the model              |
 | Novita            |                   | :white_check_mark: | Dependent on the model              |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
-| xAI               | All               | :x:                | Not supported yet                   |
+| OpenAI Responses            |                   | :white_check_mark: | Dependent on the model              |
+| OpenRouter            |                   | :white_check_mark: | Dependent on the model              |
+| xAI               | | :x:                | Not supported yet                   |
 
 
 > [!IMPORTANT]

@@ -35,7 +35,7 @@ return {
       setup = function(self)
         deepseek.handlers.lifecycle.setup(self)
 
-        local model_choice = adapter_utils.model_choice(self)
+        local model_choice = adapter_utils.model_choice(self, { async = false })
         self.opts.vision = (model_choice and model_choice.opts and model_choice.opts.has_vision) == true
 
         return true

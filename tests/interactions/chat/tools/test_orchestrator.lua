@@ -164,4 +164,111 @@ T["tools only receive output that relates to their execution"] = function()
   h.eq({ "Data 2" }, output)
 end
 
+---Queue a tool that is gated by the background safety check, in yolo mode, and
+---replay a canned verdict from a stubbed judge
+---@param verdict { safe: boolean, reason: string }
+local function setup_yolo_mode_with_safety_check(verdict)
+  child.lua(string.format(
+    [[
+    _G.executed = {}
+    _G.prompted_with = nil
+
+    -- The judge, stubbed so no request is made. Registered under a module path
+    -- so it also covers `gates.safety_check.action` being configurable
+    package.loaded["stub_judge"] = {
+      request = function(_, request, callback)
+        _G.judged_context = request.context
+        callback(%s)
+      end,
+    }
+
+    local cfg = {
+      interactions = {
+        background = {
+          gates = { safety_check = { enabled = true, action = "stub_judge" } },
+        },
+        chat = {
+          tools = {
+            opts = { auto_submit_success = false, auto_submit_errors = false },
+            dangerous = {
+              enabled = true,
+              opts = {
+                allowed_in_yolo_mode = false,
+                require_approval_before = true,
+                require_cmd_approval = true,
+                safety_check = true,
+              },
+              callback = function()
+                return {
+                  name = "dangerous",
+                  cmds = {
+                    function(self, args, opts)
+                      table.insert(_G.executed, "dangerous")
+                      opts.output_cb({ status = "success", data = "ran" })
+                    end,
+                  },
+                  schema = {
+                    type = "function",
+                    ["function"] = {
+                      name = "dangerous",
+                      description = "A tool worth vetting",
+                      parameters = { type = "object", properties = {} },
+                    },
+                  },
+                  opts = {
+                    allowed_in_yolo_mode = false,
+                    require_approval_before = true,
+                    require_cmd_approval = true,
+                    safety_check = true,
+                  },
+                  output = {
+                    cmd_string = function()
+                      return "rm -rf /"
+                    end,
+                  },
+                  gates = {
+                    safety_context = function()
+                      return "rm -rf /"
+                    end,
+                  },
+                }
+              end,
+            },
+          },
+        },
+      },
+    }
+
+    local chat, tools = h.setup_chat_buffer(cfg)
+    _G.chat, _G.tools = chat, tools
+
+    require("codecompanion.interactions.chat.tools.approvals"):toggle_yolo_mode(tools.bufnr)
+
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function(_, opts)
+      _G.prompted_with = opts.prompt
+    end
+
+    _G.tools:execute(_G.chat, { { ["function"] = { name = "dangerous", arguments = "{}" } } })
+    vim.wait(250)
+  ]],
+    vim.inspect(verdict)
+  ))
+end
+
+T["safe verdict runs the tool without prompting"] = function()
+  setup_yolo_mode_with_safety_check({ safe = true, reason = "reads only" })
+
+  h.eq({ "dangerous" }, child.lua_get("_G.executed"))
+  h.eq(vim.NIL, child.lua_get("_G.prompted_with"))
+  h.eq("rm -rf /", child.lua_get("_G.judged_context"))
+end
+
+T["unsafe verdict prompts with the judge's reason instead of running"] = function()
+  setup_yolo_mode_with_safety_check({ safe = false, reason = "deletes the filesystem" })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq('Run the "dangerous" tool?\nJudge: _"deletes the filesystem"_', child.lua_get("_G.prompted_with"))
+end
+
 return T

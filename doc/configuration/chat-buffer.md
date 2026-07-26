@@ -145,6 +145,17 @@ require("codecompanion").setup({
 
 The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
 
+By default every background action uses the shared `interactions.background.adapter`. An action can override this - for instance to judge with a cheaper, faster model - by declaring it as a table with its own `adapter`:
+
+```lua
+actions = {
+  {
+    path = "interactions.background.builtin.chat_make_title",
+    adapter = { name = "copilot", model = "claude-haiku-4.5" },
+  },
+},
+```
+
 ### Preventing Submission
 
 The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
@@ -175,6 +186,54 @@ vim.api.nvim_create_autocmd("User", {
 The `info` table passed to `on_before_submit` contains:
 
 - `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
+
+### Tool Safety Check
+
+When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The tool safety check offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        safety_check = {
+          enabled = true,
+          action = "interactions.background.builtin.tool_safety_check",
+        },
+      },
+    },
+  },
+})
+```
+
+The check runs for a tool only when:
+
+- You set `opts.safety_check = true` on the tool's config; _and_
+- The tool defines a `gates.safety_context` handler
+
+Regarding for former, this can be accomplished with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["run_command"] = {
+          opts = {
+            safety_check = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+If the judge decides the action is safe, it executes immediately. The verdict is cached so re-running the exact same command won't be re-judged that session. A different command is judged on its own - approving `make test` does not approve `make test && rm -rf foo`. If the request to check the command fails, or the adapter can't produce structured output, you'll be automatically asked to approve manually.
+
+For this per-command caching, the tool must also set `opts.require_cmd_approval = true`. Without it, a single safe verdict is cached against the whole tool and every later action of that tool runs unjudged for the rest of the session. This is automatically set for `run_command` and `delete_file` but can be applied to any tool.
+
+
 
 ### Truncating Tool Output
 

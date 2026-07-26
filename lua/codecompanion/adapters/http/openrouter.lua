@@ -1,5 +1,4 @@
 local fetch_models = require("codecompanion.adapters.utils.models.fetch")
-local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
 local models_source = {
@@ -90,7 +89,8 @@ return {
         model = model(self)
       end
       if type(choices) == "function" then
-        choices = choices(self)
+        -- Ensure that the model list is cached before checking for the model's capabilities
+        choices = choices(self, { async = false })
       end
       local model_opts = choices[model]
 
@@ -188,12 +188,9 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
       ---Ref: https://openrouter.ai/docs/guides/features/structured-outputs#using-structured-outputs
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return openai.handlers.form_structured_output(self, schema)
     end,

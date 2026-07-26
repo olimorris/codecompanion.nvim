@@ -8,7 +8,7 @@ local fmt = string.format
 ---executes shell commands. Users provide a minimal spec and get a fully
 ---functional tool with schema, approval prompts, and output handling.
 ---
----@param spec { name: string, description: string, schema: { properties: table, required: table, additionalProperties?: boolean }, build_cmd: fun(args: table): string, system_prompt?: string|fun(schema: table): string, handlers?: table, output?: table }
+---@param spec { name: string, description: string, schema: { properties: table, required: table, additionalProperties?: boolean }, build_cmd: fun(args: table): string, system_prompt?: string|fun(schema: table): string, handlers?: table, output?: table, gates?: table }
 ---@return CodeCompanion.Tools.Tool
 local function cmd_tool(spec)
   -- Build the full schema envelope from the user's property spec
@@ -116,6 +116,7 @@ local function cmd_tool(spec)
     system_prompt = spec.system_prompt,
     handlers = vim.tbl_extend("force", default_handlers, spec.handlers or {}),
     output = vim.tbl_extend("force", default_output, spec.output or {}),
+    gates = spec.gates,
   }
 end
 

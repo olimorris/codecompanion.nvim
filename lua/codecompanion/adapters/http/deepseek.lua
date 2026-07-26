@@ -107,7 +107,8 @@ return {
         end
         local choices = self.schema.model.choices
         if type(choices) == "function" then
-          choices = choices(self)
+          -- Ensure that the model list is cached before checking for the model's capabilities
+          choices = choices(self, { async = false })
         end
         local model_opts = choices and choices[model]
 

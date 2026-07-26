@@ -3,10 +3,10 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
----Resolve a callback module from a given path
+---Resolve a background action module from a given path
 ---@param path string The path to the module
 ---@return table|nil The loaded action module or nil on failure
-local function resolve(path)
+function M.resolve(path)
   local ok, action = pcall(require, "codecompanion." .. path)
   if ok then
     return action
@@ -19,23 +19,22 @@ local function resolve(path)
   end
 
   -- Try loading the tool from the user's config using a file path
-  local action, err = loadfile(vim.fs.normalize(path))
-  if err then
+  local chunk, err = loadfile(vim.fs.normalize(path))
+  if err or not chunk then
     return
   end
 
-  if action then
-    return action()
-  end
+  return chunk()
 end
 
 ---Execute an action
----@param path string The path to the module
+---@param action_config { path: string, adapter?: CodeCompanion.HTTPAdapter|string }
 ---@param chat CodeCompanion.Chat The chat instance
 ---@param opts? { deregister: fun() }
 ---@return nil
-local function execute_action(path, chat, opts)
-  local action = resolve(path)
+local function execute_action(action_config, chat, opts)
+  local path = action_config.path
+  local action = M.resolve(path)
   if not action then
     return log:error("[background::callbacks] File `%s` could not be found", path)
   end
@@ -43,11 +42,10 @@ local function execute_action(path, chat, opts)
     return log:error("[background::callbacks] File `%s` does not have a request function", path)
   end
 
-  -- Create a background instance using the configured adapter
+  -- Per-action adapter overrides the shared background adapter
   local Background = require("codecompanion.interactions.background")
-  local background_config = config.interactions.background
   local background = Background.new({
-    adapter = background_config.adapter,
+    adapter = action_config.adapter or config.interactions.background.adapter,
   })
 
   if not background then
@@ -76,10 +74,11 @@ function M.register_chat_callbacks(chat)
   -- Register each action as its own callback so it can deregister itself once done
   for event, event_config in pairs(background_config.callbacks) do
     if event_config.enabled and event_config.actions then
-      for _, path in ipairs(event_config.actions) do
+      for _, action in ipairs(event_config.actions) do
+        local action_config = type(action) == "string" and { path = action } or action
         local callback
         callback = function(c)
-          execute_action(path, c, {
+          execute_action(action_config, c, {
             deregister = function()
               c:remove_callback(event, callback)
             end,
