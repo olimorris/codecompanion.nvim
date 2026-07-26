@@ -356,6 +356,13 @@ local function globtopattern(glob)
   return p
 end
 
+---Flatten a path into a single file-system-safe name
+---@param path string
+---@return string
+function M.flatten_path(path)
+  return (path:gsub("[\\/:]+", "%%"))
+end
+
 ---Check if a filename matches a single pattern
 ---Supports glob patterns (*, ?, [abc]) and literal matches
 ---@param filename string The filename to check (not the full path)

@@ -64,6 +64,20 @@ return {
     },
   },
   interactions = {
+    opts = {
+      watcher = {
+        enabled = true,
+        debounce = 500,
+      },
+    },
+    background = {},
+    -- Tests submit chats with the cwd inside the real repo, so never snapshot it
+    code_review = {
+      enabled = false,
+      opts = {
+        storage_dir = vim.fs.joinpath(vim.fn.tempname(), "codecompanion", "code_review"),
+      },
+    },
     chat = {
       adapter = "test_adapter",
       roles = {
@@ -340,6 +354,14 @@ return {
         ["baz"] = {
           path = "tests.interactions.shared.editor_context.baz",
           description = "baz",
+        },
+        ["code_review"] = {
+          path = "interactions.shared.editor_context.code_review",
+          description = "Share your pending code review comments with the LLM",
+          opts = {
+            contains_code = true,
+            replacement = "my comments from the code review, which I've attached",
+          },
         },
       },
     },
