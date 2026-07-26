@@ -73,8 +73,10 @@ The _code_review_ context shares your [code reviews](/usage/code-reviews) with a
 Please action #{code_review}
 ```
 
+Each comment reaches the LLM with the file, the line range and the code you commented on. Your chat buffer shows a shorter version of the same thing, without the code, so you can scroll back through earlier rounds and see what you asked for.
+
 > [!NOTE]
-> Sharing your review clears the pending comments. Like a PR review, submitting it also approves everything you didn't comment on.
+> Sharing your review clears the pending comments and the virtual text that marks them. Like a PR review, submitting it also approves everything you didn't comment on.
 
 ## #diagnostics
 

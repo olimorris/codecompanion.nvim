@@ -1,6 +1,10 @@
+---
+description: "Configure code reviews in CodeCompanion - comment styling, the diff view and its providers, quickfix keymaps, and where reviews are stored."
+---
+
 # Configuring Code Reviews
 
-CodeCompanion supports code reviews, based loosely on GitHub's pull requests. Find out how they work in the [usage guide](/usage/code-reviews).
+CodeCompanion enables users to undertake code reviews and easily share feedback with an agent. Find out how they work in the [usage guide](/usage/code-reviews).
 
 ## Disabling
 
@@ -16,15 +20,36 @@ require("codecompanion").setup({
 })
 ```
 
-## Diff View
+## Comment Styling
 
-Pressing `d` on a hunk shows it as a diff against the baseline. Everything about that view lives under `opts.diff`:
+Comments you haven't sent yet are shown as virtual text above the line they were left on. They can be configured with
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     code_review = {
-      opts = {
+      display = {
+        virtual_text = {
+          enabled = true, -- Show pending comments as virtual text in the buffer
+          icon = "💬 ", -- The icon to use for virtual text
+          overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
+        },
+      },
+    },
+  },
+})
+```
+
+
+## Diff View
+
+Pressing `d` on a quickfix entry shows it as a diff against the baseline. The diff can be configurd with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    code_review = {
+      display = {
         diff = {
           enabled = true, -- Set to false to render nothing, especially if you're using your own provider
           layout = "vertical", -- vertical or horizontal
@@ -36,7 +61,7 @@ require("codecompanion").setup({
 })
 ```
 
-If you don't wish to use the `native` provider, you can set a custom function. A function provider receives the hunk to render:
+If you don't wish to use the `native` Neovim provider, you can set a custom function. A function provider receives the hunk to render:
 
 ```lua
 provider = function(target)
@@ -47,6 +72,40 @@ end,
 
 `baseline_ref` is the stable `refs/worktree/codecompanion/baseline` alias, so the same value works with `gitsigns`, `diffview`, or any git-diff plugin.
 
+> [!TIP]
+> The native provider does not touch your `diffopt` config
+
+## Editor Context
+
+When you share a review with the [code_review](/usage/chat-buffer/editor-context#code-review) editor context, the tag itself is replaced in your message with a short phrase before it's sent. For example, the prompt:
+
+```md
+Can you action #{code_review}
+```
+
+Is replaced with:
+
+```md
+Can you action my comments from the code review, which I've attached
+```
+
+This can be changed with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    shared = {
+      editor_context = {
+        code_review = {
+          opts = {
+            replacement = "my comments from the code review, which I've attached",
+          },
+        },
+      },
+    },
+  },
+})
+```
 
 ## Keymaps
 
@@ -113,4 +172,3 @@ require("codecompanion").setup({
   },
 })
 ```
-
