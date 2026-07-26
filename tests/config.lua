@@ -84,12 +84,6 @@ return {
     -- Tests submit chats with the cwd inside the real repo, so never snapshot it
     code_review = {
       enabled = false,
-      display = {
-        virtual_text = {
-          enabled = true,
-          icon = "💬 ",
-        },
-      },
       opts = {
         storage_dir = vim.fs.joinpath(vim.fn.tempname(), "codecompanion", "code_review"),
       },

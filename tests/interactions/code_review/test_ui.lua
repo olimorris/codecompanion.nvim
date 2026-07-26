@@ -60,9 +60,12 @@ T["UI"]["shows the pending comments for a file, and clears them when the review 
     -- Opening the file after the refresh also covers drawing into a buffer opened mid-review
     ui.refresh()
     bufnr = open("a.txt")
+
+    icon = config.interactions.code_review.display.virtual_text.icon
+    expected = { icon .. "Why 1?", icon .. "Outlived", icon .. "its code" }
   ]])
 
-  h.eq({ "💬 Why 1?", "💬 Outlived", "💬 its code" }, child.lua_get("rendered(bufnr)"))
+  h.eq(child.lua_get("expected"), child.lua_get("rendered(bufnr)"))
 
   child.lua([[ui.clear_all()]])
   h.eq({}, child.lua_get("rendered(bufnr)"))
