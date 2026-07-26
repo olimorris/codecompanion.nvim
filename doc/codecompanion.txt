@@ -6135,6 +6135,9 @@ This enables you to move between an agent's changes as you see fit and still
 use `CodeCompanionCodeReview Comment` to leave feedback.
 
 
+  [!WARNING] Ensure you comment from the **working file**, not from the baseline
+  side of a diff
+
 PARALLEL AGENTS ~
 
 If you run multiple agents at at time, it's common to have each in its own git

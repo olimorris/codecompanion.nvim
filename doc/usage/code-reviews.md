@@ -154,6 +154,9 @@ With [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim):
 
 This enables you to move between an agent's changes as you see fit and still use `CodeCompanionCodeReview Comment` to leave feedback.
 
+> [!WARNING]
+> Ensure you comment from the **working file**, not from the baseline side of a diff
+
 ## Parallel Agents
 
 If you run multiple agents at at time, it's common to have each in its own [git worktree](https://git-scm.com/docs/git-worktree) within the repository and Code Reviews have been built to suppor that.
