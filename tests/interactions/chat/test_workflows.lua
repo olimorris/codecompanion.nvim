@@ -37,7 +37,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
           adapter = adapters.extend({
             name = "TestAdapter",
             formatted_name = "Test Adapter",
-            url = "https://api.openai.com/v1/chat/completions",
+            url = "http://localhost/v1/chat/completions",
             roles = { llm = "assistant", user = "user" },
             headers = { content_type = "application/json" },
             parameters = { stream = true },
