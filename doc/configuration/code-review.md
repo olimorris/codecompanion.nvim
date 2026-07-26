@@ -4,7 +4,7 @@ description: "Configure code reviews in CodeCompanion - comment styling, the dif
 
 # Configuring Code Reviews
 
-CodeCompanion enables users to undertake code reviews and easily share feedback with an agent. Find out how they work in the [usage guide](/usage/code-reviews).
+CodeCompanion enables users to undertake code reviews and easily share feedback with an agent. Find out how they work in the [usage guide](/usage/code-review).
 
 ## Disabling
 
