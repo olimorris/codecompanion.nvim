@@ -145,6 +145,9 @@ require("codecompanion").setup({
 
 The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
 
+> [!TIP]
+> You can change the adapters used for background callbacks, see the [background interaction adapters](/configuration/adapters-http#background-interaction-adapters) section
+
 ### Preventing Submission
 
 The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
@@ -834,6 +837,65 @@ require("codecompanion").setup({
 ```
 
 This also works for [extensions](/configuration/extensions).
+
+### LLM Judge
+
+When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
+
+To fully enable the LLM judge:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+        },
+      },
+    },
+    chat = {
+      tools = {
+        ["delete_file"] = {
+          opts = {
+            judge_in_yolo_mode = true,
+          },
+        },
+        ["run_command"] = {
+          opts = {
+            judge_in_yolo_mode = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+The judge runs for a tool only when:
+
+- You set `background.gates.judge.enabled = true`
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
+- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+
+You can also point the judge at a different adapter to the one used in the chat buffer, for example, if you want a cheaper or faster model handling the check:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+          adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
+        },
+      },
+    },
+  },
+})
+```
+
+See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
 
 ## User Interface (UI)
 

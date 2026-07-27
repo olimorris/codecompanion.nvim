@@ -1,4 +1,3 @@
-local adapters = require("codecompanion.adapters")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 
@@ -65,15 +64,6 @@ function M.on_done(result)
   return title and title ~= "" and title or nil
 end
 
----@param background CodeCompanion.Background
----@return boolean
-local function supports_structured_output(background)
-  local adapter = background.adapter
-  return adapters.get_handler(adapter, "build_structured_output") ~= nil
-    and adapter.opts ~= nil
-    and adapter.opts.can_form_structured_outputs == true
-end
-
 ---Make the request to generate a title for the chat
 ---@param background CodeCompanion.Background
 ---@param chat CodeCompanion.Chat
@@ -98,7 +88,7 @@ function M.request(background, chat, opts)
   }, {
     method = "async",
     silent = true,
-    structured_output = supports_structured_output(background) and TITLE_SCHEMA or nil,
+    structured_output = TITLE_SCHEMA,
     on_done = function(result)
       local title = M.on_done(result)
       if title then

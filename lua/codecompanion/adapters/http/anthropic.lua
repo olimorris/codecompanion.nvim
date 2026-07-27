@@ -115,7 +115,7 @@ return {
       end
 
       -- Make sure the individual model options are set
-      local model_opts = adapter_utils.model_choice(self)
+      local model_opts = adapter_utils.model_choice(self, { async = false })
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
@@ -475,11 +475,8 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return require("codecompanion.adapters.utils.structured_outputs").to_anthropic(schema)
     end,

@@ -815,4 +815,22 @@ T["Responses"]["Compaction"]["Streaming"]["captures compaction from output_item.
   h.eq("gAAAABcancelledcompactiondata", compaction_items.encrypted_content)
 end
 
+T["Responses"]["resolves model capabilities on the first request"] = function()
+  local adapters = require("codecompanion.adapters")
+
+  adapter.schema.model.default = "gpt-5.4"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["gpt-5.4"] = { opts = { can_form_structured_outputs = true, can_use_tools = true } } }
+  end
+
+  adapter.parameters = {}
+  adapters.call_handler(adapter, "setup")
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(nil, adapters.call_handler(adapter, "build_structured_output", { name = "verdict", schema = {} }))
+end
+
 return T

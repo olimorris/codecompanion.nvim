@@ -506,4 +506,22 @@ T["Gemini Interactions adapter"]["No Streaming"]["can output a structured output
   h.eq(15, decoded.prep_time_minutes)
 end
 
+T["Gemini Interactions adapter"]["resolves model capabilities on the first request"] = function()
+  local adapters = require("codecompanion.adapters")
+
+  adapter.schema.model.default = "gemini-3-pro-preview"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["gemini-3-pro-preview"] = { opts = { can_form_structured_outputs = true } } }
+  end
+
+  adapter.parameters = {}
+  adapters.call_handler(adapter, "setup")
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(nil, adapters.call_handler(adapter, "build_structured_output", { name = "verdict", schema = {} }))
+end
+
 return T

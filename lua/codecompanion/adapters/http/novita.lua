@@ -91,7 +91,7 @@ return {
         model = model(self)
       end
       if type(choices) == "function" then
-        choices = choices(self)
+        choices = choices(self, { async = false })
       end
       local model_opts = choices[model]
 

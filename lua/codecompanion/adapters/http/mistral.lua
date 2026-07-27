@@ -1,7 +1,6 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local fetch_models = require("codecompanion.adapters.utils.models.fetch")
-local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 
 local models_source = {
@@ -48,7 +47,7 @@ return {
         self.parameters.stream = true
       end
 
-      local model_opts = adapter_utils.model_choice(self)
+      local model_opts = adapter_utils.model_choice(self, { async = false })
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
@@ -77,12 +76,9 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
       ---Ref: https://docs.mistral.ai/studio-api/conversations/structured-output/custom
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return openai.handlers.form_structured_output(self, schema)
     end,

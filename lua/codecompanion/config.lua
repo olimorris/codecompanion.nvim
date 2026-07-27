@@ -95,6 +95,12 @@ local defaults = {
           enabled = false, -- Enable ALL background chat interactions?
         },
       },
+      gates = {
+        judge = {
+          enabled = true,
+          action = "interactions.background.builtin.tools_judge",
+        },
+      },
     },
     -- CHAT INTERACTION -------------------------------------------------------
     chat = {
@@ -209,6 +215,8 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
+            require_cmd_approval = true,
+            judge_in_yolo_mode = false,
           },
         },
         ["fetch_webpage"] = {
@@ -283,6 +291,7 @@ The user is working on a %s machine. Please respond with system specific command
             allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
+            judge_in_yolo_mode = false,
           },
         },
 

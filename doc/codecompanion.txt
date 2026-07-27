@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                   For NVIM v0.11    Last change: 2026 July 26
+                                   For NVIM v0.11    Last change: 2026 July 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -86,7 +86,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Kimi <https://platform.kimi.ai>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
--  |codecompanion-usage-code-reviews| enabling you to comment on and approve/reject agent code
+-  |codecompanion-usage-code-review| enabling you to comment on and approve/reject agent code
 -  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -572,7 +572,7 @@ However, there are multiple options available:
 - `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
 - `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
 - `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
-- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for |codecompanion-usage-code-reviews|
+- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for |codecompanion-usage-code-review|
 - `CodeCompanionCodeReview Comment` - Leave a review comment on the current line or visual selection
 
 
@@ -1714,6 +1714,37 @@ Custom adapters can be added to the plugin as follows:
 <
 
 
+BACKGROUND INTERACTION ADAPTERS ~
+
+Background interactions are calls that CodeCompanion can make…in the
+background! That is, no user input is made and a request is sent to an LLM.
+
+By default every background action uses the shared
+`interactions.background.adapter`. However, you can override this at an action
+level:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          chat = {
+            callbacks = {
+              ["on_ready"] = {
+                actions = {
+                  {
+                    path = "interactions.background.builtin.chat_make_title",
+                    adapter = { name = "copilot", model = "claude-haiku-4.5" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
 CONTROLLING MODEL CHOICES ~
 
 When switching between adapters, the plugin typically displays all available
@@ -2224,6 +2255,10 @@ asynchronously. See the |codecompanion-usage-chat-buffer--generating-titles|
 section for a working example.
 
 
+  [!TIP] You can change the adapters used for background callbacks, see the
+  |codecompanion-configuration-adapters-http-background-interaction-adapters|
+  section
+
 PREVENTING SUBMISSION
 
 The `on_before_submit` callback can return `false` to prevent a message from
@@ -2611,6 +2646,72 @@ chat buffers:
 opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
 This also works for |codecompanion-configuration-extensions|.
+
+
+LLM JUDGE
+
+When |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| is on, tools are
+auto-approved. Some tools (such as `run_command` and `delete_file`), by
+default, will always ask you first, owing to their destructive nature. The
+judge offers a middle ground: a background LLM judges the specific action and
+only interrupts you when it is judged to be unsafe.
+
+To fully enable the LLM judge:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            judge = {
+              enabled = true,
+            },
+          },
+        },
+        chat = {
+          tools = {
+            ["delete_file"] = {
+              opts = {
+                judge_in_yolo_mode = true,
+              },
+            },
+            ["run_command"] = {
+              opts = {
+                judge_in_yolo_mode = true,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+The judge runs for a tool only when:
+
+- You set `background.gates.judge.enabled = true`
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; `and`
+- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+
+You can also point the judge at a different adapter to the one used in the chat
+buffer, for example, if you want a cheaper or faster model handling the check:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            judge = {
+              enabled = true,
+              adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
+            },
+          },
+        },
+      },
+    })
+<
+
+See the |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| usage section
+for how the judge behaves once enabled.
 
 
 USER INTERFACE (UI) ~
@@ -3056,8 +3157,7 @@ You can also pass `width` and `height` overrides via the Lua API:
 CODE REVIEWS                        *codecompanion-configuration-code-reviews*
 
 CodeCompanion enables users to undertake code reviews and easily share feedback
-with an agent. Find out how they work in the
-|codecompanion-usage-code-reviews|.
+with an agent. Find out how they work in the |codecompanion-usage-code-review|.
 
 
 DISABLING ~
@@ -4167,7 +4267,7 @@ chat buffer with `@files` or `@insert_edit_into_file`.
 
 CODE REVIEW AN LLM/AGENT'S CHANGES ~
 
-You can |codecompanion-usage-code-reviews| like a pull request.
+You can |codecompanion-usage-code-review| like a pull request.
 `:CodeCompanionCodeReview` opens every change in the quickfix list, one entry
 per hunk. You can step through them, leave in place comments with
 `:CodeCompanionCodeReview Comment` and then share the review in a chat buffer
@@ -5002,10 +5102,26 @@ YOLO MODE
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
-prompting the user. However, note that some tools such as `run_command` and
-`delete_file` are excluded from this as they have `allowed_in_yolo_mode =
-false` set.
+prompting the user. However, some tools such as `run_command` and `delete_file`
+are excluded from this as they have `allowed_in_yolo_mode = false` set by
+default.
 
+If you've configured the |codecompanion-configuration-chat-buffer-llm-judge|
+then a tool's commands will be sent to an LLM to verify that they're safe. This
+assumes that your chosen adapter supports structured outputs and the tool
+itself supports the judge. The |codecompanion--delete_file| and
+|codecompanion--run_command| tools support this out of the box.
+
+If the judge decides the action is safe, it executes immediately and the
+verdict is cached so re-running the exact same command won't be re-judged that
+session. For example, approving `make test` does not result in `make test && rm
+-rf foo` being auto-approved. If the request to the judge fails, or the adapter
+can't produce structured output, the tool will require manual approval.
+
+
+  [!WARNING] Running tools in YOLO mode is dangerous and it is recommend that you
+  only use it in a safe environment where potential data loss can be recovered.
+  You are responsible for any damage that may occur when using YOLO mode.
 
 COMPATIBILITY ~
 
@@ -5024,9 +5140,11 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Gemini                                      Dependent on the model
 
-  GitHub Models  All                          Not supported yet
+  GitHub Models                               Not supported yet
 
-  Huggingface    All                          Not supported yet
+  Huggingface                                 Not supported yet
+
+  Kimi                                        Dependent on the model
 
   Mistral                                     Dependent on the model
 
@@ -5037,7 +5155,12 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   OpenAI                                      Dependent on the model
 
-  xAI            All                          Not supported yet
+  OpenAI                                      Dependent on the model
+  Responses                                   
+
+  OpenRouter                                  Dependent on the model
+
+  xAI                                         Not supported yet
   ------------------------------------------------------------------------
 
   [!IMPORTANT] When using Mistral, you will need to set
@@ -5132,10 +5255,10 @@ filtered out.
 
 #CODE_REVIEW ~
 
-The `code_review` context shares your |codecompanion-usage-code-reviews| with
-an LLM. Every pending comment you've left with `:CodeCompanionCodeReview
-Comment` is sent when you submit the chat buffer and the review baseline
-advances so the next review only shows what changes in the next iteration.
+The `code_review` context shares your |codecompanion-usage-code-review| with an
+LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment`
+is sent when you submit the chat buffer and the review baseline advances so the
+next review only shows what changes in the next iteration.
 
 >md
     Please action #{code_review}
@@ -6237,13 +6360,6 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
-- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
-- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
-- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
-- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
-- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
-- `CodeCompanionToolStarted` - Fired when a tool has started executing
-- `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
 - `CodeCompanionMCPServerStart` - Fired when an MCP server is started
@@ -6253,6 +6369,15 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
+- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
+- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
+- `CodeCompanionToolStarted` - Fired when a tool has started executing
+- `CodeCompanionToolFinished` - Fired when a tool has finished executing
+- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
+- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
+- `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
+- `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
 
 In addition to these events, the chat buffer has its own **callback system**
 for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and

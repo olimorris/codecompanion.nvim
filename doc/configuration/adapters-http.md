@@ -186,6 +186,33 @@ require("codecompanion").setup({
 })
 ```
 
+## Background Interaction Adapters
+
+Background interactions are calls that CodeCompanion can make...in the background! That is, no user input is made and a request is sent to an LLM.
+
+By default every background action uses the shared `interactions.background.adapter`. However, you can override this at an action level:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              {
+                path = "interactions.background.builtin.chat_make_title",
+                adapter = { name = "copilot", model = "claude-haiku-4.5" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## Controlling Model Choices
 
 When switching between adapters, the plugin typically displays all available model choices for the selected adapter. If you want to simplify the interface and have the default model automatically chosen (without showing any model selection UI), you can set the `show_model_choices` option to `false`:

@@ -972,6 +972,22 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
   )
 end
 
+T["Anthropic adapter"]["resolves model capabilities on the first request"] = function()
+  adapter.schema.model.default = "claude-sonnet-5"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["claude-sonnet-5"] = { opts = { can_form_structured_outputs = true, has_vision = true } } }
+  end
+
+  adapter.parameters = {}
+  adapter.handlers.setup(adapter)
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(nil, adapter.handlers.form_structured_output(adapter, { name = "verdict", schema = {} }))
+end
+
 T["Anthropic model_transformers"] = new_set()
 
 T["Anthropic model_transformers"]["from_anthropic() transforms the stubbed model list"] = function()
@@ -990,6 +1006,7 @@ T["Anthropic model_transformers"]["from_anthropic() transforms the stubbed model
   h.eq({ context_window = 1000000, max_tokens = 128000 }, result["claude-sonnet-5"].meta)
   h.eq(true, result["claude-sonnet-5"].opts.can_reason)
   h.eq(true, result["claude-sonnet-5"].opts.has_vision)
+  h.eq(true, result["claude-sonnet-5"].opts.can_form_structured_outputs)
 
   -- Supports context_management as a whole, including compact_20260112
   h.eq(true, result["claude-sonnet-5"].opts.can_manage_context)

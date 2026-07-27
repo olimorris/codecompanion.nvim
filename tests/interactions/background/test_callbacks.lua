@@ -55,6 +55,38 @@ T["callbacks"]["can register chat callbacks"] = function()
   h.is_true(result)
 end
 
+T["callbacks"]["registers actions declared with a per-action adapter"] = function()
+  child.lua([[
+    _G.chat = h.setup_chat_buffer()
+
+    config.interactions.background.chat = {
+      opts = { enabled = true },
+      callbacks = {
+        test_event = {
+          enabled = true,
+          actions = {
+            { path = "some.background.action", adapter = { name = "copilot", model = "claude-haiku-4.5" } },
+          },
+        },
+      },
+    }
+
+    local original_add_callback = _G.chat.add_callback
+    local callback_registered = false
+    _G.chat.add_callback = function(self, event, callback)
+      if event == "test_event" then
+        callback_registered = true
+      end
+      return original_add_callback(self, event, callback)
+    end
+
+    callbacks.register_chat_callbacks(_G.chat)
+    _G.callback_registered = callback_registered
+  ]])
+
+  h.is_true(child.lua([[return _G.callback_registered]]))
+end
+
 T["callbacks"]["can't register disabled callbacks"] = function()
   child.lua([[
     _G.chat = h.setup_chat_buffer()
