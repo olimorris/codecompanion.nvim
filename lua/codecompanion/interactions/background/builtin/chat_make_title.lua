@@ -24,11 +24,14 @@ function M.format_messages(messages)
   local exclude_tags = {
     [tags.IMAGE] = "[Image content omitted]",
     [tags.RULES] = "",
-    [tags.SYSTEM_PROMPT_FROM_CONFIG] = "",
   }
 
   local chat_messages = {}
   for _, m in ipairs(messages or {}) do
+    if m.role == "system" then
+      goto continue
+    end
+
     local tag = m._meta and m._meta.tag
     local replacement = exclude_tags[tag]
 
