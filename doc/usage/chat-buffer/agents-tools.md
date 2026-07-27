@@ -395,12 +395,12 @@ Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
 ### YOLO mode
 
-To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, note that some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set.
+To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set by default.
 
-If you've configured [tool safety checks](/configuration/chat-buffer#tool-safety-check) then any commands from those tools will be sent to an LLM judge to verify if they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports safety checks.
+If you've configured [tool safety checks](/configuration/chat-buffer#tool-safety-check) then their commands will be sent to an LLM judge to verify that they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports safety checks. The [delete_file](#delete_file) and [run_command](#run_command) tools both support safety checks.
 
-> [!TIP]
-> The [delete_file](#delete_file) and [run_command](#run_command) tools both support safety checks
+> [!WARNING]
+> Running tools in YOLO mode is dangerous and it is recommend that you only use it in a safe environment where potential data loss can be recovered. You are responsible for any damage that may occur when using YOLO mode.
 
 ## Compatibility
 

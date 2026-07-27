@@ -174,7 +174,7 @@
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field gates? table Handlers which decide whether a tool may run
----@field gates.safety_context? fun(self: CodeCompanion.Tools.Tool, meta: table): string|nil The action, described in plain English, for the background judge to vet
+---@field gates.judge_context? fun(self: CodeCompanion.Tools.Tool, meta: table): string|nil The action, described in plain English, for the background judge to vet
 ---@field handlers table Functions which handle the execution of a tool
 ---@field handlers.setup? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
 ---@field handlers.prompt_condition? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, config: table): boolean Function to determine whether to show the promp to the user or not

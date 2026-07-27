@@ -140,7 +140,7 @@ return {
     ---@param self CodeCompanion.Tool.DeleteFile
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return string
-    safety_context = function(self, meta)
+    judge_context = function(self, meta)
       return fmt("Delete the file: %s", self.args.filepath)
     end,
   },

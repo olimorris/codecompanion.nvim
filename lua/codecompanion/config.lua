@@ -96,9 +96,9 @@ local defaults = {
         },
       },
       gates = {
-        safety_check = {
+        judge = {
           enabled = true,
-          action = "interactions.background.builtin.tool_safety_check",
+          action = "interactions.background.builtin.tools_judge",
         },
       },
     },
@@ -216,7 +216,7 @@ The user is working on a %s machine. Please respond with system specific command
             allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
-            safety_check = false,
+            judge_in_yolo_mode = false,
           },
         },
         ["fetch_webpage"] = {
@@ -291,7 +291,7 @@ The user is working on a %s machine. Please respond with system specific command
             allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
-            safety_check = false,
+            judge_in_yolo_mode = false,
           },
         },
 

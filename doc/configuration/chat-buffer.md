@@ -181,16 +181,16 @@ The `info` table passed to `on_before_submit` contains:
 
 ### Tool Safety Check
 
-When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The tool safety check offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
+When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     background = {
       gates = {
-        safety_check = {
+        judge = {
           enabled = true,
-          action = "interactions.background.builtin.tool_safety_check",
+          action = "interactions.background.builtin.tools_judge",
         },
       },
     },
@@ -198,10 +198,10 @@ require("codecompanion").setup({
 })
 ```
 
-The check runs for a tool only when:
+The judge runs for a tool only when:
 
-- You set `opts.safety_check = true` on the tool's config; _and_
-- The tool defines a `gates.safety_context` handler
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
+- The tool defines a `gates.judge_context` handler
 
 Regarding for former, this can be accomplished with:
 
@@ -212,7 +212,7 @@ require("codecompanion").setup({
       tools = {
         ["run_command"] = {
           opts = {
-            safety_check = true,
+            judge_in_yolo_mode = true,
           },
         },
       },

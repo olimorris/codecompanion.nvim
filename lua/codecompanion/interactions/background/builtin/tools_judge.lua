@@ -4,7 +4,7 @@ local fmt = string.format
 
 local M = {}
 
-local SAFETY_SCHEMA = {
+local VERDICT_SCHEMA = {
   name = "safety",
   schema = {
     type = "object",
@@ -71,19 +71,19 @@ function M.request(background, request, callback)
   }, {
     method = "async",
     silent = true,
-    structured_output = SAFETY_SCHEMA,
+    structured_output = VERDICT_SCHEMA,
     on_done = function(result)
       local verdict = parse_verdict(result)
       if not verdict then
-        log:debug("[background::tool_safety_check] Could not read a verdict; requiring approval")
-        return require_approval("The safety check returned an unreadable response")
+        log:debug("[background::tools_judge] Could not read a verdict; requiring approval")
+        return require_approval("The judge returned an unreadable response")
       end
-      log:debug("[background::tool_safety_check] Verdict for `%s`: safe=%s", request.tool_name, verdict.safe)
+      log:debug("[background::tools_judge] Verdict for `%s`: safe=%s", request.tool_name, verdict.safe)
       callback(verdict)
     end,
     on_error = function(err)
-      log:debug("[background::tool_safety_check] Request failed: %s", err)
-      require_approval("The safety check could not be completed")
+      log:debug("[background::tools_judge] Request failed: %s", err)
+      require_approval("The judge request failed")
     end,
   })
 end

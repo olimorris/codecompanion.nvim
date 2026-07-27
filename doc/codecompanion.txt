@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                   For NVIM v0.11    Last change: 2026 July 26
+                                   For NVIM v0.11    Last change: 2026 July 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2299,18 +2299,18 @@ TOOL SAFETY CHECK
 
 When |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| is on, tools are
 auto-approved. Some tools (such as `run_command` and `delete_file`), by
-default, will always ask you first, owing to their destructive nature. The tool
-safety check offers a middle ground: a background LLM judges the specific
-action and only interrupts you when it is judged to be unsafe.
+default, will always ask you first, owing to their destructive nature. The
+judge offers a middle ground: a background LLM judges the specific action and
+only interrupts you when it is judged to be unsafe.
 
 >lua
     require("codecompanion").setup({
       interactions = {
         background = {
           gates = {
-            safety_check = {
+            judge = {
               enabled = true,
-              action = "interactions.background.builtin.tool_safety_check",
+              action = "interactions.background.builtin.tools_judge",
             },
           },
         },
@@ -2318,10 +2318,10 @@ action and only interrupts you when it is judged to be unsafe.
     })
 <
 
-The check runs for a tool only when:
+The judge runs for a tool only when:
 
-- You set `opts.safety_check = true` on the tool's config; `and`
-- The tool defines a `gates.safety_context` handler
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; `and`
+- The tool defines a `gates.judge_context` handler
 
 Regarding for former, this can be accomplished with:
 
@@ -2332,7 +2332,7 @@ Regarding for former, this can be accomplished with:
           tools = {
             ["run_command"] = {
               opts = {
-                safety_check = true,
+                judge_in_yolo_mode = true,
               },
             },
           },
@@ -5096,19 +5096,21 @@ YOLO MODE
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
-prompting the user. However, note that some tools such as `run_command` and
-`delete_file` are excluded from this as they have `allowed_in_yolo_mode =
-false` set.
+prompting the user. However, some tools such as `run_command` and `delete_file`
+are excluded from this as they have `allowed_in_yolo_mode = false` set by
+default.
 
 If you've configured
-|codecompanion-configuration-chat-buffer-tool-safety-check| then any commands
-from those tools will be sent to an LLM judge to verify if they're safe. This
-assumes that your chosen adapter supports structured outputs and the tool
-itself supports safety checks.
+|codecompanion-configuration-chat-buffer-tool-safety-check| then their commands
+will be sent to an LLM judge to verify that they're safe. This assumes that
+your chosen adapter supports structured outputs and the tool itself supports
+safety checks. The |codecompanion--delete_file| and
+|codecompanion--run_command| tools both support safety checks.
 
 
-  [!TIP] The |codecompanion--delete_file| and |codecompanion--run_command| tools
-  both support safety checks
+  [!WARNING] Running tools in YOLO mode is dangerous and it is recommend that you
+  only use it in a safe environment where potential data loss can be recovered.
+  You are responsible for any damage that may occur when using YOLO mode.
 
 COMPATIBILITY ~
 
@@ -6363,8 +6365,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
-- `CodeCompanionToolSafetyCheckStarted` - Fired when a background safety check begins judging a tool call
-- `CodeCompanionToolSafetyCheckFinished` - Fired when a background safety check returns its verdict
+- `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
+- `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
 
 In addition to these events, the chat buffer has its own **callback system**
 for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and

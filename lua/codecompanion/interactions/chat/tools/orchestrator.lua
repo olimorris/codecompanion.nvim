@@ -241,12 +241,12 @@ function Orchestrator:_setup_handlers()
   }
 
   self.gates = {
-    safety_context = function()
+    judge_context = function()
       if not self.tool then
         return
       end
-      if self.tool.gates and self.tool.gates.safety_context then
-        return self.tool.gates.safety_context(self.tool, { tools = self.tools })
+      if self.tool.gates and self.tool.gates.judge_context then
+        return self.tool.gates.judge_context(self.tool, { tools = self.tools })
       end
       return nil
     end,
@@ -309,8 +309,8 @@ function Orchestrator:setup_next_tool(input)
   end
 
   -- In yolo mode, let a background judge decide whether to execute or ask the user for approval
-  if self:_should_run_safety_check() then
-    return self:_run_safety_check({ cmd = cmd, input = input })
+  if self:_should_run_judge() then
+    return self:_run_judge({ cmd = cmd, input = input })
   end
 
   return self:_prompt_for_approval({ cmd = cmd, input = input })
@@ -379,39 +379,39 @@ end
 
 ---Should a background judge vet this tool before we ask the user to approve it?
 ---@return boolean
-function Orchestrator:_should_run_safety_check()
-  local safety_check = config.interactions.background.gates and config.interactions.background.gates.safety_check
-  if not (safety_check and safety_check.enabled) then
+function Orchestrator:_should_run_judge()
+  local judge = config.interactions.background.gates and config.interactions.background.gates.judge
+  if not (judge and judge.enabled) then
     return false
   end
-  if not self.tool.opts.safety_check then
+  if not self.tool.opts.judge_in_yolo_mode then
     return false
   end
-  if not (self.tool.gates and self.tool.gates.safety_context) then
+  if not (self.tool.gates and self.tool.gates.judge_context) then
     return false
   end
   return Approvals:is_approved(self.tools.bufnr)
 end
 
----Run a background safety check, then execute the tool or fall back to a prompt
+---Run the background judge, then execute the tool or fall back to a prompt
 ---@param args { cmd: function, input?: any }
 ---@return nil
-function Orchestrator:_run_safety_check(args)
-  local safety_check = config.interactions.background.gates.safety_check
+function Orchestrator:_run_judge(args)
+  local judge = config.interactions.background.gates.judge
 
   local Background = require("codecompanion.interactions.background")
   local background = Background.new({
-    adapter = safety_check.adapter or config.interactions.background.adapter,
+    adapter = judge.adapter or config.interactions.background.adapter,
   })
 
-  local action = require("codecompanion.interactions.background.callbacks").resolve(safety_check.action)
-  local context = self.gates.safety_context()
+  local action = require("codecompanion.interactions.background.callbacks").resolve(judge.action)
+  local context = self.gates.judge_context()
   if not background or not action or context == nil then
-    log:debug("[Orchestrator::_run_safety_check] Cannot run the check; asking the user")
+    log:debug("[Orchestrator::_run_judge] Cannot run the judge; asking the user")
     return self:_prompt_for_approval(args)
   end
 
-  utils.fire("ToolSafetyCheckStarted", {
+  utils.fire("ToolsJudgeStarted", {
     bufnr = self.tools.bufnr,
     context = context,
     id = self.id,
@@ -419,7 +419,7 @@ function Orchestrator:_run_safety_check(args)
   })
 
   action.request(background, { tool_name = self.tool.name, context = context }, function(verdict)
-    utils.fire("ToolSafetyCheckFinished", {
+    utils.fire("ToolsJudgeFinished", {
       bufnr = self.tools.bufnr,
       id = self.id,
       reason = verdict.reason,

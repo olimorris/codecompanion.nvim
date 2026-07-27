@@ -213,7 +213,6 @@ require("codecompanion").setup({
 })
 ```
 
-
 ## Controlling Model Choices
 
 When switching between adapters, the plugin typically displays all available model choices for the selected adapter. If you want to simplify the interface and have the default model automatically chosen (without showing any model selection UI), you can set the `show_model_choices` option to `false`:

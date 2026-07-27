@@ -74,7 +74,7 @@ return cmd_tool({
     ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta {tools: CodeCompanion.Tools}
     ---@return string
-    safety_context = function(self, meta)
+    judge_context = function(self, meta)
       return self.args.cmd
     end,
   },

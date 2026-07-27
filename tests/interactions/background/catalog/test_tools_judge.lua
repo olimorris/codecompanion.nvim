@@ -10,7 +10,7 @@ T = new_set({
       child.lua([[
         h = require('tests.helpers')
         h.setup_plugin()
-        builtin = require("codecompanion.interactions.background.builtin.tool_safety_check")
+        builtin = require("codecompanion.interactions.background.builtin.tools_judge")
 
         -- A background whose `ask` immediately replays a canned result to on_done
         function _G.background_returning(result)
@@ -41,9 +41,9 @@ T = new_set({
   },
 })
 
-T["tool_safety_check"] = new_set()
+T["tools_judge"] = new_set()
 
-T["tool_safety_check"]["passes a safe verdict through"] = function()
+T["tools_judge"]["passes a safe verdict through"] = function()
   local verdict = child.lua([[
     return _G.judge(_G.background_returning({
       output = { content = '{"safe":true,"reason":"lists files"}' },
@@ -54,7 +54,7 @@ T["tool_safety_check"]["passes a safe verdict through"] = function()
   h.eq(verdict.reason, "lists files")
 end
 
-T["tool_safety_check"]["passes an unsafe verdict through"] = function()
+T["tools_judge"]["passes an unsafe verdict through"] = function()
   local verdict = child.lua([[
     return _G.judge(_G.background_returning({
       output = { content = '{"safe":false,"reason":"deletes everything"}' },
@@ -65,7 +65,7 @@ T["tool_safety_check"]["passes an unsafe verdict through"] = function()
   h.eq(verdict.reason, "deletes everything")
 end
 
-T["tool_safety_check"]["requires approval when the response is unreadable"] = function()
+T["tools_judge"]["requires approval when the response is unreadable"] = function()
   local verdict = child.lua([[
     return _G.judge(_G.background_returning({ output = { content = "not json" } }))
   ]])
@@ -73,7 +73,7 @@ T["tool_safety_check"]["requires approval when the response is unreadable"] = fu
   h.eq(verdict.safe, false)
 end
 
-T["tool_safety_check"]["requires approval when the request errors"] = function()
+T["tools_judge"]["requires approval when the request errors"] = function()
   local verdict = child.lua([[return _G.judge(_G.background_erroring)]])
 
   h.eq(verdict.safe, false)
