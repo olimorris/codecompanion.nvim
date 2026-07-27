@@ -4,359 +4,290 @@
     Author:     Oli Morris
 -------------------------------------------------------------------------------
     Description:
-      This module builds out and formats the chat buffer's messages.
+      Renders the chat buffer's streamed output.
 
-      It uses the notion of "sections" which defines content under a H2 header
-      and "blocks" which are groups of messages of the same type, which sit
-      under a section. There are three types of message:
-        - LLM_MESSAGE: standard LLM output
-        - REASONING_MESSAGE: internal reasoning steps
-        - TOOL_MESSAGE: output from a tool call
+      A "section" is the content under a role header. Within a section, a
+      "block" is a contiguous run of one logical type:
+        - reasoning : the model's internal reasoning
+        - llm       : standard LLM output
+        - tool      : output from a tool call
 ===============================================================================
 --]]
-local config = require("codecompanion.config")
-
 local Icons = require("codecompanion.interactions.chat.ui.icons")
-local Reasoning = require("codecompanion.interactions.chat.ui.formatters.reasoning")
-local Standard = require("codecompanion.interactions.chat.ui.formatters.standard")
-local Tools = require("codecompanion.interactions.chat.ui.formatters.tools")
+local config = require("codecompanion.config")
 
 local api = vim.api
 
-local EPHEMERAL_STATE = {
-  __index = {
-    update_role = function(self, role)
-      self.last_role = role
-      self.is_new_response = true
-    end,
-    mark_reasoning_complete = function(self)
-      self.has_reasoning_output = false
-    end,
-    mark_reasoning_started = function(self)
-      self.has_reasoning_output = true
-    end,
-    update_type = function(self, type)
-      self.last_type = type
-    end,
-    start_new_block = function(self)
-      self.is_new_block = true
-    end,
+-- The different types of blocks that are rendered in the chat buffer
+local BLOCK = { REASONING = "reasoning", LLM = "llm", TOOL = "tool" }
+
+local SUBHEADER = { REASONING = "### Reasoning", RESPONSE = "### Response" }
+local BLANK = ""
+
+-- Every blank line and sub-header in the chat buffer is decided here with a
+-- separator(prev, new) format. It returns the lines that go between one
+-- block's last line and a next block's first line. Unless there's a new section to add...
+local FIRST_BLOCK = {
+  [BLOCK.REASONING] = { SUBHEADER.REASONING, BLANK },
+  [BLOCK.LLM] = {},
+  [BLOCK.TOOL] = {},
+}
+local SEPARATORS = {
+  [BLOCK.REASONING] = {
+    [BLOCK.LLM] = { BLANK, SUBHEADER.RESPONSE, BLANK },
+    [BLOCK.TOOL] = { BLANK, SUBHEADER.RESPONSE, BLANK },
+  },
+  [BLOCK.LLM] = {
+    [BLOCK.REASONING] = { BLANK, SUBHEADER.REASONING, BLANK },
+    [BLOCK.TOOL] = { BLANK },
+  },
+  [BLOCK.TOOL] = {
+    [BLOCK.REASONING] = { BLANK, SUBHEADER.REASONING, BLANK },
+    [BLOCK.LLM] = { BLANK },
+    [BLOCK.TOOL] = { BLANK },
   },
 }
+
+---@param prev? string A `BLOCK` value, or nil for the first block in a section
+---@param new string A `BLOCK` value
+---@return string[]
+local function separator(prev, new)
+  if prev == nil then
+    return FIRST_BLOCK[new]
+  end
+  local row = SEPARATORS[prev]
+  return (row and row[new]) or {}
+end
+
+---@class CodeCompanion.Chat.UI.BuilderState
+---@field last_role? string The role of the section currently being rendered
+---@field block_type? string The `BLOCK` type of the open block; nil after a header
+---@field current_section_start? number 0-based line where the current section begins
+---@field current_header_line? number 0-based line holding the current role header
 
 ---@class CodeCompanion.Chat.UI.Builder
 ---@field chat CodeCompanion.Chat
 ---@field state CodeCompanion.Chat.UI.BuilderState
----@field _formatters CodeCompanion.Chat.UI.Formatters.Base[]
----@field _fmt_state table
+---@field _block_by_type table<string, string> Maps `MESSAGE_TYPES` to `BLOCK` values
 local Builder = {}
-
--- Type additions (place near the other annotations in builder.lua)
----@class CodeCompanion.Chat.UI.BuilderState
----@field last_role? string
----@field last_type? string
----@field has_reasoning_output boolean
----@field last_block_type? string
----@field current_block_type? string
----@field chunks_in_block number
----@field total_chunks number
----@field section_index number
----@field block_index number
----@field last_write_start number -- 0-based
----@field last_write_end number -- 0-based
----@field current_section_start? number -- 0-based, the leading blank that precedes the section header
----@field current_header_line? number -- 0-based, the line that holds the rendered "## role" header
----@field last_section_start? number -- 0-based
 
 ---@class CodeCompanion.Chat.UI.BuilderArgs
 ---@field chat CodeCompanion.Chat
----@field state table
 function Builder.new(args)
+  local types = args.chat.MESSAGE_TYPES
   return setmetatable({
     chat = args.chat,
     state = {
       last_role = args.chat._last_role,
-      last_type = nil,
-      has_reasoning_output = false,
-
-      -- Block tracking
-      last_block_type = nil,
-      current_block_type = nil,
-      chunks_in_block = 0,
-      total_chunks = 0,
-
-      -- Section tracking
-      section_index = 0,
-      block_index = 0,
-
-      -- Write bounds
-      last_write_start = 0,
-      last_write_end = 0,
+      block_type = nil,
       current_section_start = nil,
       current_header_line = nil,
-      last_section_start = nil,
     },
-
-    -- Cache the formatter instances
-    _formatters = {
-      Tools:new(args.chat),
-      Reasoning:new(args.chat),
-      Standard:new(args.chat),
+    _block_by_type = {
+      [types.REASONING_MESSAGE] = BLOCK.REASONING,
+      [types.TOOL_MESSAGE] = BLOCK.TOOL,
+      [types.LLM_MESSAGE] = BLOCK.LLM,
     },
-    _fmt_state = setmetatable({}, EPHEMERAL_STATE),
   }, { __index = Builder })
 end
 
----Create a rich formatting state object for this cycle in the chat buffer
----@param out table The reusable ephemeral state table
----@param base_state table The persistent state from builder
----@return table Rich formatting state with methods
-local function create_state(out, base_state)
-  local state = out
-
-  state.last_role = base_state.last_role
-  state.last_type = base_state.last_type
-  state.has_reasoning_output = base_state.has_reasoning_output
-
-  -- Block tracking
-  state.last_block_type = base_state.last_block_type
-  state.current_block_type = base_state.current_block_type
-  state.chunks_in_block = base_state.chunks_in_block or 0
-  state.total_chunks = base_state.total_chunks or 0
-
-  -- Section tracking
-  state.section_index = base_state.section_index or 0
-  state.block_index = base_state.block_index or 0
-
-  -- Block-local flags
-  state.last_block = nil
-  state.current_block = nil
-  state.is_new_response = false
-  state.is_new_block = false
-
-  return state
-end
-
----Add message using centralized state
----@param data { content?: string, role?: string, reasoning?: { content: string } }
----@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
----@return number,number|nil
-function Builder:add_message(data, opts)
-  opts = opts or {}
-  local lines, fold_info, current_type, formatter = {}, nil, nil, nil
-
-  local state = create_state(self._fmt_state, self.state)
-
-  local needs_header = self:_should_add_header(data, opts, state)
-  local needs_block = self:_should_start_new_block(opts, state)
-
-  if needs_header then
-    state:update_role(data.role)
-    self:_add_header_spacing(lines)
-    self.chat.ui:set_header(lines, config.interactions.chat.roles[data.role])
-
-    -- Section started: reset block trackers
-    self.state.section_index = (self.state.section_index or 0) + 1
-    self.state.block_index = 0
-    self.state.current_block_type = nil
-    self.state.chunks_in_block = 0
-
-    -- Mirror resets into ephemeral state so formatters see correct indices
-    state.section_index = self.state.section_index
-    state.block_index = 0
-    state.current_block_type = nil
-    state.chunks_in_block = 0
-
-    -- We intentionally do NOT set is_new_block in the same message as a role header
-  elseif needs_block then
-    state:start_new_block()
-  end
-
-  -- Track how many lines were added before the formatter content (header spacing, etc.)
-  local pre_content_lines = #lines
-
-  local has_content = data.content or (data.reasoning and data.reasoning.content)
-
-  if has_content then
-    formatter = self:_get_formatter(data, opts)
-    local content_lines, content_fold_info = formatter:format(data, opts, state)
-
-    vim.list_extend(lines, content_lines)
-    if content_fold_info then
-      fold_info = content_fold_info
-    end
-
-    -- This role check is more of a testing fix than a real logic check
-    if data.content ~= "" and data.role ~= config.constants.USER_ROLE then
-      current_type = formatter:get_type(opts)
-    end
-  end
-
-  -- NOTE: Adjust icon offset to account for header lines added before formatter content
-  if opts._icon_info and opts._icon_info.has_icon and pre_content_lines > 0 then
-    opts._icon_info.line_offset = (opts._icon_info.line_offset or 0) + pre_content_lines
-  end
-
-  -- The formatter numbers its fold offsets from the start of its own content,
-  -- unaware a header was prepended above it. Push them down past the header.
-  if fold_info and pre_content_lines > 0 then
-    fold_info.start_offset = fold_info.start_offset + pre_content_lines
-    fold_info.end_offset = fold_info.end_offset + pre_content_lines
-  end
-
-  local insert_line, icon_id
-  if not vim.tbl_isempty(lines) then
-    insert_line, icon_id = self:_write_to_buffer(lines, {
-      _icon_info = opts._icon_info,
-      fold_info = fold_info,
-      insert_at = opts.insert_at,
-      state = state,
-      virt_text_pos = opts.virt_text_pos,
-    })
-  end
-
-  if current_type then
-    -- Update type for next decision
-    state:update_type(current_type)
-
-    -- Block tracking: treat role changes and type changes as new blocks
-    self.state.total_chunks = (self.state.total_chunks or 0) + 1
-    local is_new_block = state.is_new_response or (self.state.current_block_type ~= current_type)
-
-    if is_new_block then
-      self.state.last_block_type = self.state.current_block_type
-      self.state.current_block_type = current_type
-      self.state.chunks_in_block = 1
-      self.state.block_index = (self.state.block_index or 0) + 1
-    else
-      self.state.chunks_in_block = (self.state.chunks_in_block or 0) + 1
-    end
-  end
-
-  self:_sync_state_from_formatting_state(state)
-  self:_sync_state_to_chat()
-
-  return insert_line, icon_id
-end
-
----Determine if we should start a new block under the header
----@param opts { type?: string }
----@param state table
----@return boolean
-function Builder:_should_start_new_block(opts, state)
-  return opts.type ~= nil and opts.type ~= state.last_type
-end
-
----Check if we need to add a header to the chat buffer
+---Do we need to render a role header before this message?
 ---@param data { role?: string }
 ---@param opts { force_role?: boolean }
----@param state table
 ---@return boolean
-function Builder:_should_add_header(data, opts, state)
-  return (data.role ~= nil and data.role ~= state.last_role) or (opts.force_role == true)
+function Builder:_needs_header(data, opts)
+  return data.role ~= nil and (data.role ~= self.state.last_role or opts.force_role == true)
 end
 
----Add appropriate spacing before header
----@param lines string[]
----@return nil
-function Builder:_add_header_spacing(lines)
-  table.insert(lines, "")
-  table.insert(lines, "")
+---Map a message's wire type to its logical block type, defaulting to prose
+---@param opts { type?: string }
+---@return string A `BLOCK` value
+function Builder:_block_type(opts)
+  return self._block_by_type[opts.type] or BLOCK.LLM
 end
 
----Get the appropriate formatter
----@param data table
----@param opts table
----@return CodeCompanion.Chat.UI.Formatters.Base
-function Builder:_get_formatter(data, opts)
-  for _, formatter in ipairs(self._formatters) do
-    if formatter:can_handle(data, opts, self.chat.MESSAGE_TYPES) then
-      return formatter
-    end
+---Tool output folds unless folds are disabled or the tool carries a status (ACP)
+---@param opts { status?: string }
+---@return boolean
+function Builder:_tool_folds_enabled(opts)
+  return config.interactions.chat.tools.opts.folds.enabled and not opts.status
+end
+
+---Add a streamed message to the chat buffer
+---@param data { content?: string, role?: string }
+---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
+---@return number|nil insert_line The line after the write (1-based), or nil if nothing was written
+---@return number|nil icon_id
+function Builder:add_message(data, opts)
+  opts = opts or {}
+
+  local role_changed = self:_needs_header(data, opts)
+
+  local content = data.content
+  -- If the role has changed (user <-> LLM) then start a new line
+  local has_content = content ~= nil and (content ~= "" or role_changed)
+
+  local block = has_content and self:_block_type(opts) or nil
+  -- Each tool call is its own block even though the type repeats
+  local new_block = has_content and (role_changed or block ~= self.state.block_type or block == BLOCK.TOOL)
+
+  local write = {
+    role_changed = role_changed,
+    leaving_reasoning = block ~= nil and self.state.block_type == BLOCK.REASONING and block ~= BLOCK.REASONING,
+  }
+
+  local starts_new_line = role_changed or new_block
+  local lines = {}
+  if starts_new_line then
+    table.insert(lines, BLANK)
   end
-  return self._formatters[#self._formatters]
+
+  local prev_block = self.state.block_type
+  if role_changed then
+    table.insert(lines, BLANK)
+    self.chat.ui:set_header(lines, config.interactions.chat.roles[data.role])
+    self.state.last_role = data.role
+    self.state.block_type = nil
+    prev_block = nil
+  end
+
+  if has_content then
+    ---@cast block string
+    local content_lines = vim.split(content, "\n", { plain = true, trimempty = false })
+    if new_block then
+      vim.list_extend(lines, separator(prev_block, block))
+      -- NOTE: Some LLMs open a block with blank lines, sometimes split across
+      -- chunks. The separator owns that gap, so drop every leading blank - keep
+      -- one and the spacing depends on where the chunk boundary landed. An empty
+      -- string is exempt: that's a section opening on its input line.
+      if content ~= BLANK then
+        while content_lines[1] == BLANK do
+          table.remove(content_lines, 1)
+        end
+      end
+    end
+
+    write.content_start = #lines
+    vim.list_extend(lines, content_lines)
+
+    if block == BLOCK.TOOL and #content_lines > 0 and self:_tool_folds_enabled(opts) then
+      write.fold_info = {
+        start_offset = write.content_start,
+        end_offset = write.content_start + #content_lines - 1,
+        first_line = content_lines[1] or "",
+      }
+    end
+
+    self.state.block_type = block
+  end
+
+  if vim.tbl_isempty(lines) then
+    return nil
+  end
+
+  -- If the line has a blank line at the end, don't add an additional one
+  if starts_new_line then
+    write.trailing_blanks = lines[2] == BLANK and 0 or 1
+  end
+
+  return self:_write(lines, opts, write)
 end
 
----Write lines to buffer with all the buffer management
----@param lines string[]
----@param opts table
----@return number, number|nil
-function Builder:_write_to_buffer(lines, opts)
-  local state = opts.state
-  local fold_info = opts.fold_info
+---Trim or pad the buffer's trailing blank lines
+---@param n number
+function Builder:_set_trailing_blanks(n)
+  local bufnr = self.chat.bufnr
+  local count = api.nvim_buf_line_count(bufnr)
 
+  local blanks = 0
+  for i = count, 1, -1 do
+    if api.nvim_buf_get_lines(bufnr, i - 1, i, false)[1] ~= "" then
+      break
+    end
+    blanks = blanks + 1
+  end
+
+  -- Determine if there are any excess blank lines. If there are, remove them from the top
+  -- Removing from the bottom clears extmarks that might be anchored
+  if blanks > n then
+    local first_blank = count - blanks
+    api.nvim_buf_set_lines(bufnr, first_blank, first_blank + (blanks - n), false, {})
+  elseif blanks < n then
+    local pad = {}
+    for _ = 1, n - blanks do
+      pad[#pad + 1] = ""
+    end
+    api.nvim_buf_set_lines(bufnr, count, count, false, pad)
+  end
+end
+
+---Write the assembled lines to the buffer and finalise icons, folds and headers
+---@param lines string[]
+---@param opts table The original message opts
+---@param write { role_changed: boolean, content_start?: number, fold_info?: table, leaving_reasoning?: boolean, trailing_blanks?: number }
+---@return number insert_line 1-based line after the write
+---@return number|nil icon_id
+function Builder:_write(lines, opts, write)
   self.chat.ui:unlock_buf()
+  if write.trailing_blanks and not opts.insert_at then
+    self:_set_trailing_blanks(write.trailing_blanks)
+  end
   local last_line, last_column, line_count = self.chat.ui:last()
 
   local insert_line = opts.insert_at or last_line
-  if opts.insert_at then
-    last_column = 0
-  end
+  local column = opts.insert_at and 0 or last_column
+  local cursor_at_end = api.nvim_win_get_cursor(0)[1] == line_count
 
-  local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
+  api.nvim_buf_set_text(self.chat.bufnr, insert_line, column, insert_line, column, lines)
 
-  api.nvim_buf_set_text(self.chat.bufnr, insert_line, last_column, insert_line, last_column, lines)
+  local icon_id = self:_apply_icon(insert_line, opts, write.content_start)
 
-  local icon_id
-  if opts._icon_info and opts._icon_info.has_icon then
-    local target_line = insert_line + (opts._icon_info.line_offset or 0)
-    icon_id = Icons.apply(self.chat.bufnr, target_line, opts._icon_info.status, {
-      virt_text_pos = opts.virt_text_pos,
-    })
-  end
-
-  -- Record write bounds
-  local end_line_written = insert_line + (#lines > 0 and (#lines - 1) or 0)
-  self.state.last_write_start = insert_line
-  self.state.last_write_end = end_line_written
-
-  -- If a new role header was rendered, update section anchors and headers
-  if state.is_new_response then
-    self.state.last_section_start = self.state.current_section_start
+  if write.role_changed then
     self.state.current_section_start = insert_line
-    -- Header text sits 2 lines below `insert_line` (two blank spacers + header)
+    -- The write's first blank merges into the existing last line, so only the
+    -- second blank costs a row before the header
     self.state.current_header_line = insert_line + 2
     self.chat.ui:render_headers()
   end
 
-  -- Tool folds
-  if fold_info then
-    local fold_start = insert_line + fold_info.start_offset
-    local fold_end = insert_line + fold_info.end_offset
+  if write.fold_info then
+    local fold_start = insert_line + write.fold_info.start_offset
+    local fold_end = insert_line + write.fold_info.end_offset
     vim.schedule(function()
-      self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, fold_info.first_line)
+      self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, write.fold_info.first_line)
     end)
   end
 
-  -- Reasoning folds
-  if self.state.has_reasoning_output and not state.has_reasoning_output and config.display.chat.fold_reasoning then
+  if write.leaving_reasoning and config.display.chat.fold_reasoning then
     local range_start = self.state.current_section_start or 0
-    local range_end = insert_line
     vim.schedule(function()
-      self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, range_end)
+      self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, insert_line)
     end)
   end
 
-  if state.last_role ~= config.constants.USER_ROLE then
+  if self.state.last_role ~= config.constants.USER_ROLE then
     self.chat.ui:lock_buf()
   end
-
-  self.chat.ui:move_cursor(cursor_moved)
-
-  return end_line_written + 1, icon_id
-end
-
----Sync formatting state back to builder's persistent state
----@param state table
-function Builder:_sync_state_from_formatting_state(state)
-  self.state.has_reasoning_output = state.has_reasoning_output
-  self.state.last_role = state.last_role
-  self.state.last_type = state.last_type
-end
-
----Sync builder state back to chat object for persistence
-function Builder:_sync_state_to_chat()
+  self.chat.ui:move_cursor(cursor_at_end)
   self.chat._last_role = self.state.last_role
+
+  return insert_line + #lines, icon_id
+end
+
+---Place a tool status icon on the block's first content line, if one is requested
+---@param insert_line number 0-based line where the write began
+---@param opts { status?: string, _icon_info?: table, virt_text_pos?: string }
+---@param content_start? number Lines preceding the content within this write
+---@return number|nil icon_id
+function Builder:_apply_icon(insert_line, opts, content_start)
+  local info = opts._icon_info
+  local status = (info and info.has_icon and info.status) or opts.status
+  if not status then
+    return nil
+  end
+
+  local offset = (content_start or 0) + ((info and info.line_offset) or 0)
+  return Icons.apply(self.chat.bufnr, insert_line + offset, status, { virt_text_pos = opts.virt_text_pos })
 end
 
 ---Update a specific line in the chat buffer
@@ -368,35 +299,26 @@ end
 function Builder:update_line(line_number, content, opts)
   opts = opts or {}
 
-  -- Validate line number
   if line_number < 1 then
     return false
   end
 
-  -- Convert to 0-based indexing for nvim API
   local zero_based_line = line_number - 1
   local line_count = api.nvim_buf_line_count(self.chat.bufnr)
-
   if zero_based_line >= line_count then
     return false
   end
 
   self.chat.ui:unlock_buf()
 
-  -- Determine the range to replace
-  local start_line = zero_based_line
-  local end_line = zero_based_line + 1
-
   local new_icon_id
-  local ok, _ = pcall(api.nvim_buf_set_lines, self.chat.bufnr, start_line, end_line, false, { content })
+  local ok, _ = pcall(api.nvim_buf_set_lines, self.chat.bufnr, zero_based_line, zero_based_line + 1, false, { content })
   if ok and opts.status then
-    -- Clear by extmark ID first (handles extmarks that may have moved to a different line)
     if opts.icon_id then
       pcall(api.nvim_buf_del_extmark, self.chat.bufnr, Icons.ns(), opts.icon_id)
     end
-    -- Also clear by line range as a safety net
-    Icons.clear_line(self.chat.bufnr, start_line)
-    new_icon_id = Icons.apply(self.chat.bufnr, start_line, opts.status, opts)
+    Icons.clear_line(self.chat.bufnr, zero_based_line)
+    new_icon_id = Icons.apply(self.chat.bufnr, zero_based_line, opts.status, opts)
   end
 
   if self.state.last_role ~= config.constants.USER_ROLE then
