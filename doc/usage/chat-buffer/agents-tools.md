@@ -133,7 +133,7 @@ This tool enables an LLM to ask clarifying questions before taking further actio
 ### create_file
 
 > [!NOTE]
-> By default, this tool requires user approval before it can be executed
+> By default, this tool shows a preview of the file's contents and requires user confirmation before it can be executed
 
 Create a file within the current working directory:
 
@@ -142,7 +142,8 @@ Can you create some test fixtures using @{create_file}?
 ```
 
 **Options:**
-- `require_approval_before` require approval before creating a file? (Default: true)
+- `require_approval_before` (boolean) require approval before showing the file preview? (Default: false)
+- `require_confirmation_after` (boolean) show a preview of the file's contents and require confirmation before creating it? (Default: true)
 
 ### delete_file
 

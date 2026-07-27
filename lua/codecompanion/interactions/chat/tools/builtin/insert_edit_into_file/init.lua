@@ -28,7 +28,7 @@
 local Path = require("plenary.path")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local constants = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.constants")
-local diff = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.diff")
+local diff = require("codecompanion.interactions.chat.tools.builtin.helpers.diff")
 local io_mod = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.io")
 local json_repair = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.json_repair")
 local match_selector = require("codecompanion.interactions.chat.tools.builtin.insert_edit_into_file.match_selector")
@@ -205,6 +205,7 @@ local function execute_edit(source, action, opts)
     require_confirmation_after = opts.tool_opts.require_confirmation_after,
     success_msg = success_msg,
     title = source.display_name,
+    tool_name = "insert_edit_into_file",
   })
 end
 
