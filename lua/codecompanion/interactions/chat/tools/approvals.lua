@@ -86,42 +86,19 @@ function Approvals:is_approved(bufnr, args)
     and config.interactions.chat.tools
     and config.interactions.chat.tools[args.tool_name]
 
-  -- Check if tool requires command-level approval first
-  if tool_cfg and tool_cfg.opts and tool_cfg.opts.require_cmd_approval then
-    -- Yolo mode overrides cmd approval requirement
-    if approvals.yolo_mode then
-      -- But still respect allowed_in_yolo_mode = false
-      if tool_cfg.opts.allowed_in_yolo_mode == false then
-        return false
-      end
-      return true
-    end
+  -- Yolo mode grants blanket approval, unless the tool opts out of it. When
+  -- it opts out, fall through to the tool's own (possibly cmd-level) approvals
+  -- so that an explicit "always accept" still gets respected.
+  local disallowed_in_yolo_mode = tool_cfg and tool_cfg.opts and tool_cfg.opts.allowed_in_yolo_mode == false
+  if approvals.yolo_mode and not disallowed_in_yolo_mode then
+    return true
+  end
 
-    -- Not in yolo mode, check if this specific command was approved
+  if tool_cfg and tool_cfg.opts and tool_cfg.opts.require_cmd_approval then
     if not approvals[args.tool_name] then
       return false
     end
-    local cmd_approval = approvals[args.tool_name][args.cmd]
-    if cmd_approval == true then
-      return true
-    end
-    return false
-  end
-
-  -- Handle yolo mode for regular tools (non-cmd-approval tools)
-  if approvals.yolo_mode then
-    if not args or not args.tool_name then
-      return true
-    end
-
-    if tool_cfg and tool_cfg.opts then
-      -- Allow users to designate certain tools as not allowed in yolo mode
-      if tool_cfg.opts.allowed_in_yolo_mode == false then
-        return false
-      end
-    end
-
-    return true
+    return approvals[args.tool_name][args.cmd] == true
   end
 
   if args and args.tool_name then

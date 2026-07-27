@@ -36,6 +36,7 @@ local process_mod = require("codecompanion.interactions.chat.tools.builtin.inser
 
 local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
@@ -97,6 +98,7 @@ local function make_file_source(action)
     file_info = file_info,
     display_name = display_name,
     ft = vim.filetype.match({ filename = path }) or "text",
+    path = path,
     process_opts = { path = path, file_info = file_info, mode = action.mode },
     write = function(new_content)
       return io_mod.write_file(path, new_content, file_info)
@@ -124,10 +126,12 @@ local function make_buffer_source(bufnr, action)
   }
 
   return {
+    bufnr = bufnr,
     content = content,
     file_info = file_info,
     display_name = display_name,
     ft = vim.bo[bufnr].filetype or "text",
+    path = buffer_name,
     process_opts = { buffer = bufnr, file_info = file_info, mode = action.mode },
     write = function(new_content)
       local new_lines = vim.split(new_content, "\n", { plain = true })
@@ -138,6 +142,19 @@ local function make_buffer_source(bufnr, action)
       return true, nil
     end,
   }
+end
+
+---Return the first line number where the edited content differs
+---@param from_lines string[]
+---@param to_lines string[]
+---@return number
+local function first_changed_line(from_lines, to_lines)
+  for i = 1, math.max(#from_lines, #to_lines) do
+    if from_lines[i] ~= to_lines[i] then
+      return i
+    end
+  end
+  return 1
 end
 
 ---Execute an edit operation against a content source
@@ -161,14 +178,23 @@ local function execute_edit(source, action, opts)
 
   local success_msg = fmt("Edited `%s`%s", source.display_name, extract_explanation(action))
 
+  local from_lines = vim.split(source.content, "\n", { plain = true })
+  local to_lines = vim.split(edit.content, "\n", { plain = true })
+
   return diff.review({
-    from_lines = vim.split(source.content, "\n", { plain = true }),
-    to_lines = vim.split(edit.content, "\n", { plain = true }),
+    from_lines = from_lines,
+    to_lines = to_lines,
     apply = function()
       local write_ok, write_err = source.write(edit.content)
       if not write_ok then
         return opts.output_cb(make_response("error", fmt("Error writing to `%s`: %s", source.display_name, write_err)))
       end
+      utils.fire("FileEdited", {
+        bufnr = source.bufnr,
+        line = first_changed_line(from_lines, to_lines),
+        path = source.path,
+        tool = "insert_edit_into_file",
+      })
       opts.output_cb(make_response("success", success_msg))
     end,
     approved = approvals:is_approved(opts.chat_bufnr, { tool_name = "insert_edit_into_file" }),

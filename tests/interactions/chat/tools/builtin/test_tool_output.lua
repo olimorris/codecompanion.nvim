@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -138,7 +137,7 @@ T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
     })
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Tool output"]["Folds"] = new_set()
@@ -155,7 +154,7 @@ T["Tool output"]["Folds"]["can be folded"] = function()
     })
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Tool output"]["Folds"]["does not fold single line output but applies extmarks"] = function()
@@ -169,7 +168,7 @@ T["Tool output"]["Folds"]["does not fold single line output but applies extmarks
      })
    ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T

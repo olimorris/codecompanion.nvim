@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -234,7 +233,7 @@ return {
   ))
 
   -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-1"
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Diff"]["Integration Test"]["Example 2"] = function()
@@ -271,7 +270,7 @@ async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
   ))
 
   -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-2"
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Diff"]["Integration Test"]["Example 3"] = function()
@@ -306,7 +305,7 @@ def process():
   ))
 
   -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-3"
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Diff"]["Inline Integration Test"] = new_set()
@@ -369,7 +368,7 @@ async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
   ))
 
   -- Screenshot name: "tests-test_diff.lua---Diff---Inline-Integration-Test---Example-1"
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T

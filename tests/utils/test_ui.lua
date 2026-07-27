@@ -64,8 +64,7 @@ T["UI create_float Screenshots"]["Creates new buffer with content"] = function()
     assert(buffer_content[1]:match("new buffer created"), "First line should mention new buffer")
   ]])
 
-  local expect = MiniTest.expect
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["UI create_float Screenshots"]["Uses existing buffer without overwriting content"] = function()
@@ -102,8 +101,7 @@ T["UI create_float Screenshots"]["Uses existing buffer without overwriting conte
     assert(bufnr == existing_bufnr, "Should return the same buffer")
   ]])
 
-  local expect = MiniTest.expect
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T

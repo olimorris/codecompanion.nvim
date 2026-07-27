@@ -186,6 +186,33 @@ require("codecompanion").setup({
 })
 ```
 
+## Background Interaction Adapters
+
+Background interactions are calls that CodeCompanion can make...in the background! That is, no user input is made and a request is sent to an LLM.
+
+By default every background action uses the shared `interactions.background.adapter`. However, you can override this at an action level:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              {
+                path = "interactions.background.builtin.chat_make_title",
+                adapter = { name = "copilot", model = "claude-haiku-4.5" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## Controlling Model Choices
 
 When switching between adapters, the plugin typically displays all available model choices for the selected adapter. If you want to simplify the interface and have the default model automatically chosen (without showing any model selection UI), you can set the `show_model_choices` option to `false`:
@@ -394,6 +421,25 @@ require("codecompanion").setup({
     },
   },
 }),
+```
+
+### GitHub Copilot Free/Student
+
+If you are a Copilot Student or Copilot Free user, you have access to models ["through auto model selection only"](https://docs.github.com/en/copilot/reference/ai-models/supported-models#supported-ai-models-per-copilot-plan). By default, Copilot should work out of the box but you can explicitly select the `auto` model as follows:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "copilot",
+      model = "auto"
+    },
+    inline = {
+      adapter = "copilot",
+      model = "auto"
+    },
+  },
+})
 ```
 
 ### llama.cpp with `--reasoning-format deepseek`

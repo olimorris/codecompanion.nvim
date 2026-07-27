@@ -139,9 +139,9 @@ local function code_block(message, filetype, code)
   return fmt(
     [[%s
 <code>
-```%s
+````%s
 %s
-```
+````
 </code>]],
     message,
     filetype,

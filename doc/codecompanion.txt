@@ -1,4 +1,5 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2026 July 15
+*codecompanion.txt*
+                                   For NVIM v0.11    Last change: 2026 July 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -38,6 +39,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
   - Command-Line Interface (CLI)|codecompanion-configuration-command-line-interface-(cli)|
+  - Code Reviews                    |codecompanion-configuration-code-reviews|
   - Inline Interaction        |codecompanion-configuration-inline-interaction|
   - MCP Servers                      |codecompanion-configuration-mcp-servers|
   - Rules                                  |codecompanion-configuration-rules|
@@ -54,6 +56,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Rules                                          |codecompanion-usage-rules|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Command-Line Interface (CLI)|codecompanion-usage-command-line-interface-(cli)|
+  - Code Reviews                            |codecompanion-usage-code-reviews|
   - Events / Hooks                        |codecompanion-usage-events-/-hooks|
   - Inline Interaction                |codecompanion-usage-inline-interaction|
   - Prompt Library                        |codecompanion-usage-prompt-library|
@@ -80,9 +83,10 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
--  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
+-  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Kimi <https://platform.kimi.ai>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
+-  |codecompanion-usage-code-review| enabling you to comment on and approve/reject agent code
 -  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -555,10 +559,12 @@ However, there are multiple options available:
 - `CodeCompanion <prompt>` - Prompt the inline interaction
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline interaction with a specific adapter
 - `CodeCompanion /<prompt library>` - Call an item via its alias from the |codecompanion-configuration-prompt-library|
+- `CodeCompanionActions Refresh` - Refresh the action palette and any items in the prompt library
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
 - `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat Changes` - Open the quickfix list with all files that have been changed by the LLM
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionCLI` - Open a new CLI interaction
@@ -566,6 +572,8 @@ However, there are multiple options available:
 - `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
 - `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
 - `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
+- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for |codecompanion-usage-code-review|
+- `CodeCompanionCodeReview Comment` - Leave a review comment on the current line or visual selection
 
 
 SUGGESTED WORKFLOW          *codecompanion-getting-started-suggested-workflow*
@@ -881,7 +889,7 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
-    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+<https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they're not currently rendered in the chat buffer UI.
 - **Audio Content**: Audio can't be sent or received
 
@@ -1397,9 +1405,8 @@ take the following steps:
 
 SETUP: CODEX ~
 
-To use OpenAI's Codex <https://openai.com/codex/>, install an ACP-compatible
-adapter like this <https://github.com/zed-industries/codex-acp> one from Zed
-<https://zed.dev>.
+To use OpenAI's Codex <https://openai.com/codex/>, install codex-acp
+<https://github.com/agentclientprotocol/codex-acp>.
 
 By default, the adapter will look for an `OPENAI_API_KEY` in your shell,
 however you can also authenticate via ChatGPT. This can be customized in the
@@ -1412,7 +1419,7 @@ plugin configuration:
           codex = function()
             return require("codecompanion.adapters").extend("codex", {
               defaults = {
-                auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+                auth_method = "api-key", -- "api-key"|"chat-gpt"
               },
               env = {
                 OPENAI_API_KEY = "my-api-key",
@@ -1707,6 +1714,37 @@ Custom adapters can be added to the plugin as follows:
 <
 
 
+BACKGROUND INTERACTION ADAPTERS ~
+
+Background interactions are calls that CodeCompanion can make…in the
+background! That is, no user input is made and a request is sent to an LLM.
+
+By default every background action uses the shared
+`interactions.background.adapter`. However, you can override this at an action
+level:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          chat = {
+            callbacks = {
+              ["on_ready"] = {
+                actions = {
+                  {
+                    path = "interactions.background.builtin.chat_make_title",
+                    adapter = { name = "copilot", model = "claude-haiku-4.5" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
 CONTROLLING MODEL CHOICES ~
 
 When switching between adapters, the plugin typically displays all available
@@ -1858,6 +1896,30 @@ the plugin:
         },
       },
     }),
+<
+
+
+GITHUB COPILOT FREE/STUDENT
+
+If you are a Copilot Student or Copilot Free user, you have access to models
+"through auto model selection only"
+<https://docs.github.com/en/copilot/reference/ai-models/supported-models#supported-ai-models-per-copilot-plan>.
+By default, Copilot should work out of the box but you can explicitly select
+the `auto` model as follows:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = "copilot",
+          model = "auto"
+        },
+        inline = {
+          adapter = "copilot",
+          model = "auto"
+        },
+      },
+    })
 <
 
 
@@ -2192,6 +2254,10 @@ The `actions` table contains module paths that are resolved and executed
 asynchronously. See the |codecompanion-usage-chat-buffer--generating-titles|
 section for a working example.
 
+
+  [!TIP] You can change the adapters used for background callbacks, see the
+  |codecompanion-configuration-adapters-http-background-interaction-adapters|
+  section
 
 PREVENTING SUBMISSION
 
@@ -2580,6 +2646,72 @@ chat buffers:
 opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
 This also works for |codecompanion-configuration-extensions|.
+
+
+LLM JUDGE
+
+When |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| is on, tools are
+auto-approved. Some tools (such as `run_command` and `delete_file`), by
+default, will always ask you first, owing to their destructive nature. The
+judge offers a middle ground: a background LLM judges the specific action and
+only interrupts you when it is judged to be unsafe.
+
+To fully enable the LLM judge:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            judge = {
+              enabled = true,
+            },
+          },
+        },
+        chat = {
+          tools = {
+            ["delete_file"] = {
+              opts = {
+                judge_in_yolo_mode = true,
+              },
+            },
+            ["run_command"] = {
+              opts = {
+                judge_in_yolo_mode = true,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+The judge runs for a tool only when:
+
+- You set `background.gates.judge.enabled = true`
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; `and`
+- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+
+You can also point the judge at a different adapter to the one used in the chat
+buffer, for example, if you want a cheaper or faster model handling the check:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            judge = {
+              enabled = true,
+              adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
+            },
+          },
+        },
+      },
+    })
+<
+
+See the |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| usage section
+for how the judge behaves once enabled.
 
 
 USER INTERFACE (UI) ~
@@ -3022,6 +3154,191 @@ You can also pass `width` and `height` overrides via the Lua API:
 <
 
 
+CODE REVIEWS                        *codecompanion-configuration-code-reviews*
+
+CodeCompanion enables users to undertake code reviews and easily share feedback
+with an agent. Find out how they work in the |codecompanion-usage-code-review|.
+
+
+DISABLING ~
+
+To disable code reviews, set `enabled` to `false`:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          enabled = false,
+        },
+      },
+    })
+<
+
+
+COMMENT STYLING ~
+
+Comments you haven't sent yet are shown as virtual text above the line they
+were left on. They can be configured with
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          display = {
+            virtual_text = {
+              enabled = true, -- Show pending comments as virtual text in the buffer
+              icon = "💬 ", -- The icon to use for virtual text
+              overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
+            },
+          },
+        },
+      },
+    })
+<
+
+
+DIFF VIEW ~
+
+Pressing `d` on a quickfix entry shows it as a diff against the baseline. The
+diff can be configurd with:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          display = {
+            diff = {
+              enabled = true, -- Set to false to render nothing, especially if you're using your own provider
+              layout = "vertical", -- vertical or horizontal
+              provider = "native", -- "native": Neovim's own diff (default), or a function to render the hunk yourself
+            },
+          },
+        },
+      },
+    })
+<
+
+If you don't wish to use the `native` Neovim provider, you can set a custom
+function. A function provider receives the hunk to render:
+
+>lua
+    provider = function(target)
+      -- target = { root, path, baseline_ref, line, id }
+      vim.cmd("DiffviewOpen " .. target.baseline_ref .. " -- " .. target.path)
+    end,
+<
+
+`baseline_ref` is the stable `refs/worktree/codecompanion/baseline` alias, so
+the same value works with `gitsigns`, `diffview`, or any git-diff plugin.
+
+
+  [!TIP] The native provider does not touch your `diffopt` config
+
+EDITOR CONTEXT ~
+
+When you share a review with the
+|codecompanion-usage-chat-buffer-editor-context-code-review| editor context,
+the tag itself is replaced in your message with a short phrase before it's
+sent. For example, the prompt:
+
+>md
+    Can you action #{code_review}
+<
+
+Is replaced with:
+
+>md
+    Can you action my comments from the code review, which I've attached
+<
+
+This can be changed with:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        shared = {
+          editor_context = {
+            code_review = {
+              opts = {
+                replacement = "my comments from the code review, which I've attached",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+KEYMAPS ~
+
+Keymaps are bound solely to the code review's quickfix window. The default
+keymaps are:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          keymaps = {
+            accept = {
+              modes = { n = "a" },
+              callback = "keymaps.accept",
+              description = "Accept the hunk under the cursor",
+            },
+            comment = {
+              modes = { n = "c" },
+              callback = "keymaps.comment",
+              description = "Comment on the hunk under the cursor",
+            },
+            diff = {
+              modes = { n = "d" },
+              callback = "keymaps.diff",
+              description = "Diff the hunk under the cursor against the baseline",
+            },
+            ignore = {
+              modes = { n = "x" },
+              callback = "keymaps.ignore",
+              description = "Ignore the hunk's file until the baseline advances",
+            },
+          },
+        },
+      },
+    })
+<
+
+To disable a keymap:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          keymaps = {
+            -- Disable the ignore keymap
+            ignore = false,
+          },
+        },
+      },
+    })
+<
+
+
+STORAGE LOCATION ~
+
+You can change the default storage location for code review assets with:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        code_review = {
+          opts = {
+            storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
+          },
+        },
+      },
+    })
+<
+
+
 INLINE INTERACTION            *codecompanion-configuration-inline-interaction*
 
 
@@ -3389,7 +3706,7 @@ If you add or modify markdown prompts whilst your Neovim session is running,
 you can refresh the prompt library to pick up the changes with:
 
 >
-    :CodeCompanionActions refresh
+    :CodeCompanionActions Refresh
 <
 
 
@@ -3938,13 +4255,7 @@ endeavour to serve as focal point for providing useful productivity tips for
 the plugin.
 
 
-COPYING CODE FROM A CHAT BUFFER ~
-
-The fastest way to copy an LLM's code output is with `gy`. This will yank the
-nearest codeblock.
-
-
-APPLYING AN LLM'S EDITS TO A BUFFER OR FILE ~
+APPLY AN LLM'S EDITS TO A BUFFER/FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
 the |codecompanion-usage-chat-buffer-editor-context-buffer| editor context or
@@ -3954,12 +4265,23 @@ not wish to manually apply an LLM's suggestions yourself. Simply tag it in the
 chat buffer with `@files` or `@insert_edit_into_file`.
 
 
-RUN TESTS FROM THE CHAT BUFFER ~
+CODE REVIEW AN LLM/AGENT'S CHANGES ~
 
-The |codecompanion-usage-chat-buffer-agents-tools-run-command| tool enables an
-LLM to execute commands on your machine. This can be useful if you wish the LLM
-to run a test suite on your behalf and give insight on failing cases. Simply
-tag the `@run_command` in the chat buffer and ask it run your tests.
+You can |codecompanion-usage-code-review| like a pull request.
+`:CodeCompanionCodeReview` opens every change in the quickfix list, one entry
+per hunk. You can step through them, leave in place comments with
+`:CodeCompanionCodeReview Comment` and then share the review in a chat buffer
+with the |codecompanion-usage-chat-buffer-editor-context-code-review| context.
+
+To navigate to the files an agent has edited or created, use
+`:CodeCompanionChat Changes` to open them in the quickfix list. Every file the
+LLM touches in your Neovim session is tracked, across chats and the CLI.
+
+
+COPYING CODE FROM A CHAT BUFFER ~
+
+The fastest way to copy an LLM's code output is with `gy`. This will yank the
+nearest codeblock.
 
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
@@ -3983,6 +4305,14 @@ never closed or stolen by activity in tab B — set `display.chat.window.pertab
 that are visible in the current tab or not currently visible anywhere, and
 `:CodeCompanionChat Toggle` jumps to the existing tab when the chat lives
 there.
+
+
+RUN TESTS FROM THE CHAT BUFFER ~
+
+The |codecompanion-usage-chat-buffer-agents-tools-run-command| tool enables an
+LLM to execute commands on your machine. This can be useful if you wish the LLM
+to run a test suite on your behalf and give insight on failing cases. Simply
+tag the `@run_command` in the chat buffer and ask it run your tests.
 
 
 ACTION PALETTE                            *codecompanion-usage-action-palette*
@@ -4017,7 +4347,7 @@ The built-in prompts can be turned off by setting
 `display.action_palette.opts.show_preset_prompts = false`.
 
 You can also refresh the markdown prompts in your prompt library with
-`:CodeCompanionActions refresh`
+`:CodeCompanionActions Refresh`
 
 
 CHAT BUFFER                                  *codecompanion-usage-chat-buffer*
@@ -4419,19 +4749,13 @@ ASK_QUESTIONS
 
   [!NOTE] By default, this tool is hidden and is only accessible via the
   `@{agent}` tool group
-This tool enables an LLM to ask clarifying questions before proceeding with a
-task. It's useful when the LLM encounters ambiguous requirements, needs to
+This tool enables an LLM to ask clarifying questions before taking further
+action. This is useful when the LLM encounters ambiguous requirements, needs to
 choose between implementation approaches, or wants to validate assumptions.
-Questions can have predefined options (presented via `vim.ui.select`) or accept
-free text input (via `vim.ui.input`):
 
 >md
     @{agent} Can you refactor the authentication module?
 <
-
-The LLM may use this tool to ask which auth strategy you prefer before making
-changes. The tool is limited to one call per response to prevent excessive
-questioning.
 
 
 CREATE_FILE
@@ -4778,10 +5102,26 @@ YOLO MODE
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable
 YOLO mode. This will automatically approve all tool executions without
-prompting the user. However, note that some tools such as `run_command` and
-`delete_file` are excluded from this as they have `allowed_in_yolo_mode =
-false` set.
+prompting the user. However, some tools such as `run_command` and `delete_file`
+are excluded from this as they have `allowed_in_yolo_mode = false` set by
+default.
 
+If you've configured the |codecompanion-configuration-chat-buffer-llm-judge|
+then a tool's commands will be sent to an LLM to verify that they're safe. This
+assumes that your chosen adapter supports structured outputs and the tool
+itself supports the judge. The |codecompanion--delete_file| and
+|codecompanion--run_command| tools support this out of the box.
+
+If the judge decides the action is safe, it executes immediately and the
+verdict is cached so re-running the exact same command won't be re-judged that
+session. For example, approving `make test` does not result in `make test && rm
+-rf foo` being auto-approved. If the request to the judge fails, or the adapter
+can't produce structured output, the tool will require manual approval.
+
+
+  [!WARNING] Running tools in YOLO mode is dangerous and it is recommend that you
+  only use it in a safe environment where potential data loss can be recovered.
+  You are responsible for any damage that may occur when using YOLO mode.
 
 COMPATIBILITY ~
 
@@ -4800,9 +5140,11 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Gemini                                      Dependent on the model
 
-  GitHub Models  All                          Not supported yet
+  GitHub Models                               Not supported yet
 
-  Huggingface    All                          Not supported yet
+  Huggingface                                 Not supported yet
+
+  Kimi                                        Dependent on the model
 
   Mistral                                     Dependent on the model
 
@@ -4813,7 +5155,12 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   OpenAI                                      Dependent on the model
 
-  xAI            All                          Not supported yet
+  OpenAI                                      Dependent on the model
+  Responses                                   
+
+  OpenRouter                                  Dependent on the model
+
+  xAI                                         Not supported yet
   ------------------------------------------------------------------------
 
   [!IMPORTANT] When using Mistral, you will need to set
@@ -4905,6 +5252,27 @@ filtered out.
     #{buffers} can you explain what's going on in these files?
 <
 
+
+#CODE_REVIEW ~
+
+The `code_review` context shares your |codecompanion-usage-code-review| with an
+LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment`
+is sent when you submit the chat buffer and the review baseline advances so the
+next review only shows what changes in the next iteration.
+
+>md
+    Please action #{code_review}
+<
+
+Each comment reaches the LLM with the file, the line range and the code you
+commented on. Your chat buffer shows a shorter version of the same thing,
+without the code, so you can scroll back through earlier rounds and see what
+you asked for.
+
+
+  [!NOTE] Sharing your review clears the pending comments and the virtual text
+  that marks them. Like a PR review, submitting it also approves everything you
+  didn't comment on.
 
 #DIAGNOSTICS ~
 
@@ -5668,6 +6036,296 @@ OPTIONS
                                                         window height
   -----------------------------------------------------------------------
 
+CODE REVIEWS                                *codecompanion-usage-code-reviews*
+
+Code reviewing an agents work usually involves the manual typing of the file
+name along with the line number and your comment. For example, `“in foo.lua,
+around line 42, this should be…”`. Code reviews let you leave comments
+exactly where the code is. You can put your cursor on a line, or, make a visual
+selection, and then add a comment. Then, when you send your review to an agent,
+each comment arrives with the full context.
+
+Sending a review also **advances a baseline**, which turns agent iterations
+into rounds. Your next review only shows what the agent changed in response,
+not the full edit history. In essence, it's the same loop as a pull request:
+comment, submit, re-review the response.
+
+Code reviews work with CodeCompanion's own tools, ACP agents, and even CLI
+agents like Claude Code running outside of Neovim.
+
+
+HOW IT WORKS ~
+
+>mermaid
+    sequenceDiagram
+        participant U as User
+        participant C as Chat Buffer
+        participant A as Agent
+        participant G as Git
+    
+        U->>C: Writes prompt
+        C->>A: Sends prompt
+        C->>G: Snapshot the worktree to the baseline
+        A->>A: Edits files
+        A->>C: Returns response
+    
+        U->>G: :CodeCompanionCodeReview
+        G->>U: Quickfix populated one entry per hunk, vs the baseline
+    
+        loop Step through the hunks
+            alt Change is fine
+                U->>U: Keep moving
+            else Change needs work
+                U->>U: :CodeCompanionCodeReview Comment
+            end
+        end
+    
+        U->>C: Shares comments with #35;{code_review}
+        C->>A: Sends comments
+        C->>G: Baseline advances
+    
+        Note over U,G: The next review only shows what the agent changes in response
+<
+
+When an agent begins working in a git repository, CodeCompanion snapshots the
+worktree to a `baseline` (a commit at `refs/worktree/codecompanion/baseline`).
+When you start a review, the diff between that baseline and the repo's files is
+produced. As the baseline lives in git and the review comments are persisted to
+disk, your progress is stored across sessions and Neovim instances.
+
+Because the diff is recomputed from disk every time, line numbers are never
+stored and so can never rot.
+
+
+COMMANDS ~
+
+  -----------------------------------------------------------------------
+  Command                             Description
+  ----------------------------------- -----------------------------------
+  :CodeCompanionCodeReview            Open the agent's changes in the
+                                      quickfix list, one entry per hunk
+
+  :CodeCompanionCodeReview Accept     Accept the current hunk, keeping it
+                                      out of future reviews
+
+  :CodeCompanionCodeReview All        As above, but include every change
+                                      since the baseline - accepted hunks
+                                      and files beyond the agent's
+
+  :CodeCompanionCodeReview Approve    Approve everything up to now,
+                                      advancing the baseline
+
+  :CodeCompanionCodeReview Comment    Comment on the current line or
+                                      visual selection, or edit the
+                                      comment already there
+
+  :CodeCompanionCodeReview Comments   Open the pending comments file for
+                                      editing
+
+  :CodeCompanionCodeReview Ignore     Ignore the current hunk's file
+                                      until the baseline advances
+
+  :CodeCompanionCodeReview Share      Submit the review to a file and
+                                      copy its path - for agents outside
+                                      CodeCompanion
+
+  :CodeCompanionCodeReview Start      The same as Approve - use it before
+                                      an agent starts, to mark the point
+                                      you'll review from
+  -----------------------------------------------------------------------
+
+KEYMAPS ~
+
+CodeCompanion sets keymaps in the quickfix window when you start a review.
+
+  Keymap   Description
+  -------- ----------------------------------------------------
+  a        Accept the hunk under the cursor
+  c        Comment on the hunk under the cursor
+  d        Diff the hunk under the cursor
+  x        Ignore the hunk's file until the baseline advances
+Of course, you still have the default Vim keymaps in the quickfix such as `[q`
+/ `]q` to step through the hunks, and `:copen` / `:cclose` to open and close
+the quickfix window.
+
+
+COMMENTING ~
+
+Adding a comment is as simple as putting your cursor on a line, or, making a
+visual selection, and:
+
+>
+    :CodeCompanionCodeReview Comment
+<
+
+You can then type your comment in the input, followed by the same keymaps you
+use to send a message in the chat buffer (`<CR>` in normal mode for example).
+Your comments are stored against the file, the line range and the code on those
+lines.
+
+A comment is only ever in one place: **pending in the file, or sent in the chat
+buffer**. When you share a review, the virtual text clears and the comments
+appear in the chat buffer instead.
+
+
+EDITING AND DELETING
+
+To change a comment, you can run `:CodeCompanionCodeReview Comment` when your
+cursor is back on the line. **Submitting the input empty deletes the comment**.
+
+To review/edit all comments at once, `:CodeCompanionCodeReview Comments` opens
+the raw comments file. `:bw` saves your edits.
+
+
+SENDING
+
+Use the |codecompanion-usage-chat-buffer-editor-context-code-review| editor
+context in a chat buffer:
+
+>md
+    Please action #{code_review}
+<
+
+This will be expanded to `“Please action my comments from the code review,
+which I've attached”`. The LLM receives each comment as a block containing
+the path, the line range, the code you commented on, and your prose. In the
+chat buffer, a shorter, readable version is also added so you can see what was
+sent without opening the |codecompanion-usage-chat-buffer--debug-window|.
+
+If you have no pending comments there's nothing to send, and `#{code_review}`
+does nothing. A review you're happy with can end with `:CodeCompanionCodeReview
+Approve`, to advance the baseline and treat any new changes as a new round.
+
+
+REVIEWING HUNKS ~
+
+If an agent has made `many` changes, you can step through them one hunk at a
+time with:
+
+>
+    :CodeCompanionCodeReview
+<
+
+Every change since the baseline goes into the quickfix list (|quickfix|), one
+entry per hunk. From there:
+
+1. Step through the hunks with Vim's own keymaps, `:cnext` or `]q`
+2. Press `d` on a hunk to see it as a diff against the baseline
+3. Press `c` to comment on it
+4. Press `a` to accept it, dropping it from this review and future ones
+5. Press `x` to ignore the hunk's whole file, for lockfiles and generated code
+
+Accepted hunks and ignored files remain until the baseline advances.
+
+To reject a hunk outright, diff it with `d` and use Vim's native `do` (|do|) to
+pull the baseline's version back in, then write the file. The revert drops out
+of the next review by itself.
+
+
+SCOPING
+
+By default a review only covers the files an agent edited **through
+CodeCompanion's tools**. Append `All` to widen it to every change since the
+baseline:
+
+>
+    :CodeCompanionCodeReview All
+<
+
+That includes your own edits, edits from outside of Neovim, hunks you've
+accepted and files you've ignored.
+
+
+DIFFING ~
+
+CodeCompanion owns the **baseline and the comments** but doesn't own the diff
+view. `refs/worktree/codecompanion/baseline` is a normal git ref, so any diff
+plugin can be pointed at it.
+
+With diffview.nvim <https://github.com/sindrets/diffview.nvim>:
+
+>
+    :DiffviewOpen refs/worktree/codecompanion/baseline
+<
+
+With gitsigns.nvim <https://github.com/lewis6991/gitsigns.nvim>:
+
+>
+    :Gitsigns change_base refs/worktree/codecompanion/baseline
+<
+
+This enables you to move between an agent's changes as you see fit and still
+use `CodeCompanionCodeReview Comment` to leave feedback.
+
+
+  [!WARNING] Ensure you comment from the **working file**, not from the baseline
+  side of a diff
+
+PARALLEL AGENTS ~
+
+If you run multiple agents at at time, it's common to have each in its own git
+worktree <https://git-scm.com/docs/git-worktree> within the repository and Code
+Reviews have been built to support that.
+
+The baseline ref lives under `refs/worktree/`, which git scopes per-worktree in
+the same way it scopes `HEAD`. Comments are stored per repository root and per
+branch so each agent gets its own baseline and its own pending comments. This
+ensures reviews never clash. To switch to a worktree, run
+`:CodeCompanionCodeReview` to review only that agent's work.
+
+
+WORKING IN THE CLI ~
+
+Depending on your workflow, you may like to use a coding agent outside of
+Neovim. If that's the case, you can still leverage the code review
+functionality.
+
+The baseline sees every change in your worktree, no matter who made it - so you
+can review an agent that CodeCompanion didn't start, such as Claude Code
+running in a separate terminal:
+
+1. `:CodeCompanionCodeReview Start` before the agent begins
+2. Let the agent work
+3. `:CodeCompanionCodeReview All` to review everything since the baseline
+4. Leave comments with `:CodeCompanionCodeReview Comment`, as normal
+5. `:CodeCompanionCodeReview Share` to begin sharing with the agent. Your comments move to a `review.md` file, the baseline advances, and the file's path is copied to your clipboard
+6. Paste the path into the agent:
+
+>
+    Please action my code review: /path/to/review.md
+<
+
+`All` is required because CodeCompanion can only attribute a change to an agent
+when it goes through CodeCompanion's own tools or interactions.
+
+
+  [!TIP] The `review.md` path is static at a repository level. Therefore, in a
+  `CLAUDE.md` or `AGENTS.md` file you can reference this file, only needing to do
+  `:CodeCompanionCodeReview Share` to advance the baseline.
+If the agent runs in CodeCompanion's own |codecompanion-usage-cli|, steps 1-4
+are the same, but you can submit with `#{code_review}` directly in the prompt
+instead of `Share`.
+
+
+WITHOUT GIT ~
+
+Without git there's no baseline, so `:CodeCompanionCodeReview` falls back to a
+file-level view. The files the agent has edited in the session, are tracked by
+`:CodeCompanionChat Changes`. Comments and `#{code_review}` work as normal.
+
+
+LIMITATIONS ~
+
+When you make comments, they are stored and hard-coded to line numbers.
+Therefore, if you make substantial edits between submitting the comments, those
+line numbers can deviate. However, because the comments are attached to a code
+snippet, it should still be enough context for the agent.
+
+`Approve` doesn't discard comments, it simply advances the baseline and warns
+you that they're still pending. So a review you meant to send isn't silently
+thrown away. Use `:CodeCompanionCodeReview Comments` to delete them manually.
+
+
 EVENTS / HOOKS                            *codecompanion-usage-events-/-hooks*
 
 In order to enable a tighter integration between CodeCompanion and your Neovim
@@ -5701,13 +6359,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
-- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
-- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
-- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
-- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
-- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
-- `CodeCompanionToolStarted` - Fired when a tool has started executing
-- `CodeCompanionToolFinished` - Fired when a tool has finished executing
+- `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
 - `CodeCompanionMCPServerStart` - Fired when an MCP server is started
@@ -5717,6 +6369,15 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
+- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
+- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
+- `CodeCompanionToolStarted` - Fired when a tool has started executing
+- `CodeCompanionToolFinished` - Fired when a tool has finished executing
+- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
+- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
+- `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
+- `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
 
 In addition to these events, the chat buffer has its own **callback system**
 for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and
@@ -5937,10 +6598,29 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
 - `CodeCompanionChatToolText` - Tool output text in the chat buffer (overrides markdown rendering)
 - `CodeCompanionChatEditorContext` - Editor context in the chat buffer
+- `CodeCompanionCodeReviewComment` - Comments in code reviews
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
 
 
 WORKFLOWS                                      *codecompanion-usage-workflows*
+
+Workflows in CodeCompanion, are successive prompts which can be automatically
+sent to the LLM in a turn-based manner. This allows for actions such as
+reflection and planning to be easily implemented into your ways of working.
+They can be combined with tools to create agentic workflows, which could be
+used to automate common activities like editing files and then running a test
+suite.
+
+I fully recommend reading Issue 242 of The Batch
+<https://www.deeplearning.ai/the-batch/issue-242/> to understand the origin of
+workflows. They were originally implemented
+<https://github.com/olimorris/codecompanion.nvim/commit/73e5a27075749b3ff60cfc796438d302d4b08715>
+in the plugin as an early form of Chain-of-thought
+<https://en.wikipedia.org/wiki/Prompt_engineering#Chain-of-thought> prompting,
+via the use of reflection and planning prompts.
+
+
+USAGE ~
 
 Workflows can only be initiated from the |codecompanion-usage-action-palette|.
 This is because they are a complex Lua table structure which needs to be
@@ -6784,20 +7464,6 @@ structure for better organization:
 
 
 EXTENDING WITH AGENTIC WORKFLOWS*codecompanion-extending-extending-with-agentic-workflows*
-
-Workflows in CodeCompanion, are successive prompts which can be automatically
-sent to the LLM in a turn-based manner. This allows for actions such as
-reflection and planning to be easily implemented into your workflow. They can
-be combined with tools to create agentic workflows, which could be used to
-automate common activities like editing files and then running a test suite.
-
-I fully recommend reading Issue 242 of The Batch
-<https://www.deeplearning.ai/the-batch/issue-242/> to understand the origin of
-workflows. They were originally implemented
-<https://github.com/olimorris/codecompanion.nvim/commit/73e5a27075749b3ff60cfc796438d302d4b08715>
-in the plugin as an early form of Chain-of-thought
-<https://en.wikipedia.org/wiki/Prompt_engineering#Chain-of-thought> prompting,
-via the use of reflection and planning prompts.
 
 
 HOW THEY WORK ~

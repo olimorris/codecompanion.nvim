@@ -65,4 +65,37 @@ T["can create files"] = function()
   h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
 end
 
+T["fires FileEdited when a file is created"] = function()
+  child.lua([[
+    vim.uv.chdir(_G.TEST_CWD)
+
+    _G.file_edits = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args)
+        table.insert(_G.file_edits, args.data)
+      end,
+    })
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "create_file",
+          arguments = string.format('{"filepath": "%s", "content": "local x = 1"}', _G.TEST_TMPFILE_ABSOLUTE)
+        },
+      },
+    }
+    tools:execute(chat, tool)
+
+    vim.wait(5000, function()
+      return #_G.file_edits > 0
+    end, 50)
+  ]])
+
+  local edits = child.lua_get("_G.file_edits")
+  h.eq(1, #edits)
+  h.eq(child.lua_get("_G.TEST_TMPFILE_ABSOLUTE"), edits[1].path)
+  h.eq("create_file", edits[1].tool)
+end
+
 return T

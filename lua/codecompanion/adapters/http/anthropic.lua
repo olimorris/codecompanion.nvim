@@ -115,7 +115,7 @@ return {
       end
 
       -- Make sure the individual model options are set
-      local model_opts = adapter_utils.model_choice(self)
+      local model_opts = adapter_utils.model_choice(self, { async = false })
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
@@ -156,9 +156,8 @@ return {
             type = "adaptive",
           }
         end
-        -- Thinking isn't compatible with temperature or top_k
+        -- Thinking isn't compatible with top_k
         -- Ref: https://platform.claude.com/docs/en/build-with-claude/extended-thinking#feature-compatibility
-        params.temperature = nil
         params.top_k = nil
 
         -- top_p must be between 1 and 0.95
@@ -476,11 +475,8 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return require("codecompanion.adapters.utils.structured_outputs").to_anthropic(schema)
     end,
@@ -788,27 +784,6 @@ return {
       desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
         return n > 0 and n <= 128000, "Must be between 0 and 128000"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    temperature = {
-      order = 6,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = 0,
-      desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
-      enabled = function(self)
-        local model = adapter_utils.model(self)
-        if
-          vim.tbl_contains({ "claude-opus-4-7", "claude-opus-4-8" }, model) or vim.startswith(model, "claude-fable")
-        then
-          return false
-        end
-        return true
-      end,
-      validate = function(n)
-        return n >= 0 and n <= 1, "Must be between 0 and 1.0"
       end,
     },
     ---@type CodeCompanion.Schema

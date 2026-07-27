@@ -65,6 +65,19 @@ The _buffers_ context shares all currently open buffers with the LLM. Buffers wi
 #{buffers} can you explain what's going on in these files?
 ```
 
+## #code_review
+
+The _code_review_ context shares your [code reviews](/usage/code-review) with an LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment` is sent when you submit the chat buffer and the review baseline advances so the next review only shows what changes in the next iteration.
+
+```md
+Please action #{code_review}
+```
+
+Each comment reaches the LLM with the file, the line range and the code you commented on. Your chat buffer shows a shorter version of the same thing, without the code, so you can scroll back through earlier rounds and see what you asked for.
+
+> [!NOTE]
+> Sharing your review clears the pending comments and the virtual text that marks them. Like a PR review, submitting it also approves everything you didn't comment on.
+
 ## #diagnostics
 
 > [!TIP]

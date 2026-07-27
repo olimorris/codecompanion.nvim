@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local T = new_set()
 
@@ -30,7 +29,7 @@ T = new_set({
 T["Settings"] = new_set()
 
 T["Settings"]["Are rendered correctly"] = function()
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T

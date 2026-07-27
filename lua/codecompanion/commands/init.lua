@@ -140,12 +140,13 @@ return {
       local params = {}
       local prompt = {}
       local subcommand = nil
+      local subcommands = { add = true, changes = true, refreshcache = true, toggle = true }
 
       for _, arg in ipairs(opts.fargs) do
         local key, value = arg:match("^(%w+)=(.+)$")
         if key and value then
           params[key] = value
-        elseif arg:lower() == "toggle" or arg:lower() == "add" or arg:lower() == "refreshcache" then
+        elseif subcommands[arg:lower()] then
           subcommand = arg:lower()
         else
           -- Anything else is a prompt
@@ -255,6 +256,7 @@ return {
             "model=",
             "Toggle",
             "Add",
+            "Changes",
             "RefreshCache",
           }
 
@@ -267,6 +269,37 @@ return {
         end
 
         return {}
+      end,
+    },
+  },
+  {
+    cmd = "CodeCompanionCodeReview",
+    callback = function(opts)
+      local subcommands = {
+        accept = true,
+        all = true,
+        approve = true,
+        comment = true,
+        comments = true,
+        ignore = true,
+        share = true,
+        start = true,
+      }
+      local arg = opts.fargs[1] and opts.fargs[1]:lower() or nil
+      opts.subcommand = subcommands[arg] and arg or nil
+      codecompanion.code_review(opts)
+    end,
+    opts = {
+      desc = "Review the changes an agent has made",
+      range = true,
+      nargs = "*",
+      complete = function(arg_lead)
+        return vim
+          .iter({ "Accept", "All", "Approve", "Comment", "Comments", "Ignore", "Share", "Start" })
+          :filter(function(key)
+            return key:find(vim.pesc(arg_lead), 1, true) == 1
+          end)
+          :totable()
       end,
     },
   },
@@ -378,7 +411,7 @@ return {
       range = true,
       nargs = "*",
       complete = function(arg_lead, cmdline, _cursor_pos)
-        return { "refresh" }
+        return { "Refresh" }
       end,
     },
   },

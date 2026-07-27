@@ -20,6 +20,7 @@ local defaults = {
       gemini_interactions = "gemini_interactions",
       githubmodels = "githubmodels",
       huggingface = "huggingface",
+      kimi = "kimi",
       novita = "novita",
       mistral = "mistral",
       ollama = "ollama",
@@ -73,10 +74,7 @@ local defaults = {
     },
     -- BACKGROUND INTERACTION -------------------------------------------------
     background = {
-      adapter = {
-        name = "copilot",
-        model = "claude-haiku-4.5",
-      },
+      adapter = "copilot",
       -- Callbacks within the plugin that you can attach background actions to
       chat = {
         callbacks = {
@@ -95,6 +93,12 @@ local defaults = {
         },
         opts = {
           enabled = false, -- Enable ALL background chat interactions?
+        },
+      },
+      gates = {
+        judge = {
+          enabled = true,
+          action = "interactions.background.builtin.tools_judge",
         },
       },
     },
@@ -211,6 +215,8 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
+            require_cmd_approval = true,
+            judge_in_yolo_mode = false,
           },
         },
         ["fetch_webpage"] = {
@@ -285,6 +291,7 @@ The user is working on a %s machine. Please respond with system specific command
             allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
+            judge_in_yolo_mode = false,
           },
         },
 
@@ -683,7 +690,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Toggle auto-approval of tool calls",
+          description = "Toggle YOLO/auto-approval of tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -837,6 +844,46 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
     },
+    code_review = {
+      enabled = true,
+      keymaps = {
+        accept = {
+          modes = { n = "a" },
+          callback = "keymaps.accept",
+          description = "Accept the hunk under the cursor",
+        },
+        comment = {
+          modes = { n = "c" },
+          callback = "keymaps.comment",
+          description = "Comment on the hunk under the cursor",
+        },
+        diff = {
+          modes = { n = "d" },
+          callback = "keymaps.diff",
+          description = "Diff the hunk under the cursor against the baseline",
+        },
+        ignore = {
+          modes = { n = "x" },
+          callback = "keymaps.ignore",
+          description = "Ignore the hunk's file until the baseline advances",
+        },
+      },
+      display = {
+        diff = {
+          enabled = true, -- Disable to bring your own diff plugin, pointed at the baseline ref
+          layout = "vertical", -- vertical|horizontal
+          provider = "native", -- "native"|fun(target: CodeCompanion.CodeReview.DiffTarget)
+        },
+        virtual_text = {
+          enabled = true, -- Show pending comments as virtual text in the buffer
+          icon = "💬 ", -- The icon to use for virtual text
+          overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
+        },
+      },
+      opts = {
+        storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
+      },
+    },
     shared = {
       editor_context = {
         opts = {
@@ -870,6 +917,14 @@ The user is working on a %s machine. Please respond with system specific command
             contains_code = true,
             default_params = "diff", -- all|diff
             has_params = true,
+          },
+        },
+        ["code_review"] = {
+          path = "interactions.shared.editor_context.code_review",
+          description = "Share your pending code review comments with the LLM",
+          opts = {
+            contains_code = true,
+            replacement_message = "my comments from the code review, which I've attached",
           },
         },
         ["diagnostics"] = {

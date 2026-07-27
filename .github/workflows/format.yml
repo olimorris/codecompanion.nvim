@@ -5,6 +5,10 @@ on: [pull_request]
 jobs:
   stylua:
     runs-on: ubuntu-latest
+    if: |
+       github.event.pull_request.user.login != 'dependabot[bot]' &&
+       github.event.pull_request.user.login != 'github-actions' &&
+       github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v6

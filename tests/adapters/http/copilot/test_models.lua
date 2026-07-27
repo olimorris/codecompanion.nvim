@@ -86,6 +86,10 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
   ]])
 
   local expected = {
+    auto = {
+      formatted_name = "Auto",
+      opts = { can_stream = true, can_use_tools = true, has_vision = true },
+    },
     model1 = {
       billing = {},
       description = "Model One",
@@ -172,6 +176,10 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
   h.eq(vim.NIL, first)
 
   local expected = {
+    auto = {
+      formatted_name = "Auto",
+      opts = { can_stream = true, can_use_tools = true, has_vision = true },
+    },
     model1 = {
       billing = {},
       description = "Model One",

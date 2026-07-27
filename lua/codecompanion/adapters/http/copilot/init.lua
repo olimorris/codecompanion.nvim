@@ -187,7 +187,14 @@ return {
 
     --- Use the OpenAI adapter for the bulk of the work
     form_parameters = function(self, params, messages)
-      return handlers(self).form_parameters(self, params, messages)
+      local result = handlers(self).form_parameters(self, params, messages)
+
+      -- GitHub picks the model on our behalf, so it must be omitted from the request
+      if result and self.model and self.model.name == "auto" then
+        result.model = nil
+      end
+
+      return result
     end,
     form_messages = function(self, messages)
       for _, m in ipairs(messages) do
@@ -286,11 +293,8 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return handlers(self).form_structured_output(self, schema)
     end,
@@ -406,7 +410,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5.4-mini",
+      default = "auto",
       ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
       choices = function(self, opts)
         opts = opts or {}

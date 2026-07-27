@@ -421,11 +421,12 @@ end
 
 ---Helper function to return the model from the choices
 ---@param adapter CodeCompanion.HTTPAdapter
+---@param opts? { async?: boolean } Pass `async = false` to block until the model list has been fetched
 ---@return table?
-function M.model_choice(adapter)
+function M.model_choice(adapter, opts)
   local choices = adapter.schema.model.choices
   if type(choices) == "function" then
-    choices = choices(adapter)
+    choices = choices(adapter, opts)
   end
   if type(choices) ~= "table" then
     return nil

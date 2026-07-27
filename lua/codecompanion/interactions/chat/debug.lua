@@ -103,6 +103,7 @@ function Debug:render()
       models = adapter.schema.model.choices
     end
   end
+  models = models or {}
 
   local lines = {}
 

@@ -135,4 +135,13 @@ return {
       helpers.rejected(self, meta)
     end,
   },
+  gates = {
+    ---The action handed to the background judge to vet in yolo mode
+    ---@param self CodeCompanion.Tool.DeleteFile
+    ---@param meta { tools: CodeCompanion.Tools }
+    ---@return string
+    judge_context = function(self, meta)
+      return fmt("Delete the file: %s", self.args.filepath)
+    end,
+  },
 }

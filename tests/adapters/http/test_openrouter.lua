@@ -268,4 +268,21 @@ T["OpenRouter adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["OpenRouter adapter"]["resolves model capabilities on the first request"] = function()
+  local structured = require("codecompanion.adapters").resolve("openrouter")
+  structured.schema.model.default = "openai/gpt-5.4-mini"
+  structured.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["openai/gpt-5.4-mini"] = { opts = { can_form_structured_outputs = true } } }
+  end
+
+  structured.parameters = {}
+  structured.handlers.setup(structured)
+
+  h.eq(true, structured.opts.can_form_structured_outputs)
+  h.not_eq(nil, structured.handlers.form_structured_output(structured, { name = "verdict", schema = {} }))
+end
+
 return T

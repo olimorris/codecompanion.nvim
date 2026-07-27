@@ -5,7 +5,7 @@ local M = {}
 
 ---@class CopilotModels
 ---@field formatted_name string
----@field vendor string
+---@field vendor? string
 ---@field opts { can_stream: boolean, can_use_tools: boolean, has_vision: boolean }
 
 ---Resolve the Copilot token to authenticate the models request with
@@ -46,19 +46,37 @@ local models_source = {
   end,
 }
 
+---Allow the model to be automatically selected by Copilot
+---@type CopilotModels
+local auto_model = {
+  formatted_name = "Auto",
+  opts = {
+    can_stream = true,
+    can_use_tools = true,
+    has_vision = true,
+  },
+}
+
 ---Canonical interface used by adapter.schema.model.choices implementations.
 ---@param adapter table
 ---@param opts? { token: table, async: boolean }
----@return CopilotModels|nil
+---@return table<string, CopilotModels>|nil
 function M.choices(adapter, opts)
   local result = fetch_models.get(models_source, adapter, opts)
 
   if opts and opts.async == false then
+    result = result or {}
+    result["auto"] = result["auto"] or auto_model
     return result
   end
 
   -- Non-blocking lookups return nil until the background fetch has populated the cache
-  return (result and not vim.tbl_isempty(result)) and result or nil
+  if not (result and not vim.tbl_isempty(result)) then
+    return nil
+  end
+
+  result["auto"] = result["auto"] or auto_model
+  return result
 end
 
 return M

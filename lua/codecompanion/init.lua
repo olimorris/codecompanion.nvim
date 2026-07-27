@@ -102,15 +102,49 @@ CodeCompanion.add = function(args)
 
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
-    content = "Here is some code from "
-      .. context.path
-      .. ":\n\n```"
-      .. context.filetype
-      .. "\n"
-      .. content
-      .. "\n```\n",
+    content = string.format(
+      [[Here is some code from %s:
+````%s
+%s
+````
+]],
+      context.path,
+      context.filetype,
+      content
+    ),
   })
   chat.ui:open()
+end
+
+---Carry out a code review on an agent's edits
+---@param args table
+---@return nil
+CodeCompanion.code_review = function(args)
+  local code_review = require("codecompanion.interactions.code_review")
+  local subcommand = args.subcommand
+
+  if subcommand == "accept" then
+    return code_review.accept()
+  elseif subcommand == "ignore" then
+    return code_review.ignore()
+  elseif subcommand == "comment" then
+    return code_review.comment(args)
+  elseif subcommand == "comments" then
+    return code_review.edit_comments()
+  elseif subcommand == "approve" or subcommand == "start" then
+    return code_review.approve()
+  elseif subcommand == "share" then
+    return code_review.share()
+  elseif subcommand == "all" then
+    return code_review.open({ scope = "all" })
+  end
+  return code_review.open()
+end
+
+---Open the files the LLM has edited this session in the quickfix list
+---@return nil
+CodeCompanion.changes = function()
+  return require("codecompanion.interactions.shared.edited_files").to_quickfix()
 end
 
 ---Open a chat buffer and converse with an LLM
@@ -140,6 +174,8 @@ CodeCompanion.chat = function(args)
   if args.subcommand then
     if args.subcommand == "add" then
       return CodeCompanion.add(args)
+    elseif args.subcommand == "changes" then
+      return CodeCompanion.changes()
     elseif args.subcommand == "toggle" then
       return CodeCompanion.toggle_chat(args)
     elseif args.subcommand == "refreshcache" then
@@ -490,6 +526,9 @@ CodeCompanion.setup = function(opts)
   for _, cmd in ipairs(cmds) do
     api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
+
+  require("codecompanion.interactions.code_review").setup()
+  require("codecompanion.interactions.shared.edited_files").setup()
 
   -- Load the main completion module first to register its autocmds
   require("codecompanion.providers.completion")

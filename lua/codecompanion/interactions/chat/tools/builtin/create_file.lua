@@ -1,6 +1,7 @@
 local files = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -80,6 +81,7 @@ local function create(action)
   end
 
   -- If we reach here, all operations (open, write, close) were successful
+  utils.fire("FileEdited", { path = filepath, tool = "create_file" })
   return {
     status = "success",
     data = fmt([[Created `%s`]], action.filepath),
@@ -158,12 +160,10 @@ return {
 
       local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
-      -- Get the file extension for syntax highlighting
       local file_ext = vim.fn.fnamemodify(args.filepath, ":e")
 
       local result_msg = fmt(
         [[Created file `%s`
-
 ````%s
 %s
 ````]],

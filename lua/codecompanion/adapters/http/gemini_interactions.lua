@@ -134,7 +134,7 @@ return {
       ---@param self CodeCompanion.HTTPAdapter
       ---@return boolean
       setup = function(self)
-        local model_opts = adapter_utils.model_choice(self)
+        local model_opts = adapter_utils.model_choice(self, { async = false })
 
         self.opts.vision = true
 
@@ -338,11 +338,8 @@ return {
       ---@param schema CodeCompanion.StructuredOutput.Schema
       ---@return table|nil
       build_structured_output = function(self, schema)
-        if not schema then
-          return
-        end
-        if not self.opts.can_form_structured_outputs then
-          return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+        if not schema or not self.opts.can_form_structured_outputs then
+          return nil
         end
         return require("codecompanion.adapters.utils.structured_outputs").to_gemini_interactions(schema)
       end,

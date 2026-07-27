@@ -216,11 +216,22 @@ function Connection:_authenticate()
     if #auth_methods > 0 then
       local wanted = self.adapter_modified.defaults.auth_method
       local method_id
+      local available_method_ids = {}
       for _, m in ipairs(auth_methods) do
+        table.insert(available_method_ids, m.id)
         if m.id == wanted then
           method_id = m.id
           break
         end
+      end
+
+      if wanted and not method_id then
+        log:error(
+          "[acp::_authenticate] Auth method %s is not advertised by the agent; available methods: %s",
+          wanted,
+          table.concat(available_method_ids, ", ")
+        )
+        return false
       end
       method_id = method_id or (auth_methods[1] and auth_methods[1].id)
 
@@ -316,7 +327,7 @@ function Connection:session_list(opts)
       end
     end
 
-    cursor = result.nextCursor
+    cursor = type(result.nextCursor) == "string" and result.nextCursor or nil
   until not cursor or #all_sessions >= max_sessions
 
   return all_sessions
@@ -776,6 +787,7 @@ function Connection:handle_fs_write_file_request(id, params)
   local ok, err = fs.write_text_file(path, content)
   if ok then
     self:send_result(id, vim.NIL)
+    utils.fire("FileEdited", { path = path, tool = (self.adapter and self.adapter.name) or "acp" })
     local info = { path = path, bytes = #content, sessionId = params.sessionId }
     if self._active_prompt and self._active_prompt.handlers and self._active_prompt.handlers.write_text_file then
       pcall(self._active_prompt.handlers.write_text_file, info)

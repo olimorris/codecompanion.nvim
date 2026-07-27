@@ -2,6 +2,7 @@ local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
 
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
@@ -238,6 +239,18 @@ function Orchestrator:_setup_handlers()
       end
     end,
   }
+
+  self.gates = {
+    judge_context = function()
+      if not self.tool then
+        return
+      end
+      if self.tool.gates and self.tool.gates.judge_context then
+        return self.tool.gates.judge_context(self.tool, { tools = self.tools })
+      end
+      return nil
+    end,
+  }
 end
 
 ---When the tools coordinator is finished, finalize it via an autocmd
@@ -274,79 +287,153 @@ function Orchestrator:setup_next_tool(input)
   local cmd = self.tool.cmds[1]
   log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
-  -- Check if the tool requires approval
   if
-    self.tool.opts
-    and not Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
+    not self.tool.opts
+    or Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
   then
-    local require_approval_before = self.tool.opts.require_approval_before
-
-    if require_approval_before and type(require_approval_before) == "function" then
-      require_approval_before = require_approval_before(self.tool, self.tools)
-    end
-    if require_approval_before and type(require_approval_before) ~= "boolean" then
-      require_approval_before = self.handlers.prompt_condition()
-    end
-
-    if require_approval_before then
-      log:debug("[Orchestrator::setup_next_tool] Asking for approval")
-
-      local prompt = self.output.prompt()
-      if prompt == nil or prompt == "" then
-        prompt = ("Run the %q tool?"):format(self.tool.name)
-      end
-
-      local labels = require("codecompanion.interactions.chat.tools.labels")
-      local keys = labels.keymaps()
-      require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
-        id = self.id,
-        name = self.tool.name,
-        prompt = prompt,
-        choices = {
-          {
-            keymap = keys.always_accept,
-            label = labels.always_accept,
-            callback = function()
-              Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
-              self:execute_tool({ cmd = cmd, input = input })
-            end,
-          },
-          {
-            keymap = keys.accept,
-            label = labels.accept,
-            callback = function()
-              self:execute_tool({ cmd = cmd, input = input })
-            end,
-          },
-          {
-            keymap = keys.reject,
-            label = labels.reject,
-            callback = function()
-              ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
-                self.output.rejected(cmd, { reason = i })
-                self:setup_next_tool()
-              end)
-            end,
-          },
-          {
-            keymap = keys.cancel,
-            label = labels.cancel,
-            callback = function()
-              self.output.cancelled(cmd)
-              self:finalize_tool()
-              self:cancel_pending_tools()
-              self:_finalize_tools()
-            end,
-          },
-        },
-      })
-    else
-      return self:execute_tool({ cmd = cmd, input = input })
-    end
-  else
     log:debug("[Orchestrator::setup_next_tool] No tool approval required")
     return self:execute_tool({ cmd = cmd, input = input })
   end
+
+  local require_approval_before = self.tool.opts.require_approval_before
+
+  if require_approval_before and type(require_approval_before) == "function" then
+    require_approval_before = require_approval_before(self.tool, self.tools)
+  end
+  if require_approval_before and type(require_approval_before) ~= "boolean" then
+    require_approval_before = self.handlers.prompt_condition()
+  end
+
+  if not require_approval_before then
+    return self:execute_tool({ cmd = cmd, input = input })
+  end
+
+  -- In yolo mode, let a background judge decide whether to execute or ask the user for approval
+  if self:_should_run_judge() then
+    return self:_run_judge({ cmd = cmd, input = input })
+  end
+
+  return self:_prompt_for_approval({ cmd = cmd, input = input })
+end
+
+---Ask the user to approve the pending tool before it runs
+---@param args { cmd: function, input?: any, reason?: string }
+---@return nil
+function Orchestrator:_prompt_for_approval(args)
+  local cmd, input = args.cmd, args.input
+  log:debug("[Orchestrator::_prompt_for_approval] Asking for approval")
+
+  local prompt = self.output.prompt()
+  if prompt == nil or prompt == "" then
+    prompt = ("Run the %q tool?"):format(self.tool.name)
+  end
+  if args.reason and args.reason ~= "" then
+    prompt = fmt('%s\nJudge: _"%s"_', prompt, args.reason)
+  end
+
+  local labels = require("codecompanion.interactions.chat.tools.labels")
+  local keys = labels.keymaps()
+  require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
+    id = self.id,
+    name = self.tool.name,
+    prompt = prompt,
+    choices = {
+      {
+        keymap = keys.always_accept,
+        label = labels.always_accept,
+        callback = function()
+          Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
+          self:execute_tool({ cmd = cmd, input = input })
+        end,
+      },
+      {
+        keymap = keys.accept,
+        label = labels.accept,
+        callback = function()
+          self:execute_tool({ cmd = cmd, input = input })
+        end,
+      },
+      {
+        keymap = keys.reject,
+        label = labels.reject,
+        callback = function()
+          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
+            self.output.rejected(cmd, { reason = i })
+            self:setup_next_tool()
+          end)
+        end,
+      },
+      {
+        keymap = keys.cancel,
+        label = labels.cancel,
+        callback = function()
+          self.output.cancelled(cmd)
+          self:finalize_tool()
+          self:cancel_pending_tools()
+          self:_finalize_tools()
+        end,
+      },
+    },
+  })
+end
+
+---Should a background judge vet this tool before we ask the user to approve it?
+---@return boolean
+function Orchestrator:_should_run_judge()
+  local judge = config.interactions.background.gates and config.interactions.background.gates.judge
+  if not (judge and judge.enabled) then
+    return false
+  end
+  if not self.tool.opts.judge_in_yolo_mode then
+    return false
+  end
+  if not (self.tool.gates and self.tool.gates.judge_context) then
+    return false
+  end
+  return Approvals:is_approved(self.tools.bufnr)
+end
+
+---Run the background judge, then execute the tool or fall back to a prompt
+---@param args { cmd: function, input?: any }
+---@return nil
+function Orchestrator:_run_judge(args)
+  local judge = config.interactions.background.gates.judge
+
+  local Background = require("codecompanion.interactions.background")
+  local background = Background.new({
+    adapter = judge.adapter or config.interactions.background.adapter,
+  })
+
+  local action = require("codecompanion.interactions.background.callbacks").resolve(judge.action)
+  local context = self.gates.judge_context()
+  if not background or not action or context == nil then
+    log:debug("[Orchestrator::_run_judge] Cannot run the judge; asking the user")
+    return self:_prompt_for_approval(args)
+  end
+
+  utils.fire("ToolsJudgeStarted", {
+    bufnr = self.tools.bufnr,
+    context = context,
+    id = self.id,
+    tool = self.tool.name,
+  })
+
+  action.request(background, { tool_name = self.tool.name, context = context }, function(verdict)
+    utils.fire("ToolsJudgeFinished", {
+      bufnr = self.tools.bufnr,
+      id = self.id,
+      reason = verdict.reason,
+      safe = verdict.safe,
+      status = verdict.safe and "success" or "error",
+      tool = self.tool.name,
+    })
+
+    if verdict.safe then
+      Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
+      return self:execute_tool(args)
+    end
+    return self:_prompt_for_approval(vim.tbl_extend("force", args, { reason = verdict.reason }))
+  end)
 end
 
 ---Cancel all pending tools in the queue

@@ -170,4 +170,22 @@ H.expect_json_equals = MiniTest.new_expectation(
   end
 )
 
+---@param screenshot table Output of child.get_screenshot()
+---@param ... any Forwarded to MiniTest.expect.reference_screenshot (path, opts)
+H.expect_screenshot = function(screenshot, ...)
+  local version = vim.version()
+
+  if vim.fn.has("nvim-0.13") == 0 then
+    MiniTest.skip(
+      string.format(
+        "Screenshot tests require Neovim 0.13.x (running %d.%d.%d)",
+        version.major,
+        version.minor,
+        version.patch
+      )
+    )
+  end
+  MiniTest.expect.reference_screenshot(screenshot, ...)
+end
+
 return H

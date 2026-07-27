@@ -14,6 +14,7 @@ jobs:
        github.event.pull_request.user.login != 'dependabot[bot]' &&
        github.event.pull_request.user.login != 'olimorris' &&
        github.event.pull_request.user.login != 'github-actions' &&
+       github.event.pull_request.user.login != 'github-actions[bot]' &&
        github.event.pull_request.draft == false) ||
       (github.event_name == 'issues')
     steps:
