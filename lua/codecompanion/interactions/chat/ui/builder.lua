@@ -229,11 +229,11 @@ function Builder:_write(lines, opts, write)
   if write.trailing_blanks and not opts.insert_at then
     self:_set_trailing_blanks(write.trailing_blanks)
   end
-  local last_line, last_column, line_count = self.chat.ui:last()
+  local last_line, last_column = self.chat.ui:last()
 
   local insert_line = opts.insert_at or last_line
   local column = opts.insert_at and 0 or last_column
-  local cursor_at_end = api.nvim_win_get_cursor(0)[1] == line_count
+  local was_following = self.chat.ui:is_following()
 
   api.nvim_buf_set_text(self.chat.bufnr, insert_line, column, insert_line, column, lines)
 
@@ -265,7 +265,7 @@ function Builder:_write(lines, opts, write)
   if self.state.last_role ~= config.constants.USER_ROLE then
     self.chat.ui:lock_buf()
   end
-  self.chat.ui:move_cursor(cursor_at_end)
+  self.chat.ui:move_cursor(was_following)
   self.chat._last_role = self.state.last_role
 
   return insert_line + #lines, icon_id

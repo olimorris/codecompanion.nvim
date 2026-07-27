@@ -1369,6 +1369,8 @@ function Chat:submit(opts)
     if not config.display.chat.auto_scroll then
       vim.cmd("stopinsert")
     end
+
+    self.ui:resume_following()
     self.ui:lock_buf()
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
 

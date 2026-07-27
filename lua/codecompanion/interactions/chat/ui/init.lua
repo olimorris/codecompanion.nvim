@@ -37,7 +37,7 @@ end
 ---@field aug number The autocmd group ID
 ---@field chat_bufnr number The buffer number of the chat
 ---@field chat_id number The unique ID of the chat
----@field cursor { has_moved: boolean, pos?: table } Cursor state tracking
+---@field cursor { moved_by_user: boolean, pos?: table, followed_to?: table } Cursor state tracking
 ---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
 ---@field header_ns number The namespace for the header
 ---@field roles table The roles in the chat
@@ -68,7 +68,8 @@ function UI.new(args)
     chat_bufnr = args.chat_bufnr,
     chat_id = args.chat_id,
     cursor = {
-      has_moved = false,
+      followed_to = nil,
+      moved_by_user = false,
       pos = nil,
     },
     roles = args.roles,
@@ -109,23 +110,19 @@ function UI.new(args)
             return
           end
 
+          if self:is_following() then
+            self.cursor.moved_by_user = false
+            self.cursor.pos = nil
+            return
+          end
+
           local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
           if not ok then
             return
           end
 
-          local last_line = self:last()
-
-          -- Check that the cursor is not on the last line. This likely means the
-          -- user has moved it and is likely reading the LLM's response. We do
-          -- not want to force an autoscroll so we save the cursor position
-          if cursor[1] ~= last_line + 1 then
-            self.cursor.has_moved = true
-            self.cursor.pos = { cursor[1], cursor[2] }
-          else
-            self.cursor.has_moved = false
-            self.cursor.pos = nil
-          end
+          self.cursor.moved_by_user = true
+          self.cursor.pos = { cursor[1], cursor[2] }
         end
 
         -- PERF: If we're testing, skip the debounce
@@ -151,7 +148,7 @@ function UI.new(args)
       buffer = self.chat_bufnr,
       desc = "Save cursor position when leaving a CodeCompanion chat buffer",
       callback = function()
-        if self:is_visible() and self.cursor.has_moved then
+        if self:is_visible() and self.cursor.moved_by_user then
           local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
           if ok then
             self.cursor.pos = { cursor[1], cursor[2] }
@@ -212,7 +209,7 @@ function UI:open(opts)
 
   if not opts.toggled then
     -- Put the cursor back in the original position
-    if self.cursor.has_moved and self.cursor.pos then
+    if self.cursor.moved_by_user and self.cursor.pos then
       vim.schedule(function()
         if self:is_visible() then
           pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.pos)
@@ -253,8 +250,7 @@ function UI:follow()
     return
   end
 
-  -- Don't follow if the user has manually positioned their cursor
-  if self.cursor.has_moved then
+  if self.cursor.moved_by_user then
     return
   end
 
@@ -263,7 +259,27 @@ function UI:follow()
     return
   end
 
-  api.nvim_win_set_cursor(self.winnr, { last_line + 1, last_column })
+  self.cursor.followed_to = { last_line + 1, last_column }
+  api.nvim_win_set_cursor(self.winnr, self.cursor.followed_to)
+end
+
+---Is the cursor still following the response?
+---@return boolean
+function UI:is_following()
+  local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
+  if not ok then
+    return false
+  end
+
+  -- The cursor is following the stream if it's on the last line of the buffer
+  local _, _, line_count = self:last()
+  if cursor[1] == line_count then
+    return true
+  end
+
+  -- Or if it's still where we last placed it, with the buffer having grown beneath it
+  local followed_to = self.cursor.followed_to
+  return followed_to ~= nil and followed_to[1] == cursor[1] and followed_to[2] == cursor[2]
 end
 
 ---Determine if the current chat buffer is active
@@ -593,39 +609,43 @@ end
 ---@return nil
 function UI:add_line_break()
   local _, _, line_count = self:last()
+  local was_following = self:is_following()
 
   self:unlock_buf()
   api.nvim_buf_set_lines(self.chat_bufnr, line_count, line_count, false, { "" })
   self:lock_buf()
 
-  self:move_cursor(true)
+  self:move_cursor(was_following)
 end
 
 ---Update the cursor position in the chat buffer
----@param cursor_has_moved boolean
+---@param was_following boolean
 ---@return nil
-function UI:move_cursor(cursor_has_moved)
-  if config.display.chat.auto_scroll then
-    -- Check if cursor is already on the last line before streaming new content
-    if self:is_visible() and not self.cursor.has_moved then
-      local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
-      if ok then
-        local last_line = self:last()
-
-        -- If already on last line, allow following
-        if cursor[1] == last_line + 1 then
-          self.cursor.has_moved = false
-          self.cursor.pos = nil
-        end
-      end
-    end
-
-    if cursor_has_moved and self:is_active() then
-      self:follow()
-    elseif not self:is_active() then
-      self:follow()
-    end
+function UI:move_cursor(was_following)
+  if not config.display.chat.auto_scroll then
+    return
   end
+
+  if was_following then
+    return self:resume_following()
+  end
+
+  -- Whilst the user is in the chat buffer, assume the cursor is theirs as `CursorMoved` is debounced
+  if not self:is_active() then
+    self:follow()
+  end
+end
+
+---Set the cursor to follow the stream
+---@return nil
+function UI:resume_following()
+  if not config.display.chat.auto_scroll then
+    return
+  end
+
+  self.cursor.moved_by_user = false
+  self.cursor.pos = nil
+  self:follow()
 end
 
 ---Lock the chat buffer from editing

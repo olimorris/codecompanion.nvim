@@ -46,6 +46,7 @@ Core: `lua/codecompanion/`
 ### Testing
 
 - When running `make test_file` tests, do not append `| tail -12` or similar to filter the output. This prevents the user's rules governing what can be auto-accepted, from applying
+- Chat buffer cursor position, scrolling and folds are verified by hand in real use. Don't add test cases for them, even alongside a fix. Ask first
 
 ## Important instructions
 
