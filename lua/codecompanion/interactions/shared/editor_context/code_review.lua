@@ -102,7 +102,7 @@ end
 ---@param message string
 ---@return string
 function EditorContext.replace(prefix, message)
-  local replacement = config.interactions.shared.editor_context.code_review.opts.replacement
+  local replacement = config.interactions.shared.editor_context.code_review.opts.replacement_message
 
   message = message:gsub(prefix .. CONSTANTS.EDITOR_CONTEXT_TAG .. "{[^}]*}", replacement)
   message = message:gsub(prefix .. CONSTANTS.EDITOR_CONTEXT_TAG, replacement)
