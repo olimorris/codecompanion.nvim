@@ -156,10 +156,7 @@ function Builder:add_message(data, opts)
     local content_lines = vim.split(content, "\n", { plain = true, trimempty = false })
     if new_block then
       vim.list_extend(lines, separator(prev_block, block))
-      -- NOTE: Some LLMs open a block with blank lines, sometimes split across
-      -- chunks. The separator owns that gap, so drop every leading blank - keep
-      -- one and the spacing depends on where the chunk boundary landed. An empty
-      -- string is exempt: that's a section opening on its input line.
+      -- NOTE: Some LLMs open a block with blank lines, sometimes split across chunks
       if content ~= BLANK then
         while content_lines[1] == BLANK do
           table.remove(content_lines, 1)
