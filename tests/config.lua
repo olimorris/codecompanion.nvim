@@ -109,6 +109,7 @@ return {
         ["create_file"] = {
           opts = {
             require_approval_before = false,
+            require_confirmation_after = false,
           },
         },
         ["delete_file"] = {

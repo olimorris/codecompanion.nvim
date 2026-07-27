@@ -206,7 +206,8 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
           opts = {
-            require_approval_before = true,
+            require_approval_before = false,
+            require_confirmation_after = true,
           },
         },
         ["delete_file"] = {

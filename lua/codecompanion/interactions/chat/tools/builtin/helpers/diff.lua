@@ -35,13 +35,13 @@ local function open_diff_view(opts)
     from_lines = opts.from_lines,
     to_lines = opts.to_lines,
     title = opts.title,
-    tool_name = "insert_edit_into_file",
+    tool_name = opts.tool_name,
     keymaps = {
       on_always_accept = function()
         if opts.on_done then
           opts.on_done(labels.always_accept)
         end
-        approvals:always(opts.chat_bufnr, { tool_name = "insert_edit_into_file" })
+        approvals:always(opts.chat_bufnr, { tool_name = opts.tool_name })
       end,
       on_accept = function()
         if opts.on_done then
@@ -54,7 +54,7 @@ local function open_diff_view(opts)
           opts.on_done(labels.reject)
         end
         get_rejection_reason(function(reason)
-          local msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.title, reason)
+          local msg = fmt('User rejected the changes for `%s`, with the reason "%s"', opts.title, reason)
           opts.output_cb(make_response("error", msg))
         end)
       end,
@@ -82,7 +82,7 @@ local function build_approval_choices(opts)
       keymap = keys.always_accept,
       label = labels.always_accept,
       callback = function()
-        approvals:always(opts.chat_bufnr, { tool_name = "insert_edit_into_file" })
+        approvals:always(opts.chat_bufnr, { tool_name = opts.tool_name })
         opts.apply()
       end,
     },
@@ -98,7 +98,7 @@ local function build_approval_choices(opts)
       label = labels.reject,
       callback = function()
         get_rejection_reason(function(reason)
-          local msg = fmt('User rejected the edits for `%s`, with the reason "%s"', opts.title, reason)
+          local msg = fmt('User rejected the changes for `%s`, with the reason "%s"', opts.title, reason)
           opts.output_cb(make_response("error", msg))
         end)
       end,
@@ -107,7 +107,7 @@ local function build_approval_choices(opts)
       keymap = keys.cancel,
       label = labels.cancel,
       callback = function()
-        opts.output_cb(make_response("error", fmt("User cancelled the edits for `%s`", opts.title)))
+        opts.output_cb(make_response("error", fmt("User cancelled the changes for `%s`", opts.title)))
       end,
     },
   }
@@ -125,8 +125,8 @@ local function approve_in_chat(chat, opts)
   })
 end
 
----Show diff and handle approval flow for edits
----@param opts table
+---Show a diff and handle the approval flow for a tool's proposed changes
+---@param opts { from_lines: string[], to_lines: string[], ft: string, title: string, tool_name: string, chat: CodeCompanion.Chat, chat_bufnr: number, approved: boolean, require_confirmation_after: boolean, apply: fun(), output_cb: fun(response: table) }
 ---@return any
 function M.review(opts)
   local diff_enabled = config.display.diff.enabled == true
@@ -135,7 +135,7 @@ function M.review(opts)
     return opts.apply()
   end
 
-  opts.title = fmt("Proposed edits for `%s`:", opts.title)
+  opts.title = fmt("Proposed changes for `%s`:", opts.title)
 
   local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
   approval_prompt.present_diff({
