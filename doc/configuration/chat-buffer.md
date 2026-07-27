@@ -179,54 +179,6 @@ The `info` table passed to `on_before_submit` contains:
 
 - `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
 
-### Tool Safety Check
-
-When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    background = {
-      gates = {
-        judge = {
-          enabled = true,
-          action = "interactions.background.builtin.tools_judge",
-        },
-      },
-    },
-  },
-})
-```
-
-The judge runs for a tool only when:
-
-- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
-- The tool defines a `gates.judge_context` handler
-
-Regarding for former, this can be accomplished with:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["run_command"] = {
-          opts = {
-            judge_in_yolo_mode = true,
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-If the judge decides the action is safe, it executes immediately. The verdict is cached so re-running the exact same command won't be re-judged that session. A different command is judged on its own - approving `make test` does not approve `make test && rm -rf foo`. If the request to check the command fails, or the adapter can't produce structured output, you'll be automatically asked to approve manually.
-
-For this per-command caching, the tool must also set `opts.require_cmd_approval = true`. Without it, a single safe verdict is cached against the whole tool and every later action of that tool runs unjudged for the rest of the session. This is automatically set for `run_command` and `delete_file` but can be applied to any tool.
-
-
-
 ### Truncating Tool Output
 
 The `on_tool_output` callback fires before a tool's output is added to the chat. The `args` table contains `tool` (the tool name), `for_llm` (the content sent to the LLM) and `for_user` (what's shown in the buffer). Mutate `args.for_llm` and/or `args.for_user` to modify the output:
@@ -885,6 +837,65 @@ require("codecompanion").setup({
 ```
 
 This also works for [extensions](/configuration/extensions).
+
+### LLM Judge
+
+When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
+
+To fully enable the LLM judge:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+        },
+      },
+    },
+    chat = {
+      tools = {
+        ["delete_file"] = {
+          opts = {
+            judge_in_yolo_mode = true,
+          },
+        },
+        ["run_command"] = {
+          opts = {
+            judge_in_yolo_mode = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+The judge runs for a tool only when:
+
+- You set `background.gates.judge.enabled = true`
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
+- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+
+You can also point the judge at a different adapter to the one used in the chat buffer, for example, if you want a cheaper or faster model handling the check:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+          adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
+        },
+      },
+    },
+  },
+})
+```
+
+See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
 
 ## User Interface (UI)
 
