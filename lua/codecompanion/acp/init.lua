@@ -545,7 +545,7 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
-  assert(self._state.handle):kill(9)
+  assert(self._state.handle):kill(15)
 end
 
 ---Process the output
