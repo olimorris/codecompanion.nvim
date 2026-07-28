@@ -295,6 +295,7 @@ function Tools:execute(chat, tools)
     end
 
     utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
+    chat.tool_orchestrator = orchestrator
     orchestrator:setup_next_tool()
   end
 
