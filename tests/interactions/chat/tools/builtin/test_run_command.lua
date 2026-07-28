@@ -39,6 +39,35 @@ T["run_command tool"] = function()
   h.expect_screenshot(child.get_screenshot())
 end
 
+T["run_command tool times out a long running command"] = function()
+  child.lua([[
+    local cfg = {
+      interactions = {
+        chat = {
+          tools = {
+            run_command = { opts = { timeout = 100 } }
+          }
+        }
+      }
+    }
+    chat, tools = h.setup_chat_buffer(cfg)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "run_command",
+          arguments = '{"cmd": "sleep 2"}',
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    vim.wait(500)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_contains("timed out", output)
+end
+
 T["Windows"] = new_set()
 
 T["Windows"]["run_command handles Windows pipe command with empty string argument"] = function()

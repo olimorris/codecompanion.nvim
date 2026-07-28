@@ -29,18 +29,19 @@ local send_response_to_chat = function(exec, llm_message, user_message)
 end
 
 ---Execute a shell command with platform-specific handling
----@param cmd table
+---@param opts { cmd: table, timeout?: number }
 ---@param callback function
-local function execute_shell_command(cmd, callback)
+local function execute_shell_command(opts, callback)
   if vim.fn.has("win32") == 1 then
     -- See PR #2186
-    local shell_cmd = table.concat(cmd, " ") .. "\r\nEXIT %ERRORLEVEL%\r\n"
+    local shell_cmd = table.concat(opts.cmd, " ") .. "\r\nEXIT %ERRORLEVEL%\r\n"
     vim.system({ "cmd.exe", "/Q", "/K" }, {
       stdin = shell_cmd,
       env = { PROMPT = "\r\n" },
+      timeout = opts.timeout,
     }, callback)
   else
-    vim.system(os_utils.build_shell_command(cmd), {}, callback)
+    vim.system(os_utils.build_shell_command(opts.cmd), { timeout = opts.timeout }, callback)
   end
 end
 
@@ -48,6 +49,8 @@ end
 ---@param tool CodeCompanion.Tools.Tool
 ---@return CodeCompanion.Tools.Tool
 local function cmd_to_func_tool(tool)
+  local timeout = tool.opts and tool.opts.timeout
+
   tool.cmds = vim
     .iter(tool.cmds)
     :map(function(cmd)
@@ -64,7 +67,7 @@ local function cmd_to_func_tool(tool)
       ---@param tools CodeCompanion.Tools
       return function(tools, _, opts)
         local cb = vim.schedule_wrap(opts.output_cb)
-        execute_shell_command(cmd, function(out)
+        execute_shell_command({ cmd = cmd, timeout = timeout }, function(out)
           if flag then
             tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
             tools.chat.tool_registry.flags[flag] = (out.code == 0)
@@ -79,6 +82,9 @@ local function cmd_to_func_tool(tool)
             })
           else
             local combined = {}
+            if out.code == 124 then
+              table.insert(combined, fmt("Command timed out after %dms and was terminated", timeout))
+            end
             if out.stderr and out.stderr ~= "" then
               vim.list_extend(combined, strip_ansi(vim.split(out.stderr, eol_pattern, { trimempty = true })))
             end

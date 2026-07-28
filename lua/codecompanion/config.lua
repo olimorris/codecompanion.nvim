@@ -293,6 +293,7 @@ The user is working on a %s machine. Please respond with system specific command
             require_approval_before = true,
             require_cmd_approval = true,
             judge_in_yolo_mode = false,
+            timeout = 300000, -- Timeout for commands (milliseconds) - 5 mins by default
           },
         },
 
