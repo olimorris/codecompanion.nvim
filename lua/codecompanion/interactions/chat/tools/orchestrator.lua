@@ -31,24 +31,26 @@ end
 ---Execute a shell command with platform-specific handling
 ---@param opts { cmd: table, timeout?: number }
 ---@param callback function
+---@return vim.SystemObj
 local function execute_shell_command(opts, callback)
   if vim.fn.has("win32") == 1 then
     -- See PR #2186
     local shell_cmd = table.concat(opts.cmd, " ") .. "\r\nEXIT %ERRORLEVEL%\r\n"
-    vim.system({ "cmd.exe", "/Q", "/K" }, {
+    return vim.system({ "cmd.exe", "/Q", "/K" }, {
       stdin = shell_cmd,
       env = { PROMPT = "\r\n" },
       timeout = opts.timeout,
     }, callback)
-  else
-    vim.system(os_utils.build_shell_command(opts.cmd), { timeout = opts.timeout }, callback)
   end
+
+  return vim.system(os_utils.build_shell_command(opts.cmd), { timeout = opts.timeout }, callback)
 end
 
 ---Converts a cmd-based tool to a function-based tool.
 ---@param tool CodeCompanion.Tools.Tool
+---@param orchestrator CodeCompanion.Tools.Orchestrator
 ---@return CodeCompanion.Tools.Tool
-local function cmd_to_func_tool(tool)
+local function cmd_to_func_tool(tool, orchestrator)
   local timeout = tool.opts and tool.opts.timeout
 
   tool.cmds = vim
@@ -67,7 +69,9 @@ local function cmd_to_func_tool(tool)
       ---@param tools CodeCompanion.Tools
       return function(tools, _, opts)
         local cb = vim.schedule_wrap(opts.output_cb)
-        execute_shell_command({ cmd = cmd, timeout = timeout }, function(out)
+        orchestrator.current_job = execute_shell_command({ cmd = cmd, timeout = timeout }, function(out)
+          orchestrator.current_job = nil
+
           if flag then
             tools.chat.tool_registry.flags = tools.chat.tool_registry.flags or {}
             tools.chat.tool_registry.flags[flag] = (out.code == 0)
@@ -102,6 +106,8 @@ local function cmd_to_func_tool(tool)
 end
 
 ---@class CodeCompanion.Tools.Orchestrator
+---@field cancelled boolean Whether the user has stopped the execution
+---@field current_job vim.SystemObj? The shell command that's currently running
 ---@field id number The id of the tools coordinator
 ---@field index number The index of the current command
 ---@field handlers table<string, function>
@@ -117,6 +123,7 @@ local Orchestrator = {}
 ---@param id number
 function Orchestrator.new(tools, id)
   local self = setmetatable({
+    cancelled = false,
     id = id,
     queue = Queue.new(),
     tools = tools,
@@ -264,6 +271,8 @@ end
 ---@return nil
 function Orchestrator:_finalize_tools()
   self.tools.tool = nil
+  self.tools.chat.tool_orchestrator = nil
+
   return utils.fire("ToolsFinished", {
     bufnr = self.tools.bufnr,
     id = self.id,
@@ -275,6 +284,9 @@ end
 ---@param input? any
 ---@return nil
 function Orchestrator:setup_next_tool(input)
+  if self.cancelled then
+    return
+  end
   if self.queue:is_empty() then
     return self:_finalize_tools()
   end
@@ -287,7 +299,7 @@ function Orchestrator:setup_next_tool(input)
   self.handlers.setup() -- Call this early as run_command needs to setup its cmds dynamically
 
   -- Transform cmd-based tools to func-based
-  self.tool = cmd_to_func_tool(self.tool)
+  self.tool = cmd_to_func_tool(self.tool, self)
 
   -- Get the first command to run
   local cmd = self.tool.cmds[1]
@@ -462,10 +474,45 @@ function Orchestrator:cancel_pending_tools()
   end
 end
 
+---Stop the tool that's currently running and cancel anything still queued
+---@return nil
+function Orchestrator:cancel()
+  if self.cancelled then
+    return
+  end
+  self.cancelled = true
+
+  if self.current_job then
+    pcall(function()
+      self.current_job:kill("sigterm")
+    end)
+    self.current_job = nil
+  end
+
+  if self.tool then
+    local ok, err = pcall(function()
+      self.output.cancelled(self.tool.cmds and self.tool.cmds[1])
+    end)
+    if not ok then
+      log:error("Failed to run cancelled handler for tool %s: %s", tostring(self.tool.name), err)
+    end
+    self:finalize_tool()
+  end
+
+  self:cancel_pending_tools()
+
+  self.tools.tool = nil
+  self.tools:reset({ auto_submit = false })
+end
+
 ---Execute the tool command
 ---@param args { cmd: function, input?: any }
 ---@return nil
 function Orchestrator:execute_tool(args)
+  if self.cancelled then
+    return
+  end
+
   utils.fire("ToolStarted", {
     bufnr = self.tools.bufnr,
     id = self.id,

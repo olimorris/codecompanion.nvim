@@ -14,7 +14,6 @@
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field current_request table|nil The current request being executed
----@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field editor_context? CodeCompanion.EditorContext The editor context available to the user
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
@@ -32,6 +31,7 @@
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
+---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
@@ -1724,13 +1724,14 @@ function Chat:stop()
   self:dispatch("on_cancelled")
   utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
-  if self.current_tool then
-    local tool_job = self.current_tool
-    self.current_tool = nil
-
-    pcall(function()
-      tool_job.cancel()
+  if self.tool_orchestrator then
+    local ok, err = pcall(function()
+      self.tool_orchestrator:cancel()
     end)
+    self.tool_orchestrator = nil
+    if not ok then
+      log:error("Failed to cancel the running tools: %s", err)
+    end
   end
 
   pcall(function()

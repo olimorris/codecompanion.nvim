@@ -68,6 +68,32 @@ T["run_command tool times out a long running command"] = function()
   h.expect_contains("timed out", output)
 end
 
+T["stopping the chat kills a running command"] = function()
+  child.lua([[
+    _G.marker = vim.fn.tempname()
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "run_command",
+          arguments = string.format('{"cmd": "sleep 1 && touch %s"}', _G.marker),
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    vim.wait(200)
+
+    _G.running = chat.tool_orchestrator ~= nil and chat.tool_orchestrator.current_job ~= nil
+    chat:stop()
+    vim.wait(1500)
+  ]])
+
+  h.eq(true, child.lua_get("_G.running"))
+  h.eq(0, child.lua_get("vim.fn.filereadable(_G.marker)"))
+  h.eq(vim.NIL, child.lua_get("chat.tool_orchestrator"))
+  h.expect_contains("cancelled", child.lua_get("chat.messages[#chat.messages].content"))
+end
+
 T["Windows"] = new_set()
 
 T["Windows"]["run_command handles Windows pipe command with empty string argument"] = function()
