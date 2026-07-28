@@ -97,6 +97,40 @@ T["Review"]["comment stores a visual selection"] = function()
   h.eq(2, pending[1].end_line)
 end
 
+T["Review"]["comment on a file in a subdirectory stores a root-relative path"] = function()
+  child.lua([[
+    stub_input("Nested file comment")
+    vim.fn.mkdir(vim.fs.joinpath(repo, "src"), "p")
+    -- cd into the subdir so cwd is not the git root
+    vim.cmd.cd(vim.fs.joinpath(repo, "src"))
+    vim.cmd("edit! foo.lua")
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+    review.comment({ range = 0 })
+  ]])
+
+  local pending = child.lua_get("review.pending()")
+  h.eq(1, #pending)
+  h.eq("src/foo.lua", pending[1].path)
+end
+
+T["Review"]["editing a comment to empty removes it"] = function()
+  child.lua([[
+    stub_input("First pass")
+    vim.cmd("edit! notes")
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "line one" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    review.comment({ range = 0 })
+
+    -- Second call on the same line hits edit_comment; empty submit deletes it
+    stub_input("")
+    review.comment({ range = 0 })
+  ]])
+
+  h.eq(0, child.lua_get("#review.pending()"))
+end
+
 T["Review"]["comment does nothing when sending code is disabled"] = function()
   child.lua([[
     stub_input("Should not be added")
