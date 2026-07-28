@@ -431,7 +431,7 @@ return {
       choices = {
         -- Frontier models
         ["gpt-5.6-sol"] = {
-          formatted_name = "GPT 5.5",
+          formatted_name = "GPT 5.6 Sol",
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
@@ -443,6 +443,17 @@ return {
         },
         ["gpt-5.6-terra"] = {
           formatted_name = "GPT 5.6 Terra",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-luna"] = {
+          formatted_name = "GPT 5.6 Luna",
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
