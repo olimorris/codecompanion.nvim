@@ -40,6 +40,10 @@ T["run_command tool"] = function()
 end
 
 T["run_command tool times out a long running command"] = function()
+  if vim.fn.has("win32") == 1 then
+    MiniTest.skip("`sleep` isn't available on Windows")
+  end
+
   child.lua([[
     local cfg = {
       interactions = {
@@ -61,7 +65,9 @@ T["run_command tool times out a long running command"] = function()
       },
     }
     tools:execute(chat, tool)
-    vim.wait(500)
+    vim.wait(10000, function()
+      return #chat.messages > 1
+    end, 25)
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
@@ -69,6 +75,10 @@ T["run_command tool times out a long running command"] = function()
 end
 
 T["stopping the chat kills a running command"] = function()
+  if vim.fn.has("win32") == 1 then
+    MiniTest.skip("`sleep` isn't available on Windows")
+  end
+
   child.lua([[
     _G.marker = vim.fn.tempname()
 
@@ -81,10 +91,16 @@ T["stopping the chat kills a running command"] = function()
       },
     }
     tools:execute(chat, tool)
-    vim.wait(200)
+    _G.running = vim.wait(5000, function()
+      return chat.tool_orchestrator ~= nil and chat.tool_orchestrator.current_job ~= nil
+    end, 25)
 
-    _G.running = chat.tool_orchestrator ~= nil and chat.tool_orchestrator.current_job ~= nil
     chat:stop()
+    vim.wait(5000, function()
+      return #chat.messages > 1
+    end, 25)
+
+    -- Outlive the command so that the marker would exist had it survived the stop
     vim.wait(1500)
   ]])
 
