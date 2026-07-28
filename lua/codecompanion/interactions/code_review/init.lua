@@ -35,10 +35,14 @@ local function get_context(bufnr, args)
     lines = api.nvim_buf_get_lines(bufnr, buffer_context.start_line - 1, buffer_context.start_line, false)
   end
 
+  -- Comments are stored against the storage root, which can be git root or cwd
+  local name = api.nvim_buf_get_name(bufnr)
+  local path = vim.fs.relpath(get_storage_root(), name) or name
+
   return {
     code = table.concat(lines, "\n"),
     filetype = buffer_context.filetype,
-    path = buffer_context.relative_path,
+    path = path,
     start_line = buffer_context.start_line,
     end_line = buffer_context.end_line,
   }
@@ -66,6 +70,8 @@ local function edit_comment(existing)
   input.open({
     title = " Edit Comment ",
     initial_content = existing.comment.comment,
+    -- Empty submission deletes the comment
+    allow_empty = true,
     on_submit = function(comment)
       local root = get_storage_root()
       local comments = store.comments(root)

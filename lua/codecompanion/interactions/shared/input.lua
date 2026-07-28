@@ -8,6 +8,7 @@ local HISTORY_MAX = 20
 local M = {}
 
 ---@class CodeCompanion.Input
+---@field allow_empty boolean|nil
 ---@field aug number|nil
 ---@field bufnr number
 ---@field on_submit fun(text: string, submit_opts: { bang: boolean })|nil
@@ -48,14 +49,15 @@ local function _buf_send(opts)
 
   local lines = api.nvim_buf_get_lines(_input.bufnr, 0, -1, false)
   local text = vim.trim(table.concat(lines, "\n"))
-  if text == "" then
+  if text == "" and not _input.allow_empty then
     return
   end
 
-  -- Add to history
-  table.insert(_history, text)
-  if #_history > HISTORY_MAX then
-    table.remove(_history, 1)
+  if text ~= "" then
+    table.insert(_history, text)
+    if #_history > HISTORY_MAX then
+      table.remove(_history, 1)
+    end
   end
   _history_index = 0
   _draft = ""
@@ -123,12 +125,13 @@ local function _history_down()
 end
 
 ---Open an input buffer
----@param opts { title?: string, on_submit: fun(text: string, submit_opts: { bang: boolean }), on_open?: fun(bufnr: number, winnr: number), initial_content?: string }
+---@param opts { title?: string, on_submit: fun(text: string, submit_opts: { bang: boolean }), on_open?: fun(bufnr: number, winnr: number), initial_content?: string, allow_empty?: boolean }
 ---@return nil
 function M.open(opts)
   -- Buffer already exists — re-show the window
   if _input and api.nvim_buf_is_valid(_input.bufnr) then
     _input.on_submit = opts.on_submit
+    _input.allow_empty = opts.allow_empty
 
     if M.is_visible() then
       api.nvim_set_current_win(_input.winnr)
@@ -164,6 +167,7 @@ function M.open(opts)
   end
 
   _input = {
+    allow_empty = opts.allow_empty,
     aug = nil,
     bufnr = bufnr,
     on_submit = opts.on_submit,
