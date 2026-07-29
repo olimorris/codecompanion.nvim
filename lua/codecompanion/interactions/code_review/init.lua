@@ -21,7 +21,7 @@ local function notify(message, level)
   return utils.notify(message, level or vim.log.levels.INFO, { title = "CodeCompanion Code Review" })
 end
 
-local get_storage_root = baseline.storage_root
+local get_storage_root = baseline.storage_root --[[@as function]]
 
 ---Fetch the context of where the use is commenting in the buffer
 ---@param bufnr number
@@ -38,7 +38,7 @@ local function get_context(bufnr, args)
   return {
     code = table.concat(lines, "\n"),
     filetype = buffer_context.filetype,
-    path = buffer_context.relative_path,
+    path = vim.fs.relpath(get_storage_root(), buffer_context.path) or buffer_context.path,
     start_line = buffer_context.start_line,
     end_line = buffer_context.end_line,
   }
@@ -64,8 +64,9 @@ end
 ---@return nil
 local function edit_comment(existing)
   input.open({
-    title = " Edit Comment ",
+    allow_empty = true, -- An empty submission deletes the comment
     initial_content = existing.comment.comment,
+    title = " Edit Comment ",
     on_submit = function(comment)
       local root = get_storage_root()
       local comments = store.comments(root)
