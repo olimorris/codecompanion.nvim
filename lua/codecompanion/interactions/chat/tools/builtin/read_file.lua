@@ -1,4 +1,3 @@
-local Path = require("plenary.path")
 local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 
 local file_utils = require("codecompanion.utils.files")
@@ -6,20 +5,11 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----Read the contents of a file
+---Slice the requested line range out of a file's contents
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
+---@param lines string[] Every line in the file
 ---@return {status: "success"|"error", data: string}
-local function read(action)
-  local path = file_utils.validate_and_normalize_path(action.filepath)
-  local p = Path:new(path)
-  if not p:exists() or not p:is_file() then
-    return {
-      status = "error",
-      data = fmt("Error reading `%s`\nFile does not exist or is not a file", path),
-    }
-  end
-
-  local lines = p:readlines()
+local function extract_range(action, lines)
   local start_line_zero = tonumber(action.start_line_number_base_zero)
   local end_line_zero = tonumber(action.end_line_number_base_zero)
 
@@ -96,11 +86,10 @@ Invalid line range - start_line_number_base_zero (%d) comes after end_line_numbe
   end
 
   local content = table.concat(selected_lines, "\n")
-  local file_ext = vim.fn.fnamemodify(p.filename, ":e")
+  local file_ext = vim.fn.fnamemodify(action.filepath, ":e")
 
   local output = fmt(
     [[Read file `%s` from line %d to %d:
-
 ````%s
 %s
 ````]],
@@ -123,10 +112,21 @@ return {
     ---Execute the file commands
     ---@param self CodeCompanion.Tool.ReadFile
     ---@param args table The arguments from the LLM's tool call
-    ---@param input? any The output from the previous function call
-    ---@return { status: "success"|"error", data: string }
-    function(self, args, input)
-      return read(args)
+    ---@param opts { input: any, output_cb: fun(msg: table) }
+    ---@return nil
+    function(self, args, opts)
+      local path = file_utils.validate_and_normalize_path(args.filepath)
+      local cb = vim.schedule_wrap(opts.output_cb)
+
+      file_utils.read_async(path, function(content, error_message)
+        if not content then
+          return cb({
+            status = "error",
+            data = fmt("Error reading `%s`\n%s", path, error_message),
+          })
+        end
+        cb(extract_range(args, vim.split(file_utils.normalize_content(content), "\n")))
+      end)
     end,
   },
   schema = {
