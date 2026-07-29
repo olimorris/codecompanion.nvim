@@ -296,7 +296,6 @@ The user is working on a %s machine. Please respond with system specific command
             timeout = 300000, -- Timeout for commands (milliseconds) - 5 mins by default
           },
         },
-
         ["web_search"] = {
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
@@ -359,7 +358,7 @@ If a tool exists to do a task, use the tool instead of asking the user to manual
 If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
 Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
 Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
-If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
+For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
 </toolUseInstructions>
 <outputFormatting>

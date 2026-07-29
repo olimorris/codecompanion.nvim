@@ -185,6 +185,37 @@ function M.read(path)
   return data
 end
 
+---Read the content of a file without blocking the editor
+---@param path string The file to read
+---@param callback fun(content: string?, error_message: string?)
+---@return nil
+function M.read_async(path, callback)
+  uv.fs_open(path, "r", 420, function(open_err, fd)
+    if open_err or not fd then
+      return callback(nil, open_err or fmt("Could not open %s", path))
+    end
+
+    uv.fs_fstat(fd, function(stat_err, stat)
+      if stat_err or not stat then
+        uv.fs_close(fd)
+        return callback(nil, stat_err or fmt("Could not stat %s", path))
+      end
+      if stat.type ~= "file" then
+        uv.fs_close(fd)
+        return callback(nil, fmt("%s is not a file", path))
+      end
+
+      uv.fs_read(fd, stat.size, 0, function(read_err, data)
+        uv.fs_close(fd)
+        if read_err then
+          return callback(nil, read_err)
+        end
+        callback(data or "")
+      end)
+    end)
+  end)
+end
+
 ---Base64 encode a given file using the `base64` command.
 ---@param path string The path to the file to encode
 ---@return string?, string? The output and error message
