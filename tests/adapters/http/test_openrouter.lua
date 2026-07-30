@@ -285,4 +285,23 @@ T["OpenRouter adapter"]["resolves model capabilities on the first request"] = fu
   h.not_eq(nil, structured.handlers.form_structured_output(structured, { name = "verdict", schema = {} }))
 end
 
+T["OpenRouter model_transformers"] = new_set()
+
+T["OpenRouter model_transformers"]["from_openrouter() transforms the stubbed model list"] = function()
+  local model_transformers = require("codecompanion.adapters.utils.models.transform")
+
+  local body = table.concat(vim.fn.readfile("tests/adapters/http/stubs/model_list/openrouter.json"), "\n")
+  local json = vim.json.decode(body)
+
+  local result = {}
+  for _, model in ipairs(json.data) do
+    local id, entry = model_transformers.from_openrouter(model)
+    result[id] = entry
+  end
+
+  h.eq("Anthropic: Claude Sonnet 5", result["anthropic/claude-sonnet-5"].formatted_name)
+  h.eq({ context_window = 1000000 }, result["anthropic/claude-sonnet-5"].meta)
+  h.eq(true, result["anthropic/claude-sonnet-5"].opts.has_vision)
+end
+
 return T
