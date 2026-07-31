@@ -77,7 +77,10 @@ function M.manages_own_context(adapter)
     return false
   end
 
-  local ok, model = pcall(adapter_utils.model_choice, adapter, { async = false })
+  -- A number of adapters are dynamic, and their capabilities are cached.
+  -- So there's a small chance that we need to refresh the cache,
+  -- which might require re-authentication or reauthorization
+  local ok, model = pcall(adapter_utils.model_choice, adapter, { async = true })
   if not ok then
     log:debug("[Context Management] Failed to resolve model for `%s` adapter: %s", adapter.name, model)
     return false
