@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                   For NVIM v0.11    Last change: 2026 July 27
+                                   For NVIM v0.11    Last change: 2026 July 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2375,16 +2375,22 @@ stack:
 CONTEXT MANAGEMENT ~
 
 CodeCompanion can manage context in the chat buffer to try and prevent
-breaching the LLM's context window. It can be enabled with:
+breaching the LLM's context window and to avoid context rot
+<https://towardsdatascience.com/governed-context-managing-context-rot-in-claude-code/>
+setting in. It can be enabled with:
 
 
 CodeCompanion runs two operations to keep the chat buffer under the context
-window: **editing** (lighter — trims old tool results) and **compaction**
-(heavier — summarises the chat). Each has its own trigger, expressed either
-as a decimal (a percentage of the context window) or an integer (an absolute
-token count). You can read more about how the two operations work in the
+window: **editing** (which removes old tool results from the message history)
+and **compaction** (which summarises the message history). Both are triggered
+separately and can be expressed as a decimal (for a percentage of the context
+window) or an integer (for an absolute token count). You can read more about
+how the two operations work in the
 |codecompanion-architecture-in-the-chat-buffer| section.
 
+
+  [!NOTE] Some adapters (Anthropic, OpenAI Responses) manage context themselves,
+  server-side, as part of the request
 
 
 EDITING
@@ -2392,9 +2398,8 @@ EDITING
 Editing replaces the content of older tool results with a placeholder, leaving
 the conversation shape intact. By default, the most recent 3 cycles (a cycle
 being one user turn plus everything the LLM did in response) are preserved in
-full; older cycles are aged. You can also exclude specific tools from being
-edited — useful for tools whose output is referenced again later in the
-conversation.
+full. You can also exclude specific tools from being edited — useful for
+tools whose output is referenced again later in the conversation.
 
 >lua
     require("codecompanion").setup({

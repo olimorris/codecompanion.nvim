@@ -69,4 +69,21 @@ function M.context_window(adapter)
   return nil
 end
 
+---Whether the provider compacts its own context server-side for the current model
+---@param adapter CodeCompanion.HTTPAdapter
+---@return boolean
+function M.manages_own_context(adapter)
+  if not adapter or not adapter.opts or adapter.opts.compaction == false then
+    return false
+  end
+
+  local ok, model = pcall(adapter_utils.model_choice, adapter, { async = false })
+  if not ok then
+    log:debug("[Context Management] Failed to resolve model for `%s` adapter: %s", adapter.name, model)
+    return false
+  end
+
+  return (model and model.opts and model.opts.can_manage_context) == true
+end
+
 return M

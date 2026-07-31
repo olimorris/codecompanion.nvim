@@ -435,7 +435,6 @@ return {
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
-            can_manage_context = true,
             can_use_tools = true,
             can_reason = true,
             has_vision = true,
@@ -446,7 +445,6 @@ return {
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
-            can_manage_context = true,
             can_use_tools = true,
             has_vision = true,
             can_reason = true,
@@ -457,7 +455,6 @@ return {
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
-            can_manage_context = true,
             can_use_tools = true,
             has_vision = true,
             can_reason = true,
@@ -470,7 +467,6 @@ return {
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
-            can_manage_context = true,
             can_use_tools = true,
             has_vision = true,
             can_reason = true,
