@@ -5654,6 +5654,15 @@ The `now` slash command simply inserts the current datetime stamp into the chat
 buffer.
 
 
+/RENAME ~
+
+The `rename` slash command is specific to
+|codecompanion-configuration-adapters-http| adapters. It allows you to rename
+the title of the conversation in the chat buffer. This can be useful to keep
+track of different conversations via `open chats` in the
+|codecompanion-usage-action-palette|.
+
+
 /RESUME ~
 
 The `resume` slash command is specific to

@@ -100,6 +100,10 @@ The _mode_ slash command is specific to [ACP](/configuration/adapters-acp) adapt
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
 
+## /rename
+
+The _rename_ slash command is specific to [http](/configuration/adapters-http) adapters. It allows you to rename the title of the conversation in the chat buffer. This can be useful to keep track of different conversations via _open chats_ in the [action palette](/usage/action-palette).
+
 ## /resume
 
 The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) adapters that support the `session/list` capability. It allows you to resume a previous session by listing your past sessions and restoring the selected one into the chat buffer. The conversation history is rendered so you can continue where you left off.
