@@ -8,8 +8,10 @@ return {
     llm = "assistant",
     user = "user",
   },
-  opts = {},
-  url = "https://api.duckduckgo.com/",
+  opts = {
+    method = "POST",
+  },
+  url = "https://html.duckduckgo.com/html/?q=${query}",
   env = {},
   headers = {
     ["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) Gecko/20100101 Firefox/153.0",
@@ -40,26 +42,9 @@ return {
         ---@param data table The data from the LLM's tool call
         ---@return nil
         setup = function(self, opts, data)
-          opts = opts or {}
-          self.handlers.set_body = function()
-            local body = {
-              q = data.query,
-              topic = opts.topic or "general", -- general, news
-              search_depth = opts.search_depth or "advanced", -- basic, advanced
-              chunks_per_source = opts.chunks_per_source or 3,
-              max_results = opts.max_results or 3,
-              time_range = opts.time_range or nil, -- day, week, month, year
-              include_answer = opts.include_answer or false,
-              include_raw_content = opts.include_raw_content or false,
-              include_domains = data.domains,
-            }
-
-            if opts.topic == "news" then
-              body.days = opts.days or 7
-            end
-
-            return body
-          end
+          self.env = vim.tbl_deep_extend("force", self.env or {}, {
+            query = vim.uri_encode(data.query),
+          })
         end,
 
         ---Process the output from the fetch webpage tool
