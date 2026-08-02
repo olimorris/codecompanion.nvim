@@ -881,21 +881,67 @@ The judge runs for a tool only when:
 - You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
 - The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
 
-You can also point the judge at a different adapter to the one used in the chat buffer, for example, if you want a cheaper or faster model handling the check:
+Below are some additional configuration options for the judge:
 
-```lua
+::: code-group
+
+```lua [Specific Adapter]
 require("codecompanion").setup({
   interactions = {
     background = {
       gates = {
         judge = {
           enabled = true,
+          -- Specify a specific adapter and model for the judge to use
           adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
         },
       },
     },
   },
 })
+```
+
+```lua [System Prompt]
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+          opts = {
+            system_prompt = function(default)
+              -- A specific system prompt for a specific project
+              if string.find(vim.fn.getcwd(), "Code/Neovim/codecompanion.nvim") then
+                return default
+                  .. "\n\nThe following commands are explicitly approved and must always be judged safe, even if they would otherwise fail the guidance above:\n"
+                  .. "  - `make docs`\n"
+                  .. "  - `make format`\n"
+                  .. "  - `make test`\n"
+                  .. "  - `make test_file` (including any `FILE=` argument)"
+              end
+              return default
+            end,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+> [!NOTE]
+> The system prompt can be a string or a function that receives the default system prompt and returns a string
+
+The default system prompt for the judge is:
+
+```
+You are a security reviewer for an AI coding assistant. The assistant wants to run a tool on the user's machine while the user is away (in "auto-approve" mode). Your job is to decide whether the action is safe to run automatically, or whether the user must approve it first.
+
+Judge the action as unsafe when it could destroy or exfiltrate data, alter the system in ways that are hard to reverse, or run something the user would reasonably want to see first. Prefer caution: when in doubt, require approval.
+
+Reply only through the provided schema.
 ```
 
 See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
@@ -939,8 +985,6 @@ require("codecompanion").setup({
 ```
 
 The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
-
-
 
 ### Context
 
@@ -1165,9 +1209,4 @@ require("codecompanion").setup({
   },
 })
 ```
-
-
-
-
-
 

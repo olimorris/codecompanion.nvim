@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -31,6 +32,25 @@ Judge the action as unsafe when it could destroy or exfiltrate data, alter the s
 
 Reply only through the provided schema.]]
 
+---Update the system prompt based on user's config
+---@return string
+local function make_system_prompt()
+  local user_prompt = config.interactions.background.gates.judge.opts.system_prompt
+
+  if type(user_prompt) == "string" and user_prompt ~= "" then
+    return user_prompt
+  end
+
+  if type(user_prompt) == "function" then
+    local ok, result = pcall(user_prompt, SYSTEM_PROMPT)
+    if ok and type(result) == "string" and result ~= "" then
+      return result
+    end
+  end
+
+  return SYSTEM_PROMPT
+end
+
 ---Parse the structured verdict from the request result
 ---@param result table|nil
 ---@return { safe: boolean, reason: string }|nil
@@ -57,13 +77,13 @@ end
 ---@param request { tool_name: string, context: string }
 ---@param callback fun(verdict: { safe: boolean, reason: string })
 function M.request(background, request, callback)
-  -- Fail closed: any failure to reach a clear verdict requires user approval
+  -- Any failure must trigger the user's approval
   local function require_approval(reason)
     callback({ safe = false, reason = reason })
   end
 
   background:ask({
-    { role = "system", content = SYSTEM_PROMPT },
+    { role = "system", content = make_system_prompt() },
     {
       role = "user",
       content = fmt("The `%s` tool wants to perform this action:\n\n%s", request.tool_name, request.context),
