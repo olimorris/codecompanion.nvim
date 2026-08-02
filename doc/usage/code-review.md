@@ -47,6 +47,9 @@ When an agent begins working in a git repository, CodeCompanion snapshots the wo
 
 Because the diff is recomputed from disk every time, line numbers are never stored and so can never rot.
 
+> [!IMPORTANT]
+> Snapshots are produced against a temporary index, so `git add` never runs against your own. This means your staged changes and anything you push are unaffected by a code review
+
 ## Commands
 
 | Command | Description |

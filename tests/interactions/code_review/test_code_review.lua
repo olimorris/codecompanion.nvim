@@ -103,7 +103,7 @@ T["Review"]["comment on a file in a subdirectory stores a root-relative path"] =
     vim.fn.mkdir(vim.fs.joinpath(repo, "src"), "p")
     -- cd into the subdir so cwd is not the git root
     vim.cmd.cd(vim.fs.joinpath(repo, "src"))
-    vim.cmd("edit! foo.lua")
+    vim.cmd("edit! notes")
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
 
@@ -112,7 +112,7 @@ T["Review"]["comment on a file in a subdirectory stores a root-relative path"] =
 
   local pending = child.lua_get("review.pending()")
   h.eq(1, #pending)
-  h.eq("src/foo.lua", pending[1].path)
+  h.eq("src/notes", pending[1].path)
 end
 
 T["Review"]["editing a comment to empty removes it"] = function()
