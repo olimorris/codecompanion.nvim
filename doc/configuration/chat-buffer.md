@@ -892,7 +892,7 @@ require("codecompanion").setup({
       gates = {
         judge = {
           enabled = true,
-          -- Specify a specific adatper and model for the judge to use
+          -- Specify a specific adapter and model for the judge to use
           adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
         },
       },
