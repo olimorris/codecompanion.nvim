@@ -126,6 +126,7 @@ return {
         if self.opts.compaction ~= false and model_opts.opts.can_manage_context then
           self.opts.can_manage_context = true
           adapter_utils.add_header(self.headers, "anthropic-beta", "compact-2026-01-12")
+          adapter_utils.add_header(self.headers, "anthropic-beta", "context-management-2025-06-27")
         else
           self.opts.can_manage_context = false
           adapter_utils.remove_header(self.headers, "anthropic-beta", "compact-2026-01-12")
@@ -375,6 +376,7 @@ return {
       local context_management = nil
       if self.opts.can_manage_context then
         local helpers = require("codecompanion.interactions.chat.helpers")
+        local editing_trigger = helpers.trigger_context_management(self, { operation = "editing" })
 
         context_management = {
           ["edits"] = {
@@ -385,17 +387,18 @@ return {
             --     value = 3,
             --   },
             -- },
-            -- {
-            --   type = "clear_tool_uses_20250919",
-            --   keep = {
-            --     type = "tool_uses",
-            --     value = 5,
-            --   },
-            --   trigger = {
-            --     type = "input_tokens",
-            --     value = 50000,
-            --   },
-            -- },
+            {
+              type = "clear_tool_uses_20250919",
+              keep = {
+                type = "tool_uses",
+                value = 5,
+              },
+              -- Omitted when we can't resolve a context window, which leaves the API default of 100,000
+              trigger = editing_trigger > 0 and {
+                type = "input_tokens",
+                value = editing_trigger,
+              } or nil,
+            },
             {
               type = "compact_20260112",
               trigger = {
