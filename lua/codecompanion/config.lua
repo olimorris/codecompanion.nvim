@@ -99,6 +99,7 @@ local defaults = {
         judge = {
           enabled = true,
           action = "interactions.background.builtin.tools_judge",
+          opts = {},
         },
       },
     },
