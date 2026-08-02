@@ -1093,6 +1093,12 @@ The user is working on a %s machine. Please respond with system specific command
             ".codecompanion/acp/claude_code_acp.md",
           },
         },
+        ["code-review"] = {
+          description = "The code review implementation",
+          files = {
+            ".codecompanion/code_review.md",
+          },
+        },
         ["rules"] = {
           description = "Rules in the plugin",
           files = {

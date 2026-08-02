@@ -139,8 +139,9 @@ local function write_worktree(root)
   local index = vim.fn.tempname()
   local env = { GIT_INDEX_FILE = index }
 
-  local staged = git(root, { "add", "--all", "." }, env)
-  local tree = staged and git(root, { "write-tree" }, env)
+  -- Skip the paths that git can't index e.g. nested repos with no commit checked out
+  git(root, { "add", "--all", "--ignore-errors", "." }, env)
+  local tree = git(root, { "write-tree" }, env)
 
   vim.uv.fs_unlink(index)
   return tree
@@ -156,7 +157,7 @@ function M.snapshot(root)
   local updated = commit and git(root, { "update-ref", ref, commit })
 
   if not updated then
-    log:error("[Code Review] Could not snapshot the review baseline")
+    log:info("[Code Review] Could not snapshot the review baseline")
     return nil
   end
 
