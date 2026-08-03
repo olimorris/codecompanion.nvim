@@ -8,8 +8,8 @@ local query_get = vim.treesitter.query.get --[[@as function]]
 
 local user_role = config.interactions.chat.roles.user
 local icons = {
-  sync_all = config.display.chat.icons.buffer_sync_all,
-  sync_diff = config.display.chat.icons.buffer_sync_diff,
+  sync_all = config.display.chat.icons.sync_all,
+  sync_diff = config.display.chat.icons.sync_diff,
 }
 
 local allowed__all = {
@@ -18,6 +18,7 @@ local allowed__all = {
 }
 local allowed__diff = {
   "<buf>",
+  "<file>",
 }
 local context_header = "> Context:"
 
@@ -163,8 +164,12 @@ function Context:add(context)
     end
 
     table.insert(self.Chat.context_items, context)
-    if context.bufnr and context.opts.sync_diff then
-      self.Chat.buffer_diffs:sync(context.bufnr)
+    if context.opts.sync_diff then
+      if context.bufnr then
+        self.Chat.watchers:sync_buffer({ id = context.id, bufnr = context.bufnr })
+      elseif context.path then
+        self.Chat.watchers:sync_file({ id = context.id, path = context.path })
+      end
     end
   end
 

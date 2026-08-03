@@ -7,7 +7,6 @@
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
----@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The UI builder for the chat buffer
 ---@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
@@ -34,6 +33,7 @@
 ---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
+---@field watchers CodeCompanion.Chat.Watchers Watch for changes in attached buffers and files
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field _acp_name_map_cache? table|false Memoised value -> display-name map for ACP select options; false means "computed, no entries"
 ---@field _btw? string The user's "by the way" message which is queued for sending to an LLM
@@ -439,7 +439,6 @@ end
 ---@return nil
 local function init_components(chat, args)
   chat.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = chat })
-  chat.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   chat.context = require("codecompanion.interactions.chat.context").new({ chat = chat })
   chat.editor_context = require("codecompanion.interactions.shared.editor_context").new("chat")
   chat.subscribers = require("codecompanion.interactions.chat.subscribers").new()
@@ -462,6 +461,7 @@ local function init_components(chat, args)
     title = chat.title,
     window_opts = args.window_opts,
   })
+  chat.watchers = require("codecompanion.interactions.chat.watchers").new()
 end
 
 ---Bind buffer-local keymaps for the chat plus any slash-command bindings
@@ -734,11 +734,10 @@ function Chat:dispatch(event, ...)
   return self
 end
 
----Dispatch callbacks for a cancellable event
----If any callback returns false, the event is cancelled
----@param event string The event name
----@param ... any Additional arguments to pass to callbacks
----@return boolean cancelled Whether the event was cancelled
+---Dispatch callbacks for a cancellable event. If any callback returns false, the event is cancelled
+---@param event string
+---@param ... any
+---@return boolean cancelled
 function Chat:dispatch_cancellable(event, ...)
   local callbacks = self.callbacks[event]
   if not callbacks then
@@ -753,6 +752,7 @@ function Chat:dispatch_cancellable(event, ...)
       return true
     end
   end
+
   return false
 end
 
@@ -1318,10 +1318,11 @@ function Chat:submit(opts)
     self.tools:refresh({ adapter = self.adapter })
   end
 
+  self.watchers:check_for_changes(self)
+
   -- Differentiate between the user submitting and CodeCompanion automatically doing it
   if opts.auto_submit then
     self:_inject_btw()
-    self.buffer_diffs:check_for_changes(self)
   else
     local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
@@ -1334,8 +1335,6 @@ function Chat:submit(opts)
       log:info("Chat submission prevented by on_before_submit callback")
       return self:restore()
     end
-
-    self.buffer_diffs:check_for_changes(self)
 
     -- NOTE: There are instances when submit is called with no user message.
     -- Such as when tools auto-submitting responses. So, we need to ensure
@@ -1649,6 +1648,10 @@ function Chat:check_context()
     end
   end
 
+  for id in pairs(remove_set) do
+    self.watchers:unsync(id)
+  end
+
   -- Remove them from the messages table
   local kept_messages = {}
   for _, msg in ipairs(self.messages) do
@@ -1794,6 +1797,9 @@ function Chat:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
+  end
+  if self.watchers then
+    api.nvim_clear_autocmds({ group = self.watchers.augroup })
   end
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()

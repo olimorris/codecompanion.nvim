@@ -215,7 +215,7 @@ function M.add_files_or_buffers(included_files, chat)
     end
 
     -- Otherwise, add it as file context
-    local ok, content, _, _, _, _ = pcall(chat_helpers.format_file_for_llm, path, opts)
+    local ok, content, _, _, _, _ = pcall(chat_helpers.format_for_llm, path, opts)
     if ok then
       chat:add_context({ content = content }, "rules", id, {
         path = path,

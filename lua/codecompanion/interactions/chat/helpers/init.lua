@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 local Path = require("plenary.path")
 local buf_utils = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
+local middleware = require("codecompanion.interactions.shared.middleware")
 
 local M = {}
 
@@ -233,7 +234,33 @@ function M.format_buffer_for_llm(bufnr, path, opts)
   return formatted_content, id, filename
 end
 
----Format buffer content with XML wrapper for LLM consumption
+---Read a file's content for LLM consumption, applying any middleware registered for the file's extension
+---@param path string
+---@return string file_contents Middleware handles its own fencing; raw content is wrapped in a code fence
+---@return string ft The filetype
+---@return string raw The raw file contents
+local function read_file_content(path)
+  local raw = Path.new(path):read()
+  local ft = vim.filetype.match({ filename = path })
+
+  local format = middleware.for_file(path)
+  if format then
+    local formatted = format(raw, path)
+    if formatted then
+      return formatted, ft, raw
+    end
+  end
+
+  return fmt(
+    [[````%s
+%s
+````]],
+    ft,
+    raw
+  ), ft, raw
+end
+
+---Format file content with XML wrapper for LLM consumption
 ---@param path string
 ---@param opts? { message?: string, range?: table }
 ---@return string file_contents
@@ -241,12 +268,10 @@ end
 ---@return string path The file path
 ---@return string ft The filetype
 ---@return string file_contents The raw file contents
-function M.format_file_for_llm(path, opts)
+function M.format_for_llm(path, opts)
   opts = opts or {}
 
-  local file_contents = Path.new(path):read()
-
-  local ft = vim.filetype.match({ filename = path })
+  local file_contents, ft, raw = read_file_content(path)
   local id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>"
 
   local content
@@ -254,29 +279,35 @@ function M.format_file_for_llm(path, opts)
     content = fmt(
       [[%s
 
-````%s
-%s
-````]],
+%s]],
       opts.message,
-      ft,
       file_contents
     )
   else
     content = fmt(
       [[<attachment filepath="%s">%s:
 
-````%s
 %s
-````
 </attachment>]],
       path,
       "Here is the content from the file",
-      ft,
       file_contents
     )
   end
 
-  return content, id, path, ft, file_contents
+  return content, id, path, ft, raw
+end
+
+---Read a file's content for LLM consumption, without any message wrapping
+---@param path string
+---@return string|nil
+function M.file_content_for_llm(path)
+  local ok, content = pcall(read_file_content, path)
+  if not ok then
+    return nil
+  end
+
+  return content
 end
 
 ---Add line numbers with an offset to content
@@ -289,6 +320,7 @@ local function add_line_numbers_from(content, start_line)
   for i, line in ipairs(lines) do
     table.insert(formatted, fmt("%d |%s", start_line + i - 1, line))
   end
+
   return table.concat(formatted, "\n")
 end
 

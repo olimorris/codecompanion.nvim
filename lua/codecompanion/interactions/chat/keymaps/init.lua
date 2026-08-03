@@ -429,8 +429,8 @@ M.yank_code = {
   end,
 }
 
-M.buffer_sync_all = {
-  desc = "Sync the buffer to share all of its content",
+M.sync_all = {
+  desc = "Sync the context item to share all of its content",
   callback = function(chat)
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
     local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
@@ -439,7 +439,7 @@ M.buffer_sync_all = {
       return
     end
 
-    local icon = config.display.chat.icons.buffer_sync_all
+    local icon = config.display.chat.icons.sync_all
     local id = line:gsub("^> %- ", "")
 
     if not chat.context:can_be_synced__all(id) then
@@ -469,8 +469,8 @@ M.buffer_sync_all = {
   end,
 }
 
-M.buffer_sync_diff = {
-  desc = "Sync the buffer to share it's diffs",
+M.sync_diff = {
+  desc = "Sync the context item to share its diffs",
   callback = function(chat)
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
     local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
@@ -487,7 +487,7 @@ M.buffer_sync_diff = {
     -- Find the context and toggle diff state
     local icons = config.display.chat.icons
     for _, item in ipairs(chat.context_items) do
-      local clean_id = id:gsub(icons.buffer_sync_all, ""):gsub(icons.buffer_sync_diff, "")
+      local clean_id = id:gsub(icons.sync_all, ""):gsub(icons.sync_diff, "")
       if item.id == clean_id then
         if not item.opts then
           item.opts = {}
@@ -497,18 +497,27 @@ M.buffer_sync_diff = {
         -- Update the UI for just this line
         local new_line
         if item.opts.sync_diff then
-          -- Check if buffer is still valid before syncing
-          if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
-            chat.buffer_diffs:sync(item.bufnr)
-            new_line = string.format("> - %s%s", icons.buffer_sync_diff, clean_id)
-          else
-            -- Buffer is invalid, can't sync with it
+          local fail_reason
+          if item.bufnr then
+            -- Check if buffer is still valid before syncing
+            if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
+              chat.watchers:sync_buffer({ id = item.id, bufnr = item.bufnr })
+            else
+              fail_reason = "Invalid or unloaded buffer "
+            end
+          elseif not chat.watchers:sync_file({ id = item.id, path = item.path }) then
+            fail_reason = "Could not read "
+          end
+
+          if fail_reason then
             item.opts.sync_diff = false
             new_line = string.format("> - %s", clean_id)
-            utils.notify("Cannot sync - Invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
+            utils.notify("Cannot sync - " .. fail_reason .. item.id, vim.log.levels.WARN)
+          else
+            new_line = string.format("> - %s%s", icons.sync_diff, clean_id)
           end
         else
-          chat.buffer_diffs:unsync(item.bufnr)
+          chat.watchers:unsync(item.id)
           new_line = string.format("> - %s", clean_id)
         end
 
