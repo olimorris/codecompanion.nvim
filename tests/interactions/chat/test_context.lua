@@ -269,7 +269,7 @@ T["Context"]["Can share all of a buffer"] = function()
 
   h.eq("> Context:", buffer[15])
   h.eq(
-    string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
+    string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.sync_all]])),
     buffer[16]
   )
   h.eq("> - <buf>sync_all example2</buf>", buffer[17])
@@ -332,7 +332,7 @@ T["Context"]["Render"] = function()
     "## foo",
     "",
     "> Context:",
-    string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
+    string.format("> - %s<buf>sync_all example</buf>", child.lua_get([[config.display.chat.icons.sync_all]])),
     "",
     "",
   }, child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]]))
@@ -500,21 +500,78 @@ T["Context"]["Show icons immediately when added with default parameters"] = func
 
   -- Check that sync_diff context shows with icon immediately
   h.eq(
-    string.format(
-      "> - %s<buf>synced_diff_file.lua</buf>",
-      child.lua_get([[config.display.chat.icons.buffer_sync_diff]])
-    ),
+    string.format("> - %s<buf>synced_diff_file.lua</buf>", child.lua_get([[config.display.chat.icons.sync_diff]])),
     lines[4]
   )
 
   -- Check that sync_all context shows with icon immediately
   h.eq(
-    string.format("> - %s<buf>synced_all_file.lua</buf>", child.lua_get([[config.display.chat.icons.buffer_sync_all]])),
+    string.format("> - %s<buf>synced_all_file.lua</buf>", child.lua_get([[config.display.chat.icons.sync_all]])),
     lines[5]
   )
 
   -- Check that regular context shows without icon
   h.eq("> - <buf>regular_file.lua</buf>", lines[6])
+end
+
+T["Context"]["Extensions listed in the sync_diff config are watched when added"] = function()
+  child.lua([[
+     config.interactions.chat.opts.sync_diff["ccsync"] = true
+
+     _G.watched_path = vim.fn.tempname() .. ".ccsync"
+     vim.fn.writefile({ "line one" }, _G.watched_path)
+
+     _G.chat.context:add({
+       id = "<file>watched.ccsync</file>",
+       path = _G.watched_path,
+       source = "test",
+     })
+     _G.chat.context:add({
+       id = "<file>ignored.lua</file>",
+       path = "/tmp/ignored.lua",
+       source = "test",
+     })
+   ]])
+
+  local items = child.lua_get([[_G.chat.context_items]])
+  h.is_true(items[1].opts.sync_diff)
+  h.is_true(child.lua_get([[_G.chat.watchers.watchers["<file>watched.ccsync</file>"] ~= nil]]))
+
+  -- Extensions that aren't listed are left alone
+  h.is_false(items[2].opts.sync_diff)
+  h.is_true(child.lua_get([[_G.chat.watchers.watchers["<file>ignored.lua</file>"] == nil]]))
+
+  child.lua([[os.remove(_G.watched_path)]])
+end
+
+T["Context"]["Files and buffers are formatted by the middleware for their extension"] = function()
+  child.lua([[
+     config.middleware["ccfmt"] = function(raw)
+       return "formatted: " .. raw
+     end
+
+     _G.path = vim.fn.tempname() .. ".ccfmt"
+     vim.fn.writefile({ "the content" }, _G.path)
+
+     local helpers = require("codecompanion.interactions.chat.helpers")
+     _G.from_file = helpers.format_file_for_llm(_G.path).content
+
+     _G.bufnr = vim.fn.bufadd(_G.path)
+     vim.fn.bufload(_G.bufnr)
+     _G.from_buffer = helpers.format_buffer_for_llm(_G.bufnr, _G.path).content
+   ]])
+
+  -- The same file reads identically whether it's attached as a file or a buffer
+  local from_file = child.lua_get([[_G.from_file]])
+  local from_buffer = child.lua_get([[_G.from_buffer]])
+  h.expect_truthy(from_file:find("formatted: the content", 1, true))
+  h.expect_truthy(from_buffer:find("formatted: the content", 1, true))
+
+  -- Middleware owns its own formatting, so no code fence or line numbers are added
+  h.eq(from_buffer:find("1 |", 1, true), nil)
+  h.eq(from_buffer:find("````", 1, true), nil)
+
+  child.lua([[os.remove(_G.path)]])
 end
 
 T["Context"]["Tool group with collapse_tools shows single group context"] = function()

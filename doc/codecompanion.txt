@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 02
+                                 For NVIM v0.11    Last change: 2026 August 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2470,6 +2470,70 @@ There are a number of configuration options available to you:
 
 
 
+EDITOR CONTEXT ~
+
+Editor context
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
+can be a inserted into the chat buffer using `#` (by default). It provides
+contextual code or information about the current Neovim state. For instance,
+the built-in `#{buffer}` editor context sends the current buffer's contents to
+the LLM.
+
+You can even define your own context:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          editor_context = {
+            ["my_editor_context_item"] = {
+              ---Ensure the file matches the CodeCompanion.EditorContext class
+              ---@return string|fun(): nil
+              callback = "/Users/Oli/Code/my_editor_context_item.lua",
+              description = "Explain what your does",
+              opts = {
+                contains_code = false,
+                --has_params = true,    -- Set this if your editor context item supports parameters
+                --default_params = nil, -- Set default parameters
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+SYNCING
+
+Neovim buffers can be
+|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
+buffer. That is, on each turn their content can be shared with the LLM. This is
+useful if you're modifying a buffer and want the LLM to always have the latest
+changes.
+
+To enable this by default for the built-in `#buffer` editor context, you can
+set the `default_params` option to either `diff` or `all`:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          editor_context = {
+            ["buffer"] = {
+              opts = {
+                -- Always sync the buffer by sharing its "diff"
+                -- Or choose "all" to share the entire buffer
+                default_params = "diff",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
 KEYMAPS ~
 
 
@@ -2559,6 +2623,34 @@ for information on how to use Slash Commands.
 Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 <https://github.com/olimorris/codecompanion.nvim/discussions/958> for the
 custom slash command example.
+
+
+SYNCING BUFFERS/FILES ~
+
+|codecompanion-usage-chat-buffer-index-context| hold the data of a file or
+buffer at a point in time.
+
+Some file types are worth syncing every time they're attached. Extensions
+listed in `sync_diff` are watched from the moment they're added to the chat
+buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          opts = {
+            sync_diff = {
+              ipynb = true, -- Notebooks change on disk whenever a cell is run
+              sqlite = true,
+            },
+          },
+        },
+      },
+    })
+<
+
+To change how a file's content is shaped before the LLM sees it, see
+|codecompanion-configuration-others-middleware|.
 
 
 TOOLS ~
@@ -2868,70 +2960,6 @@ There are also a number of other options that you can customize in the UI:
           show_token_count = true, -- Show the token count for each response?
           show_tools_processing = true, -- Show the loading message when tools are being executed?
           start_in_insert_mode = false, -- Open the chat buffer in insert mode?
-        },
-      },
-    })
-<
-
-
-EDITOR CONTEXT ~
-
-Editor context
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
-can be a inserted into the chat buffer using `#` (by default). It provides
-contextual code or information about the current Neovim state. For instance,
-the built-in `#{buffer}` editor context sends the current buffer's contents to
-the LLM.
-
-You can even define your own context:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          editor_context = {
-            ["my_editor_context_item"] = {
-              ---Ensure the file matches the CodeCompanion.EditorContext class
-              ---@return string|fun(): nil
-              callback = "/Users/Oli/Code/my_editor_context_item.lua",
-              description = "Explain what your does",
-              opts = {
-                contains_code = false,
-                --has_params = true,    -- Set this if your editor context item supports parameters
-                --default_params = nil, -- Set default parameters
-              },
-            },
-          },
-        },
-      },
-    })
-<
-
-
-SYNCING
-
-Neovim buffers can be
-|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
-buffer. That is, on each turn their content can be shared with the LLM. This is
-useful if you're modifying a buffer and want the LLM to always have the latest
-changes.
-
-To enable this by default for the built-in `#buffer` editor context, you can
-set the `default_params` option to either `diff` or `all`:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          editor_context = {
-            ["buffer"] = {
-              opts = {
-                -- Always sync the buffer by sharing its "diff"
-                -- Or choose "all" to share the entire buffer
-                default_params = "diff",
-              },
-            },
-          },
         },
       },
     })
@@ -4195,6 +4223,43 @@ place in the plugin as follows:
 <
 
 
+MIDDLEWARE ~
+
+You can customise how a buffer and file's content is shared with an LLM via
+middleware.
+
+**Using an example:** A Jupyter Notebook is a large JSON document with base64
+images embedded in it which can erode an LLM's context window.
+
+Middleware reshapes a file's content before it's shared - no matter how it was
+shared. Whether the file was attached with `/file`, opened as a buffer and
+attached with `/buffer`, pulled in by a rules file, or re-read to produce a
+|codecompanion-configuration-chat-buffer-syncing| diff.
+
+A middleware is a `format(raw, path)` function which returns the content the
+LLM should see, or the path to a module which returns one. Returning nothing
+leaves the content untouched:
+
+>lua
+    require("codecompanion").setup({
+      middleware = {
+        ipynb = false, -- Disable the built-in notebook formatting
+        sqlite = function(raw, path)
+          -- Return the content the LLM should see for this file
+        end,
+        -- Or the path to any module which returns a table with a `format` function.
+        -- The built-in notebook formatter lives at
+        -- "codecompanion.interactions.shared.middleware.jupyter_notebook"
+        log = "my_plugin.middleware.log",
+      },
+    })
+<
+
+Middleware is response for its own formatting, so content it returns is passed
+through as-is. Content it doesn't touch is wrapped in a code fence, and buffers
+additionally get line numbers.
+
+
 PER-PROJECT CONFIGURATION ~
 
 Working across multiple projects, it can be useful to set different
@@ -4460,18 +4525,22 @@ LLM.
   default, they **are not** self-updating
 In order to allow for context to self-update, buffers and files can be synced
 to a chat buffer. On every turn, you can determine what is sent to the LLM. For
-buffers, you can choose to send `all` of the content or just the `diff`. For
-files, you only have the choice of sending `all` of the content.
+both, you can choose to send `all` of the content or just the `diff`.
 
 The advantage of sending `all` of a file or buffer's content is that the LLM
 will always receive a fresh copy of the source data regardless of any changes.
-This can be useful if you're working with tools. However, please note that this
-can consume a lot of tokens.
+However, please note that this can consume a lot of tokens.
 
 Syncing and sending only a `diff`, is a more token-conscious way of keeping the
-LLM up to date on the contents of a buffer. Buffer diffs track changes (adds,
-edits, deletes) in the underlying buffer and update the LLM on each turn, with
-only those changes.
+LLM up to date. Diffs track changes (adds, edits, deletes) in the underlying
+buffer/file and update the LLM on each turn. Press `gbd` on any context item to
+start syncing its diff.
+
+Some file types are worth syncing every time they're attached. Jupyter
+Notebooks are the out of the box example, since a notebook changes on disk
+whenever a cell is run. Any extension can be watched from the moment it's added
+to the chat buffer by listing it in
+|codecompanion-configuration-chat-buffer-syncing|.
 
 If a context item is added by mistake, it can be removed from the chat buffer
 by simply deleting it from the `Context` blockquote. On the next turn, all data
@@ -4541,8 +4610,6 @@ available to the user in normal mode are:
 - `clear`: `gx` to clear the chat buffer's contents
 - `copilot_stats`: `gS` to show copilot usage stats
 - `btw`: `gm` type a message to the LLM whilst it's streaming
-- `buffer_sync_all`: `gba` to sync the entire buffer on every turn
-- `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
 - `codeblock`: `gc` to insert a codeblock in the chat buffer
 - `debug`: `gd` to view/debug the chat buffer's contents
 - `fold_code`: `gf` to fold any codeblocks in the chat buffer
@@ -4553,6 +4620,8 @@ available to the user in normal mode are:
 - `previous_header`: `[[` to move to the previous header
 - `regenerate`: `gr` to regenerate the last response
 - `rules`: `gM` to clear all rules from the chat buffer
+- `sync_all`: `gba` to sync a context item's entire content on every turn
+- `sync_diff`: `gbd` to sync only a context item's diff on every turn
 - `system_prompt`: `gs` to toggle the system prompt on/off
 - `yank_code`: `gy` to yank the last codeblock in the chat buffer
 
@@ -5575,6 +5644,9 @@ The `file` slash command allows you to add the contents of a file in the
 current working directory to the chat buffer. The command has native,
 `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
 Also, multiple files can be selected and added to the chat buffer.
+
+The content of a file can be reshaped before the LLM sees it with
+|codecompanion-usage-chat-buffer-index-middleware|.
 
 #3218 <https://github.com/olimorris/codecompanion.nvim/pull/3218> added support
 for PDFs for the following http adapters:

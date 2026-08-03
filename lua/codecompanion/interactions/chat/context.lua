@@ -8,8 +8,8 @@ local query_get = vim.treesitter.query.get --[[@as function]]
 
 local user_role = config.interactions.chat.roles.user
 local icons = {
-  sync_all = config.display.chat.icons.buffer_sync_all,
-  sync_diff = config.display.chat.icons.buffer_sync_diff,
+  sync_all = config.display.chat.icons.sync_all,
+  sync_diff = config.display.chat.icons.sync_diff,
 }
 
 local allowed__all = {
@@ -18,8 +18,22 @@ local allowed__all = {
 }
 local allowed__diff = {
   "<buf>",
+  "<file>",
 }
 local context_header = "> Context:"
+
+---Whether attached content at this path is watched for changes out of the box
+---@param path? string
+---@return boolean
+local function syncs_by_default(path)
+  local extensions = config.interactions.chat.opts.sync_diff
+  if not path or type(extensions) ~= "table" then
+    return false
+  end
+
+  local extension = path:match("%.([^.]+)$")
+  return extension ~= nil and extensions[extension:lower()] == true
+end
 
 ---Parse the chat buffer to find where to add the context items
 ---@param chat CodeCompanion.Chat
@@ -111,10 +125,11 @@ end
 ---@class CodeCompanion.Chat.ContextItem
 ---@field bufnr? number The buffer number if this is buffer context
 ---@field id string The unique ID of the context which links it to a message in the chat buffer and is displayed to the user
+---@field path? string The path of the file or buffer this context was created from
 ---@field source string The source of the context e.g. slash_command
 ---@field opts? table
----@field opts.sync_all? boolean When synced, whether the entire buffer is shared
----@field opts.sync_diff? boolean When synced, whether only buffer diffs are shared
+---@field opts.sync_all? boolean When synced, whether all of the content is shared
+---@field opts.sync_diff? boolean When synced, whether only diffs are shared. Defaults from `opts.sync_diff` in the chat config
 ---@field opts.visible? boolean Whether this context item should be shown in the chat UI
 
 ---@class CodeCompanion.Chat.Context
@@ -146,7 +161,9 @@ function Context:add(context)
 
     -- Ensure both properties exist with defaults
     context.opts.sync_all = context.opts.sync_all or false
-    context.opts.sync_diff = context.opts.sync_diff or false
+    if context.opts.sync_diff == nil then
+      context.opts.sync_diff = not context.opts.sync_all and syncs_by_default(context.path)
+    end
     context.opts.visible = context.opts.visible
 
     if context.opts.visible == nil then
@@ -163,8 +180,12 @@ function Context:add(context)
     end
 
     table.insert(self.Chat.context_items, context)
-    if context.bufnr and context.opts.sync_diff then
-      self.Chat.buffer_diffs:sync(context.bufnr)
+    if context.opts.sync_diff then
+      if context.bufnr then
+        self.Chat.watchers:sync_buffer({ id = context.id, bufnr = context.bufnr })
+      elseif context.path then
+        self.Chat.watchers:sync_file({ id = context.id, path = context.path })
+      end
     end
   end
 

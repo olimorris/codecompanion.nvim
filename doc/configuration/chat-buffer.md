@@ -444,6 +444,58 @@ require("codecompanion").setup({
 
 :::
 
+## Editor Context
+
+[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be  a inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
+
+You can even define your own context:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      editor_context = {
+        ["my_editor_context_item"] = {
+          ---Ensure the file matches the CodeCompanion.EditorContext class
+          ---@return string|fun(): nil
+          callback = "/Users/Oli/Code/my_editor_context_item.lua",
+          description = "Explain what your does",
+          opts = {
+            contains_code = false,
+            --has_params = true,    -- Set this if your editor context item supports parameters
+            --default_params = nil, -- Set default parameters
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+### Syncing
+
+Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
+
+To enable this by default for the built-in `#buffer` editor context, you can set the `default_params` option to either `diff` or `all`:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      editor_context = {
+        ["buffer"] = {
+          opts = {
+            -- Always sync the buffer by sharing its "diff"
+            -- Or choose "all" to share the entire buffer
+            default_params = "diff",
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## Keymaps
 
 > [!NOTE]
@@ -660,6 +712,29 @@ require("codecompanion").setup({
 :::
 
 Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](https://github.com/olimorris/codecompanion.nvim/discussions/958) for the custom slash command example.
+
+## Syncing Buffers/Files
+
+[Context items](/usage/chat-buffer/index#context) hold the data of a file or buffer at a point in time.
+
+Some file types are worth syncing every time they're attached. Extensions listed in `sync_diff` are watched from the moment they're added to the chat buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      opts = {
+        sync_diff = {
+          ipynb = true, -- Notebooks change on disk whenever a cell is run
+          sqlite = true,
+        },
+      },
+    },
+  },
+})
+```
+
+To change how a file's content is shaped before the LLM sees it, see [Middleware](/configuration/others#middleware).
 
 ## Tools
 
@@ -1015,8 +1090,8 @@ require("codecompanion").setup({
     chat = {
       -- Change the default icons
       icons = {
-        buffer_sync_all = "󰪴 ",
-        buffer_sync_diff = " ",
+        sync_all = "󰪴 ",
+        sync_diff = " ",
         chat_context = " ",
         chat_fold = " ",
         tool_pending = "  ",
@@ -1152,59 +1227,6 @@ require("codecompanion").setup({
       show_token_count = true, -- Show the token count for each response?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
-    },
-  },
-})
-```
-
-
-## Editor Context
-
-[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be  a inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
-
-You can even define your own context:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      editor_context = {
-        ["my_editor_context_item"] = {
-          ---Ensure the file matches the CodeCompanion.EditorContext class
-          ---@return string|fun(): nil
-          callback = "/Users/Oli/Code/my_editor_context_item.lua",
-          description = "Explain what your does",
-          opts = {
-            contains_code = false,
-            --has_params = true,    -- Set this if your editor context item supports parameters
-            --default_params = nil, -- Set default parameters
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-### Syncing
-
-Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
-
-To enable this by default for the built-in `#buffer` editor context, you can set the `default_params` option to either `diff` or `all`:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      editor_context = {
-        ["buffer"] = {
-          opts = {
-            -- Always sync the buffer by sharing its "diff"
-            -- Or choose "all" to share the entire buffer
-            default_params = "diff",
-          },
-        },
-      },
     },
   },
 })
