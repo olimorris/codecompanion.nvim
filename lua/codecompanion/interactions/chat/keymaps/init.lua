@@ -462,7 +462,7 @@ M.sync_all = {
     -- Update the context items on the chat buffer
     for _, item in ipairs(chat.context_items) do
       if item.id == id then
-        item.opts.synced = not item.opts.synced
+        item.opts.sync_all = not item.opts.sync_all
         break
       end
     end

@@ -4,6 +4,7 @@
   disk via their modification time.
 ]]
 local config = require("codecompanion.config")
+local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -13,6 +14,7 @@ local diff = vim.text.diff or vim.diff
 ---@class CodeCompanion.Chat.Watcher
 ---@field bufnr? number The buffer being watched (buffer-backed)
 ---@field changedtick? number The last known changedtick (buffer-backed)
+---@field deleted? boolean Whether the buffer has been deleted, pending a message to the LLM
 ---@field id string The context item ID the watcher is linked to
 ---@field last_content string The content last shared with the LLM
 ---@field mtime? { sec: number, nsec: number } The last known modification time (file-backed)
@@ -56,12 +58,21 @@ end
 ---@param path string
 ---@return string|nil
 local function read_file(path)
-  local content = require("codecompanion.interactions.chat.helpers").file_content_for_llm(path)
+  local content = require("codecompanion.interactions.chat.helpers").read_file_for_llm(path)
   if not content or content == "" then
     log:warn("Could not read file: %s", path)
     return nil
   end
+
   return content
+end
+
+---Read a buffer's content for the LLM
+---@param bufnr number
+---@return string|nil
+local function read_buffer(bufnr)
+  local path = api.nvim_buf_get_name(bufnr)
+  return require("codecompanion.interactions.chat.helpers").read_buffer_for_llm(bufnr, path)
 end
 
 ---Add a diff of the changes to the message stack
@@ -70,7 +81,6 @@ end
 ---@param diff_content string
 ---@return nil
 local function add_diff_message(chat, watcher, diff_content)
-  local path = watcher.path or api.nvim_buf_get_name(watcher.bufnr)
   local buffer_attr = watcher.bufnr and fmt([[ buffer_number="%s"]], watcher.bufnr) or ""
 
   chat:add_message({
@@ -79,9 +89,9 @@ local function add_diff_message(chat, watcher, diff_content)
       [[<attachment filepath="%s"%s>The file `%s` has been modified. Here are the changes:
 %s
 </attachment>]],
-      path,
+      watcher.path,
       buffer_attr,
-      path,
+      watcher.path,
       diff_content
     ),
   }, { context = { id = watcher.id }, visible = false })
@@ -111,19 +121,30 @@ function Watchers:sync_buffer(args)
     return false
   end
 
+  local content = read_buffer(args.bufnr)
+  if not content then
+    return false
+  end
+
   log:debug("Watching buffer %d as `%s`", args.bufnr, args.id)
   self.watchers[args.id] = {
     bufnr = args.bufnr,
     changedtick = api.nvim_buf_get_changedtick(args.bufnr),
     id = args.id,
-    last_content = table.concat(api.nvim_buf_get_lines(args.bufnr, 0, -1, false), "\n"),
+    last_content = content,
+    path = api.nvim_buf_get_name(args.bufnr),
   }
 
+  -- Deletion is recorded rather than acted on, so that the LLM is told about it
+  -- on the next turn
   api.nvim_create_autocmd("BufDelete", {
     group = self.augroup,
     buffer = args.bufnr,
     callback = function()
-      self:unsync(args.id)
+      local watcher = self.watchers[args.id]
+      if watcher then
+        watcher.deleted = true
+      end
     end,
   })
 
@@ -138,8 +159,8 @@ function Watchers:sync_file(args)
     return true
   end
 
-  local stat = vim.uv.fs_stat(args.path)
-  if not stat then
+  local mtime = files.mtime(args.path)
+  if not mtime then
     log:debug("Cannot watch file, not found: %s", args.path)
     return false
   end
@@ -153,7 +174,7 @@ function Watchers:sync_file(args)
   self.watchers[args.id] = {
     id = args.id,
     last_content = content,
-    mtime = { sec = stat.mtime.sec, nsec = stat.mtime.nsec },
+    mtime = mtime,
     path = args.path,
   }
 
@@ -170,23 +191,12 @@ function Watchers:unsync(id)
   end
 end
 
----Check a watched buffer for changes
+---Share a diff of the content that has changed since the last turn
 ---@param chat CodeCompanion.Chat
 ---@param watcher CodeCompanion.Chat.Watcher
+---@param content string
 ---@return nil
-function Watchers:_check_buffer(chat, watcher)
-  if not api.nvim_buf_is_valid(watcher.bufnr) then
-    self:unsync(watcher.id)
-    return add_removed_message(chat, watcher, fmt("Buffer %d has been removed.", watcher.bufnr))
-  end
-
-  local changedtick = api.nvim_buf_get_changedtick(watcher.bufnr)
-  if changedtick == watcher.changedtick then
-    return
-  end
-  watcher.changedtick = changedtick
-
-  local content = table.concat(api.nvim_buf_get_lines(watcher.bufnr, 0, -1, false), "\n")
+local function share_changes(chat, watcher, content)
   local diff_content = format_changes_as_diff(watcher.last_content, content)
   watcher.last_content = content
 
@@ -195,49 +205,80 @@ function Watchers:_check_buffer(chat, watcher)
   end
 end
 
+---Check a watched buffer for changes
+---@param chat CodeCompanion.Chat
+---@param watcher CodeCompanion.Chat.Watcher
+---@return boolean removed
+function Watchers:_check_buffer(chat, watcher)
+  if watcher.deleted or not api.nvim_buf_is_valid(watcher.bufnr) then
+    self:unsync(watcher.id)
+    add_removed_message(chat, watcher, fmt("The buffer for `%s` has been deleted.", watcher.path))
+    return true
+  end
+
+  local changedtick = api.nvim_buf_get_changedtick(watcher.bufnr)
+  if changedtick == watcher.changedtick then
+    return false
+  end
+  watcher.changedtick = changedtick
+
+  local content = read_buffer(watcher.bufnr)
+  if content then
+    share_changes(chat, watcher, content)
+  end
+
+  return false
+end
+
 ---Check a watched file for changes
 ---@param chat CodeCompanion.Chat
 ---@param watcher CodeCompanion.Chat.Watcher
----@return nil
+---@return boolean removed
 function Watchers:_check_file(chat, watcher)
-  local stat = vim.uv.fs_stat(watcher.path)
-  if not stat then
+  local mtime = files.mtime(watcher.path)
+  if not mtime then
     self:unsync(watcher.id)
-    return add_removed_message(chat, watcher, fmt("The file `%s` has been removed.", watcher.path))
+    add_removed_message(chat, watcher, fmt("The file `%s` has been removed.", watcher.path))
+    return true
   end
-  if stat.mtime.sec == watcher.mtime.sec and stat.mtime.nsec == watcher.mtime.nsec then
-    return
+  if mtime.sec == watcher.mtime.sec and mtime.nsec == watcher.mtime.nsec then
+    return false
   end
-  watcher.mtime = { sec = stat.mtime.sec, nsec = stat.mtime.nsec }
+  watcher.mtime = mtime
 
   local content = read_file(watcher.path)
-  if not content then
-    return
+  if content then
+    share_changes(chat, watcher, content)
   end
 
-  local diff_content = format_changes_as_diff(watcher.last_content, content)
-  watcher.last_content = content
-
-  if diff_content ~= "" then
-    add_diff_message(chat, watcher, diff_content)
-  end
+  return false
 end
 
 ---Check all watched context items for changes, adding a diff message for each that has changed
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function Watchers:check_for_changes(chat)
+  local any_removed = false
+
   for _, item in ipairs(chat.context_items) do
-    if item.opts and item.opts.sync_diff then
-      local watcher = self.watchers[item.id]
-      if watcher then
-        if watcher.bufnr then
-          self:_check_buffer(chat, watcher)
-        else
-          self:_check_file(chat, watcher)
-        end
+    local watcher = item.opts and item.opts.sync_diff and self.watchers[item.id]
+    if watcher then
+      local removed
+      if watcher.bufnr then
+        removed = self:_check_buffer(chat, watcher)
+      else
+        removed = self:_check_file(chat, watcher)
+      end
+      if removed then
+        item.opts.sync_diff = false
+        any_removed = true
       end
     end
+  end
+
+  -- Drop the sync icon from context items that are no longer being watched
+  if any_removed then
+    chat.context:render()
   end
 end
 

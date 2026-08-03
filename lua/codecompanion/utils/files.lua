@@ -58,6 +58,18 @@ function M.exists(path)
   return stat ~= nil
 end
 
+---Get the time a file was last modified, or nil if it doesn't exist
+---@param path string The file path to check
+---@return { sec: number, nsec: number }|nil
+function M.mtime(path)
+  local stat = uv.fs_stat(path)
+  if not stat then
+    return nil
+  end
+
+  return { sec = stat.mtime.sec, nsec = stat.mtime.nsec }
+end
+
 ---Delete a file or directory recursively
 ---@param path string The file or directory path to delete
 ---@return boolean success, string? error_message

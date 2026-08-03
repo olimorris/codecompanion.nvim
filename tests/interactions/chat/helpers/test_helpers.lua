@@ -34,8 +34,7 @@ local T = new_set({
 
 T["format_buffer_for_llm works"] = function()
   local result = child.lua([[
-    local content, id, filename = _G.helpers.format_buffer_for_llm(_G.test_buffer, "test_file.lua", { message = "Test message" })
-    return { content = content, id = id, filename = filename }
+    return _G.helpers.format_buffer_for_llm(_G.test_buffer, "test_file.lua", { message = "Test message" })
   ]])
 
   -- Just check the basic structure is there

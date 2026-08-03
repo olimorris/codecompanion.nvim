@@ -4,7 +4,6 @@ local config = require("codecompanion.config")
 local files_utils = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
-local middleware = require("codecompanion.interactions.shared.middleware")
 local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 
@@ -254,14 +253,14 @@ function SlashCommand:output(selected, opts)
     opts.message = selected.description
   end
 
-  local content, id, _, _, _ = helpers.format_for_llm(selected.path, opts)
+  local file = helpers.format_file_for_llm(selected.path, opts)
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = content or "",
+    content = file.content or "",
   }, {
     visible = false,
-    context = { id = id, path = selected.path },
+    context = { id = file.id, path = selected.path },
     _meta = { tag = tags.FILE },
   })
 
@@ -270,9 +269,8 @@ function SlashCommand:output(selected, opts)
   end
 
   self.Chat.context:add({
-    id = id or "",
+    id = file.id or "",
     path = selected.path,
-    opts = { sync_diff = middleware.should_sync(selected.path) },
     source = "codecompanion.interactions.shared.slash_commands.file",
   })
 

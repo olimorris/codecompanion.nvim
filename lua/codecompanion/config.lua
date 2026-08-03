@@ -462,13 +462,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = true,
             interactions = { "chat", "cli" },
             max_lines = 1000,
-            -- Format files for the LLM, per file extension
-            middleware = {
-              ipynb = {
-                path = "middleware.jupyter_notebook",
-                sync = true, -- Always sync notebook files
-              },
-            },
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -756,6 +749,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
 
             fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
           },
+        },
+
+        -- These filetypes always share a diff with an LLM when shared as context
+        sync_diff = {
+          ipynb = true,
         },
 
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -1056,6 +1054,14 @@ The user is working on a %s machine. Please respond with system specific command
       acp_enabled = true, -- Enable MCP servers with ACP adapters?
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
+  },
+  -- MIDDLEWARE ---------------------------------------------------------------
+  ---Format file and buffer content before it's shared with an LLM, keyed by
+  ---file extension. A value is a `format(raw, path)` function or the path to a
+  ---module which returns one
+  ---@type table<string, string|fun(raw: string, path: string): string|nil>
+  middleware = {
+    ipynb = "codecompanion.interactions.shared.middleware.jupyter_notebook",
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {
@@ -1443,7 +1449,7 @@ end
 
 ---@param args? table
 M.setup = function(args)
-  args = args or {}
+  args = vim.deepcopy(args or {})
 
   if args.constants then
     return vim.notify(

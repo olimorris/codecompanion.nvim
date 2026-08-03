@@ -181,37 +181,69 @@ function M.has_context(context, messages)
   )
 end
 
+---Read a buffer's raw content, or, read the file from disk
+---@param bufnr number
+---@param path string
+---@param range? table
+---@return string
+local function raw_buffer_content(bufnr, path, range)
+  if api.nvim_buf_is_loaded(bufnr) then
+    return buf_utils.get_content(bufnr, range)
+  end
+
+  local file_content = Path.new(path):read()
+  if file_content == "" then
+    error("Could not read the file: " .. path)
+  end
+
+  return vim.trim(file_content)
+end
+
+---Read a buffer's content for an LLM, applying any middleware registered for its extension
+---@param bufnr number
+---@param path string
+---@return string|nil
+function M.read_buffer_for_llm(bufnr, path)
+  local ok, content = pcall(function()
+    return (middleware.apply({ path = path, raw = raw_buffer_content(bufnr, path) }))
+  end)
+  if not ok then
+    return nil
+  end
+
+  return content
+end
+
+---@class CodeCompanion.Chat.FormattedBuffer
+---@field content string The XML-wrapped content
+---@field filename string The buffer filename
+---@field id string The buffer context ID
+
 ---Format buffer content with XML wrapper for LLM consumption
 ---@param bufnr number
 ---@param path string
 ---@param opts? { message?: string, range?: table }
----@return string content The XML-wrapped content
----@return string id The buffer context ID
----@return string filename The buffer filename
+---@return CodeCompanion.Chat.FormattedBuffer
 function M.format_buffer_for_llm(bufnr, path, opts)
   opts = opts or {}
 
-  -- Handle unloaded buffers
-  local content
-  if not api.nvim_buf_is_loaded(bufnr) then
-    local file_content = Path.new(path):read()
-    if file_content == "" then
-      error("Could not read the file: " .. path)
-    end
+  local raw = raw_buffer_content(bufnr, path, opts.range)
+
+  -- A range is a slice of the buffer, so whole-file middleware doesn't apply
+  local content, formatted = raw, false
+  if not opts.range then
+    content, formatted = middleware.apply({ path = path, raw = raw })
+  end
+
+  if not formatted then
+    local filetype = api.nvim_buf_is_loaded(bufnr) and buf_utils.get_info(bufnr).filetype
+      or vim.filetype.match({ filename = path })
     content = fmt(
       [[````%s
 %s
 ````]],
-      vim.filetype.match({ filename = path }),
-      buf_utils.add_line_numbers(vim.trim(file_content))
-    )
-  else
-    content = fmt(
-      [[````%s
-%s
-````]],
-      buf_utils.get_info(bufnr).filetype,
-      buf_utils.add_line_numbers(buf_utils.get_content(bufnr, opts.range))
+      filetype,
+      buf_utils.add_line_numbers(content)
     )
   end
 
@@ -222,57 +254,62 @@ function M.format_buffer_for_llm(bufnr, path, opts)
 
   local message = opts.message or "File content"
 
-  local formatted_content = fmt(
-    [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
-    path,
-    bufnr,
-    message,
-    content
-  )
-
-  return formatted_content, id, filename
+  return {
+    content = fmt(
+      [[<attachment filepath="%s" buffer_number="%s">%s:
+%s
+</attachment>]],
+      path,
+      bufnr,
+      message,
+      content
+    ),
+    id = id,
+    filename = filename,
+  }
 end
 
----Read a file's content for LLM consumption, applying any middleware registered for the file's extension
+---Read a file's content for an LLM, applying any middleware registered for its extension
 ---@param path string
----@return string file_contents Middleware handles its own fencing; raw content is wrapped in a code fence
----@return string ft The filetype
----@return string raw The raw file contents
-local function read_file_content(path)
-  local raw = Path.new(path):read()
-  local ft = vim.filetype.match({ filename = path })
-
-  local format = middleware.for_file(path)
-  if format then
-    local formatted = format(raw, path)
-    if formatted then
-      return formatted, ft, raw
-    end
+---@return string|nil
+function M.read_file_for_llm(path)
+  local ok, content = pcall(function()
+    return (middleware.apply({ path = path, raw = Path.new(path):read() }))
+  end)
+  if not ok then
+    return nil
   end
 
-  return fmt(
-    [[````%s
-%s
-````]],
-    ft,
-    raw
-  ), ft, raw
+  return content
 end
+
+---@class CodeCompanion.Chat.FormattedFile
+---@field content string The XML-wrapped content
+---@field filetype string The filetype
+---@field id string The file context ID
+---@field path string The file path
+---@field raw string The raw file contents
 
 ---Format file content with XML wrapper for LLM consumption
 ---@param path string
 ---@param opts? { message?: string, range?: table }
----@return string file_contents
----@return string id The context ID
----@return string path The file path
----@return string ft The filetype
----@return string file_contents The raw file contents
-function M.format_for_llm(path, opts)
+---@return CodeCompanion.Chat.FormattedFile
+function M.format_file_for_llm(path, opts)
   opts = opts or {}
 
-  local file_contents, ft, raw = read_file_content(path)
-  local id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>"
+  local raw = Path.new(path):read()
+  local filetype = vim.filetype.match({ filename = path })
+
+  local file_contents, formatted = middleware.apply({ path = path, raw = raw })
+  if not formatted then
+    file_contents = fmt(
+      [[````%s
+%s
+````]],
+      filetype,
+      raw
+    )
+  end
 
   local content
   if opts.message then
@@ -286,7 +323,6 @@ function M.format_for_llm(path, opts)
   else
     content = fmt(
       [[<attachment filepath="%s">%s:
-
 %s
 </attachment>]],
       path,
@@ -295,19 +331,13 @@ function M.format_for_llm(path, opts)
     )
   end
 
-  return content, id, path, ft, raw
-end
-
----Read a file's content for LLM consumption, without any message wrapping
----@param path string
----@return string|nil
-function M.file_content_for_llm(path)
-  local ok, content = pcall(read_file_content, path)
-  if not ok then
-    return nil
-  end
-
-  return content
+  return {
+    content = content,
+    id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>",
+    path = path,
+    filetype = filetype,
+    raw = raw,
+  }
 end
 
 ---Add line numbers with an offset to content
@@ -349,7 +379,8 @@ function M.format_viewport_range_for_llm(bufnr, range)
 
   local formatted_content = fmt(
     [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
+%s
+</attachment>]],
     filepath,
     bufnr,
     excerpt_info,

@@ -1799,7 +1799,7 @@ function Chat:close()
     api.nvim_clear_autocmds({ group = self.aug })
   end
   if self.watchers then
-    api.nvim_clear_autocmds({ group = self.watchers.augroup })
+    pcall(api.nvim_del_augroup_by_id, self.watchers.augroup)
   end
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()
