@@ -52,43 +52,39 @@ return {
         ---@param data table The data returned from the fetch
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)
-          local ok, body = pcall(vim.json.decode, data.body)
-          if not ok then
+          if data.status >= 300 then
             return {
               status = "error",
-              content = "Could not parse JSON response",
+              content = fmt("Error %s", data.status),
             }
           end
-
-          if data.status ~= 200 then
+          local function clean_html(html)
+            return html:gsub("</?b[^>]*>", ""):gsub("<[^>]+>", " "):
+              gsub("%s+", " "):gsub("^%s*(.-)%s*$", "%1")
+          end
+          local out = {}
+          for href, title, content in
+            data.body:gmatch(
+              '<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]*)"[^>]*>(.-)</a>.-'
+                .. '<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*href="[^"]*"[^>]*>(.-)</a>'
+            )
+          do
+            table.insert(out, {
+              title = clean_html(title),
+              url = href,
+              content = clean_html(content),
+            })
+          end
+          if #out < 1 and data.body:find("challenge-form", 1, true) then
             return {
               status = "error",
-              content = fmt("Error %s - %s", data.status, body),
+              content = data.body:find("challenge-form", 1, true) and
+                "Engine thinks you're a bot" or "No results found",
             }
           end
-
-          -- Process results (move existing output logic here)
-          if body.results == nil or #body.results == 0 then
-            return {
-              status = "error",
-              content = "No results found",
-            }
-          end
-
-          local output = vim
-            .iter(body.results)
-            :map(function(result)
-              return {
-                content = result.content or "",
-                title = result.title or "",
-                url = result.url or "",
-              }
-            end)
-            :totable()
-
           return {
             status = "success",
-            content = output,
+            content = out,
           }
         end,
       },
