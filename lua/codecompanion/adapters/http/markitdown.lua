@@ -70,7 +70,9 @@ return {
         ---@param data table The data from the LLM's tool call
         ---@return nil
         setup = function(self, data)
-          self.methods.slash_commands.fetch.setup(self, data)
+          self.env = vim.tbl_deep_extend("force", self.env, {
+            url = data.url,
+          })
         end,
 
         ---Process the output from the fetch webpage tool
@@ -79,16 +81,9 @@ return {
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)
           if not data.body or data.body == "" then
-            return {
-              status = "error",
-              content = "No content returned from markitdown",
-            }
+            return { status = "error", content = "No content returned" }
           end
-
-          return {
-            status = "success",
-            content = data.body,
-          }
+          return { status = "success", content = data.body }
         end,
       },
     },
