@@ -9,45 +9,32 @@ return {
   opts = {
     stream = false,
     ---Override the default HTTP request with a CLI-based one
-    ---@param self CodeCompanion.HTTPAdapter
+    ---@param self CodeCompanion.HTTPClient
     ---@param _payload table
     ---@param actions { callback: fun(err: nil|table, data: nil|table) }
     ---@param _opts? table
     ---@return nil
     request = function(self, _payload, actions, _opts)
-      local url = self.temp and self.temp.url
-
+      local url = self.adapter.env.url
       if not url then
         return actions.callback({ message = "No URL provided" }, nil)
       end
-
       local ok, result = pcall(function()
-        return Job:new({
-          command = "markitdown",
-          args = { url },
-          enable_handlers = true,
-        }):sync()
+        return Job:new({ command = "markitdown", args = { url } }):sync()
       end)
-
       if not ok then
         local err_msg = fmt("Failed to run `markitdown`: %s", tostring(result))
-        log:error("[MarkItDown Adapter] %s", err_msg)
+        log:error(err_msg)
         return actions.callback({ message = err_msg }, nil)
       end
-
       if not result or #result == 0 then
-        return actions.callback(
-          { message = fmt("No content returned from `markitdown` for `%s`", url) },
-          nil
-        )
+        return actions.callback({ message = fmt("No content returned for `%s`", url) }, nil)
       end
-
       return actions.callback(nil, { body = table.concat(result, "\n") })
     end,
   },
   url = "",
   env = {},
-  headers = {},
   schema = {
     model = {
       default = "markitdown",
