@@ -33,14 +33,12 @@ return {
       return actions.callback(nil, { body = table.concat(result, "\n") })
     end,
   },
-  url = "",
   env = {},
   schema = {
     model = {
       default = "markitdown",
     },
   },
-  handlers = {},
   methods = {
     slash_commands = {
       fetch = {
@@ -48,8 +46,9 @@ return {
         ---@param data table
         ---@return nil
         setup = function(self, data)
-          self.temp = self.temp or {}
-          self.temp.url = data.url
+          self.env = vim.tbl_deep_extend("force", self.env, {
+            url = data.url,
+          })
         end,
 
         ---Process the output from the fetch slash command
@@ -58,16 +57,9 @@ return {
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)
           if not data.body or data.body == "" then
-            return {
-              status = "error",
-              content = "No content returned",
-            }
+            return { status = "error", content = "No content returned" }
           end
-
-          return {
-            status = "success",
-            content = data.body,
-          }
+          return { status = "success", content = data.body }
         end,
       },
     },
