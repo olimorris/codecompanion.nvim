@@ -42,6 +42,7 @@ return {
   methods = {
     slash_commands = {
       fetch = {
+        ---Setup the adapter for the fetch slash command
         ---@param self CodeCompanion.HTTPAdapter
         ---@param data table
         ---@return nil

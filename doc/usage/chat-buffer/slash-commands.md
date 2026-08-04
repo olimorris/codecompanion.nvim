@@ -45,7 +45,7 @@ System prompts, rules and file/buffer shares will be preserved but all user, ass
 > [!TIP]
 > To better understand a Neovim plugin, send its `config.lua` to your LLM via the _fetch_ command alongside a prompt
 
-The _fetch_ slash command allows you to add the contents of a URL to the chat buffer. By default, the plugin uses the awesome and powerful [jina.ai](https://jina.ai) to parse the page's content and convert it into plain text. For convenience, the slash command will cache the output to disk and prompt the user if they wish to restore from the cache, should they look to fetch the same URL.
+The _fetch_ slash command allows you to add the contents of a URL to the chat buffer. By default, the plugin uses the awesome and powerful [jina.ai](https://jina.ai) to parse the page's content and convert it into plain text. You can also use the [markitdown](https://github.com/microsoft/markitdown) adapter for the same purpose, which adds support for local files and various document formats like pdf, docx, etc. For convenience, the slash command will cache the output to disk and prompt the user if they wish to restore from the cache, should they look to fetch the same URL.
 
 ## /file
 
