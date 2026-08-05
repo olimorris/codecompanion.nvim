@@ -1,4 +1,3 @@
-local Job = require("plenary.job")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -20,17 +19,14 @@ return {
         return actions.callback({ message = "No URL provided" }, nil)
       end
       local ok, result = pcall(function()
-        return Job:new({ command = "markitdown", args = { url } }):sync()
+        return vim.system({ "markitdown", url }):wait()
       end)
-      if not ok then
-        local err_msg = fmt("Failed to run `markitdown`: %s", tostring(result))
+      if not ok or result.code ~= 0 then
+        local err_msg = fmt("Failed to run `markitdown` (exit %d): %s", result.code, result.stderr or "")
         log:error(err_msg)
         return actions.callback({ message = err_msg }, nil)
       end
-      if not result or #result == 0 then
-        return actions.callback({ message = fmt("No content returned for `%s`", url) }, nil)
-      end
-      return actions.callback(nil, { body = table.concat(result, "\n") })
+      return actions.callback(nil, { body = result.stdout })
     end,
   },
   env = {},
