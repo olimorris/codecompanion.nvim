@@ -168,7 +168,7 @@ Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 ```
 
 **Options:**
-- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`)
+- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`). The [markitdown](https://github.com/microsoft/markitdown) adapter is also available as an alternative.
 
 ### file_search
 
