@@ -1,5 +1,20 @@
 # Changelog
 
+## [19.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.22.0...v19.23.0) (2026-08-08)
+
+
+### Features
+
+* **background:** LLM judge system prompt can be customised ([#3290](https://github.com/olimorris/codecompanion.nvim/issues/3290)) ([9c76d40](https://github.com/olimorris/codecompanion.nvim/commit/9c76d40345d46325c543f0f63d5bde947e920be8))
+* **slash_cmd:** add `/rename` ([#3291](https://github.com/olimorris/codecompanion.nvim/issues/3291)) ([a7c15c1](https://github.com/olimorris/codecompanion.nvim/commit/a7c15c145bed4da7aeb376ddfbb64523a36ac67d))
+* **tools:** improve `get_diagnostics` ([#3294](https://github.com/olimorris/codecompanion.nvim/issues/3294)) ([b27a1a7](https://github.com/olimorris/codecompanion.nvim/commit/b27a1a734fdaf73e40328091cb5929d65aaa09e9))
+
+
+### Bug Fixes
+
+* **adapters:** prevent double context management ([#3283](https://github.com/olimorris/codecompanion.nvim/issues/3283)) ([61faceb](https://github.com/olimorris/codecompanion.nvim/commit/61faceb661e406b0abd6554854ce9be46a6c7322))
+* **code_review:** various fixes ([#3289](https://github.com/olimorris/codecompanion.nvim/issues/3289)) ([94a931f](https://github.com/olimorris/codecompanion.nvim/commit/94a931f61ab95c5e3681050aa0aaa04094c4fc7f))
+
 ## [19.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.21.0...v19.22.0) (2026-07-30)
 
 
