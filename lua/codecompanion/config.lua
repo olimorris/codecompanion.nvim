@@ -30,6 +30,7 @@ local defaults = {
       xai = "xai",
       jina = "jina",
       tavily = "tavily",
+      duckduckgo = "duckduckgo",
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
       opts = {
         allow_insecure = false, -- Allow insecure connections?
@@ -301,7 +302,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily
+            adapter = "tavily", -- tavily, duckduckgo
             opts = {
               -- Tavily options
               search_depth = "advanced",
