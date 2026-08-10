@@ -312,6 +312,17 @@ function M.tool_prefix()
   return CONSTANTS.TOOL_PREFIX
 end
 
+---Convert env vars from a {KEY = "value"} map to ACP's [{name, value}] array format
+---@param env_map table<string, string>
+---@return table[]
+local function convert_to_array(env_map)
+  local result = {}
+  for env_name, env_value in pairs(env_map) do
+    table.insert(result, { name = env_name, value = env_value })
+  end
+  return result
+end
+
 ---Transforms the CodeCompanion MCP configuration into the format expected by an ACP adapter
 ---@return table
 function M.transform_to_acp()
@@ -328,7 +339,7 @@ function M.transform_to_acp()
       name = name,
       command = cfg.cmd[1],
       args = vim.list_slice(cfg.cmd, 2),
-      env = cfg.env or {},
+      env = convert_to_array(cfg.env or {}),
     })
 
     ::continue::
