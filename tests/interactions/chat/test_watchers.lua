@@ -195,9 +195,9 @@ T["Watchers"]["reports when a watched buffer is deleted"] = function()
   h.is_false(result.still_synced)
 end
 
-T["Watchers"]["diffs middleware-formatted content rather than the raw content"] = function()
+T["Watchers"]["diffs formatter-formatted content rather than the raw content"] = function()
   local messages = child.lua([[
-    config.middleware.ccsync = function(raw)
+    config.context.formatters.ccsync = function(raw)
       return raw:upper()
     end
 

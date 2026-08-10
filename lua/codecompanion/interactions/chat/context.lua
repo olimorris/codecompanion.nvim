@@ -22,6 +22,24 @@ local allowed__diff = {
 }
 local context_header = "> Context:"
 
+---Set chat buffer lines while preserving its edit lock
+---@param chat CodeCompanion.Chat
+---@param start_row number
+---@param end_row number
+---@param lines string[]
+local function set_chat_buffer_lines(chat, start_row, end_row, lines)
+  local was_locked = not vim.bo[chat.bufnr].modifiable
+  if was_locked then
+    chat.ui:unlock_buf()
+  end
+
+  api.nvim_buf_set_lines(chat.bufnr, start_row, end_row, false, lines)
+
+  if was_locked then
+    chat.ui:lock_buf()
+  end
+end
+
 ---Whether attached content at this path is watched for changes out of the box
 ---@param path? string
 ---@return boolean
@@ -112,14 +130,7 @@ local function add(chat, context, row)
     table.insert(lines, "")
   end
 
-  local was_locked = not vim.bo[chat.bufnr].modifiable
-  if was_locked then
-    chat.ui:unlock_buf()
-  end
-  api.nvim_buf_set_lines(chat.bufnr, row, row, false, lines)
-  if was_locked then
-    chat.ui:lock_buf()
-  end
+  set_chat_buffer_lines(chat, row, row, lines)
 end
 
 ---@class CodeCompanion.Chat.ContextItem
@@ -284,12 +295,11 @@ function Context:render()
     ::continue::
   end
   if #lines == 1 then
-    -- no context added
     return
   end
   table.insert(lines, "")
 
-  api.nvim_buf_set_lines(chat.bufnr, start_row, start_row, false, lines)
+  set_chat_buffer_lines(chat, start_row, start_row, lines)
   self:create_folds()
 end
 
@@ -301,7 +311,7 @@ function Context:clear_rendered()
     return self
   end
 
-  api.nvim_buf_set_lines(self.Chat.bufnr, start_row, end_row + 1, false, {})
+  set_chat_buffer_lines(self.Chat, start_row, end_row + 1, {})
 
   return self
 end

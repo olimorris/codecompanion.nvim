@@ -48,7 +48,8 @@ local function format_changes_as_diff(old_content, new_content)
   })
 
   if diff_result and diff_result ~= "" then
-    return fmt("````diff\n%s````", diff_result)
+    local fence = require("codecompanion.interactions.chat.helpers").code_fence(diff_result)
+    return fmt("%sdiff\n%s%s", fence, diff_result, fence)
   end
 
   return ""

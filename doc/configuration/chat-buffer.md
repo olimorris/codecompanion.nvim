@@ -734,7 +734,7 @@ require("codecompanion").setup({
 })
 ```
 
-To change how a file's content is shaped before the LLM sees it, see [Middleware](/configuration/others#middleware).
+To change how a file's content is shaped before the LLM sees it, see [Context Formatters](/configuration/others#context-formatters).
 
 ## Tools
 

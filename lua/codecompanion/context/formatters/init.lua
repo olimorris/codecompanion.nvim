@@ -5,7 +5,7 @@ local M = {}
 
 local resolved = {}
 
----Resolve a middleware config value to a format function
+---Resolve a formatter config value to a format function
 ---@param value function|string
 ---@return function|nil
 local function resolve(value)
@@ -21,7 +21,7 @@ local function resolve(value)
 
   local ok, module = pcall(require, value)
   if not ok or type(module) ~= "table" or type(module.format) ~= "function" then
-    log:error("[middleware] Could not resolve `%s`", value)
+    log:error("[context.formatters] Could not resolve `%s`", value)
     return nil
   end
 
@@ -29,22 +29,23 @@ local function resolve(value)
   return module.format
 end
 
----Get the middleware registered for a file's extension
+---Get the formatter registered for a file's extension
 ---@param path string
 ---@return function|nil
 local function for_file(path)
   local extension = path:match("%.([^.]+)$")
-  if not extension or type(config.middleware) ~= "table" then
+  local formatters = config.context and config.context.formatters
+  if not extension or type(formatters) ~= "table" then
     return nil
   end
 
-  return resolve(config.middleware[extension:lower()])
+  return resolve(formatters[extension:lower()])
 end
 
----Format content with any middleware registered for the file's extension
+---Format content with the formatter registered for the file's extension
 ---@param args { path: string, raw: string }
 ---@return string content
----@return boolean formatted
+---@return boolean Was the content formatted?
 function M.apply(args)
   local format = for_file(args.path)
   if not format then
@@ -53,7 +54,7 @@ function M.apply(args)
 
   local ok, formatted = pcall(format, args.raw, args.path)
   if not ok then
-    log:error("[middleware] Could not format `%s`: %s", args.path, formatted)
+    log:error("[context.formatters] Could not format `%s`: %s", args.path, formatted)
     return args.raw, false
   end
   if type(formatted) ~= "string" then

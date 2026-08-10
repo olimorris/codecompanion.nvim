@@ -1055,13 +1055,13 @@ The user is working on a %s machine. Please respond with system specific command
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
-  -- MIDDLEWARE ---------------------------------------------------------------
-  ---Format file and buffer content before it's shared with an LLM, keyed by
-  ---file extension. A value is a `format(raw, path)` function or the path to a
-  ---module which returns one
-  ---@type table<string, string|fun(raw: string, path: string): string|nil>
-  middleware = {
-    ipynb = "codecompanion.interactions.shared.middleware.jupyter_notebook",
+  -- CONTEXT ------------------------------------------------------------------
+  context = {
+    ---Format file and buffer content before sharing it with an LLM, keyed by file extension.
+    ---@type table<string, string|fun(raw: string, path: string): string|nil>
+    formatters = {
+      ipynb = "codecompanion.context.formatters.builtin.jupyter_notebook",
+    },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {

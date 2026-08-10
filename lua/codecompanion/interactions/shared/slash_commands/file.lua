@@ -190,7 +190,7 @@ end
 ---@param selected { path: string }
 ---@param opts { filetype: string, mimetype: string, silent: boolean, sync_all: boolean }
 ---@return nil
-function SlashCommand:output_doc(selected, opts)
+function SlashCommand:output_pdf(selected, opts)
   local adapter = self.Chat.adapter
   if not (adapter.opts and adapter.opts.documents) then
     return log:warn(
@@ -246,7 +246,7 @@ function SlashCommand:output(selected, opts)
   local mimetype = files_utils.get_mimetype(selected.path)
   if mimetype == "application/pdf" then
     opts = vim.tbl_extend("force", opts, { filetype = "pdf", mimetype = mimetype })
-    return self:output_doc(selected, opts)
+    return self:output_pdf(selected, opts)
   end
 
   if selected.description then

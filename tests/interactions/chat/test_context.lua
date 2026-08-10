@@ -544,9 +544,9 @@ T["Context"]["Extensions listed in the sync_diff config are watched when added"]
   child.lua([[os.remove(_G.watched_path)]])
 end
 
-T["Context"]["Files and buffers are formatted by the middleware for their extension"] = function()
+T["Context"]["Files and buffers are formatted by the formatter for their extension"] = function()
   child.lua([[
-     config.middleware["ccfmt"] = function(raw)
+     config.context.formatters["ccfmt"] = function(raw)
        return "formatted: " .. raw
      end
 
@@ -567,7 +567,7 @@ T["Context"]["Files and buffers are formatted by the middleware for their extens
   h.expect_truthy(from_file:find("formatted: the content", 1, true))
   h.expect_truthy(from_buffer:find("formatted: the content", 1, true))
 
-  -- Middleware owns its own formatting, so no code fence or line numbers are added
+  -- Formatters own their formatting, so no code fence or line numbers are added
   h.eq(from_buffer:find("1 |", 1, true), nil)
   h.eq(from_buffer:find("````", 1, true), nil)
 
