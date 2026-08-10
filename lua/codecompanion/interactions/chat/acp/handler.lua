@@ -1,3 +1,4 @@
+local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.utils.queue")
 
 local async = require("codecompanion.utils.async")
@@ -394,6 +395,18 @@ function ACPHandler:handle_permission_request(request)
   self:_process_next_permission()
 end
 
+---Find the first allow option from the request options
+---@param opts table
+---@return string|nil optionId
+local function find_allow_option(opts)
+  for _, opt in ipairs(opts or {}) do
+    if opt.kind == "allow_once" or opt.kind == "allow_always" then
+      return opt.optionId
+    end
+  end
+  return nil
+end
+
 ---Pop the next permission request from the queue and present it
 ---@return nil
 function ACPHandler:_process_next_permission()
@@ -414,6 +427,17 @@ function ACPHandler:_process_next_permission()
     local cached = self.tools[tool_call.toolCallId]
     if cached then
       request.tool_call = merge_tool_call(cached, tool_call)
+    end
+  end
+
+  if Approvals:is_approved(self.chat.bufnr) then
+    local allow_id = find_allow_option(request.options)
+    if allow_id then
+      log:debug("[ACP::Handler] Yolo mode: auto-approving permission request")
+      request.respond(allow_id, false)
+      self._permission.active = false
+      self:_process_next_permission()
+      return
     end
   end
 
