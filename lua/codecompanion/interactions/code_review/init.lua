@@ -272,6 +272,9 @@ function M.open(opts)
   end
 
   local hunks = baseline.diff(root, paths)
+  if not hunks then
+    return notify("Could not read the worktree", vim.log.levels.ERROR)
+  end
 
   if opts.scope ~= "all" then
     local accepted = store.accepted(root)

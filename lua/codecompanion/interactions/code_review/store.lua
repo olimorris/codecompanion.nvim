@@ -218,9 +218,9 @@ end
 ---@param root string
 ---@return string|nil
 function M.submit(root)
-  local success, error_message = files.rename(M.comments_path(root), M.review_path(root))
-  if not success then
-    log:error("[Code Review] Could not write the file: `%s`", error_message)
+  local ok, error = files.rename(M.comments_path(root), M.review_path(root))
+  if not ok then
+    log:error("[Code Review] Could not write the file: `%s`", error)
     return nil
   end
 

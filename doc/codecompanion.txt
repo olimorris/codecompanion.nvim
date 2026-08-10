@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 02
+                                 For NVIM v0.11    Last change: 2026 August 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -7,7 +7,6 @@ Table of Contents                            *codecompanion-table-of-contents*
 1. Welcome                                             |codecompanion-welcome|
   - Features                                  |codecompanion-welcome-features|
   - Overview                                  |codecompanion-welcome-overview|
-  - Supported LLMs and Agents|codecompanion-welcome-supported-llms-and-agents|
 2. Installation                                   |codecompanion-installation|
   - Requirements                     |codecompanion-installation-requirements|
   - Installation                     |codecompanion-installation-installation|
@@ -100,49 +99,25 @@ FEATURES                                      *codecompanion-welcome-features*
 
 OVERVIEW                                      *codecompanion-welcome-overview*
 
-The plugin utilises objects called `interactions`. These are the different ways
-that a user can interact with the plugin. The `chat` interaction harnesses a
-buffer to allow direct conversation with the LLM. The `inline` interaction
-allows for output from the LLM to be written directly into a pre-existing
-Neovim buffer.
+CodeCompanion utilises objects called `interactions`. These are the different
+ways that a user can interact with an LLM. The `chat` interaction harnesses a
+buffer to allow direct conversations with LLMs. The `inline` interaction allows
+for output from the LLM to be written directly, inline to a pre-existing Neovim
+buffer.
 
-The plugin allows you to specify adapters for each interaction and also for
-each |codecompanion-configuration-prompt-library| entry.
-
-
-SUPPORTED LLMS AND AGENTS    *codecompanion-welcome-supported-llms-and-agents*
-
-CodeCompanion uses |codecompanion-configuration-adapters-http| and
-|codecompanion-configuration-adapters-acp| adapters to connect to LLMs and
-agents. Out of the box, the plugin supports:
-
-- Anthropic (`anthropic`) - Requires an API key and supports prompt caching <https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching>
-- Augment Code (`auggie_cli`) - Requires an API key
-- Cagent (`cagent`)
-- Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
-- Cline CLI (`cline_cli`)
-- Codex (`codex`) - Requires an API key
-- DeepSeek (`deepseek`) - Requires an API key
-- Gemini (`gemini`) - Requires an API key
-- Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
-- GitHub Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
-- GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
-- Goose (`goose`) - Requires an API key
-- HuggingFace (`huggingface`) - Requires an API key
-- Kilo Code (`kilocode`) - Requires an API key
-- Kimi CLI (`kimi_cli`) - Requires an API key
-- Mistral AI (`mistral`) - Requires an API key or a Le Chat Pro subscription
-- Novita (`novita`) - Requires an API key
-- Ollama (`ollama`) - Both local and remotely hosted
-- OpenAI (`openai`) - Requires an API key
-- Opencode (`opencode`) - Requires an API key
-- OpenRouter (`openrouter`) - Requires an API key
-- xAI (`xai`) - Requires an API key
-
-In order to add a custom adapter, please refer to the
-|codecompanion-extending-adapters| documentation. Also, be sure to check out
-the |codecompanion-configuration-adapters-http-community-adapters| section for
-user contributed adapters.
+CodeCompanion uses |codecompanion-configuration-adapters-http| to connect
+Neovim to an LLM or agent, even going as far as specifying
+|codecompanion-configuration-adapters-http-changing-the-default-model| and/or
+|codecompanion-configuration-adapters-http-changing-adapter-parameters-schema|.
+You can specify adapters for each interaction type and also for each
+|codecompanion-configuration-prompt-library| entry. There are far too many
+adapters to list so be sure to check out the adapters folder
+<https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters/http>
+in the main repository. You can also roll your own adapters. Refer to the
+|codecompanion-extending-adapters| documentation for more information. Finally,
+be sure to check out the
+|codecompanion-configuration-adapters-http-community-adapters| section for user
+contributed adapters.
 
 
 ==============================================================================
@@ -6112,9 +6087,9 @@ Because the diff is recomputed from disk every time, line numbers are never
 stored and so can never rot.
 
 
-  [!IMPORTANT] Snapshots are produced against a temporary index, so `git add`
-  never runs against your own. This means your staged changes and anything you
-  push are unaffected by a code review
+  [!IMPORTANT] Snapshots are produced against an index of CodeCompanion's own,
+  kept at `.git/codecompanion-index`, so `git add` never runs against yours. This
+  means your staged changes and anything you push are unaffected by a code review
 
 COMMANDS ~
 

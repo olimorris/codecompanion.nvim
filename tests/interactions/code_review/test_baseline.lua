@@ -183,6 +183,75 @@ T["Baseline"]["each worktree keeps its own baseline"] = function()
   h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
 end
 
+T["Baseline"]["a review never touches the user's index"] = function()
+  child.lua([[
+    commit("init")
+    write("a.lua", { "local a = 1" })
+    write("b.lua", { "local b = 2" })
+    vim.system({ "git", "-C", repo, "add", "b.lua" }):wait()
+
+    local user_index = vim.fs.joinpath(repo, ".git", "index")
+    local read = function()
+      return table.concat(vim.fn.readfile(user_index, "b"), "\n")
+    end
+
+    local before = read()
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 100" })
+    baseline.diff(repo)
+    baseline.snapshot(repo)
+
+    untouched = read() == before
+    staged = vim.trim(vim.system({ "git", "-C", repo, "diff", "--cached", "--name-only" }, { text = true }):wait().stdout)
+  ]])
+
+  h.is_true(child.lua_get("untouched"))
+  h.eq("b.lua", child.lua_get("staged"))
+end
+
+T["Baseline"]["a lock left by a dead Neovim is cleared and the review carries on"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 100" })
+
+    index = vim.fs.joinpath(
+      vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "--absolute-git-dir" }, { text = true }):wait().stdout),
+      "codecompanion-index"
+    )
+    vim.fn.writefile({}, index .. ".lock")
+    -- Far older than any snapshot takes, so it can only have been abandoned
+    local long_ago = os.time() - 600
+    vim.uv.fs_utime(index .. ".lock", long_ago, long_ago)
+
+    hunks = baseline.diff(repo)
+  ]])
+
+  h.eq(1, child.lua_get("#hunks"))
+  h.eq("a.lua", child.lua_get("hunks[1].path"))
+  h.eq(vim.NIL, child.lua_get("vim.uv.fs_stat(index .. '.lock')"))
+end
+
+T["Baseline"]["a lock another Neovim still holds is left alone"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 100" })
+
+    index = vim.fs.joinpath(
+      vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "--absolute-git-dir" }, { text = true }):wait().stdout),
+      "codecompanion-index"
+    )
+    vim.fn.writefile({}, index .. ".lock")
+
+    hunks = baseline.diff(repo)
+  ]])
+
+  -- Nil rather than an empty list, so a caller can tell this apart from there being no changes
+  h.eq(vim.NIL, child.lua_get("hunks"))
+  h.is_true(child.lua_get("vim.uv.fs_stat(index .. '.lock') ~= nil"))
+end
+
 T["Baseline"]["the alias ref points at the branch baseline"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })

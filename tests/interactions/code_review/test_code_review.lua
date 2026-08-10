@@ -31,6 +31,15 @@ T = new_set({
         package.loaded["codecompanion.utils"].notify = function(message)
           table.insert(notifications, message)
         end
+
+        -- Put a list of the user's own in the quickfix, so a review taking it over is visible
+        own_quickfix = function()
+          vim.fn.setqflist({}, " ", { title = "the user's own list", items = { { text = "a hit" } } })
+        end
+
+        review_owns_quickfix = function()
+          return vim.fn.getqflist({ title = 0 }).title == "CodeCompanion Code Review"
+        end
       ]])
     end,
     pre_case = function()
@@ -180,14 +189,14 @@ T["Review"]["share moves the comments to the review file and advances the baseli
   h.eq(0, child.lua_get("#baseline.diff(repo)"))
   h.is_true(child.lua_get([[require("codecompanion.utils.files").exists(store.review_path(repo))]]))
   h.expect_contains("Why 100?", child.lua_get([[require("codecompanion.utils.files").read(store.review_path(repo))]]))
-  h.expect_contains(child.lua_get("store.review_path(repo)"), child.lua_get("notifications[1]"))
+  h.eq(child.lua_get("store.review_path(repo)"), child.lua_get([[vim.fn.getreg("+")]]))
 end
 
-T["Review"]["share warns when there are no comments"] = function()
+T["Review"]["share does nothing when there are no comments"] = function()
   child.lua([[review.share()]])
 
-  h.eq("No comments to share", child.lua_get("notifications[1]"))
   h.eq(vim.NIL, child.lua_get("baseline.get(repo)"))
+  h.is_false(child.lua_get([[require("codecompanion.utils.files").exists(store.review_path(repo))]]))
 end
 
 T["Review"]["approve sets a baseline when none exists"] = function()
@@ -200,30 +209,55 @@ T["Review"]["approve sets a baseline when none exists"] = function()
   h.eq(0, child.lua_get("#baseline.diff(repo)"))
 end
 
-T["Review"]["approve keeps pending comments and warns"] = function()
+T["Review"]["approve advances the baseline but keeps pending comments"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "Still pending", code = "local a", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
     review.approve()
   ]])
 
   h.eq(1, child.lua_get("#review.pending()"))
-  h.expect_contains("pending comment", child.lua_get("notifications[1]"))
+  h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
 end
 
-T["Review"]["open warns when there is no baseline"] = function()
-  child.lua([[review.open()]])
-
-  h.eq("No edits to review yet", child.lua_get("notifications[1]"))
-end
-
-T["Review"]["open warns when the agent has not edited anything"] = function()
+T["Review"]["open leaves the quickfix alone when there is no baseline"] = function()
   child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
+    own_quickfix()
     review.open()
   ]])
 
-  h.expect_contains("No edits to review", child.lua_get("notifications[1]"))
+  h.is_false(child.lua_get("review_owns_quickfix()"))
+end
+
+T["Review"]["open leaves the quickfix alone when the agent has not edited anything"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    own_quickfix()
+    review.open()
+  ]])
+
+  h.is_false(child.lua_get("review_owns_quickfix()"))
+end
+
+T["Review"]["open leaves the quickfix alone when the worktree can't be read"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
+    write("a.lua", { "local a = 100" })
+
+    -- A lock another Neovim holds, so the diff can't be trusted and must not be read as "no edits"
+    local index = vim.fs.joinpath(
+      vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "--absolute-git-dir" }, { text = true }):wait().stdout),
+      "codecompanion-index"
+    )
+    vim.fn.writefile({}, index .. ".lock")
+
+    own_quickfix()
+    review.open()
+  ]])
+
+  h.is_false(child.lua_get("review_owns_quickfix()"))
 end
 
 T["Review"]["open lists a quickfix entry per hunk in the agent's files"] = function()
@@ -235,6 +269,7 @@ T["Review"]["open lists a quickfix entry per hunk in the agent's files"] = funct
     write("a.lua", { "local a = 1", "local b = 20", "local c = 3" })
     write("b.lua", { "local d = 40" }) -- the user's own edit, not the agent's
 
+    own_quickfix()
     review.open()
   ]])
 
@@ -242,6 +277,8 @@ T["Review"]["open lists a quickfix entry per hunk in the agent's files"] = funct
   h.eq(1, #qf)
   h.eq(2, qf[1].lnum)
   h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[1].bufnr), 'a.lua')"))
+  -- Anchors the cases asserting a review *didn't* take the quickfix over
+  h.is_true(child.lua_get("review_owns_quickfix()"))
 end
 
 T["Review"]["open with scope all includes changes outside the agent's files"] = function()
@@ -302,13 +339,13 @@ T["Review"]["an accepted hunk returns when the change changes"] = function()
   h.eq(1, child.lua_get("#vim.fn.getqflist()"))
 end
 
-T["Review"]["accept warns without a review entry"] = function()
+T["Review"]["accept does nothing without a review entry"] = function()
   child.lua([[
     vim.fn.setqflist({}, " ", { items = {} })
     review.accept()
   ]])
 
-  h.eq("No review hunk under the cursor", child.lua_get("notifications[1]"))
+  h.is_true(child.lua_get("next(store.accepted(repo)) == nil"))
 end
 
 T["Review"]["ignore drops every hunk in the file, until the baseline advances"] = function()
