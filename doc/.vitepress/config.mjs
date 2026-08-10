@@ -163,6 +163,7 @@ export default withMermaid(
         { text: "Introduction", link: "/" },
         { text: "Installation", link: "/installation" },
         { text: "Getting Started", link: "/getting-started" },
+        { text: "Integrations", link: "/integrations" },
         { text: "Architecture", link: "/architecture" },
         {
           text: "Agent Client Protocol (ACP)",
