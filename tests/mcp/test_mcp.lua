@@ -58,7 +58,7 @@ T["MCP"]["start() starts and initializes the client once"] = function()
       command = "npx",
       args = { "-y", "tavily-mcp@latest" },
       env = {
-        TAVILY_API_KEY = "ABC-123",
+        { name = "TAVILY_API_KEY", value = "ABC-123" },
       },
     },
   }, transformed_config)
