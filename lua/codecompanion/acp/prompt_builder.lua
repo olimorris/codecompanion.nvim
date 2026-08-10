@@ -78,6 +78,10 @@ function PromptBuilder:on_cancel(fn)
   self.handlers.cancel = fn
   return self
 end
+function PromptBuilder:on_agent_request(fn)
+  self.handlers.agent_request = fn
+  return self
+end
 function PromptBuilder:with_options(opts)
   self.options = vim.tbl_extend("force", self.options, opts or {})
   return self
@@ -291,6 +295,16 @@ function PromptBuilder:handle_done(stop_reason)
     utils.fire("RequestFinished", self.options)
   end
   self.connection._active_prompt = nil
+end
+
+---Forward an unrecognized agent request to the registered handler
+---@param message table
+---@return boolean
+function PromptBuilder:handle_agent_request(message)
+  if not self.handlers.agent_request then
+    return false
+  end
+  return self.handlers.agent_request(message) == true
 end
 
 ---Cancel the prompt
