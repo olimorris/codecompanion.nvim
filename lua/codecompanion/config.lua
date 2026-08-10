@@ -1046,6 +1046,12 @@ The user is working on a %s machine. Please respond with system specific command
       },
     },
   },
+  -- INTEGRATIONS -----------------------------------------------------------
+  integrations = {
+    herdr = {
+      enabled = true,
+    },
+  },
   -- MCP SERVERS ----------------------------------------------------------------
   mcp = {
     servers = {},
