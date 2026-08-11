@@ -183,6 +183,7 @@ T["Baseline"]["each worktree keeps its own baseline"] = function()
   h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
 end
 
+-- NOTE: Use this to prove to a user that we never touch their git index!
 T["Baseline"]["a review never touches the user's index"] = function()
   child.lua([[
     commit("init")

@@ -4,21 +4,21 @@ local log = require("codecompanion.utils.log")
 local fmt = string.format
 
 local CONSTANTS = {
-  -- The refs/worktree namespace is per-worktree (like HEAD), so agents in linked worktrees never share a baseline
-  REF_ALIAS = "refs/worktree/codecompanion/baseline",
-  REF_PREFIX = "refs/worktree/codecompanion/baselines/",
-
-  -- The review's own index, kept alongside the worktree's git state and never the user's own
-  INDEX_NAME = "codecompanion-index",
+  INDEX_NAME = "codecompanion-index", -- The review's own index
   LOCK_ABANDONED_AFTER = 60, -- Seconds after which a lock on it belongs to a Neovim that died
 
   -- Use a fixed identity so snapshots work in repos with no user.name/user.email
-  IDENT = {
+  IDENTITY = {
     GIT_AUTHOR_NAME = "CodeCompanion",
     GIT_AUTHOR_EMAIL = "codecompanion@neovim",
     GIT_COMMITTER_NAME = "CodeCompanion",
     GIT_COMMITTER_EMAIL = "codecompanion@neovim",
   },
+
+  -- The refs/worktree namespace is per-worktree (like HEAD)
+  -- This ensures that agents in linked worktrees never share a baseline
+  REF_ALIAS = "refs/worktree/codecompanion/baseline",
+  REF_PREFIX = "refs/worktree/codecompanion/baselines/",
 }
 
 ---@class CodeCompanion.CodeReview.Hunk
@@ -110,7 +110,6 @@ local function seed(root, index)
     return
   end
 
-  -- Safe to read while git is running as it only ever swaps in a complete index, with a rename
   vim.uv.fs_copyfile(vim.fs.joinpath(dir, "index"), index)
 end
 
@@ -138,14 +137,14 @@ local function write_tree(root, index)
   return git(root, { "write-tree" }, env)
 end
 
----Throw our index away so the next write rebuilds it, along with any lock left by a dead Neovim
+---Throw our index away so the next write rebuilds it
 ---@param index string
 ---@return nil
 local function discard(index)
   local lock = vim.uv.fs_stat(index .. ".lock")
 
-  -- A live snapshot holds its lock for milliseconds, so anything this old was abandoned. Taking
-  -- one that's still held would let two writers rename over each other's index
+  -- A live snapshot holds its lock for milliseconds, so anything this old was abandoned.
+  -- Taking one that's still held would let two writers rename over each other's index
   if lock and os.time() - lock.mtime.sec > CONSTANTS.LOCK_ABANDONED_AFTER then
     vim.uv.fs_unlink(index .. ".lock")
   end
@@ -170,8 +169,9 @@ local function write_worktree(root)
     return tree
   end
 
-  -- Our index is only ever a cache, so whatever is wrong with it is fixed by starting again.
-  -- A tree from a stale one would silently drop this round's changes, so it's never reused
+  -- Our index is only ever a cache, so whatever is wrong with it is fixed by
+  -- starting again. A tree from a stale index would silently drop this
+  -- round's changes, so it's never reused
   log:info("[Code Review] Rebuilding `%s`", index)
   discard(index)
   seed(root, index)
@@ -297,7 +297,7 @@ end
 function M.snapshot(root)
   local ref = ref_for(root)
   local tree = write_worktree(root)
-  local commit = tree and git(root, { "commit-tree", tree, "-m", "CodeCompanion review baseline" }, CONSTANTS.IDENT)
+  local commit = tree and git(root, { "commit-tree", tree, "-m", "CodeCompanion review baseline" }, CONSTANTS.IDENTITY)
   local updated = commit and git(root, { "update-ref", ref, commit })
 
   if not updated then
