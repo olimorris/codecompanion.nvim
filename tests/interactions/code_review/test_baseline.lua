@@ -129,6 +129,23 @@ T["Baseline"]["diff scopes to the given paths"] = function()
   h.eq("a.lua", hunks[1].path)
 end
 
+T["Baseline"]["a nested repo with no commits doesn't block the review"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    vim.system({ "git", "init", "--quiet", vim.fs.joinpath(repo, "nested") }):wait()
+    vim.fn.writefile({ "local n = 1" }, vim.fs.joinpath(repo, "nested", "n.lua"))
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 2" })
+  ]])
+
+  h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
+
+  -- The nested repo can't be indexed, so it's left out of the review entirely
+  local hunks = child.lua_get("baseline.diff(repo)")
+  h.eq(1, #hunks)
+  h.eq("a.lua", hunks[1].path)
+end
+
 T["Baseline"]["baselines are scoped per branch"] = function()
   child.lua([[
     commit("init")

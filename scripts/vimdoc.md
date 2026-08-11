@@ -3,6 +3,7 @@ doc/index.md
 doc/installation.md
 doc/getting-started.md
 doc/architecture.md
+doc/integrations.md
 doc/agent-client-protocol.md
 doc/model-context-protocol.md
 ```

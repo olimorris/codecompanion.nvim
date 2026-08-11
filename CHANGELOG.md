@@ -1,5 +1,29 @@
 # Changelog
 
+## [19.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.21.0...v19.22.0) (2026-07-30)
+
+
+### Features
+
+* add new `code_review` interaction type ([#3254](https://github.com/olimorris/codecompanion.nvim/issues/3254)) ([25db8f1](https://github.com/olimorris/codecompanion.nvim/commit/25db8f101f422f16c5904db5b006323a7a222a04))
+* **chat:** add LLM judge for approving tool calls ([#3263](https://github.com/olimorris/codecompanion.nvim/issues/3263)) ([b64ce79](https://github.com/olimorris/codecompanion.nvim/commit/b64ce79484ad407d127c245cc5a35eba520201d6))
+* **tools:** can view `create_file` content ([#3269](https://github.com/olimorris/codecompanion.nvim/issues/3269)) ([b09ddb0](https://github.com/olimorris/codecompanion.nvim/commit/b09ddb09e3f56615adcdb9ec64402cc364ef6d21))
+
+
+### Bug Fixes
+
+* **acp:** use `SIGTERM` in place of `SIGKILL` ([#3275](https://github.com/olimorris/codecompanion.nvim/issues/3275)) ([d49d12d](https://github.com/olimorris/codecompanion.nvim/commit/d49d12dd13387ee355d8a77a871459da5a1f7765)), closes [#3274](https://github.com/olimorris/codecompanion.nvim/issues/3274)
+* **adapters:** correct OpenAI GPT-5.6 models ([#3273](https://github.com/olimorris/codecompanion.nvim/issues/3273)) ([a13f21f](https://github.com/olimorris/codecompanion.nvim/commit/a13f21f9a48c47cb23253dca509c0805cdb8c37f))
+* **adapters:** remove temperature schema for `anthropic` models ([#3260](https://github.com/olimorris/codecompanion.nvim/issues/3260)) ([db93853](https://github.com/olimorris/codecompanion.nvim/commit/db93853264f0eb4cd5f756568da9ca3194fd260d))
+* **code_review:** deleting comments and resolving from sub-dirs ([#3278](https://github.com/olimorris/codecompanion.nvim/issues/3278)) ([b0b481b](https://github.com/olimorris/codecompanion.nvim/commit/b0b481bc5cc571771cc5cc957b4b92990b93204a))
+* **tools:** can be cancelled and `run_command` has timeout ([#3276](https://github.com/olimorris/codecompanion.nvim/issues/3276)) ([cf2afc6](https://github.com/olimorris/codecompanion.nvim/commit/cf2afc6a4b4bfbfadfff920de341b6f539b290d1))
+* **ui:** moving the cursor in the chat whilst streaming ([#3270](https://github.com/olimorris/codecompanion.nvim/issues/3270)) ([6a8b361](https://github.com/olimorris/codecompanion.nvim/commit/6a8b361fc46fc88ae01aca59437c942ba6a08868))
+
+
+### Performance Improvements
+
+* **tools:** faster `grep_search` and `read_file` processing ([#3280](https://github.com/olimorris/codecompanion.nvim/issues/3280)) ([e3b44c5](https://github.com/olimorris/codecompanion.nvim/commit/e3b44c580506685f5d9610e2aa5010ef05f8eee6))
+
 ## [19.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.20.0...v19.21.0) (2026-07-21)
 
 
