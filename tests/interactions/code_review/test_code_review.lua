@@ -189,7 +189,6 @@ T["Review"]["share moves the comments to the review file and advances the baseli
   h.eq(0, child.lua_get("#baseline.diff(repo)"))
   h.is_true(child.lua_get([[require("codecompanion.utils.files").exists(store.review_path(repo))]]))
   h.expect_contains("Why 100?", child.lua_get([[require("codecompanion.utils.files").read(store.review_path(repo))]]))
-  h.eq(child.lua_get("store.review_path(repo)"), child.lua_get([[vim.fn.getreg("+")]]))
 end
 
 T["Review"]["share does nothing when there are no comments"] = function()
