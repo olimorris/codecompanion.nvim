@@ -529,6 +529,7 @@ CodeCompanion.setup = function(opts)
 
   require("codecompanion.interactions.code_review").setup()
   require("codecompanion.interactions.shared.edited_files").setup()
+  require("codecompanion.integrations").setup()
 
   -- Load the main completion module first to register its autocmds
   require("codecompanion.providers.completion")
