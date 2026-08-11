@@ -1,7 +1,6 @@
 local h = require("tests.helpers")
 local tags = require("codecompanion.interactions.shared.tags")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local T = new_set()
 
@@ -77,7 +76,7 @@ end
 
 T["Chat"]["chat buffer is initialized"] = function()
   child.lua([[require("codecompanion").chat()]])
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Chat"]["cursor is placed after last character when prompt library has non-empty user prompt"] = function()
@@ -141,7 +140,7 @@ T["Chat"]["loading from the prompt library sets the correct header_line"] = func
     return chat.header_line
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
   h.eq(9, output)
 end
 

@@ -445,7 +445,7 @@ T["Compaction"]["renders the compacted chat buffer correctly"] = function()
     Compaction.compact(_G.chat, { min_token_savings = 1 })
   ]==])
 
-  MiniTest.expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Compaction"]["locks the buffer and shows a status while the request is in flight"] = function()
@@ -474,7 +474,7 @@ T["Compaction"]["locks the buffer and shows a status while the request is in fli
   h.is_true(child.lua_get("_G.chat._compacting"))
   h.eq(false, child.lua_get("vim.bo[_G.chat.bufnr].modifiable"))
   h.is_true(child.lua_get("_G.chat._status.compacting == true"))
-  MiniTest.expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Compaction"]["unlocks the buffer and clears the status after the LLM responds"] = function()

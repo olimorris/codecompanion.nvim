@@ -398,6 +398,9 @@ function Client:request(payload, actions, opts)
   local body_file = write_body_file(encode_body(self, adapter, payload))
   log:info("Request body file: %s", body_file)
 
+  local response = log.new_response_file()
+  log:info("Response output file: %s", response.path)
+
   local raw, headers_file = Client.build_curl_args(adapter, { stream = adapter.opts and adapter.opts.stream })
 
   -- Capture streaming errors for use in final callback
@@ -413,7 +416,7 @@ function Client:request(payload, actions, opts)
     callback = function(data)
       self.methods.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
-          log:debug("Output data:\n%s", data)
+          response.write(data)
           cb(nil, data, adapter)
         end
 
@@ -436,7 +439,7 @@ function Client:request(payload, actions, opts)
         if not opts.silent then
           utils.fire("RequestFinished", opts)
         end
-        delete_temp_files({ body_file, headers_file }, opts.status)
+        delete_temp_files({ body_file, headers_file, response.path }, opts.status)
         if self.user_args.event then
           if not opts.silent then
             utils.fire(self.user_args.event, opts)
@@ -463,7 +466,7 @@ function Client:request(payload, actions, opts)
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
-        log:debug("Output data:\n%s", data)
+        response.write(data)
         if data:match('^%s*{"error"') or data:match('^%s*{"type"%s*:%s*"error"') then
           stream_error_body = data
           return

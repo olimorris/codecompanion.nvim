@@ -268,4 +268,40 @@ T["OpenRouter adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["OpenRouter adapter"]["resolves model capabilities on the first request"] = function()
+  local structured = require("codecompanion.adapters").resolve("openrouter")
+  structured.schema.model.default = "openai/gpt-5.4-mini"
+  structured.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["openai/gpt-5.4-mini"] = { opts = { can_form_structured_outputs = true } } }
+  end
+
+  structured.parameters = {}
+  structured.handlers.setup(structured)
+
+  h.eq(true, structured.opts.can_form_structured_outputs)
+  h.not_eq(nil, structured.handlers.form_structured_output(structured, { name = "verdict", schema = {} }))
+end
+
+T["OpenRouter model_transformers"] = new_set()
+
+T["OpenRouter model_transformers"]["from_openrouter() transforms the stubbed model list"] = function()
+  local model_transformers = require("codecompanion.adapters.utils.models.transform")
+
+  local body = table.concat(vim.fn.readfile("tests/adapters/http/stubs/model_list/openrouter.json"), "\n")
+  local json = vim.json.decode(body)
+
+  local result = {}
+  for _, model in ipairs(json.data) do
+    local id, entry = model_transformers.from_openrouter(model)
+    result[id] = entry
+  end
+
+  h.eq("Anthropic: Claude Sonnet 5", result["anthropic/claude-sonnet-5"].formatted_name)
+  h.eq({ context_window = 1000000 }, result["anthropic/claude-sonnet-5"].meta)
+  h.eq(true, result["anthropic/claude-sonnet-5"].opts.has_vision)
+end
+
 return T

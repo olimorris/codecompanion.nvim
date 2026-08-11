@@ -303,7 +303,7 @@ end
 ---@return nil
 local function abort(chat, reason)
   chat._compacting = false
-  chat:ready_for_input()
+  chat:finish()
   log:error("[Compaction] Failed: %s", reason)
 end
 
@@ -343,18 +343,20 @@ end
 ---@field fallback_to_chat_adapter? boolean Silently retry with the chat adapter on failure (default false)
 ---@field min_token_savings? number Skip if estimated savings under this (default 10000)
 
----Run compaction on a chat buffer
+---Run compaction on a chat buffer, outputting whether it's in flight or not
 ---@param chat CodeCompanion.Chat
 ---@param opts? CodeCompanion.Chat.ContextManagement.Compaction.Opts
----@return nil
+---@return boolean
 function M.compact(chat, opts)
   opts = opts or {}
 
   if chat.adapter and chat.adapter.type == "acp" then
-    return log:warn("[Compaction] Skipped — ACP adapters handle context themselves")
+    log:debug("[Compaction] Skipped — ACP adapters handle context themselves")
+    return false
   end
   if chat._compacting then
-    return log:debug("[Compaction] Skipped — a compaction is already in progress")
+    log:debug("[Compaction] Skipped — a compaction is already in progress")
+    return false
   end
 
   local original = chat.messages or {}
@@ -363,12 +365,14 @@ function M.compact(chat, opts)
   local savings = estimate_savings(original, retained)
 
   if savings < min_token_savings then
-    return log:warn("[Compaction] Skipped — estimated savings (%d) below threshold (%d)", savings, min_token_savings)
+    log:debug("[Compaction] Skipped — estimated savings (%d) below threshold (%d)", savings, min_token_savings)
+    return false
   end
 
   local messages_text = messages_to_summarize(original)
   if messages_text == "" then
-    return log:warn("[Compaction] Skipped — nothing to summarise")
+    log:debug("[Compaction] Skipped — nothing to summarise")
+    return false
   end
 
   chat._compacting = true
@@ -385,6 +389,8 @@ function M.compact(chat, opts)
   local fallback_adapter = (opts.fallback_to_chat_adapter == true and adapter ~= chat.adapter) and chat.adapter or nil
 
   run_summary(chat, retained, messages_text, adapter, fallback_adapter)
+
+  return true
 end
 
 return M

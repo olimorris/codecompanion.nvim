@@ -184,11 +184,17 @@ There are some functions that are shared between the two adapter types and these
 
 This is the logic for the HTTP adapters. Various logic sits within this file which allows the adapter to be resolved into a CodeCompanion.HTTPAdapter object before it's used throughout the plugin to connect to an LLM endpoint.
 
-### Example Adapter: openai.lua
+### Example Adapter: OpenAI Responses
 
-@./lua/codecompanion/adapters/http/openai.lua
+@./lua/codecompanion/adapters/http/openai_responses.lua
 
-Sharing an example HTTP adapter for OpenAI. Note: This adapter currently uses the old flat format but will be migrated to the new nested format in a future update.
+Sharing an example HTTP adapter for OpenAI Responses. This adapter uses the new handler structure
+
+### Example Adapter: Anthropic
+
+@./lua/codecompanion/adapters/http/anthropic.lua
+
+Sharing an example HTTP adapter for Anthropic. It uses the old handler structure.
 
 ## HTTP Client
 
@@ -196,3 +202,12 @@ Sharing an example HTTP adapter for OpenAI. Note: This adapter currently uses th
 @.codecompanion/adapters/plenary_curl.md
 
 The http.lua module implements a provider-agnostic HTTP client for CodeCompanion that centralizes request construction, streaming, scheduling, and testability. It uses `adapters.call_handler()` to invoke adapter handlers in a backwards-compatible way, working seamlessly with both old and new handler formats.
+
+## Models
+
+@.codecompanion/adapters/models_list.md
+
+## Tests
+
+@./tests/adapters/test_adapters.lua
+@./tests/adapters/http/test_openai_responses.lua

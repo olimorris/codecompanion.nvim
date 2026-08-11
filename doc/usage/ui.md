@@ -41,5 +41,6 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
 - `CodeCompanionChatToolText` - Tool output text in the chat buffer (overrides markdown rendering)
 - `CodeCompanionChatEditorContext` - Editor context in the chat buffer
+- `CodeCompanionCodeReviewComment` - Comments in code reviews
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
 

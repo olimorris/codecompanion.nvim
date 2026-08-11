@@ -1,9 +1,7 @@
----Source: https://ai.google.dev/gemini-api/docs
-
 local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.adapters.utils.tool_transformers")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
 ---Extract the first complete JSON object from a potentially concatenated string
 ---Workaround for Gemini bug where multiple JSON objects get concatenated
@@ -273,7 +271,7 @@ return {
       local declarations = {}
       for _, tool in pairs(tools) do
         for _, schema in pairs(tool) do
-          table.insert(declarations, transform.to_gemini(schema))
+          table.insert(declarations, tool_transformer.to_gemini(schema))
         end
       end
 
@@ -289,11 +287,8 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return require("codecompanion.adapters.utils.structured_outputs").to_gemini(schema)
     end,

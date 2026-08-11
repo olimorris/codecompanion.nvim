@@ -139,9 +139,9 @@ local function code_block(message, filetype, code)
   return fmt(
     [[%s
 <code>
-```%s
+````%s
 %s
-```
+````
 </code>]],
     message,
     filetype,
@@ -432,6 +432,8 @@ function Inline:submit(prompt)
       ---@param data table
       ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
       callback = function(err, data, adapter)
+        require("codecompanion.interactions.inline.keymaps").clear_map(config.interactions.inline.keymaps, self.bufnr)
+
         local function error(msg)
           log:error("[Inline] Request failed with error %s", msg)
         end

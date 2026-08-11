@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
 
@@ -90,7 +89,7 @@ T["Reasoning folds"]["creates fold from header+1 to before Response header"] = f
   -- Ensure it's actually closed in the buffer
   h.eq(res.is_closed, true, "Expected the reasoning fold to be closed")
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 T["Reasoning folds"]["does not fold when no body under header"] = function()
@@ -180,7 +179,7 @@ T["Reasoning folds"]["preserves earlier folds when adding a new reasoning fold"]
     vim.wait(300, function() return false end)
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T

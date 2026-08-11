@@ -186,6 +186,33 @@ require("codecompanion").setup({
 })
 ```
 
+## Background Interaction Adapters
+
+Background interactions are calls that CodeCompanion can make...in the background! That is, no user input is made and a request is sent to an LLM.
+
+By default every background action uses the shared `interactions.background.adapter`. However, you can override this at an action level:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      chat = {
+        callbacks = {
+          ["on_ready"] = {
+            actions = {
+              {
+                path = "interactions.background.builtin.chat_make_title",
+                adapter = { name = "copilot", model = "claude-haiku-4.5" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## Controlling Model Choices
 
 When switching between adapters, the plugin typically displays all available model choices for the selected adapter. If you want to simplify the interface and have the default model automatically chosen (without showing any model selection UI), you can set the `show_model_choices` option to `false`:
@@ -277,6 +304,22 @@ require("codecompanion").setup({
 })
 ```
 
+```lua{7} [File]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = {
+            api_key = "file:~/.dotfiles/.anthropic_api_key",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
 :::
 
 > [!NOTE]
@@ -287,6 +330,7 @@ Supported `env` value types:
 - **Command (string prefixed with `cmd:`)**: any value that starts with `cmd:` will be executed via the shell. Example: `"cmd:op read op://personal/Gemini/credential --no-newline"`.
 - **Function**: you can provide a Lua function which returns a string and will be called with the adapter as its sole argument.
 - **Schema reference (dot notation)**: you can reference values from the adapter table (for example `"schema.model.default"`).
+- **File (string prefixed with `file:`)**: any value that starts with `file:` will be read from disk, e.g. `"file:.api_key"` (relative to the cwd) or `"file:~/.dotfiles/.api_key"`. The file is read fresh on every request rather than being cached, so updating the file takes effect immediately.
 
 ## Disabling Compaction
 
@@ -377,6 +421,25 @@ require("codecompanion").setup({
     },
   },
 }),
+```
+
+### GitHub Copilot Free/Student
+
+If you are a Copilot Student or Copilot Free user, you have access to models ["through auto model selection only"](https://docs.github.com/en/copilot/reference/ai-models/supported-models#supported-ai-models-per-copilot-plan). By default, Copilot should work out of the box but you can explicitly select the `auto` model as follows:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "copilot",
+      model = "auto"
+    },
+    inline = {
+      adapter = "copilot",
+      model = "auto"
+    },
+  },
+})
 ```
 
 ### llama.cpp with `--reasoning-format deepseek`

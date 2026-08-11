@@ -1,0 +1,24 @@
+{
+  "response_format": {
+    "type": "text",
+    "mime_type": "application/json",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "conditions": {
+          "type": "string",
+          "description": "Weather conditions description"
+        },
+        "location": {
+          "type": "string",
+          "description": "City or location name"
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Temperature in Celsius"
+        }
+      },
+      "required": ["conditions", "location", "temperature"]
+    }
+  }
+}

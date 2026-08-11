@@ -48,6 +48,22 @@ T["Structured Outputs"]["can transform to Gemini"] = function()
   h.eq(output[1], output[2])
 end
 
+T["Structured Outputs"]["can transform to Gemini Interactions"] = function()
+  local output = child.lua([[
+    local input = vim.fn.readfile("tests/adapters/utils/stubs/input.json")
+    input = vim.json.decode(table.concat(input, "\n"))
+
+    local gemini_interactions = vim.fn.readfile("tests/adapters/utils/stubs/gemini_interactions_structured_output.json")
+    gemini_interactions = vim.json.decode(table.concat(gemini_interactions, "\n"))
+
+    local output = transform.to_gemini_interactions(input)
+
+    return { gemini_interactions, output }
+  ]])
+
+  h.eq(output[1], output[2])
+end
+
 T["Structured Outputs"]["can transform to Ollama"] = function()
   local output = child.lua([[
     local input = vim.fn.readfile("tests/adapters/utils/stubs/input.json")

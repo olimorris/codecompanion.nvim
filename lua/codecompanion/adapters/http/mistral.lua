@@ -1,6 +1,18 @@
 local adapter_utils = require("codecompanion.adapters.utils")
-local log = require("codecompanion.utils.log")
+local config = require("codecompanion.config")
+local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local openai = require("codecompanion.adapters.http.openai")
+
+local models_source = {
+  name = "Mistral",
+  url = "https://api.mistral.ai/v1/models",
+  ---@param adapter CodeCompanion.HTTPAdapter
+  ---@return table
+  headers = function(adapter)
+    adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
+    return adapter_utils.set_env_vars(adapter, adapter.headers)
+  end,
+}
 
 ---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
 return {
@@ -35,14 +47,13 @@ return {
         self.parameters.stream = true
       end
 
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
+      local model_opts = adapter_utils.model_choice(self, { async = false })
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
           self.opts.vision = false
         end
-        if model_opts.opts.has_function_calling ~= nil and not model_opts.opts.has_function_calling then
+        if not model_opts.opts.can_use_tools then
           self.opts.tools = false
         end
       end
@@ -65,12 +76,9 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
       ---Ref: https://docs.mistral.ai/studio-api/conversations/structured-output/custom
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return openai.handlers.form_structured_output(self, schema)
     end,
@@ -200,24 +208,12 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "mistral-small-latest",
-      choices = {
-        -- Premier models
-        ["mistral-large-latest"] = { opts = { can_form_structured_outputs = true } },
-        ["pixtral-large-latest"] = { opts = { has_vision = true, can_form_structured_outputs = true } },
-        ["magistral-medium-latest"] = { opts = { can_reason = true, can_form_structured_outputs = true } },
-        ["magistral-small-latest"] = { opts = { can_reason = true, can_form_structured_outputs = true } },
-        ["mistral-medium-latest"] = { opts = { has_vision = true, can_form_structured_outputs = true } },
-        ["mistral-saba-latest"] = { opts = { has_function_calling = false } },
-        ["codestral-latest"] = { opts = { can_form_structured_outputs = true } },
-        ["ministral-8b-latest"] = { opts = { can_form_structured_outputs = true } },
-        ["ministral-3b-latest"] = { opts = { can_form_structured_outputs = true } },
-        -- Free models, latest
-        ["mistral-small-latest"] = { opts = { has_vision = true, can_form_structured_outputs = true } },
-        ["pixtral-12b-2409"] = { opts = { has_vision = true } },
-        -- Free models, research
-        "open-mistral-nemo",
-        "open-codestral-mamba",
-      },
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param opts? { async?: boolean }
+      ---@return table<string, CodeCompanion.Adapter.ModelChoice>
+      choices = function(self, opts)
+        return fetch_models.get(models_source, self, opts)
+      end,
     },
     temperature = {
       order = 2,

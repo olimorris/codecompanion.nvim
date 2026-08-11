@@ -14,7 +14,6 @@
 ---@field context CodeCompanion.Chat.Context
 ---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field current_request table|nil The current request being executed
----@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
 ---@field editor_context? CodeCompanion.EditorContext The editor context available to the user
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
@@ -32,6 +31,7 @@
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
+---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
@@ -697,6 +697,23 @@ function Chat:add_callback(event, callback)
   return self
 end
 
+---Remove a previously registered callback for an event
+---@param event string The event name
+---@param callback fun(chat: CodeCompanion.Chat) The exact callback function that was registered
+---@return CodeCompanion.Chat
+function Chat:remove_callback(event, callback)
+  local callbacks = self.callbacks[event]
+  if not callbacks then
+    return self
+  end
+  for i = #callbacks, 1, -1 do
+    if callbacks[i] == callback then
+      table.remove(callbacks, i)
+    end
+  end
+  return self
+end
+
 ---Dispatch callbacks for a specific event
 ---@param event string The event name
 ---@param ... any Additional arguments to pass to callbacks
@@ -707,7 +724,8 @@ function Chat:dispatch(event, ...)
     return self
   end
 
-  for _, callback in ipairs(callbacks) do
+  -- Iterate a snapshot so a callback that deregisters itself doesn't shift the loop
+  for _, callback in ipairs(vim.list_slice(callbacks, 1, #callbacks)) do
     local ok, err = pcall(callback, self, ...)
     if not ok then
       log:error("Callback error for %s: %s", event, err, { silent = true })
@@ -1351,6 +1369,8 @@ function Chat:submit(opts)
     if not config.display.chat.auto_scroll then
       vim.cmd("stopinsert")
     end
+
+    self.ui:resume_following()
     self.ui:lock_buf()
     self.header_line = api.nvim_buf_line_count(self.bufnr) + 2 -- this accounts for the LLM header
 
@@ -1520,9 +1540,16 @@ function Chat:done(output, reasoning, tools, meta, opts)
   end
 
   self:checkpoint()
-  if require("codecompanion.interactions.chat.context_management").check(self) then
+  -- A compaction request ends the turn itself once its summary lands
+  if require("codecompanion.interactions.chat.context_management").apply(self) then
     return
   end
+  self:finish()
+end
+
+---End the turn, handing the chat buffer back to the user
+---@return nil
+function Chat:finish()
   self:ready_for_input()
 
   self:dispatch("on_completed", { status = self.status })
@@ -1704,13 +1731,14 @@ function Chat:stop()
   self:dispatch("on_cancelled")
   utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
-  if self.current_tool then
-    local tool_job = self.current_tool
-    self.current_tool = nil
-
-    pcall(function()
-      tool_job.cancel()
+  if self.tool_orchestrator then
+    local ok, err = pcall(function()
+      self.tool_orchestrator:cancel()
     end)
+    self.tool_orchestrator = nil
+    if not ok then
+      log:error("Failed to cancel the running tools: %s", err)
+    end
   end
 
   pcall(function()

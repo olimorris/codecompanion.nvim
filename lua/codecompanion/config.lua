@@ -17,8 +17,10 @@ local defaults = {
       copilot = "copilot",
       deepseek = "deepseek",
       gemini = "gemini",
+      gemini_interactions = "gemini_interactions",
       githubmodels = "githubmodels",
       huggingface = "huggingface",
+      kimi = "kimi",
       novita = "novita",
       mistral = "mistral",
       ollama = "ollama",
@@ -72,10 +74,7 @@ local defaults = {
     },
     -- BACKGROUND INTERACTION -------------------------------------------------
     background = {
-      adapter = {
-        name = "copilot",
-        model = "claude-haiku-4.5",
-      },
+      adapter = "copilot",
       -- Callbacks within the plugin that you can attach background actions to
       chat = {
         callbacks = {
@@ -94,6 +93,13 @@ local defaults = {
         },
         opts = {
           enabled = false, -- Enable ALL background chat interactions?
+        },
+      },
+      gates = {
+        judge = {
+          enabled = true,
+          action = "interactions.background.builtin.tools_judge",
+          opts = {},
         },
       },
     },
@@ -201,7 +207,8 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.create_file",
           description = "Create a file in the current working directory",
           opts = {
-            require_approval_before = true,
+            require_approval_before = false,
+            require_confirmation_after = true,
           },
         },
         ["delete_file"] = {
@@ -210,6 +217,8 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             allowed_in_yolo_mode = false,
             require_approval_before = true,
+            require_cmd_approval = true,
+            judge_in_yolo_mode = false,
           },
         },
         ["fetch_webpage"] = {
@@ -284,9 +293,10 @@ The user is working on a %s machine. Please respond with system specific command
             allowed_in_yolo_mode = false,
             require_approval_before = true,
             require_cmd_approval = true,
+            judge_in_yolo_mode = false,
+            timeout = 300000, -- Timeout for commands (milliseconds) - 5 mins by default
           },
         },
-
         ["web_search"] = {
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
@@ -349,7 +359,7 @@ If a tool exists to do a task, use the tool instead of asking the user to manual
 If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
 Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
 Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
-If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
+For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
 </toolUseInstructions>
 <outputFormatting>
@@ -492,6 +502,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["now"] = {
           path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
+          opts = {
+            contains_code = false,
+          },
+        },
+        ["rename"] = {
+          path = "interactions.chat.slash_commands.builtin.rename",
+          description = "Rename the current session",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
           opts = {
             contains_code = false,
           },
@@ -697,7 +722,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Toggle auto-approval of tool calls",
+          description = "Toggle YOLO/auto-approval of tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -851,6 +876,46 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
     },
+    code_review = {
+      enabled = true,
+      keymaps = {
+        accept = {
+          modes = { n = "a" },
+          callback = "keymaps.accept",
+          description = "Accept the hunk under the cursor",
+        },
+        comment = {
+          modes = { n = "c" },
+          callback = "keymaps.comment",
+          description = "Comment on the hunk under the cursor",
+        },
+        diff = {
+          modes = { n = "d" },
+          callback = "keymaps.diff",
+          description = "Diff the hunk under the cursor against the baseline",
+        },
+        ignore = {
+          modes = { n = "x" },
+          callback = "keymaps.ignore",
+          description = "Ignore the hunk's file until the baseline advances",
+        },
+      },
+      display = {
+        diff = {
+          enabled = true, -- Disable to bring your own diff plugin, pointed at the baseline ref
+          layout = "vertical", -- vertical|horizontal
+          provider = "native", -- "native"|fun(target: CodeCompanion.CodeReview.DiffTarget)
+        },
+        virtual_text = {
+          enabled = true, -- Show pending comments as virtual text in the buffer
+          icon = "💬 ", -- The icon to use for virtual text
+          overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
+        },
+      },
+      opts = {
+        storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
+      },
+    },
     shared = {
       editor_context = {
         opts = {
@@ -884,6 +949,14 @@ The user is working on a %s machine. Please respond with system specific command
             contains_code = true,
             default_params = "diff", -- all|diff
             has_params = true,
+          },
+        },
+        ["code_review"] = {
+          path = "interactions.shared.editor_context.code_review",
+          description = "Share your pending code review comments with the LLM",
+          opts = {
+            contains_code = true,
+            replacement_message = "my comments from the code review, which I've attached",
           },
         },
         ["diagnostics"] = {
@@ -983,6 +1056,12 @@ The user is working on a %s machine. Please respond with system specific command
       },
     },
   },
+  -- INTEGRATIONS -----------------------------------------------------------
+  integrations = {
+    herdr = {
+      enabled = true,
+    },
+  },
   -- MCP SERVERS ----------------------------------------------------------------
   mcp = {
     servers = {},
@@ -1051,6 +1130,12 @@ The user is working on a %s machine. Please respond with system specific command
             ".codecompanion/acp/claude_code_acp.md",
           },
         },
+        ["code-review"] = {
+          description = "The code review implementation",
+          files = {
+            ".codecompanion/code_review.md",
+          },
+        },
         ["rules"] = {
           description = "Rules in the plugin",
           files = {
@@ -1095,6 +1180,8 @@ The user is working on a %s machine. Please respond with system specific command
         ---The rule groups to load with every chat interaction
         ---@type string|fun(): string
         autoload = "default",
+
+        autoload_groups_in_prompt_library = false, -- Load the autoload rule groups into a prompt library by default?
 
         ---@type boolean | fun(chat: CodeCompanion.Chat): boolean
         enabled = true,

@@ -2,7 +2,7 @@ local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local tags = require("codecompanion.interactions.shared.tags")
-local tool_utils = require("codecompanion.adapters.utils.tool_transformers")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
 ---@type string|nil
 local response_id
@@ -23,6 +23,7 @@ return {
   },
   opts = {
     compaction = true,
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -56,7 +57,7 @@ return {
       ---@param self CodeCompanion.HTTPAdapter
       ---@return boolean
       setup = function(self)
-        local model_opts = adapter_utils.model_choice(self)
+        local model_opts = adapter_utils.model_choice(self, { async = false })
 
         self.opts.vision = true
 
@@ -194,6 +195,48 @@ return {
                   content = combined_content,
                 })
               end
+            elseif
+              -- NOTE: Only support PDFs for now
+              m._meta
+              and m._meta.tag == tags.DOCUMENT
+              and m._meta.filetype == "pdf"
+              and (m.context and m.context.mimetype)
+            then
+              -- Check if this is a document message followed by a text message from the same user
+              if self.opts and self.opts.documents then
+                local next_msg = messages[i + 1]
+                local combined_content = {
+                  {
+                    type = "input_file",
+                    filename = vim.fn.fnamemodify(m.context.path, ":t"),
+                    file_data = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                }
+
+                -- If next message is also from user with text content, combine them
+                if
+                  next_msg
+                  and next_msg.role == m.role
+                  and type(next_msg.content) == "string"
+                  and not (next_msg._meta and next_msg._meta.tag == tags.DOCUMENT)
+                then
+                  table.insert(combined_content, {
+                    type = "input_text",
+                    text = next_msg.content,
+                  })
+                  i = i + 1 -- Skip the next message since we've combined it
+                end
+
+                table.insert(input, {
+                  role = m.role,
+                  content = combined_content,
+                })
+              else
+                return log:warn(
+                  "The `%s` model does not support documents so has been removed from the request",
+                  self.formatted_name
+                )
+              end
             elseif m.role == "tool" then
               table.insert(input, {
                 type = "function_call_output",
@@ -270,7 +313,7 @@ return {
             else
               table.insert(
                 transformed,
-                tool_utils.transform_schema_if_needed(schema, {
+                tool_transformer.transform_schema_if_needed(schema, {
                   strict_mode = true,
                 })
               )
@@ -286,14 +329,8 @@ return {
       ---@param schema CodeCompanion.StructuredOutput.Schema
       ---@return table|nil
       build_structured_output = function(self, schema)
-        if not schema then
+        if not schema or not self.opts.can_form_structured_outputs then
           return nil
-        end
-        if not self.opts.can_form_structured_outputs then
-          return log:warn(
-            "[openai_responses] Model '%s' does not support structured outputs",
-            self.model and self.model.name
-          )
         end
         return require("codecompanion.adapters.utils.structured_outputs").to_openai_responses(schema)
       end,
@@ -608,8 +645,55 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-5",
+      default = "gpt-5.6-luna",
       choices = {
+        -- Frontier Models
+        ["gpt-5.6-sol"] = {
+          formatted_name = "GPT 5.6 Sol",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-terra"] = {
+          formatted_name = "GPT 5.6 Terra",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-luna"] = {
+          formatted_name = "GPT 5.6 Luna",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
+        -- Older models
+        ["gpt-5.5-pro"] = {
+          formatted_name = "GPT 5.5 Pro",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
         ["gpt-5.5"] = {
           formatted_name = "GPT 5.5",
           meta = { context_window = 1050000 },
@@ -634,7 +718,6 @@ return {
           },
         },
 
-        -- Frontier models
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },

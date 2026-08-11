@@ -55,7 +55,7 @@ require("codecompanion").setup({
 If you add or modify markdown prompts whilst your Neovim session is running, you can refresh the prompt library to pick up the changes with:
 
 ```
-:CodeCompanionActions refresh
+:CodeCompanionActions Refresh
 ```
 
 ## Creating Prompts
@@ -118,7 +118,7 @@ require("codecompanion").setup({
           role = "user",
           content = function(context)
             local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
-            return "Please explain the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```"
+            return "Please explain the following code:\n\n````" .. context.filetype .. "\n" .. text .. "\n````"
           end,
         },
       },
@@ -608,6 +608,8 @@ mcp_servers: none
 
 :::
 
+:::
+
 #### Pickers
 
 Pickers allow you to create dynamic prompt menus based on runtime data.
@@ -706,6 +708,9 @@ rules:
 
 :::
 
+> [!INFO]
+> A prompt that names no rules loads none by default. Enable `rules.opts.chat.autoload_groups_in_prompt_library` to have your prompts autoload rule groups that you've specified in `rules.opts.chat.autoload`
+
 #### Tools
 
 You can also specify tools to be loaded with your prompt. These can be individual tools as well as tool groups:
@@ -757,6 +762,8 @@ tools: none
   tools = "none",
 },
 ```
+
+:::
 
 :::
 

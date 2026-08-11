@@ -185,14 +185,14 @@ function StdioTransport:stop()
   self.methods.defer_fn(function()
     if self._sysobj then
       pcall(function()
-        self._sysobj:kill(vim.uv.constants.SIGTERM)
+        self._sysobj:kill("sigterm")
       end)
 
       -- Step 3: Schedule SIGKILL as last resort
       self.methods.defer_fn(function()
         if self._sysobj then
           pcall(function()
-            self._sysobj:kill(vim.uv.constants.SIGKILL)
+            self._sysobj:kill("sigkill")
           end)
         end
       end, CONSTANTS.SIGTERM_TIMEOUT)

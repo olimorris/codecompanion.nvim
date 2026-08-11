@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local child = MiniTest.new_child_neovim()
 local new_set = MiniTest.new_set
 
@@ -11,7 +10,7 @@ local T = new_set({
       child.lua([[
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
-        config = require("tests.config")
+        config = require("codecompanion.config")
         _G.chat, _G.tools = h.setup_chat_buffer()
       ]])
     end,
@@ -410,7 +409,7 @@ T["Context"]["Correctly removes tool schema and usage flag on context deletion"]
   child.lua([[
      -- Add a user message that triggers multiple tool calls
      local message = {
-       role = config.constants.USER_ROLE,
+       role = require("codecompanion.config").constants.USER_ROLE,
        content = "Whats the @{weather} like in London? Also adding a @{func} tool too.",
      }
      _G.chat:add_message(message) -- Add to message history
@@ -644,7 +643,7 @@ T["Context"]["does not fold single context item but applies extmark"] = function
     })
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
 end
 
 return T

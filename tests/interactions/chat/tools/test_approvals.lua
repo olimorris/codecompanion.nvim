@@ -465,6 +465,32 @@ T["command-level approvals"]["resets command approvals with reset()"] = function
   h.eq(approved, false)
 end
 
+T["command-level approvals"]["respects an always-accepted command even when yolo mode disallows the tool"] = function()
+  child.lua([[
+    -- Mirrors the real run_command config: opted out of yolo mode, but still
+    -- cmd-approvable
+    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
+      opts = {
+        allowed_in_yolo_mode = false,
+        require_cmd_approval = true,
+      },
+    }
+
+    Approvals:toggle_yolo_mode(1)
+    Approvals:always(1, { tool_name = 'run_command', cmd = 'rake' })
+  ]])
+
+  local approved_cmd = child.lua([[
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'rake' })
+  ]])
+  local other_cmd = child.lua([[
+    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'rm -rf /' })
+  ]])
+
+  h.eq(approved_cmd, true)
+  h.eq(other_cmd, false)
+end
+
 T["command-level approvals"]["yolo mode overrides cmd approval requirement"] = function()
   child.lua([[
     package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {

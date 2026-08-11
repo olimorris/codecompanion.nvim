@@ -4,7 +4,7 @@
 ---@field mapping? string Where to map the item to the request
 ---@field order nil|integer The order to display the item when the full schema is shown
 ---@field optional nil|boolean
----@field choices nil|table|fun(self: CodeCompanion.HTTPAdapter): table<string>
+---@field choices nil|table|fun(self: CodeCompanion.HTTPAdapter, opts?: { async?: boolean }): table<string>
 ---@field desc string The description of the schema item
 ---@field enabled? nil|fun(self: CodeCompanion.HTTPAdapter): boolean
 ---@field validate? fun(value: any): boolean, nil|string

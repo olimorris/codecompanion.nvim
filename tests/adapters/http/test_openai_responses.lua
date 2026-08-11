@@ -223,6 +223,77 @@ T["Responses"]["build_messages"]["multiple consecutive images are not merged as 
   h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
 end
 
+T["Responses"]["build_messages"]["documents"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        visible = false,
+      },
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    input = {
+      {
+        content = {
+          {
+            type = "input_file",
+            filename = "report.pdf",
+            file_data = "data:application/pdf;base64,somefakebase64encoding",
+          },
+          {
+            type = "input_text",
+            text = "What does this PDF say?",
+          },
+        },
+        role = "user",
+      },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
+end
+
+T["Responses"]["build_messages"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        visible = false,
+      },
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        path = "report.docx",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+    },
+  }
+
+  local result = adapter.handlers.request.build_messages(adapter, messages)
+
+  h.eq("somefakebase64encoding", result.input[1].content)
+end
+
 T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {
@@ -742,6 +813,24 @@ T["Responses"]["Compaction"]["Streaming"]["captures compaction from output_item.
   h.eq("compaction", compaction_items.type)
   h.eq("compaction_cancelled_001", compaction_items.id)
   h.eq("gAAAABcancelledcompactiondata", compaction_items.encrypted_content)
+end
+
+T["Responses"]["resolves model capabilities on the first request"] = function()
+  local adapters = require("codecompanion.adapters")
+
+  adapter.schema.model.default = "gpt-5.4"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["gpt-5.4"] = { opts = { can_form_structured_outputs = true, can_use_tools = true } } }
+  end
+
+  adapter.parameters = {}
+  adapters.call_handler(adapter, "setup")
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(nil, adapters.call_handler(adapter, "build_structured_output", { name = "verdict", schema = {} }))
 end
 
 return T

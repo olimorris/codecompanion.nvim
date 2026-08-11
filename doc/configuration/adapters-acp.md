@@ -324,7 +324,7 @@ To use [Cline CLI](https://cline.bot/cli) within CodeCompanion, you'll need to t
 
 ## Setup: Codex
 
-To use OpenAI's [Codex](https://openai.com/codex/), install an ACP-compatible adapter like [this](https://github.com/zed-industries/codex-acp) one from [Zed](https://zed.dev).
+To use OpenAI's [Codex](https://openai.com/codex/), install [codex-acp](https://github.com/agentclientprotocol/codex-acp).
 
 By default, the adapter will look for an `OPENAI_API_KEY` in your shell, however you can also authenticate via ChatGPT. This can be customized in the plugin configuration:
 
@@ -335,7 +335,7 @@ require("codecompanion").setup({
       codex = function()
         return require("codecompanion.adapters").extend("codex", {
           defaults = {
-            auth_method = "openai-api-key", -- "openai-api-key"|"codex-api-key"|"chatgpt"
+            auth_method = "api-key", -- "api-key"|"chat-gpt"
           },
           env = {
             OPENAI_API_KEY = "my-api-key",

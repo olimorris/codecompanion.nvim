@@ -42,6 +42,7 @@ return {
     tool = "tool",
   },
   opts = {
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -148,6 +149,33 @@ return {
             end
           end
 
+          -- Process any documents
+          -- NOTE: Only support PDFs for now
+          if
+            m._meta
+            and m._meta.tag == tags.DOCUMENT
+            and m._meta.filetype == "pdf"
+            and m.context
+            and m.context.mimetype
+          then
+            if self.opts and self.opts.documents then
+              m.content = {
+                {
+                  type = "file",
+                  file = {
+                    filename = vim.fn.fnamemodify(m.context.path, ":t"),
+                    file_data = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                },
+              }
+            else
+              return log:warn(
+                "The `%s` model does not support documents so has been removed from the request",
+                self.formatted_name
+              )
+            end
+          end
+
           local result = {
             role = m.role,
             content = m.content,
@@ -194,11 +222,8 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return require("codecompanion.adapters.utils.structured_outputs").to_openai(schema)
     end,
@@ -405,6 +430,48 @@ return {
       default = "gpt-4.1",
       choices = {
         -- Frontier models
+        ["gpt-5.6-sol"] = {
+          formatted_name = "GPT 5.6 Sol",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            can_reason = true,
+            has_vision = true,
+          },
+        },
+        ["gpt-5.6-terra"] = {
+          formatted_name = "GPT 5.6 Terra",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-luna"] = {
+          formatted_name = "GPT 5.6 Luna",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
+        -- Older models
+        ["gpt-5.5"] = {
+          formatted_name = "GPT 5.5",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },
@@ -440,8 +507,7 @@ return {
           meta = { context_window = 1047576 },
           opts = { has_vision = true, can_form_structured_outputs = true },
         },
-
-        -- Older models
+        --
         ["o4-mini-2025-04-16"] = {
           formatted_name = "o4 Mini",
           opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },

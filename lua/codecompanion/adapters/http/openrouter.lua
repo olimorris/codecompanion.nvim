@@ -1,97 +1,15 @@
-local Curl = require("plenary.curl")
-local adapter_utils = require("codecompanion.adapters.utils")
-local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
+local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local openai = require("codecompanion.adapters.http.openai")
 
----@class OpenRouterModels
----@field archirecture { input_modalities: string[], output_modalities: string[] } e.g. { input_modalities = { "text", "image" }, output_modalities = { "text" } }
----@field context_length number e.g. 1000000
----@field created number e.g. 1759161676
----@field default_parameters table e.g. { temperature = 1, top_p = 1, top_k = null }
----@field description string
----@field id string e.g. anthropic/claude-sonnet-4.5
----@field name string e.g. Anthropic: Claude Sonnet 4.5
----@field pricing table
-
-local _cache_expires
-local _cache_file = vim.fn.tempname()
-local _cached_models
-
----@params self CodeCompanion.HTTPAdapter
----@params opts? table
----@return table
-local function get_models()
-  if _cached_models and _cache_expires and _cache_expires > os.time() then
-    return _cached_models
-  end
-
-  local url = "https://openrouter.ai/api/v1/models"
-
-  local ok
-  local response ---@type OpenRouterModels
-
-  ok, response = pcall(function()
-    return Curl.get(url, {
-      headers = {
-        Authorization = "Bearer ${api_key}",
-      },
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-      sync = true,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the OpenRouter models from " .. url .. "\nError: %s", response)
-    return {}
-  end
-
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Error parsing the response from " .. url .. "\nError: %s", response.body)
-    return {}
-  end
-
-  local models = {}
-  for _, model in ipairs(json.data) do
-    -- Turn the model's `supported_parameters` array into a lookup set so the
-    -- schema fields can check, per model, which parameters the API accepts
-    local supported = {}
-    for _, parameter in ipairs(model.supported_parameters or {}) do
-      supported[parameter] = true
-    end
-
-    local choice_opts = {
-      supported_parameters = supported,
-      can_form_structured_outputs = supported.structured_outputs or false,
-      can_use_tools = supported.tools or false,
-      can_reason = supported.reasoning or false,
-      reasoning = model.reasoning and {
-        default = model.reasoning.default_effort,
-        supported = model.reasoning.supported_efforts,
-      } or nil,
-    }
-    if model.architecture and model.architecture.input_modalities then
-      choice_opts.has_vision = vim.tbl_contains(model.architecture.input_modalities, "image")
-    end
-
-    models[model.id] = {
-      formatted_name = model.name,
-      meta = model.context_length and { context_window = model.context_length } or nil,
-      opts = choice_opts,
-    }
-  end
-
-  _cached_models = models
-  _cache_expires = adapter_utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
-
-  return models
-end
+local models_source = {
+  name = "OpenRouter",
+  url = "https://openrouter.ai/api/v1/models",
+}
 
 ---@param self CodeCompanion.HTTPAdapter
 ---@return table|nil
 local function model_choices(self)
-  local cached_models = get_models()
+  local cached_models = fetch_models.get(models_source, self)
   local model = cached_models[self.schema.model.default]
   return model and model.opts or nil
 end
@@ -100,7 +18,7 @@ end
 ---@param parameter string
 ---@return boolean
 local function model_supports(self, parameter)
-  local cached_models = get_models()
+  local cached_models = fetch_models.get(models_source, self)
   local model = cached_models[self.schema.model.default]
   if not model then
     return false
@@ -118,12 +36,13 @@ return {
     user = "user",
   },
   opts = {
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
   },
   available_tools = {
-    ["web_fetch"] = {
+    ["fetch_webpage"] = {
       description = "Gives any model the ability to fetch content from a specific URL",
       ---@param self CodeCompanion.HTTPAdapter.OpenRouter
       ---@param meta { tools: table }
@@ -170,7 +89,7 @@ return {
         model = model(self)
       end
       if type(choices) == "function" then
-        choices = choices(self)
+        choices = choices(self, { async = false })
       end
       local model_opts = choices[model]
 
@@ -268,12 +187,9 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
       ---Ref: https://openrouter.ai/docs/guides/features/structured-outputs#using-structured-outputs
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return openai.handlers.form_structured_output(self, schema)
     end,
@@ -407,9 +323,10 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
       default = "openai/gpt-5.4-mini",
+      ---@param opts? { async?: boolean }
       ---@return table
-      choices = function(self)
-        return get_models()
+      choices = function(self, opts)
+        return fetch_models.get(models_source, self, opts)
       end,
     },
     ["reasoning.effort"] = {
@@ -446,7 +363,7 @@ return {
       enabled = function(self)
         return model_supports(self, "temperature")
       end,
-      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      desc = "This setting influences the variety in the model’s responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input.",
       validate = function(n)
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
@@ -460,7 +377,7 @@ return {
       enabled = function(self)
         return model_supports(self, "top_p")
       end,
-      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
+      desc = "This setting limits the model’s choices to a percentage of likely tokens: only the top tokens whose probabilities add up to P. A lower value makes the model’s responses more predictable, while the default setting allows for a full range of token choices. Think of it like a dynamic Top-K.",
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
@@ -470,13 +387,13 @@ return {
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = -1,
+      default = 0,
       enabled = function(self)
         return model_supports(self, "top_k")
       end,
-      desc = "Integer that controls the number of top tokens to consider. Set to -1 to consider all tokens",
+      desc = "This limits the model’s choice of tokens at each step, making it choose from a smaller set. A value of 1 means the model will always pick the most likely next token, leading to predictable results. By default this setting is disabled, making the model to consider all choices.",
       validate = function(n)
-        return n >= -1, "Must be greater than or equal to -1"
+        return n >= 1, "Must be greater than or equal to 1"
       end,
     },
     min_p = {
@@ -488,7 +405,7 @@ return {
       enabled = function(self)
         return model_supports(self, "min_p")
       end,
-      desc = "Float that represents the minimum probability for a token to be considered, relative to the probability of the most likely token",
+      desc = "Represents the minimum probability for a token to be considered, relative to the probability of the most likely token. (The value changes depending on the confidence level of the most probable token.) If your Min-P is set to 0.1, that means it will only allow for tokens that are at least 1/10th as probable as the best possible option.",
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
@@ -519,7 +436,7 @@ return {
       enabled = function(self)
         return model_supports(self, "presence_penalty")
       end,
-      desc = "Float that penalizes new tokens based on whether they appear in the generated text so far. Values > 0 encourage the model to use new tokens, while values < 0 encourage the model to repeat tokens",
+      desc = "Adjusts how often the model repeats specific tokens already used in the input. Higher values make such repetition less likely, while negative values do the opposite. Token penalty does not scale with the number of occurrences. Negative values will encourage token reuse.",
       validate = function(n)
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
@@ -533,34 +450,14 @@ return {
       enabled = function(self)
         return model_supports(self, "frequency_penalty")
       end,
-      desc = "Float that penalizes new tokens based on their frequency in the generated text so far. Values > 0 encourage the model to use new tokens, while values < 0 encourage the model to repeat tokens",
+      desc = "This setting aims to control the repetition of tokens based on how often they appear in the input. It tries to use less frequently those tokens that appear more in the input, proportional to how frequently they occur. Token penalty scales with the number of occurrences. Negative values will encourage token reuse.",
       validate = function(n)
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
-    logit_bias = {
-      order = 10,
-      mapping = "parameters",
-      type = "map",
-      optional = true,
-      default = nil,
-      enabled = function(self)
-        return model_supports(self, "logit_bias")
-      end,
-      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
-      subtype_key = {
-        type = "integer",
-      },
-      subtype = {
-        type = "integer",
-        validate = function(n)
-          return n >= -100 and n <= 100, "Must be between -100 and 100"
-        end,
-      },
-    },
     -- Ref: https://openrouter.ai/docs/guides/features/presets
     preset = {
-      order = 11,
+      order = 10,
       mapping = "parameters",
       type = "string",
       optional = true,
@@ -569,7 +466,7 @@ return {
     },
     -- Ref: https://openrouter.ai/docs/guides/routing/provider-selection
     provider = {
-      order = 12,
+      order = 11,
       mapping = "parameters",
       type = "map",
       optional = true,

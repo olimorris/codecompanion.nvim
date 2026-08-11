@@ -87,6 +87,12 @@ The default config for rules is:
             ".codecompanion/acp/claude_code_acp.md",
           },
         },
+        ["code-review"] = {
+          description = "The code review implementation",
+          files = {
+            ".codecompanion/code_review.md",
+          },
+        },
         ["rules"] = {
           description = "Rules in the plugin",
           files = {

@@ -1,7 +1,20 @@
 local adapter_utils = require("codecompanion.adapters.utils")
+local config = require("codecompanion.config")
+local fetch_models = require("codecompanion.adapters.utils.models.fetch")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.adapters.utils.tool_transformers")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
+
+local models_source = {
+  name = "Anthropic",
+  url = "https://api.anthropic.com/v1/models",
+  ---@param adapter CodeCompanion.HTTPAdapter
+  ---@return table
+  headers = function(adapter)
+    adapter_utils.get_env_vars(adapter, { timeout = config.adapters.opts.cmd_timeout })
+    return adapter_utils.set_env_vars(adapter, adapter.headers)
+  end,
+}
 
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
@@ -17,6 +30,7 @@ return {
   },
   opts = {
     compaction = true,
+    documents = true,
     stream = true,
     tools = true,
     vision = true,
@@ -101,7 +115,7 @@ return {
       end
 
       -- Make sure the individual model options are set
-      local model_opts = adapter_utils.model_choice(self)
+      local model_opts = adapter_utils.model_choice(self, { async = false })
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
         if not model_opts.opts.has_vision then
@@ -112,6 +126,7 @@ return {
         if self.opts.compaction ~= false and model_opts.opts.can_manage_context then
           self.opts.can_manage_context = true
           adapter_utils.add_header(self.headers, "anthropic-beta", "compact-2026-01-12")
+          adapter_utils.add_header(self.headers, "anthropic-beta", "context-management-2025-06-27")
         else
           self.opts.can_manage_context = false
           adapter_utils.remove_header(self.headers, "anthropic-beta", "compact-2026-01-12")
@@ -142,9 +157,8 @@ return {
             type = "adaptive",
           }
         end
-        -- Thinking isn't compatible with temperature or top_k
+        -- Thinking isn't compatible with top_k
         -- Ref: https://platform.claude.com/docs/en/build-with-claude/extended-thinking#feature-compatibility
-        params.temperature = nil
         params.top_k = nil
 
         -- top_p must be between 1 and 0.95
@@ -209,6 +223,29 @@ return {
           else
             -- Remove the message if vision is not supported
             return nil
+          end
+        end
+
+        -- 3b. Account for any documents
+        -- NOTE: Only support PDFs for now
+        if
+          m._meta
+          and m._meta.tag == tags.DOCUMENT
+          and m._meta.filetype == "pdf"
+          and m.context
+          and m.context.mimetype
+        then
+          if self.opts and self.opts.documents then
+            m.content = {
+              {
+                type = "document",
+                source = {
+                  type = "base64",
+                  media_type = m.context.mimetype,
+                  data = m.content,
+                },
+              },
+            }
           end
         end
 
@@ -339,6 +376,7 @@ return {
       local context_management = nil
       if self.opts.can_manage_context then
         local helpers = require("codecompanion.interactions.chat.helpers")
+        local editing_trigger = helpers.trigger_context_management(self, { operation = "editing" })
 
         context_management = {
           ["edits"] = {
@@ -349,17 +387,18 @@ return {
             --     value = 3,
             --   },
             -- },
-            -- {
-            --   type = "clear_tool_uses_20250919",
-            --   keep = {
-            --     type = "tool_uses",
-            --     value = 5,
-            --   },
-            --   trigger = {
-            --     type = "input_tokens",
-            --     value = 50000,
-            --   },
-            -- },
+            {
+              type = "clear_tool_uses_20250919",
+              keep = {
+                type = "tool_uses",
+                value = 5,
+              },
+              -- Omitted when we can't resolve a context window, which leaves the API default of 100,000
+              trigger = editing_trigger > 0 and {
+                type = "input_tokens",
+                value = editing_trigger,
+              } or nil,
+            },
             {
               type = "compact_20260112",
               trigger = {
@@ -426,7 +465,7 @@ return {
               self.available_tools[schema.name].callback(self, { tools = transformed })
             end
           else
-            table.insert(transformed, transform.to_anthropic(schema))
+            table.insert(transformed, tool_transformer.to_anthropic(schema))
           end
         end
       end
@@ -439,11 +478,8 @@ return {
     ---@param schema CodeCompanion.StructuredOutput.Schema
     ---@return table|nil
     form_structured_output = function(self, schema)
-      if not schema then
-        return
-      end
-      if not self.opts.can_form_structured_outputs then
-        return log:warn("Model `%s` does not support structured outputs", self.model and self.model.name)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
       end
       return require("codecompanion.adapters.utils.structured_outputs").to_anthropic(schema)
     end,
@@ -666,61 +702,12 @@ return {
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-5",
-      choices = {
-        -- Current models
-        ["claude-sonnet-5"] = {
-          formatted_name = "Claude Sonnet 5",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-fable-5"] = {
-          formatted_name = "Claude Fable 5",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-opus-4-8"] = {
-          formatted_name = "Claude Opus 4.8",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-haiku-4-5"] = {
-          formatted_name = "Claude Haiku 4.5",
-          meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_form_structured_outputs = true, can_reason = false, has_vision = true },
-        },
-
-        -- Legacy models
-        ["claude-opus-4-7"] = {
-          formatted_name = "Claude Opus 4.7",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-opus-4-6"] = {
-          formatted_name = "Claude Opus 4.6",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_form_structured_outputs = true, can_manage_context = true, can_reason = true, has_vision = true },
-        },
-        ["claude-opus-4-5"] = {
-          formatted_name = "Claude Opus 4.5",
-          meta = { context_window = 200000, max_tokens = 64000 },
-          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-sonnet-4-6"] = {
-          formatted_name = "Claude Sonnet 4.6",
-          meta = { context_window = 1000000, max_tokens = 128000 },
-          opts = { can_reason = true, can_manage_context = true, has_vision = true },
-        },
-        ["claude-sonnet-4-5"] = {
-          formatted_name = "Claude Sonnet 4.5",
-          meta = { context_window = 100000, max_tokens = 64000 },
-          opts = { can_form_structured_outputs = true, can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-        ["claude-opus-4-1"] = {
-          formatted_name = "Claude Opus 4.1",
-          meta = { context_window = 200000, max_tokens = 32000 },
-          opts = { can_reason = true, has_vision = true, legacy_reasoning = true },
-        },
-      },
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param opts? { async?: boolean }
+      ---@return table<string, CodeCompanion.Adapter.ModelChoice>
+      choices = function(self, opts)
+        return fetch_models.get(models_source, self, opts)
+      end,
     },
     ---@type CodeCompanion.Schema
     extended_output = {
@@ -800,27 +787,6 @@ return {
       desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
         return n > 0 and n <= 128000, "Must be between 0 and 128000"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    temperature = {
-      order = 6,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = 0,
-      desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
-      enabled = function(self)
-        local model = adapter_utils.model(self)
-        if
-          vim.tbl_contains({ "claude-opus-4-7", "claude-opus-4-8" }, model) or vim.startswith(model, "claude-fable")
-        then
-          return false
-        end
-        return true
-      end,
-      validate = function(n)
-        return n >= 0 and n <= 1, "Must be between 0 and 1.0"
       end,
     },
     ---@type CodeCompanion.Schema

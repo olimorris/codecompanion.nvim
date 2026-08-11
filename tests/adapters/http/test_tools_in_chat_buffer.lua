@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local T = new_set()
 
@@ -65,6 +64,12 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
     copilot.schema.model.choices = function() return { ["mock-model"] = { opts = {} } } end
   ]])
 
+  child.lua([[
+    local anthropic = require("codecompanion.adapters.http.anthropic")
+    anthropic.schema.model.default = "mock-model"
+    anthropic.schema.model.choices = function() return { ["mock-model"] = { opts = {} } } end
+  ]])
+
   -- Setup the chat with the specified adapter
   local tool_name = "weather"
   if file:find("no_params") then
@@ -90,7 +95,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
           local result = adapters.call_handler(self.adapter, "parse_chat", line, tools)
           if result and result.status then
             if result.output.role then
-              result.output.role = config.constants.LLM_ROLE
+              result.output.role = require("codecompanion.config").constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
             self:add_buf_message(result.output, { type = "llm_message" })
@@ -138,7 +143,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   local reference = require("tests.adapters.http.stubs.output." .. reference_file)
   h.eq(messages, reference)
 
-  expect.reference_screenshot(
+  h.expect_screenshot(
     child.get_screenshot(),
     "tests/screenshots/adapters/http/tools_chat_buffer_" .. adapter .. "_" .. file
   )

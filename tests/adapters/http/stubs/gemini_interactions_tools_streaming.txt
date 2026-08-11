@@ -1,0 +1,32 @@
+event: interaction.created
+data: {"interaction":{"id":"","status":"in_progress","object":"interaction","model":"gemini-3.1-pro-preview"},"event_type":"interaction.created"}
+
+event: interaction.status_update
+data: {"interaction_id":"","status":"in_progress","event_type":"interaction.status_update"}
+
+event: step.start
+data: {"index":0,"step":{"type":"thought"},"event_type":"step.start"}
+
+event: step.delta
+data: {"index":0,"delta":{"content":{"text":"**Analyzing the Command**\n\nI've zeroed in on the core objective.","type":"text"},"type":"thought_summary"},"event_type":"step.delta"}
+
+event: step.delta
+data: {"index":0,"delta":{"signature":"","type":"thought_signature"},"event_type":"step.delta"}
+
+event: step.stop
+data: {"index":0,"event_type":"step.stop"}
+
+event: step.start
+data: {"index":1,"step":{"id":"n12wxk7h","signature":"Eo4MCosMAR...","type":"function_call","name":"run_command","arguments":{}},"event_type":"step.start"}
+
+event: step.delta
+data: {"index":1,"delta":{"arguments":"{\"cmd\":\"ls -la\"}","type":"arguments_delta"},"event_type":"step.delta"}
+
+event: step.stop
+data: {"index":1,"event_type":"step.stop"}
+
+event: interaction.completed
+data: {"interaction":{"id":"","status":"completed","usage":{"total_tokens":3450,"total_input_tokens":3062,"total_output_tokens":18,"total_thought_tokens":370},"object":"interaction","model":"gemini-3.1-pro-preview"},"event_type":"interaction.completed"}
+
+event: done
+data: [DONE]

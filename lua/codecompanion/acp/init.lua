@@ -54,6 +54,7 @@ local uv = vim.uv
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
+---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
 ---@field methods table
 local Connection = {}
 
@@ -131,8 +132,6 @@ function Connection:connect_and_authenticate()
       return log:error("[acp::connect_and_authenticate] Failed to initialize")
     end
     self._agent_info = initialized
-
-    log:debug("[acp::connect_and_authenticate] Agent info: %s", initialized)
 
     if
       initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
@@ -217,11 +216,22 @@ function Connection:_authenticate()
     if #auth_methods > 0 then
       local wanted = self.adapter_modified.defaults.auth_method
       local method_id
+      local available_method_ids = {}
       for _, m in ipairs(auth_methods) do
+        table.insert(available_method_ids, m.id)
         if m.id == wanted then
           method_id = m.id
           break
         end
+      end
+
+      if wanted and not method_id then
+        log:error(
+          "[acp::_authenticate] Auth method %s is not advertised by the agent; available methods: %s",
+          wanted,
+          table.concat(available_method_ids, ", ")
+        )
+        return false
       end
       method_id = method_id or (auth_methods[1] and auth_methods[1].id)
 
@@ -317,7 +327,7 @@ function Connection:session_list(opts)
       end
     end
 
-    cursor = result.nextCursor
+    cursor = type(result.nextCursor) == "string" and result.nextCursor or nil
   until not cursor or #all_sessions >= max_sessions
 
   return all_sessions
@@ -415,6 +425,9 @@ function Connection:start_agent_process()
   end
 
   self._state.line_buffer:reset()
+
+  self._rpc_log = log.new_response_file()
+  log:info("[acp] RPC log: %s", self._rpc_log.path)
 
   local ok, sysobj = pcall(
     self.methods.job,
@@ -532,7 +545,7 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
-  assert(self._state.handle):kill(9)
+  assert(self._state.handle):kill("sigterm")
 end
 
 ---Process the output
@@ -555,6 +568,10 @@ function Connection:handle_rpc_message(line)
   -- If it doesn't look like JSON-RPC, skip it
   if not line:match("^%s*{") then
     return
+  end
+
+  if self._rpc_log then
+    self._rpc_log.write("Received:\n" .. line)
   end
 
   local ok, message = jsonrpc.decode(line, self.methods.decode)
@@ -690,6 +707,10 @@ function Connection:write_message(data)
     return false
   end
 
+  if self._rpc_log then
+    self._rpc_log.write("Sent:\n" .. vim.trim(data))
+  end
+
   local ok, err = pcall(function()
     self._state.handle:write(data)
   end)
@@ -766,6 +787,7 @@ function Connection:handle_fs_write_file_request(id, params)
   local ok, err = fs.write_text_file(path, content)
   if ok then
     self:send_result(id, vim.NIL)
+    utils.fire("FileEdited", { path = path, tool = (self.adapter and self.adapter.name) or "acp" })
     local info = { path = path, bytes = #content, sessionId = params.sessionId }
     if self._active_prompt and self._active_prompt.handlers and self._active_prompt.handlers.write_text_file then
       pcall(self._active_prompt.handlers.write_text_file, info)
@@ -797,7 +819,6 @@ end
 ---@param config_options table[] Array of SessionConfigOption
 function Connection:_apply_config_options(config_options)
   self._config_options = config_options
-  log:debug("[acp] Config options: %s", config_options)
 end
 
 ---Find a config option by category

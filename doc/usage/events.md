@@ -33,13 +33,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
-- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
-- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
-- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
-- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
-- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
-- `CodeCompanionToolStarted` - Fired when a tool has started executing
-- `CodeCompanionToolFinished` - Fired when a tool has finished executing
+- `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
 - `CodeCompanionMCPServerStart` - Fired when an MCP server is started
@@ -49,6 +43,16 @@ The events that are fired from within the plugin are:
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
+- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
+- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
+- `CodeCompanionToolStarted` - Fired when a tool has started executing
+- `CodeCompanionToolFinished` - Fired when a tool has finished executing
+- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
+- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
+- `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
+- `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
+
 
 In addition to these events, the chat buffer has its own **callback system** for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and `on_tool_output`. These callbacks receive the chat instance and can inspect or mutate chat state. See the [callbacks](/configuration/chat-buffer#callbacks) section for details.
 

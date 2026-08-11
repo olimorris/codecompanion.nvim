@@ -32,7 +32,6 @@ function M.load_from_dir(dir, context)
     local ok, prompt = pcall(M.parse_file, path, context)
 
     if ok and prompt then
-      prompt.name = prompt.name or vim.fn.fnamemodify(path, ":t:r")
       table.insert(prompts, prompt)
     end
   end
@@ -52,8 +51,7 @@ function M.parse_file(path, context)
 
   local frontmatter = M.parse_frontmatter(content)
 
-  --TODO: Remove frontmatter.strategy conditional in v19.0.0
-  if not frontmatter or not (frontmatter.interaction or frontmatter.strategy) or not frontmatter.name then
+  if not frontmatter or not frontmatter.interaction or not frontmatter.name then
     log:warn("[Prompt Library] Missing frontmatter, name or interaction in `%s`", path)
     return nil
   end
@@ -85,7 +83,7 @@ function M.parse_frontmatter(content)
 
   local ok, parser = pcall(vim.treesitter.get_string_parser, content, "yaml")
   if not ok then
-    return
+    return log:warn("[Prompt Library] Install the `yaml` treesitter parser to parse frontmatter")
   end
 
   local query = vim.treesitter.query.get("yaml", "prompt_library")
@@ -102,7 +100,6 @@ function M.parse_frontmatter(content)
 
   for id, node in query:iter_captures(root, content, 0, -1) do
     local capture_name = query.captures[id]
-
     if capture_name == "cc_top_key" then
       pending_key = vim.treesitter.get_node_text(node, content)
     elseif capture_name == "cc_top_value" then

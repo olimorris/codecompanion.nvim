@@ -265,6 +265,60 @@ T["HTTP Adapter"]["environment variables can be functions"] = function()
   h.eq("test_api_key", result)
 end
 
+T["HTTP Adapter"]["environment variables can be read from a file (absolute path)"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local path = vim.fn.tempname()
+    vim.fn.writefile({ "sk-test-123" }, path)
+
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      env = {
+        api_key = "file:" .. path,
+      }
+    })
+    local api_key = utils.get_env_vars(adapter).env_replaced.api_key
+
+    vim.fn.delete(path)
+    return api_key
+  ]])
+
+  h.eq("sk-test-123", result)
+end
+
+T["HTTP Adapter"]["environment variables can be read from a file (relative path)"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local filename = ".codecompanion_test_api_key"
+    vim.fn.writefile({ "relative-key" }, filename)
+
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      env = {
+        api_key = "file:" .. filename,
+      }
+    })
+    local api_key = utils.get_env_vars(adapter).env_replaced.api_key
+
+    vim.fn.delete(filename)
+    return api_key
+  ]])
+
+  h.eq("relative-key", result)
+end
+
+T["HTTP Adapter"]["returns nil when the file for an environment variable doesn't exist"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      env = {
+        api_key = "file:/tmp/codecompanion_test_file_that_does_not_exist",
+      }
+    })
+    return utils.get_env_vars(adapter).env_replaced.api_key
+  ]])
+
+  h.eq(vim.NIL, result)
+end
+
 T["HTTP Adapter"]["can update a model on the adapter"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(test_adapter)

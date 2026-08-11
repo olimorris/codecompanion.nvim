@@ -267,4 +267,28 @@ T["Mistral adapter"]["No Streaming"]["can output for the inline assistant"] = fu
   h.eq("Dynamic Language", adapter.handlers.inline_output(adapter, json).output)
 end
 
+T["Mistral model_transformers"] = new_set()
+
+T["Mistral model_transformers"]["from_mistral() transforms the stubbed model list"] = function()
+  local model_transformers = require("codecompanion.adapters.utils.models.transform")
+
+  local body = table.concat(vim.fn.readfile("tests/adapters/http/stubs/model_list/mistral.json"), "\n")
+  local json = vim.json.decode(body)
+
+  local result = {}
+  for _, model in ipairs(json.data) do
+    local id, entry = model_transformers.from_mistral(model)
+    result[id] = entry
+  end
+
+  h.eq("mistral-medium-2505", result["mistral-medium-2505"].formatted_name)
+  h.eq({ context_window = 131072 }, result["mistral-medium-2505"].meta)
+  h.eq(true, result["mistral-medium-2505"].opts.has_vision)
+  h.eq(true, result["mistral-medium-2505"].opts.can_use_tools)
+  h.eq(false, result["mistral-medium-2505"].opts.can_reason)
+
+  h.eq(false, result["voxtral-mini-latest"].opts.can_use_tools)
+  h.eq(false, result["voxtral-mini-latest"].opts.can_form_structured_outputs)
+end
+
 return T

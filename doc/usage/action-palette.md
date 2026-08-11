@@ -29,4 +29,4 @@ The plugin also contains two built-in workflows, `Code workflow` and `Edit test 
 
 The built-in prompts can be turned off by setting `display.action_palette.opts.show_preset_prompts = false`.
 
-You can also refresh the markdown prompts in your prompt library with `:CodeCompanionActions refresh`
+You can also refresh the markdown prompts in your prompt library with `:CodeCompanionActions Refresh`

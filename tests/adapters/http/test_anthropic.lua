@@ -1,6 +1,6 @@
 local h = require("tests.helpers")
 local tags = require("codecompanion.interactions.shared.tags")
-local transform = require("codecompanion.adapters.utils.tool_transformers")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -142,6 +142,76 @@ T["Anthropic adapter"]["form_messages"]["images"] = function()
   }
 
   h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["Anthropic adapter"]["form_messages"]["documents"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "document",
+          source = {
+            type = "base64",
+            media_type = "application/pdf",
+            data = "somefakebase64encoding",
+          },
+        },
+        {
+          type = "text",
+          text = "What does this PDF say?",
+        },
+      },
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["Anthropic adapter"]["form_messages"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages).messages
+
+  h.eq("somefakebase64encoding", output[1].content[1].text)
 end
 
 T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results"] = function()
@@ -667,7 +737,7 @@ T["Anthropic adapter"]["form_tools"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  h.eq({ tools = { transform.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))
+  h.eq({ tools = { tool_transformer.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))
 end
 
 T["Anthropic adapter"]["Non-Reasoning models have less tokens"] = function()
@@ -675,6 +745,13 @@ T["Anthropic adapter"]["Non-Reasoning models have less tokens"] = function()
     schema = {
       model = {
         default = "claude-3-5-sonnet-20241022",
+        choices = {
+          ["claude-3-5-sonnet-20241022"] = {
+            formatted_name = "Claude 3.5 Sonnet",
+            meta = { max_tokens = 4096 },
+            opts = {},
+          },
+        },
       },
     },
   })
@@ -687,6 +764,13 @@ T["Anthropic adapter"]["Reasoning models have more tokens"] = function()
     schema = {
       model = {
         default = "claude-opus-4-6",
+        choices = {
+          ["claude-opus-4-6"] = {
+            formatted_name = "Claude Opus 4.6",
+            meta = { max_tokens = 128000 },
+            opts = { can_reason = true },
+          },
+        },
       },
     },
   })
@@ -886,6 +970,52 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
     [[<response>\n  <code>hello world</code>\n  <language>lua</language>\n  <placement>add</placement>\n</response>]],
     adapter.handlers.inline_output(adapter, json).output
   )
+end
+
+T["Anthropic adapter"]["resolves model capabilities on the first request"] = function()
+  adapter.schema.model.default = "claude-sonnet-5"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["claude-sonnet-5"] = { opts = { can_form_structured_outputs = true, has_vision = true } } }
+  end
+
+  adapter.parameters = {}
+  adapter.handlers.setup(adapter)
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(nil, adapter.handlers.form_structured_output(adapter, { name = "verdict", schema = {} }))
+end
+
+T["Anthropic model_transformers"] = new_set()
+
+T["Anthropic model_transformers"]["from_anthropic() transforms the stubbed model list"] = function()
+  local model_transformers = require("codecompanion.adapters.utils.models.transform")
+
+  local body = table.concat(vim.fn.readfile("tests/adapters/http/stubs/model_list/anthropic.json"), "\n")
+  local json = vim.json.decode(body)
+
+  local result = {}
+  for _, model in ipairs(json.data) do
+    local id, entry = model_transformers.from_anthropic(model)
+    result[id] = entry
+  end
+
+  h.eq("Claude Sonnet 5", result["claude-sonnet-5"].formatted_name)
+  h.eq({ context_window = 1000000, max_tokens = 128000 }, result["claude-sonnet-5"].meta)
+  h.eq(true, result["claude-sonnet-5"].opts.can_reason)
+  h.eq(true, result["claude-sonnet-5"].opts.has_vision)
+  h.eq(true, result["claude-sonnet-5"].opts.can_form_structured_outputs)
+
+  -- Supports context_management as a whole, including compact_20260112
+  h.eq(true, result["claude-sonnet-5"].opts.can_manage_context)
+
+  -- Only supports the legacy "enabled" thinking type, not adaptive effort
+  h.eq(true, result["claude-haiku-4-5-20251001"].opts.legacy_reasoning)
+
+  -- Supports context_management (clear_tool_uses/clear_thinking) but not compact_20260112
+  h.eq(false, result["claude-haiku-4-5-20251001"].opts.can_manage_context)
 end
 
 return T

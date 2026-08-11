@@ -164,6 +164,7 @@ export default withMermaid(
         { text: "Installation", link: "/installation" },
         { text: "Getting Started", link: "/getting-started" },
         { text: "Architecture", link: "/architecture" },
+        { text: "Integrations", link: "/integrations" },
         {
           text: "Agent Client Protocol (ACP)",
           link: "agent-client-protocol",
@@ -183,6 +184,7 @@ export default withMermaid(
             { text: "Adapters - HTTP", link: "/configuration/adapters-http" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
             { text: "CLI", link: "/configuration/cli" },
+            { text: "Code Review", link: "/configuration/code-review" },
             { text: "Extensions", link: "/configuration/extensions" },
             {
               text: "Inline",
@@ -222,6 +224,7 @@ export default withMermaid(
               ],
             },
             { text: "CLI", link: "/usage/cli" },
+            { text: "Code Review", link: "/usage/code-review" },
             { text: "Events", link: "/usage/events" },
             { text: "Inline", link: "/usage/inline" },
             { text: "Prompt Library", link: "/usage/prompt-library" },

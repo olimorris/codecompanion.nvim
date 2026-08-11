@@ -1,0 +1,25 @@
+{
+  "id": "v1_Chd...",
+  "status": "completed",
+  "steps": [
+    {
+      "type": "function_call",
+      "id": "call_abc123",
+      "name": "get_current_temperature",
+      "arguments": {
+        "location": "London"
+      }
+    },
+    {
+      "type": "model_output",
+      "content": [
+        {
+          "type": "text",
+          "text": "The temperature in London is currently 22°C."
+        }
+      ]
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.5-flash"
+}

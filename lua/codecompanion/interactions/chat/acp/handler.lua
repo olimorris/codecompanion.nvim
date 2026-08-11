@@ -48,6 +48,32 @@ local function merge_tool_call(existing, incoming)
   return out
 end
 
+---If a file has been edited, fire an event
+---@param tool_call table The merged tool call
+---@param adapter_name string
+---@return nil
+local function file_edited(tool_call, adapter_name)
+  local fired = {}
+
+  -- Fire an event but only once per file
+  local function fire(path, line)
+    if type(path) ~= "string" or path == "" or fired[path] then
+      return
+    end
+    fired[path] = true
+    utils.fire("FileEdited", { path = path, tool = adapter_name, line = line })
+  end
+
+  for _, location in ipairs(tool_call.locations or {}) do
+    fire(location.path, location.line)
+  end
+  for _, content in ipairs(tool_call.content or {}) do
+    if content.type == "diff" then
+      fire(content.path)
+    end
+  end
+end
+
 ---Submit payload to ACP and handle streaming response
 ---@param payload table The payload to send to the LLM
 ---@return table|nil Request object or nil on error
@@ -238,8 +264,6 @@ end
 function ACPHandler:process_tool_call(tool_call)
   local id = tool_call.toolCallId
 
-  log:debug("[ACP::Handler] Processing tool call %s", utils.truncate(tool_call))
-
   local merged = merge_tool_call(self.tools[id], tool_call)
   tool_call = merged
 
@@ -248,6 +272,10 @@ function ACPHandler:process_tool_call(tool_call)
     self.tools[id] = nil
   else
     self.tools[id] = merged
+  end
+
+  if tool_call.status == "completed" and tool_call.kind == "edit" then
+    file_edited(tool_call, self.chat.adapter.name)
   end
 
   -- Pending tool calls are awaiting approval or streaming input, so hold them
@@ -332,16 +360,6 @@ function ACPHandler:_process_next_permission()
       request.tool_call = merge_tool_call(cached, tool_call)
     end
   end
-
-  log:debug(
-    "[ACP::Handler] Permission Request\n  id: %s\n  kind: %s\n  %s\n  options: %s",
-    tool_call and tool_call.toolCallId or "unknown",
-    tool_call and tool_call.kind or "unknown",
-    tool_call and tool_call.title or "No title",
-    vim.inspect(vim.tbl_map(function(o)
-      return o.kind
-    end, request.options or {}))
-  )
 
   -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec
   self._permission.respond = request.respond

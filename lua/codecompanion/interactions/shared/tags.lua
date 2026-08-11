@@ -2,8 +2,10 @@
 local M = {
   BUFFER = "buffer",
   COMPACT_SUMMARY = "compact_summary",
+  CODE_REVIEW = "review",
   DIAGNOSTICS = "diagnostics",
   DIFF = "diff",
+  DOCUMENT = "document",
   EDITOR_CONTEXT = "editor_context",
   FILE = "file",
   FROM_CUSTOM_PROMPT = "from_custom_prompt",

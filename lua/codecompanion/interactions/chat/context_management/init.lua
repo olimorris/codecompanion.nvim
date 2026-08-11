@@ -17,8 +17,11 @@ local function is_enabled(chat)
   if type(enabled) == "function" then
     return enabled(chat.adapter)
   end
+  if enabled ~= true then
+    return false
+  end
 
-  return enabled == true
+  return not require("codecompanion.adapters.shared").manages_own_context(chat.adapter)
 end
 
 ---Get the token count for the conversation
@@ -39,21 +42,21 @@ local function get_tokens(messages)
   return tokens.get_tokens(messages)
 end
 
----Check token thresholds and run editing or compaction if needed
+---Run editing or compaction against the chat if its token thresholds are met
 ---@param chat CodeCompanion.Chat
----@return nil
-function M.check(chat)
+---@return boolean compacting Whether a compaction is in flight and will end the turn itself
+function M.apply(chat)
   if chat.adapter and chat.adapter.type == "acp" then
-    return
+    return false
   end
   if not is_enabled(chat) then
-    return
+    return false
   end
   if chat._compacting then
-    return
+    return false
   end
   if chat:has_orphaned_tool_calls() then
-    return
+    return false
   end
 
   local token_count = get_tokens(chat.messages)
@@ -62,12 +65,11 @@ function M.check(chat)
   local compaction_threshold = helpers.trigger_context_management(chat.adapter, { operation = "compaction" })
   if compaction_threshold > 0 and token_count >= compaction_threshold then
     local compaction = require("codecompanion.interactions.chat.context_management.compaction")
-    compaction.compact(chat, {
+    return compaction.compact(chat, {
       adapter = ctx_mgmt_config.compaction.adapter,
       fallback_to_chat_adapter = ctx_mgmt_config.compaction.fallback_to_chat_adapter,
       min_token_savings = ctx_mgmt_config.compaction.min_token_savings,
     })
-    return
   end
 
   local editing_threshold = helpers.trigger_context_management(chat.adapter, { operation = "editing" })
@@ -82,6 +84,9 @@ function M.check(chat)
       log:info("[Context Management] Edited %d tool result(s)", cleared)
     end
   end
+
+  -- Editing rewrites messages in place, so the turn ends as normal
+  return false
 end
 
 return M

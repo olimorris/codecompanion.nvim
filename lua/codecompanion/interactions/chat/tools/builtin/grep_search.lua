@@ -3,29 +3,11 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----Search the current working directory for text using ripgrep
+---Build the ripgrep command for a search
 ---@param action { query: string, is_regexp: boolean?, include_pattern: string? }
 ---@param opts table
----@return { status: "success"|"error", data: string|table }
-local function grep_search(action, opts)
-  opts = opts or {}
-  local query = action.query
-
-  if not query or query == "" then
-    return {
-      status = "error",
-      data = "Query parameter is required and cannot be empty",
-    }
-  end
-
-  -- Check if ripgrep is available
-  if vim.fn.executable("rg") ~= 1 then
-    return {
-      status = "error",
-      data = "ripgrep (rg) is not installed or not in PATH",
-    }
-  end
-
+---@return string[]
+local function build_command(action, opts)
   local cmd = { "rg" }
   local cwd = vim.fn.getcwd()
   local max_results = opts.max_results or 100
@@ -66,21 +48,19 @@ local function grep_search(action, opts)
 
   -- Add the query
   table.insert(cmd, "-e") -- Use -e option to explicitly specify search pattern
-  table.insert(cmd, query)
+  table.insert(cmd, action.query)
 
   -- Add the search path
   table.insert(cmd, cwd)
 
-  log:debug("[Grep Search Tool] Running command: %s", table.concat(cmd, " "))
+  return cmd
+end
 
-  -- Execute
-  local result = vim
-    .system(cmd, {
-      text = true,
-      timeout = 30000, -- 30 second timeout
-    })
-    :wait()
-
+---Turn ripgrep's output into `filepath:line` entries
+---@param result vim.SystemCompleted
+---@param max_results number
+---@return { status: "success"|"error", data: string|table }
+local function parse_output(result, max_results)
   if result.code ~= 0 then
     local error_msg = result.stderr or "Unknown error"
 
@@ -154,10 +134,24 @@ return {
     ---Execute the search commands
     ---@param self CodeCompanion.Tool.GrepSearch
     ---@param args table The arguments from the LLM's tool call
-    ---@param input? any The output from the previous function call
-    ---@return { status: "success"|"error", data: string|table }
-    function(self, args, input)
-      return grep_search(args, self.tool.opts)
+    ---@param opts { input: any, output_cb: fun(msg: table), register_job: fun(job: vim.SystemObj) }
+    ---@return { status: "success"|"error", data: string|table }|nil
+    function(self, args, opts)
+      if not args.query or args.query == "" then
+        return { status = "error", data = "Query parameter is required and cannot be empty" }
+      end
+      if vim.fn.executable("rg") ~= 1 then
+        return { status = "error", data = "ripgrep (rg) is not installed or not in PATH" }
+      end
+
+      local tool_opts = self.tool.opts or {}
+      local cmd = build_command(args, tool_opts)
+      log:debug("[Grep Search Tool] Running command: %s", table.concat(cmd, " "))
+
+      local cb = vim.schedule_wrap(opts.output_cb)
+      opts.register_job(vim.system(cmd, { text = true, timeout = 30000 }, function(result)
+        cb(parse_output(result, tool_opts.max_results or 100))
+      end))
     end,
   },
   schema = {
@@ -232,7 +226,7 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
       if type(data) == "table" then
         -- Results were found - data is an array of file paths
         local results = #data
-        local results_msg = fmt("Searched text for `%s`, %d results\n```\n%s\n```", query, results, output)
+        local results_msg = fmt("Searched text for `%s`, %d results\n````\n%s\n````", query, results, output)
         chat:add_tool_output(self, fmt(llm_output, results_msg), results_msg)
       else
         -- No results found - data is a string message

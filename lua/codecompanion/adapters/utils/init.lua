@@ -1,4 +1,3 @@
-local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
 
 local M = {}
@@ -21,38 +20,11 @@ function M.filter_out_messages(params)
   return filtered_message
 end
 
----Refresh when we should next check the model cache
----@param file string
----@param cache_for number
+---Return the time at which the model cache should next be refreshed
+---@param cache_for? number Seconds to cache for; defaults to 30 minutes
 ---@return number
-function M.refresh_cache(file, cache_for)
-  cache_for = cache_for or 1800
-  local time = os.time() + cache_for
-  Path.new(file):write(time, "w")
-  return time
-end
-
----Return when the model cache expires
----@param file string
----@return number
-function M.cache_expires(file, cache_for)
-  cache_for = cache_for or 1800
-  local ok, expires = pcall(function()
-    return Path.new(file):read()
-  end)
-  if not ok then
-    expires = M.refresh_cache(file, cache_for)
-  end
-  expires = tonumber(expires)
-  assert(expires, "Could not get the cache expiry time")
-  return expires
-end
-
----Check if the cache has expired
----@param file string
----@return boolean
-function M.cache_expired(file)
-  return os.time() > M.cache_expires(file)
+function M.cache_expiry(cache_for)
+  return os.time() + (cache_for or 1800)
 end
 
 ---Extend a default adapter
@@ -202,6 +174,34 @@ local function is_cmd(var)
   return var:match("^cmd:")
 end
 
+---Check if a variable starts with "file:"
+---@param var string
+---@return boolean
+local function is_file(var)
+  return var:match("^file:")
+end
+
+---Read the contents of the file in the environment variable, relative to the cwd if not absolute
+---@param var string
+---@return string|nil
+local function read_file(var)
+  log:trace("[Adapters] Detected file in environment variable")
+
+  local path = vim.fs.normalize(var:sub(6))
+  local files = require("codecompanion.utils.files")
+
+  if not files.exists(path) then
+    return log:error("[Adapters] Could not find file: %s", path)
+  end
+
+  local ok, content = pcall(files.read, path)
+  if not ok then
+    return log:error("[Adapters] Could not read file: %s", path)
+  end
+
+  return (content:gsub("%s+$", ""))
+end
+
 ---Check if the variable is an environment variable
 ---@param var string
 ---@return boolean
@@ -316,6 +316,8 @@ function M.get_env_vars(adapter, args)
     if type(v) == "string" and is_cmd(v) then
       local timeout = (args and args.timeout) or 5000
       adapter.env_replaced[k] = run_cmd(v, timeout)
+    elseif type(v) == "string" and is_file(v) then
+      adapter.env_replaced[k] = read_file(v)
     elseif type(v) == "string" and is_env_var(v) then
       adapter.env_replaced[k] = get_env_var(v)
     elseif type(v) == "function" then
@@ -419,9 +421,13 @@ end
 
 ---Helper function to return the model from the choices
 ---@param adapter CodeCompanion.HTTPAdapter
+---@param opts? { async?: boolean } Pass `async = false` to block until the model list has been fetched
 ---@return table?
-function M.model_choice(adapter)
+function M.model_choice(adapter, opts)
   local choices = adapter.schema.model.choices
+  if type(choices) == "function" then
+    choices = choices(adapter, opts)
+  end
   if type(choices) ~= "table" then
     return nil
   end

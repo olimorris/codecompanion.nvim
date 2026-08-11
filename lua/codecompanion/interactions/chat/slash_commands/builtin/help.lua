@@ -74,10 +74,9 @@ local function send_output(SlashCommand, content, selected)
     role = config.constants.USER_ROLE,
     content = string.format(
       [[Help context for `%s`:
-
-```%s
+````%s
 %s
-```
+````
 
 Note the path to the help file is `%s`.
 ]],

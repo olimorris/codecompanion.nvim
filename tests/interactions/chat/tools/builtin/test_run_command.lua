@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -37,7 +36,78 @@ T["run_command tool"] = function()
     vim.wait(200)
   ]])
 
-  expect.reference_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot())
+end
+
+T["run_command tool times out a long running command"] = function()
+  if vim.fn.has("win32") == 1 then
+    MiniTest.skip("`sleep` isn't available on Windows")
+  end
+
+  child.lua([[
+    local cfg = {
+      interactions = {
+        chat = {
+          tools = {
+            run_command = { opts = { timeout = 100 } }
+          }
+        }
+      }
+    }
+    chat, tools = h.setup_chat_buffer(cfg)
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "run_command",
+          arguments = '{"cmd": "sleep 2"}',
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    vim.wait(10000, function()
+      return #chat.messages > 1
+    end, 25)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_contains("timed out", output)
+end
+
+T["stopping the chat kills a running command"] = function()
+  if vim.fn.has("win32") == 1 then
+    MiniTest.skip("`sleep` isn't available on Windows")
+  end
+
+  child.lua([[
+    _G.marker = vim.fn.tempname()
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "run_command",
+          arguments = string.format('{"cmd": "sleep 1 && touch %s"}', _G.marker),
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    _G.running = vim.wait(5000, function()
+      return chat.tool_orchestrator ~= nil and chat.tool_orchestrator.current_job ~= nil
+    end, 25)
+
+    chat:stop()
+    vim.wait(5000, function()
+      return #chat.messages > 1
+    end, 25)
+
+    -- Outlive the command so that the marker would exist had it survived the stop
+    vim.wait(1500)
+  ]])
+
+  h.eq(true, child.lua_get("_G.running"))
+  h.eq(0, child.lua_get("vim.fn.filereadable(_G.marker)"))
+  h.eq(vim.NIL, child.lua_get("chat.tool_orchestrator"))
+  h.expect_contains("cancelled", child.lua_get("chat.messages[#chat.messages].content"))
 end
 
 T["Windows"] = new_set()

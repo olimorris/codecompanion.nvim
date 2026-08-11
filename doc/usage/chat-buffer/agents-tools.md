@@ -124,18 +124,16 @@ Use the lorem_ipsum tool to generate a random paragraph
 > [!NOTE]
 > By default, this tool is hidden and is only accessible via the `@{agent}` tool group
 
-This tool enables an LLM to ask clarifying questions before proceeding with a task. It's useful when the LLM encounters ambiguous requirements, needs to choose between implementation approaches, or wants to validate assumptions. Questions can have predefined options (presented via `vim.ui.select`) or accept free text input (via `vim.ui.input`):
+This tool enables an LLM to ask clarifying questions before taking further action. This is useful when the LLM encounters ambiguous requirements, needs to choose between implementation approaches, or wants to validate assumptions.
 
 ```md
 @{agent} Can you refactor the authentication module?
 ```
 
-The LLM may use this tool to ask which auth strategy you prefer before making changes. The tool is limited to one call per response to prevent excessive questioning.
-
 ### create_file
 
 > [!NOTE]
-> By default, this tool requires user approval before it can be executed
+> By default, this tool shows a preview of the file's contents and requires user confirmation before it can be executed
 
 Create a file within the current working directory:
 
@@ -144,7 +142,8 @@ Can you create some test fixtures using @{create_file}?
 ```
 
 **Options:**
-- `require_approval_before` require approval before creating a file? (Default: true)
+- `require_approval_before` (boolean) require approval before showing the file preview? (Default: false)
+- `require_confirmation_after` (boolean) show a preview of the file's contents and require confirmation before creating it? (Default: true)
 
 ### delete_file
 
@@ -397,7 +396,14 @@ Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
 ### YOLO mode
 
-To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, note that some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set.
+To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set by default.
+
+If you've configured the [LLM judge](/configuration/chat-buffer#llm-judge) then a tool's commands will be sent to an LLM to verify that they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports the judge. The [delete_file](#delete_file) and [run_command](#run_command) tools support this out of the box.
+
+If the judge decides the action is safe, it executes immediately and the verdict is cached so re-running the exact same command won't be re-judged that session. For example, approving `make test` does not result in `make test && rm -rf foo` being auto-approved. If the request to the judge fails, or the adapter can't produce structured output, the tool will require manual approval.
+
+> [!WARNING]
+> Running tools in YOLO mode is dangerous and it is recommend that you only use it in a safe environment where potential data loss can be recovered. You are responsible for any damage that may occur when using YOLO mode.
 
 ## Compatibility
 
@@ -410,13 +416,16 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Copilot           |                   | :white_check_mark: | Dependent on the model              |
 | DeepSeek          |                   | :white_check_mark: | Dependent on the model              |
 | Gemini            |                   | :white_check_mark: | Dependent on the model              |
-| GitHub Models     | All               | :x:                | Not supported yet                   |
-| Huggingface       | All               | :x:                | Not supported yet                   |
+| GitHub Models     | | :x:                | Not supported yet                   |
+| Huggingface       | | :x:                | Not supported yet                   |
+| Kimi            |                   | :white_check_mark: | Dependent on the model              |
 | Mistral           |                   | :white_check_mark: | Dependent on the model              |
 | Novita            |                   | :white_check_mark: | Dependent on the model              |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
-| xAI               | All               | :x:                | Not supported yet                   |
+| OpenAI Responses            |                   | :white_check_mark: | Dependent on the model              |
+| OpenRouter            |                   | :white_check_mark: | Dependent on the model              |
+| xAI               | | :x:                | Not supported yet                   |
 
 
 > [!IMPORTANT]

@@ -2,6 +2,7 @@ local Curl = require("plenary.curl")
 local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local model_transformers = require("codecompanion.adapters.utils.models.transform")
 
 local CONSTANTS = {
   TIMEOUT = 3000, -- 3 seconds
@@ -12,7 +13,7 @@ local _running = {}
 
 local M = {}
 
----@type table<string, table<string, { formatted_name: string?, meta: { context_window: number }?, opts: {can_reason: boolean, has_vision: boolean, can_use_tools: boolean} }>>
+---@type table<string, table<string, CodeCompanion.Adapter.ModelChoice>>
 local _cached_models = {}
 
 ---@alias OllamaGetModelsOpts {last?: boolean, async?: boolean}
@@ -45,34 +46,21 @@ local function build_headers(adapter)
   return headers
 end
 
----Parse capabilities and metadata from a model info response
----@param output table The curl response
----@return { can_reason: boolean, can_use_tools: boolean, has_vision: boolean }, { context_window: number }?
-local function parse_model_info(output)
-  local opts = {}
+---Parse a model info response into a model entry
+---@param name string The model's name, as returned by `/api/tags`
+---@param output table The curl response from `/api/show`
+---@return CodeCompanion.Adapter.ModelChoice entry
+local function parse_model_info(name, output)
   if output.status ~= 200 then
-    return opts
+    return model_transformers.from_ollama(name)
   end
 
   local ok, json = pcall(vim.json.decode, output.body, { array = true, object = true })
   if not ok then
-    return opts
+    return model_transformers.from_ollama(name)
   end
 
-  local capabilities = json.capabilities or {}
-  opts.can_reason = vim.list_contains(capabilities, "thinking")
-  opts.can_use_tools = vim.list_contains(capabilities, "tools")
-  opts.has_vision = vim.list_contains(capabilities, "vision")
-
-  local meta
-  if json.model_info and json.details and json.details.family then
-    local context_length = json.model_info[json.details.family .. ".context_length"]
-    if context_length then
-      meta = { context_window = context_length }
-    end
-  end
-
-  return opts, meta
+  return model_transformers.from_ollama(name, json)
 end
 
 ---Fetch model list and model info.
@@ -118,12 +106,7 @@ local function fetch_models(adapter)
             proxy = config.adapters.http.opts.proxy,
             timeout = CONSTANTS.TIMEOUT,
             callback = function(output)
-              local opts, meta = parse_model_info(output)
-              _cached_models[url][model_obj.name] = {
-                formatted_name = model_obj.name,
-                meta = meta,
-                opts = opts,
-              }
+              _cached_models[url][model_obj.name] = parse_model_info(model_obj.name, output)
               pending[model_obj.name] = nil
               if vim.tbl_isempty(pending) then
                 _running[url] = false

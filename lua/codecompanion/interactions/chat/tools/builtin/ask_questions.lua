@@ -1,3 +1,5 @@
+local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
+
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -18,100 +20,30 @@ local function format_answers(questions, answers)
   return table.concat(parts, "\n")
 end
 
----Present a single question to the user via vim.ui.select or vim.ui.input
----@param question table The question object from the LLM
----@param callback fun(answer: string|nil) Called with the user's answer
-local function ask_one(question, callback)
-  local options = question.options
-
-  -- No options: free text input
-  if not options or #options == 0 then
-    vim.ui.input({ prompt = question.question .. ": " }, function(input)
-      if input == nil or input == "" then
-        callback(nil)
-      else
-        callback(input)
-      end
-    end)
-    return
-  end
-
-  -- Build choice labels
-  local labels = {}
-  local label_map = {}
-  for _, opt in ipairs(options) do
-    local label = opt.label
-    if opt.recommended then
-      label = label .. " (recommended)"
-    end
-    if opt.description then
-      label = label .. " - " .. opt.description
-    end
-    table.insert(labels, label)
-    label_map[label] = opt.label
-  end
-
-  if question.multiSelect then
-    -- Multi-select: present as multiple confirm prompts
-    local selected = {}
-    local idx = 0
-
-    local function next_option()
-      idx = idx + 1
-      if idx > #labels then
-        if #selected == 0 then
-          callback(nil)
-        else
-          callback(table.concat(selected, ", "))
-        end
-        return
-      end
-
-      local choice_label = labels[idx]
-      local prompt_text = fmt("%s\n\nInclude '%s'?", question.question, label_map[choice_label])
-      vim.ui.select({ "Yes", "No" }, { prompt = prompt_text }, function(choice)
-        if choice == "Yes" then
-          table.insert(selected, label_map[choice_label])
-        end
-        next_option()
-      end)
-    end
-
-    next_option()
-  else
-    -- Single select
-    vim.ui.select(labels, { prompt = question.question }, function(choice)
-      if choice == nil then
-        callback(nil)
-      else
-        callback(label_map[choice] or choice)
-      end
-    end)
-  end
-end
-
----Ask all questions sequentially, collecting answers
+---Ask all questions sequentially in the chat buffer, collecting answers
+---@param chat CodeCompanion.Chat
 ---@param questions table Array of question objects
 ---@param callback fun(answers: table<string, string>) Called with all collected answers
-local function ask_all(questions, callback)
+local function ask_all(chat, questions, callback)
   local answers = {}
-  local idx = 0
+  local index = 0
 
   local function next_question()
-    idx = idx + 1
-    if idx > #questions then
+    index = index + 1
+    if index > #questions then
       return callback(answers)
     end
 
-    local question = questions[idx]
-    ask_one(question, function(answer)
-      if answer then
-        answers[question.header] = answer
-      else
-        answers[question.header] = "No answer provided"
-      end
-      next_question()
-    end)
+    local question = questions[index]
+    question_prompt.ask(chat, {
+      question = question,
+      index = index,
+      total = #questions,
+      callback = function(answer)
+        answers[question.header] = answer or "No answer provided"
+        next_question()
+      end,
+    })
   end
 
   next_question()
@@ -131,7 +63,7 @@ return {
       end
 
       vim.schedule(function()
-        ask_all(questions, function(answers)
+        ask_all(self.chat, questions, function(answers)
           local response = format_answers(questions, answers)
           if response == "" then
             response = "The user did not provide any answers"
@@ -220,7 +152,8 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output, "User answered questions")
+      -- The question prompt already displays the user's answers in the chat buffer
+      chat:add_tool_output(self, llm_output, "")
     end,
 
     ---@param self CodeCompanion.Tool.AskQuestions

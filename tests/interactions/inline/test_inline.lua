@@ -129,7 +129,7 @@ T["Inline"]["forms correct prompts"] = function()
   h.expect_starts_with("You are a knowledgeable", prompts[1].content)
   -- Visual selection
   h.eq(
-    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n<code>\n```lua\nlocal x = 1\n```\n</code>",
+    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n<code>\n````lua\nlocal x = 1\n````\n</code>",
     prompts[3].content
   )
   -- User prompt
@@ -219,6 +219,35 @@ T["Inline"]["integration"] = function()
   local submitted_prompts = child.lua([[return _G.submitted_prompts]])
   h.eq("The output from foo editor context", submitted_prompts[2].content)
   h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
+end
+
+T["Inline"]["clears the stop keymap as soon as the request completes"] = function()
+  child.lua([[
+    local http = require("codecompanion.http")
+    _G.original_http_new = http.new
+    http.new = function()
+      return {
+        request = function(_, _, actions)
+          actions.callback("network error")
+        end,
+      }
+    end
+
+    inline:submit({ { role = "user", content = "test prompt" } })
+  ]])
+
+  local has_stop_keymap = child.lua([[
+    for _, map in ipairs(vim.api.nvim_buf_get_keymap(0, "n")) do
+      if map.lhs == "q" then
+        return true
+      end
+    end
+    return false
+  ]])
+
+  h.eq(false, has_stop_keymap)
+
+  child.lua([[require("codecompanion.http").new = _G.original_http_new]])
 end
 
 T["Inline"]["can parse adapter syntax"] = function()

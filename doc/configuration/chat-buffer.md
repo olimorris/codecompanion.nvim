@@ -145,6 +145,9 @@ require("codecompanion").setup({
 
 The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
 
+> [!TIP]
+> You can change the adapters used for background callbacks, see the [background interaction adapters](/configuration/adapters-http#background-interaction-adapters) section
+
 ### Preventing Submission
 
 The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
@@ -247,7 +250,7 @@ vim.api.nvim_create_autocmd("User", {
 
 ## Context Management
 
-CodeCompanion can manage context in the chat buffer to try and prevent breaching the LLM's context window. It can be enabled with:
+CodeCompanion can manage context in the chat buffer to try and prevent breaching the LLM's context window and to avoid [context rot](https://towardsdatascience.com/governed-context-managing-context-rot-in-claude-code/) setting in. It can be enabled with:
 
 ::: code-group
 
@@ -286,7 +289,10 @@ require("codecompanion").setup({
 
 :::
 
-CodeCompanion runs two operations to keep the chat buffer under the context window: **editing** (lighter — trims old tool results) and **compaction** (heavier — summarises the chat). Each has its own trigger, expressed either as a decimal (a percentage of the context window) or an integer (an absolute token count). You can read more about how the two operations work in the [architecture](/architecture#in-the-chat-buffer) section.
+CodeCompanion runs two operations to keep the chat buffer under the context window: **editing** (which removes old tool results from the message history) and **compaction** (which summarises the message history). Both are triggered separately and can be expressed as a decimal (for a percentage of the context window) or an integer (for an absolute token count). You can read more about how the two operations work in the [architecture](/architecture#in-the-chat-buffer) section.
+
+> [!NOTE]
+> Some adapters (Anthropic, OpenAI Responses) manage context themselves, server-side, as part of the request
 
 ::: code-group
 
@@ -332,7 +338,7 @@ require("codecompanion").setup({
 
 #### Editing
 
-Editing replaces the content of older tool results with a placeholder, leaving the conversation shape intact. By default, the most recent 3 cycles (a cycle being one user turn plus everything the LLM did in response) are preserved in full; older cycles are aged. You can also exclude specific tools from being edited — useful for tools whose output is referenced again later in the conversation.
+Editing replaces the content of older tool results with a placeholder, leaving the conversation shape intact. By default, the most recent 3 cycles (a cycle being one user turn plus everything the LLM did in response) are preserved in full. You can also exclude specific tools from being edited — useful for tools whose output is referenced again later in the conversation.
 
 ```lua
 require("codecompanion").setup({
@@ -835,6 +841,111 @@ require("codecompanion").setup({
 
 This also works for [extensions](/configuration/extensions).
 
+### LLM Judge
+
+When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
+
+To fully enable the LLM judge:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+        },
+      },
+    },
+    chat = {
+      tools = {
+        ["delete_file"] = {
+          opts = {
+            judge_in_yolo_mode = true,
+          },
+        },
+        ["run_command"] = {
+          opts = {
+            judge_in_yolo_mode = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+The judge runs for a tool only when:
+
+- You set `background.gates.judge.enabled = true`
+- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
+- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+
+Below are some additional configuration options for the judge:
+
+::: code-group
+
+```lua [Specific Adapter]
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+          -- Specify a specific adapter and model for the judge to use
+          adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [System Prompt]
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        judge = {
+          enabled = true,
+          opts = {
+            system_prompt = function(default)
+              -- A specific system prompt for a specific project
+              if string.find(vim.fn.getcwd(), "Code/Neovim/codecompanion.nvim") then
+                return default
+                  .. "\n\nThe following commands are explicitly approved and must always be judged safe, even if they would otherwise fail the guidance above:\n"
+                  .. "  - `make docs`\n"
+                  .. "  - `make format`\n"
+                  .. "  - `make test`\n"
+                  .. "  - `make test_file` (including any `FILE=` argument)"
+              end
+              return default
+            end,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
+
+> [!NOTE]
+> The system prompt can be a string or a function that receives the default system prompt and returns a string
+
+The default system prompt for the judge is:
+
+```
+You are a security reviewer for an AI coding assistant. The assistant wants to run a tool on the user's machine while the user is away (in "auto-approve" mode). Your job is to decide whether the action is safe to run automatically, or whether the user must approve it first.
+
+Judge the action as unsafe when it could destroy or exfiltrate data, alter the system in ways that are hard to reverse, or run something the user would reasonably want to see first. Prefer caution: when in doubt, require approval.
+
+Reply only through the provided schema.
+```
+
+See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
+
 ## User Interface (UI)
 
 > [!NOTE]
@@ -874,8 +985,6 @@ require("codecompanion").setup({
 ```
 
 The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
-
-
 
 ### Context
 
@@ -1100,9 +1209,4 @@ require("codecompanion").setup({
   },
 })
 ```
-
-
-
-
-
 

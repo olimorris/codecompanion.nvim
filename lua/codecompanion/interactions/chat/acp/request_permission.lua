@@ -129,7 +129,6 @@ local function setup_diff_keymaps(opts)
           return
         end
         opts.diff_ui.resolved = true
-        log:debug("[acp::request_permission] User selected option: %s (%s)", kind, option_id)
         opts.on_done(label)
         opts.request.respond(option_id, false)
         opts.diff_ui:close()
@@ -214,7 +213,6 @@ local function build_choices(permission, has_diff)
         keymap = key,
         label = (ACP_OPTIONS[opt.kind] and ACP_OPTIONS[opt.kind].label) or opt.name,
         callback = function()
-          log:debug("[acp::request_permission] User selected option %s", opt.optionId)
           permission.request.respond(opt.optionId, false)
         end,
       })
@@ -225,7 +223,6 @@ local function build_choices(permission, has_diff)
     keymap = keys.cancel,
     label = labels.cancel,
     callback = function()
-      log:debug("[acp::request_permission] User cancelled")
       permission.request.respond(nil, true)
     end,
   })
