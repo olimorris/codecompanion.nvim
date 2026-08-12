@@ -83,7 +83,8 @@ T["Baseline"]["diff reports one hunk per change with line numbers"] = function()
   h.eq(1, #hunks)
   h.eq("a.lua", hunks[1].path)
   h.eq(2, hunks[1].line)
-  h.expect_starts_with("%+1 %-1", hunks[1].summary)
+  -- The added line is what the change became, so it wins over the line it replaced
+  h.eq("+1 -1 local b = 20", hunks[1].summary)
 end
 
 T["Baseline"]["diff includes files created after the baseline"] = function()
@@ -97,7 +98,7 @@ T["Baseline"]["diff includes files created after the baseline"] = function()
   h.eq(1, #hunks)
   h.eq("b.lua", hunks[1].path)
   h.eq(1, hunks[1].line)
-  h.eq("+2 -0", hunks[1].summary)
+  h.eq("+2 -0 local b = 1", hunks[1].summary)
 end
 
 T["Baseline"]["diff reports deleted files"] = function()
@@ -112,7 +113,25 @@ T["Baseline"]["diff reports deleted files"] = function()
   h.eq(1, #hunks)
   h.eq("b.lua", hunks[1].path)
   h.eq(1, hunks[1].line)
-  h.eq("+0 -2", hunks[1].summary)
+  -- Nothing was added, so the removed line is all there is to show
+  h.eq("+0 -2 local b = 1", hunks[1].summary)
+end
+
+T["Baseline"]["a removed line that reads like a diff header stays inside its hunk"] = function()
+  child.lua([[
+    write("a.lua", { "-- one", "local a = 1", "local b = 2", "-- two", "local c = 3" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
+
+    hunks = baseline.diff(repo)
+  ]])
+
+  -- Git renders a removed `-- one` as `--- one`, which is the shape of a file header
+  h.eq(2, child.lua_get("#hunks"))
+  h.eq("+0 -1 -- one", child.lua_get("hunks[1].summary"))
+  h.eq("+0 -1 -- two", child.lua_get("hunks[2].summary"))
+  -- Swallowing them would leave both hunks with an empty body, and so the same id
+  h.is_true(child.lua_get("hunks[1].id ~= hunks[2].id"))
 end
 
 T["Baseline"]["diff scopes to the given paths"] = function()

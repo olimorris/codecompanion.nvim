@@ -4,8 +4,9 @@ local log = require("codecompanion.utils.log")
 local fmt = string.format
 
 local CONSTANTS = {
-  INDEX_NAME = "codecompanion-index", -- The review's own index
-  LOCK_ABANDONED_AFTER = 60, -- Seconds after which a lock on it belongs to a Neovim that died
+  INDEX_NAME = "codecompanion-index",
+  ABANDON_LOCK_AFTER = 60,
+  MAX_CHANGED_LINE_LENGTH = 60, -- Longest changed line to show in a hunk's summary
 
   -- Use a fixed identity so snapshots work in repos with no user.name/user.email
   IDENTITY = {
@@ -25,7 +26,7 @@ local CONSTANTS = {
 ---@field id number Content hash of the hunk, stable until the change itself changes
 ---@field line number First changed line in the current version of the file
 ---@field path string Path of the changed file, relative to the repo root
----@field summary string Added/removed counts plus any hunk context, e.g. "+3 -1 local function foo()"
+---@field summary string Added/removed counts plus the first line the hunk changes, e.g. "+3 -1 local timeout = 30"
 
 local M = {}
 
@@ -145,7 +146,7 @@ local function discard(index)
 
   -- A live snapshot holds its lock for milliseconds, so anything this old was abandoned.
   -- Taking one that's still held would let two writers rename over each other's index
-  if lock and os.time() - lock.mtime.sec > CONSTANTS.LOCK_ABANDONED_AFTER then
+  if lock and os.time() - lock.mtime.sec > CONSTANTS.ABANDON_LOCK_AFTER then
     vim.uv.fs_unlink(index .. ".lock")
   end
 
@@ -179,6 +180,25 @@ local function write_worktree(root)
   return write_tree(root, index)
 end
 
+---Summarise the first changed line in a hunk so it can be displayed to the user
+---@param body string[]
+---@return string|nil
+local function changed_line(body)
+  local removed
+  for _, line in ipairs(body) do
+    local text = vim.trim(line:sub(2))
+    if text ~= "" then
+      if line:sub(1, 1) == "+" then
+        return vim.fn.strcharpart(text, 0, CONSTANTS.MAX_CHANGED_LINE_LENGTH)
+      end
+      removed = removed or vim.fn.strcharpart(text, 0, CONSTANTS.MAX_CHANGED_LINE_LENGTH)
+    end
+  end
+
+  -- Only a pure deletion has nothing added to show
+  return removed
+end
+
 ---Parse unified diff output into one entry per hunk
 ---@param output string
 ---@return CodeCompanion.CodeReview.Hunk[]
@@ -188,32 +208,38 @@ local function parse_hunks(output)
 
   local function finish()
     local hunk = hunks[#hunks]
-    if hunk and not hunk.id then
-      hunk.id = hash.hash(hunk.path .. "\n" .. table.concat(body or {}, "\n"))
+    if not hunk or hunk.id then
+      return
+    end
+
+    hunk.id = hash.hash(hunk.path .. "\n" .. table.concat(body or {}, "\n"))
+
+    local changed = changed_line(body or {})
+    if changed then
+      hunk.summary = hunk.summary .. " " .. changed
     end
   end
 
   for line in output:gmatch("[^\n]+") do
     local old_count, new_start, new_count = line:match("^@@ %-%d+,?(%d*) %+(%d+),?(%d*) @@")
-    if line:match("^%-%-%- ") then
+    if line:match("^diff %-%-git ") then
       finish()
+      old_path, path, body = nil, nil, nil
+    -- NOTE: A removed line can read `--- foo`, so only take these as headers
+    -- before the file's first hunk has opened a body for them to fall into
+    elseif not body and line:match("^%-%-%- ") then
       old_path = line:match('^%-%-%- "?a/(.-)"?$')
-    elseif line:match("^%+%+%+ ") then
+    elseif not body and line:match("^%+%+%+ ") then
       -- Deleted files diff to /dev/null, so fall back to the old side's path
       path = line:match('^%+%+%+ "?b/(.-)"?$') or old_path
     elseif new_start and path then
       finish()
       body = {}
-      local context = line:match("^@@ .- @@ (.*)$")
-      local summary = fmt("+%s -%s", new_count ~= "" and new_count or "1", old_count ~= "" and old_count or "1")
-      if context and context ~= "" then
-        summary = summary .. " " .. context
-      end
       table.insert(hunks, {
         path = path,
         -- Pure deletions report the line before the removal, which can be 0
         line = math.max(tonumber(new_start) or 1, 1),
-        summary = summary,
+        summary = fmt("+%s -%s", new_count ~= "" and new_count or "1", old_count ~= "" and old_count or "1"),
       })
     elseif body and line:match("^[+%-]") then
       table.insert(body, line)

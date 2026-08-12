@@ -147,6 +147,13 @@ local function advance_baseline(root)
   return true
 end
 
+---Is there work the user hasn't reviewed yet?
+---@param root string
+---@return boolean
+local function awaiting_review(root)
+  return #store.edited(root) > 0 or #store.comments(root) > 0
+end
+
 ---Replace the review quickfix list, keeping the cursor on a nearby entry
 ---@param items table[]
 ---@param index number
@@ -334,6 +341,7 @@ function M.accept()
   end
 
   store.accept(get_storage_root(), selected.entry.user_data.code_review_hunk)
+  diff.close()
 
   table.remove(selected.list.items, selected.index)
   replace_quickfix(selected.list.items, selected.index)
@@ -356,6 +364,7 @@ function M.ignore()
 
   store.ignore(root, path)
   notify(fmt("Ignoring `%s`", path))
+  diff.close()
 
   replace_quickfix(
     vim.tbl_filter(function(item)
@@ -388,12 +397,15 @@ function M.setup()
   local group = api.nvim_create_augroup("codecompanion.code_review", { clear = true })
 
   api.nvim_create_autocmd("User", {
-    desc = "Snapshot the review baseline before an agent starts editing",
+    desc = "Snapshot the review baseline at the start of an agent's edits",
     group = group,
     pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent" },
     callback = function()
+      -- Everything that reached the files by other means - a pull, a rebase, the
+      -- user's own edits - belongs in the baseline, so only the agent's edits
+      -- are left to review. A round still being reviewed is left where it is
       local root = baseline.get_root()
-      if root and not baseline.get(root) then
+      if root and not awaiting_review(root) then
         baseline.snapshot(root)
       end
     end,
