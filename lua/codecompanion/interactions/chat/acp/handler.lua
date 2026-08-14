@@ -395,16 +395,30 @@ function ACPHandler:handle_permission_request(request)
   self:_process_next_permission()
 end
 
----Find the first allow option from the request options
----@param opts table
----@return string|nil optionId
-local function find_allow_option(opts)
-  for _, opt in ipairs(opts or {}) do
-    if opt.kind == "allow_once" or opt.kind == "allow_always" then
-      return opt.optionId
+---Check the option's kind or ID against a pattern (ACP uses underscores, Cursor uses hyphens)
+---@param option table
+---@param pattern string
+---@return boolean
+local function option_matches(option, pattern)
+  local kind = type(option.kind) == "string" and option.kind or ""
+  local option_id = type(option.optionId) == "string" and option.optionId or ""
+  return kind:match(pattern) ~= nil or option_id:match(pattern) ~= nil
+end
+
+---Find an allow option, preferring allow_always so agents stop re-prompting
+---@param options table[]
+---@return string|nil
+local function find_allow_option(options)
+  local allow_once_id
+  for _, option in ipairs(options or {}) do
+    if option_matches(option, "^allow") then
+      if option_matches(option, "always") then
+        return option.optionId
+      end
+      allow_once_id = allow_once_id or option.optionId
     end
   end
-  return nil
+  return allow_once_id
 end
 
 ---Pop the next permission request from the queue and present it

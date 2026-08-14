@@ -941,6 +941,59 @@ T["ACPHandler"]["Permission Queue"]["presents next request after user responds"]
   h.is_true(result.active)
 end
 
+T["ACPHandler"]["Permission Queue"]["auto-approves in yolo mode including hyphenated option ids"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local Approvals = require("codecompanion.interactions.chat.tools.approvals")
+    Approvals:toggle_yolo_mode(chat.bufnr)
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(_, request)
+        table.insert(confirmed, request)
+      end
+    }
+
+    local responses = {}
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "tool_1", kind = "edit", title = "Edit file" },
+      options = {
+        { kind = "allow-once", optionId = "allow-once", name = "Allow" },
+        { kind = "allow-always", optionId = "allow-always", name = "Always Allow" },
+        { kind = "reject-once", optionId = "reject-once", name = "Reject" },
+      },
+      respond = function(option_id, canceled)
+        table.insert(responses, { option_id = option_id, canceled = canceled })
+      end,
+    })
+
+    return {
+      confirmed_count = #confirmed,
+      responses = responses,
+      active = handler._permission.active,
+      queue_empty = handler._permission.queue:is_empty(),
+    }
+  ]])
+
+  h.eq(0, result.confirmed_count)
+  h.eq(1, #result.responses)
+  h.eq("allow-always", result.responses[1].option_id)
+  h.eq(false, result.responses[1].canceled)
+  h.is_true(result.queue_empty)
+  h.is_false(result.active)
+end
+
 T["ACPHandler"]["Permission Queue"]["clears queue on completion"] = function()
   local result = child.lua([[
     local chat = h.setup_chat_buffer({}, {
