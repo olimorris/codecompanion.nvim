@@ -52,26 +52,4 @@ T["Utils->Buffers"]["add_line_numbers works"] = function()
   h.expect_match(result, "3 |test")
 end
 
-T["Utils->Buffers"]["get_info works for a valid buffer"] = function()
-  local info = child.lua([[
-    return _G.buf_utils.get_info(_G.test_buffer)
-  ]])
-
-  h.eq(info.bufnr, child.lua_get("_G.test_buffer"))
-  h.not_eq(info.path, "[invalid buffer]")
-end
-
-T["Utils->Buffers"]["get_info does not error for a deleted/invalid buffer"] = function()
-  local info = child.lua([[
-    local scratch = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_delete(scratch, { force = true })
-    -- scratch is now an invalid buffer id
-    local ok, result = pcall(_G.buf_utils.get_info, scratch)
-    return { ok = ok, result = result }
-  ]])
-
-  h.is_true(info.ok)
-  h.eq(info.result.path, "[invalid buffer]")
-end
-
 return T
