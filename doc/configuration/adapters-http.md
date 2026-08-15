@@ -626,6 +626,26 @@ require("codecompanion").setup({
 })
 ```
 
+### TrustedRouter
+
+Set `TRUSTEDROUTER_API_KEY` and select the adapter. Model ids are namespaced —
+`anthropic/claude-opus-4-7` works, a bare `claude-opus-4-7` is rejected.
+
+Ids under `trustedrouter/` are routing policies rather than single models: each picks
+an upstream per request and fails over if one is down.
+
+| Model | Picks for |
+| ----- | --------- |
+| `trustedrouter/auto` | Capability, with failover (default) |
+| `trustedrouter/fast` | Latency |
+| `trustedrouter/cheap` | Cost |
+| `trustedrouter/zdr` | Providers that retain no data |
+| `trustedrouter/e2e` | Confidential-compute providers |
+| `trustedrouter/eu` | EU-hosted providers |
+
+`zdr` and `e2e` constrain which upstreams may serve the request at all, which is the
+useful distinction when the chat buffer carries source from a private repository.
+
 ## Community Adapters
 
 Thanks to the community for building the following adapters:
