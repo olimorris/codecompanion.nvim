@@ -8,96 +8,91 @@ local fmt = string.format
 local START_LINE_ALIAS = "start_line_number_base_zero"
 local END_LINE_ALIAS = "end_line_number_base_zero"
 
----Return a canonical range value, falling back to its hidden legacy alias
----@param args {request: table, name: string, alias: string}
+---Build the tool's error output
+---@param filepath string
+---@param message string
+---@return {status: "error", data: string}
+local function read_error(filepath, message)
+  return {
+    status = "error",
+    data = fmt("Error reading `%s`\n%s", filepath, message),
+  }
+end
+
+---Read a range bound, falling back to the name the tool used to advertise
+---@param request table
+---@param name string
+---@param alias string
 ---@return any
-local function requested_bound(args)
-  local value = rawget(args.request, args.name)
+local function requested_bound(request, name, alias)
+  local value = request[name]
   if value ~= nil then
     return value
   end
-  return rawget(args.request, args.alias)
+  return request[alias]
 end
 
----Normalize an optional line bound
----@param args {request: table, name: string, alias: string, default: integer}
+---Normalize an optional line bound, where absent and negative both mean the default
+---@param value any
+---@param default integer
+---@param name string
 ---@return integer? line
 ---@return string? error_message
-local function normalize_bound(args)
-  local value = requested_bound(args)
+local function normalize_bound(value, default, name)
   if value == nil or value == vim.NIL or value == "" then
-    return args.default
+    return default
   end
 
   local line = tonumber(value)
   if not line or line % 1 ~= 0 then
-    return nil, fmt("%s must be a valid integer, got: %s", args.name, tostring(value))
+    return nil, fmt("%s must be a valid integer, got: %s", name, tostring(value))
   end
 
-  return line < 0 and args.default or line
+  return line < 0 and default or line
 end
 
----Resolve and validate the effective line range
----@param args {request: table, line_count: integer}
+---Resolve and validate the effective, zero-based line range
+---@param args {start_line: any, end_line: any, line_count: integer}
 ---@return {start_line: integer, end_line: integer}? range
 ---@return string? error_message
 local function resolve_range(args)
-  local request = args.request
-  local last_line = math.max(0, args.line_count - 1)
-  local start_line, error_message = normalize_bound({
-    request = request,
-    name = "start_line",
-    alias = START_LINE_ALIAS,
-    default = 0,
-  })
+  local last_line = args.line_count - 1
+
+  local start_line, error_message = normalize_bound(args.start_line, 0, "start_line")
   if error_message then
-    return nil, fmt("Error reading `%s`\n%s", request.filepath, error_message)
+    return nil, error_message
+  end
+  if start_line > last_line then
+    return nil, fmt("start_line (%d) is beyond the file's last line (%d)", start_line, last_line)
   end
 
   local end_line
-  end_line, error_message = normalize_bound({
-    request = request,
-    name = "end_line",
-    alias = END_LINE_ALIAS,
-    default = last_line,
-  })
+  end_line, error_message = normalize_bound(args.end_line, last_line, "end_line")
   if error_message then
-    return nil, fmt("Error reading `%s`\n%s", request.filepath, error_message)
-  elseif start_line >= args.line_count then
-    return nil,
-      fmt(
-        "Error reading `%s`\nstart_line (%d) is beyond the file's last line (%d)",
-        request.filepath,
-        start_line,
-        last_line
-      )
+    return nil, error_message
   end
 
   end_line = math.min(end_line, last_line)
   if start_line > end_line then
-    return nil,
-      fmt("Error reading `%s`\nstart_line (%d) comes after end_line (%d)", request.filepath, start_line, end_line)
+    return nil, fmt("start_line (%d) comes after end_line (%d)", start_line, end_line)
   end
 
   return { start_line = start_line, end_line = end_line }
 end
 
----Format an effective line range
----@param request {start_line: integer, end_line: integer}
+---Format a zero-based line range
+---@param range {start_line: integer, end_line: integer}
 ---@return string
-local function format_range(request)
-  return fmt("%d - %d", request.start_line, request.end_line)
+local function format_range(range)
+  return fmt("%d - %d", range.start_line, range.end_line)
 end
 
----Join the lines in an effective range
----@param args {lines: string[], range: {start_line: integer, end_line: integer}}
+---Join the lines within a zero-based, inclusive range
+---@param lines string[]
+---@param range {start_line: integer, end_line: integer}
 ---@return string
-local function select_lines(args)
-  local selected_lines = {}
-  for line = args.range.start_line + 1, args.range.end_line + 1 do
-    table.insert(selected_lines, args.lines[line])
-  end
-  return table.concat(selected_lines, "\n")
+local function select_lines(lines, range)
+  return table.concat(vim.list_slice(lines, range.start_line + 1, range.end_line + 1), "\n")
 end
 
 ---Split normalized content without treating a trailing newline as another line
@@ -113,20 +108,19 @@ local function split_lines(content)
 end
 
 ---Slice the requested line range out of a file's contents
----@param args {request: table, lines: string[]}
----@return {status: "success"|"error", data: string}
-local function extract_range(args)
-  local request = args.request
-  local range, error_message = resolve_range({ request = request, line_count = #args.lines })
-  if error_message then
-    return {
-      status = "error",
-      data = error_message,
-    }
+---@param request table The arguments from the LLM's tool call
+---@param lines string[] Every line in the file
+---@return {status: "success"|"error", data: string} result
+---@return {start_line: integer, end_line: integer}? range
+local function extract_range(request, lines)
+  local range, error_message = resolve_range({
+    start_line = requested_bound(request, "start_line", START_LINE_ALIAS),
+    end_line = requested_bound(request, "end_line", END_LINE_ALIAS),
+    line_count = #lines,
+  })
+  if not range then
+    return read_error(request.filepath, error_message)
   end
-
-  request.start_line = range.start_line
-  request.end_line = range.end_line
 
   local output = fmt(
     [[Read file `%s` from lines %s:
@@ -134,37 +128,39 @@ local function extract_range(args)
 %s
 ````]],
     request.filepath,
-    format_range(request),
+    format_range(range),
     vim.fn.fnamemodify(request.filepath, ":e"),
-    select_lines({ lines = args.lines, range = range })
+    select_lines(lines, range)
   )
   return {
     status = "success",
     data = output,
-  }
+  }, range
 end
 
 ---@class CodeCompanion.Tool.ReadFile: CodeCompanion.Tools.Tool
+---@field range? {start_line: integer, end_line: integer} The range that was read, once resolved
 return {
   name = "read_file",
   cmds = {
     ---Execute the file commands
-    ---@param self CodeCompanion.Tool.ReadFile
+    ---@param self CodeCompanion.Tools
     ---@param args table The arguments from the LLM's tool call
     ---@param opts { input: any, output_cb: fun(msg: table) }
     ---@return nil
     function(self, args, opts)
+      local tool = self.tool
       local path = file_utils.validate_and_normalize_path(args.filepath)
       local cb = vim.schedule_wrap(opts.output_cb)
 
       file_utils.read_async(path, function(content, error_message)
         if not content then
-          return cb({
-            status = "error",
-            data = fmt("Error reading `%s`\n%s", path, error_message),
-          })
+          return cb(read_error(path, error_message))
         end
-        cb(extract_range({ request = args, lines = split_lines(content) }))
+
+        local result, range = extract_range(args, split_lines(content))
+        tool.range = range
+        cb(result)
       end)
     end,
   },
@@ -231,7 +227,8 @@ return {
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
       local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
-      chat:add_tool_output(self, llm_output, fmt("Read file `%s` (%s)", display_path, format_range(self.args)))
+      local range = self.range and fmt(" (%s)", format_range(self.range)) or ""
+      chat:add_tool_output(self, llm_output, fmt("Read file `%s`%s", display_path, range))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
@@ -239,7 +236,6 @@ return {
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     error = function(self, stderr, meta)
       local chat = meta.tools.chat
-      local args = self.args
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Read File Tool] Error output: %s", stderr)
 

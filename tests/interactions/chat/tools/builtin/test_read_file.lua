@@ -40,6 +40,14 @@ local T = new_set({
 
           return chat.messages[#chat.messages].content
         end
+
+        function _G.write_test_file(lines)
+          assert(vim.fn.writefile(lines, _G.TEST_TMPFILE_ABSOLUTE) == 0)
+        end
+
+        function _G.chat_buffer_text()
+          return table.concat(vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, false), "\n")
+        end
       ]])
     end,
     post_case = function()
@@ -54,6 +62,10 @@ local T = new_set({
 
 local function execute_read_file(arguments)
   return child.lua_get([[_G.execute_read_file(...)]], { arguments or {} })
+end
+
+local function write_test_file(lines)
+  child.lua([[_G.write_test_file(...)]], { lines })
 end
 
 local function expect_lines(output, included, excluded)
@@ -76,6 +88,22 @@ T["reads the whole file when bounds are omitted"] = function()
 
   expect_lines(output, { "alpha", "beta", "gamma", "delta" })
   h.expect_contains("from lines 0 - 3", output)
+end
+
+T["reads an empty file as a single empty line"] = function()
+  write_test_file({})
+  local output = execute_read_file()
+
+  h.expect_contains("from lines 0 - 0", output)
+  h.eq(nil, output:find("Error reading", 1, true))
+end
+
+T["reads a single line file"] = function()
+  write_test_file({ "solo" })
+  local output = execute_read_file()
+
+  expect_lines(output, { "solo" })
+  h.expect_contains("from lines 0 - 0", output)
 end
 
 T["reads a path relative to the current working directory"] = function()
@@ -132,6 +160,12 @@ T["clamps an oversized end_line to the end of the file"] = function()
 
   expect_lines(output, { "gamma", "delta" }, { "alpha", "beta" })
   h.expect_contains("from lines 2 - 3", output)
+end
+
+T["shows the resolved range in the chat buffer"] = function()
+  execute_read_file({ end_line = 100 })
+
+  h.expect_contains("cc_readfile_test.txt` (0 - 3)", child.lua_get([[_G.chat_buffer_text()]]))
 end
 
 T["rejects a malformed start_line"] = function()
