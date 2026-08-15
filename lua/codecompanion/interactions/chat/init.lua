@@ -1540,9 +1540,16 @@ function Chat:done(output, reasoning, tools, meta, opts)
   end
 
   self:checkpoint()
-  if require("codecompanion.interactions.chat.context_management").check(self) then
+  -- A compaction request ends the turn itself once its summary lands
+  if require("codecompanion.interactions.chat.context_management").apply(self) then
     return
   end
+  self:finish()
+end
+
+---End the turn, handing the chat buffer back to the user
+---@return nil
+function Chat:finish()
   self:ready_for_input()
 
   self:dispatch("on_completed", { status = self.status })

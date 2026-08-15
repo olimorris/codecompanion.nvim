@@ -131,9 +131,13 @@ end
 
 ---Advance the baseline so only changes made from now on appear in a review
 ---@param root string
----@return boolean success Whether the baseline moved; state is kept intact when the snapshot fails
+---@return boolean success
 local function advance_baseline(root)
   if baseline.get_root() and not baseline.snapshot(root) then
+    notify(
+      "Could not advance the baseline. Your next review will include changes from this round",
+      vim.log.levels.ERROR
+    )
     return false
   end
   store.clear_edited(root)
@@ -233,7 +237,6 @@ function M.approve()
   end
 
   if not advance_baseline(root) then
-    notify("Could not advance the baseline", vim.log.levels.ERROR)
     return
   end
 

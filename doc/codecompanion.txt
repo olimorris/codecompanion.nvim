@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 15
+                                 For NVIM v0.11    Last change: 2026 August 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -7,7 +7,6 @@ Table of Contents                            *codecompanion-table-of-contents*
 1. Welcome                                             |codecompanion-welcome|
   - Features                                  |codecompanion-welcome-features|
   - Overview                                  |codecompanion-welcome-overview|
-  - Supported LLMs and Agents|codecompanion-welcome-supported-llms-and-agents|
 2. Installation                                   |codecompanion-installation|
   - Requirements                     |codecompanion-installation-requirements|
   - Installation                     |codecompanion-installation-installation|
@@ -23,17 +22,19 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Architecture                                   |codecompanion-architecture|
   - How Context Is Managed |codecompanion-architecture-how-context-is-managed|
-5. ACP                                                     |codecompanion-acp|
+5. Integrations                                   |codecompanion-integrations|
+  - herdr                                   |codecompanion-integrations-herdr|
+6. ACP                                                     |codecompanion-acp|
   - Implementation                          |codecompanion-acp-implementation|
   - Protocol Version                      |codecompanion-acp-protocol-version|
   - Current Limitations                |codecompanion-acp-current-limitations|
   - See Also                                      |codecompanion-acp-see-also|
-6. MCP                                                     |codecompanion-mcp|
+7. MCP                                                     |codecompanion-mcp|
   - Usage                                            |codecompanion-mcp-usage|
   - Implementation                          |codecompanion-mcp-implementation|
   - Protocol Version                      |codecompanion-mcp-protocol-version|
   - See Also                                      |codecompanion-mcp-see-also|
-7. Configuration                                 |codecompanion-configuration|
+8. Configuration                                 |codecompanion-configuration|
   - Action Palette                |codecompanion-configuration-action-palette|
   - ACP Adapters                    |codecompanion-configuration-acp-adapters|
   - HTTP Adapters                  |codecompanion-configuration-http-adapters|
@@ -47,7 +48,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
   - Other Options                  |codecompanion-configuration-other-options|
-8. Usage                                                 |codecompanion-usage|
+9. Usage                                                 |codecompanion-usage|
   -                                                     |codecompanion-usage-|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
@@ -62,7 +63,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Prompt Library                        |codecompanion-usage-prompt-library|
   - User Interface                        |codecompanion-usage-user-interface|
   - Workflows                                  |codecompanion-usage-workflows|
-9. Extending                                         |codecompanion-extending|
+10. Extending                                        |codecompanion-extending|
   - Extending with Adapters  |codecompanion-extending-extending-with-adapters|
   - Extending with Agentic Workflows|codecompanion-extending-extending-with-agentic-workflows|
   - Extending with Extensions|codecompanion-extending-extending-with-extensions|
@@ -100,49 +101,25 @@ FEATURES                                      *codecompanion-welcome-features*
 
 OVERVIEW                                      *codecompanion-welcome-overview*
 
-The plugin utilises objects called `interactions`. These are the different ways
-that a user can interact with the plugin. The `chat` interaction harnesses a
-buffer to allow direct conversation with the LLM. The `inline` interaction
-allows for output from the LLM to be written directly into a pre-existing
-Neovim buffer.
+CodeCompanion utilises objects called `interactions`. These are the different
+ways that a user can interact with an LLM. The `chat` interaction harnesses a
+buffer to allow direct conversations with LLMs. The `inline` interaction allows
+for output from the LLM to be written directly, inline to a pre-existing Neovim
+buffer.
 
-The plugin allows you to specify adapters for each interaction and also for
-each |codecompanion-configuration-prompt-library| entry.
-
-
-SUPPORTED LLMS AND AGENTS    *codecompanion-welcome-supported-llms-and-agents*
-
-CodeCompanion uses |codecompanion-configuration-adapters-http| and
-|codecompanion-configuration-adapters-acp| adapters to connect to LLMs and
-agents. Out of the box, the plugin supports:
-
-- Anthropic (`anthropic`) - Requires an API key and supports prompt caching <https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching>
-- Augment Code (`auggie_cli`) - Requires an API key
-- Cagent (`cagent`)
-- Claude Code (`claude_code`) - Requires an API key or a Claude Pro subscription
-- Cline CLI (`cline_cli`)
-- Codex (`codex`) - Requires an API key
-- DeepSeek (`deepseek`) - Requires an API key
-- Gemini (`gemini`) - Requires an API key
-- Gemini CLI (`gemini_cli`) - Requires an API key or a Gemini Pro subscription
-- GitHub Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
-- GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
-- Goose (`goose`) - Requires an API key
-- HuggingFace (`huggingface`) - Requires an API key
-- Kilo Code (`kilocode`) - Requires an API key
-- Kimi CLI (`kimi_cli`) - Requires an API key
-- Mistral AI (`mistral`) - Requires an API key or a Le Chat Pro subscription
-- Novita (`novita`) - Requires an API key
-- Ollama (`ollama`) - Both local and remotely hosted
-- OpenAI (`openai`) - Requires an API key
-- Opencode (`opencode`) - Requires an API key
-- OpenRouter (`openrouter`) - Requires an API key
-- xAI (`xai`) - Requires an API key
-
-In order to add a custom adapter, please refer to the
-|codecompanion-extending-adapters| documentation. Also, be sure to check out
-the |codecompanion-configuration-adapters-http-community-adapters| section for
-user contributed adapters.
+CodeCompanion uses |codecompanion-configuration-adapters-http| to connect
+Neovim to an LLM or agent, even going as far as specifying
+|codecompanion-configuration-adapters-http-changing-the-default-model| and/or
+|codecompanion-configuration-adapters-http-changing-adapter-parameters-schema|.
+You can specify adapters for each interaction type and also for each
+|codecompanion-configuration-prompt-library| entry. There are far too many
+adapters to list so be sure to check out the adapters folder
+<https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters/http>
+in the main repository. You can also roll your own adapters. Refer to the
+|codecompanion-extending-adapters| documentation for more information. Finally,
+be sure to check out the
+|codecompanion-configuration-adapters-http-community-adapters| section for user
+contributed adapters.
 
 
 ==============================================================================
@@ -724,7 +701,34 @@ it runs automatically when the threshold is crossed.
 
 
 ==============================================================================
-5. ACP                                                     *codecompanion-acp*
+5. Integrations                                   *codecompanion-integrations*
+
+CodeCompanion enables integrations with many applications based on its rich
+|codecompanion-usage-events| catalog.
+
+
+HERDR                                       *codecompanion-integrations-herdr*
+
+CodeCompanion supports herdr <https://github.com/herdrdev/herdr> out of the box
+with a direct integration allowing it to appear as an agent. CodeCompanion
+fully supports herdr's lifecycle for reporting semantic state
+<https://herdr.dev/docs/integrations/#integrate-your-own-agent>.
+
+It's enabled by default but can be disabled with:
+
+>lua
+    require("codecompanion").setup({
+      integrations = {
+        herdr = {
+          enabled = false,
+        },
+      },
+    })
+<
+
+
+==============================================================================
+6. ACP                                                     *codecompanion-acp*
 
 CodeCompanion implements the Agent Client Protocol (ACP)
 <https://agentclientprotocol.com/> to enable you to work with coding agents
@@ -902,7 +906,7 @@ SEE ALSO                                          *codecompanion-acp-see-also*
 
 
 ==============================================================================
-6. MCP                                                     *codecompanion-mcp*
+7. MCP                                                     *codecompanion-mcp*
 
 CodeCompanion implements the Model Context Protocol (MCP)
 <https://modelcontextprotocol.io> to enable you to connect the plugin to
@@ -970,7 +974,7 @@ SEE ALSO                                          *codecompanion-mcp-see-also*
 
 
 ==============================================================================
-7. Configuration                                 *codecompanion-configuration*
+8. Configuration                                 *codecompanion-configuration*
 
 This document provides a guide for upgrading from one version of CodeCompanion
 to another.
@@ -2375,16 +2379,22 @@ stack:
 CONTEXT MANAGEMENT ~
 
 CodeCompanion can manage context in the chat buffer to try and prevent
-breaching the LLM's context window. It can be enabled with:
+breaching the LLM's context window and to avoid context rot
+<https://towardsdatascience.com/governed-context-managing-context-rot-in-claude-code/>
+setting in. It can be enabled with:
 
 
 CodeCompanion runs two operations to keep the chat buffer under the context
-window: **editing** (lighter — trims old tool results) and **compaction**
-(heavier — summarises the chat). Each has its own trigger, expressed either
-as a decimal (a percentage of the context window) or an integer (an absolute
-token count). You can read more about how the two operations work in the
+window: **editing** (which removes old tool results from the message history)
+and **compaction** (which summarises the message history). Both are triggered
+separately and can be expressed as a decimal (for a percentage of the context
+window) or an integer (for an absolute token count). You can read more about
+how the two operations work in the
 |codecompanion-architecture-in-the-chat-buffer| section.
 
+
+  [!NOTE] Some adapters (Anthropic, OpenAI Responses) manage context themselves,
+  server-side, as part of the request
 
 
 EDITING
@@ -2392,9 +2402,8 @@ EDITING
 Editing replaces the content of older tool results with a placeholder, leaving
 the conversation shape intact. By default, the most recent 3 cycles (a cycle
 being one user turn plus everything the LLM did in response) are preserved in
-full; older cycles are aged. You can also exclude specific tools from being
-edited — useful for tools whose output is referenced again later in the
-conversation.
+full. You can also exclude specific tools from being edited — useful for
+tools whose output is referenced again later in the conversation.
 
 >lua
     require("codecompanion").setup({
@@ -2692,22 +2701,20 @@ The judge runs for a tool only when:
 - You set `opts.judge_in_yolo_mode = true` on the tool's config; `and`
 - The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
 
-You can also point the judge at a different adapter to the one used in the chat
-buffer, for example, if you want a cheaper or faster model handling the check:
+Below are some additional configuration options for the judge:
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        background = {
-          gates = {
-            judge = {
-              enabled = true,
-              adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
-            },
-          },
-        },
-      },
-    })
+
+
+  [!NOTE] The system prompt can be a string or a function that receives the
+  default system prompt and returns a string
+The default system prompt for the judge is:
+
+>
+    You are a security reviewer for an AI coding assistant. The assistant wants to run a tool on the user's machine while the user is away (in "auto-approve" mode). Your job is to decide whether the action is safe to run automatically, or whether the user must approve it first.
+    
+    Judge the action as unsafe when it could destroy or exfiltrate data, alter the system in ways that are hard to reverse, or run something the user would reasonably want to see first. Prefer caution: when in doubt, require approval.
+    
+    Reply only through the provided schema.
 <
 
 See the |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| usage section
@@ -4245,7 +4252,7 @@ You can prevent any code from being sent to the LLM with:
 
 
 ==============================================================================
-8. Usage                                                 *codecompanion-usage*
+9. Usage                                                 *codecompanion-usage*
 
 
                                                         *codecompanion-usage-*
@@ -5659,6 +5666,15 @@ The `now` slash command simply inserts the current datetime stamp into the chat
 buffer.
 
 
+/RENAME ~
+
+The `rename` slash command is specific to
+|codecompanion-configuration-adapters-http| adapters. It allows you to rename
+the title of the conversation in the chat buffer. This can be useful to keep
+track of different conversations via `open chats` in the
+|codecompanion-usage-action-palette|.
+
+
 /RESUME ~
 
 The `resume` slash command is specific to
@@ -6107,6 +6123,10 @@ disk, your progress is stored across sessions and Neovim instances.
 Because the diff is recomputed from disk every time, line numbers are never
 stored and so can never rot.
 
+
+  [!IMPORTANT] Snapshots are produced against a temporary index, so `git add`
+  never runs against your own. This means your staged changes and anything you
+  push are unaffected by a code review
 
 COMMANDS ~
 
@@ -6644,7 +6664,7 @@ the |codecompanion-extending-agentic-workflows| guide.
 
 
 ==============================================================================
-9. Extending                                         *codecompanion-extending*
+10. Extending                                        *codecompanion-extending*
 
 
 EXTENDING WITH ADAPTERS      *codecompanion-extending-extending-with-adapters*

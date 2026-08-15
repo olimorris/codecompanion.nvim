@@ -99,6 +99,7 @@ local defaults = {
         judge = {
           enabled = true,
           action = "interactions.background.builtin.tools_judge",
+          opts = {},
         },
       },
     },
@@ -501,6 +502,21 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["now"] = {
           path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",
+          opts = {
+            contains_code = false,
+          },
+        },
+        ["rename"] = {
+          path = "interactions.chat.slash_commands.builtin.rename",
+          description = "Rename the current session",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
           opts = {
             contains_code = false,
           },
@@ -1025,6 +1041,12 @@ The user is working on a %s machine. Please respond with system specific command
       },
     },
   },
+  -- INTEGRATIONS -----------------------------------------------------------
+  integrations = {
+    herdr = {
+      enabled = true,
+    },
+  },
   -- MCP SERVERS ----------------------------------------------------------------
   mcp = {
     servers = {},
@@ -1091,6 +1113,12 @@ The user is working on a %s machine. Please respond with system specific command
           description = "The JSON-RPC output for various ACP adapters",
           files = {
             ".codecompanion/acp/claude_code_acp.md",
+          },
+        },
+        ["code-review"] = {
+          description = "The code review implementation",
+          files = {
+            ".codecompanion/code_review.md",
           },
         },
         ["rules"] = {
