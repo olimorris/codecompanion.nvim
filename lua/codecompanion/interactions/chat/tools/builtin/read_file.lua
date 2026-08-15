@@ -5,99 +5,138 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----Slice the requested line range out of a file's contents
----@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
----@param lines string[] Every line in the file
----@return {status: "success"|"error", data: string}
-local function extract_range(action, lines)
-  local start_line_zero = tonumber(action.start_line_number_base_zero)
-  local end_line_zero = tonumber(action.end_line_number_base_zero)
+local START_LINE_ALIAS = "start_line_number_base_zero"
+local END_LINE_ALIAS = "end_line_number_base_zero"
 
-  local error_msg = nil
+---Return a canonical range value, falling back to its hidden legacy alias
+---@param args {request: table, name: string, alias: string}
+---@return any
+local function requested_bound(args)
+  local value = rawget(args.request, args.name)
+  if value ~= nil then
+    return value
+  end
+  return rawget(args.request, args.alias)
+end
 
-  if not start_line_zero then
-    error_msg = fmt(
-      [[Error reading `%s`
-start_line_number_base_zero must be a valid number, got: %s]],
-      action.filepath,
-      tostring(action.start_line_number_base_zero)
-    )
-  elseif not end_line_zero then
-    error_msg = fmt(
-      [[Error reading `%s`
-end_line_number_base_zero must be a valid number, got: %s]],
-      action.filepath,
-      tostring(action.end_line_number_base_zero)
-    )
-  elseif start_line_zero < 0 then
-    error_msg = fmt(
-      [[Error reading `%s`
-start_line_number_base_zero cannot be negative, got: %d"]],
-      action.filepath,
-      start_line_zero
-    )
-  elseif end_line_zero < -1 then
-    error_msg = fmt(
-      [[Error reading `%s`
-end_line_number_base_zero cannot be less than -1, got: %d]],
-      action.filepath,
-      end_line_zero
-    )
-  elseif start_line_zero >= #lines then
-    error_msg = fmt(
-      [[Error reading `%s`
-start_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)]],
-      action.filepath,
-      start_line_zero,
-      action.filepath,
-      #lines,
-      math.max(0, #lines - 1)
-    )
-  elseif end_line_zero ~= -1 and start_line_zero > end_line_zero then
-    error_msg = fmt(
-      [[Error reading `%s`
-Invalid line range - start_line_number_base_zero (%d) comes after end_line_number_base_zero (%d)]],
-      action.filepath,
-      start_line_zero,
-      end_line_zero
-    )
+---Normalize an optional line bound
+---@param args {request: table, name: string, alias: string, default: integer}
+---@return integer? line
+---@return string? error_message
+local function normalize_bound(args)
+  local value = requested_bound(args)
+  if value == nil or value == vim.NIL or value == "" then
+    return args.default
   end
 
-  if error_msg then
+  local line = tonumber(value)
+  if not line or line % 1 ~= 0 then
+    return nil, fmt("%s must be a valid integer, got: %s", args.name, tostring(value))
+  end
+
+  return line < 0 and args.default or line
+end
+
+---Resolve and validate the effective line range
+---@param args {request: table, line_count: integer}
+---@return {start_line: integer, end_line: integer}? range
+---@return string? error_message
+local function resolve_range(args)
+  local request = args.request
+  local last_line = math.max(0, args.line_count - 1)
+  local start_line, error_message = normalize_bound({
+    request = request,
+    name = "start_line",
+    alias = START_LINE_ALIAS,
+    default = 0,
+  })
+  if error_message then
+    return nil, fmt("Error reading `%s`\n%s", request.filepath, error_message)
+  end
+
+  local end_line
+  end_line, error_message = normalize_bound({
+    request = request,
+    name = "end_line",
+    alias = END_LINE_ALIAS,
+    default = last_line,
+  })
+  if error_message then
+    return nil, fmt("Error reading `%s`\n%s", request.filepath, error_message)
+  elseif start_line >= args.line_count then
+    return nil,
+      fmt(
+        "Error reading `%s`\nstart_line (%d) is beyond the file's last line (%d)",
+        request.filepath,
+        start_line,
+        last_line
+      )
+  end
+
+  end_line = math.min(end_line, last_line)
+  if start_line > end_line then
+    return nil,
+      fmt("Error reading `%s`\nstart_line (%d) comes after end_line (%d)", request.filepath, start_line, end_line)
+  end
+
+  return { start_line = start_line, end_line = end_line }
+end
+
+---Format an effective line range
+---@param request {start_line: integer, end_line: integer}
+---@return string
+local function format_range(request)
+  return fmt("%d - %d", request.start_line, request.end_line)
+end
+
+---Join the lines in an effective range
+---@param args {lines: string[], range: {start_line: integer, end_line: integer}}
+---@return string
+local function select_lines(args)
+  local selected_lines = {}
+  for line = args.range.start_line + 1, args.range.end_line + 1 do
+    table.insert(selected_lines, args.lines[line])
+  end
+  return table.concat(selected_lines, "\n")
+end
+
+---Split normalized content without treating a trailing newline as another line
+---@param content string
+---@return string[]
+local function split_lines(content)
+  content = file_utils.normalize_content(content)
+  local lines = vim.split(content, "\n")
+  if content:sub(-1) == "\n" then
+    table.remove(lines)
+  end
+  return lines
+end
+
+---Slice the requested line range out of a file's contents
+---@param args {request: table, lines: string[]}
+---@return {status: "success"|"error", data: string}
+local function extract_range(args)
+  local request = args.request
+  local range, error_message = resolve_range({ request = request, line_count = #args.lines })
+  if error_message then
     return {
       status = "error",
-      data = fmt([[%s]], error_msg),
+      data = error_message,
     }
   end
 
-  -- Clamp end_line_zero to the last valid line if it exceeds file length (unless -1)
-  if not error_msg and end_line_zero ~= -1 and end_line_zero >= #lines then
-    end_line_zero = math.max(0, #lines - 1)
-  end
-
-  -- Convert to 1-based indexing
-  local start_line = start_line_zero + 1
-  local end_line = end_line_zero == -1 and #lines or end_line_zero + 1
-
-  -- Extract the specified lines
-  local selected_lines = {}
-  for i = start_line, end_line do
-    table.insert(selected_lines, lines[i])
-  end
-
-  local content = table.concat(selected_lines, "\n")
-  local file_ext = vim.fn.fnamemodify(action.filepath, ":e")
+  request.start_line = range.start_line
+  request.end_line = range.end_line
 
   local output = fmt(
-    [[Read file `%s` from line %d to %d:
+    [[Read file `%s` from lines %s:
 ````%s
 %s
 ````]],
-    action.filepath,
-    action.start_line_number_base_zero,
-    action.end_line_number_base_zero,
-    file_ext,
-    content
+    request.filepath,
+    format_range(request),
+    vim.fn.fnamemodify(request.filepath, ":e"),
+    select_lines({ lines = args.lines, range = range })
   )
   return {
     status = "success",
@@ -125,7 +164,7 @@ return {
             data = fmt("Error reading `%s`\n%s", path, error_message),
           })
         end
-        cb(extract_range(args, vim.split(file_utils.normalize_content(content), "\n")))
+        cb(extract_range({ request = args, lines = split_lines(content) }))
       end)
     end,
   },
@@ -133,27 +172,29 @@ return {
     type = "function",
     ["function"] = {
       name = "read_file",
-      description = "Read the contents of a file.\n\nYou must specify the line range you're interested in. If the file contents returned are insufficient for your task, you may call this tool again to retrieve more content. You do not need to know the full path to run this file.",
+      description = "Read all or part of a file using zero-based, inclusive line ranges."
+        .. " Paths may be absolute or relative to the current working directory."
+        .. " Call again with another range if more content is needed.",
       parameters = {
         type = "object",
         properties = {
           filepath = {
             type = "string",
-            description = "The absolute path to the file to read, including its filename and extension.",
+            description = "Path to an existing file, absolute or relative to the current working directory.",
           },
-          start_line_number_base_zero = {
-            type = "number",
-            description = "The line number to start reading from, 0-based.",
+          start_line = {
+            type = "integer",
+            description = "Optional zero-based first line. Omit it or use any negative value to start at the beginning;"
+              .. " a value past the end is invalid.",
           },
-          end_line_number_base_zero = {
-            type = "number",
-            description = "The inclusive line number to end reading at, 0-based. Use -1 to read until the end of the file.",
+          end_line = {
+            type = "integer",
+            description = "Optional zero-based last line, inclusive. Omit it or use any negative value to read through the end;"
+              .. " values past the end are clamped.",
           },
         },
         required = {
           "filepath",
-          "start_line_number_base_zero",
-          "end_line_number_base_zero",
         },
       },
     },
@@ -189,11 +230,8 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      local start_line = self.args.start_line_number_base_zero
-      local end_line = self.args.end_line_number_base_zero
       local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
-      local range_text = end_line == -1 and fmt("(%d - end)", start_line) or fmt("(%d - %d)", start_line, end_line)
-      chat:add_tool_output(self, llm_output, fmt("Read file `%s` %s", display_path, range_text))
+      chat:add_tool_output(self, llm_output, fmt("Read file `%s` (%s)", display_path, format_range(self.args)))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile

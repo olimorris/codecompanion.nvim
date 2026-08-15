@@ -306,7 +306,15 @@ The LLM can then view and edit it via `/personal`.
 
 ### read_file
 
-This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
+This tool can read all or part of a file, using either an absolute path or a path relative to the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
+
+The tool accepts the following parameters:
+
+- `filepath` (required): the path to the file.
+- `start_line` (optional): the zero-based first line to read. Omit it or use any negative value to read from the beginning; values beyond the end are invalid.
+- `end_line` (optional): the zero-based last line to read, inclusive. Omit it or use any negative value to read through the end; values beyond the end are clamped.
+
+Omitting both line parameters reads the entire file.
 
 ### run_command
 
