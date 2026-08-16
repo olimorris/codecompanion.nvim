@@ -236,24 +236,4 @@ T["advertises only the canonical arguments"] = function()
   }, schema)
 end
 
-T["accepts the legacy range argument names"] = function()
-  local output = execute_read_file({
-    start_line_number_base_zero = 1,
-    end_line_number_base_zero = 2,
-  })
-
-  expect_lines(output, { "beta", "gamma" }, { "alpha", "delta" })
-end
-
-T["prefers canonical range arguments over legacy aliases"] = function()
-  local output = execute_read_file({
-    start_line = 0,
-    end_line = 0,
-    start_line_number_base_zero = 1,
-    end_line_number_base_zero = 2,
-  })
-
-  expect_lines(output, { "alpha" }, { "beta", "gamma", "delta" })
-end
-
 return T
