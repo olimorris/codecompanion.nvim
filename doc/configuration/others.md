@@ -37,9 +37,9 @@ require("codecompanion").setup({
 
 You can customise how a buffer and file's content is shared with an LLM with context formatters.
 
-**Using an example:** A Jupyter Notebook is a large JSON document with base64 images embedded in it which can erode an LLM's context window.
+**Example:** A Jupyter Notebook is a large JSON document with base64 images embedded in it which can erode an LLM's context window.
 
-A context formatter reshapes a file's content before it is shared, regardless of whether the file was attached with `/file`, opened as a buffer and attached with `/buffer`, pulled in by a rules file, or re-read to produce a [sync](/configuration/chat-buffer#syncing) diff.
+A context formatter modifies a file's content before it is shared with an LLM. This is the case whether the file was attached with `/file`, opened as a buffer and attached with `/buffer`, pulled in by a rules file, or re-read to produce a [sync](/configuration/chat-buffer#syncing) diff.
 
 A formatter is a `format(raw, path)` function which returns the content the LLM should see, or the path to a module which returns one. Returning nothing leaves the content untouched:
 
