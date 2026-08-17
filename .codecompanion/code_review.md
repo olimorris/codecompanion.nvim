@@ -18,7 +18,7 @@ The `advance_baseline` helper is the shared path behind `consume`, `share` and `
 
 All of the git plumbing. A baseline is a commit holding a snapshot of the worktree, stored under `refs/worktree/codecompanion/baselines/<branch>`, with a stable alias at `refs/worktree/codecompanion/baseline` for gitsigns and diffview to point at. The `refs/worktree` namespace is per-worktree, like HEAD, so agents in linked worktrees never share a baseline.
 
-Snapshots are built against a temporary index via `GIT_INDEX_FILE`, so `git add` never runs against the user's own index. Both sides of a diff are worktree snapshots produced the same way, which is what makes untracked files visible to a review while whatever the user has staged is ignored. `--ignore-errors` keeps a snapshot going past paths git can't index, such as a nested repo with no commit checked out.
+Snapshots are built against an index of our own via `GIT_INDEX_FILE`, so `git add` never runs against the user's. It lives at `<git-dir>/codecompanion-index`, which puts it in the worktree's own directory for a linked worktree, and it's seeded by copying the user's index so git's stat cache spares us re-hashing every file. Anything wrong with it is fixed by discarding and rebuilding, because it's only ever a cache. Both sides of a diff are worktree snapshots produced the same way, which is what makes untracked files visible to a review while whatever the user has staged is ignored. `--ignore-errors` keeps a snapshot going past paths git can't index, such as a nested repo with no commit checked out.
 
 This module also parses unified diff output into one entry per hunk, each with a content hash that stays stable until the change itself changes.
 
