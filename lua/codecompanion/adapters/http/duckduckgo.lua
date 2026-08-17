@@ -59,8 +59,7 @@ return {
             }
           end
           local function clean_html(html)
-            return html:gsub("</?b[^>]*>", ""):gsub("<[^>]+>", " "):
-              gsub("%s+", " "):gsub("^%s*(.-)%s*$", "%1")
+            return html:gsub("</?b[^>]*>", ""):gsub("<[^>]+>", " "):gsub("%s+", " "):gsub("^%s*(.-)%s*$", "%1")
           end
           local out = {}
           for href, title, content in
@@ -78,8 +77,8 @@ return {
           if #out < 1 and data.body:find("challenge-form", 1, true) then
             return {
               status = "error",
-              content = data.body:find("challenge-form", 1, true) and
-                "Engine thinks you're a bot" or "No results found",
+              content = data.body:find("challenge-form", 1, true) and "Engine thinks you're a bot"
+                or "No results found",
             }
           end
           return {
