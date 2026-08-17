@@ -401,9 +401,7 @@ function M.setup()
     group = group,
     pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent" },
     callback = function()
-      -- Everything that reached the files by other means - a pull, a rebase, the
-      -- user's own edits - belongs in the baseline, so only the agent's edits
-      -- are left to review. A round still being reviewed is left where it is
+      -- Only take a snapshot if the user hasn't finished a review
       local root = baseline.get_root()
       if root and not awaiting_review(root) then
         baseline.snapshot(root)

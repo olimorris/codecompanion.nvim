@@ -97,7 +97,7 @@ local function sync_alias(root, ref)
   end
 end
 
----Copy the user's index to seed ours. Git's stat cache spares us re-hashing every file
+---Copy the user's index to seed CodeCompanion's, the basis for the baseline snapshot
 ---@param root string
 ---@param index string
 ---@return nil
@@ -123,10 +123,10 @@ local function aborted(result)
   return result == nil or (result.stderr or ""):find("fatal:", 1, true) ~= nil
 end
 
----Add the worktree to an index and write it out as a tree object
+---Add the worktree to an index, returning a tree
 ---@param root string
 ---@param index string
----@return string|nil tree
+---@return string|nil
 local function write_tree(root, index)
   local env = { GIT_INDEX_FILE = index }
 
@@ -138,14 +138,15 @@ local function write_tree(root, index)
   return git(root, { "write-tree" }, env)
 end
 
----Throw our index away so the next write rebuilds it
+---Discard an index, allowing it to be rebuilt later
 ---@param index string
 ---@return nil
 local function discard(index)
   local lock = vim.uv.fs_stat(index .. ".lock")
 
-  -- A live snapshot holds its lock for milliseconds, so anything this old was abandoned.
-  -- Taking one that's still held would let two writers rename over each other's index
+  -- We need to be careful when trying to delete an index that's locked, but
+  -- if the lock is stale then we deduce it's safe to remove. This is not
+  -- the user's index so there is no risk of them losing their work.
   if lock and os.time() - lock.mtime.sec > CONSTANTS.ABANDON_LOCK_AFTER then
     vim.uv.fs_unlink(index .. ".lock")
   end
@@ -170,9 +171,6 @@ local function write_worktree(root)
     return tree
   end
 
-  -- Our index is only ever a cache, so whatever is wrong with it is fixed by
-  -- starting again. A tree from a stale index would silently drop this
-  -- round's changes, so it's never reused
   log:info("[Code Review] Rebuilding `%s`", index)
   discard(index)
   seed(root, index)
@@ -185,6 +183,8 @@ end
 ---@return string|nil
 local function changed_line(body)
   local removed
+
+  -- Adding this so the quickfix looks half decent to a user
   for _, line in ipairs(body) do
     local text = vim.trim(line:sub(2))
     if text ~= "" then
