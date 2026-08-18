@@ -6,55 +6,55 @@ local log = require("codecompanion.utils.log")
 local fmt = string.format
 
 ---Build the tool's error output
----@param filepath string
----@param message string
+---@param args { filepath: string, message: string }
 ---@return {status: "error", data: string}
-local function read_error(filepath, message)
+local function on_error(args)
   return {
     status = "error",
-    data = fmt("Error reading `%s`\n%s", filepath, message),
+    data = fmt("Error reading `%s`\n%s", args.filepath, args.message),
   }
 end
 
----Normalize an optional line bound, where absent and negative both mean the default
----@param value any
----@param default integer
----@param name string
----@return integer? line
----@return string? error_message
-local function normalize_bound(value, default, name)
-  if value == nil or value == vim.NIL or value == "" then
-    return default
+---Fill in a missing or negative line bound with its default
+---@param bound {value: any, default: number, field_name: string}
+---@return number? line
+---@return string? error_msg
+local function normalize_bound(bound)
+  if bound.value == nil or bound.value == vim.NIL or bound.value == "" then
+    return bound.default
   end
 
-  local line = tonumber(value)
+  local line = tonumber(bound.value)
   if not line or line % 1 ~= 0 then
-    return nil, fmt("%s must be a valid integer, got: %s", name, tostring(value))
+    return nil, fmt("%s must be a valid integer, got: %s", bound.field_name, tostring(bound.value))
   end
 
-  return line < 0 and default or line
+  return line < 0 and bound.default or line
 end
 
 ---Resolve and validate the effective, zero-based line range
----@param args {start_line: any, end_line: any, line_count: integer}
----@return {start_line: integer, end_line: integer}? range
----@return string? error_message
+---@param args {start_line: any, end_line: any, line_count: number}
+---@return {start_line: number, end_line: number}? range
+---@return string? error_msg
 local function resolve_range(args)
   local last_line = args.line_count - 1
 
-  local start_line, start_error = normalize_bound(args.start_line, 0, "start_line")
+  local start_line, start_error = normalize_bound({ value = args.start_line, default = 0, field_name = "start_line" })
   if start_error then
     return nil, start_error
   end
+
+  ---@cast start_line number
   if start_line > last_line then
     return nil, fmt("start_line (%d) is beyond the file's last line (%d)", start_line, last_line)
   end
 
-  local end_line, end_error = normalize_bound(args.end_line, last_line, "end_line")
+  local end_line, end_error = normalize_bound({ value = args.end_line, default = last_line, field_name = "end_line" })
   if end_error then
     return nil, end_error
   end
 
+  ---@cast end_line number
   end_line = math.min(end_line, last_line)
   if start_line > end_line then
     return nil, fmt("start_line (%d) comes after end_line (%d)", start_line, end_line)
@@ -64,7 +64,7 @@ local function resolve_range(args)
 end
 
 ---Format a zero-based line range
----@param range {start_line: integer, end_line: integer}
+---@param range {start_line: number, end_line: number}
 ---@return string
 local function format_range(range)
   return fmt("%d - %d", range.start_line, range.end_line)
@@ -83,17 +83,20 @@ local function split_lines(content)
 end
 
 ---Slice the requested line range out of a file's contents
----@param request table The arguments from the LLM's tool call
+---@param action table The arguments from the LLM's tool call
 ---@param lines string[] Every line in the file
----@return {status: "success", data: {for_llm: string, for_user: string}}|{status: "error", data: string} result
-local function extract_range(request, lines)
-  local range, error_message = resolve_range({
-    start_line = request.start_line,
-    end_line = request.end_line,
-    line_count = #lines,
+---@return {status: "success", data: table} | {status: "error", data: string}
+local function extract_range(action, lines)
+  local line_count = #lines
+  local range, error_msg = resolve_range({
+    start_line = action.start_line,
+    end_line = action.end_line,
+    line_count = line_count,
   })
+
   if not range then
-    return read_error(request.filepath, error_message)
+    ---@cast error_msg string
+    return on_error({ filepath = action.filepath, message = error_msg })
   end
 
   local range_label = format_range(range)
@@ -102,16 +105,17 @@ local function extract_range(request, lines)
     status = "success",
     data = {
       for_llm = fmt(
-        [[Read file `%s` from lines %s:
+        [[Read file `%s` from lines %s (%d lines total):
 ````%s
 %s
 ````]],
-        request.filepath,
+        action.filepath,
         range_label,
-        vim.fn.fnamemodify(request.filepath, ":e"),
+        line_count,
+        vim.fn.fnamemodify(action.filepath, ":e"),
         content
       ),
-      for_user = fmt("Read file `%s` (%s)", vim.fn.fnamemodify(request.filepath, ":."), range_label),
+      for_user = fmt("Read file `%s` (%s)", vim.fn.fnamemodify(action.filepath, ":."), range_label),
     },
   }
 end
@@ -129,9 +133,9 @@ return {
       local path = file_utils.validate_and_normalize_path(args.filepath)
       local cb = vim.schedule_wrap(opts.output_cb)
 
-      file_utils.read_async(path, function(content, error_message)
+      file_utils.read_async(path, function(content, error_msg)
         if not content then
-          return cb(read_error(path, error_message))
+          return cb(on_error({ filepath = path, message = error_msg }))
         end
 
         cb(extract_range(args, split_lines(content)))
