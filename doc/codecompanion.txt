@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 11
+                                 For NVIM v0.11    Last change: 2026 August 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2721,6 +2721,34 @@ See the |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| usage section
 for how the judge behaves once enabled.
 
 
+WEB SEARCH
+
+The |codecompanion-usage-chat-buffer-agents-tools-web-search| tool is a
+built-in tool that allows an LLM to perform web searches using an adapter.
+Currently, CodeCompanion supports DuckDuckGo <https://duckduckgo.com>, Jina
+<https://www.jina.ai> and Tavily <https://www.tavily.com> adapters.
+
+To override the default Tavily adapter:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["web_search"] = {
+              opts = {
+                adapter = "duckduckgo",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+For additional options, refer to the adapter's own file.
+
+
 USER INTERFACE (UI) ~
 
 
@@ -5016,9 +5044,8 @@ receive up to date information:
     Use @{web_search} to search neovim.io and explain how I can configure a new language server
 <
 
-Currently, the tool uses tavily <https://www.tavily.com> and you'll need to
-ensure that an API key has been set accordingly, as per the adapter
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua>.
+The tool supports numerous adapters that you'll need to
+|codecompanion-configuration-chat-buffer-web-search|.
 
 
 ADAPTER TOOLS ~
