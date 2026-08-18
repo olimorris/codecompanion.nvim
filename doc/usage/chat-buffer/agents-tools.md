@@ -339,58 +339,7 @@ Use @{web_search} to find the latest version of Neovim?
 Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
-The web_search tool supports multiple adapters. You can configure which adapter to use in your config:
-
-### Tavily
-
-The default adapter uses [Tavily](https://www.tavily.com), an AI-native search engine. You'll need to set an API key, as per the 
-[adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua).
-
-```lua
-{
-  interactions = {
-    chat = {
-      tools = {
-        ["web_search"] = {
-          opts = {
-            adapter = "tavily", -- tavily, duckduckgo
-            opts = {
-              -- Tavily options
-              search_depth = "advanced",
-              topic = "general",
-              chunks_per_source = 3,
-              max_results = 5,
-            },
-          },
-        },
-      },
-    },
-  },
-}
-```
-
-### DuckDuckGo
-
-Alternatively, you can use [DuckDuckGo](https://duckduckgo.com) as the search adapter. This adapter does not require an API key — it scrapes 
-DuckDuckGo's HTML search results directly. To switch to DuckDuckGo, set the adapter option to `"duckduckgo"`:
-
-```lua
-{
-  interactions = {
-    chat = {
-      tools = {
-        ["web_search"] = {
-          opts = {
-            adapter = "duckduckgo",
-          },
-        },
-      },
-    },
-  },
-}
-```
-
-See the [DuckDuckGo adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/duckduckgo.lua) for implementation details.
+The tool supports numerous adapters that you'll need to [configure](/configuration/chat-buffer#web-search).
 
 ## Adapter Tools
 
