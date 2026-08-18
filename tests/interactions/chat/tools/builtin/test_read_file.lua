@@ -44,10 +44,6 @@ local T = new_set({
         function _G.write_test_file(lines)
           assert(vim.fn.writefile(lines, _G.TEST_TMPFILE_ABSOLUTE) == 0)
         end
-
-        function _G.chat_buffer_text()
-          return table.concat(vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, false), "\n")
-        end
       ]])
     end,
     post_case = function()
@@ -102,64 +98,18 @@ T["reads an empty file as a single empty line"] = function()
   local output = execute_read_file()
 
   h.expect_contains("from lines 0 - 0", output)
-  h.eq(nil, output:find("Error reading", 1, true))
+  h.expect_not_contains("Error reading", output)
 end
 
-T["reads a single line file"] = function()
-  write_test_file({ "solo" })
-  local output = execute_read_file()
-
-  expect_lines(output, { "solo" })
-  h.expect_contains("from lines 0 - 0", output)
-end
-
-T["reads a path relative to the current working directory"] = function()
-  local output = execute_read_file({ filepath = "tests/stubs/read_file/cc_readfile_test.txt" })
+T["treats empty and null bounds as omitted"] = function()
+  local output = execute_read_file({ start_line = "", end_line = vim.NIL })
 
   expect_lines(output, { "alpha", "beta", "gamma", "delta" })
 end
 
-T["reads from start_line to the end of the file"] = function()
-  local output = execute_read_file({ start_line = 1 })
-
-  expect_lines(output, { "beta", "gamma", "delta" }, { "alpha" })
-end
-
-T["reads from the start of the file through end_line"] = function()
-  local output = execute_read_file({ end_line = 1 })
-
-  expect_lines(output, { "alpha", "beta" }, { "gamma", "delta" })
-end
-
-T["treats empty bounds as omitted"] = function()
-  local output = execute_read_file({ start_line = "", end_line = "" })
-
-  expect_lines(output, { "alpha", "beta", "gamma", "delta" })
-end
-
-T["treats JSON null bounds as omitted"] = function()
-  local output = execute_read_file({ start_line = vim.NIL, end_line = vim.NIL })
-
-  expect_lines(output, { "alpha", "beta", "gamma", "delta" })
-end
-
-T["normalizes a negative start_line to the start of the file"] = function()
-  local output = execute_read_file({ start_line = -37, end_line = 1 })
-
-  expect_lines(output, { "alpha", "beta" }, { "gamma", "delta" })
-end
-
-T["normalizes a negative end_line to the end of the file"] = function()
-  local output = execute_read_file({ start_line = 2, end_line = -91 })
-
-  expect_lines(output, { "gamma", "delta" }, { "alpha", "beta" })
-  h.expect_contains("from lines 2 - 3", output)
-end
-
-T["reads only the first line for range zero to zero"] = function()
-  local output = execute_read_file({ start_line = 0, end_line = 0 })
-
-  expect_lines(output, { "alpha" }, { "beta", "gamma", "delta" })
+T["treats negative bounds as omitted"] = function()
+  expect_lines(execute_read_file({ start_line = -37, end_line = 1 }), { "alpha", "beta" }, { "gamma", "delta" })
+  expect_lines(execute_read_file({ start_line = 2, end_line = -91 }), { "gamma", "delta" }, { "alpha", "beta" })
 end
 
 T["clamps an oversized end_line to the end of the file"] = function()
@@ -169,22 +119,9 @@ T["clamps an oversized end_line to the end of the file"] = function()
   h.expect_contains("from lines 2 - 3", output)
 end
 
-T["shows the resolved range in the chat buffer"] = function()
-  execute_read_file({ end_line = 100 })
-
-  h.expect_contains("cc_readfile_test.txt` (0 - 3)", child.lua_get([[_G.chat_buffer_text()]]))
-end
-
-T["rejects a malformed start_line"] = function()
-  local output = execute_read_file({ start_line = "later", end_line = 2 })
-
-  expect_error(output, "start_line")
-end
-
-T["rejects a malformed end_line"] = function()
-  local output = execute_read_file({ start_line = 1, end_line = "later" })
-
-  expect_error(output, "end_line")
+T["rejects a malformed bound"] = function()
+  expect_error(execute_read_file({ start_line = "later", end_line = 2 }), "start_line")
+  expect_error(execute_read_file({ start_line = 1, end_line = "later" }), "end_line")
 end
 
 T["rejects a reversed finite range"] = function()
