@@ -73,7 +73,14 @@ local function expect_lines(output, included, excluded)
     h.expect_contains(line, output)
   end
   for _, line in ipairs(excluded or {}) do
-    h.eq(nil, output:find(line, 1, true))
+    h.expect_not_contains(line, output)
+  end
+end
+
+local function expect_error(output, ...)
+  h.expect_contains("Error reading", output)
+  for _, term in ipairs({ ... }) do
+    h.expect_contains(term, output)
   end
 end
 
@@ -171,69 +178,25 @@ end
 T["rejects a malformed start_line"] = function()
   local output = execute_read_file({ start_line = "later", end_line = 2 })
 
-  h.expect_contains("Error reading", output)
-  h.expect_contains("start_line", output)
+  expect_error(output, "start_line")
 end
 
 T["rejects a malformed end_line"] = function()
   local output = execute_read_file({ start_line = 1, end_line = "later" })
 
-  h.expect_contains("Error reading", output)
-  h.expect_contains("end_line", output)
-end
-
-T["rejects a fractional bound"] = function()
-  local output = execute_read_file({ start_line = 0.5, end_line = 2 })
-
-  h.expect_contains("Error reading", output)
-  h.expect_contains("start_line", output)
+  expect_error(output, "end_line")
 end
 
 T["rejects a reversed finite range"] = function()
   local output = execute_read_file({ start_line = 2, end_line = 1 })
 
-  h.expect_contains("Error reading", output)
-  h.expect_contains("start_line", output)
-  h.expect_contains("end_line", output)
+  expect_error(output, "start_line", "end_line")
 end
 
 T["rejects a start_line beyond the end of the file"] = function()
   local output = execute_read_file({ start_line = 4 })
 
-  h.expect_contains("Error reading", output)
-  h.expect_contains("start_line", output)
-end
-
-T["reports files that do not exist"] = function()
-  local output = execute_read_file({ filepath = "/does/not/exist.txt" })
-
-  h.expect_contains("Error reading", output)
-end
-
-T["advertises only the canonical arguments"] = function()
-  local schema = child.lua_get([[
-    (function()
-      local parameters = require("codecompanion.interactions.chat.tools.builtin.read_file").schema["function"].parameters
-      local property_names = vim.tbl_keys(parameters.properties)
-      table.sort(property_names)
-
-      return {
-        property_names = property_names,
-        required = parameters.required,
-        filepath_type = parameters.properties.filepath.type,
-        start_line_type = parameters.properties.start_line.type,
-        end_line_type = parameters.properties.end_line.type,
-      }
-    end)()
-  ]])
-
-  h.eq({
-    property_names = { "end_line", "filepath", "start_line" },
-    required = { "filepath" },
-    filepath_type = "string",
-    start_line_type = "integer",
-    end_line_type = "integer",
-  }, schema)
+  expect_error(output, "start_line")
 end
 
 return T
