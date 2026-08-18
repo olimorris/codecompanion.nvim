@@ -304,7 +304,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily, duckduckgo
+            adapter = "tavily", -- tavily, duckduckgo, jina
             opts = {
               -- Tavily options
               search_depth = "advanced",
