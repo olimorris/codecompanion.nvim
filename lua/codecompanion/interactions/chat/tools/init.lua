@@ -42,7 +42,7 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
-  PROCESSING_MSG = (config.display.chat.icons.tools_in_progress or "⚡") .. " Tools processing ...",
+  PROCESSING_MSG = (config.display.chat.icons.tool_in_progress or "⚡") .. " Tools processing ...",
 }
 
 ---@class CodeCompanion.Tools
