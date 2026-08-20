@@ -27,6 +27,7 @@ local config = require("codecompanion.config")
 local integrations = require("codecompanion.integrations")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 
 local TIMEOUTS = {
@@ -36,6 +37,36 @@ local TIMEOUTS = {
 
 local api = vim.api
 local uv = vim.uv
+
+---@param chat? CodeCompanion.Chat
+---@return string|nil
+local function get_system_prompt_from_config(chat)
+  if not chat then
+    return nil
+  end
+
+  for _, message in ipairs(chat.messages) do
+    if
+      message.role == config.constants.SYSTEM_ROLE
+      and message._meta
+      and message._meta.tag == tags.SYSTEM_PROMPT_FROM_CONFIG
+      and type(message.content) == "string"
+      and message.content ~= ""
+    then
+      return message.content
+    end
+  end
+end
+
+---@param session_args table
+---@param opts? { chat?: CodeCompanion.Chat }
+local function add_system_prompt_metadata(session_args, opts)
+  opts = opts or {}
+  local system_prompt = get_system_prompt_from_config(opts.chat)
+  if system_prompt then
+    session_args._meta = vim.tbl_extend("force", session_args._meta or {}, { systemPrompt = system_prompt })
+  end
+end
 
 --=============================================================================
 -- ACP Connection Class - Handles the connection to ACP agents
@@ -473,7 +504,9 @@ function Connection:_establish_session()
   end
 
   if not self.session_id or not can_load then
-    local new_session = self:send_rpc_request(METHODS.SESSION_NEW, session_args)
+    local new_session_args = vim.deepcopy(session_args)
+    add_system_prompt_metadata(new_session_args, { chat = self.chat })
+    local new_session = self:send_rpc_request(METHODS.SESSION_NEW, new_session_args)
     if not new_session or not new_session.sessionId then
       log:error("[acp::_establish_session] Failed to create session")
       return false
