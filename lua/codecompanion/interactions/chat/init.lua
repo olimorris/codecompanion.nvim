@@ -1091,16 +1091,18 @@ function Chat:has_orphaned_tool_calls()
   return next(self:_orphaned_tool_calls()) ~= nil
 end
 
----Prevent any orphaned tool calls by "completing" them with a cancelled message
+---Prevent any orphaned tool calls by "completing" them with a stand-in result
+---@param opts? { reason?: string } The stand-in result sent to the LLM
 ---@return nil
-function Chat:_complete_orphaned_tool_calls()
+function Chat:_complete_orphaned_tool_calls(opts)
   local pending = self:_orphaned_tool_calls()
   if next(pending) == nil then
     return
   end
 
+  local reason = opts and opts.reason or "Cancelled by user"
   for id, call in pairs(pending) do
-    local output = adapters.call_handler(self.adapter, "format_response", call, "Cancelled by user")
+    local output = adapters.call_handler(self.adapter, "format_response", call, reason)
     if output then
       output.opts = vim.tbl_extend("force", output.opts or {}, { visible = false })
       output._meta = {
@@ -1308,6 +1310,10 @@ function Chat:submit(opts)
   end
 
   opts = opts or {}
+
+  -- A tool call left without a result makes providers such as Anthropic reject the
+  -- entire request, so stand in a result before the payload is built
+  self:_complete_orphaned_tool_calls({ reason = "This tool call did not complete and produced no result" })
 
   if opts.callback then
     opts.callback()

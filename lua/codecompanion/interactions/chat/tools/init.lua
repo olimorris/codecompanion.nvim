@@ -93,11 +93,10 @@ end
 
 ---Resolve and prepare a tool for execution
 ---@param tool table The tool call from the LLM
----@param id number The execution ID for event firing
 ---@return table|nil The resolved tool or nil if failed
 ---@return string|nil Error message if resolution failed
 ---@return boolean|nil Whether this is a JSON parsing error that needs special handling
-function Tools:_resolve_and_prepare_tool(tool, id)
+function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
@@ -142,7 +141,6 @@ function Tools:_resolve_and_prepare_tool(tool, id)
           ""
         )
         self.status = CONSTANTS.STATUS_ERROR
-        utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
       end
 
@@ -274,15 +272,14 @@ function Tools:execute(chat, tools)
     local orchestrator = Orchestrator.new(self, id)
 
     for _, tool in ipairs(tools) do
-      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool, id)
+      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
 
       if not resolved_tool then
-        if is_json_error then
-          -- JSON error was already handled by _resolve_and_prepare_tool
-          return
+        -- A JSON error has already been reported to the LLM; other failures still
+        -- need reporting, and either way the remaining tools must still run
+        if not is_json_error then
+          self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
         end
-        -- Report the error to the LLM but continue processing remaining tools
-        self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
       else
         self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
         orchestrator.queue:push(resolved_tool)
