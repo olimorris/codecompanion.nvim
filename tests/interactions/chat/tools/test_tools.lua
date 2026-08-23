@@ -215,6 +215,46 @@ T["Tools"][":execute"]["a malformed response from the LLM is handled"] = functio
   h.expect_starts_with("You made an error in calling the weather tool:", output)
 end
 
+T["Tools"][":execute"]["a malformed tool call doesn't discard the other tool calls"] = function()
+  child.lua([[
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "weather",
+          arguments = {
+            location = "London, UK",
+            units = "celsius",
+          },
+        },
+      },
+      {
+        id = 2,
+        type = "function",
+        ["function"] = {
+          name = "weather",
+          -- A truncated call arrives last, so it carries an extra } in the arguments
+          arguments = '{\"location\": \"Paris, FR\", \"units\": \"celsius\"}}'
+        },
+      },
+    }
+
+    _G.tools:execute(_G.chat, tools)
+
+    _G.reported_the_error = false
+    for _, msg in ipairs(_G.chat.messages) do
+      local content = type(msg.content) == "string" and msg.content or ""
+      if content:find("You made an error in calling the weather tool", 1, true) then
+        _G.reported_the_error = true
+      end
+    end
+  ]])
+
+  h.eq("The weather in London, UK is 15° celsius", child.lua_get([[_G.weather_output]]))
+  h.eq(true, child.lua_get([[_G.reported_the_error]]))
+end
+
 T["Tools"][":execute"]["a missing tool is handled"] = function()
   child.lua([[
     local tools = {
