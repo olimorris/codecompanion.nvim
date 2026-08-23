@@ -92,48 +92,70 @@ function M.list(chat)
   return picker_items
 end
 
+---Should rules be loaded into this chat?
+---@param chat CodeCompanion.Chat
+---@return boolean
+local function is_enabled(chat)
+  local rules = config.rules and config.rules.opts and config.rules.opts.chat
+  if not rules then
+    return false
+  end
+
+  local enabled = rules.enabled
+  if type(enabled) == "function" then
+    return enabled(chat)
+  end
+
+  return enabled == true
+end
+
 ---Add callbacks to a chat creation request
 ---@param args table
 ---@param rules_name? string The name of the rules instance to use (if any)
 ---@return table|nil
 function M.add_callbacks(args, rules_name)
   local rules = config.rules and config.rules.opts and config.rules.opts.chat
-  if not rules_name and not (rules and rules.enabled and rules.autoload) then
+  if not rules_name and not (rules and rules.autoload) then
     return args.callbacks
   end
 
   local autoload = rules_name or rules.autoload
-  local memories = {}
+  local groups = {}
   if type(autoload) == "string" then
-    memories = { autoload }
+    groups = { autoload }
   elseif type(autoload) == "table" then
-    memories = vim.deepcopy(autoload)
+    groups = vim.deepcopy(autoload)
   elseif type(autoload) == "function" then
-    memories = autoload()
-    assert(type(memories) == "string" or type(memories) == "table", "autoload must return a string or table of strings")
-    if type(memories) == "string" then
-      memories = { memories }
+    groups = autoload()
+    assert(type(groups) == "string" or type(groups) == "table", "autoload must return a string or table of strings")
+    if type(groups) == "string" then
+      groups = { groups }
     end
   else
     return args.callbacks
   end
 
-  for _, name in ipairs(memories) do
-    local current = config.rules[name]
-    if current then
-      -- Ensure that we extend any existing callbacks
-      args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
+  -- `enabled` can be a function that receives the chat as a parameter. So we
+  -- use the chat callbacks to ensure that we have a chat object to send.
+  args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
+    if not is_enabled(chat) then
+      return
+    end
+
+    for _, name in ipairs(groups) do
+      local group = config.rules[name]
+      if group then
         require("codecompanion.interactions.shared.rules").add_to_chat_from_config(chat, {
           name = name,
-          opts = current.opts,
-          parser = current.parser,
-          files = current.files,
+          opts = group.opts,
+          parser = group.parser,
+          files = group.files,
         })
-      end)
-    else
-      log:warn("Could not find `%s` rules", name)
+      else
+        log:warn("Could not find `%s` rules", name)
+      end
     end
-  end
+  end)
 
   return args.callbacks
 end
