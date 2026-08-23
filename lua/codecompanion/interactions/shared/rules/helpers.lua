@@ -135,7 +135,8 @@ function M.add_callbacks(args, rules_name)
     return args.callbacks
   end
 
-  -- enabled can be a function that receives the chat as a parameter, so only check at runtime
+  -- `enabled` can be a function that receives the chat as a parameter. So we
+  -- use the chat callbacks to ensure that we have a chat object to send.
   args.callbacks = utils.callbacks_extend(args.callbacks, "on_created", function(chat)
     if not is_enabled(chat) then
       return
