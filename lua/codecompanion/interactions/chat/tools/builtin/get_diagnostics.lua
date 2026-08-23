@@ -317,8 +317,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
-      chat:add_tool_output(self, llm_output, fmt("Got diagnostics for `%s`", display_path))
+      chat:add_tool_output(self, llm_output, "")
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics

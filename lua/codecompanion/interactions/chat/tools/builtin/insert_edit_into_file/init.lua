@@ -352,7 +352,7 @@ return {
       if stdout then
         local chat = meta.tools.chat
         local llm_output = vim.iter(stdout):flatten():join("\n")
-        chat:add_tool_output(self, llm_output)
+        chat:add_tool_output(self, llm_output, "")
       end
     end,
   },

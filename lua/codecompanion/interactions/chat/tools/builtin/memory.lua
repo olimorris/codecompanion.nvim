@@ -522,29 +522,22 @@ return {
       local cmd = meta.cmd
 
       local llm_output = ""
-      local user_output = ""
 
       if cmd.command == "view" then
         llm_output = fmt('<memoryTool filepath="%s">%s</memoryTool>', cmd.path, vim.iter(stdout):flatten():join("\n"))
-        user_output = fmt("Viewed `%s`", cmd.path)
       elseif cmd.command == "create" then
         llm_output = fmt("<memoryTool>Created file at %s</memoryTool>", cmd.path)
-        user_output = fmt("Created file at `%s`", cmd.path)
       elseif cmd.command == "str_replace" then
         llm_output = fmt("<memoryTool>Replaced text in %s</memoryTool>", cmd.path)
-        user_output = fmt("Replaced text in `%s`", cmd.path)
       elseif cmd.command == "insert" then
         llm_output = fmt("<memoryTool>Inserted text at line %d in %s</memoryTool>", cmd.insert_line, cmd.path)
-        user_output = fmt("Inserted text at line %d in `%s`", cmd.insert_line, cmd.path)
       elseif cmd.command == "delete" then
         llm_output = fmt("<memoryTool>Deleted %s</memoryTool>", cmd.path)
-        user_output = fmt("Deleted `%s`", cmd.path)
       elseif cmd.command == "rename" then
         llm_output = fmt("<memoryTool>Renamed %s to %s</memoryTool>", cmd.old_path, cmd.new_path)
-        user_output = fmt("Renamed `%s` to `%s`", cmd.old_path, cmd.new_path)
       end
 
-      chat:add_tool_output(self, llm_output, user_output)
+      chat:add_tool_output(self, llm_output, "")
     end,
 
     ---@param self CodeCompanion.Tool.Memory

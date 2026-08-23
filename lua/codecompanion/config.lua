@@ -1254,7 +1254,6 @@ The user is working on a %s machine. Please respond with system specific command
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---The function to display the token count

@@ -131,19 +131,7 @@ return {
 
       local llm_output = fmt("Created file `%s` successfully", display_path)
 
-      local file_ext = vim.fn.fnamemodify(args.filepath, ":e")
-
-      local result_msg = fmt(
-        [[Created file `%s`
-````%s
-%s
-````]],
-        display_path,
-        file_ext,
-        args.content or ""
-      )
-
-      chat:add_tool_output(self, llm_output, result_msg)
+      chat:add_tool_output(self, llm_output, "")
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile

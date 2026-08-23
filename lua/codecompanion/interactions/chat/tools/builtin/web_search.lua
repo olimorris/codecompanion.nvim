@@ -98,12 +98,9 @@ return {
           return fmt([[<attachment url="%s" title="%s">%s</attachment>]], result.url, result.title, result.content)
         end)
         :totable()
-      local length = #content
-
       local llm_output = fmt([[%s]], table.concat(content, "\n"))
-      local user_output = fmt([[Searched for `%s`, %d result(s)]], meta.cmd.query, length)
 
-      chat:add_tool_output(self, llm_output, user_output)
+      chat:add_tool_output(self, llm_output, "")
     end,
 
     ---@param self CodeCompanion.Tool.WebSearch

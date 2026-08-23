@@ -6,8 +6,6 @@ local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
-local TOOLS_NS = "CodeCompanion-tools"
-
 local M = {}
 
 ---Build the markdown content for the approval prompt
@@ -43,12 +41,6 @@ local function cleanup_keymaps(bufnr, choices)
   end
 end
 
----Clear the "Tools processing" indicator
----@param bufnr number
-local function clear_processing_msg(bufnr)
-  ui_utils.clear_notification(bufnr, { namespace = TOOLS_NS .. "_" .. tostring(bufnr) })
-end
-
 ---@class CodeCompanion.Chat.ApprovalChoice
 ---@field keymap string The keymap to trigger this choice
 ---@field label string Display label (e.g. "Always accept")
@@ -61,8 +53,6 @@ end
 ---@return fun(choice_label: string) on_done Callback to finalize the prompt from external code (e.g. diff keymaps)
 function M.request(chat, opts)
   local bufnr = chat.bufnr
-
-  clear_processing_msg(bufnr)
 
   utils.fire("ToolApprovalRequested", { bufnr = bufnr, name = opts.name })
 
