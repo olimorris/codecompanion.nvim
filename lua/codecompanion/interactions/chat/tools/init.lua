@@ -11,7 +11,6 @@
 ---@field stderr table The stderr of the tool
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
 ---@field tools_config table The available tools for the tool system
----@field tools_ns number The namespace for the virtual text that appears in the header
 
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
@@ -21,12 +20,9 @@ local triggers = require("codecompanion.triggers")
 
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
-local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
-
-local show_tools_processing = config.display.chat.show_tools_processing
 
 -- Registry of tool factories that can be extended from by users
 local FACTORIES = {
@@ -36,13 +32,10 @@ local FACTORIES = {
 local CONSTANTS = {
   PREFIX = triggers.mappings.tools,
 
-  NS_TOOLS = "CodeCompanion-tools",
   AUTOCMD_GROUP = "codecompanion.tools",
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
-
-  PROCESSING_MSG = (config.display.chat.icons.tools_in_progress or "⚡") .. " Tools processing ...",
 }
 
 ---@class CodeCompanion.Tools
@@ -179,7 +172,6 @@ function Tools.new(args)
     stderr = {},
     tool = {},
     tools_config = tool_filter.filter_enabled_tools(config.interactions.chat.tools, { adapter = args.adapter }),
-    tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
 
   -- Listen for any adapter and model changes on the chat buffer and update the available tools
@@ -221,15 +213,6 @@ function Tools:set_autocmds()
 
       if request.match == "CodeCompanionToolsStarted" then
         log:info("[Tool System] Initiated")
-        if show_tools_processing then
-          local namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr)
-          ui_utils.show_buffer_notification(self.bufnr, {
-            namespace = namespace,
-            text = CONSTANTS.PROCESSING_MSG,
-            main_hl = "CodeCompanionChatInfo",
-            spacer = true,
-          })
-        end
       elseif request.match == "CodeCompanionToolsFinished" then
         return vim.schedule(function()
           local auto_submit = function()
@@ -409,10 +392,6 @@ end
 ---@return nil
 function Tools:reset(opts)
   opts = opts or {}
-
-  if show_tools_processing then
-    ui_utils.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
-  end
 
   api.nvim_clear_autocmds({ group = self.aug })
 

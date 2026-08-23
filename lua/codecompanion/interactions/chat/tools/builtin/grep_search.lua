@@ -227,11 +227,11 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
         -- Results were found - data is an array of file paths
         local results = #data
         local results_msg = fmt("Searched text for `%s`, %d results\n````\n%s\n````", query, results, output)
-        chat:add_tool_output(self, fmt(llm_output, results_msg), results_msg)
+        chat:add_tool_output(self, fmt(llm_output, results_msg), "")
       else
         -- No results found - data is a string message
         local no_results_msg = fmt("Searched text for `%s`, no results", query)
-        chat:add_tool_output(self, fmt(llm_output, no_results_msg), no_results_msg)
+        chat:add_tool_output(self, fmt(llm_output, no_results_msg), "")
       end
     end,
 

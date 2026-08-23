@@ -115,7 +115,6 @@ local function extract_range(action, lines)
         vim.fn.fnamemodify(action.filepath, ":e"),
         content
       ),
-      for_user = fmt("Read file `%s` (%s)", vim.fn.fnamemodify(action.filepath, ":."), range_label),
     },
   }
 end
@@ -199,12 +198,12 @@ return {
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
-    ---@param stdout {for_llm: string, for_user: string}[] The output from the command
+    ---@param stdout {for_llm: string}[] The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local output = stdout[1]
-      chat:add_tool_output(self, output.for_llm, output.for_user)
+      chat:add_tool_output(self, output.for_llm, "")
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
