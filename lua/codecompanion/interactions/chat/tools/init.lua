@@ -275,8 +275,7 @@ function Tools:execute(chat, tools)
       local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
 
       if not resolved_tool then
-        -- A JSON error has already been reported to the LLM; other failures still
-        -- need reporting, and either way the remaining tools must still run
+        -- NOTE: A JSON error has already been reported to the LLM
         if not is_json_error then
           self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
         end

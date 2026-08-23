@@ -91,6 +91,7 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
+  INCOMPLETE_TOOL_CALL = "This tool call did not complete and produced no result",
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
@@ -1311,10 +1312,6 @@ function Chat:submit(opts)
 
   opts = opts or {}
 
-  -- A tool call left without a result makes providers such as Anthropic reject the
-  -- entire request, so stand in a result before the payload is built
-  self:_complete_orphaned_tool_calls({ reason = "This tool call did not complete and produced no result" })
-
   if opts.callback then
     opts.callback()
   end
@@ -1326,6 +1323,7 @@ function Chat:submit(opts)
 
   -- Differentiate between the user submitting and CodeCompanion automatically doing it
   if opts.auto_submit then
+    self:_complete_orphaned_tool_calls({ reason = CONSTANTS.INCOMPLETE_TOOL_CALL })
     self:_inject_btw()
     self.buffer_diffs:check_for_changes(self)
   else
@@ -1340,6 +1338,8 @@ function Chat:submit(opts)
       log:info("Chat submission prevented by on_before_submit callback")
       return self:restore()
     end
+
+    self:_complete_orphaned_tool_calls({ reason = CONSTANTS.INCOMPLETE_TOOL_CALL })
 
     self.buffer_diffs:check_for_changes(self)
 

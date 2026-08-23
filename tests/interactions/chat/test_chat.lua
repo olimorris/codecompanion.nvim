@@ -638,6 +638,30 @@ T["Chat"]["submit completes orphaned tool calls before the payload is built"] = 
   h.eq(true, result.stands_in_before_the_user_message)
 end
 
+T["Chat"]["submit leaves orphaned tool calls alone when on_before_submit prevents it"] = function()
+  local result = child.lua([[
+    _G.chat:add_callback("on_before_submit", function()
+      return false
+    end)
+
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+
+    _G.chat:add_buf_message({ role = "user", content = "Carry on" })
+    _G.chat:submit()
+
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+
+  h.eq(true, result)
+end
+
 T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = function()
   local result = child.lua([[
     local chat = _G.chat
