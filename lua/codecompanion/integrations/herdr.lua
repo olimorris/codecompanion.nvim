@@ -5,7 +5,7 @@ local api = vim.api
 local M = {}
 
 local CONSTANTS = {
-  AGENT = "codecompanion.nvim",
+  AGENT = "CodeCompanion.nvim",
   SOURCE = "custom:codecompanion.nvim",
 }
 
@@ -152,6 +152,13 @@ end
 local function untrack(key)
   in_flight_chats[key] = nil
   update_herdr()
+end
+
+---Set the environment for ACP adapters
+---@return table<string, string>
+function M.acp_env()
+  -- Ensure that any ACP agents spawned by CodeCompanion don't steal the herdr pane
+  return { HERDR_ENV = "", HERDR_PANE_ID = "" }
 end
 
 ---@return nil
