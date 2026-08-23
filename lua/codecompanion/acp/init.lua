@@ -23,6 +23,7 @@ local PromptBuilder = require("codecompanion.acp.prompt_builder")
 local adapter_utils = require("codecompanion.adapters.utils")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
+local integrations = require("codecompanion.integrations")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
@@ -435,7 +436,7 @@ function Connection:start_agent_process()
     {
       stdin = true,
       cwd = vim.fn.getcwd(),
-      env = adapter.env_replaced or {},
+      env = vim.tbl_extend("force", adapter.env_replaced or {}, integrations.acp_env()),
       stdout = self.methods.schedule_wrap(function(err, data)
         if err then
           log:error("[acp::start_agent_process::stdout] Error: %s", err)

@@ -1,31 +1,29 @@
 local log = require("codecompanion.utils.log")
 
+local api = vim.api
+
 local M = {}
 
 local CONSTANTS = {
-  AGENT = "codecompanion.nvim",
+  AGENT = "CodeCompanion.nvim",
   SOURCE = "custom:codecompanion.nvim",
 }
 
 local herdr = nil ---@type string|nil
 local last_state = nil ---@type string|nil
 
--- herdr discards any sequence that isn't strictly greater than the last one it
--- saw for our source, remembering across Neovim sessions. Seeding from Lua's
--- built-in time ensures that we'll be safe
+---herdr discards a sequence if it's not greater than the previous one
 local seq = os.time() * 1000
 
----The chat buffers mid-turn, keyed by buffer number
+---Enables multiple chat buffers to affect the pane's state
 ---@type table<string, { state: "working"|"blocked", message?: string }>
-local in_flight = {}
+local in_flight_chats = {}
 
----Store the chat buffers so we know what's listed in herdr
 ---@type table<number, boolean>
 local open_chats = {}
 
----Resolve the herdr path
 ---@return string|nil
-local function resolve_herdr()
+local function resolve_herdr_path()
   if vim.env.HERDR_BIN_PATH and vim.env.HERDR_BIN_PATH ~= "" then
     return vim.env.HERDR_BIN_PATH
   end
@@ -37,18 +35,17 @@ local function resolve_herdr()
   return nil
 end
 
----Check whether Neovim is running inside a herdr pane
 ---@return boolean
-local function is_active()
+local function herdr_active()
   return vim.env.HERDR_ENV == "1" and vim.env.HERDR_PANE_ID ~= nil and herdr ~= nil
 end
 
----Roll everything in flight up into the single state the herdr pane can display
+---Aggregate every in-flight chat's state
 ---@return "idle"|"working"|"blocked" state
 ---@return string|nil message
-local function aggregate()
+local function aggregate_in_flight_chats()
   local is_working = false
-  for _, entry in pairs(in_flight) do
+  for _, entry in pairs(in_flight_chats) do
     if entry.state == "blocked" then
       return "blocked", entry.message
     end
@@ -58,14 +55,14 @@ local function aggregate()
   return is_working and "working" or "idle", nil
 end
 
----herdr requires the sequence to be strictly greater than the last one it saw
 ---@return string
 local function next_seq()
+  -- Must be greater than the previous sequence
   seq = seq + 1
   return string.format("%d", seq)
 end
 
----Hand the pane back to herdr, so it no longer lists CodeCompanion as one of its agents
+---Release CodeCompanion from the pane in herdr
 ---@return nil
 local function release()
   if not last_state then
@@ -100,15 +97,14 @@ local function release()
   end
 end
 
----Report the pane's state to herdr, skipping the call when nothing has changed
+---Sync CodeCompanion's status with herdr
 ---@return nil
-local function sync()
-  -- An idle agent stays listed against the pane, so let go entirely once no chat is left to return to
-  if vim.tbl_isempty(in_flight) and vim.tbl_isempty(open_chats) then
+local function update_herdr()
+  if vim.tbl_isempty(in_flight_chats) and vim.tbl_isempty(open_chats) then
     return release()
   end
 
-  local state, message = aggregate()
+  local state, message = aggregate_in_flight_chats()
   if state == last_state then
     return
   end
@@ -141,29 +137,34 @@ local function sync()
   end)
 end
 
----Record a chat as being mid-turn
+---Track an in-flight track with herdr
 ---@param key string
 ---@param state "working"|"blocked"
 ---@param message? string
 ---@return nil
 local function track(key, state, message)
-  in_flight[key] = { state = state, message = message }
-  sync()
+  in_flight_chats[key] = { state = state, message = message }
+  update_herdr()
 end
 
----Drop a chat, moving the pane to idle once no other chat is mid-turn
 ---@param key string
 ---@return nil
 local function untrack(key)
-  in_flight[key] = nil
-  sync()
+  in_flight_chats[key] = nil
+  update_herdr()
 end
 
----Report CodeCompanion's activity to herdr for the life of the Neovim instance
+---Set the environment for ACP adapters
+---@return table<string, string>
+function M.acp_env()
+  -- Ensure that any ACP agents spawned by CodeCompanion don't steal the herdr pane
+  return { HERDR_ENV = "", HERDR_PANE_ID = "" }
+end
+
 ---@return nil
 function M.setup()
-  herdr = resolve_herdr()
-  if not is_active() then
+  herdr = resolve_herdr_path()
+  if not herdr_active() then
     log:trace(
       "[herdr] Not reporting: HERDR_ENV=%s HERDR_PANE_ID=%s herdr=%s",
       tostring(vim.env.HERDR_ENV),
@@ -173,12 +174,12 @@ function M.setup()
     return
   end
 
-  local group = vim.api.nvim_create_augroup("codecompanion.integrations.herdr", { clear = true })
+  local group = api.nvim_create_augroup("codecompanion.integrations.herdr", { clear = true })
 
   ---@param events string[]
   ---@param callback fun(data: table)
   local function on(events, callback)
-    vim.api.nvim_create_autocmd("User", {
+    api.nvim_create_autocmd("User", {
       group = group,
       pattern = events,
       callback = function(args)
@@ -195,7 +196,7 @@ function M.setup()
   -- Opening a chat attaches onto the pane as idle, listing it in herdr
   on({ "CodeCompanionChatCreated" }, function(data)
     open_chats[data.bufnr] = true
-    sync()
+    update_herdr()
   end)
   on({ "CodeCompanionChatDone", "CodeCompanionChatStopped" }, function(data)
     untrack("chat:" .. tostring(data.bufnr))
@@ -213,7 +214,7 @@ function M.setup()
     track("chat:" .. tostring(data.bufnr), "working")
   end)
 
-  vim.api.nvim_create_autocmd("VimLeavePre", {
+  api.nvim_create_autocmd("VimLeavePre", {
     group = group,
     desc = "Release CodeCompanion's authority over the herdr pane",
     callback = release,
