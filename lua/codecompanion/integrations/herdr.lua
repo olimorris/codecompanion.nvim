@@ -214,6 +214,14 @@ function M.setup()
     track("chat:" .. tostring(data.bufnr), "working")
   end)
 
+  -- Show CodeCompanion as blocked when the LLM is waiting on an answer
+  on({ "CodeCompanionToolQuestionAsked" }, function(data)
+    track("chat:" .. tostring(data.bufnr), "blocked", data.header and ("Question: " .. data.header) or "Question")
+  end)
+  on({ "CodeCompanionToolQuestionAnswered" }, function(data)
+    track("chat:" .. tostring(data.bufnr), "working")
+  end)
+
   api.nvim_create_autocmd("VimLeavePre", {
     group = group,
     desc = "Release CodeCompanion's authority over the herdr pane",
