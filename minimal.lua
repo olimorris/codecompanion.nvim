@@ -15,8 +15,9 @@ load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/ma
 local plugins = {
   {
     "olimorris/codecompanion.nvim",
-    -- Test with local version (delete if not required)
-    -- dir = "~/Code/Neovim/codecompanion.nvim",
+    -- Test with local version (delete if not required):
+    --   dir = "~/Code/Neovim/codecompanion.nvim/fix-a",
+    --   name = "codecompanion",
     dependencies = {
       { "nvim-lua/plenary.nvim" },
       {
