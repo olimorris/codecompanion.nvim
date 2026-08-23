@@ -476,7 +476,7 @@ require("codecompanion").setup({
 
 Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
 
-To enable this by default for the built-in `#buffer` editor context, you can set the `default_params` option to either `diff` or `all`:
+For the built-in `#buffer` editor context, this is enabled by default. However, you can change it with:
 
 ```lua
 require("codecompanion").setup({
@@ -487,7 +487,7 @@ require("codecompanion").setup({
           opts = {
             -- Always sync the buffer by sharing its "diff"
             -- Or choose "all" to share the entire buffer
-            default_params = "diff",
+            default_params = "all",
           },
         },
       },
@@ -717,7 +717,7 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 [Context items](/usage/chat-buffer/index#context) hold the data of a file or buffer at a point in time.
 
-Some file types are worth syncing every time they're attached. Extensions listed in `sync_diff` are watched from the moment they're added to the chat buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
+Depending on the file type, it may be worthwhile continuously syncing their content with an LLM. Extensions listed in `sync_diff` are watched from the moment they're added to the chat buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
 
 ```lua
 require("codecompanion").setup({

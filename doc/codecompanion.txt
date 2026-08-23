@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 10
+                                 For NVIM v0.11    Last change: 2026 August 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2478,7 +2478,7 @@ EDITOR CONTEXT ~
 
 Editor context
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
-can be a inserted into the chat buffer using `#` (by default). It provides
+can be inserted into the chat buffer using `#` (by default). It provides
 contextual code or information about the current Neovim state. For instance,
 the built-in `#{buffer}` editor context sends the current buffer's contents to
 the LLM.
@@ -2516,8 +2516,8 @@ buffer. That is, on each turn their content can be shared with the LLM. This is
 useful if you're modifying a buffer and want the LLM to always have the latest
 changes.
 
-To enable this by default for the built-in `#buffer` editor context, you can
-set the `default_params` option to either `diff` or `all`:
+For the built-in `#buffer` editor context, this is enabled by default. However,
+you can change it with:
 
 >lua
     require("codecompanion").setup({
@@ -2528,7 +2528,7 @@ set the `default_params` option to either `diff` or `all`:
               opts = {
                 -- Always sync the buffer by sharing its "diff"
                 -- Or choose "all" to share the entire buffer
-                default_params = "diff",
+                default_params = "all",
               },
             },
           },
@@ -2634,9 +2634,10 @@ SYNCING BUFFERS/FILES ~
 |codecompanion-usage-chat-buffer-index-context| hold the data of a file or
 buffer at a point in time.
 
-Some file types are worth syncing every time they're attached. Extensions
-listed in `sync_diff` are watched from the moment they're added to the chat
-buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
+Depending on the file type, it may be worthwhile continuously syncing their
+content with an LLM. Extensions listed in `sync_diff` are watched from the
+moment they're added to the chat buffer, whether that's with `/file`,
+`/buffer`, `#{buffer}` or `#{buffers}`:
 
 >lua
     require("codecompanion").setup({
@@ -4193,6 +4194,31 @@ about available extensions and how to create your own.
 OTHER OPTIONS                      *codecompanion-configuration-other-options*
 
 
+CONTEXT FORMATTERS ~
+
+You can customise how a buffer and file's content is shared with an LLM with
+context formatters.
+
+**Example:** A Jupyter Notebook <https://jupyter.org/> is a large JSON document
+with markdown, code and sometimes base64 images embedded in it. They ca be
+large files which quickly erode an LLM's context window.
+
+A context formatter modifies a file's content before it is shared with an LLM.
+This is the case whether the file was attached with `/file`, opened as a buffer
+and attached with `/buffer`, pulled in by a rules file, or re-read to produce a
+|codecompanion-configuration-chat-buffer-syncing| diff.
+
+You can define your own formatter by ensuring your you implement a `format(raw,
+path)` function which returns the content the LLM should see, or the path to a
+module which returns one:
+
+
+Formatters are responsible for their own formatting, so content they return is
+passed through as-is. Content they do not touch is wrapped in a code fence when
+attached to the chat, and buffers additionally get line numbers. Neither is
+applied when content is re-read for a sync diff, as the diff itself is fenced.
+
+
 LANGUAGE ~
 
 If you use the default system prompt, you can specify which language an LLM
@@ -4225,46 +4251,6 @@ place in the plugin as follows:
       },
     }),
 <
-
-
-CONTEXT FORMATTERS ~
-
-You can customise how a buffer and file's content is shared with an LLM with
-context formatters.
-
-**Using an example:** A Jupyter Notebook is a large JSON document with base64
-images embedded in it which can erode an LLM's context window.
-
-A context formatter reshapes a file's content before it is shared, regardless
-of whether the file was attached with `/file`, opened as a buffer and attached
-with `/buffer`, pulled in by a rules file, or re-read to produce a
-|codecompanion-configuration-chat-buffer-syncing| diff.
-
-A formatter is a `format(raw, path)` function which returns the content the LLM
-should see, or the path to a module which returns one. Returning nothing leaves
-the content untouched:
-
->lua
-    require("codecompanion").setup({
-      context = {
-        formatters = {
-          ipynb = false, -- Disable the built-in notebook formatter
-          sqlite = function(raw, path)
-            -- Return the content the LLM should see for this file
-          end,
-          -- Or the path to any module which returns a table with a `format` function.
-          -- The built-in notebook formatter lives at
-          -- "codecompanion.context.formatters.builtin.jupyter_notebook"
-          log = "my_plugin.context.formatters.log",
-        },
-      },
-    })
-<
-
-Formatters are responsible for their own formatting, so content they return is
-passed through as-is. Content they do not touch is wrapped in a code fence when
-attached to the chat, and buffers additionally get line numbers. Neither is
-applied when content is re-read for a sync diff, as the diff itself is fenced.
 
 
 PER-PROJECT CONFIGURATION ~
