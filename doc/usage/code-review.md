@@ -4,9 +4,11 @@ description: "Leave comments on an agent's changes where the code is, send them 
 
 # Using Code Reviews
 
-Code reviewing an agents work usually involves the manual typing of the file name along with the line number and your comment. For example, _"in `foo.lua`, around line 42, this should be..."_. Code reviews let you leave comments exactly where the code is. You can put your cursor on a line, or, make a visual selection, and then add a comment. Then, when you send your review to an agent, each comment arrives with the full context.
+Code reviewing an agent's work typically involves you searching the code base for their changes, reading the code and writing your comments back into the chat or CLI, maybe copying relevant code snippets as you go. Broadly speaking, this works. Although, it is a slow and tedious process.
 
-Sending a review also **advances a baseline**, which turns agent iterations into rounds. Your next review only shows what the agent changed in response, not the full edit history. In essence, it's the same loop as a pull request: comment, submit, re-review the response.
+In CodeCompanion, `:CodeCompanionCodeReview` opens the quickfix list with all of the agent's edits, allowing you to navigate to them in a keystroke (`]q`). Code reviews also allow you to leave comments exactly where the code is, allowing you to review like you might in GitHub. You can put your cursor on a line, or, make a visual selection, and then do `:CodeCompanionCodeReview Comment` to add a comment. When you wish to send your review to an agent, go to the chat or CLI and use `#{code_review}` in the prompt.
+
+Sending a review via the chat or CLI **advances a baseline**. This effectively closes all of the agent's edits until it starts another round of editing. The next review only shows what the agent changed in response, not the full edit history. In essence, it's the same loop as a pull request: comment, submit, re-review the response.
 
 Code reviews work with CodeCompanion's own tools, ACP agents, and even CLI agents like Claude Code running outside of Neovim.
 
@@ -45,10 +47,8 @@ sequenceDiagram
 
 When an agent begins working in a git repository, CodeCompanion snapshots the worktree to a _baseline_ (a commit at `refs/worktree/codecompanion/baseline`). When you start a review, the diff between that baseline and the repo's files is produced. As the baseline lives in git and the review comments are persisted to disk, your progress is stored across sessions and Neovim instances.
 
-Because the diff is recomputed from disk every time, line numbers are never stored and so can never rot.
-
 > [!IMPORTANT]
-> Snapshots are produced against a temporary index, so `git add` never runs against your own. This means your staged changes and anything you push are unaffected by a code review
+> Snapshots are produced against an index owned by CodeCompanion, so `git add` never runs against the user's index. This means a user's staged changes and anything that's pushed are unaffected by a code review
 
 ## Commands
 
@@ -76,8 +76,6 @@ CodeCompanion sets keymaps in the quickfix window when you start a review.
 | `x` | Ignore the hunk's file until the baseline advances |
 
 Of course, you still have the default Vim keymaps in the quickfix such as `[q` / `]q` to step through the hunks, and `:copen` / `:cclose` to open and close the quickfix window.
-
-
 
 ## Commenting
 

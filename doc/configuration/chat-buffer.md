@@ -1021,6 +1021,30 @@ Reply only through the provided schema.
 
 See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
 
+### Web Search
+
+The [web_search](/usage/chat-buffer/agents-tools#web-search) tool is a built-in tool that allows an LLM to perform web searches using an adapter. Currently, CodeCompanion supports [DuckDuckGo](https://duckduckgo.com), [Jina](https://www.jina.ai) and [Tavily](https://www.tavily.com) adapters.
+
+To override the default Tavily adapter:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["web_search"] = {
+          opts = {
+            adapter = "duckduckgo",
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+For additional options, refer to the adapter's own file.
+
 ## User Interface (UI)
 
 > [!NOTE]
@@ -1225,7 +1249,6 @@ require("codecompanion").setup({
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
     },
   },

@@ -7,9 +7,10 @@ local INTEGRATIONS = {
   "herdr",
 }
 
----Set up any third-party integrations that are enabled in the user's config
+---Call a function for every integration that's enabled in the user's config
+---@param callback fun(integration: table)
 ---@return nil
-function M.setup()
+local function enabled_integrations(callback)
   for _, name in ipairs(INTEGRATIONS) do
     local integration_config = config.integrations[name]
     if integration_config and integration_config.enabled then
@@ -17,10 +18,29 @@ function M.setup()
       if not ok then
         log:warn("Failed to load integration `%s`: %s", name, integration)
       else
-        integration.setup()
+        callback(integration)
       end
     end
   end
+end
+
+---@return nil
+function M.setup()
+  enabled_integrations(function(integration)
+    integration.setup()
+  end)
+end
+
+---Environment overrides for ACP adapters
+---@return table<string, string>
+function M.acp_env()
+  local env = {}
+  enabled_integrations(function(integration)
+    if integration.acp_env then
+      env = vim.tbl_extend("force", env, integration.acp_env())
+    end
+  end)
+  return env
 end
 
 return M

@@ -28,8 +28,11 @@ local defaults = {
       openai_responses = "openai_responses",
       openrouter = "openrouter",
       xai = "xai",
+      -- web_search adapters --------------------------------------------------
+      duckduckgo = "duckduckgo",
       jina = "jina",
       tavily = "tavily",
+      -------------------------------------------------------------------------
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
       opts = {
         allow_insecure = false, -- Allow insecure connections?
@@ -301,7 +304,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily
+            adapter = "tavily", -- tavily, duckduckgo, jina
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -1264,7 +1267,6 @@ The user is working on a %s machine. Please respond with system specific command
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---The function to display the token count
