@@ -6,7 +6,7 @@ local M = {}
 
 local CONSTANTS = {
   AGENT = "CodeCompanion.nvim",
-  SOURCE = "custom:codecompanion.nvim",
+  SOURCE = "custom:codecompanion.nvim:" .. (vim.env.HERDR_PANE_ID or ""),
 }
 
 local herdr = nil ---@type string|nil
