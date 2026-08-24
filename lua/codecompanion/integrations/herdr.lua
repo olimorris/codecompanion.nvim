@@ -1,3 +1,32 @@
+--[[
+herdr (https://herdr.dev) supervises terminal panes and shows which agent is
+running in each one. This module reports CodeCompanion's status so that a pane
+running Neovim sits alongside panes running Claude Code, Codex etc.
+
+Docs: https://herdr.dev/docs/integrations/#integrate-your-own-agent
+
+Environment, set by herdr inside a managed pane:
+  HERDR_ENV=1        Only report when this is set, so nothing runs outside herdr
+  HERDR_PANE_ID      The pane to report against
+  HERDR_BIN_PATH     Path to the herdr binary, which may be absent, so fall back to PATH
+  HERDR_SOCKET_PATH  Unix socket taking the same calls as newline delimited JSON-RPC,
+                     via pane.report_agent, pane.report_agent_session and pane.release_agent
+
+Reporting:
+  herdr pane report-agent <pane_id> --source <source> --agent <agent>
+    --state <idle|working|blocked> [--message <text>] [--seq <n>]
+    [--agent-session-id <id>] [--agent-session-path <path>]
+  herdr pane release-agent <pane_id> --source <source> --agent <agent> [--seq <n>]
+
+The source must be stable and unique per integration. The CodeCompanion implementation
+carries the pane id to stop two Neovim instances in different panes claiming
+each other's reports.
+
+The sequence MUST increase. herdr discards any report arriving with a sequence
+lower than the last one it accepted, which is how a report still in flight
+is stopped from re-attaching an agent that has already been released.
+--]]
+
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -6,7 +35,7 @@ local M = {}
 
 local CONSTANTS = {
   AGENT = "CodeCompanion.nvim",
-  SOURCE = "custom:codecompanion.nvim",
+  SOURCE = "custom:codecompanion.nvim:" .. (vim.env.HERDR_PANE_ID or ""),
 }
 
 local herdr = nil ---@type string|nil
@@ -16,7 +45,7 @@ local last_state = nil ---@type string|nil
 local seq = os.time() * 1000
 
 ---Enables multiple chat buffers to affect the pane's state
----@type table<string, { state: "working"|"blocked", message?: string }>
+---@type table<number, { state: "working"|"blocked", message?: string }>
 local in_flight_chats = {}
 
 ---@type table<number, boolean>
@@ -97,9 +126,26 @@ local function release()
   end
 end
 
+---Checks any open chat buffers and removes them if they no longer exist
+---@return nil
+local function validate_chat_buffers()
+  for bufnr in pairs(open_chats) do
+    if not api.nvim_buf_is_loaded(bufnr) then
+      open_chats[bufnr] = nil
+    end
+  end
+  for bufnr in pairs(in_flight_chats) do
+    if not api.nvim_buf_is_loaded(bufnr) then
+      in_flight_chats[bufnr] = nil
+    end
+  end
+end
+
 ---Sync CodeCompanion's status with herdr
 ---@return nil
 local function update_herdr()
+  validate_chat_buffers()
+
   if vim.tbl_isempty(in_flight_chats) and vim.tbl_isempty(open_chats) then
     return release()
   end
@@ -131,26 +177,34 @@ local function update_herdr()
   vim.system(args, {}, function(result)
     if result.code ~= 0 then
       vim.schedule(function()
-        log:error("[herdr] Report of `%s` exited with %d: %s", state, result.code, result.stderr or "")
+        log:debug("[herdr] Report of `%s` exited with %d: %s", state, result.code, result.stderr or "")
       end)
     end
   end)
 end
 
----Track an in-flight track with herdr
----@param key string
----@param state "working"|"blocked"
----@param message? string
+---Track an in-flight chat with herdr
+---@param args { bufnr: number, state: "working"|"blocked", message?: string }
 ---@return nil
-local function track(key, state, message)
-  in_flight_chats[key] = { state = state, message = message }
+local function track(args)
+  in_flight_chats[args.bufnr] = { state = args.state, message = args.message }
   update_herdr()
 end
 
----@param key string
+---Return a chat to working
+---@param args { bufnr: number }
 ---@return nil
-local function untrack(key)
-  in_flight_chats[key] = nil
+local function resume(args)
+  if not in_flight_chats[args.bufnr] then
+    return
+  end
+  track({ bufnr = args.bufnr, state = "working" })
+end
+
+---@param args { bufnr: number }
+---@return nil
+local function untrack(args)
+  in_flight_chats[args.bufnr] = nil
   update_herdr()
 end
 
@@ -176,6 +230,23 @@ function M.setup()
 
   local group = api.nvim_create_augroup("codecompanion.integrations.herdr", { clear = true })
 
+  api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+    group = group,
+    desc = "Update herdr when a chat buffer is removed",
+    callback = function()
+      if vim.tbl_isempty(in_flight_chats) and vim.tbl_isempty(open_chats) then
+        return
+      end
+      vim.schedule(update_herdr)
+    end,
+  })
+
+  api.nvim_create_autocmd("VimLeavePre", {
+    group = group,
+    desc = "Release CodeCompanion's authority over the herdr pane",
+    callback = release,
+  })
+
   ---@param events string[]
   ---@param callback fun(data: table)
   local function on(events, callback)
@@ -188,45 +259,39 @@ function M.setup()
     })
   end
 
-  -- A chat stays in flight for the whole turn, regardless of agentic loops
   on({ "CodeCompanionChatSubmitted", "CodeCompanionChatCompacting", "CodeCompanionToolsStarted" }, function(data)
-    track("chat:" .. tostring(data.bufnr), "working")
+    track({ bufnr = data.bufnr, state = "working" })
   end)
 
-  -- Opening a chat attaches onto the pane as idle, listing it in herdr
   on({ "CodeCompanionChatCreated" }, function(data)
     open_chats[data.bufnr] = true
     update_herdr()
   end)
   on({ "CodeCompanionChatDone", "CodeCompanionChatStopped" }, function(data)
-    untrack("chat:" .. tostring(data.bufnr))
+    untrack({ bufnr = data.bufnr })
   end)
   on({ "CodeCompanionChatClosed" }, function(data)
     open_chats[data.bufnr] = nil
-    untrack("chat:" .. tostring(data.bufnr))
+    untrack({ bufnr = data.bufnr })
   end)
 
-  -- Show CodeCompanion as blocked when a user needs to approve a tool
   on({ "CodeCompanionToolApprovalRequested" }, function(data)
-    track("chat:" .. tostring(data.bufnr), "blocked", data.name and ("Approval needed: " .. data.name) or nil)
+    track({ bufnr = data.bufnr, state = "blocked", message = data.name and ("Approval needed: " .. data.name) or nil })
   end)
   on({ "CodeCompanionToolApprovalFinished" }, function(data)
-    track("chat:" .. tostring(data.bufnr), "working")
+    resume({ bufnr = data.bufnr })
   end)
 
-  -- Show CodeCompanion as blocked when the LLM is waiting on an answer
   on({ "CodeCompanionToolQuestionAsked" }, function(data)
-    track("chat:" .. tostring(data.bufnr), "blocked", data.header and ("Question: " .. data.header) or "Question")
+    track({
+      bufnr = data.bufnr,
+      state = "blocked",
+      message = data.header and ("Question: " .. data.header) or "Question",
+    })
   end)
   on({ "CodeCompanionToolQuestionAnswered" }, function(data)
-    track("chat:" .. tostring(data.bufnr), "working")
+    resume({ bufnr = data.bufnr })
   end)
-
-  api.nvim_create_autocmd("VimLeavePre", {
-    group = group,
-    desc = "Release CodeCompanion's authority over the herdr pane",
-    callback = release,
-  })
 end
 
 return M
