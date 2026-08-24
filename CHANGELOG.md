@@ -1,5 +1,31 @@
 # Changelog
 
+## [19.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.22.0...v19.23.0) (2026-08-24)
+
+
+### Features
+
+* **adapters:** add `duckduckgo` for `web_search` tool ([#3293](https://github.com/olimorris/codecompanion.nvim/issues/3293)) ([75a43ba](https://github.com/olimorris/codecompanion.nvim/commit/75a43ba789cca4eea90aaa60b585aa5ab4a41967))
+* **background:** LLM judge system prompt can be customised ([#3290](https://github.com/olimorris/codecompanion.nvim/issues/3290)) ([9c76d40](https://github.com/olimorris/codecompanion.nvim/commit/9c76d40345d46325c543f0f63d5bde947e920be8))
+* **chat:** better herdr integration ([#3321](https://github.com/olimorris/codecompanion.nvim/issues/3321)) ([d28beea](https://github.com/olimorris/codecompanion.nvim/commit/d28beea25dfa6e031754590d1d4fac656dd1f557))
+* **chat:** integrate with herdr ([#3307](https://github.com/olimorris/codecompanion.nvim/issues/3307)) ([9a8e860](https://github.com/olimorris/codecompanion.nvim/commit/9a8e8602a7c72d10a827880fbb6fcd8bfa3830c7))
+* **slash_cmd:** add `/rename` ([#3291](https://github.com/olimorris/codecompanion.nvim/issues/3291)) ([a7c15c1](https://github.com/olimorris/codecompanion.nvim/commit/a7c15c145bed4da7aeb376ddfbb64523a36ac67d))
+* **tools:** improve `get_diagnostics` ([#3294](https://github.com/olimorris/codecompanion.nvim/issues/3294)) ([b27a1a7](https://github.com/olimorris/codecompanion.nvim/commit/b27a1a734fdaf73e40328091cb5929d65aaa09e9))
+* **tools:** streamline tool output ([#3327](https://github.com/olimorris/codecompanion.nvim/issues/3327)) ([33aadcd](https://github.com/olimorris/codecompanion.nvim/commit/33aadcd359997c1ca480447916cf61af9fa50e2d))
+
+
+### Bug Fixes
+
+* **action_palette:** can work from insert mode ([#3332](https://github.com/olimorris/codecompanion.nvim/issues/3332)) ([6143a5d](https://github.com/olimorris/codecompanion.nvim/commit/6143a5d5bd2252a9a6ca45920e2a9d43d3400144)), closes [#3322](https://github.com/olimorris/codecompanion.nvim/issues/3322)
+* **adapters:** prevent double context management ([#3283](https://github.com/olimorris/codecompanion.nvim/issues/3283)) ([61faceb](https://github.com/olimorris/codecompanion.nvim/commit/61faceb661e406b0abd6554854ce9be46a6c7322))
+* **chat:** herdr integration ([#3316](https://github.com/olimorris/codecompanion.nvim/issues/3316)) ([518dc7d](https://github.com/olimorris/codecompanion.nvim/commit/518dc7d8a3a6a16140cdb17c2ec732dd0c146006))
+* **chat:** make herdr integration more robust ([#3331](https://github.com/olimorris/codecompanion.nvim/issues/3331)) ([7116eec](https://github.com/olimorris/codecompanion.nvim/commit/7116eecc646c3f33d755beeb922126995bbd41e1))
+* **chat:** malformed tool calls no longer break ([#3317](https://github.com/olimorris/codecompanion.nvim/issues/3317)) ([19e6d55](https://github.com/olimorris/codecompanion.nvim/commit/19e6d55ff1f4f6224ebea503159422cdd462fdc0))
+* **chat:** prevent duplicate context insertion ([#3306](https://github.com/olimorris/codecompanion.nvim/issues/3306)) ([f8fab55](https://github.com/olimorris/codecompanion.nvim/commit/f8fab55700027c25a20f5983798b80df3cf9d0a4))
+* **code_review:** performance in a large repo ([#3310](https://github.com/olimorris/codecompanion.nvim/issues/3310)) ([41aac78](https://github.com/olimorris/codecompanion.nvim/commit/41aac78df89faa428eb1066b758f4e56c4c47662)), closes [#3300](https://github.com/olimorris/codecompanion.nvim/issues/3300)
+* **code_review:** various fixes ([#3289](https://github.com/olimorris/codecompanion.nvim/issues/3289)) ([94a931f](https://github.com/olimorris/codecompanion.nvim/commit/94a931f61ab95c5e3681050aa0aaa04094c4fc7f))
+* **rules:** can conditionally enable ([#3323](https://github.com/olimorris/codecompanion.nvim/issues/3323)) ([b2a730f](https://github.com/olimorris/codecompanion.nvim/commit/b2a730f3cbad7757480e1b5452af026ec7c1c1b2)), closes [#3320](https://github.com/olimorris/codecompanion.nvim/issues/3320)
+
 ## [19.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.21.0...v19.22.0) (2026-07-30)
 
 
