@@ -192,12 +192,12 @@ function M.has_context(context, messages)
   )
 end
 
----Read a buffer's raw content, or, read the file from disk
+---Read a file/buffer's content
 ---@param bufnr number
 ---@param path string
 ---@param range? table
 ---@return string
-local function raw_buffer_content(bufnr, path, range)
+local function read_content(bufnr, path, range)
   if api.nvim_buf_is_loaded(bufnr) then
     return buf_utils.get_content(bufnr, range)
   end
@@ -216,7 +216,7 @@ end
 ---@return string|nil
 function M.read_buffer_for_llm(bufnr, path)
   local ok, content = pcall(function()
-    return (formatters.apply({ path = path, raw = raw_buffer_content(bufnr, path) }))
+    return (formatters.apply({ path = path, raw = read_content(bufnr, path) }))
   end)
   if not ok then
     return nil
@@ -238,7 +238,7 @@ end
 function M.format_buffer_for_llm(bufnr, path, opts)
   opts = opts or {}
 
-  local raw = raw_buffer_content(bufnr, path, opts.range)
+  local raw = read_content(bufnr, path, opts.range)
 
   -- A range is a slice of the buffer, so whole-file formatters do not apply
   local content, formatted = raw, false
@@ -291,6 +291,7 @@ function M.read_file_for_llm(path)
   local ok, content = pcall(function()
     return (formatters.apply({ path = path, raw = Path.new(path):read() }))
   end)
+
   if not ok then
     return nil
   end

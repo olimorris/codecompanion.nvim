@@ -21,7 +21,7 @@ local function resolve(value)
 
   local ok, module = pcall(require, value)
   if not ok or type(module) ~= "table" or type(module.format) ~= "function" then
-    log:error("[context.formatters] Could not resolve `%s`", value)
+    log:error("[Formatters] Could not resolve `%s`", value)
     return nil
   end
 
@@ -29,7 +29,7 @@ local function resolve(value)
   return module.format
 end
 
----Get the formatter registered for a file's extension
+---Get the formatter for a given path
 ---@param path string
 ---@return function|nil
 local function for_file(path)
@@ -54,7 +54,7 @@ function M.apply(args)
 
   local ok, formatted = pcall(format, args.raw, args.path)
   if not ok then
-    log:error("[context.formatters] Could not format `%s`: %s", args.path, formatted)
+    log:error("[Formatters] Could not format `%s`: %s", args.path, formatted)
     return args.raw, false
   end
   if type(formatted) ~= "string" then

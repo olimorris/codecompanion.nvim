@@ -1,8 +1,9 @@
 --[[
-  Watches attached content for changes, sharing a diff of the changes before
-  each chat submission. Buffers are watched via their changedtick and files on
-  disk via their modification time.
+  Watchers attach content to a chat buffer that is liable to change. They share
+  a diff of changes before the submission of a chat. Buffers are watched by
+  their Neovim changedtick and files on disk via their modification time
 ]]
+
 local config = require("codecompanion.config")
 local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
@@ -12,13 +13,13 @@ local fmt = string.format
 local diff = vim.text.diff or vim.diff
 
 ---@class CodeCompanion.Chat.Watcher
----@field bufnr? number The buffer being watched (buffer-backed)
----@field changedtick? number The last known changedtick (buffer-backed)
+---@field bufnr? number The buffer being watched
+---@field changedtick? number The last known changedtick of the buffer
 ---@field deleted? boolean Whether the buffer has been deleted, pending a message to the LLM
 ---@field id string The context item ID the watcher is linked to
 ---@field last_content string The content last shared with the LLM
----@field mtime? { sec: number, nsec: number } The last known modification time (file-backed)
----@field path? string The file being watched (file-backed)
+---@field mtime? { sec: number, nsec: number } The last known modification time of the file
+---@field path? string The file being watched
 
 ---@class CodeCompanion.Chat.Watchers
 ---@field augroup number The autocmd group ID
@@ -136,8 +137,7 @@ function Watchers:sync_buffer(args)
     path = api.nvim_buf_get_name(args.bufnr),
   }
 
-  -- Deletion is recorded rather than acted on, so that the LLM is told about it
-  -- on the next turn
+  -- Record a buffer deletion so that we can notify the LLM on the next turn
   api.nvim_create_autocmd("BufDelete", {
     group = self.augroup,
     buffer = args.bufnr,
@@ -183,7 +183,7 @@ function Watchers:sync_file(args)
 end
 
 ---Stop watching a context item
----@param id string The context item ID
+---@param id string
 ---@return nil
 function Watchers:unsync(id)
   if self.watchers[id] then
