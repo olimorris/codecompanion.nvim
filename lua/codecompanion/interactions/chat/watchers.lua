@@ -119,23 +119,22 @@ function Watchers:sync_buffer(args)
   end
 
   log:debug("Watching buffer %d as `%s`", args.bufnr, args.id)
-  self.watchers[args.id] = {
+  local watcher = {
     bufnr = args.bufnr,
     changedtick = api.nvim_buf_get_changedtick(args.bufnr),
     id = args.id,
     last_content = content,
     path = api.nvim_buf_get_name(args.bufnr),
   }
+  self.watchers[args.id] = watcher
 
-  -- Record a buffer deletion so that we can notify the LLM on the next turn
+  -- Captures `watcher` directly rather than looking it up by id, so a later BufDelete
+  -- for this buffer can't mark a watcher that has since been rebound to another buffer
   api.nvim_create_autocmd("BufDelete", {
     group = self.augroup,
     buffer = args.bufnr,
     callback = function()
-      local watcher = self.watchers[args.id]
-      if watcher then
-        watcher.deleted = true
-      end
+      watcher.deleted = true
     end,
   })
 
