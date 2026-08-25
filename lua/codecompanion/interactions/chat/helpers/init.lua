@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 
-local Path = require("plenary.path")
 local buf_utils = require("codecompanion.utils.buffers")
+local files = require("codecompanion.utils.files")
 local formatters = require("codecompanion.context.formatters")
 local log = require("codecompanion.utils.log")
 
@@ -193,21 +193,19 @@ function M.has_context(context, messages)
 end
 
 ---Read a file/buffer's content
----@param bufnr number
----@param path string
----@param range? table
+---@param args { bufnr: number, path: string, range?: table }
 ---@return string
-local function read_content(bufnr, path, range)
-  if api.nvim_buf_is_loaded(bufnr) then
-    return buf_utils.get_content(bufnr, range)
+local function read_content(args)
+  if api.nvim_buf_is_loaded(args.bufnr) then
+    return buf_utils.get_content(args.bufnr, args.range)
   end
 
-  local file_content = Path.new(path):read()
-  if file_content == "" then
-    error("Could not read the file: " .. path)
+  local content = files.read(args.path)
+  if content == "" then
+    error("Could not read the file: " .. args.path)
   end
 
-  return vim.trim(file_content)
+  return vim.trim(content)
 end
 
 ---Read a buffer's content for an LLM, applying the formatter registered for its extension
@@ -216,7 +214,7 @@ end
 ---@return string|nil
 function M.read_buffer_for_llm(bufnr, path)
   local ok, content = pcall(function()
-    return (formatters.apply({ path = path, raw = read_content(bufnr, path) }))
+    return (formatters.apply({ path = path, raw = read_content({ bufnr = bufnr, path = path }) }))
   end)
   if not ok then
     return nil
@@ -238,12 +236,10 @@ end
 function M.format_buffer_for_llm(bufnr, path, opts)
   opts = opts or {}
 
-  local raw = read_content(bufnr, path, opts.range)
-
   -- A range is a slice of the buffer, so whole-file formatters do not apply
-  local content, formatted = raw, false
+  local content, formatted = read_content({ bufnr = bufnr, path = path, range = opts.range }), false
   if not opts.range then
-    content, formatted = formatters.apply({ path = path, raw = raw })
+    content, formatted = formatters.apply({ path = path, raw = content })
   end
 
   if not formatted then
@@ -289,7 +285,7 @@ end
 ---@return string|nil
 function M.read_file_for_llm(path)
   local ok, content = pcall(function()
-    return (formatters.apply({ path = path, raw = Path.new(path):read() }))
+    return (formatters.apply({ path = path, raw = files.read(path) }))
   end)
 
   if not ok then
@@ -313,19 +309,19 @@ end
 function M.format_file_for_llm(path, opts)
   opts = opts or {}
 
-  local raw = Path.new(path):read()
+  local raw_content = files.read(path)
   local filetype = vim.filetype.match({ filename = path })
 
-  local file_contents, formatted = formatters.apply({ path = path, raw = raw })
+  local file_contents, formatted = formatters.apply({ path = path, raw = raw_content })
   if not formatted then
-    local code_fence = M.code_fence(raw)
+    local code_fence = M.code_fence(raw_content)
     file_contents = fmt(
       [[%s%s
 %s
 %s]],
       code_fence,
       filetype,
-      raw,
+      raw_content,
       code_fence
     )
   end
@@ -352,10 +348,10 @@ function M.format_file_for_llm(path, opts)
 
   return {
     content = content,
+    filetype = filetype,
     id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>",
     path = path,
-    filetype = filetype,
-    raw = raw,
+    raw = raw_content,
   }
 end
 

@@ -78,37 +78,36 @@ local function read_buffer(bufnr)
 end
 
 ---Add a diff of the changes to the message stack
----@param chat CodeCompanion.Chat
----@param watcher CodeCompanion.Chat.Watcher
----@param diff_content string
+---@param args { chat: CodeCompanion.Chat, diff_content: string, watcher: CodeCompanion.Chat.Watcher}
 ---@return nil
-local function add_diff_message(chat, watcher, diff_content)
-  local buffer_attr = watcher.bufnr and fmt([[ buffer_number="%s"]], watcher.bufnr) or ""
+local function add_diff_message(args)
+  local buf_attr = args.watcher.bufnr and fmt([[ buffer_number="%s"]], args.watcher.bufnr) or ""
 
-  chat:add_message({
+  args.chat:add_message({
     role = config.constants.USER_ROLE,
     content = fmt(
       [[<attachment filepath="%s"%s>The file `%s` has been modified. Here are the changes:
 %s
 </attachment>]],
-      watcher.path,
-      buffer_attr,
-      watcher.path,
-      diff_content
+      args.watcher.path,
+      buf_attr,
+      args.watcher.path,
+      args.diff_content
     ),
-  }, { context = { id = watcher.id }, visible = false })
+  }, { context = { id = args.watcher.id }, visible = false })
 end
 
 ---Add a message that the watched content has been removed
----@param chat CodeCompanion.Chat
----@param watcher CodeCompanion.Chat.Watcher
----@param content string
+---@param args { chat: CodeCompanion.Chat, watcher: CodeCompanion.Chat.Watcher }
 ---@return nil
-local function add_removed_message(chat, watcher, content)
-  chat:add_message({
+local function add_removed_message(args)
+  local content = args.watcher.bufnr and fmt("The buffer for `%s` has been deleted.", args.watcher.path)
+    or fmt("The file `%s` has been removed.", args.watcher.path)
+
+  args.chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { context = { id = watcher.id }, visible = false })
+  }, { context = { id = args.watcher.id }, visible = false })
 end
 
 ---Watch a buffer for changes
@@ -193,27 +192,26 @@ function Watchers:unsync(id)
 end
 
 ---Share a diff of the content that has changed since the last turn
----@param chat CodeCompanion.Chat
----@param watcher CodeCompanion.Chat.Watcher
----@param content string
+---@param args { chat: CodeCompanion.Chat, content: string, watcher: CodeCompanion.Chat.Watcher }
 ---@return nil
-local function share_changes(chat, watcher, content)
-  local diff_content = format_changes_as_diff(watcher.last_content, content)
-  watcher.last_content = content
+local function share_changes(args)
+  local diff_content = format_changes_as_diff(args.watcher.last_content, args.content)
+  args.watcher.last_content = args.content
 
   if diff_content ~= "" then
-    add_diff_message(chat, watcher, diff_content)
+    add_diff_message({ chat = args.chat, watcher = args.watcher, diff_content = diff_content })
   end
 end
 
 ---Check a watched buffer for changes
----@param chat CodeCompanion.Chat
----@param watcher CodeCompanion.Chat.Watcher
+---@param args { chat: CodeCompanion.Chat, watcher: CodeCompanion.Chat.Watcher }
 ---@return boolean removed
-function Watchers:_check_buffer(chat, watcher)
+function Watchers:_check_buffer(args)
+  local chat, watcher = args.chat, args.watcher
+
   if watcher.deleted or not api.nvim_buf_is_valid(watcher.bufnr) then
     self:unsync(watcher.id)
-    add_removed_message(chat, watcher, fmt("The buffer for `%s` has been deleted.", watcher.path))
+    add_removed_message({ chat = chat, watcher = watcher })
     return true
   end
 
@@ -225,21 +223,22 @@ function Watchers:_check_buffer(chat, watcher)
 
   local content = read_buffer(watcher.bufnr)
   if content then
-    share_changes(chat, watcher, content)
+    share_changes({ chat = chat, watcher = watcher, content = content })
   end
 
   return false
 end
 
 ---Check a watched file for changes
----@param chat CodeCompanion.Chat
----@param watcher CodeCompanion.Chat.Watcher
+---@param args { chat: CodeCompanion.Chat, watcher: CodeCompanion.Chat.Watcher }
 ---@return boolean removed
-function Watchers:_check_file(chat, watcher)
+function Watchers:_check_file(args)
+  local chat, watcher = args.chat, args.watcher
+
   local mtime = files.mtime(watcher.path)
   if not mtime then
     self:unsync(watcher.id)
-    add_removed_message(chat, watcher, fmt("The file `%s` has been removed.", watcher.path))
+    add_removed_message({ chat = chat, watcher = watcher })
     return true
   end
   if mtime.sec == watcher.mtime.sec and mtime.nsec == watcher.mtime.nsec then
@@ -249,7 +248,7 @@ function Watchers:_check_file(chat, watcher)
 
   local content = read_file(watcher.path)
   if content then
-    share_changes(chat, watcher, content)
+    share_changes({ chat = chat, watcher = watcher, content = content })
   end
 
   return false
@@ -259,26 +258,26 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function Watchers:check_for_changes(chat)
-  local any_removed = false
+  local had_removals = false
 
   for _, item in ipairs(chat.context_items) do
     local watcher = item.opts and item.opts.sync_diff and self.watchers[item.id]
     if watcher then
       local removed
       if watcher.bufnr then
-        removed = self:_check_buffer(chat, watcher)
+        removed = self:_check_buffer({ chat = chat, watcher = watcher })
       else
-        removed = self:_check_file(chat, watcher)
+        removed = self:_check_file({ chat = chat, watcher = watcher })
       end
       if removed then
         item.opts.sync_diff = false
-        any_removed = true
+        had_removals = true
       end
     end
   end
 
-  -- Drop the sync icon from context items that are no longer being watched
-  if any_removed then
+  if had_removals then
+    -- Drop the sync icon from context items that are no longer being watched
     chat.context:render()
   end
 end
