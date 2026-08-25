@@ -4,45 +4,6 @@ description: "Configure miscellaneous CodeCompanion options: response language, 
 
 # Other Configuration Options
 
-## Context Formatters
-
-You can customise how a buffer and file's content is shared with an LLM with context formatters.
-
-**Example:** A [Jupyter Notebook](https://jupyter.org/) is a large JSON document with markdown, code and sometimes base64 images embedded in it. They ca be large files which quickly erode an LLM's context window.
-
-A context formatter modifies a file's content before it is shared with an LLM. This is the case whether the file was attached with `/file`, opened as a buffer and attached with `/buffer`, pulled in by a rules file, or re-read to produce a [sync](/configuration/chat-buffer#syncing) diff.
-
-You can define your own formatter by ensuring your you implement a `format(raw, path)` function which returns the content the LLM should see, or the path to a module which returns one:
-
-::: code-group
-
-```lua [Function]
-require("codecompanion").setup({
-  context = {
-    formatters = {
-      sqlite = function(raw, path)
-        -- Return the content the LLM should see for this file
-      end,
-    },
-  },
-})
-```
-
-```lua [Path]
-require("codecompanion").setup({
-  context = {
-    formatters = {
-      -- The path to any module which returns a table with a `format` function.
-      sqlite = "my_plugin.context.formatters.sqlite",
-    },
-  },
-})
-```
-
-:::
-
-Formatters are responsible for their own formatting, so content they return is passed through as-is. Content they do not touch is wrapped in a code fence when attached to the chat, and buffers additionally get line numbers. Neither is applied when content is re-read for a sync diff, as the diff itself is fenced.
-
 ## Language
 
 If you use the default system prompt, you can specify which language an LLM should respond in by changing the `opts.language` option:
