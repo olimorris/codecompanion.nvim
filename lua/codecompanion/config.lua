@@ -300,6 +300,14 @@ The user is working on a %s machine. Please respond with system specific command
             timeout = 300000, -- Timeout for commands (milliseconds) - 5 mins by default
           },
         },
+        ["search_help"] = {
+          path = "interactions.chat.tools.builtin.search_help",
+          description = "Search CodeCompanion's own documentation",
+          opts = {
+            max_lines = 200, -- Sections longer than this return their subsection outline instead
+            max_results = 50, -- Maximum number of search hits to return
+          },
+        },
         ["web_search"] = {
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
