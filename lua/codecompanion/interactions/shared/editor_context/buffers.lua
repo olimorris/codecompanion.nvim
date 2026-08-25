@@ -66,7 +66,7 @@ function EditorContext:chat_render()
 
   for _, buf_info in ipairs(buffers) do
     if not self:_is_excluded(buf_info.bufnr) then
-      local ok, content, id, _ = pcall(
+      local ok, buffer = pcall(
         chat_helpers.format_buffer_for_llm,
         buf_info.bufnr,
         buf_info.path,
@@ -76,21 +76,21 @@ function EditorContext:chat_render()
       if ok then
         self.Chat:add_message({
           role = config.constants.USER_ROLE,
-          content = content,
+          content = buffer.content,
         }, {
           _meta = { source = "editor_context", tag = tags.BUFFER },
-          context = { id = id, path = buf_info.path },
+          context = { id = buffer.id, path = buf_info.path },
           visible = false,
         })
 
         self.Chat.context:add({
           bufnr = buf_info.bufnr,
-          id = id,
+          id = buffer.id,
           path = buf_info.path,
           params = params,
           opts = {
             sync_all = (params and params == "all"),
-            sync_diff = (params and params == "diff"),
+            sync_diff = params == "diff" or nil,
           },
           source = "codecompanion.interactions.shared.editor_context.buffer",
         })

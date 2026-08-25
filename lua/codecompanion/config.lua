@@ -632,18 +632,18 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.yank_code",
           description = "Yank code from the last codeblock",
         },
-        buffer_sync_all = {
+        sync_all = {
           modes = { n = "gba" },
           index = 9,
-          callback = "keymaps.buffer_sync_all",
-          description = "Toggle live-syncing of pinned buffers",
+          callback = "keymaps.sync_all",
+          description = "Toggle live-syncing of a context item",
           opts = { chat = { show_in_action_palette = false } },
         },
-        buffer_sync_diff = {
+        sync_diff = {
           modes = { n = "gbd" },
           index = 10,
-          callback = "keymaps.buffer_sync_diff",
-          description = "Toggle diff-only syncing of pinned buffers",
+          callback = "keymaps.sync_diff",
+          description = "Toggle diff-only syncing of a context item",
           opts = { chat = { show_in_action_palette = false } },
         },
         next_chat = {
@@ -752,6 +752,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
 
             fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
           },
+        },
+
+        -- These filetypes always share a diff with an LLM when shared as context
+        sync_diff = {
+          ipynb = true,
         },
 
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -1059,6 +1064,14 @@ The user is working on a %s machine. Please respond with system specific command
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
+  -- CONTEXT ------------------------------------------------------------------
+  context = {
+    ---Format file and buffer content before sharing it with an LLM, keyed by file extension.
+    ---@type table<string, string|fun(raw: string, path: string): string|nil>
+    formatters = {
+      ipynb = "codecompanion.context.formatters.builtin.jupyter_notebook",
+    },
+  },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {
     -- Users can define prompt library items in markdown
@@ -1197,8 +1210,8 @@ The user is working on a %s machine. Please respond with system specific command
     },
     chat = {
       icons = {
-        buffer_sync_all = "󰪴 ",
-        buffer_sync_diff = " ",
+        sync_all = "󰪴 ",
+        sync_diff = " ",
         --chat_context = " ",
         chat_fold = " ",
         tool_pending = "  ",
@@ -1444,7 +1457,7 @@ end
 
 ---@param args? table
 M.setup = function(args)
-  args = args or {}
+  args = vim.deepcopy(args or {})
 
   if args.constants then
     return vim.notify(
@@ -1458,6 +1471,27 @@ M.setup = function(args)
   if args.strategies then
     args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
     args.strategies = nil
+  end
+
+  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
+  -- Legacy `buffer_sync_*` keymaps and icons were renamed to `sync_*`
+  local user_keymaps = args.interactions and args.interactions.chat and args.interactions.chat.keymaps
+  local user_icons = args.display and args.display.chat and args.display.chat.icons
+  for _, name in ipairs({ "sync_all", "sync_diff" }) do
+    local legacy = "buffer_" .. name
+    for _, section in ipairs({ user_keymaps, user_icons }) do
+      if section and section[legacy] ~= nil then
+        vim.notify(
+          ("[CodeCompanion] `%s` is deprecated. Use `%s` instead."):format(legacy, name),
+          vim.log.levels.WARN,
+          { title = "CodeCompanion" }
+        )
+        if section[name] == nil then
+          section[name] = section[legacy]
+        end
+        section[legacy] = nil
+      end
+    end
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)

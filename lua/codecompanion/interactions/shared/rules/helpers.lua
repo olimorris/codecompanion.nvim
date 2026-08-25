@@ -215,7 +215,7 @@ function M.add_files_or_buffers(included_files, chat)
     -- Then determine if the file is open as a buffer
     local bufnr = buf_utils.get_bufnr_from_path(path)
     if bufnr then
-      local ok, content, _, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
+      local ok, buffer = pcall(chat_helpers.format_buffer_for_llm, bufnr, path)
       if not ok then
         return log:debug("[Rules] Could not add buffer %d to chat buffer", bufnr)
       end
@@ -229,7 +229,7 @@ function M.add_files_or_buffers(included_files, chat)
         end
       end
 
-      return chat:add_context({ content = content }, "rules", id, {
+      return chat:add_context({ content = buffer.content }, "rules", id, {
         bufnr = bufnr,
         path = path,
         context_opts = opts,
@@ -237,9 +237,9 @@ function M.add_files_or_buffers(included_files, chat)
     end
 
     -- Otherwise, add it as file context
-    local ok, content, _, _, _, _ = pcall(chat_helpers.format_file_for_llm, path, opts)
+    local ok, file = pcall(chat_helpers.format_file_for_llm, path, opts)
     if ok then
-      chat:add_context({ content = content }, "rules", id, {
+      chat:add_context({ content = file.content }, "rules", id, {
         path = path,
       })
     end

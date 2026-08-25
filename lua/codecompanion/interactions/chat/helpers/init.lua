@@ -1,7 +1,8 @@
 local config = require("codecompanion.config")
 
-local Path = require("plenary.path")
 local buf_utils = require("codecompanion.utils.buffers")
+local files = require("codecompanion.utils.files")
+local formatters = require("codecompanion.context.formatters")
 local log = require("codecompanion.utils.log")
 
 local M = {}
@@ -34,6 +35,17 @@ function M.create_acp_connection(chat, cb)
     handler:ensure_session()
     call_cb()
   end)()
+end
+
+---Return a code fence longer than any successive backtick counts in the content
+---@param content string
+---@return string
+function M.code_fence(content)
+  local longest = 3
+  for run in content:gmatch("`+") do
+    longest = math.max(longest, #run)
+  end
+  return string.rep("`", longest + 1)
 end
 
 ---Format the given role without any separator
@@ -180,37 +192,66 @@ function M.has_context(context, messages)
   )
 end
 
+---Read a file/buffer's content
+---@param args { bufnr: number, path: string, range?: table }
+---@return string
+local function read_content(args)
+  if api.nvim_buf_is_loaded(args.bufnr) then
+    return buf_utils.get_content(args.bufnr, args.range)
+  end
+
+  local content = files.read(args.path)
+  if content == "" then
+    error("Could not read the file: " .. args.path)
+  end
+
+  return vim.trim(content)
+end
+
+---Read a buffer's content for an LLM, applying the formatter registered for its extension
+---@param bufnr number
+---@param path string
+---@return string|nil
+function M.read_buffer_for_llm(bufnr, path)
+  local ok, content = pcall(function()
+    return (formatters.apply({ path = path, raw = read_content({ bufnr = bufnr, path = path }) }))
+  end)
+  if not ok then
+    return nil
+  end
+
+  return content
+end
+
 ---Format buffer content with XML wrapper for LLM consumption
 ---@param bufnr number
 ---@param path string
 ---@param opts? { message?: string, range?: table }
----@return string content The XML-wrapped content
----@return string id The buffer context ID
----@return string filename The buffer filename
+---@return { content: string, filename: string, id: string }
 function M.format_buffer_for_llm(bufnr, path, opts)
   opts = opts or {}
 
-  -- Handle unloaded buffers
-  local content
-  if not api.nvim_buf_is_loaded(bufnr) then
-    local file_content = Path.new(path):read()
-    if file_content == "" then
-      error("Could not read the file: " .. path)
-    end
+  local content = read_content({ bufnr = bufnr, path = path, range = opts.range })
+
+  -- A range is a slice of the buffer, so whole-file formatters do not apply
+  local formatted = false
+  if not opts.range then
+    content, formatted = formatters.apply({ path = path, raw = content })
+  end
+
+  if not formatted then
+    local filetype = api.nvim_buf_is_loaded(bufnr) and buf_utils.get_info(bufnr).filetype
+      or vim.filetype.match({ filename = path })
+    local numbered_content = buf_utils.add_line_numbers(content)
+    local code_fence = M.code_fence(numbered_content)
     content = fmt(
-      [[````%s
+      [[%s%s
 %s
-````]],
-      vim.filetype.match({ filename = path }),
-      buf_utils.add_line_numbers(vim.trim(file_content))
-    )
-  else
-    content = fmt(
-      [[````%s
-%s
-````]],
-      buf_utils.get_info(bufnr).filetype,
-      buf_utils.add_line_numbers(buf_utils.get_content(bufnr, opts.range))
+%s]],
+      code_fence,
+      filetype,
+      numbered_content,
+      code_fence
     )
   end
 
@@ -221,62 +262,87 @@ function M.format_buffer_for_llm(bufnr, path, opts)
 
   local message = opts.message or "File content"
 
-  local formatted_content = fmt(
-    [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
-    path,
-    bufnr,
-    message,
-    content
-  )
-
-  return formatted_content, id, filename
+  return {
+    content = fmt(
+      [[<attachment filepath="%s" buffer_number="%s">%s:
+%s
+</attachment>]],
+      path,
+      bufnr,
+      message,
+      content
+    ),
+    id = id,
+    filename = filename,
+  }
 end
 
----Format buffer content with XML wrapper for LLM consumption
+---Read a file's content for an LLM, applying the formatter registered for its extension
+---@param path string
+---@return string|nil
+function M.read_file_for_llm(path)
+  local ok, content = pcall(function()
+    return (formatters.apply({ path = path, raw = files.read(path) }))
+  end)
+
+  if not ok then
+    return nil
+  end
+
+  return content
+end
+
+---Format file content with XML wrapper for LLM consumption
 ---@param path string
 ---@param opts? { message?: string, range?: table }
----@return string file_contents
----@return string id The context ID
----@return string path The file path
----@return string ft The filetype
----@return string file_contents The raw file contents
+---@return { content: string, filetype: string, id: string, path: string, raw: string }
 function M.format_file_for_llm(path, opts)
   opts = opts or {}
 
-  local file_contents = Path.new(path):read()
+  local raw_content = files.read(path)
+  local filetype = vim.filetype.match({ filename = path })
 
-  local ft = vim.filetype.match({ filename = path })
-  local id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>"
+  local file_contents, formatted = formatters.apply({ path = path, raw = raw_content })
+  if not formatted then
+    local code_fence = M.code_fence(raw_content)
+    file_contents = fmt(
+      [[%s%s
+%s
+%s]],
+      code_fence,
+      filetype,
+      raw_content,
+      code_fence
+    )
+  end
 
   local content
   if opts.message then
     content = fmt(
       [[%s
 
-````%s
-%s
-````]],
+%s]],
       opts.message,
-      ft,
       file_contents
     )
   else
     content = fmt(
       [[<attachment filepath="%s">%s:
-
-````%s
 %s
-````
 </attachment>]],
       path,
       "Here is the content from the file",
-      ft,
       file_contents
     )
   end
 
-  return content, id, path, ft, file_contents
+  return {
+    content = content,
+    filetype = filetype,
+    id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>",
+    path = path,
+    raw = raw_content,
+  }
 end
 
 ---Add line numbers with an offset to content
@@ -289,6 +355,7 @@ local function add_line_numbers_from(content, start_line)
   for i, line in ipairs(lines) do
     table.insert(formatted, fmt("%d |%s", start_line + i - 1, line))
   end
+
   return table.concat(formatted, "\n")
 end
 
@@ -305,19 +372,23 @@ function M.format_viewport_range_for_llm(bufnr, range)
   local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
   local numbered_content = add_line_numbers_from(buffer_content, start_line)
 
+  local code_fence = M.code_fence(numbered_content)
   local content = fmt(
-    [[````%s
+    [[%s%s
 %s
-````]],
+%s]],
+    code_fence,
     info.filetype,
-    numbered_content
+    numbered_content,
+    code_fence
   )
 
   local excerpt_info = fmt("Excerpt from %s, lines %d to %d", filepath, start_line, end_line)
 
   local formatted_content = fmt(
     [[<attachment filepath="%s" buffer_number="%s">%s:
-%s</attachment>]],
+%s
+</attachment>]],
     filepath,
     bufnr,
     excerpt_info,

@@ -191,12 +191,12 @@ function SlashCommand:output(selected, opts)
     message = "Here is the updated content from a file (including line numbers)"
   end
 
-  local ok, content, id, filename =
-    pcall(helpers.format_buffer_for_llm, selected.bufnr, selected.path, { message = message })
+  local ok, buffer = pcall(helpers.format_buffer_for_llm, selected.bufnr, selected.path, { message = message })
   if not ok then
-    return log:warn(content)
+    return log:warn(buffer)
   end
 
+  local content = buffer.content
   if opts.description then
     content = opts.description .. "\n\n" .. content
   end
@@ -206,7 +206,7 @@ function SlashCommand:output(selected, opts)
     content = content,
   }, {
     _meta = { source = "slash_command", tag = tags.BUFFER },
-    context = { id = id, path = selected.path },
+    context = { id = buffer.id, path = selected.path },
     visible = false,
   })
 
@@ -225,14 +225,14 @@ function SlashCommand:output(selected, opts)
 
   self.Chat.context:add({
     bufnr = selected.bufnr,
-    id = id,
+    id = buffer.id,
     path = selected.path,
     opts = opts,
     source = "codecompanion.interactions.shared.slash_commands.buffer",
   })
 
   if not opts.silent then
-    utils.notify(fmt("Added buffer `%s` to the chat", filename))
+    utils.notify(fmt("Added buffer `%s` to the chat", buffer.filename))
   end
 end
 
