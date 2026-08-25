@@ -12,18 +12,9 @@ local api = vim.api
 local fmt = string.format
 local diff = vim.text.diff or vim.diff
 
----@class CodeCompanion.Chat.Watcher
----@field bufnr? number The buffer being watched
----@field changedtick? number The last known changedtick of the buffer
----@field deleted? boolean Whether the buffer has been deleted, pending a message to the LLM
----@field id string The context item ID the watcher is linked to
----@field last_content string The content last shared with the LLM
----@field mtime? { sec: number, nsec: number } The last known modification time of the file
----@field path? string The file being watched
-
 ---@class CodeCompanion.Chat.Watchers
 ---@field augroup number The autocmd group ID
----@field watchers table<string, CodeCompanion.Chat.Watcher> Watchers keyed by context item ID
+---@field watchers table<string, table> Watchers keyed by context item ID, each holding a bufnr/path, its last known changedtick/mtime, and the content last shared with the LLM
 local Watchers = {}
 
 local instance_count = 0
@@ -31,13 +22,14 @@ local instance_count = 0
 ---@return CodeCompanion.Chat.Watchers
 function Watchers.new()
   instance_count = instance_count + 1
+
+  ---@type CodeCompanion.Chat.Watchers
   return setmetatable({
     augroup = api.nvim_create_augroup(fmt("codecompanion.watchers.%d", instance_count), { clear = true }),
     watchers = {},
   }, { __index = Watchers })
 end
 
----Generate a unified diff between the content last shared and the current content
 ---@param old_content string
 ---@param new_content string
 ---@return string
@@ -56,7 +48,6 @@ local function format_changes_as_diff(old_content, new_content)
   return ""
 end
 
----Read a file's content for the LLM
 ---@param path string
 ---@return string|nil
 local function read_file(path)
@@ -69,7 +60,6 @@ local function read_file(path)
   return content
 end
 
----Read a buffer's content for the LLM
 ---@param bufnr number
 ---@return string|nil
 local function read_buffer(bufnr)
@@ -77,8 +67,8 @@ local function read_buffer(bufnr)
   return require("codecompanion.interactions.chat.helpers").read_buffer_for_llm(bufnr, path)
 end
 
----Add a diff of the changes to the message stack
----@param args { chat: CodeCompanion.Chat, diff_content: string, watcher: CodeCompanion.Chat.Watcher}
+---Add a diff of the changes to a chat buffer
+---@param args { chat: CodeCompanion.Chat, diff_content: string, watcher: table }
 ---@return nil
 local function add_diff_message(args)
   local buf_attr = args.watcher.bufnr and fmt([[ buffer_number="%s"]], args.watcher.bufnr) or ""
@@ -98,9 +88,9 @@ local function add_diff_message(args)
 end
 
 ---Add a message that the watched content has been removed
----@param args { chat: CodeCompanion.Chat, watcher: CodeCompanion.Chat.Watcher }
+---@param args { chat: CodeCompanion.Chat, watcher: table }
 ---@return nil
-local function add_removed_message(args)
+local function add_removal_message(args)
   local content = args.watcher.bufnr and fmt("The buffer for `%s` has been deleted.", args.watcher.path)
     or fmt("The file `%s` has been removed.", args.watcher.path)
 
@@ -114,7 +104,8 @@ end
 ---@param args { bufnr: number, id: string }
 ---@return boolean synced
 function Watchers:sync_buffer(args)
-  if self.watchers[args.id] then
+  local existing = self.watchers[args.id]
+  if existing and existing.bufnr == args.bufnr then
     return true
   end
   if not api.nvim_buf_is_valid(args.bufnr) then
@@ -155,7 +146,8 @@ end
 ---@param args { id: string, path: string }
 ---@return boolean synced
 function Watchers:sync_file(args)
-  if self.watchers[args.id] then
+  local existing = self.watchers[args.id]
+  if existing and existing.path == args.path then
     return true
   end
 
@@ -191,8 +183,8 @@ function Watchers:unsync(id)
   end
 end
 
----Share a diff of the content that has changed since the last turn
----@param args { chat: CodeCompanion.Chat, content: string, watcher: CodeCompanion.Chat.Watcher }
+---Share a diff of changes with the chat buffer
+---@param args { chat: CodeCompanion.Chat, content: string, watcher: table }
 ---@return nil
 local function share_changes(args)
   local diff_content = format_changes_as_diff(args.watcher.last_content, args.content)
@@ -204,14 +196,14 @@ local function share_changes(args)
 end
 
 ---Check a watched buffer for changes
----@param args { chat: CodeCompanion.Chat, watcher: CodeCompanion.Chat.Watcher }
+---@param args { chat: CodeCompanion.Chat, watcher: table }
 ---@return boolean removed
 function Watchers:_check_buffer(args)
   local chat, watcher = args.chat, args.watcher
 
   if watcher.deleted or not api.nvim_buf_is_valid(watcher.bufnr) then
     self:unsync(watcher.id)
-    add_removed_message({ chat = chat, watcher = watcher })
+    add_removal_message({ chat = chat, watcher = watcher })
     return true
   end
 
@@ -219,10 +211,10 @@ function Watchers:_check_buffer(args)
   if changedtick == watcher.changedtick then
     return false
   end
-  watcher.changedtick = changedtick
 
   local content = read_buffer(watcher.bufnr)
   if content then
+    watcher.changedtick = changedtick
     share_changes({ chat = chat, watcher = watcher, content = content })
   end
 
@@ -230,7 +222,7 @@ function Watchers:_check_buffer(args)
 end
 
 ---Check a watched file for changes
----@param args { chat: CodeCompanion.Chat, watcher: CodeCompanion.Chat.Watcher }
+---@param args { chat: CodeCompanion.Chat, watcher: table }
 ---@return boolean removed
 function Watchers:_check_file(args)
   local chat, watcher = args.chat, args.watcher
@@ -238,16 +230,16 @@ function Watchers:_check_file(args)
   local mtime = files.mtime(watcher.path)
   if not mtime then
     self:unsync(watcher.id)
-    add_removed_message({ chat = chat, watcher = watcher })
+    add_removal_message({ chat = chat, watcher = watcher })
     return true
   end
   if mtime.sec == watcher.mtime.sec and mtime.nsec == watcher.mtime.nsec then
     return false
   end
-  watcher.mtime = mtime
 
   local content = read_file(watcher.path)
   if content then
+    watcher.mtime = mtime
     share_changes({ chat = chat, watcher = watcher, content = content })
   end
 

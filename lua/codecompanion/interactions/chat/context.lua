@@ -192,11 +192,13 @@ function Context:add(context)
 
     table.insert(self.Chat.context_items, context)
     if context.opts.sync_diff then
+      local synced = false
       if context.bufnr then
-        self.Chat.watchers:sync_buffer({ id = context.id, bufnr = context.bufnr })
+        synced = self.Chat.watchers:sync_buffer({ id = context.id, bufnr = context.bufnr })
       elseif context.path then
-        self.Chat.watchers:sync_file({ id = context.id, path = context.path })
+        synced = self.Chat.watchers:sync_file({ id = context.id, path = context.path })
       end
+      context.opts.sync_diff = synced
     end
   end
 

@@ -465,10 +465,14 @@ end
 
 T["Context"]["Show icons immediately when added with default parameters"] = function()
   child.lua([[
-     -- Test sync_diff context with default parameters
+     -- Test sync_diff context with default parameters. The path must exist so that the
+     -- watcher registers and the icon reflects an actually-synced context item
+     _G.synced_diff_path = vim.fn.tempname() .. ".lua"
+     vim.fn.writefile({ "-- synced diff file" }, _G.synced_diff_path)
+
      _G.chat.context:add({
        id = "<buf>synced_diff_file.lua</buf>",
-       path = "test_synced_diff.lua",
+       path = _G.synced_diff_path,
        source = "codecompanion.interactions.chat.slash_commands.buffer",
        opts = {
          sync_diff = true,

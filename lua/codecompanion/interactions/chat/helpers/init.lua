@@ -223,21 +223,18 @@ function M.read_buffer_for_llm(bufnr, path)
   return content
 end
 
----@class CodeCompanion.Chat.FormattedBuffer
----@field content string The XML-wrapped content
----@field filename string The buffer filename
----@field id string The buffer context ID
-
 ---Format buffer content with XML wrapper for LLM consumption
 ---@param bufnr number
 ---@param path string
 ---@param opts? { message?: string, range?: table }
----@return CodeCompanion.Chat.FormattedBuffer
+---@return { content: string, filename: string, id: string }
 function M.format_buffer_for_llm(bufnr, path, opts)
   opts = opts or {}
 
+  local content = read_content({ bufnr = bufnr, path = path, range = opts.range })
+
   -- A range is a slice of the buffer, so whole-file formatters do not apply
-  local content, formatted = read_content({ bufnr = bufnr, path = path, range = opts.range }), false
+  local formatted = false
   if not opts.range then
     content, formatted = formatters.apply({ path = path, raw = content })
   end
@@ -295,17 +292,10 @@ function M.read_file_for_llm(path)
   return content
 end
 
----@class CodeCompanion.Chat.FormattedFile
----@field content string The XML-wrapped content
----@field filetype string The filetype
----@field id string The file context ID
----@field path string The file path
----@field raw string The raw file contents
-
 ---Format file content with XML wrapper for LLM consumption
 ---@param path string
 ---@param opts? { message?: string, range?: table }
----@return CodeCompanion.Chat.FormattedFile
+---@return { content: string, filetype: string, id: string, path: string, raw: string }
 function M.format_file_for_llm(path, opts)
   opts = opts or {}
 
