@@ -183,6 +183,12 @@ function Watchers:unsync(id)
   end
 end
 
+---@return nil
+function Watchers:clear()
+  self.watchers = {}
+  api.nvim_clear_autocmds({ group = self.augroup })
+end
+
 ---Share a diff of changes with the chat buffer
 ---@param args { chat: CodeCompanion.Chat, content: string, watcher: table }
 ---@return nil

@@ -1971,6 +1971,7 @@ function Chat:clear()
   self.messages = {}
   self.context_items = {}
 
+  self.watchers:clear()
   self.tool_registry:clear()
 
   log:trace("Clearing chat buffer")

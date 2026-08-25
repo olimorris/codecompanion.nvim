@@ -501,7 +501,9 @@ M.sync_diff = {
           if item.bufnr then
             -- Check if buffer is still valid before syncing
             if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
-              chat.watchers:sync_buffer({ id = item.id, bufnr = item.bufnr })
+              if not chat.watchers:sync_buffer({ id = item.id, bufnr = item.bufnr }) then
+                fail_reason = "Could not read "
+              end
             else
               fail_reason = "Invalid or unloaded buffer "
             end
