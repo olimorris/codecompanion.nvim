@@ -196,6 +196,33 @@ T["ACP Formatters"]["execute - parses backtick-wrapped command from title"] = fu
   )
 end
 
+T["ACP Formatters"]["execute - prefers rawInput.command over cwd location"] = function()
+  h.eq(
+    "Execute: grep -rn foo bar.py",
+    format({
+      toolCallId = "exec-2",
+      kind = "execute",
+      status = "pending",
+      title = "grep -rn foo bar.py",
+      rawInput = { command = "grep -rn foo bar.py", cwd = "/Users/test/project" },
+      locations = { { path = "/Users/test/project" } },
+    })
+  )
+end
+
+T["ACP Formatters"]["execute - falls back to title when no rawInput.command"] = function()
+  h.eq(
+    "Execute: grep -rn foo bar.py",
+    format({
+      toolCallId = "exec-3",
+      kind = "execute",
+      status = "pending",
+      title = "grep -rn foo bar.py",
+      locations = { { path = "/Users/test/project" } },
+    })
+  )
+end
+
 T["ACP Formatters"]["search - verbose appends content summary"] = function()
   h.eq(
     "Search: Find **/*add_buf_message* — No files found",

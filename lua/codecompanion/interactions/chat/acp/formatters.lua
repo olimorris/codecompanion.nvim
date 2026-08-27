@@ -160,6 +160,15 @@ local function build_label(tool_call)
     return ("%s: %s"):format(kind, relpath(diff.path))
   end
 
+  -- The location of an execute call is the working directory, not its subject
+  if tool_call.kind == "execute" then
+    local command = tool_call.rawInput and tool_call.rawInput.command
+    if type(command) == "string" and command ~= "" then
+      return ("%s: %s"):format(kind, sanitize_text(command, MAX_TITLE))
+    end
+    return ("%s: %s"):format(kind, parse_title(tool_call.title))
+  end
+
   local location = tool_call.locations and tool_call.locations[1]
   if location and type(location.path) == "string" then
     return ("%s: %s"):format(kind, relpath(location.path))
