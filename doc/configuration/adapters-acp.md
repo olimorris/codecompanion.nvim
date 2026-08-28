@@ -430,13 +430,13 @@ You can specify a custom model in your `~/.config/opencode/opencode.jsonc` (or `
 }
 ```
 
-Opencode by default doesn't sends diffs for Code Review, to enable them [specify permissions](https://opencode.ai/docs/permissions/):
+Opencode by default doesn't send diffs for Code Review, to enable them [specify permissions](https://opencode.ai/docs/permissions/):
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode-go/mimo-v2.5-pro",
   "permission": {
-    "*": "ask",
+    "*": "ask"
   }
 }
 ```

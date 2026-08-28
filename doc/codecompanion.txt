@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 23
+                                 For NVIM v0.11    Last change: 2026 August 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1545,12 +1545,26 @@ their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
 
-You can specify a custom model in your `~/.config/opencode/config.json` file:
+You can specify a custom model in your `~/.config/opencode/opencode.jsonc` (or
+`~/.config/opencode/opencode.json`) file:
 
 >json
     {
         "$schema": "https://opencode.ai/config.json",
         "model": "github-copilot/claude-sonnet-4.5",
+    }
+<
+
+Opencode by default doesn't send diffs for Code Review, to enable them specify
+permissions <https://opencode.ai/docs/permissions/>:
+
+>json
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "model": "opencode-go/mimo-v2.5-pro",
+      "permission": {
+        "*": "ask"
+      }
     }
 <
 
@@ -2374,6 +2388,31 @@ stack:
       end,
     })
 <
+
+
+CONTEXT FORMATTERS ~
+
+You can customise how a buffer and file's content is shared with an LLM with
+context formatters.
+
+**Example:** A Jupyter Notebook <https://jupyter.org/> is a large JSON document
+with markdown, code and sometimes base64 images embedded in it. They ca be
+large files which quickly erode an LLM's context window.
+
+A context formatter modifies a file's content before it is shared with an LLM.
+This is the case whether the file was attached with `/file`, opened as a buffer
+and attached with `/buffer`, pulled in by a rules file, or re-read to produce a
+|codecompanion-configuration-chat-buffer-syncing| diff.
+
+You can define your own formatter by ensuring your you implement a `format(raw,
+path)` function which returns the content the LLM should see, or the path to a
+module which returns one:
+
+
+Formatters are responsible for their own formatting, so content they return is
+passed through as-is. Content they do not touch is wrapped in a code fence when
+attached to the chat, and buffers additionally get line numbers. Neither is
+applied when content is re-read for a sync diff, as the diff itself is fenced.
 
 
 CONTEXT MANAGEMENT ~
@@ -4219,31 +4258,6 @@ about available extensions and how to create your own.
 
 
 OTHER OPTIONS                      *codecompanion-configuration-other-options*
-
-
-CONTEXT FORMATTERS ~
-
-You can customise how a buffer and file's content is shared with an LLM with
-context formatters.
-
-**Example:** A Jupyter Notebook <https://jupyter.org/> is a large JSON document
-with markdown, code and sometimes base64 images embedded in it. They ca be
-large files which quickly erode an LLM's context window.
-
-A context formatter modifies a file's content before it is shared with an LLM.
-This is the case whether the file was attached with `/file`, opened as a buffer
-and attached with `/buffer`, pulled in by a rules file, or re-read to produce a
-|codecompanion-configuration-chat-buffer-syncing| diff.
-
-You can define your own formatter by ensuring your you implement a `format(raw,
-path)` function which returns the content the LLM should see, or the path to a
-module which returns one:
-
-
-Formatters are responsible for their own formatting, so content they return is
-passed through as-is. Content they do not touch is wrapped in a code fence when
-attached to the chat, and buffers additionally get line numbers. Neither is
-applied when content is re-read for a sync diff, as the diff itself is fenced.
 
 
 LANGUAGE ~
