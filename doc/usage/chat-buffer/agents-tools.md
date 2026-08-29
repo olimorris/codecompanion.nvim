@@ -327,6 +327,14 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 **Options:**
 - `require_approval_before` require approval before running a command? (Default: true)
 
+### search_help
+
+This tool enables an LLM to search the CodeCompanion docs for a specific query. It essentially grounds the LLM in the plugin's documentation, ensuring that it doesn't make up answers based on its own knowledge which may be out of date.
+
+```md
+Use @{search_help} to find out how I can do a code review in CodeCompanion
+```
+
 ### web_search
 
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:

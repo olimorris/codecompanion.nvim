@@ -23,7 +23,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - **Function descriptions:** exactly one line. No multi-paragraph rationale, no usage examples, no "why we cache this" essays — that belongs in commit messages or a single inline `--` comment at the relevant line. If you can't summarise the function in one line, the function is doing too much
 - **Functions:** keep under 50 lines
 - **Globals:** avoid; use module-local state
-- **Code blocks:** use four backticks with language spec
+- **Code blocks:** use four backticks with language spec unless in a markdown file
 
 ## Architecture
 

@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 28
+                                 For NVIM v0.11    Last change: 2026 August 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5100,6 +5100,17 @@ into.
 
 **Options:** - `require_approval_before` require approval before running a
 command? (Default: true)
+
+
+SEARCH_HELP
+
+This tool enables an LLM to search the CodeCompanion docs for a specific query.
+It essentially grounds the LLM in the plugin's documentation, ensuring that it
+doesn't make up answers based on its own knowledge which may be out of date.
+
+>md
+    Use @{search_help} to find out how I can do a code review in CodeCompanion
+<
 
 
 WEB_SEARCH
