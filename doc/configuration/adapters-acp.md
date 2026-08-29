@@ -421,12 +421,23 @@ To use [Mistral Vibe](https://github.com/mistralai/mistral-vibe) in CodeCompanio
 
 To use [OpenCode](https://opencode.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://opencode.ai/docs/#install) and [configure](https://opencode.ai/docs/#configure) it. Then ensure that in your chat buffer you select the `opencode` adapter.
 
-You can specify a custom model in your `~/.config/opencode/config.json` file:
+You can specify a custom model in your `~/.config/opencode/opencode.jsonc` (or `~/.config/opencode/opencode.json`) file:
 
 ```json
 {
     "$schema": "https://opencode.ai/config.json",
     "model": "github-copilot/claude-sonnet-4.5",
+}
+```
+
+Opencode by default doesn't send diffs for Code Review, to enable them [specify permissions](https://opencode.ai/docs/permissions/):
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/mimo-v2.5-pro",
+  "permission": {
+    "*": "ask"
+  }
 }
 ```
 
