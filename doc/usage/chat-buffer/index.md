@@ -70,11 +70,13 @@ Sharing context with an LLM is crucial in order to generate useful responses. In
 > [!IMPORTANT]
 > Context items contain the data of an object at a point in time. By default, they **are not** self-updating
 
-In order to allow for context to self-update, buffers and files can be synced to a chat buffer. On every turn, you can determine what is sent to the LLM. For buffers, you can choose to send _all_ of the content or just the _diff_. For files, you only have the choice of sending _all_ of the content.
+In order to allow for context to self-update, buffers and files can be synced to a chat buffer. On every turn, you can determine what is sent to the LLM. For both, you can choose to send _all_ of the content or just the _diff_.
 
-The advantage of sending _all_ of a file or buffer's content is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with tools. However, please note that this can consume a lot of tokens.
+The advantage of sending _all_ of a file or buffer's content is that the LLM will always receive a fresh copy of the source data regardless of any changes. However, please note that this can consume a lot of tokens.
 
-Syncing and sending only a _diff_, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Buffer diffs track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
+Syncing and sending only a _diff_, is a more token-conscious way of keeping the LLM up to date. Diffs track changes (adds, edits, deletes) in the underlying buffer/file and update the LLM on each turn. Press `gbd` on any context item to start syncing its diff.
+
+Some file types are worth syncing every time they're attached. Jupyter Notebooks are the out of the box example, since a notebook changes on disk whenever a cell is run. Any extension can be watched from the moment it's added to the chat buffer by listing it in [sync_diff](/configuration/chat-buffer#syncing).
 
 If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
 
@@ -141,8 +143,6 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `clear`: `gx` to clear the chat buffer’s contents
 - `copilot_stats`: `gS` to show copilot usage stats
 - `btw`: `gm` type a message to the LLM whilst it's streaming
-- `buffer_sync_all`: `gba` to sync the entire buffer on every turn
-- `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
 - `codeblock`: `gc` to insert a codeblock in the chat buffer
 - `debug`: `gd` to view/debug the chat buffer’s contents
 - `fold_code`: `gf` to fold any codeblocks in the chat buffer
@@ -153,6 +153,8 @@ The plugin has a host of keymaps available in the chat buffer. The keymaps avail
 - `previous_header`: `[[` to move to the previous header
 - `regenerate`: `gr` to regenerate the last response
 - `rules`: `gM` to clear all rules from the chat buffer
+- `sync_all`: `gba` to sync a context item's entire content on every turn
+- `sync_diff`: `gbd` to sync only a context item's diff on every turn
 - `system_prompt`: `gs` to toggle the system prompt on/off
 - `yank_code`: `gy` to yank the last codeblock in the chat buffer
 
