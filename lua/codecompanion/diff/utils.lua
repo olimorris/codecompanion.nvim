@@ -249,6 +249,16 @@ function M.changed_lines(from_lines, to_lines)
   return count
 end
 
+---Join lines ensuring they have a trailing newline. Fixed #3338
+---@param lines string[]
+---@return string
+local function join_with_newline(lines)
+  if #lines == 0 then
+    return ""
+  end
+  return table.concat(lines, "\n") .. "\n"
+end
+
 ---Generate a unified diff string suitable for inline display
 ---@param from_lines string[]
 ---@param to_lines string[]
@@ -257,10 +267,8 @@ function M.unified(from_lines, to_lines)
   ---@diagnostic disable-next-line: deprecated
   local diff_fn = vim.text.diff or vim.diff
   local result =
-    diff_fn(table.concat(from_lines, "\n"), table.concat(to_lines, "\n"), { result_type = "unified", ctxlen = 3 })
-
-  -- Strip the newline marker
-  result = (result or ""):gsub("\n?\\ No newline at end of file%s*", ""):gsub("\n$", "")
+    diff_fn(join_with_newline(from_lines), join_with_newline(to_lines), { result_type = "unified", ctxlen = 3 })
+  result = (result or ""):gsub("\n$", "")
 
   return result
 end

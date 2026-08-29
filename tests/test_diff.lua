@@ -198,6 +198,38 @@ T["Diff"]["Handles multiple hunks"] = function()
   h.eq(2, result.hunk_count, "Should detect 2 separate change hunks")
 end
 
+T["Diff"]["Unified diff keeps the last changed line separate"] = function()
+  local result = child.lua([[
+    return require("codecompanion.diff.utils").unified(
+      { "Lorem", "ipsum", "dolor", "sit" },
+      { "Lorem", "ipsum", "dolor modified", "sit modified" }
+    )
+  ]])
+
+  h.eq({
+    "@@ -1,4 +1,4 @@",
+    " Lorem",
+    " ipsum",
+    "-dolor",
+    "-sit",
+    "+dolor modified",
+    "+sit modified",
+  }, vim.split(result, "\n"), "Should not merge the final deletion into the first addition")
+end
+
+T["Diff"]["Unified diff handles empty sets of lines"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.diff.utils")
+    return {
+      created = utils.unified({}, { "one", "two" }),
+      emptied = utils.unified({ "one", "two" }, {}),
+    }
+  ]])
+
+  h.eq("@@ -0,0 +1,2 @@\n+one\n+two", result.created, "Should diff against an empty file")
+  h.eq("@@ -1,2 +0,0 @@\n-one\n-two", result.emptied, "Should diff to an empty file")
+end
+
 T["Diff"]["Integration Test"] = new_set()
 
 T["Diff"]["Integration Test"]["Example 1"] = function()
