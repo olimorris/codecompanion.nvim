@@ -380,16 +380,15 @@ local function collect_hits(doc, matches_line, max_results)
     end
     if matches_line(line) then
       total = total + 1
-      if total > max_results then
-        break
+      if total <= max_results then
+        local node = doc.nodes[node_index]
+        local key = node and node.path or "Preamble"
+        if not sections[key] then
+          sections[key] = {}
+          table.insert(order, key)
+        end
+        table.insert(sections[key], fmt("  %d: %s", number, vim.trim(line)))
       end
-      local node = doc.nodes[node_index]
-      local key = node and node.path or "Preamble"
-      if not sections[key] then
-        sections[key] = {}
-        table.insert(order, key)
-      end
-      table.insert(sections[key], fmt("  %d: %s", number, vim.trim(line)))
     end
   end
 

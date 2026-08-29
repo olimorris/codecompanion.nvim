@@ -91,7 +91,7 @@ T["search groups hits under the section containing them"] = function()
   local output = execute({ command = "search", query = "pertab" })
 
   h.expect_contains("Usage > QUICKLY ACCESSING A CHAT BUFFER", output)
-  h.expect_contains("4337: ", output)
+  h.expect_match(output, "%d+: .*pertab")
 end
 
 T["search matches literally rather than as a pattern by default"] = function()
