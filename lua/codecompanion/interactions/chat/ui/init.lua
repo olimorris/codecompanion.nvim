@@ -161,6 +161,38 @@ function UI.new(args)
   return self
 end
 
+---Apply shared post-open setup once the chat is visible in a window
+---@param opts? { toggled?: boolean }
+---@return CodeCompanion.Chat.UI
+function UI:_finish_open(opts)
+  opts = opts or {}
+  vim.bo[self.chat_bufnr].textwidth = 0
+
+  if config.display.chat.start_in_insert_mode then
+    -- Delay entering insert mode until after Telescope picker fully closes,
+    -- since Telescope resets to normal mode on close.
+    vim.schedule(function()
+      vim.cmd("startinsert")
+    end)
+  end
+
+  if not opts.toggled then
+    if self.cursor.moved_by_user and self.cursor.pos then
+      vim.schedule(function()
+        if self:is_visible() then
+          pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.pos)
+        end
+      end)
+    else
+      self:follow()
+    end
+  end
+
+  self.folds:setup(self.winnr)
+  utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
+  return self
+end
+
 ---Open/create the chat window
 ---@param opts? table
 ---@return CodeCompanion.Chat.UI|nil
@@ -172,13 +204,6 @@ function UI:open(opts)
       api.nvim_set_current_tabpage(api.nvim_win_get_tabpage(self.winnr))
     end
     return
-  end
-  if config.display.chat.start_in_insert_mode then
-    -- Delay entering insert mode until after Telescope picker fully closes,
-    -- since Telescope resets to normal mode on close.
-    vim.schedule(function()
-      vim.cmd("startinsert")
-    end)
   end
 
   if opts.window_opts then
@@ -205,27 +230,8 @@ function UI:open(opts)
     filetype = "codecompanion",
   })
 
-  vim.bo[self.chat_bufnr].textwidth = 0
-
-  if not opts.toggled then
-    -- Put the cursor back in the original position
-    if self.cursor.moved_by_user and self.cursor.pos then
-      vim.schedule(function()
-        if self:is_visible() then
-          pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.pos)
-        end
-      end)
-    else
-      self:follow()
-    end
-  end
-
-  self.folds:setup(self.winnr)
-
   log:trace("Chat opened with ID %d", self.chat_id)
-  utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
-
-  return self
+  return self:_finish_open(opts)
 end
 
 ---Show this chat buffer in an existing window (preserves layout/size)
@@ -233,7 +239,6 @@ end
 ---@return CodeCompanion.Chat.UI
 function UI:show_in_win(opts)
   opts = opts or {}
-  local winnr = opts.winnr
 
   if opts.window_opts then
     if opts.window_opts.default then
@@ -243,34 +248,13 @@ function UI:show_in_win(opts)
     end
   end
 
-  api.nvim_win_set_buf(winnr, self.chat_bufnr)
-  self.winnr = winnr
+  api.nvim_win_set_buf(opts.winnr, self.chat_bufnr)
+  self.winnr = opts.winnr
   -- Filetype is set in shared_ui.open; set it here too when skipping that path
   api.nvim_set_option_value("filetype", "codecompanion", { buf = self.chat_bufnr })
-  vim.bo[self.chat_bufnr].textwidth = 0
 
-  if config.display.chat.start_in_insert_mode then
-    vim.schedule(function()
-      vim.cmd("startinsert")
-    end)
-  end
-
-  if not opts.toggled then
-    if self.cursor.moved_by_user and self.cursor.pos then
-      vim.schedule(function()
-        if self:is_visible() then
-          pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.pos)
-        end
-      end)
-    else
-      self:follow()
-    end
-  end
-
-  self.folds:setup(self.winnr)
   log:trace("Chat opened in existing window with ID %d", self.chat_id)
-  utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
-  return self
+  return self:_finish_open(opts)
 end
 
 ---Hide the chat buffer from view
