@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local M = {}
 
@@ -7,24 +8,7 @@ local M = {}
 ---@param path string The path to the module
 ---@return table|nil The loaded action module or nil on failure
 function M.resolve(path)
-  local ok, action = pcall(require, "codecompanion." .. path)
-  if ok then
-    return action
-  end
-
-  -- Load the tool from the user's config using a module path
-  ok, action = pcall(require, path)
-  if ok then
-    return action
-  end
-
-  -- Try loading the tool from the user's config using a file path
-  local chunk, err = loadfile(vim.fs.normalize(path))
-  if err or not chunk then
-    return
-  end
-
-  return chunk()
+  return utils.resolve({ value = path, source = "background::callbacks" })
 end
 
 ---Execute an action

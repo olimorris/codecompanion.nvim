@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 local api = vim.api
 
 local M = {}
@@ -250,6 +252,37 @@ function M.callbacks_extend(callbacks, event, fn)
     table.insert(existing, fn)
   end
   return callbacks
+end
+
+---Resolve a config value into the module, table or function it points at
+---@param args { value: string|function, source?: string }
+---@return any|nil
+function M.resolve(args)
+  local value = args.value
+  if type(value) == "function" then
+    return value
+  end
+  if type(value) ~= "string" then
+    return nil
+  end
+
+  local ok, resolved = pcall(require, "codecompanion." .. value)
+  if ok then
+    return resolved
+  end
+
+  ok, resolved = pcall(require, value)
+  if ok then
+    return resolved
+  end
+
+  local chunk, err = loadfile(vim.fs.normalize(value))
+  if err or not chunk then
+    log:error("[%s] Could not resolve `%s`", args.source or "CodeCompanion", value)
+    return nil
+  end
+
+  return chunk()
 end
 
 ---Resolve a nested table value using a dot-separated path string
