@@ -1111,8 +1111,7 @@ The user is working on a %s machine. Please respond with system specific command
       parser = "claude",
       ---@return boolean
       enabled = function()
-        -- Don't show this to users who aren't working on CodeCompanion itself
-        return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
+        return vim.fn.isdirectory(vim.fs.joinpath(vim.fn.getcwd(), ".codecompanion")) == 1
       end,
       files = {
         ["adapters"] = {
