@@ -3,10 +3,13 @@
 ---@field description string
 ---@field interaction string
 ---@field bufnr number
----@field open fun()
----@field hide fun()
+---@field open fun(opts?: { winnr?: number })
+---@field hide fun(opts?: { keep_window?: boolean })
 
 local M = {}
+
+local api = vim.api
+local ui_utils = require("codecompanion.utils.ui")
 
 ---@type table<number, CodeCompanion.Registry.Entry>
 local entries = {}
@@ -94,8 +97,14 @@ function M.move(current_bufnr, direction, opts)
   local current = sorted[idx]
   local next_entry = sorted[next_idx]
 
-  current.hide()
-  next_entry.open()
+  local winnr = ui_utils.buf_get_win(current_bufnr)
+  if winnr and api.nvim_win_is_valid(winnr) then
+    current.hide({ keep_window = true })
+    next_entry.open({ winnr = winnr })
+  else
+    current.hide()
+    next_entry.open()
+  end
 
   return next_entry
 end
