@@ -8,6 +8,7 @@ local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local shared_ui = require("codecompanion.interactions.shared.ui")
 local tags = require("codecompanion.interactions.shared.tags")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
@@ -252,6 +253,16 @@ function UI:show_in_win(opts)
   self.winnr = opts.winnr
   -- Filetype is set in shared_ui.open; set it here too when skipping that path
   api.nvim_set_option_value("filetype", "codecompanion", { buf = self.chat_bufnr })
+
+  local window
+  if self.window_opts then
+    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts)
+  else
+    window = config.display.chat.window
+  end
+  if window.opts and not vim.tbl_isempty(window.opts) then
+    ui_utils.set_win_options(self.winnr, window.opts)
+  end
 
   log:trace("Chat opened in existing window with ID %d", self.chat_id)
   return self:_finish_open(opts)
