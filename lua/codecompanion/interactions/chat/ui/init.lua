@@ -228,17 +228,65 @@ function UI:open(opts)
   return self
 end
 
----Hide the chat buffer from view
----@return nil
-function UI:hide()
-  local layout
-  if self.window_opts then
-    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts).layout
-  else
-    layout = config.display.chat.window.layout
+---Show this chat buffer in an existing window (preserves layout/size)
+---@param opts { winnr: number, toggled?: boolean, window_opts?: table }
+---@return CodeCompanion.Chat.UI
+function UI:show_in_win(opts)
+  opts = opts or {}
+  local winnr = opts.winnr
+
+  if opts.window_opts then
+    if opts.window_opts.default then
+      self.window_opts = nil
+    else
+      self.window_opts = opts.window_opts
+    end
   end
 
-  shared_ui.hide(self.winnr, self.chat_bufnr, layout)
+  api.nvim_win_set_buf(winnr, self.chat_bufnr)
+  self.winnr = winnr
+  -- Filetype is set in shared_ui.open; set it here too when skipping that path
+  api.nvim_set_option_value("filetype", "codecompanion", { buf = self.chat_bufnr })
+  vim.bo[self.chat_bufnr].textwidth = 0
+
+  if config.display.chat.start_in_insert_mode then
+    vim.schedule(function()
+      vim.cmd("startinsert")
+    end)
+  end
+
+  if not opts.toggled then
+    if self.cursor.moved_by_user and self.cursor.pos then
+      vim.schedule(function()
+        if self:is_visible() then
+          pcall(api.nvim_win_set_cursor, self.winnr, self.cursor.pos)
+        end
+      end)
+    else
+      self:follow()
+    end
+  end
+
+  self.folds:setup(self.winnr)
+  log:trace("Chat opened in existing window with ID %d", self.chat_id)
+  utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
+  return self
+end
+
+---Hide the chat buffer from view
+---@param opts? { keep_window?: boolean }
+---@return nil
+function UI:hide(opts)
+  opts = opts or {}
+  if not opts.keep_window then
+    local layout
+    if self.window_opts then
+      layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts).layout
+    else
+      layout = config.display.chat.window.layout
+    end
+    shared_ui.hide(self.winnr, self.chat_bufnr, layout)
+  end
 
   utils.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
 end

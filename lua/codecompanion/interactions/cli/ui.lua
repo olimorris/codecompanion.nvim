@@ -58,11 +58,27 @@ function UI:open(opts)
   return self
 end
 
+---Show this CLI buffer in an existing window (preserves layout/size)
+---@param opts { winnr: number }
+---@return CodeCompanion.CLI.UI
+function UI:show_in_win(opts)
+  opts = opts or {}
+  vim.api.nvim_win_set_buf(opts.winnr, self.bufnr)
+  self.winnr = opts.winnr
+  log:trace("CLI opened in existing window")
+  utils.fire("CLIOpened", { bufnr = self.bufnr })
+  return self
+end
+
 ---Hide the CLI window (does not kill the terminal process)
+---@param opts? { keep_window?: boolean }
 ---@return nil
-function UI:hide()
-  local window = resolve_window_config()
-  shared_ui.hide(self.winnr, self.bufnr, window.layout)
+function UI:hide(opts)
+  opts = opts or {}
+  if not opts.keep_window then
+    local window = resolve_window_config()
+    shared_ui.hide(self.winnr, self.bufnr, window.layout)
+  end
 
   utils.fire("CLIHidden", { bufnr = self.bufnr })
 end
