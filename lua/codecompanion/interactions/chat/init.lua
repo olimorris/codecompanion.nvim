@@ -614,12 +614,13 @@ function Chat.new(args)
     name = "Chat " .. vim.tbl_count(chats),
     description = CONSTANTS.BLANK_DESC,
     interaction = "chat",
-    open = function()
-      Chat.close_last_chat()
-      self.ui:open()
+    open = function(opts)
+      opts = opts or {}
+      opts.ui = self.ui
+      Chat.open_or_reuse(opts)
     end,
-    hide = function()
-      self.ui:hide()
+    hide = function(opts)
+      self.ui:hide(opts)
     end,
   })
 
@@ -641,8 +642,7 @@ function Chat.new(args)
   end
 
   if not self.hidden then
-    self.close_last_chat()
-    self.ui:open():render(self.buffer_context, self.messages, {
+    Chat.open_or_reuse({ ui = self.ui }):render(self.buffer_context, self.messages, {
       stop_context_insertion = args.stop_context_insertion,
       auto_submit = args.auto_submit,
       from_prompt_library = args.from_prompt_library,
@@ -2106,17 +2106,48 @@ function Chat.last_chat()
 end
 
 ---Close the last chat buffer
----@return nil
-function Chat.close_last_chat()
+---@param opts? { keep_window?: boolean }
+---@return number|nil
+function Chat.close_last_chat(opts)
+  opts = opts or {}
   if last_chat and not vim.tbl_isempty(last_chat) then
     if last_chat.ui:is_visible() then
       -- pertab: leave chats visible in other tabs alone
       if config.display.chat.window.pertab and last_chat.ui:is_visible_non_curtab() then
-        return
+        return nil
+      end
+      -- Never reuse a window from another tab
+      if opts.keep_window and not last_chat.ui:is_visible_non_curtab() then
+        local winnr = last_chat.ui.winnr
+        last_chat.ui:hide({ keep_window = true })
+        return winnr
       end
       last_chat.ui:hide()
     end
   end
+  return nil
+end
+
+---Open a chat UI in an existing window when possible
+---@param opts { ui: CodeCompanion.Chat.UI, winnr?: number, toggled?: boolean, window_opts?: table }
+---@return CodeCompanion.Chat.UI
+function Chat.open_or_reuse(opts)
+  opts = opts or {}
+  local ui = opts.ui
+  if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
+    return ui:show_in_win(opts)
+  end
+
+  local winnr = Chat.close_last_chat({ keep_window = true })
+  if winnr and api.nvim_win_is_valid(winnr) then
+    return ui:show_in_win({
+      winnr = winnr,
+      toggled = opts.toggled,
+      window_opts = opts.window_opts,
+    })
+  end
+
+  return ui:open(opts)
 end
 
 ---Check if the last chat is currently visible
@@ -2178,16 +2209,11 @@ function Chat.toggle(args)
   chat.buffer_context = args.context or chat.buffer_context
 
   -- At this point, the chat exists but is not visible in the current tab
-
-  -- Close the chat window (if it's open elsewhere)
-  Chat.close_last_chat()
-
-  -- Reopen the chat in the current tab with the toggled flag
-  local opts = { toggled = true }
+  local opts = { ui = chat.ui, toggled = true }
   if window_opts then
     opts.window_opts = window_opts
   end
-  chat.ui:open(opts)
+  Chat.open_or_reuse(opts)
 end
 
 return Chat
