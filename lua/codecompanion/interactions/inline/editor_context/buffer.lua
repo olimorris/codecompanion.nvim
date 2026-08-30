@@ -16,7 +16,7 @@ end
 function Buffer:output()
   local message = "To help you assist with my user prompt, I'm attaching the contents of a buffer"
 
-  local ok, content, _, _ = pcall(
+  local ok, buffer = pcall(
     chat_helpers.format_buffer_for_llm,
     self.context.bufnr,
     buf_utils.get_info(self.context.bufnr).path,
@@ -27,7 +27,7 @@ function Buffer:output()
     return
   end
 
-  return content
+  return buffer.content
 end
 
 return Buffer

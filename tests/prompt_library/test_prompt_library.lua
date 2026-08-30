@@ -270,4 +270,86 @@ T["Prompt Library"]["can ignore system prompt"] = function()
   h.eq(false, has_system_tag)
 end
 
+T["Prompt Library"]["malformed message is never formed, even if the current mode doesn't match the prompt's mode"] = function()
+  local has_invalid_role = child.lua([[
+    local Interactions = require("codecompanion.interactions")
+    local config = require("codecompanion.config")
+    local selected = {
+      name = "Visual only",
+      interaction = "chat",
+      opts = {},
+      prompts = {
+        -- Prompt has visual mode only...
+        v = {
+          {
+            role = config.constants.USER_ROLE,
+            content = "visual prompt",
+          },
+        },
+      },
+    }
+    Interactions.new({
+      -- ... but the user is in normal mode
+      buffer_context = { mode = "n", is_visual = false, is_normal = true, filetype = "lua" },
+      selected = selected,
+    }):start("chat")
+
+    local chat = require("codecompanion").last_chat()
+    if not chat then
+      return false
+    end
+
+    local has_invalid_role = false
+    for _, msg in ipairs(chat.messages) do
+      if msg.role == nil or msg.role == "" then
+        has_invalid_role = true
+      end
+    end
+    return has_invalid_role
+  ]])
+
+  h.eq(false, has_invalid_role)
+end
+
+--- Ref: https://github.com/olimorris/codecompanion.nvim/issues/3322
+T["Prompt Library"]["resolves an unsupported mode to normal for n/v keyed prompts"] = function()
+  local has_empty_role = child.lua([[
+    local Interactions = require("codecompanion.interactions")
+    local config = require("codecompanion.config")
+    local selected = {
+      name = "Chat",
+      interaction = "chat",
+      opts = { stop_context_insertion = true },
+      prompts = {
+        -- Prompt has normal and visual mode prompts defined ...
+        n = function()
+          return require("codecompanion").chat()
+        end,
+        v = {
+          {
+            role = config.constants.USER_ROLE,
+            content = "visual prompt",
+          },
+        },
+      },
+    }
+    Interactions.new({
+      -- ... But the user is in insert mode
+      buffer_context = { mode = "i", is_visual = false, is_normal = true, filetype = "lua" },
+      selected = selected,
+    }):start("chat")
+
+    local chat = require("codecompanion").last_chat()
+    local has_empty_role = false
+    for _, msg in ipairs(chat.messages) do
+      if msg.role == "" then
+        has_empty_role = true
+      end
+    end
+    return has_empty_role
+  ]])
+
+  h.eq(false, has_empty_role)
+end
+
 return T

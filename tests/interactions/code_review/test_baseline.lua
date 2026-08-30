@@ -83,7 +83,8 @@ T["Baseline"]["diff reports one hunk per change with line numbers"] = function()
   h.eq(1, #hunks)
   h.eq("a.lua", hunks[1].path)
   h.eq(2, hunks[1].line)
-  h.expect_starts_with("%+1 %-1", hunks[1].summary)
+  -- The added line is what the change became, so it wins over the line it replaced
+  h.eq("+1 -1 local b = 20", hunks[1].summary)
 end
 
 T["Baseline"]["diff includes files created after the baseline"] = function()
@@ -97,7 +98,7 @@ T["Baseline"]["diff includes files created after the baseline"] = function()
   h.eq(1, #hunks)
   h.eq("b.lua", hunks[1].path)
   h.eq(1, hunks[1].line)
-  h.eq("+2 -0", hunks[1].summary)
+  h.eq("+2 -0 local b = 1", hunks[1].summary)
 end
 
 T["Baseline"]["diff reports deleted files"] = function()
@@ -112,7 +113,25 @@ T["Baseline"]["diff reports deleted files"] = function()
   h.eq(1, #hunks)
   h.eq("b.lua", hunks[1].path)
   h.eq(1, hunks[1].line)
-  h.eq("+0 -2", hunks[1].summary)
+  -- Nothing was added, so the removed line is all there is to show
+  h.eq("+0 -2 local b = 1", hunks[1].summary)
+end
+
+T["Baseline"]["a removed line that reads like a diff header stays inside its hunk"] = function()
+  child.lua([[
+    write("a.lua", { "-- one", "local a = 1", "local b = 2", "-- two", "local c = 3" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
+
+    hunks = baseline.diff(repo)
+  ]])
+
+  -- Git renders a removed `-- one` as `--- one`, which is the shape of a file header
+  h.eq(2, child.lua_get("#hunks"))
+  h.eq("+0 -1 -- one", child.lua_get("hunks[1].summary"))
+  h.eq("+0 -1 -- two", child.lua_get("hunks[2].summary"))
+  -- Swallowing them would leave both hunks with an empty body, and so the same id
+  h.is_true(child.lua_get("hunks[1].id ~= hunks[2].id"))
 end
 
 T["Baseline"]["diff scopes to the given paths"] = function()
@@ -181,6 +200,76 @@ T["Baseline"]["each worktree keeps its own baseline"] = function()
     )
   )
   h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
+end
+
+-- NOTE: Use this to prove to a user that we never touch their git index!
+T["Baseline"]["a review never touches the user's index"] = function()
+  child.lua([[
+    commit("init")
+    write("a.lua", { "local a = 1" })
+    write("b.lua", { "local b = 2" })
+    vim.system({ "git", "-C", repo, "add", "b.lua" }):wait()
+
+    local user_index = vim.fs.joinpath(repo, ".git", "index")
+    local read = function()
+      return table.concat(vim.fn.readfile(user_index, "b"), "\n")
+    end
+
+    local before = read()
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 100" })
+    baseline.diff(repo)
+    baseline.snapshot(repo)
+
+    untouched = read() == before
+    staged = vim.trim(vim.system({ "git", "-C", repo, "diff", "--cached", "--name-only" }, { text = true }):wait().stdout)
+  ]])
+
+  h.is_true(child.lua_get("untouched"))
+  h.eq("b.lua", child.lua_get("staged"))
+end
+
+T["Baseline"]["a lock left by a dead Neovim is cleared and the review carries on"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 100" })
+
+    index = vim.fs.joinpath(
+      vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "--absolute-git-dir" }, { text = true }):wait().stdout),
+      "codecompanion-index"
+    )
+    vim.fn.writefile({}, index .. ".lock")
+    -- Far older than any snapshot takes, so it can only have been abandoned
+    local long_ago = os.time() - 600
+    vim.uv.fs_utime(index .. ".lock", long_ago, long_ago)
+
+    hunks = baseline.diff(repo)
+  ]])
+
+  h.eq(1, child.lua_get("#hunks"))
+  h.eq("a.lua", child.lua_get("hunks[1].path"))
+  h.eq(vim.NIL, child.lua_get("vim.uv.fs_stat(index .. '.lock')"))
+end
+
+T["Baseline"]["a lock another Neovim still holds is left alone"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 100" })
+
+    index = vim.fs.joinpath(
+      vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "--absolute-git-dir" }, { text = true }):wait().stdout),
+      "codecompanion-index"
+    )
+    vim.fn.writefile({}, index .. ".lock")
+
+    hunks = baseline.diff(repo)
+  ]])
+
+  -- Nil rather than an empty list, so a caller can tell this apart from there being no changes
+  h.eq(vim.NIL, child.lua_get("hunks"))
+  h.is_true(child.lua_get("vim.uv.fs_stat(index .. '.lock') ~= nil"))
 end
 
 T["Baseline"]["the alias ref points at the branch baseline"] = function()

@@ -103,9 +103,9 @@ local function cmd_tool(spec)
           spec.build_cmd(self.args),
           output
         )
-        return chat:add_tool_output(self, message)
+        return chat:add_tool_output(self, message, "")
       end
-      return chat:add_tool_output(self, fmt("There was no output from the %s tool", spec.name))
+      return chat:add_tool_output(self, fmt("There was no output from the %s tool", spec.name), "")
     end,
   }
 

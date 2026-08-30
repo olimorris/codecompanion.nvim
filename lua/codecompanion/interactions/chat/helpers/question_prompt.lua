@@ -20,6 +20,9 @@ local CONSTANTS = {
 CONSTANTS.DESC_CUSTOM_ANSWER = CONSTANTS.DESC .. ": write a custom answer"
 CONSTANTS.DESC_SKIP = CONSTANTS.DESC .. ": skip this question"
 
+---Each question gets its own id so the asked and answered events can be paired
+local question_id = 0
+
 ---@class CodeCompanion.Chat.QuestionPrompt
 local M = {}
 
@@ -164,10 +167,22 @@ function M.ask(chat, opts)
     return opts.callback(nil)
   end
 
+  question_id = question_id + 1
+  local id = question_id
+
   local options = opts.question.options or {}
   local last_line = chat:add_buf_message({
     role = config.constants.LLM_ROLE,
     content = table.concat(build_lines(opts), "\n"),
+  })
+
+  utils.fire("ToolQuestionAsked", {
+    bufnr = bufnr,
+    header = opts.question.header,
+    id = id,
+    index = opts.index,
+    question = opts.question.question,
+    total = opts.total,
   })
 
   if config.interactions.chat.tools.opts.notify_on_approval and not ui_utils.buf_is_active(bufnr) then
@@ -189,6 +204,13 @@ function M.ask(chat, opts)
     resolved = true
     overrides:restore()
     add_summary(chat, answer)
+    utils.fire("ToolQuestionAnswered", {
+      answer = answer,
+      bufnr = bufnr,
+      header = opts.question.header,
+      id = id,
+      skipped = answer == nil,
+    })
     opts.callback(answer)
   end
 

@@ -133,15 +133,15 @@ function Interactions:chat()
     return self:workflow()
   end
 
-  local mode = self.buffer_context.mode:lower()
   local prompts = self.selected.prompts
 
-  if type(prompts[mode]) == "function" then
-    return prompts[mode](self.buffer_context)
-  elseif type(prompts[mode]) == "table" then
+  if prompts.n ~= nil or prompts.v ~= nil then
+    local mode = self.buffer_context.is_visual and "v" or "n"
+    if type(prompts[mode]) == "function" then
+      return prompts[mode](self.buffer_context)
+    end
     messages = self.evaluate_prompts(prompts[mode], self.buffer_context)
   else
-    -- No mode specified
     messages = self.evaluate_prompts(prompts, self.buffer_context)
   end
 

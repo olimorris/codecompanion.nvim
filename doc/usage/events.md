@@ -46,6 +46,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
 - `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
+- `CodeCompanionToolQuestionAsked` - Fired when a tool asks the user a question
+- `CodeCompanionToolQuestionAnswered` - Fired when a user has answered or skipped a question
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated

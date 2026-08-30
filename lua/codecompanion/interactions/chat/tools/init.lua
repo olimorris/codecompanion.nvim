@@ -11,7 +11,6 @@
 ---@field stderr table The stderr of the tool
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
 ---@field tools_config table The available tools for the tool system
----@field tools_ns number The namespace for the virtual text that appears in the header
 
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
@@ -21,12 +20,9 @@ local triggers = require("codecompanion.triggers")
 
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
-local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
-
-local show_tools_processing = config.display.chat.show_tools_processing
 
 -- Registry of tool factories that can be extended from by users
 local FACTORIES = {
@@ -36,13 +32,10 @@ local FACTORIES = {
 local CONSTANTS = {
   PREFIX = triggers.mappings.tools,
 
-  NS_TOOLS = "CodeCompanion-tools",
   AUTOCMD_GROUP = "codecompanion.tools",
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
-
-  PROCESSING_MSG = (config.display.chat.icons.tools_in_progress or "⚡") .. " Tools processing ...",
 }
 
 ---@class CodeCompanion.Tools
@@ -93,11 +86,10 @@ end
 
 ---Resolve and prepare a tool for execution
 ---@param tool table The tool call from the LLM
----@param id number The execution ID for event firing
 ---@return table|nil The resolved tool or nil if failed
 ---@return string|nil Error message if resolution failed
 ---@return boolean|nil Whether this is a JSON parsing error that needs special handling
-function Tools:_resolve_and_prepare_tool(tool, id)
+function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
 
@@ -142,7 +134,6 @@ function Tools:_resolve_and_prepare_tool(tool, id)
           ""
         )
         self.status = CONSTANTS.STATUS_ERROR
-        utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
       end
 
@@ -179,7 +170,6 @@ function Tools.new(args)
     stderr = {},
     tool = {},
     tools_config = tool_filter.filter_enabled_tools(config.interactions.chat.tools, { adapter = args.adapter }),
-    tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
 
   -- Listen for any adapter and model changes on the chat buffer and update the available tools
@@ -221,15 +211,6 @@ function Tools:set_autocmds()
 
       if request.match == "CodeCompanionToolsStarted" then
         log:info("[Tool System] Initiated")
-        if show_tools_processing then
-          local namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr)
-          ui_utils.show_buffer_notification(self.bufnr, {
-            namespace = namespace,
-            text = CONSTANTS.PROCESSING_MSG,
-            main_hl = "CodeCompanionChatInfo",
-            spacer = true,
-          })
-        end
       elseif request.match == "CodeCompanionToolsFinished" then
         return vim.schedule(function()
           local auto_submit = function()
@@ -274,15 +255,13 @@ function Tools:execute(chat, tools)
     local orchestrator = Orchestrator.new(self, id)
 
     for _, tool in ipairs(tools) do
-      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool, id)
+      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
 
       if not resolved_tool then
-        if is_json_error then
-          -- JSON error was already handled by _resolve_and_prepare_tool
-          return
+        -- NOTE: A JSON error has already been reported to the LLM
+        if not is_json_error then
+          self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
         end
-        -- Report the error to the LLM but continue processing remaining tools
-        self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
       else
         self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
         orchestrator.queue:push(resolved_tool)
@@ -410,10 +389,6 @@ end
 function Tools:reset(opts)
   opts = opts or {}
 
-  if show_tools_processing then
-    ui_utils.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
-  end
-
   api.nvim_clear_autocmds({ group = self.aug })
 
   self.extracted = {}
@@ -469,32 +444,7 @@ end
 ---@param path string The module path or file path
 ---@return CodeCompanion.Tools.Unresolved|nil
 local function resolve_path(path)
-  local ok, module = pcall(require, "codecompanion." .. path)
-  if ok then
-    log:debug("[Tools] %s identified", path)
-    return module
-  end
-
-  -- Try loading from the user's config using a module path
-  ok, module = pcall(require, path)
-  if ok then
-    log:debug("[Tools] %s identified", path)
-    return module
-  end
-
-  -- Try loading from the user's config using a file path
-  local err
-  module, err = loadfile(vim.fs.normalize(path))
-  if err then
-    return log:error("[Tools] Failed to load tool from %s: %s", path, err)
-  end
-
-  if module then
-    log:debug("[Tools] %s identified", path)
-    return module()
-  end
-
-  return nil
+  return utils.resolve({ value = path, source = "Tools" })
 end
 
 ---Resolve a tool from the config

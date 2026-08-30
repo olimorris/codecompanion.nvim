@@ -28,8 +28,11 @@ local defaults = {
       openai_responses = "openai_responses",
       openrouter = "openrouter",
       xai = "xai",
+      -- web_search adapters --------------------------------------------------
+      duckduckgo = "duckduckgo",
       jina = "jina",
       tavily = "tavily",
+      -------------------------------------------------------------------------
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
       opts = {
         allow_insecure = false, -- Allow insecure connections?
@@ -297,11 +300,19 @@ The user is working on a %s machine. Please respond with system specific command
             timeout = 300000, -- Timeout for commands (milliseconds) - 5 mins by default
           },
         },
+        ["search_help"] = {
+          path = "interactions.chat.tools.builtin.search_help",
+          description = "Search CodeCompanion's own documentation",
+          opts = {
+            max_lines = 200, -- Sections longer than this return their subsection outline instead
+            max_results = 50, -- Maximum number of search hits to return
+          },
+        },
         ["web_search"] = {
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily
+            adapter = "tavily", -- tavily, duckduckgo, jina
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -644,18 +655,18 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           callback = "keymaps.yank_code",
           description = "Yank code from the last codeblock",
         },
-        buffer_sync_all = {
+        sync_all = {
           modes = { n = "gba" },
           index = 9,
-          callback = "keymaps.buffer_sync_all",
-          description = "Toggle live-syncing of pinned buffers",
+          callback = "keymaps.sync_all",
+          description = "Toggle live-syncing of a context item",
           opts = { chat = { show_in_action_palette = false } },
         },
-        buffer_sync_diff = {
+        sync_diff = {
           modes = { n = "gbd" },
           index = 10,
-          callback = "keymaps.buffer_sync_diff",
-          description = "Toggle diff-only syncing of pinned buffers",
+          callback = "keymaps.sync_diff",
+          description = "Toggle diff-only syncing of a context item",
           opts = { chat = { show_in_action_palette = false } },
         },
         next_chat = {
@@ -764,6 +775,11 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
 
             fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
           },
+        },
+
+        -- These filetypes always share a diff with an LLM when shared as context
+        sync_diff = {
+          ipynb = true,
         },
 
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -1071,6 +1087,14 @@ The user is working on a %s machine. Please respond with system specific command
       timeout = 30e3, -- Timeout for MCP server responses (milliseconds)
     },
   },
+  -- CONTEXT ------------------------------------------------------------------
+  context = {
+    ---Format file and buffer content before sharing it with an LLM, keyed by file extension.
+    ---@type table<string, string|fun(raw: string, path: string): string|nil>
+    formatters = {
+      ipynb = "context.formatters.builtin.jupyter_notebook",
+    },
+  },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {
     -- Users can define prompt library items in markdown
@@ -1102,8 +1126,7 @@ The user is working on a %s machine. Please respond with system specific command
       parser = "claude",
       ---@return boolean
       enabled = function()
-        -- Don't show this to users who aren't working on CodeCompanion itself
-        return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
+        return vim.fn.isdirectory(vim.fs.joinpath(vim.fn.getcwd(), ".codecompanion")) == 1
       end,
       files = {
         ["adapters"] = {
@@ -1170,10 +1193,10 @@ The user is working on a %s machine. Please respond with system specific command
       is_preset = true,
     },
     parsers = {
-      claude = "claude", -- Parser for CLAUDE.md files
-      cli = "cli", -- Parser for CLI interactions (file paths only, no content)
-      codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
-      none = "none", -- No parsing, just raw text
+      claude = "interactions.shared.rules.parsers.claude", -- Parser for CLAUDE.md files
+      cli = "interactions.shared.rules.parsers.cli", -- Parser for CLI interactions (file paths only, no content)
+      codecompanion = "interactions.shared.rules.parsers.codecompanion", -- Parser for CodeCompanion specific rules files
+      none = "interactions.shared.rules.parsers.none", -- No parsing, just raw text
     },
     opts = {
       chat = {
@@ -1209,8 +1232,8 @@ The user is working on a %s machine. Please respond with system specific command
     },
     chat = {
       icons = {
-        buffer_sync_all = "󰪴 ",
-        buffer_sync_diff = " ",
+        sync_all = "󰪴 ",
+        sync_diff = " ",
         --chat_context = " ",
         chat_fold = " ",
         tool_pending = "  ",
@@ -1266,7 +1289,6 @@ The user is working on a %s machine. Please respond with system specific command
 
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
-      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---The function to display the token count
@@ -1457,7 +1479,7 @@ end
 
 ---@param args? table
 M.setup = function(args)
-  args = args or {}
+  args = vim.deepcopy(args or {})
 
   if args.constants then
     return vim.notify(
@@ -1471,6 +1493,27 @@ M.setup = function(args)
   if args.strategies then
     args.interactions = vim.tbl_deep_extend("force", vim.deepcopy(defaults.interactions), args.strategies)
     args.strategies = nil
+  end
+
+  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
+  -- Legacy `buffer_sync_*` keymaps and icons were renamed to `sync_*`
+  local user_keymaps = args.interactions and args.interactions.chat and args.interactions.chat.keymaps
+  local user_icons = args.display and args.display.chat and args.display.chat.icons
+  for _, name in ipairs({ "sync_all", "sync_diff" }) do
+    local legacy = "buffer_" .. name
+    for _, section in ipairs({ user_keymaps, user_icons }) do
+      if section and section[legacy] ~= nil then
+        vim.notify(
+          ("[CodeCompanion] `%s` is deprecated. Use `%s` instead."):format(legacy, name),
+          vim.log.levels.WARN,
+          { title = "CodeCompanion" }
+        )
+        if section[name] == nil then
+          section[name] = section[legacy]
+        end
+        section[legacy] = nil
+      end
+    end
   end
 
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)

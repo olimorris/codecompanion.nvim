@@ -602,6 +602,66 @@ T["Chat"]["done with stopped status completes orphaned tool calls"] = function()
   h.eq(false, result)
 end
 
+T["Chat"]["submit completes orphaned tool calls before the payload is built"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+
+    _G.chat:add_buf_message({ role = "user", content = "Carry on" })
+    _G.chat:submit()
+
+    local synthesized_index, last_user_index
+    for i, msg in ipairs(_G.chat.messages) do
+      if msg.tools and msg.tools.call_id == "call_1" then
+        synthesized_index = i
+      end
+      if msg.role == "user" then
+        last_user_index = i
+      end
+    end
+
+    return {
+      has_orphans = _G.chat:has_orphaned_tool_calls(),
+      synthesized_content = synthesized_index and _G.chat.messages[synthesized_index].content,
+      stands_in_before_the_user_message = (synthesized_index or 0) < (last_user_index or 0),
+    }
+  ]])
+
+  h.eq(false, result.has_orphans)
+  h.eq("This tool call did not complete and produced no result", result.synthesized_content)
+  h.eq(true, result.stands_in_before_the_user_message)
+end
+
+T["Chat"]["submit leaves orphaned tool calls alone when on_before_submit prevents it"] = function()
+  local result = child.lua([[
+    _G.chat:add_callback("on_before_submit", function()
+      return false
+    end)
+
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          { id = "call_1", ["function"] = { name = "read_file", arguments = "{}" } },
+        },
+      },
+    })
+
+    _G.chat:add_buf_message({ role = "user", content = "Carry on" })
+    _G.chat:submit()
+
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+
+  h.eq(true, result)
+end
+
 T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = function()
   local result = child.lua([[
     local chat = _G.chat
