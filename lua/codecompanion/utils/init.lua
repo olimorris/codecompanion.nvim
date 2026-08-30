@@ -266,19 +266,22 @@ function M.resolve(args)
     return nil
   end
 
-  local ok, resolved = pcall(require, "codecompanion." .. value)
-  if ok then
-    return resolved
-  end
+  local source = args.source or "CodeCompanion"
 
-  ok, resolved = pcall(require, value)
-  if ok then
-    return resolved
+  for _, name in ipairs({ "codecompanion." .. value, value }) do
+    local ok, resolved = pcall(require, name)
+    if ok then
+      return resolved
+    end
+    -- A module that is on the runtimepath but fails to load must surface its own error
+    if not tostring(resolved):match("module '" .. vim.pesc(name) .. "' not found") then
+      return log:error("[%s] `%s` could not be loaded: %s", source, name, resolved)
+    end
   end
 
   local chunk, err = loadfile(vim.fs.normalize(value))
   if err or not chunk then
-    log:error("[%s] Could not resolve `%s`", args.source or "CodeCompanion", value)
+    log:error("[%s] Could not resolve `%s`", source, value)
     return nil
   end
 
