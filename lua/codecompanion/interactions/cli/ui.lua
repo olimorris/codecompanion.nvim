@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local shared_ui = require("codecompanion.interactions.shared.ui")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.CLI.UI
@@ -65,6 +66,12 @@ function UI:show_in_win(opts)
   opts = opts or {}
   vim.api.nvim_win_set_buf(opts.winnr, self.bufnr)
   self.winnr = opts.winnr
+
+  local window = resolve_window_config()
+  if window.opts and not vim.tbl_isempty(window.opts) then
+    ui_utils.set_win_options(self.winnr, window.opts)
+  end
+
   log:trace("CLI opened in existing window")
   utils.fire("CLIOpened", { bufnr = self.bufnr })
   return self

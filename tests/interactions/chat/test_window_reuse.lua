@@ -168,4 +168,24 @@ T["Window reuse"]["show_in_win sets filetype without shared_ui.open"] = function
   h.eq(true, result.winnr)
 end
 
+T["Window reuse"]["show_in_win applies destination window opts"] = function()
+  local result = child.lua([[
+    local chat = require("codecompanion").chat({ hidden = true })
+    vim.cmd("vsplit")
+    local winnr = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_option_value("wrap", false, { scope = "local", win = winnr })
+    vim.api.nvim_set_option_value("linebreak", false, { scope = "local", win = winnr })
+
+    chat.ui:show_in_win({ winnr = winnr })
+
+    return {
+      wrap = vim.api.nvim_get_option_value("wrap", { scope = "local", win = winnr }),
+      linebreak = vim.api.nvim_get_option_value("linebreak", { scope = "local", win = winnr }),
+    }
+  ]])
+
+  h.eq(true, result.wrap)
+  h.eq(true, result.linebreak)
+end
+
 return T
