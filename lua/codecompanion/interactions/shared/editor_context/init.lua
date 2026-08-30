@@ -3,6 +3,7 @@ local triggers = require("codecompanion.triggers")
 
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
+local utils = require("codecompanion.utils")
 
 local CONSTANTS = {
   PREFIX = triggers.mappings.editor_context,
@@ -31,15 +32,9 @@ end
 
 ---Require an editor context module by its dot-separated path
 ---@param path string
----@return table
+---@return table|nil
 local function require_module(path)
-  -- Try as a built-in module first, then as a user-provided path
-  local ok, module = pcall(require, "codecompanion." .. path)
-  if ok then
-    return module
-  end
-
-  return require(path)
+  return utils.resolve({ value = path, source = "EditorContext" })
 end
 
 ---Create an editor context module instance
@@ -62,7 +57,11 @@ local function create_module(interaction, ctx_config, params, target, interactio
 
   if ctx_config.path then
     log:trace("Calling editor context: %s", ctx_config.path)
-    return require_module(ctx_config.path).new(init)
+    local module = require_module(ctx_config.path)
+    if not module then
+      error(string.format("Could not resolve the `%s` editor context", ctx_config.path))
+    end
+    return module.new(init)
   end
 
   -- No path means a user-defined callback
@@ -212,8 +211,8 @@ function EditorContext:replace(message, bufnr)
     local ctx_config = self.editor_context[ctx]
     -- Delegate to the module's replace method if it has one
     if ctx_config.path then
-      local ok, module = pcall(require_module, ctx_config.path)
-      if ok and module.replace then
+      local module = require_module(ctx_config.path)
+      if module and module.replace then
         message = module.replace(CONSTANTS.PREFIX, message, bufnr)
         goto continue
       end
