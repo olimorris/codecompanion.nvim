@@ -90,6 +90,8 @@ The protocol version is negotiated during initialization. If an agent selects a 
 
 ## Current Limitations
 
+- **System Prompts**: The ACP protocol does not currently support the sending of specific system prompts to agents. To that end, CodeCompanion does not merge any system prompts with user messages, so as to ensure that the end user experiences the same behaviour as if they were interacting with the agent directly.
+
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`, `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion doesn't advertise terminal capabilities to agents.
 
 - **Agent Plan Rendering**: [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
