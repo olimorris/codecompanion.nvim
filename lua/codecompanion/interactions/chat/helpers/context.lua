@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 
+local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 local tokens = require("codecompanion.utils.tokens")
 
@@ -73,6 +74,33 @@ function M.truncate_tool_output(opts)
   local keep = math.floor(#opts.content * (budget / token_count))
 
   return opts.content:sub(1, keep) .. notice
+end
+
+---Returns the number of tokens that trigger context management for a given operation
+---@param adapter CodeCompanion.HTTPAdapter
+---@param opts? { operation?: "editing"|"compaction" } defaults to "compaction"
+---@return number
+function M.trigger_context_management(adapter, opts)
+  opts = opts or {}
+  local operation = opts.operation or "compaction"
+
+  local context_management = config.interactions.chat.opts.context_management
+  local settings = context_management and context_management[operation]
+  local trigger = settings and settings.trigger
+  if trigger == nil then
+    return 0
+  end
+
+  if trigger < 1 then
+    local context_window = require("codecompanion.adapters.shared").context_window(adapter)
+    if not context_window then
+      log:debug("[Context Window] No context window for `%s` adapter, skipping %s trigger", adapter.name, operation)
+      return 0
+    end
+    trigger = math.floor(trigger * context_window)
+  end
+
+  return trigger
 end
 
 return M
