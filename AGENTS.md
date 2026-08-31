@@ -19,8 +19,9 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - **Don't narrate every change:** the maintainer is an expert who knows this codebase. Do NOT add a comment to explain routine code (`-- Clear the modified flag`, `-- Loop over the messages`, `-- Return early`). Default to no comment. Reserve comments for genuinely non-obvious *why* — a subtle API quirk, a workaround, an ordering constraint — the kind of thing that would trip up even a reader who knows the codebase
 - **Function params:** prefer a single table argument over positional args
 - **Error handling:** `pcall` + `log:error()`, return nil on failure
-- **Type annotations:** LuaCATS for public APIs. Keep doc blocks concise — one description line, params should be self-explanatory without inline comments
-- **Function descriptions:** exactly one line. No multi-paragraph rationale, no usage examples, no "why we cache this" essays — that belongs in commit messages or a single inline `--` comment at the relevant line. If you can't summarise the function in one line, the function is doing too much
+- **Type annotations:** LuaCATS for public APIs. Keep doc blocks concise - params should be self-explanatory without inline comments
+- **Function descriptions:** omit them when the name and the annotations already say it. `truncate_tool_output(opts: { adapter, content }): string` needs no prose above it; `tool_output_limit` does, because "limit" alone doesn't say it's the most a *single* tool result may contribute. Write the description only when it adds what the signature can't
+- **When you do write one:** exactly one line. No multi-paragraph rationale, no usage examples, no "why we cache this" essays - that belongs in commit messages or a single inline `--` comment at the relevant line. If you can't summarise the function in one line, the function is doing too much
 - **Functions:** keep under 50 lines
 - **Globals:** avoid; use module-local state
 - **Code blocks:** use four backticks with language spec unless in a markdown file
@@ -47,6 +48,8 @@ Core: `lua/codecompanion/`
 
 - When running `make test_file` tests, do not append `| tail -12` or similar to filter the output. This prevents the user's rules governing what can be auto-accepted, from applying
 - Chat buffer cursor position, scrolling and folds are verified by hand in real use. Don't add test cases for them, even alongside a fix. Ask first
+- Test the behaviour, not the obvious. A case that only proves a guard clause returns `false`, or that a value passes through a shared utility unchanged, earns nothing - cut it and keep the cases where the outcome could genuinely go either way
+- Name a case for the behaviour it pins down, and lean on contrast so a pair reads as a pair: `DOES NOT truncate a tool that is INSIDE the limit` / `truncates a tool that is OUTSIDE the limit`
 
 ## Important instructions
 
