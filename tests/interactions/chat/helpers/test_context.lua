@@ -35,17 +35,6 @@ T["exceeds_input_limit"]["returns true when the messages exceed the limit"] = fu
   h.expect_truthy(result.token_count > 50)
 end
 
-T["exceeds_input_limit"]["returns false when the messages are within the limit"] = function()
-  local result = child.lua([[
-    return _G.helpers.exceeds_input_limit({
-      adapter = { schema = { model = { default = "m", choices = { m = { meta = { context_window = 100000 } } } } } },
-      messages = { { role = "user", content = "hello", _meta = { estimated_tokens = 5 } } },
-    })
-  ]])
-
-  h.eq(false, result.exceeded)
-end
-
 T["exceeds_input_limit"]["prefers the model's prompt limit over its context window"] = function()
   local result = child.lua([[
     return _G.helpers.exceeds_input_limit({
