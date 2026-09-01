@@ -168,6 +168,35 @@ T["Window reuse"]["show_in_win sets filetype without shared_ui.open"] = function
   h.eq(true, result.winnr)
 end
 
+T["Window reuse"]["closing a chat in a sole window reuses it for the next chat"] = function()
+  local result = child.lua([[
+    vim.cmd("CodeCompanionChat")
+    vim.cmd("CodeCompanionChat")
+
+    local chat = require("codecompanion").last_chat()
+    vim.api.nvim_set_current_win(chat.ui.winnr)
+    vim.cmd("only")
+
+    local winnr_before = vim.api.nvim_get_current_win()
+    local layout_before = vim.fn.winlayout()
+
+    require("codecompanion.interactions.chat.keymaps").close.callback(chat)
+
+    local chat_after = require("codecompanion").last_chat()
+    return {
+      same_win = vim.api.nvim_get_current_win() == winnr_before,
+      layout_same = vim.deep_equal(layout_before, vim.fn.winlayout()),
+      visible = chat_after.ui:is_visible(),
+      filetype = vim.bo[vim.api.nvim_get_current_buf()].filetype,
+    }
+  ]])
+
+  h.eq(true, result.same_win)
+  h.eq(true, result.layout_same)
+  h.eq(true, result.visible)
+  h.eq("codecompanion", result.filetype)
+end
+
 T["Window reuse"]["show_in_win applies destination window opts"] = function()
   local result = child.lua([[
     local chat = require("codecompanion").chat({ hidden = true })
