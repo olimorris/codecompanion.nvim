@@ -335,14 +335,18 @@ end
 
 M.close = {
   callback = function(chat)
+    local winnr
+    if chat.ui:is_visible() and not chat.ui:is_visible_non_curtab() then
+      winnr = chat.ui.winnr
+    end
+    local window_opts = chat.ui.window_opts or { default = true }
+
     chat:close()
 
     local chats = require("codecompanion").buf_get_chat()
     if vim.tbl_count(chats) == 0 then
       return
     end
-
-    local window_opts = chat.ui.window_opts or { default = true }
 
     local target = chats[1]
 
@@ -357,7 +361,11 @@ M.close = {
       end
     end
 
-    target.chat.ui:open({ window_opts = window_opts })
+    require("codecompanion.interactions.chat").open_or_reuse({
+      ui = target.chat.ui,
+      winnr = winnr,
+      window_opts = window_opts,
+    })
   end,
 }
 
