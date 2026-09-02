@@ -37,6 +37,7 @@ local config = require("codecompanion.config")
 local editor_context = require("codecompanion.interactions.inline.editor_context")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -139,13 +140,10 @@ local function code_block(message, filetype, code)
   return fmt(
     [[%s
 <code>
-````%s
 %s
-````
 </code>]],
     message,
-    filetype,
-    table.concat(code, "\n")
+    markdown.code_block(table.concat(code, "\n"), { info = filetype })
   )
 end
 
