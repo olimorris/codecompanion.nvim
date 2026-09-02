@@ -60,6 +60,28 @@ local function extracted()
   end)()]])
 end
 
+---Record what the parser reports through `log:warn`
+---
+---That handler is registered at `vim.log.levels.WARN`, so a warning also reaches
+---`vim.notify`. The offending fence is never rewritten and so stays broken for the
+---rest of the conversation, which is why a given buffer must be reported once
+---rather than on every submit.
+---@return nil
+local function spy_on_warnings()
+  child.lua([[
+    _G.warnings = {}
+    local log = require('codecompanion.utils.log')
+    log.warn = function(_, msg)
+      table.insert(_G.warnings, msg)
+    end
+  ]])
+end
+
+---@return number
+local function warning_count()
+  return child.lua_get("#_G.warnings")
+end
+
 local T = new_set({
   hooks = {
     pre_case = function()
@@ -113,6 +135,25 @@ end
 T["Parser resilience"]["an empty user section under a broken fence yields no message"] = function()
   chat_with(UNTERMINATED, {})
   h.eq(nil, extracted().content)
+end
+
+T["Parser resilience"]["recovery is reported once, not on every parse"] = function()
+  chat_with(UNTERMINATED, { "please fix the bug" })
+  spy_on_warnings()
+
+  h.eq("please fix the bug", extracted().content)
+  h.eq("please fix the bug", extracted().content)
+
+  h.eq(1, warning_count())
+  h.expect_contains("unterminated code fence", child.lua_get("_G.warnings[1]"))
+end
+
+T["Parser resilience"]["a healthy buffer is parsed without warning"] = function()
+  chat_with(BALANCED, { "please fix the bug" })
+  spy_on_warnings()
+
+  h.eq("please fix the bug", extracted().content)
+  h.eq(0, warning_count())
 end
 
 return T

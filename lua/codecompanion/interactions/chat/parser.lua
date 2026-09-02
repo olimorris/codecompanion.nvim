@@ -89,6 +89,61 @@ function M.get_settings_key(chat, opts)
   return key_name, node
 end
 
+---Chat buffers already warned about, so a malformed transcript is reported once
+---rather than on every submit. The offending fence stays broken for the rest of
+---the conversation -- the transcript is a record and is never rewritten -- so the
+---fallback below keeps firing for as long as the chat lives. Buffer numbers are
+---not reused within a session, so this never suppresses a different buffer.
+local warned_buffers = {}
+
+---Recover the user's message by reading the buffer, when Tree-sitter cannot
+---
+---`queries/markdown/chat.scm` finds the message by walking Markdown sections, so
+---an unbalanced code fence anywhere above the user header makes the parser
+---swallow that header. The query then matches no user section and, because
+---`helpers.has_user_messages()` is true mid-conversation, the text the user just
+---typed is dropped silently on submit. Any producer of chat text can leave a
+---fence open, including an LLM response truncated mid-block by `max_tokens`.
+---
+---This runs only when the query yielded nothing, and it does not re-parse.
+---`start_range` is `chat.header_line`, the 1-based row of the user header, so the
+---message is everything below that row: the position comes from the builder's own
+---bookkeeping rather than from a tree already known to be wrong, which is what
+---makes reading raw lines trustworthy here.
+---@param chat CodeCompanion.Chat
+---@param start_range number The 1-based row of the user header
+---@return { content: string }|nil
+local function recover_messages(chat, start_range)
+  -- `start_range - 1` is the header row 0-indexed, so `start_range` is the row below it
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, start_range, -1, false)
+
+  -- The row below a header is blank, and `strip_context` only strips *leading*
+  -- entries, so the context block has to be flushed to the front to be seen. The
+  -- Tree-sitter path never meets this: it is handed section text, not raw lines.
+  while lines[1] and vim.trim(lines[1]) == "" do
+    table.remove(lines, 1)
+  end
+  lines = helpers.strip_context(lines)
+  local content = vim.trim(table.concat(lines, "\n"))
+
+  -- An empty section must stay empty: tools auto-submit with no user message, and
+  -- inventing one here would send a phantom prompt.
+  if content == "" then
+    return nil
+  end
+
+  if not warned_buffers[chat.bufnr] then
+    warned_buffers[chat.bufnr] = true
+    log:warn(
+      "[chat::parser] Tree-sitter found no user message, so it was read from the buffer instead. "
+        .. "An unterminated code fence above the last user header is the usual cause."
+    )
+  end
+  log:debug("[chat::parser] Recovered %d line(s) of user message from row %d", #lines, start_range)
+
+  return { content = content }
+end
+
 ---Parse the chat buffer for the last message
 ---@param chat CodeCompanion.Chat
 ---@param start_range number
@@ -115,7 +170,64 @@ function M.messages(chat, start_range)
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
 
-  return nil
+  return recover_messages(chat, start_range)
+end
+
+---Is `row` inside a fenced code block that was never closed?
+---
+---A closed block has two `fenced_code_block_delimiter` children; an unterminated
+---one has a single opening delimiter and runs to the end of the buffer. Only such
+---a block can hide a header from `queries/markdown/chat.scm` unintentionally, so
+---this is the one situation in which the scan below may overrule Tree-sitter: a
+---heading inside a *closed* block is there because its author put it there, and
+---must go on being treated as code.
+---@param root TSNode The root of the tree `M.headers` has already parsed
+---@param row number 0-indexed
+---@return boolean
+local function hidden_by_open_fence(root, row)
+  local node = root:descendant_for_range(row, 0, row, 0)
+  while node do
+    if node:type() == "fenced_code_block" then
+      local delimiters = 0
+      for child in node:iter_children() do
+        if child:type() == "fenced_code_block_delimiter" then
+          delimiters = delimiters + 1
+        end
+      end
+      return delimiters < 2
+    end
+    node = node:parent()
+  end
+  return false
+end
+
+---Find a user header that an unclosed code fence hid from Tree-sitter
+---
+---`M.headers` seeds `chat.header_line` for restored chats, and on a malformed
+---buffer it does not fail cleanly: it returns the last header it can still *see*,
+---which is an earlier one. Everything downstream then parses from that row, so
+---`M.messages` finds a previous message and returns it -- worse than returning
+---nothing, because the fallback above sees content and never fires, and the user's
+---new prompt is replaced by an old one.
+---
+---Only rows below `after` are considered, so a header Tree-sitter did find is
+---never traded for an earlier one, and every candidate must be provably hidden by
+---an unclosed fence.
+---@param chat CodeCompanion.Chat
+---@param root TSNode The root of the tree `M.headers` has already parsed
+---@param after number The 0-indexed row Tree-sitter reported, or -1 if it found none
+---@return number|nil The 0-indexed row of the header, in the rows Tree-sitter reports
+local function recover_headers(chat, root, after)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, after + 1, -1, false)
+  for i = #lines, 1, -1 do
+    local heading = lines[i]:match("^##%s+(.-)%s*$")
+    if heading and helpers.format_role(heading) == config.interactions.chat.roles.user then
+      local row = after + i
+      if hidden_by_open_fence(root, row) then
+        return row
+      end
+    end
+  end
 end
 
 ---Parse the chat buffer for the last header
@@ -135,6 +247,13 @@ function M.headers(chat)
         last_match = node
       end
     end
+  end
+
+  -- Tree-sitter stays authoritative unless an unclosed fence hid a later header
+  -- from it. When nothing is recovered its own result is returned untouched.
+  local recovered = recover_headers(chat, root, last_match and last_match:range() or -1)
+  if recovered then
+    return recovered
   end
 
   if last_match then
