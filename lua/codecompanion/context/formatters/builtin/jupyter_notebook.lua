@@ -4,6 +4,8 @@
 ]]
 local M = {}
 
+local markdown = require("codecompanion.utils.markdown")
+
 local fmt = string.format
 
 ---Join notebook text, which may be a string or a list of strings, into one string
@@ -58,9 +60,9 @@ function M.format(raw)
 
     local source = to_text(cell.source)
     if cell.cell_type == "code" then
-      table.insert(cell_parts, fmt("````%s\n%s\n````", language, source))
+      table.insert(cell_parts, markdown.code_block(source, { info = language }))
     elseif cell.cell_type == "markdown" then
-      table.insert(cell_parts, fmt("````markdown\n%s\n````", source))
+      table.insert(cell_parts, markdown.code_block(source, { info = "markdown" }))
     else
       table.insert(cell_parts, source)
     end
@@ -99,7 +101,7 @@ function M.format(raw)
 
       if #output_parts > 0 then
         table.insert(cell_parts, "### Output")
-        table.insert(cell_parts, fmt("````\n%s\n````", table.concat(output_parts, "\n")))
+        table.insert(cell_parts, markdown.code_block(table.concat(output_parts, "\n")))
       end
     end
 
