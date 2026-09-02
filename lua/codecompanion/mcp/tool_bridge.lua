@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local CONSTANTS = {
   MESSAGES = {
@@ -39,14 +40,7 @@ local tool_output = {
       local utf_offset = vim.str_utf_start(output_for_user, 1 + DISPLAY_LIMIT_BYTES)
       output_for_user = output_for_user:sub(1, DISPLAY_LIMIT_BYTES + utf_offset) .. "\n\n...[truncated]"
     end
-    local for_user = fmt(
-      [[MCP: %s executed successfully:
-````
-%s
-````]],
-      self.name,
-      output_for_user
-    )
+    local for_user = fmt("MCP: %s executed successfully:\n%s", self.name, markdown.code_block(output_for_user))
     chat:add_tool_output(self, output, for_user)
   end,
 
@@ -57,16 +51,10 @@ local tool_output = {
     local chat = opts.tools.chat
     local err_msg = M.format_tool_result_content(stderr and stderr[#stderr] or "<NO ERROR MESSAGE>")
     local for_user = fmt(
-      [[MCP: %s failed:
-````
-%s
-````
-Arguments:
-````%s
-````]],
+      "MCP: %s failed:\n%s\nArguments:\n%s",
       self.name,
-      err_msg,
-      vim.inspect(self.args)
+      markdown.code_block(err_msg),
+      markdown.code_block(vim.inspect(self.args))
     )
     chat:add_tool_output(self, "MCP Tool execution failed:\n" .. err_msg, for_user)
   end,

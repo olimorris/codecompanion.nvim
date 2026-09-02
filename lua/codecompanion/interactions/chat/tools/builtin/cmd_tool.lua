@@ -1,4 +1,5 @@
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -57,13 +58,12 @@ local function cmd_tool(spec)
         local cmd_string = spec.build_cmd(self.args)
         local errors = vim.iter(stderr):flatten():join("\n")
 
-        local output = [[%s
-```txt
-%s
-```]]
+        -- The floor of three keeps this site's fence length unchanged for output
+        -- that does not collide with it.
+        local block = markdown.code_block(errors, { info = "txt", min = 3 })
 
-        local llm_output = fmt(output, fmt("There was an error running the `%s` command:", cmd_string), errors)
-        local user_output = fmt(output, fmt("`%s` error", cmd_string), errors)
+        local llm_output = fmt("There was an error running the `%s` command:\n%s", cmd_string, block)
+        local user_output = fmt("`%s` error\n%s", cmd_string, block)
 
         chat:add_tool_output(self, llm_output, user_output)
       end
@@ -95,14 +95,7 @@ local function cmd_tool(spec)
       local chat = meta.tools.chat
       if stdout then
         local output = vim.iter(stdout[#stdout]):flatten():join("\n")
-        local message = fmt(
-          [[`%s`
-````
-%s
-````]],
-          spec.build_cmd(self.args),
-          output
-        )
+        local message = fmt("`%s`\n%s", spec.build_cmd(self.args), markdown.code_block(output))
         return chat:add_tool_output(self, message, "")
       end
       return chat:add_tool_output(self, fmt("There was no output from the %s tool", spec.name), "")
