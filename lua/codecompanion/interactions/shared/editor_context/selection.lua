@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
@@ -29,16 +30,11 @@ function EditorContext:chat_render()
   end
 
   local content = fmt(
-    [[Visual selection from `%s` (lines %d-%d):
-
-````%s
-%s
-````]],
+    "Visual selection from `%s` (lines %d-%d):\n\n%s",
     ctx.filename,
     ctx.start_line,
     ctx.end_line,
-    ctx.filetype or "",
-    table.concat(ctx.lines, "\n")
+    markdown.code_block(table.concat(ctx.lines, "\n"), { info = ctx.filetype or "" })
   )
 
   self.Chat:add_message({
@@ -60,17 +56,11 @@ function EditorContext:cli_render()
   return {
     inline = fmt("the selected code in @%s", ctx.relative_path),
     block = fmt(
-      [[- Selected code from @%s (lines %d-%d):
-````%s
-%s
-````
-
-]],
+      "- Selected code from @%s (lines %d-%d):\n%s\n\n",
       ctx.relative_path,
       ctx.start_line,
       ctx.end_line,
-      ctx.filetype or "",
-      table.concat(ctx.lines, "\n")
+      markdown.code_block(table.concat(ctx.lines, "\n"), { info = ctx.filetype or "" })
     ),
   }
 end

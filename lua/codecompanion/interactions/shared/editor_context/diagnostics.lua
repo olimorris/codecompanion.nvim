@@ -1,6 +1,7 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.EditorContext.Diagnostics: CodeCompanion.EditorContext
@@ -74,14 +75,11 @@ function EditorContext:chat_render()
         [[Severity: %s
 LSP Message: %s
 Code:
-````%s
 %s
-````
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
-        buf_info.filetype,
-        table.concat(diagnostic.lines, "\n")
+        markdown.code_block(table.concat(diagnostic.lines, "\n"), { info = buf_info.filetype })
       )
     )
   end

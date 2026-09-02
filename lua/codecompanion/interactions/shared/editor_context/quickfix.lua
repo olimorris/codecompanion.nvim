@@ -2,6 +2,7 @@ local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local symbol_helpers = require("codecompanion.interactions.chat.helpers.symbols")
 local tags = require("codecompanion.interactions.shared.tags")
 
@@ -260,14 +261,11 @@ local function process_single_file(path, file_data)
 
   %s
 
-````%s
 %s
-````
   </attachment>]],
         path,
         table.concat(diagnostic_summary, "\n"),
-        ft,
-        content
+        markdown.code_block(content, { info = ft })
       )
     else
       local diagnostic_groups, _ = group_diagnostics_by_symbol(path, file_data.diagnostics, file_content)
@@ -302,14 +300,11 @@ local function process_single_file(path, file_data)
 
   %s
 
-````%s
 %s
-````
   </attachment>]],
         path,
         table.concat(diagnostic_summary, "\n"),
-        ft,
-        content
+        markdown.code_block(content, { info = ft })
       )
     end
   else
@@ -317,13 +312,10 @@ local function process_single_file(path, file_data)
     description = fmt(
       [[<attachment filepath="%s">Here is the content from the file:
 
-````%s
 %s
-````
   </attachment>]],
       path,
-      ft,
-      content
+      markdown.code_block(content, { info = ft })
     )
   end
 
