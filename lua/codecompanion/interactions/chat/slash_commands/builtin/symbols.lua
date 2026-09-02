@@ -9,6 +9,7 @@ https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitt
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers.symbols")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -211,12 +212,9 @@ function SlashCommand:output(selected, opts)
   if selected.description then
     description = fmt(
       [[%s
-````%s
-%s
-````]],
+%s]],
       selected.description,
-      ft,
-      content
+      markdown.code_block(content, { info = ft })
     )
   else
     description = fmt(
