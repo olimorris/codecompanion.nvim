@@ -34,12 +34,25 @@ function M.apply_extend(adapter, opts)
   return adapter
 end
 
----Resolve the context window for the current model
+---Read a field from an adapter's meta data
 ---@param adapter CodeCompanion.HTTPAdapter
+---@param fields string[]
 ---@return number|nil
-function M.context_window(adapter)
-  if adapter.model and adapter.model.meta and adapter.model.meta.context_window then
-    return adapter.model.meta.context_window
+local function from_model_meta(adapter, fields)
+  local function pick(meta)
+    if type(meta) ~= "table" then
+      return nil
+    end
+    for _, field in ipairs(fields) do
+      if meta[field] then
+        return meta[field]
+      end
+    end
+  end
+
+  local value = adapter.model and pick(adapter.model.meta)
+  if value then
+    return value
   end
 
   local model = adapter.schema and adapter.schema.model and adapter.schema.model.default
@@ -62,11 +75,25 @@ function M.context_window(adapter)
     choices = resolved
   end
 
-  if type(choices) == "table" and model and choices[model] and choices[model].meta then
-    return choices[model].meta.context_window
+  if type(choices) == "table" and model and choices[model] then
+    return pick(choices[model].meta)
   end
 
   return nil
+end
+
+---Resolve the context window for the current model
+---@param adapter CodeCompanion.HTTPAdapter
+---@return number|nil
+function M.context_window(adapter)
+  return from_model_meta(adapter, { "context_window" })
+end
+
+---Resolve the largest prompt the current model will accept
+---@param adapter CodeCompanion.HTTPAdapter
+---@return number|nil
+function M.input_limit(adapter)
+  return from_model_meta(adapter, { "max_prompt_tokens", "context_window" })
 end
 
 ---Whether the provider compacts its own context server-side for the current model

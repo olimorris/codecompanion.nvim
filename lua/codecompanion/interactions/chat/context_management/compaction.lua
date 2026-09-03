@@ -293,7 +293,7 @@ local function apply_summary(chat, retained, content)
   chat:add_buf_message({ role = config.constants.USER_ROLE, content = summary })
   chat._compacting = false
   chat:ready_for_input()
-  chat:submit({ auto_submit = true }) -- Don't re-parse the chat buffer
+  chat:submit({ auto_submit = true, after_compaction = true }) -- Don't re-parse the chat buffer
   utils.notify("Chat compacted")
 end
 

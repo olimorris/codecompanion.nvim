@@ -51,6 +51,8 @@ Core: `lua/codecompanion/`
 
 - When running `make test_file` tests, do not append `| tail -12` or similar to filter the output. This prevents the user's rules governing what can be auto-accepted, from applying
 - Chat buffer cursor position, scrolling and folds are verified by hand in real use. Don't add test cases for them, even alongside a fix. Ask first
+- Test the behaviour, not the obvious. A case that only proves a guard clause returns `false`, or that a value passes through a shared utility unchanged, earns nothing - cut it and keep the cases where the outcome could genuinely go either way
+- Name a case for the behaviour it pins down, and lean on contrast so a pair reads as a pair: `DOES NOT truncate a tool that is INSIDE the limit` / `truncates a tool that is OUTSIDE the limit`
 
 ## Important instructions
 
