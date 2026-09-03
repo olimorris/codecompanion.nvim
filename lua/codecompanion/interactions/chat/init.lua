@@ -1318,20 +1318,14 @@ function Chat:message_too_big(message)
     return false
   end
 
-  -- Compacting the history is no help when the message is singularly too big
-  local message_tokens = message and tokens.calculate(message.content) or 0
-  local fix = message_tokens >= check.input_limit and "Shorten it, or edit it from the debug window"
-    or "Run /compact to summarise the chat history"
-
   utils.notify(
     fmt(
       [[Message not sent.
 Message is around %d tokens, which is over %s's %d token limit.
-%s]],
+Shorten it, or edit it from the debug window]],
       check.token_count,
       self.adapter.formatted_name,
-      check.input_limit,
-      fix
+      check.input_limit
     ),
     vim.log.levels.WARN
   )
