@@ -244,6 +244,8 @@ It can also be useful to share an example [test file](https://github.com/olimorr
 
 ## Code Style and Conventions
 
+**Read the [style guide](STYLE.md) before opening a PR.** It's the contract for comments, naming, type annotations and test conventions in this repository, and it's what the automated reviewer checks against.
+
 - Use [stylua](https://github.com/JohnnyMorganz/StyLua) for formatting Lua code
 - Configuration is in `stylua.toml`
 - Run `make format` to format the code before submitting a PR

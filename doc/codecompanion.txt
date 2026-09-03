@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 30
+                                 For NVIM v0.11    Last change: 2026 August 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -889,6 +889,11 @@ following the agent's selected version.
 
 CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
 
+- **System Prompts**: The ACP protocol does not currently support the sending of
+    specific system prompts to agents. To that end, CodeCompanion does not merge
+    any system prompts with user messages, so as to ensure that the end user
+    experiences the same behaviour as if they were interacting with the agent
+    directly.
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
@@ -2787,6 +2792,20 @@ chat buffers:
 opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
 This also works for |codecompanion-configuration-extensions|.
+
+
+LIMITING TOOL OUTPUT
+
+To prevent the output from a tool exceeding the context window of a model,
+CodeCompanion will look to use the lower of a specified `max_output_tokens`
+limit or a model's own prompt limit. Should the tool exceed the limit,
+CodeCompanion will truncate the output and notify the LLM in the response.
+
+The limit can be configured with:
+
+`lua {6} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { max_output_tokens = 30000, -- Truncate a tool's output above this many
+tokens }, } } } })`
 
 
 LLM JUDGE
