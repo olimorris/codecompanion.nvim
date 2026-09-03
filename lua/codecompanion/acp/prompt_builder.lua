@@ -257,6 +257,7 @@ function PromptBuilder:handle_error(error)
     utils.fire("RequestFinished", self.options)
   end
 
+  self.connection:cancel_client_requests()
   self.connection._active_prompt = nil
 end
 
@@ -290,6 +291,7 @@ function PromptBuilder:handle_done(stop_reason)
     self.options.status = status
     utils.fire("RequestFinished", self.options)
   end
+  self.connection:cancel_client_requests()
   self.connection._active_prompt = nil
 end
 
@@ -313,6 +315,7 @@ function PromptBuilder:cancel()
     pcall(self.handlers.cancel)
   end
 
+  self.connection:cancel_client_requests()
   self.connection._active_prompt = nil
 end
 
