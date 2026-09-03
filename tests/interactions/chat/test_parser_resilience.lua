@@ -4,8 +4,10 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
 
-local UNTERMINATED = "Here you go:\n\n````lua\nlocal x = 1\n"
-local BALANCED = "Here you go:\n\n````lua\nlocal x = 1\n````\n"
+---An LLM response whose code fence is never closed, so the Markdown is invalid
+local UNTERMINATED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n"
+---The same response with its fence closed, so the Markdown is valid
+local BALANCED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n````\n"
 
 ---Add `response` as the LLM's answer, then type `lines` under a fresh user header
 ---@param response string
@@ -87,44 +89,44 @@ local T = new_set({
 T["Parser resilience"] = new_set()
 
 T["Parser resilience"]["a balanced response leaves the prompt extractable"] = function()
-  chat_with(BALANCED, { "please fix the bug" })
+  chat_with(BALANCED_FENCE, { "please fix the bug" })
   h.eq("please fix the bug", extracted().content)
 end
 
 T["Parser resilience"]["an unterminated fence does not eat the next prompt"] = function()
-  chat_with(UNTERMINATED, { "please fix the bug" })
+  chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
   h.eq("please fix the bug", extracted().content)
 end
 
 T["Parser resilience"]["an unterminated fence does not hide the last user header"] = function()
-  chat_with(UNTERMINATED, { "please fix the bug" })
+  chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
   local result = extracted()
   h.eq(result.expected_header, result.header)
 end
 
 T["Parser resilience"]["context lines are stripped from the recovered prompt"] = function()
-  chat_with(UNTERMINATED, { "> Context:", "> - <file>foo.lua</file>", "", "please fix the bug" })
+  chat_with(UNTERMINATED_FENCE, { "> Context:", "> - <file>foo.lua</file>", "", "please fix the bug" })
   h.eq("please fix the bug", extracted().content)
 end
 
 T["Parser resilience"]["a multi-line prompt is recovered whole"] = function()
-  chat_with(UNTERMINATED, { "first line", "", "second line" })
+  chat_with(UNTERMINATED_FENCE, { "first line", "", "second line" })
   h.eq("first line\n\nsecond line", extracted().content)
 end
 
 T["Parser resilience"]["an empty user section still yields no message"] = function()
   -- Tool auto-submits rely on this: recovery must not fabricate a prompt.
-  chat_with(BALANCED, {})
+  chat_with(BALANCED_FENCE, {})
   h.eq(nil, extracted().content)
 end
 
 T["Parser resilience"]["an empty user section under a broken fence yields no message"] = function()
-  chat_with(UNTERMINATED, {})
+  chat_with(UNTERMINATED_FENCE, {})
   h.eq(nil, extracted().content)
 end
 
 T["Parser resilience"]["recovery is reported once, not on every parse"] = function()
-  chat_with(UNTERMINATED, { "please fix the bug" })
+  chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
   spy_on_warnings()
 
   h.eq("please fix the bug", extracted().content)
@@ -135,7 +137,7 @@ T["Parser resilience"]["recovery is reported once, not on every parse"] = functi
 end
 
 T["Parser resilience"]["a healthy buffer is parsed without warning"] = function()
-  chat_with(BALANCED, { "please fix the bug" })
+  chat_with(BALANCED_FENCE, { "please fix the bug" })
   spy_on_warnings()
 
   h.eq("please fix the bug", extracted().content)
