@@ -112,7 +112,8 @@ local function add_summary(chat, answer)
 end
 
 ---Bind keymaps for a multi-select question, advancing through each option in turn
----@param prompt { chat: CodeCompanion.Chat, options: table[], include_line: number|nil, bind: fun(lhs: string, callback: function, desc: string), finish: fun(answer: string|nil), skip: function }
+---@param prompt { chat: CodeCompanion.Chat, options: table[], include_line: number|nil, bind: fun(lhs: string, callback: function, desc: string), finish: fun(answer: string|nil), skip: function, cancel: function }
+---@return fun() cancel
 local function bind_multi_select(prompt)
   local selected = {}
   local option_index = 1
@@ -144,6 +145,11 @@ local function bind_multi_select(prompt)
     clear_include_line()
     prompt.skip()
   end, CONSTANTS.DESC_SKIP)
+
+  return function()
+    clear_include_line()
+    prompt.cancel()
+  end
 end
 
 ---Bind keymaps for a single-select question
@@ -160,11 +166,12 @@ end
 ---Present a question in the chat buffer and resolve the answer through keymaps
 ---@param chat CodeCompanion.Chat
 ---@param opts { question: table, index: number, total: number, callback: fun(answer: string|nil) }
----@return nil
+---@return fun() cancel
 function M.ask(chat, opts)
   local bufnr = chat.bufnr
   if not api.nvim_buf_is_valid(bufnr) then
-    return opts.callback(nil)
+    opts.callback(nil)
+    return function() end
   end
 
   question_id = question_id + 1
@@ -196,13 +203,20 @@ function M.ask(chat, opts)
     overrides:set(lhs, callback, { desc = desc })
   end
 
-  ---@param answer string|nil
-  local function finish(answer)
+  local function cancel()
     if resolved then
       return
     end
     resolved = true
     overrides:restore()
+  end
+
+  ---@param answer string|nil
+  local function finish(answer)
+    if resolved then
+      return
+    end
+    cancel()
     add_summary(chat, answer)
     utils.fire("ToolQuestionAnswered", {
       answer = answer,
@@ -230,7 +244,7 @@ function M.ask(chat, opts)
   if #options == 0 then
     bind(CONSTANTS.SKIP_KEY, skip, CONSTANTS.DESC_SKIP)
     bind(CONSTANTS.CUSTOM_ANSWER_KEY, custom_answer, CONSTANTS.DESC_CUSTOM_ANSWER)
-    return
+    return cancel
   end
   if opts.question.multiSelect then
     return bind_multi_select({
@@ -240,10 +254,12 @@ function M.ask(chat, opts)
       bind = bind,
       finish = finish,
       skip = skip,
+      cancel = cancel,
     })
   end
   bind(CONSTANTS.SKIP_KEY, skip, CONSTANTS.DESC_SKIP)
   bind_single_select({ options = options, bind = bind, finish = finish, custom_answer = custom_answer })
+  return cancel
 end
 
 return M

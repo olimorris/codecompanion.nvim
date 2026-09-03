@@ -52,6 +52,7 @@ local defaults = {
       copilot_acp = "copilot_acp",
       gemini_cli = "gemini_cli",
       goose = "goose",
+      grok = "grok",
       kimi_cli = "kimi_cli",
       kiro = "kiro",
       mistral_vibe = "mistral_vibe",
