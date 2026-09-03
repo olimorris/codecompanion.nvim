@@ -258,4 +258,40 @@ T["ask_questions"]["records a skipped question as no answer"] = function()
   h.expect_contains("You skipped this question", buffer)
 end
 
+T["ask_questions"]["can cancel a question without recording an answer"] = function()
+  local result = child.lua([[
+    local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
+    local callback_called = false
+    local cancel = question_prompt.ask(chat, {
+      question = {
+        header = "Directory",
+        question = "Where should I create the files?",
+        options = { { label = "src/" } },
+      },
+      index = 1,
+      total = 1,
+      callback = function()
+        callback_called = true
+      end,
+    })
+
+    cancel()
+    local question_keymaps = 0
+    for _, map in ipairs(vim.api.nvim_buf_get_keymap(chat.bufnr, "n")) do
+      if map.desc and map.desc:find("CodeCompanion question", 1, true) == 1 then
+        question_keymaps = question_keymaps + 1
+      end
+    end
+    return {
+      callback_called = callback_called,
+      question_keymaps = question_keymaps,
+      buffer = _G.buffer_text(),
+    }
+  ]])
+
+  h.eq(false, result.callback_called)
+  h.eq(0, result.question_keymaps)
+  h.eq(nil, string.match(result.buffer, "You skipped this question"))
+end
+
 return T

@@ -19,6 +19,7 @@ ACP adapters connect CodeCompanion to an agent, such as Claude Code or Codex, ov
 | `cursor_cli` | [Cursor CLI](#setup-cursor-cli) | `agent acp` |
 | `gemini_cli` | [Gemini CLI](#setup-gemini-cli) | `gemini --experimental-acp` |
 | `goose` | [Goose](#setup-goose-cli) | `goose acp` |
+| `grok` | [Grok Build](#setup-grok-build) | `grok agent stdio` |
 | `kilocode` | [Kilo Code](#setup-kilo-code) | `kilo acp` |
 | `kimi_cli` | [Kimi CLI](#setup-kimi-cli) | `kimi acp` |
 | `kiro` | [Kiro CLI](#setup-kiro-cli) | `kiro-cli acp` |
@@ -447,6 +448,10 @@ require("codecompanion").setup({
 ## Setup: Goose CLI
 
 [Install](https://goose-docs.ai/docs/getting-started/installation/) and set up [Goose](https://goose-docs.ai/) CLI, then select the `goose` adapter.
+
+## Setup: Grok Build
+
+Install [Grok Build](https://github.com/xai-org/grok-build) by following its official installation instructions, then run `grok login` in your terminal. Select the `grok` adapter in your chat buffer. CodeCompanion supports Grok Build's interactive questions and plan review requests.
 
 ## Setup: Kilo Code
 
