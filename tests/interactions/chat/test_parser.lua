@@ -86,46 +86,46 @@ local T = new_set({
   },
 })
 
-T["Parser resilience"] = new_set()
+T["Parser"] = new_set()
 
-T["Parser resilience"]["a balanced response leaves the prompt extractable"] = function()
+T["Parser"]["a balanced response leaves the prompt extractable"] = function()
   chat_with(BALANCED_FENCE, { "please fix the bug" })
   h.eq("please fix the bug", extracted().content)
 end
 
-T["Parser resilience"]["an unterminated fence does not eat the next prompt"] = function()
+T["Parser"]["an unterminated fence does not eat the next prompt"] = function()
   chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
   h.eq("please fix the bug", extracted().content)
 end
 
-T["Parser resilience"]["an unterminated fence does not hide the last user header"] = function()
+T["Parser"]["an unterminated fence does not hide the last user header"] = function()
   chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
   local result = extracted()
   h.eq(result.expected_header, result.header)
 end
 
-T["Parser resilience"]["context lines are stripped from the recovered prompt"] = function()
+T["Parser"]["context lines are stripped from the recovered prompt"] = function()
   chat_with(UNTERMINATED_FENCE, { "> Context:", "> - <file>foo.lua</file>", "", "please fix the bug" })
   h.eq("please fix the bug", extracted().content)
 end
 
-T["Parser resilience"]["a multi-line prompt is recovered whole"] = function()
+T["Parser"]["a multi-line prompt is recovered whole"] = function()
   chat_with(UNTERMINATED_FENCE, { "first line", "", "second line" })
   h.eq("first line\n\nsecond line", extracted().content)
 end
 
-T["Parser resilience"]["an empty user section still yields no message"] = function()
+T["Parser"]["an empty user section still yields no message"] = function()
   -- Tool auto-submits rely on this: recovery must not fabricate a prompt.
   chat_with(BALANCED_FENCE, {})
   h.eq(nil, extracted().content)
 end
 
-T["Parser resilience"]["an empty user section under a broken fence yields no message"] = function()
+T["Parser"]["an empty user section under a broken fence yields no message"] = function()
   chat_with(UNTERMINATED_FENCE, {})
   h.eq(nil, extracted().content)
 end
 
-T["Parser resilience"]["recovery is reported once, not on every parse"] = function()
+T["Parser"]["recovery is reported once, not on every parse"] = function()
   chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
   spy_on_warnings()
 
@@ -136,7 +136,7 @@ T["Parser resilience"]["recovery is reported once, not on every parse"] = functi
   h.expect_contains("unterminated code fence", child.lua_get("_G.warnings[1]"))
 end
 
-T["Parser resilience"]["a healthy buffer is parsed without warning"] = function()
+T["Parser"]["a healthy buffer is parsed without warning"] = function()
   chat_with(BALANCED_FENCE, { "please fix the bug" })
   spy_on_warnings()
 
