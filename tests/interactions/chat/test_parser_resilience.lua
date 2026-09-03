@@ -1,15 +1,5 @@
--- A malformed code fence in the chat buffer must not cost the user their prompt.
---
--- `queries/markdown/chat.scm` locates the user's typed message by walking
--- Markdown sections. An unterminated fenced code block swallows the following
--- `## <user>` heading, so `parser.messages()` finds no user section and returns
--- nil -- and because `helpers.has_user_messages()` is true mid-conversation,
--- `Chat:submit()` then sends the conversation *without* the typed text, silently.
---
--- No tool is involved in any case below: an LLM response truncated mid-code-block
--- (`max_tokens`) is enough to reach this, which is why it stands on its own.
---
--- Run with `make test_file FILE=tests/interactions/chat/test_parser_resilience.lua`.
+-- An unterminated fence hides the last `## <user>` header from queries/markdown/chat.scm,
+-- so the typed prompt is dropped on submit. These cases pin the recovery.
 local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
@@ -17,18 +7,16 @@ local child = MiniTest.new_child_neovim()
 local UNTERMINATED = "Here you go:\n\n````lua\nlocal x = 1\n"
 local BALANCED = "Here you go:\n\n````lua\nlocal x = 1\n````\n"
 
----Build a chat whose last LLM response is `response`, open a user section, and
----type `lines` into it exactly as a user would.
----@param response string The LLM's answer, balanced or not
----@param lines string[] The lines the user types under their header
----@return nil
+---Add `response` as the LLM's answer, then type `lines` under a fresh user header
+---@param response string
+---@param lines string[]
 local function chat_with(response, lines)
   child.lua(
     [[
     local response, typed = ...
     _G.chat:add_buf_message({ role = 'llm', content = response })
     _G.chat:add_buf_message({ role = 'user', content = '' })
-    -- What `Chat:ready_for_input()` computes for the new user section.
+    -- Mirrors Chat:ready_for_input()
     _G.chat.header_line = (_G.chat.builder.state.current_header_line or 0) + 1
     if #typed > 0 then
       vim.api.nvim_buf_set_lines(_G.chat.bufnr, -1, -1, false, typed)
@@ -38,8 +26,7 @@ local function chat_with(response, lines)
   )
 end
 
----What `Chat:submit()` would extract as the user's message, plus the header row
----`parser.headers()` reports and the row the buffer actually holds it on.
+---What `Chat:submit()` would extract, plus the reported and actual header rows
 ---@return { content?: string, header?: number, expected_header?: number }
 local function extracted()
   return child.lua_get([[(function()
@@ -77,7 +64,6 @@ local function spy_on_warnings()
   ]])
 end
 
----@return number
 local function warning_count()
   return child.lua_get("#_G.warnings")
 end
