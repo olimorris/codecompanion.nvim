@@ -444,32 +444,7 @@ end
 ---@param path string The module path or file path
 ---@return CodeCompanion.Tools.Unresolved|nil
 local function resolve_path(path)
-  local ok, module = pcall(require, "codecompanion." .. path)
-  if ok then
-    log:debug("[Tools] %s identified", path)
-    return module
-  end
-
-  -- Try loading from the user's config using a module path
-  ok, module = pcall(require, path)
-  if ok then
-    log:debug("[Tools] %s identified", path)
-    return module
-  end
-
-  -- Try loading from the user's config using a file path
-  local err
-  module, err = loadfile(vim.fs.normalize(path))
-  if err then
-    return log:error("[Tools] Failed to load tool from %s: %s", path, err)
-  end
-
-  if module then
-    log:debug("[Tools] %s identified", path)
-    return module()
-  end
-
-  return nil
+  return utils.resolve({ value = path, source = "Tools" })
 end
 
 ---Resolve a tool from the config

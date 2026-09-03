@@ -889,6 +889,11 @@ following the agent's selected version.
 
 CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
 
+- **System Prompts**: The ACP protocol does not currently support the sending of
+    specific system prompts to agents. To that end, CodeCompanion does not merge
+    any system prompts with user messages, so as to ensure that the end user
+    experiences the same behaviour as if they were interacting with the agent
+    directly.
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.

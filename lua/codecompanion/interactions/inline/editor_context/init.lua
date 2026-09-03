@@ -14,6 +14,7 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
 local triggers = require("codecompanion.triggers")
+local utils = require("codecompanion.utils")
 
 local CONSTANTS = {
   PREFIX = triggers.mappings.editor_context,
@@ -89,32 +90,15 @@ function EditorContext:output()
       goto skip
     end
 
-    -- Resolve them and add them to the outputs
-    local path = ec_config.path
-    local ok, module = pcall(require, "codecompanion." .. path)
-    if ok then
-      ec_output = module --[[@type CodeCompanion.Inline.EditorContext]]
-      goto append
-    end
-
-    do
-      local err
-      module, err = loadfile(vim.fs.normalize(path))
-      if err then
-        log:error("[EditorContext] %s could not be resolved", item)
-        goto skip
-      end
-      if module then
-        ec_output = module() --[[@type CodeCompanion.Inline.EditorContext]]
-      end
+    ec_output = utils.resolve({ value = ec_config.path, source = "EditorContext" })
+    if not ec_output then
+      goto skip
     end
 
     if (ec_config.opts and ec_config.opts.contains_code) and not config.can_send_code() then
       log:warn("Sending of code has been disabled")
       goto skip
     end
-
-    ::append::
 
     local output = ec_output.new({ context = self.inline.buffer_context }):output()
     if output then

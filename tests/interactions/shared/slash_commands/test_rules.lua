@@ -36,7 +36,7 @@ T["cli_render returns rules file paths and @-referenced files"] = function()
 
     package.loaded["codecompanion.config"] = {
       rules = {
-        parsers = { cli = "cli" },
+        parsers = { cli = "interactions.shared.rules.parsers.cli" },
         test_group = {
           description = "Test rules",
           files = { %q },

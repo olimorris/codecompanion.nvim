@@ -276,7 +276,7 @@ require("codecompanion").setup({
 require("codecompanion").setup({
   context = {
     formatters = {
-      -- The path to any module which returns a table with a `format` function.
+      -- The path to any module, or file, which returns a table with a `format` function.
       sqlite = "my_plugin.context.formatters.sqlite",
     },
   },

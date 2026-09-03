@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 local api = vim.api
 
 local M = {}
@@ -250,6 +252,40 @@ function M.callbacks_extend(callbacks, event, fn)
     table.insert(existing, fn)
   end
   return callbacks
+end
+
+---Resolve a config value into the module, table or function it points at
+---@param args { value: string|function, source?: string }
+---@return any|nil
+function M.resolve(args)
+  local value = args.value
+  if type(value) == "function" then
+    return value
+  end
+  if type(value) ~= "string" then
+    return nil
+  end
+
+  local source = args.source or "CodeCompanion"
+
+  for _, name in ipairs({ "codecompanion." .. value, value }) do
+    local ok, resolved = pcall(require, name)
+    if ok then
+      return resolved
+    end
+    -- A module that is on the runtimepath but fails to load must surface its own error
+    if not tostring(resolved):match("module '" .. vim.pesc(name) .. "' not found") then
+      return log:error("[%s] `%s` could not be loaded: %s", source, name, resolved)
+    end
+  end
+
+  local chunk, err = loadfile(vim.fs.normalize(value))
+  if err or not chunk then
+    log:error("[%s] Could not resolve `%s`", source, value)
+    return nil
+  end
+
+  return chunk()
 end
 
 ---Resolve a nested table value using a dot-separated path string

@@ -1078,7 +1078,7 @@ The user is working on a %s machine. Please respond with system specific command
     ---Format file and buffer content before sharing it with an LLM, keyed by file extension.
     ---@type table<string, string|fun(raw: string, path: string): string|nil>
     formatters = {
-      ipynb = "codecompanion.context.formatters.builtin.jupyter_notebook",
+      ipynb = "context.formatters.builtin.jupyter_notebook",
     },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
@@ -1099,8 +1099,8 @@ The user is working on a %s machine. Please respond with system specific command
         ".rules",
         ".windsurfrules",
         ".github/copilot-instructions.md",
-        "AGENT.md",
-        "AGENTS.md",
+        { path = "AGENT.md", parser = "claude" },
+        { path = "AGENTS.md", parser = "claude" },
         { path = "CLAUDE.md", parser = "claude" },
         { path = "CLAUDE.local.md", parser = "claude" },
         { path = "~/.claude/CLAUDE.md", parser = "claude" },
@@ -1112,8 +1112,7 @@ The user is working on a %s machine. Please respond with system specific command
       parser = "claude",
       ---@return boolean
       enabled = function()
-        -- Don't show this to users who aren't working on CodeCompanion itself
-        return vim.fn.getcwd():find("codecompanion", 1, true) ~= nil
+        return vim.fn.isdirectory(vim.fs.joinpath(vim.fn.getcwd(), ".codecompanion")) == 1
       end,
       files = {
         ["adapters"] = {
@@ -1180,10 +1179,10 @@ The user is working on a %s machine. Please respond with system specific command
       is_preset = true,
     },
     parsers = {
-      claude = "claude", -- Parser for CLAUDE.md files
-      cli = "cli", -- Parser for CLI interactions (file paths only, no content)
-      codecompanion = "codecompanion", -- Parser for CodeCompanion specific rules files
-      none = "none", -- No parsing, just raw text
+      claude = "interactions.shared.rules.parsers.claude", -- Parser for CLAUDE.md files
+      cli = "interactions.shared.rules.parsers.cli", -- Parser for CLI interactions (file paths only, no content)
+      codecompanion = "interactions.shared.rules.parsers.codecompanion", -- Parser for CodeCompanion specific rules files
+      none = "interactions.shared.rules.parsers.none", -- No parsing, just raw text
     },
     opts = {
       chat = {

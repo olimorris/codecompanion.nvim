@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local M = {}
 
@@ -19,9 +20,12 @@ local function resolve(value)
     return resolved[value]
   end
 
-  local ok, module = pcall(require, value)
-  if not ok or type(module) ~= "table" or type(module.format) ~= "function" then
-    log:error("[Formatters] Could not resolve `%s`", value)
+  local module = utils.resolve({ value = value, source = "Formatters" })
+  if not module then
+    return nil
+  end
+  if type(module) ~= "table" or type(module.format) ~= "function" then
+    log:error("[Formatters] `%s` does not expose a `format` function", value)
     return nil
   end
 
