@@ -1364,6 +1364,11 @@ function Chat:submit(opts)
   if opts.auto_submit then
     self:_complete_orphaned_tool_calls({ reason = CONSTANTS.INCOMPLETE_TOOL_CALL })
     self:_inject_btw()
+
+    -- A compaction request re-submits the chat itself, post summarisation
+    if not opts.after_compaction and require("codecompanion.interactions.chat.context_management").apply(self) then
+      return
+    end
   else
     local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
@@ -1389,6 +1394,19 @@ function Chat:submit(opts)
       sync_all_buffer_content(self)
     end
 
+    -- Check if the user has manually overridden the adapter
+    if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
+      self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+      safe_adapter = adapters.make_safe(self.adapter)
+    end
+
+    -- Decorate the prompt before checking size
+    local chat_opts = config.interactions.chat.opts
+    if not opts.regenerate and message_to_submit and message_to_submit.content and chat_opts.prompt_decorator then
+      message_to_submit.content =
+        chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
+    end
+
     if self:message_too_big(message_to_submit) then
       return self:restore()
     end
@@ -1399,20 +1417,10 @@ function Chat:submit(opts)
 
     -- Add the user message after any context so the LLM sees context first
     if not opts.regenerate then
-      local chat_opts = config.interactions.chat.opts
-      if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
-        message_to_submit.content =
-          chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
-      end
       self:add_message({
         role = config.constants.USER_ROLE,
         content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
       })
-    end
-
-    -- Check if the user has manually overridden the adapter
-    if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
-      self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
     end
 
     if not config.display.chat.auto_scroll then
