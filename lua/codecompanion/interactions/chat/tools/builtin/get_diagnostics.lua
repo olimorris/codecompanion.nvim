@@ -28,14 +28,14 @@ local severity_map = {
   HINT = "HINT",
 }
 
----Resolve a filepath to a loaded buffer, reading it in the background if it isn't open
----@param filepath string
+---Resolve a path to a loaded buffer, reading it in the background if it isn't open
+---@param path string
 ---@return { bufnr: number|nil, error: string|nil, freshly_loaded: boolean }
-local function resolve_buffer(filepath)
-  local bufnr = vim.fn.bufadd(filepath)
+local function resolve_buffer(path)
+  local bufnr = vim.fn.bufadd(path)
   if bufnr == 0 or not api.nvim_buf_is_valid(bufnr) then
     return {
-      error = fmt("`%s` could not be opened. Check the path points at a file and try again", filepath),
+      error = fmt("`%s` could not be opened. Check the path points at a file and try again", path),
       freshly_loaded = false,
     }
   end
@@ -47,7 +47,7 @@ local function resolve_buffer(filepath)
   local ok, err = pcall(vim.fn.bufload, bufnr)
   if not ok then
     return {
-      error = fmt("`%s` could not be read. Neovim failed to open it: %s", filepath, err),
+      error = fmt("`%s` could not be read. Neovim failed to open it: %s", path, err),
       freshly_loaded = false,
     }
   end
@@ -317,8 +317,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
-      chat:add_tool_output(self, llm_output, fmt("Got diagnostics for `%s`", display_path))
+      chat:add_tool_output(self, llm_output, "")
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics

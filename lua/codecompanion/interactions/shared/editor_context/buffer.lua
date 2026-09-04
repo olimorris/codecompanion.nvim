@@ -86,17 +86,17 @@ function EditorContext:chat_render(selected, opts)
 
   local buf_info = buf_utils.get_info(bufnr)
 
-  local ok, content, id, _ = pcall(chat_helpers.format_buffer_for_llm, bufnr, buf_info.path, { message = message })
+  local ok, buffer = pcall(chat_helpers.format_buffer_for_llm, bufnr, buf_info.path, { message = message })
   if not ok then
-    return log:warn(content)
+    return log:warn(buffer)
   end
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = content,
+    content = buffer.content,
   }, {
     _meta = { source = "editor_context", tag = tags.BUFFER },
-    context = { id = id, path = buf_info.path },
+    context = { id = buffer.id, path = buf_info.path },
     visible = false,
   })
 
@@ -107,10 +107,11 @@ function EditorContext:chat_render(selected, opts)
   self.Chat.context:add({
     bufnr = bufnr,
     params = params,
-    id = id,
+    id = buffer.id,
+    path = buf_info.path,
     opts = {
       sync_all = (params and params == "all"),
-      sync_diff = (params and params == "diff"),
+      sync_diff = params == "diff" or nil,
     },
     source = "codecompanion.interactions.shared.editor_context.buffer",
   })

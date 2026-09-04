@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
-local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.Chat.Rules.Parser
 ---@field content string The content of the rules file
@@ -16,55 +16,25 @@ function M.resolve(parser)
     return nil
   end
 
-  local ok, err, resolved
-
   assert(type(parser) == "string", "Parser must be a string")
   assert(
     config and config.rules and config.rules.parsers and config.rules.parsers[parser],
     "Couldn't find the " .. parser .. " parser in the config"
   )
 
-  parser = config.rules.parsers[parser]
+  local value = config.rules.parsers[parser]
+  local resolved = utils.resolve({ value = value, source = "Rules" })
 
-  -- If the config entry is a function that returns a parser table, call it.
-  if type(parser) == "function" then
-    ok, resolved = pcall(parser)
+  -- A parser module is itself a function, so only a function in the config is a factory
+  if type(value) == "function" then
+    local ok, output = pcall(resolved)
     if not ok then
-      log:error("[Rules] Parser factory error: %s", resolved)
-      return nil
+      return log:error("[Rules] Parser factory error: %s", output)
     end
-    return resolved
+    return output
   end
 
-  if type(parser) == "string" then
-    -- The parser might be a CodeCompanion default one ...
-    ok, resolved = pcall(require, "codecompanion.interactions.shared.rules.parsers." .. parser)
-    if ok then
-      return resolved
-    end
-
-    -- Or one that exists on the user's disk
-    parser = vim.fs.normalize(parser)
-    if not file_utils.exists(parser) then
-      return log:error("[Rules] Could not find the file %s", parser)
-    end
-
-    ok, resolved = pcall(require, parser)
-    if ok then
-      return resolved
-    end
-
-    resolved, err = loadfile(parser)
-    if err then
-      return log:error("[Rules] %s", err)
-    end
-
-    if resolved then
-      return resolved()
-    end
-  end
-
-  return nil
+  return resolved
 end
 
 ---Parse the content through the parser and return it

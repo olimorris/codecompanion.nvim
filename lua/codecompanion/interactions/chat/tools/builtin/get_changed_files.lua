@@ -144,7 +144,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, output, "Reading changed files")
+      chat:add_tool_output(self, output, "")
     end,
 
     ---@param self CodeCompanion.Tool.GetChangedFiles

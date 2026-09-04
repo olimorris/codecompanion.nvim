@@ -2,6 +2,7 @@ local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local interactions = require("codecompanion.interactions")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -25,30 +26,7 @@ end
 ---@param path string The module or file path
 ---@return table|nil
 local function resolve(path)
-  local ok, slash_command = pcall(require, "codecompanion." .. path)
-  if ok then
-    log:debug("Calling slash command: %s", path)
-    return slash_command
-  end
-
-  -- Try loading from the user's config using a module path
-  ok, slash_command = pcall(require, path)
-  if ok then
-    log:debug("Calling slash command using a module path: %s", path)
-    return slash_command
-  end
-
-  -- Try loading from the user's config using a file path
-  local err
-  slash_command, err = loadfile(vim.fs.normalize(path))
-  if err then
-    return log:error("Could not load the slash command: %s", path)
-  end
-
-  if slash_command then
-    log:debug("Calling slash command from a file path: %s", path)
-    return slash_command()
-  end
+  return utils.resolve({ value = path, source = "Slash Commands" })
 end
 
 ---@class CodeCompanion.SlashCommands

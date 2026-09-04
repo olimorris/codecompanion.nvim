@@ -136,11 +136,11 @@ return {
         -- Files were found - data is an array of file paths
         local files = #data
         local results_msg = fmt("Searched files for `%s`, %d results\n```\n%s\n```", query, files, output)
-        chat:add_tool_output(self, fmt(llm_output, results_msg), results_msg)
+        chat:add_tool_output(self, fmt(llm_output, results_msg), "")
       else
         -- No files found - data is a string message
         local no_results_msg = fmt("Searched files for `%s`, no results", query)
-        chat:add_tool_output(self, fmt(llm_output, no_results_msg), no_results_msg)
+        chat:add_tool_output(self, fmt(llm_output, no_results_msg), "")
       end
     end,
 

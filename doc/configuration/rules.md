@@ -58,7 +58,7 @@ require("codecompanion").setup({
       chat = {
         ---@param chat CodeCompanion.Chat
         ---@return boolean
-        condition = function(chat)
+        enabled = function(chat)
           -- In this example, only enable rules for chats
           -- that are using http adapters
           return chat.adapter.type == "http"

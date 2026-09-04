@@ -96,6 +96,22 @@ function M.native(target)
   vim.cmd("normal! zv")
 end
 
+---Close the diff, leaving the working file open where the user was reading it
+---@return nil
+function M.close()
+  if is_open(panes.baseline) then
+    pcall(api.nvim_win_close, panes.baseline, true)
+  end
+  panes.baseline = nil
+
+  -- Closing one side of a diff leaves the other still in diff mode
+  if is_open(panes.active) then
+    api.nvim_win_call(panes.active, function()
+      vim.cmd("diffoff")
+    end)
+  end
+end
+
 ---Render a hunk with the diff provider
 ---@param target CodeCompanion.CodeReview.DiffTarget
 ---@return nil

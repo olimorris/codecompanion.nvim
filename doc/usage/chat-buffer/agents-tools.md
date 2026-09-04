@@ -306,7 +306,7 @@ The LLM can then view and edit it via `/personal`.
 
 ### read_file
 
-This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
+This tool can read all or part of a file, using either an absolute path or a path relative to the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
 ### run_command
 
@@ -327,6 +327,14 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 **Options:**
 - `require_approval_before` require approval before running a command? (Default: true)
 
+### search_help
+
+This tool enables an LLM to search the CodeCompanion docs for a specific query. It essentially grounds the LLM in the plugin's documentation, ensuring that it doesn't make up answers based on its own knowledge which may be out of date.
+
+```md
+Use @{search_help} to find out how I can do a code review in CodeCompanion
+```
+
 ### web_search
 
 This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
@@ -339,8 +347,7 @@ Use @{web_search} to find the latest version of Neovim?
 Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
-
-Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua).
+The tool supports numerous adapters that you'll need to [configure](/configuration/chat-buffer#web-search).
 
 ## Adapter Tools
 

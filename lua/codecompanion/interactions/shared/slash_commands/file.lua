@@ -190,7 +190,7 @@ end
 ---@param selected { path: string }
 ---@param opts { filetype: string, mimetype: string, silent: boolean, sync_all: boolean }
 ---@return nil
-function SlashCommand:output_doc(selected, opts)
+function SlashCommand:output_pdf(selected, opts)
   local adapter = self.Chat.adapter
   if not (adapter.opts and adapter.opts.documents) then
     return log:warn(
@@ -246,21 +246,21 @@ function SlashCommand:output(selected, opts)
   local mimetype = files_utils.get_mimetype(selected.path)
   if mimetype == "application/pdf" then
     opts = vim.tbl_extend("force", opts, { filetype = "pdf", mimetype = mimetype })
-    return self:output_doc(selected, opts)
+    return self:output_pdf(selected, opts)
   end
 
   if selected.description then
     opts.message = selected.description
   end
 
-  local content, id, _, _, _ = helpers.format_file_for_llm(selected.path, opts)
+  local file = helpers.format_file_for_llm(selected.path, opts)
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = content or "",
+    content = file.content or "",
   }, {
     visible = false,
-    context = { id = id, path = selected.path },
+    context = { id = file.id, path = selected.path },
     _meta = { tag = tags.FILE },
   })
 
@@ -269,7 +269,7 @@ function SlashCommand:output(selected, opts)
   end
 
   self.Chat.context:add({
-    id = id or "",
+    id = file.id or "",
     path = selected.path,
     source = "codecompanion.interactions.shared.slash_commands.file",
   })

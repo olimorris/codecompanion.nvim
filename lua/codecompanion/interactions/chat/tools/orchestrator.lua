@@ -115,6 +115,7 @@ end
 ---@field queue CodeCompanion.Queue
 ---@field status string The status of the tool execution "success" | "error"
 ---@field tool CodeCompanion.Tools.Tool The current tool being executed
+---@field tool_label { line_number: number, icon_id: number?, text: string, status: string }? Where the running tool's label sits in the chat buffer
 ---@field tool_output table? The output collected from the tool
 ---@field tools CodeCompanion.Tools
 local Orchestrator = {}
@@ -264,6 +265,54 @@ function Orchestrator:_setup_handlers()
       return nil
     end,
   }
+end
+
+---Create the label for the tool in the chat buffer
+---@return string
+function Orchestrator:_create_label()
+  local ok, cmd_string = pcall(self.output.cmd_string)
+  if ok and type(cmd_string) == "string" and cmd_string ~= "" then
+    return fmt("%s: %s", self.tool.name, cmd_string)
+  end
+  return self.tool.name
+end
+
+---@return nil
+function Orchestrator:_write_label_to_chat()
+  local text = self:_create_label()
+
+  local ok, line_number, icon_id = pcall(self.tools.chat.add_buf_message, self.tools.chat, {
+    role = config.constants.LLM_ROLE,
+    content = text,
+  }, {
+    status = "in_progress",
+    virt_text_pos = "inline",
+    type = self.tools.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+  })
+
+  if not ok or not line_number then
+    return log:debug("[Orchestrator::_write_label_to_chat] Couldn't write the label for `%s`", self.tool.name)
+  end
+
+  self.tool_label = { line_number = line_number, icon_id = icon_id, text = text, status = "failed" }
+end
+
+---Updae the label's icon for the tool's final status
+---@return nil
+function Orchestrator:_label_completed()
+  local label = self.tool_label
+  self.tool_label = nil
+  if not label then
+    return
+  end
+
+  pcall(
+    self.tools.chat.update_buf_line,
+    self.tools.chat,
+    label.line_number,
+    label.text,
+    { status = label.status, icon_id = label.icon_id, priority = 120, virt_text_pos = "inline" }
+  )
 end
 
 ---When the tools coordinator is finished, finalize it via an autocmd
@@ -513,6 +562,8 @@ function Orchestrator:execute_tool(args)
     return
   end
 
+  self:_write_label_to_chat()
+
   utils.fire("ToolStarted", {
     bufnr = self.tools.bufnr,
     id = self.id,
@@ -527,6 +578,9 @@ end
 ---@return nil
 function Orchestrator:error(args)
   self.tools.status = self.tools.constants.STATUS_ERROR
+  if self.tool_label then
+    self.tool_label.status = "failed"
+  end
   if args.error then
     table.insert(self.tools.stderr, args.error)
   end
@@ -552,6 +606,9 @@ end
 ---@return nil
 function Orchestrator:success(args)
   self.tools.status = self.tools.constants.STATUS_SUCCESS
+  if self.tool_label then
+    self.tool_label.status = "completed"
+  end
 
   if args.output then
     table.insert(self.tools.stdout, args.output)
@@ -579,6 +636,7 @@ function Orchestrator:finalize_tool()
     pcall(function()
       self.handlers.on_exit()
     end)
+    self:_label_completed()
     utils.fire("ToolFinished", {
       bufnr = self.tools.bufnr,
       id = self.id,

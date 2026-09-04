@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 10
+                                 For NVIM v0.11    Last change: 2026 August 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -889,6 +889,11 @@ following the agent's selected version.
 
 CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
 
+- **System Prompts**: The ACP protocol does not currently support the sending of
+    specific system prompts to agents. To that end, CodeCompanion does not merge
+    any system prompts with user messages, so as to ensure that the end user
+    experiences the same behaviour as if they were interacting with the agent
+    directly.
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
@@ -1545,12 +1550,26 @@ their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
 
-You can specify a custom model in your `~/.config/opencode/config.json` file:
+You can specify a custom model in your `~/.config/opencode/opencode.jsonc` (or
+`~/.config/opencode/opencode.json`) file:
 
 >json
     {
         "$schema": "https://opencode.ai/config.json",
         "model": "github-copilot/claude-sonnet-4.5",
+    }
+<
+
+Opencode by default doesn't send diffs for Code Review, to enable them specify
+permissions <https://opencode.ai/docs/permissions/>:
+
+>json
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "model": "opencode-go/mimo-v2.5-pro",
+      "permission": {
+        "*": "ask"
+      }
     }
 <
 
@@ -2376,6 +2395,31 @@ stack:
 <
 
 
+CONTEXT FORMATTERS ~
+
+You can customise how a buffer and file's content is shared with an LLM with
+context formatters.
+
+**Example:** A Jupyter Notebook <https://jupyter.org/> is a large JSON document
+with markdown, code and sometimes base64 images embedded in it. They ca be
+large files which quickly erode an LLM's context window.
+
+A context formatter modifies a file's content before it is shared with an LLM.
+This is the case whether the file was attached with `/file`, opened as a buffer
+and attached with `/buffer`, pulled in by a rules file, or re-read to produce a
+|codecompanion-configuration-chat-buffer-syncing| diff.
+
+You can define your own formatter by ensuring your you implement a `format(raw,
+path)` function which returns the content the LLM should see, or the path to a
+module which returns one:
+
+
+Formatters are responsible for their own formatting, so content they return is
+passed through as-is. Content they do not touch is wrapped in a code fence when
+attached to the chat, and buffers additionally get line numbers. Neither is
+applied when content is re-read for a sync diff, as the diff itself is fenced.
+
+
 CONTEXT MANAGEMENT ~
 
 CodeCompanion can manage context in the chat buffer to try and prevent
@@ -2474,6 +2518,70 @@ There are a number of configuration options available to you:
 
 
 
+EDITOR CONTEXT ~
+
+Editor context
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
+can be inserted into the chat buffer using `#` (by default). It provides
+contextual code or information about the current Neovim state. For instance,
+the built-in `#{buffer}` editor context sends the current buffer's contents to
+the LLM.
+
+You can even define your own context:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          editor_context = {
+            ["my_editor_context_item"] = {
+              ---Ensure the file matches the CodeCompanion.EditorContext class
+              ---@return string|fun(): nil
+              callback = "/Users/Oli/Code/my_editor_context_item.lua",
+              description = "Explain what your does",
+              opts = {
+                contains_code = false,
+                --has_params = true,    -- Set this if your editor context item supports parameters
+                --default_params = nil, -- Set default parameters
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+SYNCING
+
+Neovim buffers can be
+|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
+buffer. That is, on each turn their content can be shared with the LLM. This is
+useful if you're modifying a buffer and want the LLM to always have the latest
+changes.
+
+For the built-in `#buffer` editor context, this is enabled by default. However,
+you can change it with:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          editor_context = {
+            ["buffer"] = {
+              opts = {
+                -- Always sync the buffer by sharing its "diff"
+                -- Or choose "all" to share the entire buffer
+                default_params = "all",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
 KEYMAPS ~
 
 
@@ -2563,6 +2671,35 @@ for information on how to use Slash Commands.
 Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 <https://github.com/olimorris/codecompanion.nvim/discussions/958> for the
 custom slash command example.
+
+
+SYNCING BUFFERS/FILES ~
+
+|codecompanion-usage-chat-buffer-index-context| hold the data of a file or
+buffer at a point in time.
+
+Depending on the file type, it may be worthwhile continuously syncing their
+content with an LLM. Extensions listed in `sync_diff` are watched from the
+moment they're added to the chat buffer, whether that's with `/file`,
+`/buffer`, `#{buffer}` or `#{buffers}`:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          opts = {
+            sync_diff = {
+              ipynb = true, -- Notebooks change on disk whenever a cell is run
+              sqlite = true,
+            },
+          },
+        },
+      },
+    })
+<
+
+To change how a file's content is shaped before the LLM sees it, see
+|codecompanion-configuration-others-context-formatters|.
 
 
 TOOLS ~
@@ -2657,6 +2794,20 @@ opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 This also works for |codecompanion-configuration-extensions|.
 
 
+LIMITING TOOL OUTPUT
+
+To prevent the output from a tool exceeding the context window of a model,
+CodeCompanion will look to use the lower of a specified `max_output_tokens`
+limit or a model's own prompt limit. Should the tool exceed the limit,
+CodeCompanion will truncate the output and notify the LLM in the response.
+
+The limit can be configured with:
+
+`lua {6} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { max_output_tokens = 30000, -- Truncate a tool's output above this many
+tokens }, } } } })`
+
+
 LLM JUDGE
 
 When |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| is on, tools are
@@ -2719,6 +2870,34 @@ The default system prompt for the judge is:
 
 See the |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| usage section
 for how the judge behaves once enabled.
+
+
+WEB SEARCH
+
+The |codecompanion-usage-chat-buffer-agents-tools-web-search| tool is a
+built-in tool that allows an LLM to perform web searches using an adapter.
+Currently, CodeCompanion supports DuckDuckGo <https://duckduckgo.com>, Jina
+<https://www.jina.ai> and Tavily <https://www.tavily.com> adapters.
+
+To override the default Tavily adapter:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["web_search"] = {
+              opts = {
+                adapter = "duckduckgo",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+For additional options, refer to the adapter's own file.
 
 
 USER INTERFACE (UI) ~
@@ -2870,72 +3049,7 @@ There are also a number of other options that you can customize in the UI:
           show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
           show_settings = false, -- Show LLM settings at the top of the chat buffer?
           show_token_count = true, -- Show the token count for each response?
-          show_tools_processing = true, -- Show the loading message when tools are being executed?
           start_in_insert_mode = false, -- Open the chat buffer in insert mode?
-        },
-      },
-    })
-<
-
-
-EDITOR CONTEXT ~
-
-Editor context
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
-can be a inserted into the chat buffer using `#` (by default). It provides
-contextual code or information about the current Neovim state. For instance,
-the built-in `#{buffer}` editor context sends the current buffer's contents to
-the LLM.
-
-You can even define your own context:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          editor_context = {
-            ["my_editor_context_item"] = {
-              ---Ensure the file matches the CodeCompanion.EditorContext class
-              ---@return string|fun(): nil
-              callback = "/Users/Oli/Code/my_editor_context_item.lua",
-              description = "Explain what your does",
-              opts = {
-                contains_code = false,
-                --has_params = true,    -- Set this if your editor context item supports parameters
-                --default_params = nil, -- Set default parameters
-              },
-            },
-          },
-        },
-      },
-    })
-<
-
-
-SYNCING
-
-Neovim buffers can be
-|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
-buffer. That is, on each turn their content can be shared with the LLM. This is
-useful if you're modifying a buffer and want the LLM to always have the latest
-changes.
-
-To enable this by default for the built-in `#buffer` editor context, you can
-set the `default_params` option to either `diff` or `all`:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          editor_context = {
-            ["buffer"] = {
-              opts = {
-                -- Always sync the buffer by sharing its "diff"
-                -- Or choose "all" to share the entire buffer
-                default_params = "diff",
-              },
-            },
-          },
         },
       },
     })
@@ -4464,18 +4578,22 @@ LLM.
   default, they **are not** self-updating
 In order to allow for context to self-update, buffers and files can be synced
 to a chat buffer. On every turn, you can determine what is sent to the LLM. For
-buffers, you can choose to send `all` of the content or just the `diff`. For
-files, you only have the choice of sending `all` of the content.
+both, you can choose to send `all` of the content or just the `diff`.
 
 The advantage of sending `all` of a file or buffer's content is that the LLM
 will always receive a fresh copy of the source data regardless of any changes.
-This can be useful if you're working with tools. However, please note that this
-can consume a lot of tokens.
+However, please note that this can consume a lot of tokens.
 
 Syncing and sending only a `diff`, is a more token-conscious way of keeping the
-LLM up to date on the contents of a buffer. Buffer diffs track changes (adds,
-edits, deletes) in the underlying buffer and update the LLM on each turn, with
-only those changes.
+LLM up to date. Diffs track changes (adds, edits, deletes) in the underlying
+buffer/file and update the LLM on each turn. Press `gbd` on any context item to
+start syncing its diff.
+
+Some file types are worth syncing every time they're attached. Jupyter
+Notebooks are the out of the box example, since a notebook changes on disk
+whenever a cell is run. Any extension can be watched from the moment it's added
+to the chat buffer by listing it in
+|codecompanion-configuration-chat-buffer-syncing|.
 
 If a context item is added by mistake, it can be removed from the chat buffer
 by simply deleting it from the `Context` blockquote. On the next turn, all data
@@ -4545,8 +4663,6 @@ available to the user in normal mode are:
 - `clear`: `gx` to clear the chat buffer's contents
 - `copilot_stats`: `gS` to show copilot usage stats
 - `btw`: `gm` type a message to the LLM whilst it's streaming
-- `buffer_sync_all`: `gba` to sync the entire buffer on every turn
-- `buffer_sync_diff`: `gbd` to sync only a buffers diff on every turn
 - `codeblock`: `gc` to insert a codeblock in the chat buffer
 - `debug`: `gd` to view/debug the chat buffer's contents
 - `fold_code`: `gf` to fold any codeblocks in the chat buffer
@@ -4557,6 +4673,8 @@ available to the user in normal mode are:
 - `previous_header`: `[[` to move to the previous header
 - `regenerate`: `gr` to regenerate the last response
 - `rules`: `gM` to clear all rules from the chat buffer
+- `sync_all`: `gba` to sync a context item's entire content on every turn
+- `sync_diff`: `gbd` to sync only a context item's diff on every turn
 - `system_prompt`: `gs` to toggle the system prompt on/off
 - `yank_code`: `gy` to yank the last codeblock in the chat buffer
 
@@ -4972,9 +5090,9 @@ The LLM can then view and edit it via `/personal`.
 
 READ_FILE
 
-This tool can read the contents of a specific file in the current working
-directory. This can be useful for an LLM to gain wider context of files that
-haven't been shared with it.
+This tool can read all or part of a file, using either an absolute path or a
+path relative to the current working directory. This can be useful for an LLM
+to gain wider context of files that haven't been shared with it.
 
 
 RUN_COMMAND
@@ -5005,6 +5123,17 @@ into.
 command? (Default: true)
 
 
+SEARCH_HELP
+
+This tool enables an LLM to search the CodeCompanion docs for a specific query.
+It essentially grounds the LLM in the plugin's documentation, ensuring that it
+doesn't make up answers based on its own knowledge which may be out of date.
+
+>md
+    Use @{search_help} to find out how I can do a code review in CodeCompanion
+<
+
+
 WEB_SEARCH
 
 This tool enables an LLM to search the web for a specific query, enabling it to
@@ -5018,9 +5147,8 @@ receive up to date information:
     Use @{web_search} to search neovim.io and explain how I can configure a new language server
 <
 
-Currently, the tool uses tavily <https://www.tavily.com> and you'll need to
-ensure that an API key has been set accordingly, as per the adapter
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/tavily.lua>.
+The tool supports numerous adapters that you'll need to
+|codecompanion-configuration-chat-buffer-web-search|.
 
 
 ADAPTER TOOLS ~
@@ -5584,6 +5712,9 @@ current working directory to the chat buffer. The command has native,
 `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
 Also, multiple files can be selected and added to the chat buffer.
 
+The content of a file can be reshaped before the LLM sees it with
+|codecompanion-configuration-others-context-formatters|.
+
 #3218 <https://github.com/olimorris/codecompanion.nvim/pull/3218> added support
 for PDFs for the following http adapters:
 
@@ -6061,17 +6192,24 @@ OPTIONS
 
 CODE REVIEWS                                *codecompanion-usage-code-reviews*
 
-Code reviewing an agents work usually involves the manual typing of the file
-name along with the line number and your comment. For example, `“in foo.lua,
-around line 42, this should be…”`. Code reviews let you leave comments
-exactly where the code is. You can put your cursor on a line, or, make a visual
-selection, and then add a comment. Then, when you send your review to an agent,
-each comment arrives with the full context.
+Code reviewing an agent's work typically involves you searching the code base
+for their changes, reading the code and writing your comments back into the
+chat or CLI, maybe copying relevant code snippets as you go. Broadly speaking,
+this works. Although, it is a slow and tedious process.
 
-Sending a review also **advances a baseline**, which turns agent iterations
-into rounds. Your next review only shows what the agent changed in response,
-not the full edit history. In essence, it's the same loop as a pull request:
-comment, submit, re-review the response.
+In CodeCompanion, `:CodeCompanionCodeReview` opens the quickfix list with all
+of the agent's edits, allowing you to navigate to them in a keystroke (`]q`).
+Code reviews also allow you to leave comments exactly where the code is,
+allowing you to review like you might in GitHub. You can put your cursor on a
+line, or, make a visual selection, and then do `:CodeCompanionCodeReview
+Comment` to add a comment. When you wish to send your review to an agent, go to
+the chat or CLI and use `#{code_review}` in the prompt.
+
+Sending a review via the chat or CLI **advances a baseline**. This effectively
+closes all of the agent's edits until it starts another round of editing. The
+next review only shows what the agent changed in response, not the full edit
+history. In essence, it's the same loop as a pull request: comment, submit,
+re-review the response.
 
 Code reviews work with CodeCompanion's own tools, ACP agents, and even CLI
 agents like Claude Code running outside of Neovim.
@@ -6116,13 +6254,10 @@ When you start a review, the diff between that baseline and the repo's files is
 produced. As the baseline lives in git and the review comments are persisted to
 disk, your progress is stored across sessions and Neovim instances.
 
-Because the diff is recomputed from disk every time, line numbers are never
-stored and so can never rot.
 
-
-  [!IMPORTANT] Snapshots are produced against a temporary index, so `git add`
-  never runs against your own. This means your staged changes and anything you
-  push are unaffected by a code review
+  [!IMPORTANT] Snapshots are produced against an index owned by CodeCompanion, so
+  `git add` never runs against the user's index. This means a user's staged
+  changes and anything that's pushed are unaffected by a code review
 
 COMMANDS ~
 
@@ -6399,6 +6534,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
 - `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
+- `CodeCompanionToolQuestionAsked` - Fired when a tool asks the user a question
+- `CodeCompanionToolQuestionAnswered` - Fired when a user has answered or skipped a question
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated

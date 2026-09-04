@@ -7,7 +7,6 @@
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
----@field buffer_diffs CodeCompanion.BufferDiffs Watch for any changes in buffers
 ---@field bufnr number The buffer number of the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The UI builder for the chat buffer
 ---@field callbacks table<string, (fun(chat: CodeCompanion.Chat, ...: any): any)[]> A table of callback functions that are executed at various points (on_created, on_before_submit, on_submitted, on_tool_output, on_ready, on_completed, on_cancelled, on_closed)
@@ -34,6 +33,7 @@
 ---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
+---@field watchers CodeCompanion.Chat.Watchers Watch for changes in attached buffers and files
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field _acp_name_map_cache? table|false Memoised value -> display-name map for ACP select options; false means "computed, no entries"
 ---@field _btw? string The user's "by the way" message which is queued for sending to an LLM
@@ -68,6 +68,7 @@
 local adapters = require("codecompanion.adapters")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
+local context_helpers = require("codecompanion.interactions.chat.helpers.context")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
@@ -91,6 +92,7 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
+  INCOMPLETE_TOOL_CALL = "This tool call did not complete and produced no result",
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
@@ -439,7 +441,6 @@ end
 ---@return nil
 local function init_components(chat, args)
   chat.builder = require("codecompanion.interactions.chat.ui.builder").new({ chat = chat })
-  chat.buffer_diffs = require("codecompanion.interactions.chat.buffer_diffs").new()
   chat.context = require("codecompanion.interactions.chat.context").new({ chat = chat })
   chat.editor_context = require("codecompanion.interactions.shared.editor_context").new("chat")
   chat.subscribers = require("codecompanion.interactions.chat.subscribers").new()
@@ -462,6 +463,7 @@ local function init_components(chat, args)
     title = chat.title,
     window_opts = args.window_opts,
   })
+  chat.watchers = require("codecompanion.interactions.chat.watchers").new()
 end
 
 ---Bind buffer-local keymaps for the chat plus any slash-command bindings
@@ -734,11 +736,10 @@ function Chat:dispatch(event, ...)
   return self
 end
 
----Dispatch callbacks for a cancellable event
----If any callback returns false, the event is cancelled
----@param event string The event name
----@param ... any Additional arguments to pass to callbacks
----@return boolean cancelled Whether the event was cancelled
+---Dispatch callbacks for a cancellable event. If any callback returns false, the event is cancelled
+---@param event string
+---@param ... any
+---@return boolean cancelled
 function Chat:dispatch_cancellable(event, ...)
   local callbacks = self.callbacks[event]
   if not callbacks then
@@ -753,6 +754,7 @@ function Chat:dispatch_cancellable(event, ...)
       return true
     end
   end
+
   return false
 end
 
@@ -1091,16 +1093,18 @@ function Chat:has_orphaned_tool_calls()
   return next(self:_orphaned_tool_calls()) ~= nil
 end
 
----Prevent any orphaned tool calls by "completing" them with a cancelled message
+---Prevent any orphaned tool calls by "completing" them with a stand-in result
+---@param opts? { reason?: string } The stand-in result sent to the LLM
 ---@return nil
-function Chat:_complete_orphaned_tool_calls()
+function Chat:_complete_orphaned_tool_calls(opts)
   local pending = self:_orphaned_tool_calls()
   if next(pending) == nil then
     return
   end
 
+  local reason = opts and opts.reason or "Cancelled by user"
   for id, call in pairs(pending) do
-    local output = adapters.call_handler(self.adapter, "format_response", call, "Cancelled by user")
+    local output = adapters.call_handler(self.adapter, "format_response", call, reason)
     if output then
       output.opts = vim.tbl_extend("force", output.opts or {}, { visible = false })
       output._meta = {
@@ -1299,6 +1303,36 @@ function Chat:_submit_acp(payload)
   self.current_request = acp_handler:submit(payload)
 end
 
+---Determine if a message is too big to send to the LLM
+---@param message? { content: string }
+---@return boolean
+function Chat:message_too_big(message)
+  local messages = vim.list_extend({}, self.messages)
+  if message then
+    table.insert(messages, message)
+  end
+
+  local check = context_helpers.exceeds_input_limit({ adapter = self.adapter, messages = messages })
+  local exceeded_limit = check.exceeded
+  if not exceeded_limit then
+    return false
+  end
+
+  utils.notify(
+    fmt(
+      [[Message not sent.
+Message is around %d tokens, which is over %s's %d token limit.
+Shorten it, or edit it from the debug window]],
+      check.token_count,
+      self.adapter.formatted_name,
+      check.input_limit
+    ),
+    vim.log.levels.WARN
+  )
+
+  return true
+end
+
 ---Submit the chat buffer's contents to the LLM
 ---@param opts? table
 ---@return nil
@@ -1318,10 +1352,17 @@ function Chat:submit(opts)
     self.tools:refresh({ adapter = self.adapter })
   end
 
+  self.watchers:check_for_changes(self)
+
   -- Differentiate between the user submitting and CodeCompanion automatically doing it
   if opts.auto_submit then
+    self:_complete_orphaned_tool_calls({ reason = CONSTANTS.INCOMPLETE_TOOL_CALL })
     self:_inject_btw()
-    self.buffer_diffs:check_for_changes(self)
+
+    -- A compaction request re-submits the chat itself, post summarisation
+    if not opts.after_compaction and require("codecompanion.interactions.chat.context_management").apply(self) then
+      return
+    end
   else
     local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
@@ -1335,7 +1376,7 @@ function Chat:submit(opts)
       return self:restore()
     end
 
-    self.buffer_diffs:check_for_changes(self)
+    self:_complete_orphaned_tool_calls({ reason = CONSTANTS.INCOMPLETE_TOOL_CALL })
 
     -- NOTE: There are instances when submit is called with no user message.
     -- Such as when tools auto-submitting responses. So, we need to ensure
@@ -1343,27 +1384,37 @@ function Chat:submit(opts)
     if message_to_submit then
       message_to_submit = self.context:remove(message_to_submit)
       self:replace_user_inputs(message_to_submit)
-      self:check_images(message_to_submit)
       self:check_context()
       sync_all_buffer_content(self)
-    end
-
-    -- Add the user message after any context so the LLM sees context first
-    if not opts.regenerate then
-      local chat_opts = config.interactions.chat.opts
-      if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
-        message_to_submit.content =
-          chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
-      end
-      self:add_message({
-        role = config.constants.USER_ROLE,
-        content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
-      })
     end
 
     -- Check if the user has manually overridden the adapter
     if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
       self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+      safe_adapter = adapters.make_safe(self.adapter)
+    end
+
+    -- Decorate the prompt before checking size
+    local chat_opts = config.interactions.chat.opts
+    if not opts.regenerate and message_to_submit and message_to_submit.content and chat_opts.prompt_decorator then
+      message_to_submit.content =
+        chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
+    end
+
+    if self:message_too_big(message_to_submit) then
+      return self:restore()
+    end
+
+    if message_to_submit then
+      self:check_images(message_to_submit)
+    end
+
+    -- Add the user message after any context so the LLM sees context first
+    if not opts.regenerate then
+      self:add_message({
+        role = config.constants.USER_ROLE,
+        content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
+      })
     end
 
     if not config.display.chat.auto_scroll then
@@ -1649,6 +1700,10 @@ function Chat:check_context()
     end
   end
 
+  for id in pairs(remove_set) do
+    self.watchers:unsync(id)
+  end
+
   -- Remove them from the messages table
   local kept_messages = {}
   for _, msg in ipairs(self.messages) do
@@ -1795,6 +1850,9 @@ function Chat:close()
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
   end
+  if self.watchers then
+    pcall(api.nvim_del_augroup_by_id, self.watchers.augroup)
+  end
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()
   end
@@ -1878,9 +1936,16 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     else
       existing.content = output.content
     end
+    output = existing
   else
     table.insert(self.messages, output)
   end
+
+  -- Truncate after merging so that a tool emitting many small chunks is caught too
+  output.content = context_helpers.truncate_tool_output({ adapter = self.adapter, content = output.content })
+  output._meta = vim.tbl_extend("force", output._meta or {}, {
+    estimated_tokens = tokens.calculate(output.content),
+  })
 
   -- Allow tools to pass in an empty string to not write any output to the buffer
   if for_user ~= "" then
@@ -1959,6 +2024,7 @@ function Chat:clear()
   self.messages = {}
   self.context_items = {}
 
+  self.watchers:clear()
   self.tool_registry:clear()
 
   log:trace("Clearing chat buffer")

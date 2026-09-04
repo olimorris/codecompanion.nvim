@@ -488,9 +488,6 @@ T["Rules:make()"]["file referenced in both rules.files and @include should not b
         },
         is_preset = true,
       },
-      parsers = {
-        claude = "claude",
-      },
       opts = {
         chat = {
           enabled = true,
@@ -522,6 +519,72 @@ T["Rules:make()"]["file referenced in both rules.files and @include should not b
   -- AGENTS.md should only appear once, not twice
   -- (once as direct rules file, NOT again from @include in CLAUDE.md)
   h.eq(agents_count, 1)
+end
+
+--- Check the logic for enabling rules
+
+T["opts.chat.enabled"] = new_set({})
+
+---Create a chat with the given `enabled` source and count the rules messages it loaded
+---@param enabled_src string Lua source for `opts.chat.enabled`
+---@return number
+local function count_rules_messages(enabled_src)
+  local tmp = child.lua("return vim.fn.tempname()")
+  child.fn.writefile({ "conditional rules content" }, tmp)
+
+  child.lua(string.format(
+    [[
+    local h = require("tests.helpers")
+    local cc = h.setup_plugin()
+    local config = require("codecompanion.config")
+    local tags = require("codecompanion.interactions.shared.tags")
+
+    config.rules = vim.tbl_deep_extend("force", config.rules or {}, {
+      default = { description = "conditional default", files = { %q }, is_preset = true },
+      parsers = {},
+      opts = {
+        chat = { enabled = %s, autoload = "default" },
+        show_presets = true,
+      },
+    })
+
+    _G.seen_adapter_type = nil
+    local chat = cc.chat()
+    _G.test_rules_count = #vim.tbl_filter(function(message)
+      return message._meta and message._meta.tag == tags.RULES
+    end, chat.messages)
+  ]],
+    tmp,
+    enabled_src
+  ))
+
+  return child.lua_get([[_G.test_rules_count]])
+end
+
+T["opts.chat.enabled"]["boolean true loads rules"] = function()
+  h.eq(count_rules_messages("true"), 1)
+end
+
+T["opts.chat.enabled"]["boolean false blocks rules"] = function()
+  h.eq(count_rules_messages("false"), 0)
+end
+
+T["opts.chat.enabled"]["function returning false blocks rules"] = function()
+  h.eq(count_rules_messages("function(chat) return false end"), 0)
+end
+
+T["opts.chat.enabled"]["function is passed the chat, so it can key off the adapter"] = function()
+  local rules_count = count_rules_messages([[function(chat)
+    _G.seen_adapter_type = chat.adapter.type
+    return chat.adapter.type == "http"
+  end]])
+
+  h.eq(child.lua_get([[_G.seen_adapter_type]]), "http")
+  h.eq(rules_count, 1)
+end
+
+T["opts.chat.enabled"]["function checking for acp blocks an http chat"] = function()
+  h.eq(count_rules_messages([[function(chat) return chat.adapter.type == "acp" end]]), 0)
 end
 
 return T

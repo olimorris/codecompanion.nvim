@@ -8,24 +8,47 @@ local T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        -- Setup test directory structure
         _G.TEST_CWD = vim.fn.tempname()
-        _G.TEST_DIR = 'tests/stubs/read_file'
+        _G.TEST_DIR = "tests/stubs/read_file"
         _G.TEST_DIR_ABSOLUTE = vim.fs.joinpath(_G.TEST_CWD, _G.TEST_DIR)
-
         _G.TEST_TMPFILE = "cc_readfile_test.txt"
         _G.TEST_TMPFILE_ABSOLUTE = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, _G.TEST_TMPFILE)
 
-        -- Create test directory structure
-        vim.fn.mkdir(_G.TEST_DIR_ABSOLUTE, 'p')
+        vim.fn.mkdir(_G.TEST_DIR_ABSOLUTE, "p")
+        assert(vim.fn.writefile({ "alpha", "beta", "gamma", "delta" }, _G.TEST_TMPFILE_ABSOLUTE) == 0)
 
-        h = require('tests.helpers')
+        h = require("tests.helpers")
         chat, tools = h.setup_chat_buffer()
+        vim.uv.chdir(_G.TEST_CWD)
+
+        function _G.execute_read_file(arguments)
+          arguments = vim.tbl_extend("force", { filepath = _G.TEST_TMPFILE_ABSOLUTE }, arguments or {})
+          local message_count = #chat.messages
+          local tool = {
+            {
+              ["function"] = {
+                name = "read_file",
+                arguments = vim.json.encode(arguments),
+              },
+            },
+          }
+
+          tools:execute(chat, tool)
+          assert(vim.wait(1000, function()
+            return #chat.messages > message_count
+          end), "read_file did not produce output")
+
+          return chat.messages[#chat.messages].content
+        end
+
+        function _G.write_test_file(lines)
+          assert(vim.fn.writefile(lines, _G.TEST_TMPFILE_ABSOLUTE) == 0)
+        end
       ]])
     end,
     post_case = function()
       child.lua([[
-        pcall(vim.fn.delete, _G.TEST_CWD, 'rf')
+        pcall(vim.fn.delete, _G.TEST_CWD, "rf")
         h.teardown_chat_buffer()
       ]])
     end,
@@ -33,106 +56,84 @@ local T = new_set({
   },
 })
 
-T["can read lines from a file"] = function()
-  child.lua([[
-    vim.uv.chdir(_G.TEST_CWD)
-    local contents = { "alpha", "beta", "gamma" }
-
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
-    assert(ok == 0)
-
-    local tool = {
-      {
-        ["function"] = {
-          name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": 1}', _G.TEST_TMPFILE_ABSOLUTE)
-        },
-      },
-    }
-    tools:execute(chat, tool)
-    vim.wait(200)
-  ]])
-
-  local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("alpha", string.match(output, "alpha"))
-  h.eq("beta", string.match(output, "beta"))
-  h.not_eq("gamma", string.match(output, "gamma"))
+local function execute_read_file(arguments)
+  return child.lua_get([[_G.execute_read_file(...)]], { arguments or {} })
 end
 
-T["can read all of the file"] = function()
-  child.lua([[
-    --require('tests.log')
-    vim.uv.chdir(_G.TEST_CWD)
-
-    local contents = { "alpha", "beta", "gamma" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
-    assert(ok == 0)
-
-    local tool = {
-      {
-        ["function"] = {
-          name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": -1}', _G.TEST_TMPFILE_ABSOLUTE)
-        },
-      },
-    }
-    tools:execute(chat, tool)
-    vim.wait(200)
-  ]])
-
-  local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("alpha", string.match(output, "alpha"))
-  h.eq("beta", string.match(output, "beta"))
-  h.eq("gamma", string.match(output, "gamma"))
-end
-T["clamps end_line_number_base_zero to file length if it is too large"] = function()
-  child.lua([[
-    vim.uv.chdir(_G.TEST_CWD)
-    local contents = { "one", "two", "three", "four", "five" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
-    assert(ok == 0)
-
-    -- end_line_number_base_zero is way beyond file length (file has 5 lines, 0-based: 0-4)
-    local tool = {
-      {
-        ["function"] = {
-          name = "read_file",
-          arguments = string.format(
-            '{"filepath": "%s", "start_line_number_base_zero": 1, "end_line_number_base_zero": 10}',
-            _G.TEST_TMPFILE_ABSOLUTE
-          )
-        },
-      },
-    }
-    tools:execute(chat, tool)
-    vim.wait(200)
-  ]])
-
-  local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("two", string.match(output, "two"))
-  h.eq("three", string.match(output, "three"))
-  h.eq("four", string.match(output, "four"))
-  h.eq("five", string.match(output, "five"))
-  h.not_eq("one", string.match(output, "one")) -- since we started at line 1
+local function write_test_file(lines)
+  child.lua([[_G.write_test_file(...)]], { lines })
 end
 
-T["can only read files that exist"] = function()
-  child.lua([[
-    --require("tests.log")
-    local tool = {
-      {
-        ["function"] = {
-          name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": -1}', "/does/not/exist.txt")
-        },
-      },
-    }
-    tools:execute(chat, tool)
-    vim.wait(200)
-  ]])
+local function expect_lines(output, included, excluded)
+  for _, line in ipairs(included or {}) do
+    h.expect_contains(line, output)
+  end
+  for _, line in ipairs(excluded or {}) do
+    h.expect_not_contains(line, output)
+  end
+end
 
-  local output = child.lua_get("chat.messages[#chat.messages].content")
+local function expect_error(output, ...)
   h.expect_contains("Error reading", output)
+  for _, term in ipairs({ ... }) do
+    h.expect_contains(term, output)
+  end
+end
+
+T["reads an explicit inclusive range"] = function()
+  local output = execute_read_file({ start_line = 1, end_line = 2 })
+
+  expect_lines(output, { "beta", "gamma" }, { "alpha", "delta" })
+end
+
+T["reads the whole file when bounds are omitted"] = function()
+  local output = execute_read_file()
+
+  expect_lines(output, { "alpha", "beta", "gamma", "delta" })
+  h.expect_contains("from lines 0 - 3", output)
+end
+
+T["reads an empty file as a single empty line"] = function()
+  write_test_file({})
+  local output = execute_read_file()
+
+  h.expect_contains("from lines 0 - 0", output)
+  h.expect_not_contains("Error reading", output)
+end
+
+T["treats empty and null bounds as omitted"] = function()
+  local output = execute_read_file({ start_line = "", end_line = vim.NIL })
+
+  expect_lines(output, { "alpha", "beta", "gamma", "delta" })
+end
+
+T["treats negative bounds as omitted"] = function()
+  expect_lines(execute_read_file({ start_line = -37, end_line = 1 }), { "alpha", "beta" }, { "gamma", "delta" })
+  expect_lines(execute_read_file({ start_line = 2, end_line = -91 }), { "gamma", "delta" }, { "alpha", "beta" })
+end
+
+T["clamps an oversized end_line to the end of the file"] = function()
+  local output = execute_read_file({ start_line = 2, end_line = 100 })
+
+  expect_lines(output, { "gamma", "delta" }, { "alpha", "beta" })
+  h.expect_contains("from lines 2 - 3", output)
+end
+
+T["rejects a malformed bound"] = function()
+  expect_error(execute_read_file({ start_line = "later", end_line = 2 }), "start_line")
+  expect_error(execute_read_file({ start_line = 1, end_line = "later" }), "end_line")
+end
+
+T["rejects a reversed finite range"] = function()
+  local output = execute_read_file({ start_line = 2, end_line = 1 })
+
+  expect_error(output, "start_line", "end_line")
+end
+
+T["rejects a start_line beyond the end of the file"] = function()
+  local output = execute_read_file({ start_line = 4 })
+
+  expect_error(output, "start_line")
 end
 
 return T

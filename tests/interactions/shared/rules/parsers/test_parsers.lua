@@ -42,7 +42,7 @@ T["parsers.resolve()"]["supports builtin module name and file-based parser"] = f
       content = function(p) return "BUILTIN:" .. (p.content or "") end
     }
     package.loaded['codecompanion.config'] = {
-      rules = { parsers = { builtin_parser = "builtinmod" } }
+      rules = { parsers = { builtin_parser = "interactions.shared.rules.parsers.builtinmod" } }
     }
   ]])
 

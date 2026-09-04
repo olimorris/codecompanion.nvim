@@ -7,59 +7,45 @@ body:
     - type: markdown
       attributes:
         value: |
-          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues)
+          **Before opening an issue**, read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues) and [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
-          **What is a bug?**
-          - A bug is a reproducible error that causes CodeCompanion to behave incorrectly, crash, or not work as documented
-          - Minor cosmetic issues (such as extra line breaks or formatting quirks) are not considered bugs unless they impact usability or readability. Please PR any of these changes yourself
-          - Feature requests, usage questions, or configuration help should go to [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
+          Feature requests, usage questions and configuration help belong in [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions), not here. Minor cosmetic quirks (spacing, formatting) aren't bugs, please PR those yourself
 
           > [!IMPORTANT]
-          > If you don't supply a valid `minimal.lua` your issue will be closed
+          > I'm a solo maintainer and I can only fix what I can reproduce on my own machine. That means a working `minimal.lua`, exact steps, and the actual files you were working on. Issues without these will be closed
 
     - type: checkboxes
       attributes:
         label: Pre-submission checklist
-        description: Please confirm all of the following before submitting
         options:
           - label: I have read the [documentation](https://codecompanion.olimorris.dev)
             required: true
-          - label: I have updated the plugin and all dependencies to the latest versions
+          - label: I have updated the plugin and all of its dependencies to the latest versions
             required: true
           - label: I have searched for existing [issues](https://github.com/olimorris/codecompanion.nvim/issues) and [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
             required: true
           - label: If [ACP](https://agentclientprotocol.com) related, I have confirmed that the issue is a CodeCompanion one and not an issue in the adapter itself
-            required: true            
-          - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details)
+            required: true
+          - label: My issue is not a minor or cosmetic quirk (e.g. formatting, spacing, or other non-functional details)
+            required: true
+          - label: I have reproduced this from a clean `minimal.lua` and included everything needed for someone else to hit the same bug
             required: true
 
-    - type: input
+    - type: textarea
       attributes:
-        label: "Neovim version (nvim -v)"
-        placeholder: "0.8.0 commit db1b0ee3b30f"
-      validations:
-        required: true
-
-    - type: input
-      attributes:
-        label: "Operating system/version"
-        placeholder: "macOS 14.4, Ubuntu 22.04, Windows 11"
-      validations:
-        required: true
-
-    - type: input
-      attributes:
-        label: "Adapter and model"
-        placeholder: "Copilot and GPT-4.1"
+        label: Environment
+        description: Neovim version (`nvim -v`), your OS, and the adapter and model you were using
+        placeholder: |
+          Neovim: 0.11.2
+          OS: macOS 15.1
+          Adapter and model: copilot with claude-sonnet-4.5
       validations:
         required: true
 
     - type: textarea
       attributes:
-        label: Describe the bug
-        description: |
-          A clear and concise description of the problem
-          Include any error messages or unexpected behavior you observe
+        label: What happened, and what did you expect?
+        description: Describe the problem and include any error messages you saw
         placeholder: |
           When I do X ...
           I observe Y ...
@@ -67,51 +53,48 @@ body:
       validations:
         required: true
 
-    - type: textarea
-      attributes:
-        label: Steps to reproduce
-        description: |
-          List the steps to reproduce the issue
-          Be as minimal and precise as possible
-        placeholder: |
-          1. Open Neovim with the provided minimal.lua
-          2. ...
-          3. ...
-      validations:
-        required: true
-
-    - type: textarea
-      attributes:
-        label: Expected behavior
-        description: What do you expect to happen?
-        placeholder: |
-          I expected ...
-      validations:
-        required: true
-
-    - type: textarea
-      attributes:
-        label: Screenshots or recordings (optional)
-        description: If applicable, add screenshots or a screen recording to help explain your problem
-      validations:
-        required: false
-
     - type: markdown
       attributes:
         value: |
-          ## Reproduce the issue
+          ## Reproducing the issue
 
-          > [!IMPORTANT]
-          > If you don't provide a working `minimal.lua` file, the triage agent will likely close your issue automatically. I'm a solo maintainer, so making my life easy means a lot
+          This is the part that decides whether your issue gets fixed:
 
-          - Use the one [here](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)
-          - Save it as `minimal.lua` and run with `nvim -u minimal.lua`
-          - All files will be downloaded to a `.repro` folder in your current working directory
+          - Download the [`minimal.lua`](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua) file, edit it to include the config that triggers your bug, and run `nvim -u minimal.lua`
+          - Plugins are downloaded to a `.repro` folder in your current working directory
+          - Confirm the bug still happens there, then paste that exact file below
 
     - type: textarea
       attributes:
-        label: minimal.lua file
+        label: minimal.lua
+        description: The exact file you reproduced the bug with. Untested or missing files will get the issue closed
         render: lua
+      validations:
+        required: true
+
+    - type: textarea
+      attributes:
+        label: Steps to reproduce
+        description: Numbered steps, starting from opening Neovim with your `minimal.lua`. Be precise. Include the prompt you sent to the LLM if there was one
+        placeholder: |
+          1. Open Neovim with the provided minimal.lua and the example file below
+          2. Open a chat buffer with `:CodeCompanionChat`
+          3. Send the prompt "..."
+          4. ...
+      validations:
+        required: true
+
+    - type: textarea
+      attributes:
+        label: Example files
+        description: |
+          Paste the contents of any file, buffer or selection involved in the bug, or attach them by dragging them into this box
+          I can't test a fix against a file I don't have. If the bug genuinely doesn't involve a specific file, write "N/A"
+        placeholder: |
+          ```python
+          def example():
+              ...
+          ```
       validations:
         required: true
 
@@ -119,15 +102,14 @@ body:
       attributes:
         label: Log output (optional)
         description: |
-          Share the output from `.repro/state/nvim/codecompanion.log` if available
+          Share the output from `.repro/state/nvim/codecompanion.log`
           Please redact any sensitive information
       validations:
         required: false
 
-    - type: checkboxes
+    - type: textarea
       attributes:
-        label: Minimal reproduction confirmation
-        description: I have provided and tested with a `minimal.lua` file as described above
-        options:
-          - label: Yes, I have tested and provided a `minimal.lua` file that reproduces the issue
-            required: true
+        label: Screenshots or recordings (optional)
+        description: Especially useful for UI and diffing issues
+      validations:
+        required: false
