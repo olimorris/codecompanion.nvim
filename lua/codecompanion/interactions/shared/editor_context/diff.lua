@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
@@ -48,10 +49,10 @@ function EditorContext:chat_render()
 
   local content = {}
   if unstaged ~= "" then
-    table.insert(content, fmt("Unstaged changes:\n\n````diff\n%s````", unstaged))
+    table.insert(content, fmt("Unstaged changes:\n\n%s", markdown.code_block(unstaged, { info = "diff" })))
   end
   if staged ~= "" then
-    table.insert(content, fmt("Staged changes:\n\n````diff\n%s````", staged))
+    table.insert(content, fmt("Staged changes:\n\n%s", markdown.code_block(staged, { info = "diff" })))
   end
 
   self.Chat:add_message({
@@ -79,28 +80,10 @@ function EditorContext:cli_render()
 
   local content = {}
   if unstaged ~= "" then
-    table.insert(
-      content,
-      fmt(
-        [[- Unstaged changes:
-````diff
-%s
-````]],
-        unstaged
-      )
-    )
+    table.insert(content, fmt("- Unstaged changes:\n%s", markdown.code_block(unstaged, { info = "diff" })))
   end
   if staged ~= "" then
-    table.insert(
-      content,
-      fmt(
-        [[- Staged changes:
-````diff
-%s
-````]],
-        staged
-      )
-    )
+    table.insert(content, fmt("- Staged changes:\n%s", markdown.code_block(staged, { info = "diff" })))
   end
 
   return {

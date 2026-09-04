@@ -1,5 +1,6 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+local markdown = require("codecompanion.utils.markdown")
 local registry = require("codecompanion.interactions.shared.registry")
 local rules = require("codecompanion.interactions.shared.rules")
 local rules_list = require("codecompanion.interactions.shared.rules.helpers").list()
@@ -32,7 +33,7 @@ return {
           role = config.constants.USER_ROLE,
           content = function(context)
             local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
-            return "I have the following code:\n\n````" .. context.filetype .. "\n" .. text .. "\n````\n\n"
+            return "I have the following code:\n\n" .. markdown.code_block(text, { info = context.filetype }) .. "\n\n"
           end,
           opts = {
             contains_code = true,

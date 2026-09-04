@@ -2,6 +2,7 @@ local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local utils = require("codecompanion.utils")
 
 local ts = vim.treesitter
@@ -74,15 +75,12 @@ local function send_output(SlashCommand, content, selected)
     role = config.constants.USER_ROLE,
     content = string.format(
       [[Help context for `%s`:
-````%s
 %s
-````
 
 Note the path to the help file is `%s`.
 ]],
       selected.tag,
-      ft,
-      content,
+      markdown.code_block(content, { info = ft }),
       selected.path
     ),
   }, { context = { id = id }, visible = false })

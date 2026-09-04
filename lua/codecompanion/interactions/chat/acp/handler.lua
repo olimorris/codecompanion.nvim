@@ -3,6 +3,7 @@ local Queue = require("codecompanion.utils.queue")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
@@ -424,7 +425,7 @@ function ACPHandler:handle_error(error)
   log:error("[ACP::Handler] %s", error)
 
   self.chat:add_buf_message(
-    { role = config.constants.LLM_ROLE, content = string.format("````txt\n%s\n````", error) },
+    { role = config.constants.LLM_ROLE, content = markdown.code_block(error, { info = "txt" }) },
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 

@@ -2,6 +2,7 @@ local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.help
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -277,7 +278,14 @@ local function render_section(doc, node)
   local body = table.concat(vim.list_slice(doc.lines, node.line, last), "\n")
   return {
     status = "success",
-    data = fmt("`%s` (lines %d-%d of %s)\n````vimdoc\n%s\n````", node.path, node.line, last, CONSTANTS.DOC_NAME, body),
+    data = fmt(
+      "`%s` (lines %d-%d of %s)\n%s",
+      node.path,
+      node.line,
+      last,
+      CONSTANTS.DOC_NAME,
+      markdown.code_block(body, { info = "vimdoc" })
+    ),
   }
 end
 
@@ -295,10 +303,10 @@ local function render_section_summary(doc, node)
   return {
     status = "success",
     data = fmt(
-      "`%s` spans %d lines, so only its introduction is shown. Read one of its subsections for the rest.\n````vimdoc\n%s\n````\nSubsections:\n%s",
+      "`%s` spans %d lines, so only its introduction is shown. Read one of its subsections for the rest.\n%s\nSubsections:\n%s",
       node.path,
       node.subtree_end - node.line + 1,
-      intro,
+      markdown.code_block(intro, { info = "vimdoc" }),
       table.concat(children, "\n")
     ),
   }

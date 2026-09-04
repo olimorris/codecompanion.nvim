@@ -5,6 +5,7 @@ parsing settings and rendering extmarks.
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local schema = require("codecompanion.schema")
 local shared_ui = require("codecompanion.interactions.shared.ui")
 local tags = require("codecompanion.interactions.shared.tags")
@@ -422,11 +423,8 @@ function UI:render(context, messages, opts)
   -- If the user has visually selected some text, add that to the chat buffer
   if context and context.is_visual and not opts.stop_context_insertion then
     log:trace("Adding visual selection to chat buffer")
-    table.insert(lines, "````" .. context.filetype)
-    for _, line in ipairs(context.lines) do
-      table.insert(lines, line)
-    end
-    table.insert(lines, "````")
+    local block = markdown.code_block(table.concat(context.lines, "\n"), { info = context.filetype })
+    vim.list_extend(lines, vim.split(block, "\n", { plain = true }))
   end
 
   self:unlock_buf()

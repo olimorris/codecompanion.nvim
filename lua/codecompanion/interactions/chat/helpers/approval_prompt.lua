@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local labels = require("codecompanion.interactions.chat.tools.labels")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
@@ -122,7 +123,9 @@ function M.present_diff(opts)
   if threshold_met then
     -- Show small diffs in the chat buffer
     local diff_text = diff_utils.unified(opts.from_lines, opts.to_lines)
-    local prompt = fmt("`````diff\n%s\n`````", diff_text)
+    -- The floor of five keeps this site's fence length unchanged for diffs that
+    -- do not collide with it.
+    local prompt = markdown.code_block(diff_text, { info = "diff", min = 5 })
     return opts.approve({ title = opts.title, prompt = prompt })
   elseif ui_utils.buf_is_active(opts.chat_bufnr) then
     -- If the chat is active, show the diff in the floating window

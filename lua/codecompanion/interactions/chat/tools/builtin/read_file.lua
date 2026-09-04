@@ -2,6 +2,7 @@ local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.help
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -105,15 +106,11 @@ local function extract_range(action, lines)
     status = "success",
     data = {
       for_llm = fmt(
-        [[Read file `%s` from lines %s (%d lines total):
-````%s
-%s
-````]],
+        "Read file `%s` from lines %s (%d lines total):\n%s",
         action.filepath,
         range_label,
         line_count,
-        vim.fn.fnamemodify(action.filepath, ":e"),
-        content
+        markdown.code_block(content, { info = vim.fn.fnamemodify(action.filepath, ":e") })
       ),
     },
   }

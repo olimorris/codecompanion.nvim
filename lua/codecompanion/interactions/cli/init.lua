@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local registry = require("codecompanion.interactions.shared.registry")
 local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
@@ -177,15 +178,12 @@ function CLI.resolve_editor_context(prompt, buffer_context)
   if buffer_context.is_visual and buffer_context.lines and #buffer_context.lines > 0 and not prompt:find("#{") then
     resolved = string.format(
       [[- Selected code from @%s (lines %d-%d):
-````%s
 %s
-````
 %s]],
       buffer_context.relative_path, -- Keep the CLI
       buffer_context.start_line,
       buffer_context.end_line,
-      buffer_context.filetype or "",
-      table.concat(buffer_context.lines, "\n"),
+      markdown.code_block(table.concat(buffer_context.lines, "\n"), { info = buffer_context.filetype or "" }),
       resolved
     )
   end

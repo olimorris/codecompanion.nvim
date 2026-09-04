@@ -1,5 +1,6 @@
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -226,7 +227,7 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
       if type(data) == "table" then
         -- Results were found - data is an array of file paths
         local results = #data
-        local results_msg = fmt("Searched text for `%s`, %d results\n````\n%s\n````", query, results, output)
+        local results_msg = fmt("Searched text for `%s`, %d results\n%s", query, results, markdown.code_block(output))
         chat:add_tool_output(self, fmt(llm_output, results_msg), "")
       else
         -- No results found - data is a string message

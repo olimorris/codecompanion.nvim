@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
@@ -47,7 +48,11 @@ function EditorContext:chat_render()
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = fmt("Latest output from terminal buffer %d:\n\n````\n%s\n````", bufnr, table.concat(content, "\n")),
+    content = fmt(
+      "Latest output from terminal buffer %d:\n\n%s",
+      bufnr,
+      markdown.code_block(table.concat(content, "\n"))
+    ),
   }, { _meta = { source = "editor_context", tag = tags.TERMINAL }, visible = false })
 end
 
@@ -78,14 +83,7 @@ function EditorContext:cli_render()
 
   return {
     inline = "the terminal output",
-    block = fmt(
-      [[- Latest terminal output:
-````
-%s
-````
-]],
-      table.concat(content, "\n")
-    ),
+    block = fmt("- Latest terminal output:\n%s\n", markdown.code_block(table.concat(content, "\n"))),
   }
 end
 

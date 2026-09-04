@@ -2,6 +2,7 @@ local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local api = vim.api
 local fmt = string.format
@@ -177,14 +178,11 @@ local function format_diagnostics(args)
 %s
 
 Code:
-````%s
-%s
-````]],
+%s]],
     args.display_path,
     #args.diagnostics,
     table.concat(messages, "\n"),
-    vim.bo[bufnr].filetype or "",
-    table.concat(code, "\n")
+    markdown.code_block(table.concat(code, "\n"), { info = vim.bo[bufnr].filetype or "" })
   )
 end
 
