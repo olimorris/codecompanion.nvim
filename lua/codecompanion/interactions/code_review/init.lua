@@ -140,7 +140,7 @@ local function advance_baseline(root)
     )
     return false
   end
-  store.clear_edited(root)
+  store.clear_round(root)
   store.clear_accepted(root)
   store.clear_ignored(root)
   keymaps.restore()
@@ -151,7 +151,7 @@ end
 ---@param root string
 ---@return boolean
 local function awaiting_review(root)
-  return #store.edited(root) > 0 or #store.comments(root) > 0
+  return store.round_open(root) or #store.comments(root) > 0
 end
 
 ---Replace the review quickfix list, keeping the cursor on a nearby entry
@@ -267,22 +267,12 @@ function M.open(opts)
     return
   end
 
-  local paths = nil
-  if opts.scope ~= "all" then
-    paths = store.edited(root)
-    if #paths == 0 then
-      return notify(
-        "No edits to review. Use `:CodeCompanionCodeReview All` to review everything since the baseline",
-        vim.log.levels.WARN
-      )
-    end
-  end
-
-  local hunks = baseline.diff(root, paths)
+  local hunks = baseline.diff(root)
   if not hunks then
     return notify("Could not read the worktree", vim.log.levels.ERROR)
   end
 
+  local changed = #hunks
   if opts.scope ~= "all" then
     local accepted = store.accepted(root)
     local ignored = store.ignored(root)
@@ -292,6 +282,9 @@ function M.open(opts)
   end
 
   if #hunks == 0 then
+    if changed > 0 then
+      return notify("No edits left to review. Use `:CodeCompanionCodeReview All` to include what you've set aside")
+    end
     return notify("No edits to review")
   end
 
@@ -401,22 +394,18 @@ function M.setup()
     group = group,
     pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent" },
     callback = function()
-      -- Only take a snapshot if the user hasn't finished a review
       local root = baseline.get_root()
-      if root and not awaiting_review(root) then
+      if not root then
+        return
+      end
+
+      -- Only take a snapshot if the user has finished reviewing the last round
+      if not awaiting_review(root) then
         baseline.snapshot(root)
       end
-    end,
-  })
 
-  api.nvim_create_autocmd("User", {
-    desc = "Track the files an agent edits for review",
-    group = group,
-    pattern = "CodeCompanionFileEdited",
-    callback = function(args)
-      local root = baseline.get_root()
-      if root and args.data and args.data.path then
-        store.track(root, args.data.path)
+      if baseline.get(root) then
+        store.begin_round(root)
       end
     end,
   })

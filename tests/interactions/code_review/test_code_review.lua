@@ -170,8 +170,7 @@ end
 T["Review"]["consume drains the comments and advances the baseline"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
+    submit()
     write("a.lua", { "local a = 100" })
     store.add_comment(repo, { comment = "Why 100?", code = "local a = 100", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
 
@@ -181,7 +180,7 @@ T["Review"]["consume drains the comments and advances the baseline"] = function(
   h.eq(1, child.lua_get("#consumed"))
   h.eq("Why 100?", child.lua_get("consumed[1].comment"))
   h.eq(0, child.lua_get("#review.pending()"))
-  h.eq(0, child.lua_get("#store.edited(repo)"))
+  h.is_false(child.lua_get("store.round_open(repo)"))
   h.eq(0, child.lua_get("#baseline.diff(repo)")) -- The commented change is now part of the baseline, so nothing is left to review
 end
 
@@ -241,7 +240,7 @@ T["Review"]["open leaves the quickfix alone when there is no baseline"] = functi
   h.is_false(child.lua_get("review_owns_quickfix()"))
 end
 
-T["Review"]["open leaves the quickfix alone when the agent has not edited anything"] = function()
+T["Review"]["open leaves the quickfix alone when nothing has changed since the baseline"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
@@ -256,7 +255,6 @@ T["Review"]["open leaves the quickfix alone when the worktree can't be read"] = 
   child.lua([[
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 100" })
 
     -- A lock another Neovim holds, so the diff can't be trusted and must not be read as "no edits"
@@ -273,85 +271,71 @@ T["Review"]["open leaves the quickfix alone when the worktree can't be read"] = 
   h.is_false(child.lua_get("review_owns_quickfix()"))
 end
 
-T["Review"]["open lists a quickfix entry per hunk in the agent's files"] = function()
+T["Review"]["open lists a quickfix entry per hunk, however the change was made"] = function()
   child.lua([[
     write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
     write("b.lua", { "local d = 4" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
+
+    -- The agent's tools report a.lua, but the b.lua edit it made with a shell command is reported by nothing
     write("a.lua", { "local a = 1", "local b = 20", "local c = 3" })
-    write("b.lua", { "local d = 40" }) -- the user's own edit, not the agent's
+    write("b.lua", { "local d = 40" })
 
     own_quickfix()
     review.open()
   ]])
 
   local qf = child.lua_get("vim.fn.getqflist()")
-  h.eq(1, #qf)
+  h.eq(2, #qf)
   h.eq(2, qf[1].lnum)
   h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[1].bufnr), 'a.lua')"))
+  h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[2].bufnr), 'b.lua')"))
   -- Anchors the cases asserting a review *didn't* take the quickfix over
   h.is_true(child.lua_get("review_owns_quickfix()"))
 end
 
-T["Review"]["a new round re-baselines, so only the agent's edits are left to review"] = function()
+T["Review"]["the first submission after a review re-baselines, dropping the user's own work"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
-    write("b.lua", { "local b = 2" })
     submit()
+    write("a.lua", { "local a = 1", "-- from the agent" })
+    review.approve()
 
     -- A pull brings work of its own, and the user edits a file by hand
-    write("a.lua", { "local a = 1", "-- from upstream" })
-    write("b.lua", { "local b = 2", "-- typed by hand" })
+    write("b.lua", { "-- from upstream" })
+    write("a.lua", { "local a = 1", "-- from the agent", "-- typed by hand" })
     submit()
 
-    -- Only now does the agent edit anything
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    write("a.lua", { "local a = 1", "-- from upstream", "-- from the agent" })
-
-    -- Scoped to everything, so nothing is merely being filtered out by file
-    review.open({ scope = "all" })
+    write("a.lua", { "local a = 1", "-- from the agent", "-- typed by hand", "-- from the next round" })
+    review.open()
   ]])
 
   h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-  h.eq("+1 -0 -- from the agent", child.lua_get("vim.fn.getqflist()[1].text"))
+  h.eq("+1 -0 -- from the next round", child.lua_get("vim.fn.getqflist()[1].text"))
 end
 
 T["Review"]["a round still to be reviewed keeps its baseline"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
+    submit()
     before = baseline.get(repo)
-    write("a.lua", { "local a = 10" })
 
     -- An edit the user hasn't reviewed yet
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
+    write("a.lua", { "local a = 10" })
     submit()
     after_edit = baseline.get(repo)
 
+    review.approve()
+    approved = baseline.get(repo)
+
     -- A comment they haven't sent yet
-    store.clear_edited(repo)
     store.add_comment(repo, { comment = "Why 10?", code = "local a = 10", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
     submit()
     after_comment = baseline.get(repo)
   ]])
 
   h.eq(child.lua_get("before"), child.lua_get("after_edit"))
-  h.eq(child.lua_get("before"), child.lua_get("after_comment"))
-end
-
-T["Review"]["open with scope all includes changes outside the agent's files"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    write("b.lua", { "local b = 2" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-    write("b.lua", { "local b = 20" })
-
-    review.open({ scope = "all" })
-  ]])
-
-  h.eq(2, child.lua_get("#vim.fn.getqflist()"))
+  h.eq(child.lua_get("approved"), child.lua_get("after_comment"))
 end
 
 T["Review"]["accept keeps the hunk out of later reviews, until the baseline advances"] = function()
@@ -359,8 +343,6 @@ T["Review"]["accept keeps the hunk out of later reviews, until the baseline adva
     write("a.lua", { "local a = 1" })
     write("b.lua", { "local b = 2" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    store.track(repo, vim.fs.joinpath(repo, "b.lua"))
     write("a.lua", { "local a = 10" })
     write("b.lua", { "local b = 20" })
 
@@ -386,7 +368,6 @@ T["Review"]["an accepted hunk returns when the change changes"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 10" })
 
     review.open()
@@ -412,8 +393,6 @@ T["Review"]["ignore drops every hunk in the file, until the baseline advances"] 
     write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
     write("b.lua", { "local d = 4" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
-    store.track(repo, vim.fs.joinpath(repo, "b.lua"))
     write("a.lua", { "local a = 10", "local b = 2", "local c = 30" })
     write("b.lua", { "local d = 40" })
 
@@ -440,7 +419,6 @@ T["Review"]["comment from the quickfix list targets the hunk"] = function()
     stub_input("Why 10?")
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 10" })
 
     review.open()
@@ -468,8 +446,6 @@ T["Review"]["accepting or ignoring a hunk closes the diff it was being read in"]
     write("notes", { "local a = 1" })
     write("other", { "local b = 2" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "notes"))
-    store.track(repo, vim.fs.joinpath(repo, "other"))
     write("notes", { "local a = 10" })
     write("other", { "local b = 20" })
 
@@ -498,7 +474,6 @@ T["Review"]["open_diff hands the hunk under the cursor to the configured provide
     end
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 10" })
 
     review.open()
@@ -531,7 +506,6 @@ T["Review"]["the review keymaps take the quickfix window, and give it back to an
 
     write("a.lua", { "local a = 1" })
     baseline.snapshot(repo)
-    store.track(repo, vim.fs.joinpath(repo, "a.lua"))
     write("a.lua", { "local a = 10" })
 
     all_keymaps = vim.tbl_keys(config.interactions.code_review.keymaps)

@@ -47,6 +47,8 @@ sequenceDiagram
 
 When an agent begins working in a git repository, CodeCompanion snapshots the worktree to a _baseline_ (a commit at `refs/worktree/codecompanion/baseline`). When you start a review, the diff between that baseline and the repo's files is produced. As the baseline lives in git and the review comments are persisted to disk, your progress is stored across sessions and Neovim instances.
 
+That snapshot is taken on the **first prompt of a round**. Prompt again before you've reviewed and the baseline stays where it is, so a round of work can't slip past you - it accumulates until you approve it or send your comments.
+
 > [!IMPORTANT]
 > Snapshots are produced against an index owned by CodeCompanion, so `git add` never runs against the user's index. This means a user's staged changes and anything that's pushed are unaffected by a code review
 
@@ -56,7 +58,7 @@ When an agent begins working in a git repository, CodeCompanion snapshots the wo
 | --- | --- |
 | `:CodeCompanionCodeReview` | Open the agent's changes in the quickfix list, one entry per hunk |
 | `:CodeCompanionCodeReview Accept` | Accept the current hunk, keeping it out of future reviews |
-| `:CodeCompanionCodeReview All` | As above, but include every change since the baseline - accepted hunks and files beyond the agent's |
+| `:CodeCompanionCodeReview All` | As above, but also include the hunks you've accepted and the files you've ignored |
 | `:CodeCompanionCodeReview Approve` | Approve everything up to now, advancing the baseline |
 | `:CodeCompanionCodeReview Comment` | Comment on the current line or visual selection, or edit the comment already there |
 | `:CodeCompanionCodeReview Comments` | Open the pending comments file for editing |
@@ -129,13 +131,13 @@ To reject a hunk outright, diff it with `d` and use Vim's native `do` (`:h do`) 
 
 ### Scoping
 
-By default a review only covers the files an agent edited **through CodeCompanion's tools**. Append `All` to widen it to every change since the baseline:
+A review covers **every change since the baseline**, whoever made it and however it was made. An agent that edits with a shell command, or hands the work to a sub-agent, is reviewed the same as one using CodeCompanion's own tools.
+
+Accepted hunks and ignored files are the only things held back. Append `All` to bring them in too:
 
 ```
 :CodeCompanionCodeReview All
 ```
-
-That includes your own edits, edits from outside of Neovim, hunks you've accepted and files you've ignored.
 
 ## Diffing
 
@@ -172,7 +174,7 @@ The baseline sees every change in your worktree, no matter who made it - so you 
 
 1. `:CodeCompanionCodeReview Start` before the agent begins
 2. Let the agent work
-3. `:CodeCompanionCodeReview All` to review everything since the baseline
+3. `:CodeCompanionCodeReview` to review everything since the baseline
 4. Leave comments with `:CodeCompanionCodeReview Comment`, as normal
 5. `:CodeCompanionCodeReview Share` to begin sharing with the agent. Your comments move to a `review.md` file, the baseline advances, and the file's path is copied to your clipboard
 6. Paste the path into the agent:
@@ -180,8 +182,6 @@ The baseline sees every change in your worktree, no matter who made it - so you 
 ```
 Please action my code review: /path/to/review.md
 ```
-
-`All` is required because CodeCompanion can only attribute a change to an agent when it goes through CodeCompanion's own tools or interactions.
 
 > [!TIP]
 > The `review.md` path is static at a repository level. Therefore, in a `CLAUDE.md` or `AGENTS.md` file you can reference this file, only needing to do `:CodeCompanionCodeReview Share` to advance the baseline.
