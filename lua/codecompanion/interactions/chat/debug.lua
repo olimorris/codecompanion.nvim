@@ -427,8 +427,6 @@ function Debug:save()
     helpers.apply_settings_and_model(self.chat, settings)
   end
   if messages then
-    -- The debug window hides ACP-excluded system messages, so splice them back in
-    -- by their original index rather than letting an unrelated save drop them
     for _, msg in ipairs(self.excluded_messages or {}) do
       table.insert(messages, math.min(msg._meta and msg._meta.index or 1, #messages + 1), msg)
     end
