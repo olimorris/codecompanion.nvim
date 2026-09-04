@@ -55,6 +55,7 @@ local uv = vim.uv
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
+---@field _pending_client_request_cancels table<number, function> Cancellation callbacks for adapter-handled client requests
 ---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
 ---@field methods table
 local Connection = {}
@@ -64,6 +65,15 @@ Connection.METHODS = METHODS
 ---@class CodeCompanion.ACP.Connection.PendingResponse
 ---@field result any
 ---@field error any
+
+---@class CodeCompanion.ACP.ClientRequest
+---@field id number
+---@field method string
+---@field params table
+---@field chat? CodeCompanion.Chat
+---@field respond fun(result: table)
+---@field reject fun(message: string, code?: number)
+---@field on_cancel fun(callback: function)
 
 local METHOD_DEFAULTS = {
   decode = vim.json.decode,
@@ -98,6 +108,7 @@ function Connection.new(args)
     _config_options = {},
     _initialized = false,
     _pending_callbacks = {},
+    _pending_client_request_cancels = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -677,6 +688,102 @@ local DISPATCH = {
   end,
 }
 
+---Build the request object passed to an adapter's ACP request handler
+---@param message table
+---@return CodeCompanion.ACP.ClientRequest
+---@return table state
+function Connection:new_client_request(message)
+  local responded = false
+  local request = {
+    id = message.id,
+    method = message.method,
+    params = type(message.params) == "table" and message.params or {},
+    chat = self.chat,
+  }
+
+  request.respond = function(result)
+    if responded then
+      return
+    end
+    responded = true
+    self._pending_client_request_cancels[message.id] = nil
+    self:send_result(message.id, result)
+  end
+  request.reject = function(error_message, code)
+    if responded then
+      return
+    end
+    responded = true
+    self._pending_client_request_cancels[message.id] = nil
+    self:send_error(message.id, error_message, code)
+  end
+  request.on_cancel = function(callback)
+    if type(callback) == "function" and not responded then
+      self._pending_client_request_cancels[message.id] = callback
+    end
+  end
+
+  return request,
+    {
+      has_responded = function()
+        return responded
+      end,
+      mark_responded = function()
+        responded = true
+      end,
+    }
+end
+
+---Dispatch an agent-to-client request to the active adapter
+---@param message table
+---@return boolean handled
+function Connection:handle_adapter_request(message)
+  local adapter = self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified or self.adapter
+  local handler = adapter and adapter.handlers and adapter.handlers.acp_request
+  if type(handler) ~= "function" then
+    return false
+  end
+
+  local request, state = self:new_client_request(message)
+  local ok, handled = pcall(handler, adapter, request)
+  if not ok then
+    local already_responded = state.has_responded()
+    local cancel = self._pending_client_request_cancels[message.id]
+    self._pending_client_request_cancels[message.id] = nil
+    state.mark_responded()
+    if cancel then
+      pcall(cancel)
+    end
+    log:error("[acp::handle_adapter_request] Adapter request handler failed: %s", handled)
+    if not already_responded then
+      self:send_error(message.id, "Adapter request handler failed")
+    end
+    return true
+  end
+
+  if handled == true or state.has_responded() then
+    return true
+  end
+
+  local cancel = self._pending_client_request_cancels[message.id]
+  self._pending_client_request_cancels[message.id] = nil
+  state.mark_responded()
+  if cancel then
+    pcall(cancel)
+  end
+  return false
+end
+
+---Cancel adapter-handled client requests for the current prompt
+---@return nil
+function Connection:cancel_client_requests()
+  local callbacks = self._pending_client_request_cancels
+  self._pending_client_request_cancels = {}
+  for _, callback in pairs(callbacks) do
+    pcall(callback)
+  end
+end
+
 ---Handle incoming requests and notifications from the ACP agent process
 ---@param notification? table
 function Connection:handle_incoming_request_or_notification(notification)
@@ -684,7 +791,9 @@ function Connection:handle_incoming_request_or_notification(notification)
     return
   end
 
-  local sid = notification.params and notification.params.sessionId
+  local params = type(notification.params) == "table" and notification.params or {}
+  local unwrapped_params = type(params.params) == "table" and params.params or params
+  local sid = unwrapped_params.sessionId
   local is_request = notification.id ~= nil
   if sid and self.session_id and sid ~= self.session_id then
     if is_request then
@@ -696,6 +805,13 @@ function Connection:handle_incoming_request_or_notification(notification)
   local handler = DISPATCH[notification.method]
   if handler then
     return handler(self, notification)
+  end
+
+  if is_request then
+    if self:handle_adapter_request(notification) then
+      return
+    end
+    self:send_error(notification.id, "Method not found", jsonrpc.errors.METHOD_NOT_FOUND)
   end
 end
 
@@ -876,6 +992,7 @@ function Connection:handle_process_exit(code, signal)
   self._authenticated = false
   self._initialized = false
   self._pending_callbacks = {}
+  self:cancel_client_requests()
   self.pending_responses = {}
   self.session_id = nil
 
