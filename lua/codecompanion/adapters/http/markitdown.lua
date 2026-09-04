@@ -8,26 +8,43 @@ return {
   formatted_name = "MarkItDown",
   opts = {
     stream = false,
+    timeout = 120000, -- Timeout for the conversion (milliseconds)
     ---Override the default HTTP request with a CLI-based one
     ---@param self CodeCompanion.HTTPClient
     ---@param _payload table
     ---@param actions { callback: fun(err: nil|table, data: nil|table) }
     ---@param _opts? table
-    ---@return nil
+    ---@return vim.SystemObj|nil
     request = function(self, _payload, actions, _opts)
       local url = self.adapter.env.url
       if not url then
         return actions.callback({ message = "No URL provided" }, nil)
       end
-      local ok, result = pcall(function()
-        return vim.system({ "markitdown", url }):wait()
-      end)
-      if not ok or result.code ~= 0 then
-        local err_msg = fmt("Failed to run `markitdown` (exit %d): %s", result.code, result.stderr or "")
-        log:error(err_msg)
-        return actions.callback({ message = err_msg }, nil)
+
+      local timeout = self.adapter.opts.timeout
+
+      local function fail(message)
+        log:error("[MarkItDown Adapter] %s", message)
+        actions.callback({ message = message }, nil)
       end
-      return actions.callback(nil, { body = result.stdout })
+
+      local ok, job = pcall(vim.system, { "markitdown", url }, { text = true, timeout = timeout }, function(result)
+        self.methods.schedule(function()
+          if result.code == 124 then
+            return fail(fmt("`markitdown` timed out after %dms", timeout))
+          end
+          if result.code ~= 0 then
+            return fail(fmt("Failed to run `markitdown` (exit %d): %s", result.code, result.stderr or ""))
+          end
+          actions.callback(nil, { body = result.stdout })
+        end)
+      end)
+
+      if not ok then
+        return fail(fmt("Failed to run `markitdown`: %s", job))
+      end
+
+      return job
     end,
   },
   env = {},
