@@ -287,9 +287,25 @@ function Debug:render()
   -- Add messages
   if vim.tbl_count(self.chat.messages) > 0 then
     table.insert(lines, "")
+
+    local display_messages = self.chat.messages
+    if adapter.type == "acp" then
+      display_messages, self.excluded_messages = {}, {}
+      for _, msg in ipairs(self.chat.messages) do
+        if msg.role == config.constants.SYSTEM_ROLE then
+          table.insert(self.excluded_messages, msg)
+        else
+          table.insert(display_messages, msg)
+        end
+      end
+      if #self.excluded_messages > 0 then
+        table.insert(lines, "-- NOTE: ACP doesn't accept a system prompt, so they're not sent")
+      end
+    end
+
     table.insert(lines, "local messages = ")
 
-    local messages = vim.inspect(self.chat.messages)
+    local messages = vim.inspect(display_messages)
     for line in messages:gmatch("[^\r\n]+") do
       table.insert(lines, line)
     end
@@ -411,6 +427,11 @@ function Debug:save()
     helpers.apply_settings_and_model(self.chat, settings)
   end
   if messages then
+    -- The debug window hides ACP-excluded system messages, so splice them back in
+    -- by their original index rather than letting an unrelated save drop them
+    for _, msg in ipairs(self.excluded_messages or {}) do
+      table.insert(messages, math.min(msg._meta and msg._meta.index or 1, #messages + 1), msg)
+    end
     self.chat.messages = messages
   end
   if session_id then
