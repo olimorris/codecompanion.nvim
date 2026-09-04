@@ -5,6 +5,7 @@ local fmt = string.format
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "markitdown",
+  formatted_name = "MarkItDown",
   opts = {
     stream = false,
     ---Override the default HTTP request with a CLI-based one
