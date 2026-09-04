@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                                 For NVIM v0.11    Last change: 2026 August 31
+                              For NVIM v0.11    Last change: 2026 September 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -4925,7 +4925,10 @@ for the tool.
 <
 
 **Options:** - `adapter` The adapter used to fetch, process and format the
-webpage's content (Default: `jina`)
+webpage's content (Default: `jina`). The MarkItDown
+<https://github.com/microsoft/markitdown> adapter is also available as an
+alternative, configurable via
+|codecompanion-usage-chat-buffer-slash-commands-fetch|.
 
 
 FILE_SEARCH
@@ -5696,9 +5699,26 @@ prompting the same LLM to summarize the chat history into a concise format.
 The `fetch` slash command allows you to add the contents of a URL to the chat
 buffer. By default, the plugin uses the awesome and powerful jina.ai
 <https://jina.ai> to parse the page's content and convert it into plain text.
-For convenience, the slash command will cache the output to disk and prompt the
-user if they wish to restore from the cache, should they look to fetch the same
-URL.
+You can also use the markitdown <https://github.com/microsoft/markitdown>
+adapter for the same purpose, which adds support for local files and various
+document formats like pdf, docx, etc. For convenience, the slash command will
+cache the output to disk and prompt the user if they wish to restore from the
+cache, should they look to fetch the same URL.
+
+The markitdown adapter runs the `markitdown` CLI, timing out at two minutes.
+This can be modified with:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          extend = {
+            markitdown = { opts = { timeout = 300000 } }, -- milliseconds
+          },
+        },
+      },
+    })
+<
 
 
 /FILE ~
