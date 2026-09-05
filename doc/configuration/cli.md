@@ -67,6 +67,43 @@ require("codecompanion").setup({
 
 Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
 
+## Hook Integration
+
+CLI interactions can integrate with agents that support hooks, enabling the CodeCompanion event system to react to the agent. Without this, features that need to know where a turn starts and ends, such as the [code review](/usage/code-review), are limited.
+
+CodeCompanion sets `CODECOMPANION_CLI_BUFNR` in the agent's environment, and Neovim sets `$NVIM` to its own server address, so a hook can call back into the session that started it.
+
+### Claude Code Hooks
+
+To connect [Claude Code](https://code.claude.com/docs/en/hooks), add this to `.claude/settings.json`
+
+````json [.claude/settings.json]
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'submitted'})\" || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'done'})\" || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+````
+
 ## Providers
 
 Providers determine how the CLI agent is run. The built-in `terminal` provider uses a Neovim terminal buffer with `jobstart()`:

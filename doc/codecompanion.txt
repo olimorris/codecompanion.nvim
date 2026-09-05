@@ -3129,6 +3129,33 @@ You can define multiple agents and switch between them:
 Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
 
 
+HOOK INTEGRATION ~
+
+CLI interactions can integrate with agents that support hooks, enabling the
+CodeCompanion event system to react to the agent. Without this, features that
+need to know where a turn starts and ends, such as the
+|codecompanion-usage-code-review|, are limited.
+
+CodeCompanion sets `CODECOMPANION_CLI_BUFNR` in the agent's environment, and
+Neovim sets `$NVIM` to its own server address, so a hook can call back into the
+session that started it.
+
+
+CLAUDE CODE HOOKS
+
+To connect Claude Code <https://code.claude.com/docs/en/hooks>, add this to
+`.claude/settings.json`
+
+`json [.claude/settings.json] { "hooks": { "UserPromptSubmit": [ { "hooks": [ {
+"type": "command", "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim
+--server \"$NVIM\" --remote-expr
+\"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR,
+'event': 'submitted'})\" || true" } ] } ], "Stop": [ { "hooks": [ { "type":
+"command", "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server
+\"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr':
+$CODECOMPANION_CLI_BUFNR, 'event': 'done'})\" || true" } ] } ] } }`
+
+
 PROVIDERS ~
 
 Providers determine how the CLI agent is run. The built-in `terminal` provider
@@ -6539,6 +6566,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
+- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires |codecompanion-configuration-cli-reporting-turns-with-hooks|
+- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires |codecompanion-configuration-cli-reporting-turns-with-hooks|
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
