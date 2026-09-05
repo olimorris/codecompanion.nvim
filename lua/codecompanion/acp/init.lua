@@ -436,7 +436,7 @@ function Connection:start_agent_process()
     {
       stdin = true,
       cwd = vim.fn.getcwd(),
-      env = vim.tbl_extend("force", adapter.env_replaced or {}, integrations.acp_env()),
+      env = vim.tbl_extend("force", adapter.env_replaced or {}, integrations.agent_env()),
       stdout = self.methods.schedule_wrap(function(err, data)
         if err then
           log:error("[acp::start_agent_process::stdout] Error: %s", err)

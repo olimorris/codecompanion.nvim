@@ -31,13 +31,13 @@ function M.setup()
   end)
 end
 
----Environment overrides for ACP adapters
+---Environment overrides for agent processes that CodeCompanion spawns
 ---@return table<string, string>
-function M.acp_env()
+function M.agent_env()
   local env = {}
   enabled_integrations(function(integration)
-    if integration.acp_env then
-      env = vim.tbl_extend("force", env, integration.acp_env())
+    if integration.agent_env then
+      env = vim.tbl_extend("force", env, integration.agent_env())
     end
   end)
   return env
