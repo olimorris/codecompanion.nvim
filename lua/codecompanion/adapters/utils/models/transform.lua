@@ -2,7 +2,7 @@ local M = {}
 
 ---@class CodeCompanion.Adapter.ModelChoice
 ---@field formatted_name string
----@field meta? { context_window?: number, max_tokens?: number }
+---@field meta? { context_window?: number, max_tokens?: number, max_output_tokens?: number, max_prompt_tokens?: number }
 ---@field opts table
 
 ---Ref: https://platform.claude.com/docs/en/api/models-list
@@ -76,7 +76,7 @@ function M.from_copilot(model)
   end
 
   local opts = {}
-  local limits = {}
+  local meta = {}
   local billing = {}
 
   local supports = capabilities.supports or {}
@@ -85,11 +85,11 @@ function M.from_copilot(model)
   opts.can_use_tools = supports.tool_calls or nil
   opts.has_vision = supports.vision or nil
 
-  local capability_limits = capabilities.limits
-  if capability_limits then
-    limits.max_output_tokens = capability_limits.max_output_tokens
-    limits.max_prompt_tokens = capability_limits.max_prompt_tokens
-    limits.context_window = capability_limits.max_context_window_tokens
+  local limits = capabilities.limits
+  if limits then
+    meta.context_window = limits.max_context_window_tokens
+    meta.max_output_tokens = limits.max_output_tokens
+    meta.max_prompt_tokens = limits.max_prompt_tokens
   end
 
   if model.billing then
@@ -105,8 +105,7 @@ function M.from_copilot(model)
       description = description,
       endpoint = endpoint,
       formatted_name = model.name,
-      limits = limits,
-      meta = limits.context_window and { context_window = limits.context_window } or nil,
+      meta = not vim.tbl_isempty(meta) and meta or nil,
       opts = opts,
       vendor = model.vendor,
     }

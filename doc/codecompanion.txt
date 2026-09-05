@@ -889,6 +889,11 @@ following the agent's selected version.
 
 CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
 
+- **System Prompts**: The ACP protocol does not currently support the sending of
+    specific system prompts to agents. To that end, CodeCompanion does not merge
+    any system prompts with user messages, so as to ensure that the end user
+    experiences the same behaviour as if they were interacting with the agent
+    directly.
 - **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`,
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
@@ -2787,6 +2792,20 @@ chat buffers:
 opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
 This also works for |codecompanion-configuration-extensions|.
+
+
+LIMITING TOOL OUTPUT
+
+To prevent the output from a tool exceeding the context window of a model,
+CodeCompanion will look to use the lower of a specified `max_output_tokens`
+limit or a model's own prompt limit. Should the tool exceed the limit,
+CodeCompanion will truncate the output and notify the LLM in the response.
+
+The limit can be configured with:
+
+`lua {6} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { max_output_tokens = 30000, -- Truncate a tool's output above this many
+tokens }, } } } })`
 
 
 LLM JUDGE
@@ -4906,7 +4925,10 @@ for the tool.
 <
 
 **Options:** - `adapter` The adapter used to fetch, process and format the
-webpage's content (Default: `jina`)
+webpage's content (Default: `jina`). The MarkItDown
+<https://github.com/microsoft/markitdown> adapter is also available as an
+alternative, configurable via
+|codecompanion-usage-chat-buffer-slash-commands-fetch|.
 
 
 FILE_SEARCH
@@ -5677,9 +5699,26 @@ prompting the same LLM to summarize the chat history into a concise format.
 The `fetch` slash command allows you to add the contents of a URL to the chat
 buffer. By default, the plugin uses the awesome and powerful jina.ai
 <https://jina.ai> to parse the page's content and convert it into plain text.
-For convenience, the slash command will cache the output to disk and prompt the
-user if they wish to restore from the cache, should they look to fetch the same
-URL.
+You can also use the markitdown <https://github.com/microsoft/markitdown>
+adapter for the same purpose, which adds support for local files and various
+document formats like pdf, docx, etc. For convenience, the slash command will
+cache the output to disk and prompt the user if they wish to restore from the
+cache, should they look to fetch the same URL.
+
+The markitdown adapter runs the `markitdown` CLI, timing out at two minutes.
+This can be modified with:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          extend = {
+            markitdown = { opts = { timeout = 300000 } }, -- milliseconds
+          },
+        },
+      },
+    })
+<
 
 
 /FILE ~

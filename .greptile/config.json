@@ -1,0 +1,158 @@
+{
+  "rules": [
+    {
+      "id": "comment-restates-code",
+      "rule": "Flag any comment that restates what the line below it already says, or that explains a self-evident guard, early return, loop, or assignment. Comments must record a non-obvious 'why' (an API quirk, an indexing convention, an ordering constraint, a deliberate limitation). Examples to flag: '-- Clear the modified flag', '-- Loop over the messages', '-- Return early if there is no buffer'.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "comment-density",
+      "rule": "Comment density must match the surrounding codebase, which averages fewer than one inline comment per 50 lines of Lua. Flag any new or modified Lua function that introduces more than roughly one inline comment per 20 lines of added code, and say which comments should be deleted.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "multi-line-rationale",
+      "rule": "A LuaCATS doc block description must be exactly one line. Flag any doc block whose description runs to two or more lines, or that contains rationale, usage examples, or background - that belongs in the commit message or PR description. Flag block comments used as file headers or section dividers in new files.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "empty-annotations",
+      "rule": "Flag LuaCATS annotations that carry no information: a '---@return nil' on a function that returns nothing, a description line that only restates the function name, and inline explanations appended to '---@param' lines (rename the param instead).",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "commented-out-code",
+      "rule": "Flag any commented-out code left in the diff. It must be deleted.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "naming-case",
+      "rule": "Naming conventions: snake_case for files, functions, locals and table keys; PascalCase for classes and LuaCATS type names; a leading underscore for private functions; SCREAMING_SNAKE_CASE only for module-level constants, never for a local declared inside a function.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "explicit-names",
+      "rule": "Names must be explicit and domain-specific. Flag abbreviations ('pat' for 'pattern', 'res', 'tmp', 'obj') and generic placeholder names ('ctx', 'data', 'val', 'item', 'after') where a domain word applies ('permission', 'request', 'source', 'adapter', 'chat', 'from_row'). Suggest the concrete replacement.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "function-names-are-verbs",
+      "rule": "Function names must start with a verb ('get_message', 'add_response', 'recover_headers'). Flag function names that are bare nouns, past participles ('extracted'), or prepositional phrases ('chat_with'). Boolean-returning helpers read as a question or state: has_*, is_*, should_*, can_*. Flag clever or poetic predicate names in favour of literal ones.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "function-length",
+      "rule": "Functions must not exceed 50 lines.",
+      "scope": [
+        "**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "table-argument",
+      "rule": "Functions take an `opts` table rather than a list of positional parameters. The shape used throughout the codebase is one positional argument for the subject the function acts on and an `opts` table for everything else (Chat:add_message(data, opts), Client:send(payload, opts)); where there is no natural subject, `opts` is the only parameter. Flag any new or modified function declaring more than two positional parameters, or declaring two where neither is the subject, and suggest the `opts` signature. An optional table is normalised on the first line with `opts = opts or {}`, or `vim.tbl_extend(\"force\", opts or {}, { ... })` when defaults are layered over it - flag an `opts` parameter that is read without being normalised. The shape is annotated inline on the @param, for example `---@param opts? { auto_submit?: boolean }`.",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "no-globals",
+      "rule": "No module-level globals in plugin source. Use module-local state. (_G is expected inside tests running in a child Neovim process.)",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "error-handling",
+      "rule": "Fallible calls are wrapped in pcall, logged with log:error(), and return nil on failure.",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "no-defensive-padding",
+      "rule": "Flag defensive code for conditions that cannot occur: validating a parameter every caller in the repo already supplies, nil-guarding a value the type annotation says is required, or adding a fallback path with no test that reaches it. This is a common LLM-generated pattern and it hides the real contract.",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "file-path-helpers",
+      "rule": "Filesystem work must use the helpers in lua/codecompanion/utils/files.lua, and paths must be joined with vim.fs.joinpath - never string concatenation or a hardcoded '/' or '\\' separator.",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "test-file-location",
+      "rule": "Test files mirror the source tree and are named test_<module>.lua: lua/codecompanion/interactions/chat/parser.lua is tested by tests/interactions/chat/test_parser.lua. Flag a new test file that adds a descriptive suffix for a subset of a module's behaviour (for example test_parser_resilience.lua) - those cases belong in the module's existing test file.",
+      "scope": [
+        "tests/**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "test-naming",
+      "rule": "Test case names follow T[\"<Subject>\"][\"<what it does>\"], where Subject is the capitalised module or feature (\"Chat\", \"Context\", \"Keymaps\", \"Parser\") and the case name is a short behavioural phrase completing 'it ...' - for example \"can load default tools\", \"system prompt is added first\", \"Cannot be added twice with the same id\". Flag narrative or prose-style case names such as \"an unterminated fence does not eat the next prompt\" and suggest a name matching the existing suite.",
+      "scope": [
+        "tests/**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "test-substance",
+      "rule": "Flag tests that assert nothing meaningful: a schema compared against a mirror of itself, a shared utility's error simply passed through, or a case whose assertions pass whether or not the change under review is applied. Comprehensive-looking tests that never exercise the edge case are worse than none.",
+      "scope": [
+        "tests/**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "no-ui-position-tests",
+      "rule": "Do not add tests for chat buffer cursor position, scrolling, or folds. These are verified by hand.",
+      "scope": [
+        "tests/**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
+      "id": "scope-creep",
+      "rule": "Flag changes outside the stated scope of the PR: unrelated reformatting, renames, or 'tidying' of code the change does not otherwise touch, and new files where the code could live in an existing one. Flag new documentation files that the PR description does not call for.",
+      "severity": "medium"
+    },
+    {
+      "id": "plain-language",
+      "rule": "Plain English in code, comments and commit messages. Flag jargon shortcuts such as 'no-op' in favour of saying what happens ('returns unchanged', 'does nothing', 'skipped because it was already handled'). Flag em dashes; use a plain dash.",
+      "severity": "low"
+    }
+  ]
+}

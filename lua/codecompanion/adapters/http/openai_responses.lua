@@ -274,7 +274,7 @@ return {
 
         local context_management = nil
         if self.opts.can_manage_context then
-          local helpers = require("codecompanion.interactions.chat.helpers")
+          local helpers = require("codecompanion.interactions.chat.helpers.context")
 
           context_management = {
             {

@@ -31,6 +31,7 @@ local defaults = {
       -- web_search adapters --------------------------------------------------
       duckduckgo = "duckduckgo",
       jina = "jina",
+      markitdown = "markitdown",
       tavily = "tavily",
       -------------------------------------------------------------------------
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
@@ -228,7 +229,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
-            adapter = "jina",
+            adapter = "jina", -- jina, markitdown
           },
         },
         ["file_search"] = {
@@ -325,6 +326,7 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {
           auto_submit_errors = true, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
+          max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
 
           folds = {
@@ -448,7 +450,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina
+            adapter = "jina", -- jina, markitdown
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
@@ -1098,8 +1100,8 @@ The user is working on a %s machine. Please respond with system specific command
         ".rules",
         ".windsurfrules",
         ".github/copilot-instructions.md",
-        "AGENT.md",
-        "AGENTS.md",
+        { path = "AGENT.md", parser = "claude" },
+        { path = "AGENTS.md", parser = "claude" },
         { path = "CLAUDE.md", parser = "claude" },
         { path = "CLAUDE.local.md", parser = "claude" },
         { path = "~/.claude/CLAUDE.md", parser = "claude" },
