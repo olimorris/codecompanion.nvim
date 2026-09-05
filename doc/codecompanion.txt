@@ -3129,11 +3129,11 @@ You can define multiple agents and switch between them:
 Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
 
 
-HOOK INTEGRATION ~
+HOOKS ~
 
 CLI interactions can integrate with agents that support hooks, enabling the
-CodeCompanion event system to react to the agent. Without this, features that
-need to know where a turn starts and ends, such as the
+CodeCompanion event system to react to the agent in realtime. Without this,
+features that need to know where a turn starts and ends, such as the
 |codecompanion-usage-code-review|, are limited.
 
 CodeCompanion sets `CODECOMPANION_CLI_BUFNR` in the agent's environment, and
@@ -3141,19 +3141,57 @@ Neovim sets `$NVIM` to its own server address, so a hook can call back into the
 session that started it.
 
 
-CLAUDE CODE HOOKS
+CLAUDE CODE
 
-To connect Claude Code <https://code.claude.com/docs/en/hooks>, add this to
+To integrate Claude Code <https://code.claude.com/docs/en/hooks>, add this to
 `.claude/settings.json`
 
-`json [.claude/settings.json] { "hooks": { "UserPromptSubmit": [ { "hooks": [ {
+`json [.claude/settings.json] { "hooks": { "Notification": [ { "hooks": [ {
 "type": "command", "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim
 --server \"$NVIM\" --remote-expr
 \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR,
-'event': 'submitted'})\" || true" } ] } ], "Stop": [ { "hooks": [ { "type":
+'event': 'blocked', 'message': 'Waiting for you'})\" || true" } ] } ],
+"PermissionRequest": [ { "hooks": [ { "type": "command", "command": "[ -z
+\"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr
+\"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR,
+'event': 'blocked', 'message': 'Permission needed'})\" || true" } ] } ],
+"PostToolUse": [ { "hooks": [ { "type": "command", "command": "[ -z
+\"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr
+\"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR,
+'event': 'working'})\" || true" } ] } ], "Stop": [ { "hooks": [ { "type":
 "command", "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server
 \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr':
-$CODECOMPANION_CLI_BUFNR, 'event': 'done'})\" || true" } ] } ] } }`
+$CODECOMPANION_CLI_BUFNR, 'event': 'done'})\" || true" } ] } ],
+"UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "[ -z
+\"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr
+\"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR,
+'event': 'submitted'})\" || true" } ] } ] } }`
+
+  ------------------------------------------------------------------------------
+  Claude Code hook        event                   CodeCompanion event
+  ----------------------- ----------------------- ------------------------------
+  Notification            blocked                 CodeCompanionCLIBlocked
+
+  PermissionRequest       blocked                 CodeCompanionCLIBlocked
+
+  PostToolUse             working                 CodeCompanionCLIWorking
+
+  Stop                    done                    CodeCompanionCLIDone, plus
+                                                  CodeCompanionRequestFinished
+
+  UserPromptSubmit        submitted               CodeCompanionCLISubmitted,
+                                                  plus
+                                                  CodeCompanionRequestStarted
+  ------------------------------------------------------------------------------
+`UserPromptSubmit` and `Stop` are the pair that marks out a turn. The rest are
+optional and separate `the agent is thinking` from `the agent is waiting on
+you`, which is what a statusline or herdr <https://herdr.dev> needs to show you
+that a pane wants attention. `PostToolUse` is what returns the agent to working
+once you've answered, so take it if you take `Notification` or
+`PermissionRequest`. It runs on every tool call, which costs a process spawn
+each time.
+
+`message` is free text and reaches listeners on the event's data payload.
 
 
 PROVIDERS ~
@@ -6566,8 +6604,10 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
-- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires |codecompanion-configuration-cli-reporting-turns-with-hooks|
-- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires |codecompanion-configuration-cli-reporting-turns-with-hooks|
+- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLIBlocked` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLIWorking` - Fired when a CLI agent resumes after waiting. Requires |codecompanion-configuration-cli-hooks|
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
@@ -6576,9 +6616,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
 - `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
-- `CodeCompanionRequestStarted` - Fired at the start of any API request
+- `CodeCompanionRequestStarted` - Fired at the start of any API request, and at the start of a CLI agent's turn when |codecompanion-configuration-cli-hooks| are wired up
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
-- `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionRequestFinished` - Fired at the end of any API request, and at the end of a CLI agent's turn when |codecompanion-configuration-cli-hooks| are wired up
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
 - `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request

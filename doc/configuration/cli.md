@@ -67,25 +67,45 @@ require("codecompanion").setup({
 
 Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
 
-## Hook Integration
+## Hooks
 
-CLI interactions can integrate with agents that support hooks, enabling the CodeCompanion event system to react to the agent. Without this, features that need to know where a turn starts and ends, such as the [code review](/usage/code-review), are limited.
+CLI interactions can integrate with agents that support hooks, enabling the CodeCompanion event system to react to the agent in realtime. Without this, features that need to know where a turn starts and ends, such as the [code review](/usage/code-review), are limited.
 
 CodeCompanion sets `CODECOMPANION_CLI_BUFNR` in the agent's environment, and Neovim sets `$NVIM` to its own server address, so a hook can call back into the session that started it.
 
-### Claude Code Hooks
+### Claude Code
 
-To connect [Claude Code](https://code.claude.com/docs/en/hooks), add this to `.claude/settings.json`
+To integrate [Claude Code](https://code.claude.com/docs/en/hooks), add this to `.claude/settings.json`
 
 ````json [.claude/settings.json]
 {
   "hooks": {
-    "UserPromptSubmit": [
+    "Notification": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'submitted'})\" || true"
+            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'blocked', 'message': 'Waiting for you'})\" || true"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'blocked', 'message': 'Permission needed'})\" || true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'working'})\" || true"
           }
         ]
       }
@@ -99,10 +119,32 @@ To connect [Claude Code](https://code.claude.com/docs/en/hooks), add this to `.c
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -z \"$CODECOMPANION_CLI_BUFNR\" ] || nvim --server \"$NVIM\" --remote-expr \"v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': 'submitted'})\" || true"
+          }
+        ]
+      }
     ]
   }
 }
 ````
+
+| Claude Code hook | `event` | CodeCompanion event |
+|---|---|---|
+| `Notification` | `blocked` | `CodeCompanionCLIBlocked` |
+| `PermissionRequest` | `blocked` | `CodeCompanionCLIBlocked` |
+| `PostToolUse` | `working` | `CodeCompanionCLIWorking` |
+| `Stop` | `done` | `CodeCompanionCLIDone`, plus `CodeCompanionRequestFinished` |
+| `UserPromptSubmit` | `submitted` | `CodeCompanionCLISubmitted`, plus `CodeCompanionRequestStarted` |
+
+`UserPromptSubmit` and `Stop` are the pair that marks out a turn. The rest are optional and separate _the agent is thinking_ from _the agent is waiting on you_, which is what a statusline or [herdr](https://herdr.dev) needs to show you that a pane wants attention. `PostToolUse` is what returns the agent to working once you've answered, so take it if you take `Notification` or `PermissionRequest`. It runs on every tool call, which costs a process spawn each time.
+
+`message` is free text and reaches listeners on the event's data payload.
 
 ## Providers
 
