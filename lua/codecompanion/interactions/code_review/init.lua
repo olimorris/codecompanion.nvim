@@ -411,7 +411,7 @@ function M.setup()
   })
 
   api.nvim_create_autocmd("User", {
-    desc = "Close a round the agent left the worktree untouched in",
+    desc = "Re-baseline on the next prompt when the agent changed no files",
     group = group,
     pattern = "CodeCompanionChatDone",
     callback = function()
