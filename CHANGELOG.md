@@ -1,5 +1,23 @@
 # Changelog
 
+## [19.24.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.23.0...v19.24.0) (2026-09-05)
+
+
+### Features
+
+* **chat:** add message and tool context protection ([#3350](https://github.com/olimorris/codecompanion.nvim/issues/3350)) ([e6048f0](https://github.com/olimorris/codecompanion.nvim/commit/e6048f02d806690ffae962439bec38d2d7231703))
+* **chat:** files/buffers are parsed with context formatters ([#3295](https://github.com/olimorris/codecompanion.nvim/issues/3295)) ([c39ddad](https://github.com/olimorris/codecompanion.nvim/commit/c39ddadd1d4e4f976d5c165348bd89eed98e3178))
+* default `AGENTS.md` uses claude parser ([#3359](https://github.com/olimorris/codecompanion.nvim/issues/3359)) ([d4c00c2](https://github.com/olimorris/codecompanion.nvim/commit/d4c00c29ffa49a9eda117099916168e32aa12e09))
+* **tools:** Add `MarkItDown` for `/fetch` and `fetch_webpage` ([#3299](https://github.com/olimorris/codecompanion.nvim/issues/3299)) ([c9c2903](https://github.com/olimorris/codecompanion.nvim/commit/c9c290388e50005425aed24b9fa93a4a52a85698))
+* **tools:** add new `search_help` tool ([#3341](https://github.com/olimorris/codecompanion.nvim/issues/3341)) ([14443f3](https://github.com/olimorris/codecompanion.nvim/commit/14443f38722b6cf9e8ba89b842a4aefde9696013))
+
+
+### Bug Fixes
+
+* **chat:** don't show system prompts for ACP ([#3362](https://github.com/olimorris/codecompanion.nvim/issues/3362)) ([182176a](https://github.com/olimorris/codecompanion.nvim/commit/182176ad46955c6da46e71ba4bf6f843e26f6e17))
+* **code_review:** capture ALL edits ([#3363](https://github.com/olimorris/codecompanion.nvim/issues/3363)) ([f73f40e](https://github.com/olimorris/codecompanion.nvim/commit/f73f40e9971a63358e1903ef814bce980e1d3818))
+* **ui:** diffing with last line ([#3339](https://github.com/olimorris/codecompanion.nvim/issues/3339)) ([8aa537e](https://github.com/olimorris/codecompanion.nvim/commit/8aa537e9aa794f0f16d817b982ea5034abd1fc4c)), closes [#3338](https://github.com/olimorris/codecompanion.nvim/issues/3338)
+
 ## [19.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.22.0...v19.23.0) (2026-08-24)
 
 
