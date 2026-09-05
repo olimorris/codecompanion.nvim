@@ -147,26 +147,6 @@ T["Store"]["clear_comments empties the store"] = function()
   h.eq(0, child.lua_get("#store.comments(repo)"))
 end
 
-T["Store"]["tracks edited files once, relative to the root"] = function()
-  child.lua([[
-    store.track(repo, vim.fs.joinpath(repo, "lua/foo.lua"))
-    store.track(repo, vim.fs.joinpath(repo, "lua/foo.lua"))
-    store.track(repo, vim.fs.joinpath(repo, "lua/bar.lua"))
-    store.track(repo, "/somewhere/else/baz.lua")
-  ]])
-
-  h.eq({ "lua/foo.lua", "lua/bar.lua" }, child.lua_get("store.edited(repo)"))
-end
-
-T["Store"]["clear_edited forgets the edited files"] = function()
-  child.lua([[
-    store.track(repo, vim.fs.joinpath(repo, "lua/foo.lua"))
-    store.clear_edited(repo)
-  ]])
-
-  h.eq(0, child.lua_get("#store.edited(repo)"))
-end
-
 T["Store"]["comments are scoped per branch"] = function()
   child.lua([[
     commit("init")

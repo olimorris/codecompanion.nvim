@@ -335,11 +335,22 @@ function M.snapshot(root)
   return commit
 end
 
+---Is the worktree identical to the baseline?
+---@param root string
+---@return boolean
+function M.worktree_matches(root)
+  local tree = git(root, { "rev-parse", "--quiet", "--verify", ref_for(root) .. "^{tree}" })
+  if not tree or tree == "" then
+    return false
+  end
+
+  return write_worktree(root) == tree
+end
+
 ---Diff the current worktree against the baseline, one entry per hunk
 ---@param root string
----@param paths? string[] Limit the diff to these paths, relative to the root
 ---@return CodeCompanion.CodeReview.Hunk[]|nil hunks Nil when the worktree couldn't be read
-function M.diff(root, paths)
+function M.diff(root)
   local worktree = write_worktree(root)
   if not worktree then
     return nil
@@ -348,12 +359,7 @@ function M.diff(root, paths)
   local ref = ref_for(root)
   sync_alias(root, ref)
 
-  local args = { "diff", "--no-color", "--no-ext-diff", "--unified=0", ref, worktree, "--" }
-  if paths then
-    vim.list_extend(args, paths)
-  end
-
-  local output = git(root, args)
+  local output = git(root, { "diff", "--no-color", "--no-ext-diff", "--unified=0", ref, worktree })
   if not output or output == "" then
     return {}
   end
