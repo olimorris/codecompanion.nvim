@@ -335,6 +335,18 @@ function M.snapshot(root)
   return commit
 end
 
+---Is the worktree identical to the baseline?
+---@param root string
+---@return boolean
+function M.worktree_matches(root)
+  local tree = git(root, { "rev-parse", "--quiet", "--verify", ref_for(root) .. "^{tree}" })
+  if not tree or tree == "" then
+    return false
+  end
+
+  return write_worktree(root) == tree
+end
+
 ---Diff the current worktree against the baseline, one entry per hunk
 ---@param root string
 ---@return CodeCompanion.CodeReview.Hunk[]|nil hunks Nil when the worktree couldn't be read

@@ -29,6 +29,10 @@ T = new_set({
           vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSubmitted" })
         end
 
+        done = function()
+          vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatDone" })
+        end
+
         -- Stub the input popup so `comment` submits immediately
         stub_input = function(comment)
           package.loaded["codecompanion.interactions.shared.input"].open = function(opts)
@@ -312,6 +316,40 @@ T["Review"]["the first submission after a review re-baselines, dropping the user
 
   h.eq(1, child.lua_get("#vim.fn.getqflist()"))
   h.eq("+1 -0 -- from the next round", child.lua_get("vim.fn.getqflist()[1].text"))
+end
+
+T["Review"]["a round the agent changed nothing in closes, so the next one re-baselines"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    submit()
+
+    -- The agent only answered a question, so there is nothing to hold the baseline for
+    done()
+    closed = store.round_open(repo)
+
+    -- A pull brings work of its own, and the user edits a file by hand
+    write("b.lua", { "-- from upstream" })
+    write("a.lua", { "local a = 1", "-- typed by hand" })
+    submit()
+
+    write("a.lua", { "local a = 1", "-- typed by hand", "-- from the agent" })
+    review.open()
+  ]])
+
+  h.is_false(child.lua_get("closed"))
+  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
+  h.eq("+1 -0 -- from the agent", child.lua_get("vim.fn.getqflist()[1].text"))
+end
+
+T["Review"]["a round the agent edited in stays open"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    submit()
+    write("a.lua", { "local a = 10" })
+    done()
+  ]])
+
+  h.is_true(child.lua_get("store.round_open(repo)"))
 end
 
 T["Review"]["a round still to be reviewed keeps its baseline"] = function()

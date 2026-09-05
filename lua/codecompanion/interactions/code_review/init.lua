@@ -410,6 +410,18 @@ function M.setup()
     end,
   })
 
+  api.nvim_create_autocmd("User", {
+    desc = "Close a round the agent left the worktree untouched in",
+    group = group,
+    pattern = "CodeCompanionChatDone",
+    callback = function()
+      local root = baseline.get_root()
+      if root and store.round_open(root) and baseline.worktree_matches(root) then
+        store.clear_round(root)
+      end
+    end,
+  })
+
   ui.refresh()
 end
 

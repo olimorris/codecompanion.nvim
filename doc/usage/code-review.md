@@ -47,7 +47,7 @@ sequenceDiagram
 
 When an agent begins working in a git repository, CodeCompanion snapshots the worktree to a _baseline_ (a commit at `refs/worktree/codecompanion/baseline`). When you start a review, the diff between that baseline and the repo's files is produced. As the baseline lives in git and the review comments are persisted to disk, your progress is stored across sessions and Neovim instances.
 
-That snapshot is taken on the **first prompt of a round**. Prompt again before you've reviewed and the baseline stays where it is, so a round of work can't slip past you - it accumulates until you approve it or send your comments.
+That snapshot is taken on the first prompt in any editing round. If you prompt again before reviewing the code then the baseline stays at the exact same point it was at, prior. The result of this is that you never lose sight of what's been edited by an agent as the edits accumulate.
 
 > [!IMPORTANT]
 > Snapshots are produced against an index owned by CodeCompanion, so `git add` never runs against the user's index. This means a user's staged changes and anything that's pushed are unaffected by a code review
