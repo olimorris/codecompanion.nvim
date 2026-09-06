@@ -32,6 +32,28 @@ local function image_query()
   return cached_image_query
 end
 
+---@param root TSNode
+---@param row number
+---@return boolean
+local function is_inside_unclosed_fence(root, row)
+  local node = root:descendant_for_range(row, 0, row, 0)
+
+  while node do
+    if node:type() == "fenced_code_block" then
+      local delimiters = 0
+      for child in node:iter_children() do
+        if child:type() == "fenced_code_block_delimiter" then
+          delimiters = delimiters + 1
+        end
+      end
+      return delimiters < 2
+    end
+    node = node:parent()
+  end
+
+  return false
+end
+
 local M = {}
 
 ---Parse the chat buffer for settings
@@ -89,7 +111,7 @@ function M.get_settings_key(chat, opts)
   return key_name, node
 end
 
----Recover the user's message from raw buffer lines when the query finds none
+---If user messages cannot be found by Tree-sitter, attempt to recover them by reading the buffer directly
 ---@param chat CodeCompanion.Chat
 ---@param start_range number
 ---@return { content: string }|nil
@@ -102,7 +124,7 @@ local function recover_messages(chat, start_range)
   lines = helpers.strip_context(lines)
   local content = vim.trim(table.concat(lines, "\n"))
 
-  -- Tool auto-submits send no user message, so an empty section must stay empty
+  -- A tool auto-submit send no user message, so an empty section must stay empty
   if content == "" then
     return nil
   end
@@ -141,27 +163,7 @@ function M.messages(chat, start_range)
   return recover_messages(chat, start_range)
 end
 
----@param root TSNode
----@param row number
----@return boolean
-local function is_inside_unclosed_fence(root, row)
-  local node = root:descendant_for_range(row, 0, row, 0)
-  while node do
-    if node:type() == "fenced_code_block" then
-      local delimiters = 0
-      for child in node:iter_children() do
-        if child:type() == "fenced_code_block_delimiter" then
-          delimiters = delimiters + 1
-        end
-      end
-      return delimiters < 2
-    end
-    node = node:parent()
-  end
-  return false
-end
-
----Find a user header that an unclosed code fence hid from Tree-sitter
+---If headers cannot be found by Tree-sitter, attempt to recover them
 ---@param chat CodeCompanion.Chat
 ---@param root TSNode
 ---@param from_row number

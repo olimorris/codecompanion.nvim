@@ -5,7 +5,6 @@ local child = MiniTest.new_child_neovim()
 local RESPONSE_WITH_UNCLOSED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n"
 local RESPONSE_WITH_CLOSED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n````\n"
 
----Add `response` as the LLM's answer, then type `lines` under a fresh user header
 ---@param response string
 ---@param lines string[]
 local function add_response(response, lines)
