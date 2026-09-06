@@ -660,6 +660,58 @@ T["ACPHandler"]["Edited Files"]["fires FileEdited when an edit tool call complet
   h.eq("test_acp", result.tool)
 end
 
+T["ACPHandler"]["Edited Files"]["fires FileEdited when a later update empties the locations"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+    chat.add_buf_message = function() end
+
+    local events = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args)
+        table.insert(events, args.data)
+      end,
+    })
+
+    local id = "toolu_emptied"
+    handler:process_tool_call({
+      toolCallId = id,
+      sessionUpdate = "tool_call",
+      status = "in_progress",
+      kind = "edit",
+      locations = { { path = "/tmp/kept.lua", line = 12 } },
+    })
+    -- The completing update carries empty arrays, which would otherwise stand for the real ones
+    handler:process_tool_call({
+      toolCallId = id,
+      sessionUpdate = "tool_call_update",
+      status = "completed",
+      content = {},
+      locations = {},
+    })
+
+    return {
+      event_count = #events,
+      path = events[1] and events[1].path,
+      line = events[1] and events[1].line,
+    }
+  ]])
+
+  h.eq(1, result.event_count)
+  h.eq("/tmp/kept.lua", result.path)
+  h.eq(12, result.line)
+end
+
 T["ACPHandler"]["Edited Files"]["falls back to diff content when locations are absent"] = function()
   local result = child.lua([[
     local chat = h.setup_chat_buffer({}, {

@@ -68,6 +68,7 @@
 local adapters = require("codecompanion.adapters")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
+local context_helpers = require("codecompanion.interactions.chat.helpers.context")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
@@ -1302,6 +1303,36 @@ function Chat:_submit_acp(payload)
   self.current_request = acp_handler:submit(payload)
 end
 
+---Determine if a message is too big to send to the LLM
+---@param message? { content: string }
+---@return boolean
+function Chat:message_too_big(message)
+  local messages = vim.list_extend({}, self.messages)
+  if message then
+    table.insert(messages, message)
+  end
+
+  local check = context_helpers.exceeds_input_limit({ adapter = self.adapter, messages = messages })
+  local exceeded_limit = check.exceeded
+  if not exceeded_limit then
+    return false
+  end
+
+  utils.notify(
+    fmt(
+      [[Message not sent.
+Message is around %d tokens, which is over %s's %d token limit.
+Shorten it, or edit it from the debug window]],
+      check.token_count,
+      self.adapter.formatted_name,
+      check.input_limit
+    ),
+    vim.log.levels.WARN
+  )
+
+  return true
+end
+
 ---Submit the chat buffer's contents to the LLM
 ---@param opts? table
 ---@return nil
@@ -1327,6 +1358,11 @@ function Chat:submit(opts)
   if opts.auto_submit then
     self:_complete_orphaned_tool_calls({ reason = CONSTANTS.INCOMPLETE_TOOL_CALL })
     self:_inject_btw()
+
+    -- A compaction request re-submits the chat itself, post summarisation
+    if not opts.after_compaction and require("codecompanion.interactions.chat.context_management").apply(self) then
+      return
+    end
   else
     local message_to_submit = parser.messages(self, self.header_line)
     if not message_to_submit and not helpers.has_user_messages(self.messages) then
@@ -1348,27 +1384,37 @@ function Chat:submit(opts)
     if message_to_submit then
       message_to_submit = self.context:remove(message_to_submit)
       self:replace_user_inputs(message_to_submit)
-      self:check_images(message_to_submit)
       self:check_context()
       sync_all_buffer_content(self)
-    end
-
-    -- Add the user message after any context so the LLM sees context first
-    if not opts.regenerate then
-      local chat_opts = config.interactions.chat.opts
-      if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
-        message_to_submit.content =
-          chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
-      end
-      self:add_message({
-        role = config.constants.USER_ROLE,
-        content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
-      })
     end
 
     -- Check if the user has manually overridden the adapter
     if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
       self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+      safe_adapter = adapters.make_safe(self.adapter)
+    end
+
+    -- Decorate the prompt before checking size
+    local chat_opts = config.interactions.chat.opts
+    if not opts.regenerate and message_to_submit and message_to_submit.content and chat_opts.prompt_decorator then
+      message_to_submit.content =
+        chat_opts.prompt_decorator(message_to_submit.content, safe_adapter, self.buffer_context)
+    end
+
+    if self:message_too_big(message_to_submit) then
+      return self:restore()
+    end
+
+    if message_to_submit then
+      self:check_images(message_to_submit)
+    end
+
+    -- Add the user message after any context so the LLM sees context first
+    if not opts.regenerate then
+      self:add_message({
+        role = config.constants.USER_ROLE,
+        content = (message_to_submit and message_to_submit.content or config.interactions.chat.opts.blank_prompt),
+      })
     end
 
     if not config.display.chat.auto_scroll then
@@ -1890,9 +1936,16 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     else
       existing.content = output.content
     end
+    output = existing
   else
     table.insert(self.messages, output)
   end
+
+  -- Truncate after merging so that a tool emitting many small chunks is caught too
+  output.content = context_helpers.truncate_tool_output({ adapter = self.adapter, content = output.content })
+  output._meta = vim.tbl_extend("force", output._meta or {}, {
+    estimated_tokens = tokens.calculate(output.content),
+  })
 
   -- Allow tools to pass in an empty string to not write any output to the buffer
   if for_user ~= "" then

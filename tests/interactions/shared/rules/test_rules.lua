@@ -488,9 +488,6 @@ T["Rules:make()"]["file referenced in both rules.files and @include should not b
         },
         is_preset = true,
       },
-      parsers = {
-        claude = "claude",
-      },
       opts = {
         chat = {
           enabled = true,
