@@ -39,6 +39,7 @@ local CONSTANTS = {
 }
 
 local herdr = nil ---@type string|nil
+local last_message = nil ---@type string|nil
 local last_state = nil ---@type string|nil
 
 ---herdr discards a sequence if it's not greater than the previous one
@@ -97,6 +98,7 @@ local function release()
   if not last_state then
     return
   end
+  last_message = nil
   last_state = nil
 
   -- Carries a sequence so herdr discards any report still in flight, which would re-attach the agent
@@ -150,11 +152,13 @@ local function update_herdr()
     return release()
   end
 
+  -- A blocked pane can change what it is waiting on so make sure we capture this
   local state, message = aggregate_in_flight_chats()
-  if state == last_state then
+  if state == last_state and message == last_message then
     return
   end
   last_state = state
+  last_message = message
 
   local args = {
     herdr,
@@ -208,10 +212,11 @@ local function untrack(args)
   update_herdr()
 end
 
----Set the environment for ACP adapters
+---Environment for the agents that CodeCompanion spawns
 ---@return table<string, string>
-function M.acp_env()
-  -- Ensure that any ACP agents spawned by CodeCompanion don't steal the herdr pane
+function M.agent_env()
+  -- Empty so a spawned agent can't report against Neovim's pane
+  -- NOTE: HERDR_ENV is the guard any hooks check first
   return { HERDR_ENV = "", HERDR_PANE_ID = "" }
 end
 
@@ -259,18 +264,23 @@ function M.setup()
     })
   end
 
-  on({ "CodeCompanionChatSubmitted", "CodeCompanionChatCompacting", "CodeCompanionToolsStarted" }, function(data)
+  on({
+    "CodeCompanionChatSubmitted",
+    "CodeCompanionChatCompacting",
+    "CodeCompanionCLISubmitted",
+    "CodeCompanionToolsStarted",
+  }, function(data)
     track({ bufnr = data.bufnr, state = "working" })
   end)
 
-  on({ "CodeCompanionChatCreated" }, function(data)
+  on({ "CodeCompanionChatCreated", "CodeCompanionCLICreated" }, function(data)
     open_chats[data.bufnr] = true
     update_herdr()
   end)
-  on({ "CodeCompanionChatDone", "CodeCompanionChatStopped" }, function(data)
+  on({ "CodeCompanionChatDone", "CodeCompanionChatStopped", "CodeCompanionCLIDone" }, function(data)
     untrack({ bufnr = data.bufnr })
   end)
-  on({ "CodeCompanionChatClosed" }, function(data)
+  on({ "CodeCompanionChatClosed", "CodeCompanionCLIClosed" }, function(data)
     open_chats[data.bufnr] = nil
     untrack({ bufnr = data.bufnr })
   end)
@@ -279,6 +289,13 @@ function M.setup()
     track({ bufnr = data.bufnr, state = "blocked", message = data.name and ("Approval needed: " .. data.name) or nil })
   end)
   on({ "CodeCompanionToolApprovalFinished" }, function(data)
+    resume({ bufnr = data.bufnr })
+  end)
+
+  on({ "CodeCompanionCLIApprovalRequested" }, function(data)
+    track({ bufnr = data.bufnr, state = "blocked", message = data.message })
+  end)
+  on({ "CodeCompanionCLIApprovalFinished" }, function(data)
     resume({ bufnr = data.bufnr })
   end)
 
