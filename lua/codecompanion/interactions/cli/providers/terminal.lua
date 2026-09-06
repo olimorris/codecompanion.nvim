@@ -49,7 +49,7 @@ end
 local function build_hook_env(opts)
   local env = { CODECOMPANION_CLI_BUFNR = tostring(opts.bufnr) }
 
-  local script = hooks.script_for(opts.cmd)
+  local script = hooks.script_for_agent(opts.cmd)
   if script then
     env.CODECOMPANION_HOOK = script
   end

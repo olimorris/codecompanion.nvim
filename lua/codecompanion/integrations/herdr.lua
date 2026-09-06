@@ -152,7 +152,7 @@ local function update_herdr()
     return release()
   end
 
-  -- A blocked pane can change what it is waiting on, so the message decides this too
+  -- A blocked pane can change what it is waiting on so make sure we capture this
   local state, message = aggregate_in_flight_chats()
   if state == last_state and message == last_message then
     return
@@ -212,11 +212,11 @@ local function untrack(args)
   update_herdr()
 end
 
----Environment for agents CodeCompanion spawns, so they never claim the pane themselves
+---Environment for the agents that CodeCompanion spawns
 ---@return table<string, string>
 function M.agent_env()
-  -- HERDR_ENV is herdr's master switch, so a spawned agent stops at its first guard and
-  -- CodeCompanion never has to track the rest of herdr's variables to stay ahead of it
+  -- Empty so a spawned agent can't report against Neovim's pane
+  -- NOTE: HERDR_ENV is the guard any hooks check first
   return { HERDR_ENV = "", HERDR_PANE_ID = "" }
 end
 
