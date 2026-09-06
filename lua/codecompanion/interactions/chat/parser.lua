@@ -89,18 +89,13 @@ function M.get_settings_key(chat, opts)
   return key_name, node
 end
 
----Chat buffers already warned about, so a recovery is reported once per buffer
-local warned_buffers = {}
-
 ---Recover the user's message from raw buffer lines when the query finds none
 ---@param chat CodeCompanion.Chat
 ---@param start_range number
 ---@return { content: string }|nil
 local function recover_messages(chat, start_range)
-  -- start_range is 1-based, so it already points at the row below the header
-  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, start_range, -1, false)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, start_range, -1, false) -- start_range is 1-based
 
-  -- strip_context only strips leading entries, so the blank row under the header must go first
   while lines[1] and vim.trim(lines[1]) == "" do
     table.remove(lines, 1)
   end
@@ -112,13 +107,6 @@ local function recover_messages(chat, start_range)
     return nil
   end
 
-  if not warned_buffers[chat.bufnr] then
-    warned_buffers[chat.bufnr] = true
-    log:warn(
-      "[chat::parser] Tree-sitter found no user message, so it was read from the buffer instead. "
-        .. "An unterminated code fence above the last user header is the usual cause."
-    )
-  end
   log:debug("[chat::parser] Recovered %d line(s) of user message from row %d", #lines, start_range)
 
   return { content = content }
@@ -153,11 +141,10 @@ function M.messages(chat, start_range)
   return recover_messages(chat, start_range)
 end
 
----Is `row` inside a fenced code block that was never closed?
 ---@param root TSNode
 ---@param row number
 ---@return boolean
-local function hidden_by_open_fence(root, row)
+local function is_inside_unclosed_fence(root, row)
   local node = root:descendant_for_range(row, 0, row, 0)
   while node do
     if node:type() == "fenced_code_block" then
@@ -167,7 +154,7 @@ local function hidden_by_open_fence(root, row)
           delimiters = delimiters + 1
         end
       end
-      return delimiters < 2 -- a closed block has two delimiters; an unterminated one only an opener
+      return delimiters < 2
     end
     node = node:parent()
   end
@@ -177,15 +164,15 @@ end
 ---Find a user header that an unclosed code fence hid from Tree-sitter
 ---@param chat CodeCompanion.Chat
 ---@param root TSNode
----@param after number 0-indexed row, or -1 when Tree-sitter found none
+---@param from_row number
 ---@return number|nil
-local function recover_headers(chat, root, after)
-  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, after + 1, -1, false)
+local function recover_headers(chat, root, from_row)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, from_row, -1, false)
   for i = #lines, 1, -1 do
     local heading = lines[i]:match("^##%s+(.-)%s*$")
     if heading and helpers.format_role(heading) == config.interactions.chat.roles.user then
-      local row = after + i
-      if hidden_by_open_fence(root, row) then
+      local row = from_row + i - 1
+      if is_inside_unclosed_fence(root, row) then
         return row
       end
     end
@@ -211,7 +198,7 @@ function M.headers(chat)
     end
   end
 
-  local recovered = recover_headers(chat, root, last_match and last_match:range() or -1)
+  local recovered = recover_headers(chat, root, last_match and (last_match:range() + 1) or 0)
   if recovered then
     return recovered
   end

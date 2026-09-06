@@ -1,18 +1,14 @@
--- An unterminated fence hides the last `## <user>` header from queries/markdown/chat.scm,
--- so the typed prompt is dropped on submit. These cases pin the recovery.
 local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
 
----An LLM response whose code fence is never closed, so the Markdown is invalid
-local UNTERMINATED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n"
----The same response with its fence closed, so the Markdown is valid
-local BALANCED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n````\n"
+local RESPONSE_WITH_UNCLOSED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n"
+local RESPONSE_WITH_CLOSED_FENCE = "Here you go:\n\n````lua\nlocal x = 1\n````\n"
 
 ---Add `response` as the LLM's answer, then type `lines` under a fresh user header
 ---@param response string
 ---@param lines string[]
-local function chat_with(response, lines)
+local function add_response(response, lines)
   child.lua(
     [[
     local response, typed = ...
@@ -28,46 +24,29 @@ local function chat_with(response, lines)
   )
 end
 
----What `Chat:submit()` would extract, plus the reported and actual header rows
----@return { content?: string, header?: number, expected_header?: number }
-local function extracted()
+---What `Chat:submit()` would extract as the user's message
+---@return { content?: string }
+local function get_extracted_message()
   return child.lua_get([[(function()
     local parser = require('codecompanion.interactions.chat.parser')
     local message = parser.messages(_G.chat, _G.chat.header_line)
-    local lines = vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, false)
-    local last_header
-    for i, line in ipairs(lines) do
-      if line:match('^## ') then
-        last_header = i - 1
-      end
-    end
-    return {
-      content = message and message.content,
-      header = parser.headers(_G.chat),
-      expected_header = last_header,
-    }
+    return { content = message and message.content }
   end)()]])
 end
 
----Record what the parser reports through `log:warn`
----
----That handler is registered at `vim.log.levels.WARN`, so a warning also reaches
----`vim.notify`. The offending fence is never rewritten and so stays broken for the
----rest of the conversation, which is why a given buffer must be reported once
----rather than on every submit.
----@return nil
-local function spy_on_warnings()
-  child.lua([[
-    _G.warnings = {}
-    local log = require('codecompanion.utils.log')
-    log.warn = function(_, msg)
-      table.insert(_G.warnings, msg)
+---The header row the parser reports, against the last one actually in the buffer
+---@return { reported?: number, actual?: number }
+local function get_header_rows()
+  return child.lua_get([[(function()
+    local parser = require('codecompanion.interactions.chat.parser')
+    local actual
+    for i, line in ipairs(vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, false)) do
+      if line:match('^## ') then
+        actual = i - 1
+      end
     end
-  ]])
-end
-
-local function warning_count()
-  return child.lua_get("#_G.warnings")
+    return { reported = parser.headers(_G.chat), actual = actual }
+  end)()]])
 end
 
 local T = new_set({
@@ -88,60 +67,40 @@ local T = new_set({
 
 T["Parser"] = new_set()
 
-T["Parser"]["a balanced response leaves the prompt extractable"] = function()
-  chat_with(BALANCED_FENCE, { "please fix the bug" })
-  h.eq("please fix the bug", extracted().content)
+T["Parser"]["Can extract a prompt after a closed code fence"] = function()
+  add_response(RESPONSE_WITH_CLOSED_FENCE, { "please fix the bug" })
+  h.eq("please fix the bug", get_extracted_message().content)
 end
 
-T["Parser"]["an unterminated fence does not eat the next prompt"] = function()
-  chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
-  h.eq("please fix the bug", extracted().content)
+T["Parser"]["Can extract a prompt after an unclosed code fence"] = function()
+  add_response(RESPONSE_WITH_UNCLOSED_FENCE, { "please fix the bug" })
+  h.eq("please fix the bug", get_extracted_message().content)
 end
 
-T["Parser"]["an unterminated fence does not hide the last user header"] = function()
-  chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
-  local result = extracted()
-  h.eq(result.expected_header, result.header)
+T["Parser"]["Finds the last user header behind an unclosed code fence"] = function()
+  add_response(RESPONSE_WITH_UNCLOSED_FENCE, { "please fix the bug" })
+  local rows = get_header_rows()
+  h.eq(rows.actual, rows.reported)
 end
 
-T["Parser"]["context lines are stripped from the recovered prompt"] = function()
-  chat_with(UNTERMINATED_FENCE, { "> Context:", "> - <file>foo.lua</file>", "", "please fix the bug" })
-  h.eq("please fix the bug", extracted().content)
+T["Parser"]["Strips context from a recovered prompt"] = function()
+  add_response(RESPONSE_WITH_UNCLOSED_FENCE, { "> Context:", "> - <file>foo.lua</file>", "", "please fix the bug" })
+  h.eq("please fix the bug", get_extracted_message().content)
 end
 
-T["Parser"]["a multi-line prompt is recovered whole"] = function()
-  chat_with(UNTERMINATED_FENCE, { "first line", "", "second line" })
-  h.eq("first line\n\nsecond line", extracted().content)
+T["Parser"]["Recovers a multi-line prompt in full"] = function()
+  add_response(RESPONSE_WITH_UNCLOSED_FENCE, { "first line", "", "second line" })
+  h.eq("first line\n\nsecond line", get_extracted_message().content)
 end
 
-T["Parser"]["an empty user section still yields no message"] = function()
-  -- Tool auto-submits rely on this: recovery must not fabricate a prompt.
-  chat_with(BALANCED_FENCE, {})
-  h.eq(nil, extracted().content)
+T["Parser"]["Returns no message for an empty user section"] = function()
+  add_response(RESPONSE_WITH_CLOSED_FENCE, {})
+  h.eq(nil, get_extracted_message().content)
 end
 
-T["Parser"]["an empty user section under a broken fence yields no message"] = function()
-  chat_with(UNTERMINATED_FENCE, {})
-  h.eq(nil, extracted().content)
-end
-
-T["Parser"]["recovery is reported once, not on every parse"] = function()
-  chat_with(UNTERMINATED_FENCE, { "please fix the bug" })
-  spy_on_warnings()
-
-  h.eq("please fix the bug", extracted().content)
-  h.eq("please fix the bug", extracted().content)
-
-  h.eq(1, warning_count())
-  h.expect_contains("unterminated code fence", child.lua_get("_G.warnings[1]"))
-end
-
-T["Parser"]["a healthy buffer is parsed without warning"] = function()
-  chat_with(BALANCED_FENCE, { "please fix the bug" })
-  spy_on_warnings()
-
-  h.eq("please fix the bug", extracted().content)
-  h.eq(0, warning_count())
+T["Parser"]["Returns no message for an empty user section under an unclosed fence"] = function()
+  add_response(RESPONSE_WITH_UNCLOSED_FENCE, {})
+  h.eq(nil, get_extracted_message().content)
 end
 
 return T
